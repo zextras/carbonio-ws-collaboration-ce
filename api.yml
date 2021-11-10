@@ -44,12 +44,14 @@ paths:
   /rooms/{roomId}:
     get:
       tags:
-        - Rooms
+        - Rooms'
       summary: Retrieves a list of every room the user has access to
       operationId: getRoom
       parameters:
-        - name: roomId
-          in: path
+        - in: path
+          name: roomId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       responses:
@@ -65,8 +67,10 @@ paths:
       summary: Updates a room information
       operationId: updateRoom
       parameters:
-        - name: roomId
-          in: path
+        - in: path
+          name: roomId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       requestBody:
@@ -90,8 +94,10 @@ paths:
       summary: Deletes the specified room
       operationId: deleteRoom
       parameters:
-        - name: roomId
-          in: path
+        - in: path
+          name: roomId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       responses:
@@ -106,8 +112,10 @@ paths:
       summary: Uploads and sets a new room picture
       operationId: setRoomPicture
       parameters:
-        - name: roomId
-          in: path
+        - in: path
+          name: roomId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       requestBody:
@@ -126,8 +134,10 @@ paths:
       summary: Mutes notification for the specified room
       operationId: muteRoom
       parameters:
-        - name: roomId
-          in: path
+        - in: path
+          name: roomId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       responses:
@@ -143,8 +153,10 @@ paths:
       summary: Unmutes notification for the specified room
       operationId: unmuteRoom
       parameters:
-        - name: roomId
-          in: path
+        - in: path
+          name: roomId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       responses:
@@ -161,8 +173,10 @@ paths:
       summary: Resets the specified room hash
       operationId: resetRoomHash
       parameters:
-        - name: roomId
-          in: path
+        - in: path
+          name: roomId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       responses:
@@ -180,8 +194,10 @@ paths:
       summary: Retrieves every member to the given room
       operationId: indexRoomMembers
       parameters:
-        - name: roomId
-          in: path
+        - in: path
+          name: roomId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       responses:
@@ -201,8 +217,10 @@ paths:
         the requester, this action is considered as an invitation
       operationId: addRoomMember
       parameters:
-        - name: roomId
-          in: path
+        - in: path
+          name: roomId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       requestBody:
@@ -225,8 +243,10 @@ paths:
         the requester, this action is considered as a kick
       operationId: deleteRoomMember
       parameters:
-        - name: roomId
-          in: path
+        - in: path
+          name: roomId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       responses:
@@ -241,12 +261,16 @@ paths:
       summary: Promotes a member to owner
       operationId: addOwner
       parameters:
-        - name: roomId
-          in: path
+        - in: path
+          name: roomId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
-        - name: userId
-          in: path
+        - in: path
+          name: userId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       responses:
@@ -262,12 +286,16 @@ paths:
       summary: Demotes a member from owner to normal member
       operationId: removeOwner
       parameters:
-        - name: roomId
-          in: path
+        - in: path
+          name: roomId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
-        - name: userId
-          in: path
+        - in: path
+          name: userId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       responses:
@@ -284,8 +312,10 @@ paths:
       summary: Retrieves a user
       operationId: getUser
       parameters:
-        - name: userId
-          in: path
+        - in: path
+          name: userId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       responses:
@@ -319,8 +349,10 @@ paths:
       description: Deletes an uploaded attachment
       operationId: deleteAttachment
       parameters:
-        - name: fileId
-          in: path
+        - in: path
+          name: fileId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       responses:
@@ -334,8 +366,10 @@ paths:
       description: Retrieves info related to an uploaded attachment
       operationId: getAttachmentInfo
       parameters:
-        - name: fileId
-          in: path
+        - in: path
+          name: fileId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       responses:
@@ -352,8 +386,10 @@ paths:
       description: Retrieves an uploaded attachment
       operationId: getAttachment
       parameters:
-        - name: fileId
-          in: path
+        - in: path
+          name: fileId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       responses:
@@ -370,8 +406,10 @@ paths:
       description: Retrieves the prefiew of an uploaded attachment
       operationId: getAttachmentPreview
       parameters:
-        - name: fileId
-          in: path
+        - in: path
+          name: fileId
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       responses:
