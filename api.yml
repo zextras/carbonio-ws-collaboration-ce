@@ -1,0 +1,662 @@
+openapi: 3.0.3
+info:
+  title: Team Api
+  description: |
+    Team HTTP APIs definition.
+  version: 0.1.2
+  contact:
+    email: smokybeans@zextras.com
+servers:
+  - url: https://test.example.org/zx/team
+tags:
+  - name: Rooms
+  - name: Members
+  - name: Users
+  - name: Attachments
+paths:
+  /rooms:
+    get:
+      tags:
+        - Rooms
+      summary: Retrieves a list of every room the user has access to
+      operationId: indexRooms
+      responses:
+        200:
+          $ref: '#/components/responses/IndexRoom200'
+    post:
+      tags:
+        - Rooms
+      summary: Creates a room of the specified type
+      operationId: createRoom
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Room'
+      responses:
+        201:
+          $ref: '#/components/responses/CreateRoom201'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        400:
+          $ref: '#/components/responses/BadRequest'
+  /rooms/{roomId}:
+    get:
+      tags:
+        - Rooms
+      summary: Retrieves a list of every room the user has access to
+      operationId: getRoom
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          allowEmptyValue: false
+      responses:
+        200:
+          $ref: '#/components/responses/GetRoom200'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - Rooms
+      summary: Updates a room information
+      operationId: updateRoom
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          allowEmptyValue: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatableRoomFields'
+      responses:
+        200:
+          $ref: '#/components/responses/UpdateRoom200'
+        400:
+          $ref: '#/components/responses/BadRequest'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Rooms
+      summary: Deletes the specified room
+      operationId: deleteRoom
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          allowEmptyValue: false
+      responses:
+        204:
+          $ref: '#/components/responses/DeleteRoom204'
+        403:
+          $ref: '#/components/responses/Forbidden'
+  /rooms/{roomId}/picture:
+    post:
+      tags:
+        - Rooms
+      summary: Uploads and sets a new room picture
+      operationId: setRoomPicture
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          allowEmptyValue: false
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        204:
+          $ref: '#/components/responses/SetRoomPicture204'
+  /rooms/{roomId}/mute:
+    put:
+      tags:
+        - Rooms
+      summary: Mutes notification for the specified room
+      operationId: muteRoom
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          allowEmptyValue: false
+      responses:
+        204:
+          $ref: '#/components/responses/MuteRoom204'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - Rooms
+      summary: Unmutes notification for the specified room
+      operationId: unmuteRoom
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          allowEmptyValue: false
+      responses:
+        204:
+          $ref: '#/components/responses/UnmuteRoom204'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+  /rooms/{roomId}/hash:
+    put:
+      tags:
+        - Rooms
+      summary: Resets the specified room hash
+      operationId: resetRoomHash
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          allowEmptyValue: false
+      responses:
+        200:
+          $ref: '#/components/responses/ResetRoomHash200'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+  /rooms/{roomId}/members:
+    get:
+      tags:
+        - Rooms
+        - Members
+      summary: Retrieves every member to the given room
+      operationId: indexRoomMembers
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          allowEmptyValue: false
+      responses:
+        200:
+          $ref: '#/components/responses/IndexRoomMembers200'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags:
+        - Rooms
+        - Members
+      summary: Adds the specified user to the room
+      description: |
+        Adds the specified user to the room. If the specified user is different from
+        the requester, this action is considered as an invitation
+      operationId: addRoomMember
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          allowEmptyValue: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Member'
+      responses:
+        201:
+          $ref: '#/components/responses/AddRoomMember200'
+        400:
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags:
+        - Members
+      summary: Removes a member
+      description: |
+        Removes a member from the specified room. If the specified user is different from
+        the requester, this action is considered as a kick
+      operationId: deleteRoomMember
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          allowEmptyValue: false
+      responses:
+        204:
+          $ref: '#/components/responses/DeleteRoomMember204'
+        403:
+          $ref: '#/components/responses/Forbidden'
+  /rooms/{roomId}/members/{userId}/owner:
+    put:
+      tags:
+        - Members
+      summary: Promotes a member to owner
+      operationId: addOwner
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          allowEmptyValue: false
+        - name: userId
+          in: path
+          required: true
+          allowEmptyValue: false
+      responses:
+        204:
+          $ref: '#/components/responses/AddOwner204'
+        404:
+          $ref: '#/components/responses/NotFound'
+        403:
+          $ref: '#/components/responses/Forbidden'
+    delete:
+      tags:
+        - Members
+      summary: Demotes a member from owner to normal member
+      operationId: removeOwner
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          allowEmptyValue: false
+        - name: userId
+          in: path
+          required: true
+          allowEmptyValue: false
+      responses:
+        204:
+          $ref: '#/components/responses/RemoveOwner204'
+        404:
+          $ref: '#/components/responses/NotFound'
+        403:
+          $ref: '#/components/responses/Forbidden'
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Retrieves a user
+      operationId: getUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          allowEmptyValue: false
+      responses:
+        200:
+          $ref: '#/components/responses/GetUser200'
+        404:
+          $ref: '#/components/responses/NotFound'
+
+  /attachments:
+    post:
+      tags:
+        - Attachments
+      description: Uploads a new attachment
+      operationId: uploadAttachment
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        201:
+          $ref: '#/components/responses/UploadAttachment201'
+        413:
+          $ref: '#/components/responses/PayloadTooLarge'
+  /attachments/{fileId}:
+    delete:
+      tags:
+        - Attachments
+      description: Deletes an uploaded attachment
+      operationId: deleteAttachment
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          allowEmptyValue: false
+      responses:
+        204:
+          $ref: '#/components/responses/DeleteAttachment204'
+        403:
+          $ref: '#/components/responses/Forbidden'
+    get:
+      tags:
+        - Attachments
+      description: Retrieves info related to an uploaded attachment
+      operationId: getAttachmentInfo
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          allowEmptyValue: false
+      responses:
+        200:
+          $ref: '#/components/responses/GetAttachmentInfo200'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+  /attachments/{fileId}/download:
+    get:
+      tags:
+        - Attachments
+      description: Retrieves an uploaded attachment
+      operationId: getAttachment
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          allowEmptyValue: false
+      responses:
+        200:
+          $ref: '#/components/responses/GetAttachment200'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+  /attachments/{fileId}/preview:
+    get:
+      tags:
+        - Attachments
+      description: Retrieves the prefiew of an uploaded attachment
+      operationId: getAttachmentPreview
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          allowEmptyValue: false
+      responses:
+        200:
+          $ref: '#/components/responses/GetAttachmentPreview200'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
+components:
+  responses:
+    IndexRoom200:
+      description: Returns the list of every room that the user has access to
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Room'
+    CreateRoom201:
+      description: Room was created successfully
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Room'
+    GetRoom200:
+      description: Returns the requested room
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Room'
+    UpdateRoom200:
+      description: The room was updated correctly
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Room'
+    DeleteRoom204:
+      description: Room was deleted correctly or it never existed
+    SetRoomPicture204:
+      description: Room picture was changed correctly
+    MuteRoom204:
+      description: Room was muted correctly
+    UnmuteRoom204:
+      description: Room was unmuted correctly
+    ResetRoomHash200:
+      description: Room's hash was reset
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              hash:
+                type: string
+                description: the updated room hash
+    IndexRoomMembers200:
+      description: The members were retrieved correctly
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Member'
+    AddRoomMember200:
+      description: The member was created
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Member'
+    DeleteRoomMember204:
+      description: The member was deleted correctly or it never existed
+    AddOwner204:
+      description: The member was promoted
+    RemoveOwner204:
+      description: The member was demoted
+    GetUser200:
+      description: The user was retrieved successfully
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/User'
+    UploadAttachment201:
+      description: The file was uploaded correctly
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+    DeleteAttachment204:
+      description: The file was deleted correctly
+    GetAttachmentInfo200:
+      description: Info were retrieved correctly
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Attachment'
+    GetAttachment200:
+      description: The file was downloaded correctly
+      content:
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
+    GetAttachmentPreview200:
+      description: The preview was obtained correctly
+      content:
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
+    NotFound:
+      description: The requested resource was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: The requester could not access the resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: The request had wrong or missing parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    PayloadTooLarge:
+      description: The request had a payload that was too big
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+    Room:
+      allOf:
+        - $ref: '#/components/schemas/UpdatableRoomFields'
+        - type: object
+          properties:
+            address:
+              type: string
+              format: uuid
+              description: the room address
+              readOnly: true
+            hash:
+              type: string
+              description: an hash that can be used to compose the room's link
+              readOnly: true
+            type:
+              type: string
+              enum:
+                - Channel
+                - Temporary
+                - Group
+                - Space
+                - OneToOne
+                - UserRoom
+              description: an hash that can be used to compose the room's link
+            parentId:
+              type: string
+              format: uuid
+              description: the id of an eventual parent room
+            members:
+              type: array
+              description: an array of every user subscribed to the room
+              items:
+                $ref: '#/components/schemas/Member'
+              readOnly: true
+            userSettings:
+              $ref: '#/components/schemas/UserRoomSettings'
+      required:
+        - address
+        - name
+        - hash
+        - type
+        - members
+    UpdatableRoomFields:
+      type: object
+      properties:
+        name:
+          type: string
+          description: the room name
+        description:
+          type: string
+          description: the room description
+    UserRoomSettings:
+      type: object
+      properties:
+        isMuted:
+          type: boolean
+      required:
+        - isMuted
+    Member:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        isOwner:
+          type: boolean
+        isTemporary:
+          type: boolean
+          readOnly: true
+        isExternal:
+          type: boolean
+          readOnly: true
+      required:
+        - userId
+        - roomAddress
+        - isOwner
+        - isTemporary
+        - isExternal
+    Attachment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+        size:
+          type: integer
+          format: int32
+          readOnly: true
+        mimeType:
+          type: string
+          readOnly: true
+        userId:
+          type: string
+          format: uuid
+          readOnly: true
+        roomId:
+          type: string
+          format: uuid
+      required:
+        - id
+        - name
+        - size
+        - mimeType
+        - userId
+        - roomId
+    Error:
+      type: object
+      properties:
+        debugInfo:
+          type: string
+          readOnly: true
+        timestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        issuer:
+          type: string
+          readOnly: true
+        errorCode:
+          type: string
+          readOnly: true
+        position:
+          type: string
+          readOnly: true
+        requestUrl:
+          type: string
+          readOnly: true
+      required:
+        - debugInfo
+        - timestamp
+        - issuer
+        - errorCode
+        - position
+        - requestUrl
+
