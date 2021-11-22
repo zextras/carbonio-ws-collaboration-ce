@@ -1,13 +1,12 @@
 openapi: 3.0.3
 info:
   title: Team Api
-  description: |
-    Team HTTP APIs definition.
+  description: Team HTTP APIs definition.
   version: 0.1.2
   contact:
     email: smokybeans@zextras.com
 servers:
-  - url: https://test.example.org/zx/team
+  - url: https://zextras.com/zx/team
 tags:
   - name: Rooms
   - name: Members
@@ -19,21 +18,22 @@ paths:
       tags:
         - Rooms
       summary: Retrieves a list of every room the user has access to
-      operationId: indexRooms
+      operationId: getRooms
       responses:
         200:
-          $ref: '#/components/responses/IndexRoom200'
+          $ref: '#/components/responses/GetRooms200'
     post:
       tags:
         - Rooms
       summary: Creates a room of the specified type
       operationId: createRoom
       requestBody:
+        description: room to create
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Room'
+              $ref: '#/components/schemas/RoomCreationFields'
       responses:
         201:
           $ref: '#/components/responses/CreateRoom201'
@@ -44,19 +44,21 @@ paths:
   /rooms/{roomId}:
     get:
       tags:
-        - Rooms'
-      summary: Retrieves a list of every room the user has access to
-      operationId: getRoom
+        - Rooms
+      summary: Retrieves the requested room
+      operationId: getRoomById
       parameters:
         - in: path
           name: roomId
+          description: room identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       responses:
         200:
-          $ref: '#/components/responses/GetRoom200'
+          $ref: '#/components/responses/GetRoomById200'
         403:
           $ref: '#/components/responses/Forbidden'
         404:
@@ -69,16 +71,19 @@ paths:
       parameters:
         - in: path
           name: roomId
+          description: room identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       requestBody:
+        description: room fields to update
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdatableRoomFields'
+              $ref: '#/components/schemas/RoomEditableFields'
       responses:
         200:
           $ref: '#/components/responses/UpdateRoom200'
@@ -96,8 +101,10 @@ paths:
       parameters:
         - in: path
           name: roomId
+          description: room identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       responses:
@@ -114,11 +121,15 @@ paths:
       parameters:
         - in: path
           name: roomId
+          description: room identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       requestBody:
+        description: image to set
+        required: true
         content:
           application/octet-stream:
             schema:
@@ -136,8 +147,10 @@ paths:
       parameters:
         - in: path
           name: roomId
+          description: room identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       responses:
@@ -155,8 +168,10 @@ paths:
       parameters:
         - in: path
           name: roomId
+          description: room identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       responses:
@@ -175,8 +190,10 @@ paths:
       parameters:
         - in: path
           name: roomId
+          description: room identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       responses:
@@ -192,26 +209,29 @@ paths:
         - Rooms
         - Members
       summary: Retrieves every member to the given room
-      operationId: indexRoomMembers
+      operationId: getRoomMembers
       parameters:
         - in: path
           name: roomId
+          description: room identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       responses:
         200:
-          $ref: '#/components/responses/IndexRoomMembers200'
+          $ref: '#/components/responses/GetRoomMembers200'
         403:
           $ref: '#/components/responses/Forbidden'
         404:
           $ref: '#/components/responses/NotFound'
+  /rooms/{roomId}/members/{userid}:
     post:
       tags:
         - Rooms
         - Members
-      summary: Adds the specified user to the room
+      summary: Adds or invites the specified user to the room
       description: |
         Adds the specified user to the room. If the specified user is different from
         the requester, this action is considered as an invitation
@@ -219,11 +239,22 @@ paths:
       parameters:
         - in: path
           name: roomId
+          description: room identifier
           schema:
             type: string
+            format: uuid
+          required: true
+          allowEmptyValue: false
+        - in: path
+          name: userid
+          description: user identifier
+          schema:
+            type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       requestBody:
+        description: member to add or invite
         required: true
         content:
           application/json:
@@ -236,8 +267,9 @@ paths:
           $ref: '#/components/responses/BadRequest'
     delete:
       tags:
+        - Rooms
         - Members
-      summary: Removes a member
+      summary: Removes a member to the room
       description: |
         Removes a member from the specified room. If the specified user is different from
         the requester, this action is considered as a kick
@@ -245,8 +277,18 @@ paths:
       parameters:
         - in: path
           name: roomId
+          description: room identifier
           schema:
             type: string
+            format: uuid
+          required: true
+          allowEmptyValue: false
+        - in: path
+          name: userid
+          description: user identifier
+          schema:
+            type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       responses:
@@ -263,14 +305,18 @@ paths:
       parameters:
         - in: path
           name: roomId
+          description: room identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
         - in: path
           name: userId
+          description: user identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       responses:
@@ -288,14 +334,18 @@ paths:
       parameters:
         - in: path
           name: roomId
+          description: room identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
         - in: path
           name: userId
+          description: user identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       responses:
@@ -310,27 +360,39 @@ paths:
       tags:
         - Users
       summary: Retrieves a user
-      operationId: getUser
+      operationId: getUserById
       parameters:
         - in: path
           name: userId
+          description: user identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       responses:
         200:
-          $ref: '#/components/responses/GetUser200'
+          $ref: '#/components/responses/GetUserById200'
         404:
           $ref: '#/components/responses/NotFound'
 
-  /attachments:
+  /rooms/{roomId}/attachments:
     post:
       tags:
         - Attachments
-      description: Uploads a new attachment
+      summary: Uploads a new attachment
       operationId: uploadAttachment
+      parameters:
+        - in: path
+          name: roomId
+          description: room identifier
+          schema:
+            type: string
+            format: uuid
+          required: true
+          allowEmptyValue: false
       requestBody:
+        description: file stream
         required: true
         content:
           application/octet-stream:
@@ -346,13 +408,15 @@ paths:
     delete:
       tags:
         - Attachments
-      description: Deletes an uploaded attachment
+      summary: Deletes an uploaded attachment
       operationId: deleteAttachment
       parameters:
         - in: path
           name: fileId
+          description: file identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       responses:
@@ -363,13 +427,15 @@ paths:
     get:
       tags:
         - Attachments
-      description: Retrieves info related to an uploaded attachment
+      summary: Retrieves info related to an uploaded attachment
       operationId: getAttachmentInfo
       parameters:
         - in: path
           name: fileId
+          description: file identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       responses:
@@ -383,13 +449,15 @@ paths:
     get:
       tags:
         - Attachments
-      description: Retrieves an uploaded attachment
+      summary: Retrieves an uploaded attachment
       operationId: getAttachment
       parameters:
         - in: path
           name: fileId
+          description: file identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       responses:
@@ -403,13 +471,15 @@ paths:
     get:
       tags:
         - Attachments
-      description: Retrieves the prefiew of an uploaded attachment
+      summary: Retrieves the prefiew of an uploaded attachment
       operationId: getAttachmentPreview
       parameters:
         - in: path
           name: fileId
+          description: file identifier
           schema:
             type: string
+            format: uuid
           required: true
           allowEmptyValue: false
       responses:
@@ -421,8 +491,8 @@ paths:
           $ref: '#/components/responses/NotFound'
 components:
   responses:
-    IndexRoom200:
-      description: Returns the list of every room that the user has access to
+    GetRooms200:
+      description: List of every room that the user has access to
       content:
         application/json:
           schema:
@@ -430,19 +500,19 @@ components:
             items:
               $ref: '#/components/schemas/Room'
     CreateRoom201:
-      description: Room was created successfully
+      description: The newly created room
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Room'
-    GetRoom200:
-      description: Returns the requested room
+            $ref: '#/components/schemas/RoomInfo'
+    GetRoomById200:
+      description: Requested room
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Room'
+            $ref: '#/components/schemas/RoomInfo'
     UpdateRoom200:
-      description: The room was updated correctly
+      description: Updated room
       content:
         application/json:
           schema:
@@ -456,17 +526,13 @@ components:
     UnmuteRoom204:
       description: Room was unmuted correctly
     ResetRoomHash200:
-      description: Room's hash was reset
+      description: Room's hash
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              hash:
-                type: string
-                description: the updated room hash
-    IndexRoomMembers200:
-      description: The members were retrieved correctly
+            $ref: '#/components/schemas/Hash'
+    GetRoomMembers200:
+      description: The room members list
       content:
         application/json:
           schema:
@@ -474,7 +540,7 @@ components:
             items:
               $ref: '#/components/schemas/Member'
     AddRoomMember200:
-      description: The member was created
+      description: The member added or invited
       content:
         application/json:
           schema:
@@ -485,41 +551,35 @@ components:
       description: The member was promoted
     RemoveOwner204:
       description: The member was demoted
-    GetUser200:
-      description: The user was retrieved successfully
+    GetUserById200:
+      description: Requested user
       content:
         application/json:
           schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/User'
+            $ref: '#/components/schemas/User'
     UploadAttachment201:
-      description: The file was uploaded correctly
+      description: File identifier
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              id:
-                type: string
-                format: uuid
+            $ref: '#/components/schemas/Id'
     DeleteAttachment204:
       description: The file was deleted correctly
     GetAttachmentInfo200:
-      description: Info were retrieved correctly
+      description: Attachment informations
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Attachment'
     GetAttachment200:
-      description: The file was downloaded correctly
+      description: The requested file
       content:
         application/octet-stream:
           schema:
             type: string
             format: binary
     GetAttachmentPreview200:
-      description: The preview was obtained correctly
+      description: The requested file preview
       content:
         application/octet-stream:
           schema:
@@ -527,174 +587,188 @@ components:
             format: binary
     NotFound:
       description: The requested resource was not found
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
     Forbidden:
       description: The requester could not access the resource
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
     BadRequest:
       description: The request had wrong or missing parameters
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
     PayloadTooLarge:
       description: The request had a payload that was too big
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
   schemas:
-    User:
+    Id:
       type: object
-      properties:
-        email:
-          type: string
-          format: email
-          readOnly: true
-        name:
-          type: string
-          readOnly: true
-    Room:
-      allOf:
-        - $ref: '#/components/schemas/UpdatableRoomFields'
-        - type: object
-          properties:
-            address:
-              type: string
-              format: uuid
-              description: the room address
-              readOnly: true
-            hash:
-              type: string
-              description: an hash that can be used to compose the room's link
-              readOnly: true
-            type:
-              type: string
-              enum:
-                - Channel
-                - Temporary
-                - Group
-                - Space
-                - OneToOne
-                - UserRoom
-              description: an hash that can be used to compose the room's link
-            parentId:
-              type: string
-              format: uuid
-              description: the id of an eventual parent room
-            members:
-              type: array
-              description: an array of every user subscribed to the room
-              items:
-                $ref: '#/components/schemas/Member'
-              readOnly: true
-            userSettings:
-              $ref: '#/components/schemas/UserRoomSettings'
-      required:
-        - address
-        - name
-        - hash
-        - type
-        - members
-    UpdatableRoomFields:
-      type: object
-      properties:
-        name:
-          type: string
-          description: the room name
-        description:
-          type: string
-          description: the room description
-    UserRoomSettings:
-      type: object
-      properties:
-        isMuted:
-          type: boolean
-      required:
-        - isMuted
-    Member:
-      type: object
-      properties:
-        userId:
-          type: string
-          format: uuid
-        isOwner:
-          type: boolean
-        isTemporary:
-          type: boolean
-          readOnly: true
-        isExternal:
-          type: boolean
-          readOnly: true
-      required:
-        - userId
-        - roomAddress
-        - isOwner
-        - isTemporary
-        - isExternal
-    Attachment:
-      type: object
+      description: Identifier object
       properties:
         id:
           type: string
           format: uuid
           readOnly: true
+          description: identifier
+      required: [ id ]
+    Hash:
+      type: object
+      description: Hash object
+      properties:
+        hash:
+          type: string
+          description: hash
+      required: [ hash ]
+    User:
+      type: object
+      description: User data
+      properties:
+        email:
+          type: string
+          format: email
+          readOnly: true
+          description: user's email
         name:
           type: string
-        size:
-          type: integer
-          format: int32
           readOnly: true
-        mimeType:
+          description: user's name
+      required: [ email, name ]
+    RoomType:
+      type: object
+      description: Room types managed
+      enum: [ Channel, Temporary, Group, Space, OneToOne, UserRoom ]
+    RoomEditableFields:
+      type: object
+      description: Room fields that can be updated
+      properties:
+        name:
           type: string
-          readOnly: true
+          description: room name
+        description:
+          type: string
+          description: room description
+      required: [ name ]
+    RoomCreationFields:
+      type: object
+      description: Room fields for its creation
+      allOf:
+        - $ref: '#/components/schemas/RoomEditableFields'
+        - type: object
+          properties:
+            type:
+              $ref: '#/components/schemas/RoomType'
+      properties:
+        membersIds:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          description: members identifiers list to be subscribed to the room
+      required: [ type, membersIds ]
+    Room:
+      type: object
+      description: Room data
+      allOf:
+        - $ref: '#/components/schemas/RoomCreationFields'
+        - type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+              readOnly: true
+              description: room identifier
+            hash:
+              type: string
+              readOnly: true
+              description: an hash that can be used to compose the room's link
+            parentId:
+              type: string
+              format: uuid
+              description: the id of an eventual parent room
+            password:
+              type: string
+              readOnly: true
+              description: password to room access
+            createdAt:
+              type: string
+              format: date-time
+              readOnly: true
+              description: creation date
+            updatedAt:
+              type: string
+              format: date-time
+              readOnly: true
+              description: update date
+      required: [ id, hash, createdAt, updatedAt ]
+    RoomInfo:
+      description: Room data with members list and current user settings
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/Room'
+      properties:
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+          description: list of users subscribed to the room
+        userSettings:
+          $ref: '#/components/schemas/RoomUserSettings'
+      required: [ members, userSettings ]
+    RoomUserSettings:
+      type: object
+      description: Preferences that an user has set for a room
+      properties:
+        isMuted:
+          type: boolean
+          description: indicates whether the user has muted
+      required: [ isMuted ]
+    Member:
+      type: object
+      description: Information about a user's role in the room
+      properties:
         userId:
           type: string
           format: uuid
           readOnly: true
+          description: user identifier
+        isOwner:
+          type: boolean
+          default: false
+          readOnly: true
+          description: indicates whether it is the owner
+        isTemporary:
+          type: boolean
+          default: false
+          readOnly: true
+          description: indicates whether it is temporary
+        isExternal:
+          type: boolean
+          default: false
+          readOnly: true
+          description: indicates whether it is enternal user
+      required: [ userId, isOwner, isTemporary, isExternal ]
+    Attachment:
+      type: object
+      description: Attachment of a message
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: identifier
+        name:
+          type: string
+          description: file name
+        size:
+          type: integer
+          format: int32
+          readOnly: true
+          description: file length
+        mimeType:
+          type: string
+          readOnly: true
+          description: mime type
+        userId:
+          type: string
+          format: uuid
+          readOnly: true
+          description: identifier of updated user
         roomId:
           type: string
           format: uuid
-      required:
-        - id
-        - name
-        - size
-        - mimeType
-        - userId
-        - roomId
-    Error:
-      type: object
-      properties:
-        debugInfo:
-          type: string
           readOnly: true
-        timestamp:
-          type: string
-          format: date-time
-          readOnly: true
-        issuer:
-          type: string
-          readOnly: true
-        errorCode:
-          type: string
-          readOnly: true
-        position:
-          type: string
-          readOnly: true
-        requestUrl:
-          type: string
-          readOnly: true
-      required:
-        - debugInfo
-        - timestamp
-        - issuer
-        - errorCode
-        - position
-        - requestUrl
-
+          description: identifier of destination room
+      required: [ id, name, size, mimeType, userId, roomId ]

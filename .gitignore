@@ -22,9 +22,11 @@ dist/
 # Maven
 target/
 dist/
+*.versionsBackup
 
 # JetBrains IDE
 .idea/
+*.iml
 
 # Unit test reports
 TEST*.xml

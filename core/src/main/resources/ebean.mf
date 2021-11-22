@@ -1,0 +1,2 @@
+entity-packages: com.zextras.team.core.data.entity
+transactional-packages: com.zextras.team.core.repository

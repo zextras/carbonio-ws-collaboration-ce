@@ -1,0 +1,48 @@
+package com.zextras.team.core.exception;
+
+
+import java.io.Serializable;
+import javax.ws.rs.core.Response.Status;
+
+public class NotFoundException extends TeamHttpException implements Serializable {
+
+  private static final long    serialVersionUID = -7586350573263929718L;
+  private static final Status  HTTP_STATUS      = Status.NOT_FOUND;
+  private static final boolean IS_TO_LOG        = true;
+
+  public NotFoundException() {
+    super(HTTP_STATUS);
+  }
+
+  public NotFoundException(Throwable cause) {
+    super(HTTP_STATUS, cause);
+  }
+
+  public NotFoundException(String debugInfo) {
+    super(HTTP_STATUS, debugInfo);
+  }
+
+  public NotFoundException(String debugInfo, Throwable cause) {
+    super(HTTP_STATUS, debugInfo, cause);
+  }
+
+  public NotFoundException(String error, String debugInfo) {
+    super(HTTP_STATUS, error, debugInfo);
+  }
+
+  public NotFoundException(String error, String debugInfo, Throwable cause) {
+    super(HTTP_STATUS, error, debugInfo, cause);
+  }
+
+  protected NotFoundException(
+    String error, String debugInfo, Throwable cause, boolean enableSuppression,
+    boolean writableStackTrace
+  ) {
+    super(HTTP_STATUS, error, debugInfo, cause, enableSuppression, writableStackTrace);
+  }
+
+  @Override
+  public boolean isToLog() {
+    return IS_TO_LOG;
+  }
+}

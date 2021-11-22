@@ -1,0 +1,37 @@
+package {{package}}.impl;
+
+import {{package}}.*;/home/luca/dev/workspace/team-community-edition/core/src/main/java/com/zextras/team/core/service/impl
+import {{modelPackage}}.*;
+{{#operations}}{{#operation}}{{#isMultipart}}import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
+{{/isMultipart}}{{/operation}}{{/operations}}
+
+{{#imports}}import {{import}};
+{{/imports}}
+
+import java.util.List;
+
+import java.io.InputStream;
+
+import javax.enterprise.context.RequestScoped;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
+
+@RequestScoped
+{{>generatedAnnotation}}
+{{#operations}}
+public class {{classname}}ServiceImpl implements {{classname}}Service {
+
+  {{#operation}}
+  @Override
+  public Response {{nickname}}({{#isMultipart}}MultipartFormDataInput input,{{/isMultipart}}{{#allParams}}{{>serviceQueryParams}}{{>servicePathParams}}{{>serviceHeaderParams}}{{>serviceBodyParams}}{{^isMultipart}}{{>serviceFormParams}},{{/isMultipart}}{{#isMultipart}}{{^isFormParam}},{{/isFormParam}}{{/isMultipart}}{{/allParams}}SecurityContext securityContext) {
+    return Response.status({{{responses.0.code}}}).entity({{nickname}}Int({{#isMultipart}}input,{{/isMultipart}}{{#allParams}}{{^isMultipart}}{{paramName}},{{/isMultipart}}{{#isMultipart}}{{^isFormParam}}{{paramName}},{{/isFormParam}}{{/isMultipart}}{{/allParams}}securityContext)).build();
+  }
+  {{/operation}}
+
+  {{#operation}}
+  private {{#returnContainer}}{{{.}}}<{{/returnContainer}}{{{returnBaseType}}}{{#returnContainer}}>{{/returnContainer}} {{nickname}}Int({{#isMultipart}}MultipartFormDataInput input,{{/isMultipart}}{{#allParams}}{{>serviceQueryParams}}{{>servicePathParams}}{{>serviceHeaderParams}}{{>serviceBodyParams}}{{^isMultipart}}{{>serviceFormParams}},{{/isMultipart}}{{#isMultipart}}{{^isFormParam}},{{/isFormParam}}{{/isMultipart}}{{/allParams}}SecurityContext securityContext) {
+    return null;
+  }
+  {{/operation}}
+}
+{{/operations}}

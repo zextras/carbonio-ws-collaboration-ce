@@ -1,1 +1,0 @@
-npx openapi-generator-cli generate -g jaxrs-resteasy -i api.yml -c generation-config.yml

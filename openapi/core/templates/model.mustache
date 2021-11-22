@@ -1,0 +1,21 @@
+package {{package}};
+
+import {{invokerPackage}}.StringUtil;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.Objects;
+import java.util.ArrayList;
+import javax.annotation.Generated;
+{{#imports}}import {{import}};
+{{/imports}}
+{{#serializableModel}}
+import java.io.Serializable;
+{{/serializableModel}}
+{{#useBeanValidation}}
+import javax.validation.constraints.*;
+{{/useBeanValidation}}
+{{#models}}
+{{#model}}
+{{#isEnum}}{{>enumOuterClass}}{{/isEnum}}
+{{^isEnum}}{{>pojo}}{{/isEnum}}
+{{/model}}
+{{/models}}

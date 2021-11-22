@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <property resource="team.properties"/>
+
+  <appender name="FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${zextras.team.logging.folder}/team.log</file>
+    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+      <Pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} %5p %-30.30logger{29} : %m%n</Pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <FileNamePattern>${zextras.team.logging.folder}/team.%d{yyyy-MM-dd}.log.gz</FileNamePattern>
+      <MaxHistory>60</MaxHistory>
+    </rollingPolicy>
+  </appender>
+
+  <logger name="com.zextras.team.core" level="DEBUG">
+    <appender-ref ref="FILE_APPENDER"/>
+  </logger>
+
+  <logger name="com.zextras.team" level="DEBUG">
+    <appender-ref ref="FILE_APPENDER"/>
+  </logger>
+
+  <logger name="org.hibernate.SQL" level="INFO">
+    <appender-ref ref="FILE_APPENDER"/>
+  </logger>
+
+  <logger name="org.hibernate" level="INFO">
+    <appender-ref ref="FILE_APPENDER"/>
+  </logger>
+
+  <logger name="org.springframework" level="INFO">
+    <appender-ref ref="FILE_APPENDER"/>
+  </logger>
+
+  <root level="INFO">
+    <appender-ref ref="FILE_APPENDER"/>
+  </root>
+
+</configuration>

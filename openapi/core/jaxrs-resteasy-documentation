@@ -1,0 +1,54 @@
+documentation: https://openapi-generator.tech/docs/generators/jaxrs-resteasy/
+
+//documentation: https://openapi-generator.tech/docs/generators/jaxrs-resteasy/
+{
+  "additionalEnumTypeAnnotations": null,
+  "additionalModelTypeAnnotations": null,
+  "allowUnicodeIdentifiers": null,
+  "apiPackage": "com.zextras.team.core.api", // also present in the root configuration
+  "artifactDescription": "Zextras Team CE core module", // pom.xml
+  "artifactId": "core", // pom.xml
+  "artifactUrl": null, // pom.xml
+  "artifactVersion": null, // pom.xml
+  "bigDecimalAsString": false, // default
+  "booleanGetterPrefix": "get", // default
+  "dateLibrary": "java8-localdatetime",
+  "developerEmail": null, // pom.xml
+  "developerName": null, // pom.xml
+  "developerOrganization": null, // pom.xml
+  "developerOrganizationUrl": null, // pom.xml
+  "disableHtmlEscaping": false, // default
+  "disallowAdditionalPropertiesIfNotPresent": true, // default
+  "discriminatorCaseSensitive": true, // default
+  "ensureUniqueParams": true, // default
+  "fullJavaUtil": false, // default
+  "generateJbossDeploymentDescriptor": false, // default
+  "groupId": "com.zextras.team", // pom.xml
+  "hideGenerationTimestamp": false, // default
+  "ignoreAnyOfInEnum": false, // default
+  "implFolder": "src/main/gen",
+  "invokerPackage": "com.zextras.team.core.invoker", // also present in the root configuration
+  "java8": true, // default
+  "legacyDiscriminatorBehavior": true // default
+  //"licenseName": null,
+  //"licenseUrl": null,
+  "modelPackage": "com.zextras.team.core.model",
+  "openApiNullable": true, // default
+  "parentArtifactId": "community", // pom.xml
+  "parentGroupId": "com.zextras.team", // pom.xml
+  "parentVersion": "0.1.2", // pom.xml
+  "prependFormOrBodyParameters": false, // default
+  "scmConnection": null, // pom.xml
+  "scmDeveloperConnection": null, // pom.xml
+  "scmUrl": null, // pom.xml
+  "serializableModel": false, // default
+  "serverPort": 8080, // default
+  "snapshotVersion": false, // pom.xml
+  "sortModelPropertiesByRequiredFlag": true, // default
+  "sortParamsByRequiredFlag": true, // default
+  "sourceFolder": "src/main/gen",
+  "title": "Zextras Team CE",
+  "useBeanValidation": true, // default
+  "useTags": false, // default
+  "withXml": false // default
+}
