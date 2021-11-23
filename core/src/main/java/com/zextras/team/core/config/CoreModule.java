@@ -5,6 +5,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import com.zextras.team.core.api.AttachmentsApi;
+import com.zextras.team.core.api.AttachmentsApiService;
 import com.zextras.team.core.api.RoomsApi;
 import com.zextras.team.core.api.RoomsApiService;
 import com.zextras.team.core.api.UsersApi;
@@ -17,6 +19,7 @@ import com.zextras.team.core.repository.UserRepository;
 import com.zextras.team.core.repository.impl.EbeanRoomRepository;
 import com.zextras.team.core.repository.impl.EbeanSubscriptionRepository;
 import com.zextras.team.core.repository.impl.EbeanUserRepository;
+import com.zextras.team.core.service.impl.AttachmentsApiServiceImpl;
 import com.zextras.team.core.service.impl.RoomsApiServiceImpl;
 import com.zextras.team.core.service.impl.UsersApiServiceImpl;
 import com.zextras.team.core.web.controller.TestController;
@@ -40,10 +43,11 @@ public class CoreModule extends AbstractModule {
 
   private final Properties properties;
 
-  public CoreModule(){
+  public CoreModule() {
     super();
     properties = new Properties();
   }
+
   public CoreModule(Properties properties) {
     super();
     this.properties = properties;
@@ -67,6 +71,9 @@ public class CoreModule extends AbstractModule {
     bind(RoomsApi.class);
     bind(RoomsApiService.class).to(RoomsApiServiceImpl.class);
     bind(RoomRepository.class).to(EbeanRoomRepository.class);
+
+    bind(AttachmentsApi.class);
+    bind(AttachmentsApiService.class).to(AttachmentsApiServiceImpl.class);
 
     bind(UsersApi.class);
     bind(UsersApiService.class).to(UsersApiServiceImpl.class);

@@ -381,7 +381,7 @@ paths:
       tags:
         - Attachments
       summary: Uploads a new attachment
-      operationId: uploadAttachment
+      operationId: addAttachment
       parameters:
         - in: path
           name: roomId

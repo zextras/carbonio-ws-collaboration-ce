@@ -58,12 +58,21 @@ public class Room {
   @OneToMany(mappedBy = "room")
   private List<Subscription> subscriptions;
 
+  public static Room create() {
+    return new Room();
+  }
+
   public String getId() {
     return id;
   }
 
   public void setId(String id) {
     this.id = id;
+  }
+
+  public Room id(String id) {
+    this.id = id;
+    return this;
   }
 
   public String getName() {
@@ -74,12 +83,22 @@ public class Room {
     this.name = name;
   }
 
+  public Room name(String name) {
+    this.name = name;
+    return this;
+  }
+
   public String getDescription() {
     return description;
   }
 
   public void setDescription(String description) {
     this.description = description;
+  }
+
+  public Room description(String description) {
+    this.description = description;
+    return this;
   }
 
   public String getHash() {
@@ -90,12 +109,22 @@ public class Room {
     this.hash = hash;
   }
 
+  public Room hash(String hash) {
+    this.hash = hash;
+    return this;
+  }
+
   public String getDomain() {
     return domain;
   }
 
   public void setDomain(String domain) {
     this.domain = domain;
+  }
+
+  public Room domain(String domain) {
+    this.domain = domain;
+    return this;
   }
 
   public RoomTypeDto getType() {
@@ -106,6 +135,11 @@ public class Room {
     this.type = type;
   }
 
+  public Room type(RoomTypeDto type) {
+    this.type = type;
+    return this;
+  }
+
   public String getParentId() {
     return parentId;
   }
@@ -114,12 +148,22 @@ public class Room {
     this.parentId = parentId;
   }
 
+  public Room parentId(String parentId) {
+    this.parentId = parentId;
+    return this;
+  }
+
   public String getPassword() {
     return password;
   }
 
   public void setPassword(String password) {
     this.password = password;
+  }
+
+  public Room password(String password) {
+    this.password = password;
+    return this;
   }
 
   public LocalDateTime getCreatedAt() {
@@ -137,4 +181,11 @@ public class Room {
   public void setSubscriptions(List<Subscription> subscriptions) {
     this.subscriptions = subscriptions;
   }
+
+  public Room subscriptions(List<Subscription> subscriptions) {
+    this.subscriptions = subscriptions;
+    return this;
+  }
+
+
 }

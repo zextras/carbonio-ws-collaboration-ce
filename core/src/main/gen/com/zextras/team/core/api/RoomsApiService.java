@@ -14,8 +14,18 @@ import java.util.List;
 import javax.annotation.Generated;
 import javax.ws.rs.core.SecurityContext;
 
-@Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen", date = "2021-11-22T10:48:21.557692+01:00[Europe/Rome]")
+@Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen", date = "2021-11-23T16:37:04.902096+01:00[Europe/Rome]")
 public interface RoomsApiService {
+
+  /**
+   * Uploads a new attachment
+   *
+   * @param roomId room identifier {@link UUID }
+   * @param body file stream 
+   * @param securityContext security context {@link SecurityContext}
+   * @return File identifier {@link IdDto }
+  **/
+  IdDto addAttachment(UUID roomId, File body, SecurityContext securityContext);
 
   /**
    * Promotes a member to owner
@@ -141,15 +151,5 @@ public interface RoomsApiService {
    * @return Updated room {@link RoomDto }
   **/
   RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto roomEditableFieldsDto, SecurityContext securityContext);
-
-  /**
-   * Uploads a new attachment
-   *
-   * @param roomId room identifier {@link UUID }
-   * @param body file stream 
-   * @param securityContext security context {@link SecurityContext}
-   * @return File identifier {@link IdDto }
-  **/
-  IdDto uploadAttachment(UUID roomId, File body, SecurityContext securityContext);
 
 }

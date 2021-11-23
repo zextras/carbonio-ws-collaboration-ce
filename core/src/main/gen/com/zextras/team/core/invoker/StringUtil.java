@@ -2,7 +2,7 @@ package com.zextras.team.core.invoker;
 
 import javax.annotation.Generated;
 
-@Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen", date = "2021-11-22T10:48:21.557692+01:00[Europe/Rome]")
+@Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen", date = "2021-11-23T16:37:04.902096+01:00[Europe/Rome]")
 public class StringUtil {
 /**
 * Check if the given array contains the given value (with case-insensitive comparison).

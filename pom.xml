@@ -26,6 +26,7 @@
     <!-- Rest easy -->
     <org.jboss.resteasy.version>4.7.2.Final</org.jboss.resteasy.version>
     <org.jboss.resteasy.jaxrs-api.version>3.0.12.Final</org.jboss.resteasy.jaxrs-api.version>
+    <javax.ws.rs.version>2.1.1</javax.ws.rs.version>
     <!-- Ebean -->
     <io.ebean.version>12.12.3</io.ebean.version>
     <!-- Database -->
@@ -97,6 +98,12 @@
         <groupId>org.jboss.resteasy</groupId>
         <artifactId>jaxrs-api</artifactId>
         <version>${org.jboss.resteasy.jaxrs-api.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>javax.ws.rs</groupId>
+        <artifactId>javax.ws.rs-api</artifactId>
+        <version>${javax.ws.rs.version}</version>
       </dependency>
 
       <!-- Ebean dependencies -->

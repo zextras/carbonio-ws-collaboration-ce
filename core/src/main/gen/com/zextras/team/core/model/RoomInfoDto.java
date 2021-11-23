@@ -23,7 +23,7 @@ import javax.validation.constraints.*;
  * Room data with members list and current user settings
  */
 @ApiModel(description = "Room data with members list and current user settings")
-@Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen", date = "2021-11-22T10:48:21.557692+01:00[Europe/Rome]")
+@Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen", date = "2021-11-23T16:37:04.902096+01:00[Europe/Rome]")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RoomInfoDto {
 

@@ -8,7 +8,6 @@ import com.zextras.team.core.model.RoomCreationFieldsDto;
 import com.zextras.team.core.model.RoomDto;
 import com.zextras.team.core.model.RoomEditableFieldsDto;
 import com.zextras.team.core.model.RoomInfoDto;
-import com.zextras.team.core.service.MembersService;
 import java.io.File;
 import java.util.List;
 import java.util.UUID;
@@ -16,11 +15,14 @@ import javax.ws.rs.core.SecurityContext;
 
 public class RoomsApiServiceImpl implements RoomsApiService {
 
-  private MembersService membersService;
+  @Override
+  public IdDto addAttachment(UUID roomId, File body, SecurityContext securityContext) {
+    return null;
+  }
 
   @Override
   public void addOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
-    membersService.modifyOwner(roomId, userId, true, securityContext);
+
   }
 
   @Override
@@ -69,7 +71,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public void removeOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
-    membersService.modifyOwner(roomId, userId, false, securityContext);
+
   }
 
   @Override
@@ -90,13 +92,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   public RoomDto updateRoom(
     UUID roomId, RoomEditableFieldsDto roomEditableFieldsDto, SecurityContext securityContext
-  ) {
-    return null;
-  }
-
-  @Override
-  public IdDto uploadAttachment(
-    UUID roomId, File body, SecurityContext securityContext
   ) {
     return null;
   }

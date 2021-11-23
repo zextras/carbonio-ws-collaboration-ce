@@ -32,6 +32,7 @@
                 <include>.openapi-generator/**</include>
                 <include>src/main/gen/**</include>
                 <include>src/main/webapp/**</include>
+                <include>.openapi-generator-ignore</include>
               </includes>
               <followSymlinks>false</followSymlinks>
             </fileset>

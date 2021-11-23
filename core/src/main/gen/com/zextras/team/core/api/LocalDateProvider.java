@@ -10,22 +10,22 @@ import java.lang.reflect.Type;
 @Provider
 public class LocalDateProvider implements ParamConverterProvider {
 
-public static class LocalDateConverter implements ParamConverter<LocalDate> {
+  public static class LocalDateConverter implements ParamConverter<LocalDate> {
 
-  public LocalDate fromString(String string) {
-  LocalDate localDate = LocalDate.parse(string);
-  return localDate;
-  }
+    public LocalDate fromString(String string) {
+      LocalDate localDate = LocalDate.parse(string);
+      return localDate;
+    }
 
-  public String toString(LocalDate t) {
-  return t.toString();
-  }
+    public String toString(LocalDate t) {
+      return t.toString();
+    }
   }
 
   public <T> ParamConverter<T> getConverter(Class<T> type, Type type1, Annotation[] antns) {
     if (LocalDate.class.equals(type)) {
-    return (ParamConverter<T>) new LocalDateConverter();
-      }
-      return null;
-      }
-      }
+      return (ParamConverter<T>) new LocalDateConverter();
+    }
+    return null;
+  }
+}

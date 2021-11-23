@@ -26,7 +26,7 @@ import javax.validation.Valid;
 
 @Path("/rooms")
 @Api(description = "the rooms API")
-@Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen", date = "2021-11-22T10:48:21.557692+01:00[Europe/Rome]")
+@Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen", date = "2021-11-23T16:37:04.902096+01:00[Europe/Rome]")
 public class RoomsApi  {
 
   private final RoomsApiService service;
@@ -34,6 +34,19 @@ public class RoomsApi  {
   @Inject
   public RoomsApi (RoomsApiService service) {
     this.service = service;
+  }
+
+  @POST
+  @Path("/{roomId}/attachments")
+  @Consumes({ "application/octet-stream" })
+  @Produces({ "application/json" })
+  @ApiOperation(value = "Uploads a new attachment", response = IdDto.class, tags = { "Attachments" })
+  @ApiResponses(value = { 
+    @ApiResponse(code = 201, message = "File identifier", response = IdDto.class),
+    @ApiResponse(code = 413, message = "The request had a payload that was too big")
+  })
+  public Response addAttachment( @PathParam("roomId") UUID roomId, @ApiParam(value = "file stream" , required = true) @NotNull @Valid File body, @Context SecurityContext securityContext) {
+    return Response.status(201).entity(service.addAttachment(roomId, body, securityContext)).build();
   }
 
   @PUT
@@ -212,18 +225,5 @@ public class RoomsApi  {
   })
   public Response updateRoom( @PathParam("roomId") UUID roomId, @ApiParam(value = "room fields to update" , required = true) @NotNull @Valid RoomEditableFieldsDto roomEditableFieldsDto, @Context SecurityContext securityContext) {
     return Response.status(200).entity(service.updateRoom(roomId, roomEditableFieldsDto, securityContext)).build();
-  }
-
-  @POST
-  @Path("/{roomId}/attachments")
-  @Consumes({ "application/octet-stream" })
-  @Produces({ "application/json" })
-  @ApiOperation(value = "Uploads a new attachment", response = IdDto.class, tags = { "Attachments" })
-  @ApiResponses(value = { 
-    @ApiResponse(code = 201, message = "File identifier", response = IdDto.class),
-    @ApiResponse(code = 413, message = "The request had a payload that was too big")
-  })
-  public Response uploadAttachment( @PathParam("roomId") UUID roomId, @ApiParam(value = "file stream" , required = true) @NotNull @Valid File body, @Context SecurityContext securityContext) {
-    return Response.status(201).entity(service.uploadAttachment(roomId, body, securityContext)).build();
   }
 }

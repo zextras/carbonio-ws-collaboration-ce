@@ -23,7 +23,7 @@
 #!docs/README.md
 
 #Ignore pom file
-#**/pom.xml
+**/pom.xml
 
 Ignore gradle files
 **/*.gradle
@@ -34,7 +34,9 @@ Ignore gradle files
 #Ignore Properties file
 **/*.properties
 
+### Ignore generation support files
 **/.openapi-generator-ignore
+.openapi-generator
 
 ### Ignore exceptions
 **/ApiException.java
