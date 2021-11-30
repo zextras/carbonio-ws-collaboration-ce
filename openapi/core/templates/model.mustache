@@ -2,6 +2,10 @@ package {{package}};
 
 import {{invokerPackage}}.StringUtil;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.zextras.chats.core.utils.CustomLocalDateTimeDeserializer;
+import com.zextras.chats.core.utils.CustomLocalDateTimeSerializer;
 import java.util.Objects;
 import java.util.ArrayList;
 import javax.annotation.Generated;

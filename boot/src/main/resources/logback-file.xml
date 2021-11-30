@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-  <property resource="team.properties"/>
+  <property resource="chats.properties"/>
 
   <appender name="FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>${zextras.team.logging.folder}/team.log</file>
+    <file>${zextras.chats.logging.folder}/chats.log</file>
     <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
       <Pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} %5p %-30.30logger{29} : %m%n</Pattern>
     </encoder>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <FileNamePattern>${zextras.team.logging.folder}/team.%d{yyyy-MM-dd}.log.gz</FileNamePattern>
+      <FileNamePattern>${zextras.chats.logging.folder}/chats.%d{yyyy-MM-dd}.log.gz</FileNamePattern>
       <MaxHistory>60</MaxHistory>
     </rollingPolicy>
   </appender>
 
-  <logger name="com.zextras.team.core" level="DEBUG">
+  <logger name="com.zextras.chats.core" level="DEBUG">
     <appender-ref ref="FILE_APPENDER"/>
   </logger>
 
-  <logger name="com.zextras.team" level="DEBUG">
+  <logger name="com.zextras.chats" level="DEBUG">
     <appender-ref ref="FILE_APPENDER"/>
   </logger>
 

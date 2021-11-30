@@ -4,10 +4,10 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
-  <packaging>war</packaging>
+  <packaging>jar</packaging>
 
   <parent>
-    <groupId>com.zextras.team</groupId>
+    <groupId>com.zextras.chats</groupId>
     <artifactId>community</artifactId>
     <version>0.2.0</version>
   </parent>
@@ -22,7 +22,7 @@
   <dependencies>
 
     <dependency>
-      <groupId>com.zextras.team</groupId>
+      <groupId>com.zextras.chats</groupId>
       <artifactId>core</artifactId>
       <version>0.2.0</version>
       <exclusions>
@@ -66,12 +66,6 @@
       <artifactId>jaxrs-api</artifactId>
     </dependency>
 
-    <!--    <dependency>-->
-    <!--      <groupId>javax.ws.rs</groupId>-->
-    <!--      <artifactId>javax.ws.rs-api</artifactId>-->
-    <!--    </dependency>-->
-
-
     <!-- Logging dependencies-->
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -85,7 +79,7 @@
   </dependencies>
 
   <build>
-    <finalName>zextras-team-community</finalName>
+    <finalName>zextras-chats-community</finalName>
 
     <resources>
       <resource>
@@ -105,18 +99,31 @@
         </configuration>
       </plugin>
       <plugin>
-        <artifactId>maven-war-plugin</artifactId>
-        <version>3.3.2</version>
-        <configuration>
-          <attachClasses>true</attachClasses>
-          <webResources>
-            <resource>
-              <directory>src/main/webapp</directory>
-              <filtering>true</filtering>
-            </resource>
-          </webResources>
-        </configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>3.3.0</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <archive>
+                <manifest>
+                  <mainClass>
+                    com.zextras.chats.boot.Chats
+                  </mainClass>
+                </manifest>
+              </archive>
+              <descriptorRefs>
+                <descriptorRef>jar-with-dependencies</descriptorRef>
+              </descriptorRefs>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
+
     </plugins>
   </build>
 

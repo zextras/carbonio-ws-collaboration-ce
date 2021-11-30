@@ -1,12 +1,12 @@
 openapi: 3.0.3
 info:
-  title: Team Api
-  description: Team HTTP APIs definition.
+  title: Chats Api
+  description: Chats HTTP APIs definition.
   version: 0.1.2
   contact:
     email: smokybeans@zextras.com
 servers:
-  - url: https://zextras.com/zx/team
+  - url: https://zextras.com/zx/chats
 tags:
   - name: Rooms
   - name: Members
@@ -628,8 +628,8 @@ components:
       required: [ email, name ]
     RoomType:
       type: object
-      description: Room types managed
-      enum: [ Channel, Temporary, Group, Space, OneToOne, UserRoom ]
+      description: Managed room types
+      enum: [ Group, Temporary, OneToOne, UserRoom ]
     RoomEditableFields:
       type: object
       description: Room fields that can be updated
@@ -640,7 +640,7 @@ components:
         description:
           type: string
           description: room description
-      required: [ name ]
+      required: [ name, description ]
     RoomCreationFields:
       type: object
       description: Room fields for its creation
@@ -674,10 +674,6 @@ components:
               type: string
               readOnly: true
               description: an hash that can be used to compose the room's link
-            parentId:
-              type: string
-              format: uuid
-              description: the id of an eventual parent room
             password:
               type: string
               readOnly: true

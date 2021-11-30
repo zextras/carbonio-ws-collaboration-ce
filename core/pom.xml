@@ -7,7 +7,7 @@
   <packaging>jar</packaging>
 
   <parent>
-    <groupId>com.zextras.team</groupId>
+    <groupId>com.zextras.chats</groupId>
     <artifactId>community</artifactId>
     <version>0.2.0</version>
   </parent>
@@ -31,6 +31,11 @@
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-guice</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-jackson2-provider</artifactId>
     </dependency>
 
     <!-- Ebean dependencies -->
@@ -72,16 +77,6 @@
       <artifactId>jackson-annotations</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-joda</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jsr310</artifactId>
-    </dependency>
-
     <!-- Mapstruct dependencies -->
     <dependency>
       <groupId>org.mapstruct</groupId>
@@ -121,7 +116,7 @@
   </dependencies>
 
   <build>
-    <finalName>zextras-team-community-core</finalName>
+    <finalName>zextras-chats-community-core</finalName>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

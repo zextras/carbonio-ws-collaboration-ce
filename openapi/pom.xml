@@ -6,7 +6,7 @@
   <packaging>pom</packaging>
 
   <parent>
-    <groupId>com.zextras.team</groupId>
+    <groupId>com.zextras.chats</groupId>
     <artifactId>community</artifactId>
     <version>0.2.0</version>
   </parent>
@@ -68,11 +68,11 @@
               <!--<auth></auth>-->
               <configurationFile>core/jaxrs-resteasy-config.json</configurationFile>
               <!--<skipOverwrite></skipOverwrite>-->
-              <apiPackage>com.zextras.team.core.api</apiPackage>
-              <modelPackage>com.zextras.team.core.model</modelPackage>
-              <invokerPackage>com.zextras.team.core.invoker</invokerPackage>
-              <packageName>com.zextras.team.core</packageName>
-              <groupId>com.zextras.team</groupId>
+              <apiPackage>com.zextras.chats.core.api</apiPackage>
+              <modelPackage>com.zextras.chats.core.model</modelPackage>
+              <invokerPackage>com.zextras.chats.core.invoker</invokerPackage>
+              <packageName>com.zextras.chats.core</packageName>
+              <groupId>com.zextras.chats</groupId>
               <artifactId>core</artifactId>
               <artifactVersion>${project.version}</artifactVersion>
               <!--<library></library>-->

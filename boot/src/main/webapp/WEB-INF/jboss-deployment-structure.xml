@@ -3,7 +3,7 @@
 
   <deployment>
     <dependencies>
-      <module name="com.zextras.team.boot" optional="true"/>
+      <module name="com.zextras.chats.boot" optional="true"/>
     </dependencies>
   </deployment>
 

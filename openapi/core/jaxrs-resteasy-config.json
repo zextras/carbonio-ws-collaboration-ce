@@ -1,6 +1,6 @@
 {
 
-  "apiPackage": "com.zextras.team.core.api",
+  "apiPackage": "com.zextras.chats.core.api",
   "bigDecimalAsString": false,
   "booleanGetterPrefix": "get",
   "dateLibrary": "java8-localdatetime",
@@ -10,13 +10,13 @@
   "ensureUniqueParams": true,
   "fullJavaUtil": false,
   "generateJbossDeploymentDescriptor": false,
-  "hideGenerationTimestamp": false,
+  "hideGenerationTimestamp": true,
   "ignoreAnyOfInEnum": false,
   "implFolder": "src/main/gen",
-  "invokerPackage": "com.zextras.team.core.invoker",
+  "invokerPackage": "com.zextras.chats.core.invoker",
   "java8": true,
   "legacyDiscriminatorBehavior": true,
-  "modelPackage": "com.zextras.team.core.model",
+  "modelPackage": "com.zextras.chats.core.model",
   "openApiNullable": true,
   "prependFormOrBodyParameters": false,
   "serializableModel": false,
@@ -24,7 +24,7 @@
   "sortModelPropertiesByRequiredFlag": true,
   "sortParamsByRequiredFlag": true,
   "sourceFolder": "src/main/gen",
-  "title": "Zextras Team CE",
+  "title": "Zextras chats CE",
   "useBeanValidation": true,
   "useTags": false,
   "withXml": false
