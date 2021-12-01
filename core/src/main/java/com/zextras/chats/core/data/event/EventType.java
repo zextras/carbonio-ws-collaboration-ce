@@ -3,7 +3,11 @@ package com.zextras.chats.core.data.event;
 public enum EventType {
 
   ROOM_CREATED("roomCreated"),
-  ROOM_UPDATED("roomUpdated");
+  ROOM_UPDATED("roomUpdated"),
+  ROOM_DELETED("roomDeleted"),
+  ROOM_HASH_RESET_EVENT("roomHashResetEvent"),
+  ROOM_OWNER_CHANGED("roomOwnerChanged"),
+  ROOM_PICTURE_CHANGED("roomPictureChanged");
 
   private final String name;
 

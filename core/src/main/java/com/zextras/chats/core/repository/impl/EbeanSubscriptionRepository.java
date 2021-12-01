@@ -23,7 +23,7 @@ public class EbeanSubscriptionRepository implements SubscriptionRepository {
   }
 
   @Override
-  public Subscription save(Subscription roomSubscription) {
-    return null;
+  public void update(Subscription subscription) {
+    db.update(subscription);
   }
 }

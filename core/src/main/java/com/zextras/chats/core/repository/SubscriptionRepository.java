@@ -6,5 +6,7 @@ import java.util.Optional;
 public interface SubscriptionRepository {
 
   Optional<Subscription> getById(String roomId, String userId);
-  Subscription save(Subscription roomSubscription);
+
+  void update(Subscription subscription);
+
 }

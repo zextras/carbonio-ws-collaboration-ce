@@ -18,13 +18,19 @@ import com.zextras.chats.core.mapper.RoomUserSettingsMapper;
 import com.zextras.chats.core.mapper.SubscriptionMapper;
 import com.zextras.chats.core.mapper.SubscriptionMapperImpl;
 import com.zextras.chats.core.mapper.impl.RoomUserSettingsMapperImpl;
+import com.zextras.chats.core.repository.RoomImageRepository;
 import com.zextras.chats.core.repository.RoomRepository;
 import com.zextras.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.chats.core.repository.SubscriptionRepository;
+import com.zextras.chats.core.repository.impl.EbeanRoomImageRepository;
 import com.zextras.chats.core.repository.impl.EbeanRoomRepository;
 import com.zextras.chats.core.repository.impl.EbeanRoomUserSettingsRepository;
 import com.zextras.chats.core.repository.impl.EbeanSubscriptionRepository;
+import com.zextras.chats.core.service.MembersService;
+import com.zextras.chats.core.service.RoomPictureService;
 import com.zextras.chats.core.service.impl.AttachmentsApiServiceImpl;
+import com.zextras.chats.core.service.impl.MembersServiceImpl;
+import com.zextras.chats.core.service.impl.RoomPictureServiceImpl;
 import com.zextras.chats.core.service.impl.RoomsApiServiceImpl;
 import com.zextras.chats.core.service.impl.UsersApiServiceImpl;
 import com.zextras.chats.core.web.controller.TestController;
@@ -88,11 +94,18 @@ public class CoreModule extends AbstractModule {
     bind(UsersApi.class);
     bind(UsersApiService.class).to(UsersApiServiceImpl.class);
 
+    bind(MembersService.class).to(MembersServiceImpl.class);
     bind(SubscriptionRepository.class).to(EbeanSubscriptionRepository.class);
     bind(SubscriptionMapper.class).to(SubscriptionMapperImpl.class);
 
     bind(RoomUserSettingsRepository.class).to(EbeanRoomUserSettingsRepository.class);
     bind(RoomUserSettingsMapper.class).to(RoomUserSettingsMapperImpl.class);
+
+    bind(RoomPictureService.class).to(RoomPictureServiceImpl.class);
+    bind(RoomImageRepository.class).to(EbeanRoomImageRepository.class);
+
+
+
 
     bind(TestController.class);
     bindExceptionMapper();
