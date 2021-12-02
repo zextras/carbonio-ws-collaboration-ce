@@ -1,20 +1,20 @@
 package com.zextras.chats.core.data.event;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public class RoomOwnerChangedEvent extends Event {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_OWNER_CHANGED;
 
-  private UUID memberModifiedId;
+  private UUID    memberModifiedId;
   private boolean isOwner;
 
-  public RoomOwnerChangedEvent(UUID roomId, LocalDateTime sentDate) {
+  public RoomOwnerChangedEvent(UUID roomId, OffsetDateTime sentDate) {
     super(roomId, EVENT_TYPE, sentDate);
   }
 
-  public static RoomOwnerChangedEvent create(UUID roomId, LocalDateTime sentDate) {
+  public static RoomOwnerChangedEvent create(UUID roomId, OffsetDateTime sentDate) {
     return new RoomOwnerChangedEvent(roomId, sentDate);
   }
 

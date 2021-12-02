@@ -9,7 +9,7 @@ import com.zextras.chats.core.service.MembersService;
 import com.zextras.chats.core.web.dispatcher.EventDispatcher;
 import com.zextras.chats.core.web.security.MockSecurityContext;
 import com.zextras.chats.core.web.security.MockUserPrincipal;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import javax.inject.Inject;
 
@@ -42,7 +42,7 @@ public class MembersServiceImpl implements MembersService {
     // send event at all room members
     eventDispatcher.sentToTopic(
       ((MockUserPrincipal) mockSecurityContext.getUserPrincipal().get()).getId(), UUID.fromString(room.getId()),
-      RoomOwnerChangedEvent.create(userId, LocalDateTime.now())
+      RoomOwnerChangedEvent.create(userId, OffsetDateTime.now())
         .memberModifiedId(userId).isOwner(false)
     );
   }

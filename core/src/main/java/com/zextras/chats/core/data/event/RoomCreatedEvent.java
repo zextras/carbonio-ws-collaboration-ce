@@ -1,6 +1,7 @@
 package com.zextras.chats.core.data.event;
 
-import java.time.LocalDateTime;
+
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public class RoomCreatedEvent extends Event<RoomCreatedEvent> {
@@ -9,11 +10,11 @@ public class RoomCreatedEvent extends Event<RoomCreatedEvent> {
 
   private UUID from;
 
-  public RoomCreatedEvent(UUID roomId, LocalDateTime sentDate) {
+  public RoomCreatedEvent(UUID roomId, OffsetDateTime sentDate) {
     super(roomId, EVENT_TYPE, sentDate);
   }
 
-  public static RoomCreatedEvent create(UUID roomId, LocalDateTime sentDate) {
+  public static RoomCreatedEvent create(UUID roomId, OffsetDateTime sentDate) {
     return new RoomCreatedEvent(roomId, sentDate);
   }
 

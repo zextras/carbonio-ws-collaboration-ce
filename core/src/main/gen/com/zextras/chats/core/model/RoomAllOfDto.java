@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import javax.validation.constraints.*;
 
@@ -47,18 +47,14 @@ public class RoomAllOfDto {
   **/
   @ApiModelProperty(value = "creation date")
   @JsonProperty("createdAt") 
-  @JsonSerialize(using = CustomLocalDateTimeSerializer.class)
-  @JsonDeserialize(using = CustomLocalDateTimeDeserializer.class)
-  private LocalDateTime createdAt;
+  private OffsetDateTime createdAt;
 
   /**
    * update date
   **/
   @ApiModelProperty(value = "update date")
   @JsonProperty("updatedAt") 
-  @JsonSerialize(using = CustomLocalDateTimeSerializer.class)
-  @JsonDeserialize(using = CustomLocalDateTimeDeserializer.class)
-  private LocalDateTime updatedAt;
+  private OffsetDateTime updatedAt;
 
   public static RoomAllOfDto create() {
     return new RoomAllOfDto();
@@ -103,28 +99,28 @@ public class RoomAllOfDto {
     return this;
   }
 
-  public LocalDateTime getCreatedAt() {
+  public OffsetDateTime getCreatedAt() {
     return createdAt;
   }
 
-  public void setCreatedAt(LocalDateTime createdAt) {
+  public void setCreatedAt(OffsetDateTime createdAt) {
     this.createdAt = createdAt;
   }
 
-  public RoomAllOfDto createdAt(LocalDateTime createdAt) {
+  public RoomAllOfDto createdAt(OffsetDateTime createdAt) {
     this.createdAt = createdAt;
     return this;
   }
 
-  public LocalDateTime getUpdatedAt() {
+  public OffsetDateTime getUpdatedAt() {
     return updatedAt;
   }
 
-  public void setUpdatedAt(LocalDateTime updatedAt) {
+  public void setUpdatedAt(OffsetDateTime updatedAt) {
     this.updatedAt = updatedAt;
   }
 
-  public RoomAllOfDto updatedAt(LocalDateTime updatedAt) {
+  public RoomAllOfDto updatedAt(OffsetDateTime updatedAt) {
     this.updatedAt = updatedAt;
     return this;
   }

@@ -1,6 +1,6 @@
 package com.zextras.chats.core.data.entity;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
@@ -29,11 +29,11 @@ public class RoomUserSettings {
 
   @Column(name = "MUTED_UNTIL")
   @Temporal(TemporalType.TIMESTAMP)
-  private LocalDateTime mutedUntil;
+  private OffsetDateTime mutedUntil;
 
   @Column(name = "CLEARED_AT")
   @Temporal(TemporalType.TIMESTAMP)
-  private LocalDateTime clearedAt;
+  private OffsetDateTime clearedAt;
 
   public static RoomUserSettings create() {
     return new RoomUserSettings();
@@ -78,28 +78,28 @@ public class RoomUserSettings {
     return this;
   }
 
-  public LocalDateTime getMutedUntil() {
+  public OffsetDateTime getMutedUntil() {
     return mutedUntil;
   }
 
-  public void setMutedUntil(LocalDateTime mutedUntil) {
+  public void setMutedUntil(OffsetDateTime mutedUntil) {
     this.mutedUntil = mutedUntil;
   }
 
-  public RoomUserSettings mutedUntil(LocalDateTime mutedUntil) {
+  public RoomUserSettings mutedUntil(OffsetDateTime mutedUntil) {
     this.mutedUntil = mutedUntil;
     return this;
   }
 
-  public LocalDateTime getClearedAt() {
+  public OffsetDateTime getClearedAt() {
     return clearedAt;
   }
 
-  public void setClearedAt(LocalDateTime clearedAt) {
+  public void setClearedAt(OffsetDateTime clearedAt) {
     this.clearedAt = clearedAt;
   }
 
-  public RoomUserSettings clearedAt(LocalDateTime clearedAt) {
+  public RoomUserSettings clearedAt(OffsetDateTime clearedAt) {
     this.clearedAt = clearedAt;
     return this;
   }

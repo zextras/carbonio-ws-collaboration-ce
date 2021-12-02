@@ -16,7 +16,7 @@ import com.zextras.chats.core.model.RoomCreationFieldsDto;
 import com.zextras.chats.core.model.RoomTypeDto;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import javax.validation.constraints.*;
 
@@ -65,18 +65,14 @@ public class RoomDto {
   **/
   @ApiModelProperty(required = true, value = "creation date")
   @JsonProperty("createdAt") @NotNull
-  @JsonSerialize(using = CustomLocalDateTimeSerializer.class)
-  @JsonDeserialize(using = CustomLocalDateTimeDeserializer.class)
-  private LocalDateTime createdAt;
+  private OffsetDateTime createdAt;
 
   /**
    * update date
   **/
   @ApiModelProperty(required = true, value = "update date")
   @JsonProperty("updatedAt") @NotNull
-  @JsonSerialize(using = CustomLocalDateTimeSerializer.class)
-  @JsonDeserialize(using = CustomLocalDateTimeDeserializer.class)
-  private LocalDateTime updatedAt;
+  private OffsetDateTime updatedAt;
 
   /**
    * password to room access
@@ -154,28 +150,28 @@ public class RoomDto {
     return this;
   }
 
-  public LocalDateTime getCreatedAt() {
+  public OffsetDateTime getCreatedAt() {
     return createdAt;
   }
 
-  public void setCreatedAt(LocalDateTime createdAt) {
+  public void setCreatedAt(OffsetDateTime createdAt) {
     this.createdAt = createdAt;
   }
 
-  public RoomDto createdAt(LocalDateTime createdAt) {
+  public RoomDto createdAt(OffsetDateTime createdAt) {
     this.createdAt = createdAt;
     return this;
   }
 
-  public LocalDateTime getUpdatedAt() {
+  public OffsetDateTime getUpdatedAt() {
     return updatedAt;
   }
 
-  public void setUpdatedAt(LocalDateTime updatedAt) {
+  public void setUpdatedAt(OffsetDateTime updatedAt) {
     this.updatedAt = updatedAt;
   }
 
-  public RoomDto updatedAt(LocalDateTime updatedAt) {
+  public RoomDto updatedAt(OffsetDateTime updatedAt) {
     this.updatedAt = updatedAt;
     return this;
   }

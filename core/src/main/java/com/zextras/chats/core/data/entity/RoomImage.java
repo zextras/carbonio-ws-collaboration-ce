@@ -2,7 +2,7 @@ package com.zextras.chats.core.data.entity;
 
 import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -26,12 +26,12 @@ public class RoomImage {
   @Column(name = "CREATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
   @WhenCreated
-  private LocalDateTime createdAt;
+  private OffsetDateTime createdAt;
 
   @Column(name = "UPDATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
   @WhenModified
-  private LocalDateTime updatedAt;
+  private OffsetDateTime updatedAt;
 
   public static RoomImage create() {
     return new RoomImage();
@@ -63,11 +63,11 @@ public class RoomImage {
     return this;
   }
 
-  public LocalDateTime getCreatedAt() {
+  public OffsetDateTime getCreatedAt() {
     return createdAt;
   }
 
-  public LocalDateTime getUpdatedAt() {
+  public OffsetDateTime getUpdatedAt() {
     return updatedAt;
   }
 }

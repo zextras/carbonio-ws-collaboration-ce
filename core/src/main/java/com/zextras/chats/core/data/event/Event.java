@@ -1,23 +1,17 @@
 package com.zextras.chats.core.data.event;
 
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.zextras.chats.core.utils.CustomLocalDateTimeSerializer;
-import com.zextras.chats.core.utils.CustomLocalDateTimeDeserializer;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public abstract class Event<T extends Event> {
 
-  private UUID      id;
-  private UUID      roomId;
-  private EventType type;
-  @JsonSerialize(using = CustomLocalDateTimeSerializer.class)
-  @JsonDeserialize(using = CustomLocalDateTimeDeserializer.class)
-  private LocalDateTime sentDate;
+  private UUID           id;
+  private UUID           roomId;
+  private EventType      type;
+  private OffsetDateTime sentDate;
 
-  public Event(UUID roomId, EventType type, LocalDateTime sentDate) {
+  public Event(UUID roomId, EventType type, OffsetDateTime sentDate) {
     this.id = UUID.randomUUID();
     this.roomId = roomId;
     this.type = type;
@@ -36,7 +30,7 @@ public abstract class Event<T extends Event> {
     return type;
   }
 
-  public LocalDateTime getSentDate() {
+  public OffsetDateTime getSentDate() {
     return sentDate;
   }
 }

@@ -31,7 +31,7 @@ import com.zextras.chats.core.web.security.MockSecurityContext;
 import com.zextras.chats.core.web.security.MockUserPrincipal;
 import io.ebean.annotation.Transactional;
 import java.io.File;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.temporal.ChronoField;
 import java.util.Collections;
 import java.util.List;
@@ -125,7 +125,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     // send event
     room.getSubscriptions().forEach(member ->
       eventDispatcher.sentToQueue(user.getId(), UUID.fromString(member.getUserId()),
-        RoomCreatedEvent.create(id, LocalDateTime.now().minus(1, ChronoField.MILLI_OF_DAY.getBaseUnit()))
+        RoomCreatedEvent.create(id, OffsetDateTime.now().minus(1, ChronoField.MILLI_OF_DAY.getBaseUnit()))
           .from(user.getId())
       )
     );
@@ -151,7 +151,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     roomRepository.update(room);
     // send update event to room topic
     eventDispatcher.sentToTopic(user.getId(), roomId,
-      RoomUpdatedEvent.create(roomId, LocalDateTime.now()).from(user.getId()));
+      RoomUpdatedEvent.create(roomId, OffsetDateTime.now()).from(user.getId()));
     return roomMapper.ent2roomDto(room);
   }
 
@@ -164,7 +164,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     //this cascades to other tables
     roomRepository.delete(roomId.toString());
     // send to room topic
-    eventDispatcher.sentToTopic(user.getId(), roomId, new RoomDeletedEvent(roomId, LocalDateTime.now()));
+    eventDispatcher.sentToTopic(user.getId(), roomId, new RoomDeletedEvent(roomId, OffsetDateTime.now()));
     // TODO: 30/11/21 remove all room messages
   }
 
@@ -178,7 +178,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     room.hash(hash);
     roomRepository.update(room);
     // send event
-    eventDispatcher.sentToTopic(user.getId(), roomId, RoomHashResetEvent.create(roomId, LocalDateTime.now()).hash(hash));
+    eventDispatcher.sentToTopic(user.getId(), roomId, RoomHashResetEvent.create(roomId, OffsetDateTime.now()).hash(hash));
     return HashDto.create().hash(hash);
   }
 

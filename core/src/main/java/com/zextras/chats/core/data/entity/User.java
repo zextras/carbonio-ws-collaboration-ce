@@ -2,7 +2,7 @@ package com.zextras.chats.core.data.entity;
 
 import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Date;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -22,7 +22,7 @@ public class User {
 
   @Column(name = "LAST_SEEN")
   @Temporal(TemporalType.TIMESTAMP)
-  private LocalDateTime lastSeen;
+  private OffsetDateTime lastSeen;
 
   @Column(name = "STATUS_MESSAGE", length = 256, nullable = false)
   private String statusMessage = "";
@@ -41,12 +41,12 @@ public class User {
   @Column(name = "CREATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
   @WhenCreated
-  private LocalDateTime createdAt;
+  private OffsetDateTime createdAt;
 
   @Column(name = "UPDATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
   @WhenModified
-  private LocalDateTime updatedAt;
+  private OffsetDateTime updatedAt;
 
   public String getId() {
     return id;
@@ -56,11 +56,11 @@ public class User {
     this.id = id;
   }
 
-  public LocalDateTime getLastSeen() {
+  public OffsetDateTime getLastSeen() {
     return lastSeen;
   }
 
-  public void setLastSeen(LocalDateTime lastSeen) {
+  public void setLastSeen(OffsetDateTime lastSeen) {
     this.lastSeen = lastSeen;
   }
 
@@ -96,11 +96,11 @@ public class User {
     this.hash = hash;
   }
 
-  public LocalDateTime getCreatedAt() {
+  public OffsetDateTime getCreatedAt() {
     return createdAt;
   }
 
-  public LocalDateTime getUpdatedAt() {
+  public OffsetDateTime getUpdatedAt() {
     return updatedAt;
   }
 }

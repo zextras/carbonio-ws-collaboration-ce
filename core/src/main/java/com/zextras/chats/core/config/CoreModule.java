@@ -1,5 +1,7 @@
 package com.zextras.chats.core.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.zaxxer.hikari.HikariConfig;
@@ -10,8 +12,10 @@ import com.zextras.chats.core.api.RoomsApi;
 import com.zextras.chats.core.api.RoomsApiService;
 import com.zextras.chats.core.api.UsersApi;
 import com.zextras.chats.core.api.UsersApiService;
-import com.zextras.chats.core.exception.mapper.DefaultExceptionHandler;
 import com.zextras.chats.core.exception.mapper.ChatsHttpExceptionHandler;
+import com.zextras.chats.core.exception.mapper.DefaultExceptionHandler;
+import com.zextras.chats.core.invoker.JacksonConfig;
+import com.zextras.chats.core.invoker.RFC3339DateFormat;
 import com.zextras.chats.core.mapper.RoomMapper;
 import com.zextras.chats.core.mapper.RoomMapperImpl;
 import com.zextras.chats.core.mapper.RoomUserSettingsMapper;
@@ -34,14 +38,14 @@ import com.zextras.chats.core.service.impl.RoomPictureServiceImpl;
 import com.zextras.chats.core.service.impl.RoomsApiServiceImpl;
 import com.zextras.chats.core.service.impl.UsersApiServiceImpl;
 import com.zextras.chats.core.web.controller.TestController;
-import com.zextras.chats.core.web.security.AccountService;
-import com.zextras.chats.core.web.security.MockSecurityContext;
-import com.zextras.chats.core.web.security.impl.MockAccountServiceImpl;
-import com.zextras.chats.core.web.security.impl.MockSecurityContextImpl;
 import com.zextras.chats.core.web.dispatcher.EventDispatcher;
 import com.zextras.chats.core.web.dispatcher.MessageDispatcher;
 import com.zextras.chats.core.web.dispatcher.impl.MockEventDispatcherImpl;
 import com.zextras.chats.core.web.dispatcher.impl.MockMessageDispatcherImpl;
+import com.zextras.chats.core.web.security.AccountService;
+import com.zextras.chats.core.web.security.MockSecurityContext;
+import com.zextras.chats.core.web.security.impl.MockAccountServiceImpl;
+import com.zextras.chats.core.web.security.impl.MockSecurityContextImpl;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.config.DatabaseConfig;
@@ -76,6 +80,8 @@ public class CoreModule extends AbstractModule {
       .load();
     flyway.migrate();
 
+    bind(JacksonConfig.class);
+
     bind(MockSecurityContext.class).to(MockSecurityContextImpl.class);
 
     bind(EventDispatcher.class).to(MockEventDispatcherImpl.class);
@@ -104,9 +110,6 @@ public class CoreModule extends AbstractModule {
     bind(RoomPictureService.class).to(RoomPictureServiceImpl.class);
     bind(RoomImageRepository.class).to(EbeanRoomImageRepository.class);
 
-
-
-
     bind(TestController.class);
     bindExceptionMapper();
   }
@@ -122,6 +125,14 @@ public class CoreModule extends AbstractModule {
     DatabaseConfig databaseConfig = new DatabaseConfig();
     databaseConfig.setDataSource(getHikariDataSource());
     return DatabaseFactory.create(databaseConfig);
+  }
+
+  @Singleton
+  @Provides
+  public ObjectMapper getObjectMapper() {
+    return new ObjectMapper()
+      .registerModule(new JavaTimeModule())
+      .setDateFormat(new RFC3339DateFormat());
   }
 
   private DataSource getHikariDataSource() {

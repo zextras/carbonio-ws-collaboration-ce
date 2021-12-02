@@ -2,7 +2,7 @@ package com.zextras.chats.core.data.entity;
 
 
 import com.zextras.chats.core.data.type.MessageType;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -25,11 +25,11 @@ public class Message {
 
   @Column(name = "SENT_AT", nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
-  private LocalDateTime sentAt;
+  private OffsetDateTime sentAt;
 
   @Column(name = "EDIT_AT", nullable = false)
   @Temporal(TemporalType.TIMESTAMP)
-  private LocalDateTime editAt;
+  private OffsetDateTime editAt;
 
   @Column(name = "MESSAGE_TYPE", length = 64, nullable = false)
   @Enumerated(EnumType.STRING)
@@ -68,19 +68,19 @@ public class Message {
     this.id = id;
   }
 
-  public LocalDateTime getSentAt() {
+  public OffsetDateTime getSentAt() {
     return sentAt;
   }
 
-  public void setSentAt(LocalDateTime sentAt) {
+  public void setSentAt(OffsetDateTime sentAt) {
     this.sentAt = sentAt;
   }
 
-  public LocalDateTime getEditAt() {
+  public OffsetDateTime getEditAt() {
     return editAt;
   }
 
-  public void setEditAt(LocalDateTime editAt) {
+  public void setEditAt(OffsetDateTime editAt) {
     this.editAt = editAt;
   }
 

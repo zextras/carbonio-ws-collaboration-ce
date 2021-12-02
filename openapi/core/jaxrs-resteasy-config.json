@@ -3,7 +3,7 @@
   "apiPackage": "com.zextras.chats.core.api",
   "bigDecimalAsString": false,
   "booleanGetterPrefix": "get",
-  "dateLibrary": "java8-localdatetime",
+  "dateLibrary": "java8",
   "disableHtmlEscaping": false,
   "disallowAdditionalPropertiesIfNotPresent": true,
   "discriminatorCaseSensitive": true,

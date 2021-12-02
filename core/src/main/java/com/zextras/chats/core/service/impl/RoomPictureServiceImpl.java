@@ -14,8 +14,7 @@ import com.zextras.chats.core.web.security.MockUserPrincipal;
 import io.ebean.annotation.Transactional;
 import java.io.File;
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.Optional;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import javax.inject.Inject;
 import org.apache.commons.io.FileUtils;
@@ -59,7 +58,7 @@ public class RoomPictureServiceImpl implements RoomPictureService {
       );
       // send event to room topic
       eventDispatcher.sentToTopic(user.getId(), UUID.fromString(room.getId()),
-        RoomPictureChangedEvent.create(UUID.fromString(room.getId()), LocalDateTime.now()).from(user.getId()));
+        RoomPictureChangedEvent.create(UUID.fromString(room.getId()), OffsetDateTime.now()).from(user.getId()));
     } catch (IOException e) {
       e.printStackTrace();
     }
