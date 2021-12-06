@@ -8,7 +8,6 @@ import com.zextras.chats.core.data.event.RoomCreatedEvent;
 import com.zextras.chats.core.data.event.RoomDeletedEvent;
 import com.zextras.chats.core.data.event.RoomHashResetEvent;
 import com.zextras.chats.core.data.event.RoomUpdatedEvent;
-import com.zextras.chats.core.exception.BadRequestException;
 import com.zextras.chats.core.exception.ForbiddenException;
 import com.zextras.chats.core.exception.NotFoundException;
 import com.zextras.chats.core.exception.UnauthorizedException;
@@ -32,15 +31,15 @@ import com.zextras.chats.core.web.security.MockUserPrincipal;
 import io.ebean.annotation.Transactional;
 import java.io.File;
 import java.time.OffsetDateTime;
-import java.time.temporal.ChronoField;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.ws.rs.core.SecurityContext;
-import org.apache.commons.lang3.StringUtils;
 
+@Singleton
 public class RoomsApiServiceImpl implements RoomsApiService {
 
   private final RoomRepository             roomRepository;
@@ -54,7 +53,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Inject
   public RoomsApiServiceImpl(
-    RoomRepository roomRepository, RoomUserSettingsRepository roomUserSettingsRepository, RoomMapper roomMapper,
+    RoomRepository roomRepository,
+    RoomUserSettingsRepository roomUserSettingsRepository,
+    RoomMapper roomMapper,
     EventDispatcher eventDispatcher,
     AccountService accountService,
     MockSecurityContext mockSecurityContext,
@@ -73,7 +74,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public List<RoomDto> getRooms(SecurityContext securityContext) {
-    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal().orElseThrow(UnauthorizedException::new);
+    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+      .orElseThrow(UnauthorizedException::new);
     List<Room> rooms = roomRepository.getByUserId(user.getId().toString());
     return roomMapper.ent2roomDto(rooms);
   }
@@ -81,7 +83,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @Transactional
   public RoomInfoDto getRoomById(UUID roomId, SecurityContext securityContext) {
-    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal().orElseThrow(UnauthorizedException::new);
+    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+      .orElseThrow(UnauthorizedException::new);
     // get the room
     Room room = getRoomAndCheckUser(roomId, user, false);
     // get current user settings for the room
@@ -92,23 +95,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public RoomInfoDto createRoom(RoomCreationFieldsDto roomCreationFieldsDto, SecurityContext securityContext) {
-    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal().orElseThrow(UnauthorizedException::new);
-    // Validation of input fields
-    if (StringUtils.isEmpty(roomCreationFieldsDto.getName())) {
-      throw new BadRequestException("Name cannot be null or empty");
-    }
-    if (roomCreationFieldsDto.getType() == null) {
-      throw new BadRequestException("Type cannot be null");
-    }
-    if (roomCreationFieldsDto.getMembersIds() == null) {
-      throw new BadRequestException("Members list cannot be null");
-    } else {
-      roomCreationFieldsDto.getMembersIds().forEach(userId -> {
-        if (accountService.getById(userId) == null) {
-          throw new NotFoundException(String.format("User not found with identifier '%s'", userId));
-        }
-      });
-    }
+    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+      .orElseThrow(UnauthorizedException::new);
+    roomCreationFieldsDto.getMembersIds()
+      .forEach(userId ->
+        accountService.getById(userId)
+          .orElseThrow(() -> new NotFoundException(String.format("User not found with identifier '%s'", userId))));
+
     // entity building
     UUID id = UUID.randomUUID();
     Room room = Room.create()
@@ -119,14 +112,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .domain(null)
       .type(roomCreationFieldsDto.getType())
       .password(generateRoomPassword());
-    room.setSubscriptions(getSubscriptions(roomCreationFieldsDto, room, user));
+    room.setSubscriptions(membersService.initRoomSubscriptions(roomCreationFieldsDto.getMembersIds(), room, user));
     // persist room
     roomRepository.insert(room);
     // send event
     room.getSubscriptions().forEach(member ->
-      eventDispatcher.sentToQueue(user.getId(), UUID.fromString(member.getUserId()),
-        RoomCreatedEvent.create(id, OffsetDateTime.now().minus(1, ChronoField.MILLI_OF_DAY.getBaseUnit()))
-          .from(user.getId())
+      eventDispatcher.sendToQueue(user.getId(), member.getUserId(),
+        RoomCreatedEvent.create(id).from(user.getId())
       )
     );
     // get new room result
@@ -136,11 +128,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @Transactional
   public RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto roomEditableFieldsDto, SecurityContext securityContext) {
-    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal().orElseThrow(UnauthorizedException::new);
-    // Validation of input fields
-    if (StringUtils.isEmpty(roomEditableFieldsDto.getName())) {
-      throw new BadRequestException("Name cannot be null or empty");
-    }
+    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+      .orElseThrow(UnauthorizedException::new);
     // get room
     Room room = getRoomAndCheckUser(roomId, user, true);
     // change name and description
@@ -150,27 +139,29 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     // room update
     roomRepository.update(room);
     // send update event to room topic
-    eventDispatcher.sentToTopic(user.getId(), roomId,
-      RoomUpdatedEvent.create(roomId, OffsetDateTime.now()).from(user.getId()));
+    eventDispatcher.sendToTopic(user.getId(), roomId.toString(),
+      RoomUpdatedEvent.create(roomId).from(user.getId()));
     return roomMapper.ent2roomDto(room);
   }
 
   @Override
   @Transactional
   public void deleteRoom(UUID roomId, SecurityContext securityContext) {
-    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal().orElseThrow(UnauthorizedException::new);
+    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+      .orElseThrow(UnauthorizedException::new);
     // check the room
     getRoomAndCheckUser(roomId, user, true);
     //this cascades to other tables
     roomRepository.delete(roomId.toString());
     // send to room topic
-    eventDispatcher.sentToTopic(user.getId(), roomId, new RoomDeletedEvent(roomId, OffsetDateTime.now()));
+    eventDispatcher.sendToTopic(user.getId(), roomId.toString(), new RoomDeletedEvent(roomId));
     // TODO: 30/11/21 remove all room messages
   }
 
   @Override
   public HashDto resetRoomHash(UUID roomId, SecurityContext securityContext) {
-    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal().orElseThrow(UnauthorizedException::new);
+    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+      .orElseThrow(UnauthorizedException::new);
     // get room
     Room room = getRoomAndCheckUser(roomId, user, true);
     // generate hash
@@ -178,7 +169,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     room.hash(hash);
     roomRepository.update(room);
     // send event
-    eventDispatcher.sentToTopic(user.getId(), roomId, RoomHashResetEvent.create(roomId, OffsetDateTime.now()).hash(hash));
+    eventDispatcher.sendToTopic(user.getId(), roomId.toString(),
+      RoomHashResetEvent.create(roomId).hash(hash));
     return HashDto.create().hash(hash);
   }
 
@@ -193,7 +185,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   private void modifyOwner(UUID roomId, UUID userId, boolean isOwner) {
-    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal().orElseThrow(UnauthorizedException::new);
+    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+      .orElseThrow(UnauthorizedException::new);
     // get room
     Room room = getRoomAndCheckUser(roomId, user, true);
     membersService.setOwner(room, userId, isOwner);
@@ -201,10 +194,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public void setRoomPicture(UUID roomId, File body, SecurityContext securityContext) {
-    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal().orElseThrow(UnauthorizedException::new);
+    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+      .orElseThrow(UnauthorizedException::new);
     // get room
     Room room = getRoomAndCheckUser(roomId, user, false);
-    roomPictureService.save(room, body);
+    roomPictureService.setPictureForRoom(room, body);
   }
 
   @Override
@@ -213,20 +207,28 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public MemberDto addRoomMember(
-    UUID roomId, UUID userid, MemberDto memberDto, SecurityContext securityContext
-  ) {
-    return null;
+  public MemberDto addRoomMember(UUID roomId, MemberDto memberDto, SecurityContext securityContext) {
+    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+      .orElseThrow(UnauthorizedException::new);
+    Room room = getRoomAndCheckUser(roomId, user, true);
+    return membersService.addRoomMember(room, memberDto.getUserId(), memberDto.isOwner());
   }
 
   @Override
-  public void deleteRoomMember(UUID roomId, UUID userid, SecurityContext securityContext) {
-
+  public void removeRoomMember(UUID roomId, UUID userId, SecurityContext securityContext) {
+    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+      .orElseThrow(UnauthorizedException::new);
+    //If the requester is kicking someone, he/she needs to be a room owner
+    Room room = getRoomAndCheckUser(roomId, user, !user.getId().equals(userId));
+    membersService.removeRoomMember(room, userId);
   }
 
   @Override
   public List<MemberDto> getRoomMembers(UUID roomId, SecurityContext securityContext) {
-    return null;
+    MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+      .orElseThrow(UnauthorizedException::new);
+    Room room = getRoomAndCheckUser(roomId, user, false);
+    return membersService.getRoomMembers(room);
   }
 
   @Override
@@ -254,28 +256,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       Subscription member = room.getSubscriptions().stream()
         .filter(subscription -> subscription.getUserId().equals(currentUser.getId().toString()))
         .findAny()
-        .orElseThrow(() -> new ForbiddenException(String.format("User '%s' is not a member of room '%s'", currentUser.getId().toString(), roomId)));
-      if (mustBeOwner && !member.getIsOwner()) {
-        throw new ForbiddenException(String.format("User '%s' is not an owner of room '%s'", currentUser.getId().toString(), roomId));
+        .orElseThrow(() -> new ForbiddenException(
+          String.format("User '%s' is not a member of room '%s'", currentUser.getId().toString(), roomId)));
+      if (mustBeOwner && !member.isOwner()) {
+        throw new ForbiddenException(
+          String.format("User '%s' is not an owner of room '%s'", currentUser.getId().toString(), roomId));
       }
     }
     return room;
-  }
-
-  private List<Subscription> getSubscriptions(RoomCreationFieldsDto roomCreationDto, Room room, MockUserPrincipal requester) {
-    List<Subscription> result = roomCreationDto.getMembersIds().stream().map(userId ->
-      Subscription.create()
-        .id(new SubscriptionId(room.getId(), userId))
-        .userId(userId)
-        .room(room)
-        .owner(false)
-    ).collect(Collectors.toList());
-    result.add(Subscription.create()
-      .id(new SubscriptionId(room.getId(), requester.getId().toString()))
-      .userId(requester.getId().toString())
-      .room(room)
-      .owner(true));
-
-    return result;
   }
 }

@@ -63,16 +63,17 @@ public class RoomsApi  {
   }
 
   @POST
-  @Path("/{roomId}/members/{userid}")
+  @Path("/{roomId}/members")
   @Consumes({ "application/json" })
   @Produces({ "application/json" })
-  @ApiOperation(value = "Adds or invites the specified user to the room", notes = "Adds the specified user to the room. If the specified user is different from the requester, this action is considered as an invitation ", response = MemberDto.class, tags = { "Rooms", "Members" })
+  @ApiOperation(value = "Adds or invites the specified user to the room", notes = "Adds the specified user to the room. This can only be performed by an of the given room ", response = MemberDto.class, tags = { "Rooms", "Members" })
   @ApiResponses(value = { 
     @ApiResponse(code = 201, message = "The member added or invited", response = MemberDto.class),
-    @ApiResponse(code = 400, message = "The request had wrong or missing parameters")
+    @ApiResponse(code = 400, message = "The request had wrong or missing parameters"),
+    @ApiResponse(code = 403, message = "The requester could not access the resource")
   })
-  public Response addRoomMember( @PathParam("roomId") UUID roomId,  @PathParam("userid") UUID userid, @ApiParam(value = "member to add or invite" , required = true) @NotNull @Valid MemberDto memberDto, @Context SecurityContext securityContext) {
-    return Response.status(201).entity(service.addRoomMember(roomId, userid, memberDto, securityContext)).build();
+  public Response addRoomMember( @PathParam("roomId") UUID roomId, @ApiParam(value = "member to add or invite" , required = true) @NotNull @Valid MemberDto memberDto, @Context SecurityContext securityContext) {
+    return Response.status(201).entity(service.addRoomMember(roomId, memberDto, securityContext)).build();
   }
 
   @POST
@@ -97,18 +98,6 @@ public class RoomsApi  {
   })
   public Response deleteRoom( @PathParam("roomId") UUID roomId, @Context SecurityContext securityContext) {
     service.deleteRoom(roomId, securityContext);
-    return Response.status(204).build();
-  }
-
-  @DELETE
-  @Path("/{roomId}/members/{userid}")
-  @ApiOperation(value = "Removes a member to the room", notes = "Removes a member from the specified room. If the specified user is different from the requester, this action is considered as a kick ", tags = { "Rooms", "Members" })
-  @ApiResponses(value = { 
-    @ApiResponse(code = 204, message = "The member was deleted correctly or it never existed"),
-    @ApiResponse(code = 403, message = "The requester could not access the resource")
-  })
-  public Response deleteRoomMember( @PathParam("roomId") UUID roomId,  @PathParam("userid") UUID userid, @Context SecurityContext securityContext) {
-    service.deleteRoomMember(roomId, userid, securityContext);
     return Response.status(204).build();
   }
 
@@ -171,6 +160,18 @@ public class RoomsApi  {
   })
   public Response removeOwner( @PathParam("roomId") UUID roomId,  @PathParam("userId") UUID userId, @Context SecurityContext securityContext) {
     service.removeOwner(roomId, userId, securityContext);
+    return Response.status(204).build();
+  }
+
+  @DELETE
+  @Path("/{roomId}/members/{userId}")
+  @ApiOperation(value = "Removes a member from the room", notes = "Removes a member from the specified room. If the specified user is different from the requester, this action is considered as a kick ", tags = { "Rooms", "Members" })
+  @ApiResponses(value = { 
+    @ApiResponse(code = 204, message = "The member was deleted correctly or it never existed"),
+    @ApiResponse(code = 403, message = "The requester could not access the resource")
+  })
+  public Response removeRoomMember( @PathParam("roomId") UUID roomId,  @PathParam("userId") UUID userId, @Context SecurityContext securityContext) {
+    service.removeRoomMember(roomId, userId, securityContext);
     return Response.status(204).build();
   }
 

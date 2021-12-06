@@ -7,7 +7,9 @@ public enum EventType {
   ROOM_DELETED("roomDeleted"),
   ROOM_HASH_RESET_EVENT("roomHashResetEvent"),
   ROOM_OWNER_CHANGED("roomOwnerChanged"),
-  ROOM_PICTURE_CHANGED("roomPictureChanged");
+  ROOM_PICTURE_CHANGED("roomPictureChanged"),
+  ROOM_MEMBER_ADDED("roomMemberAdded"),
+  ROOM_MEMBER_REMOVED("roomMemberRemoved");
 
   private final String name;
 

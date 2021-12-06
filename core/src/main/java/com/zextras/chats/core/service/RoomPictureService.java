@@ -5,6 +5,6 @@ import java.io.File;
 
 public interface RoomPictureService {
 
-  void save(Room room, File image);
+  void setPictureForRoom(Room room, File image);
 
 }

@@ -37,15 +37,14 @@ public interface RoomsApiService {
   void addOwner(UUID roomId, UUID userId, SecurityContext securityContext);
 
   /**
-   * Adds the specified user to the room. If the specified user is different from the requester, this action is considered as an invitation 
+   * Adds the specified user to the room. This can only be performed by an of the given room 
    *
    * @param roomId room identifier {@link UUID }
-   * @param userid user identifier {@link UUID }
    * @param memberDto member to add or invite {@link MemberDto }
    * @param securityContext security context {@link SecurityContext}
    * @return The member added or invited {@link MemberDto }
   **/
-  MemberDto addRoomMember(UUID roomId, UUID userid, MemberDto memberDto, SecurityContext securityContext);
+  MemberDto addRoomMember(UUID roomId, MemberDto memberDto, SecurityContext securityContext);
 
   /**
    * Creates a room of the specified type
@@ -63,15 +62,6 @@ public interface RoomsApiService {
    * @param securityContext security context {@link SecurityContext}
   **/
   void deleteRoom(UUID roomId, SecurityContext securityContext);
-
-  /**
-   * Removes a member from the specified room. If the specified user is different from the requester, this action is considered as a kick 
-   *
-   * @param roomId room identifier {@link UUID }
-   * @param userid user identifier {@link UUID }
-   * @param securityContext security context {@link SecurityContext}
-  **/
-  void deleteRoomMember(UUID roomId, UUID userid, SecurityContext securityContext);
 
   /**
    * Retrieves the requested room
@@ -115,6 +105,15 @@ public interface RoomsApiService {
    * @param securityContext security context {@link SecurityContext}
   **/
   void removeOwner(UUID roomId, UUID userId, SecurityContext securityContext);
+
+  /**
+   * Removes a member from the specified room. If the specified user is different from the requester, this action is considered as a kick 
+   *
+   * @param roomId room identifier {@link UUID }
+   * @param userId user identifier {@link UUID }
+   * @param securityContext security context {@link SecurityContext}
+  **/
+  void removeRoomMember(UUID roomId, UUID userId, SecurityContext securityContext);
 
   /**
    * Resets the specified room hash

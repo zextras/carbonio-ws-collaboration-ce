@@ -19,9 +19,7 @@ import javax.validation.constraints.*;
 @Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
 public enum RoomTypeDto {
   GROUP("Group"),
-  TEMPORARY("Temporary"),
-  ONETOONE("OneToOne"),
-  USERROOM("UserRoom");
+  ONETOONE("OneToOne");
 
   private final Object value;
 

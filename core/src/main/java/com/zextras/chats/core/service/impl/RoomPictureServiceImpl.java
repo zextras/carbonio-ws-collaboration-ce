@@ -17,8 +17,10 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import org.apache.commons.io.FileUtils;
 
+@Singleton
 public class RoomPictureServiceImpl implements RoomPictureService {
 
   private static final long MAX_FILE_SIZE_IN_KB = 256;
@@ -38,7 +40,7 @@ public class RoomPictureServiceImpl implements RoomPictureService {
 
   @Override
   @Transactional
-  public void save(Room room, File image) {
+  public void setPictureForRoom(Room room, File image) {
     try {
       MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal().orElseThrow(UnauthorizedException::new);
       // validate field
@@ -57,8 +59,8 @@ public class RoomPictureServiceImpl implements RoomPictureService {
           .image(FileUtils.readFileToByteArray(image))
       );
       // send event to room topic
-      eventDispatcher.sentToTopic(user.getId(), UUID.fromString(room.getId()),
-        RoomPictureChangedEvent.create(UUID.fromString(room.getId()), OffsetDateTime.now()).from(user.getId()));
+      eventDispatcher.sendToTopic(user.getId(), room.getId(),
+        RoomPictureChangedEvent.create(UUID.fromString(room.getId())).from(user.getId()));
     } catch (IOException e) {
       e.printStackTrace();
     }

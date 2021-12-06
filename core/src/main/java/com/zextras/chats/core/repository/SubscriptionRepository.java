@@ -7,6 +7,10 @@ public interface SubscriptionRepository {
 
   Optional<Subscription> getById(String roomId, String userId);
 
-  void update(Subscription subscription);
+  Subscription update(Subscription subscription);
+
+  Subscription insert(Subscription subscription);
+
+  void delete(String roomId, String userId);
 
 }

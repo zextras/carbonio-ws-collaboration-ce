@@ -2,7 +2,7 @@ package com.zextras.chats.core.web.dispatcher.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.zextras.chats.core.data.event.Event;
+import com.zextras.chats.core.data.event.DomainEvent;
 import com.zextras.chats.core.logging.ChatsLogger;
 import com.zextras.chats.core.web.dispatcher.EventDispatcher;
 import java.util.HashMap;
@@ -24,13 +24,13 @@ public class MockEventDispatcherImpl implements EventDispatcher {
    *
    * @param sender identifier of the user who sent the message  {@link UUID }
    * @param topic  topic identifier (hypothesis the room identifier)
-   * @param event  event to send
+   * @param domainEvent  event to send
    */
   @Override
-  public void sentToTopic(UUID sender, UUID topic, Event event) {
+  public void sendToTopic(UUID sender, String topic, DomainEvent domainEvent) {
     try {
       ChatsLogger.info(MockEventDispatcherImpl.class,
-        String.format("sentToTopic - event(%s)", objectMapper.writeValueAsString(event)));
+        String.format("sentToTopic - event(%s)", objectMapper.writeValueAsString(domainEvent)));
     } catch (JsonProcessingException e) {
       ChatsLogger.error(MockEventDispatcherImpl.class,
         "sentToTopic - unable to parse the event", e);
@@ -38,11 +38,11 @@ public class MockEventDispatcherImpl implements EventDispatcher {
   }
 
   @Override
-  public void sentToQueue(UUID sender, UUID receiver, Event event) {
+  public void sendToQueue(UUID sender, String queueName, DomainEvent domainEvent) {
     Map<String, Object> map = new HashMap<>();
     map.put("sender", sender);
-    map.put("receiver", receiver);
-    map.put("event", event);
+    map.put("queueName", queueName);
+    map.put("event", domainEvent);
     try {
       ChatsLogger.info(MockEventDispatcherImpl.class,
         String.format("sentToQueue - json: %s", objectMapper.writeValueAsString(map)));

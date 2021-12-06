@@ -1,20 +1,19 @@
 package com.zextras.chats.core.data.event;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public class RoomUpdatedEvent extends Event<RoomUpdatedEvent> {
+public class RoomUpdatedEvent extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_UPDATED;
 
   private UUID from;
 
-  public RoomUpdatedEvent(UUID roomId, OffsetDateTime sentDate) {
-    super(roomId, EVENT_TYPE, sentDate);
+  public RoomUpdatedEvent(UUID roomId) {
+    super(roomId, EVENT_TYPE);
   }
 
-  public static RoomUpdatedEvent create(UUID roomId, OffsetDateTime sentDate) {
-    return new RoomUpdatedEvent(roomId, sentDate);
+  public static RoomUpdatedEvent create(UUID roomId)  {
+    return new RoomUpdatedEvent(roomId);
   }
 
   public UUID getFrom() {

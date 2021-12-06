@@ -4,8 +4,10 @@ import com.zextras.chats.core.api.AttachmentsApiService;
 import com.zextras.chats.core.model.AttachmentDto;
 import java.io.File;
 import java.util.UUID;
+import javax.inject.Singleton;
 import javax.ws.rs.core.SecurityContext;
 
+@Singleton
 public class AttachmentsApiServiceImpl implements AttachmentsApiService {
 
   @Override

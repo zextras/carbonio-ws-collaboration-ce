@@ -226,28 +226,18 @@ paths:
           $ref: '#/components/responses/Forbidden'
         404:
           $ref: '#/components/responses/NotFound'
-  /rooms/{roomId}/members/{userid}:
     post:
       tags:
         - Rooms
         - Members
       summary: Adds or invites the specified user to the room
       description: |
-        Adds the specified user to the room. If the specified user is different from
-        the requester, this action is considered as an invitation
+        Adds the specified user to the room. This can only be performed by an of the given room
       operationId: addRoomMember
       parameters:
         - in: path
           name: roomId
           description: room identifier
-          schema:
-            type: string
-            format: uuid
-          required: true
-          allowEmptyValue: false
-        - in: path
-          name: userid
-          description: user identifier
           schema:
             type: string
             format: uuid
@@ -265,15 +255,18 @@ paths:
           $ref: '#/components/responses/AddRoomMember200'
         400:
           $ref: '#/components/responses/BadRequest'
+        403:
+          $ref: '#/components/responses/Forbidden'
+  /rooms/{roomId}/members/{userId}:
     delete:
       tags:
         - Rooms
         - Members
-      summary: Removes a member to the room
+      summary: Removes a member from the room
       description: |
         Removes a member from the specified room. If the specified user is different from
         the requester, this action is considered as a kick
-      operationId: deleteRoomMember
+      operationId: removeRoomMember
       parameters:
         - in: path
           name: roomId
@@ -284,7 +277,7 @@ paths:
           required: true
           allowEmptyValue: false
         - in: path
-          name: userid
+          name: userId
           description: user identifier
           schema:
             type: string
@@ -293,7 +286,7 @@ paths:
           allowEmptyValue: false
       responses:
         204:
-          $ref: '#/components/responses/DeleteRoomMember204'
+          $ref: '#/components/responses/RemoveRoomMember204'
         403:
           $ref: '#/components/responses/Forbidden'
   /rooms/{roomId}/members/{userId}/owner:
@@ -545,7 +538,7 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Member'
-    DeleteRoomMember204:
+    RemoveRoomMember204:
       description: The member was deleted correctly or it never existed
     AddOwner204:
       description: The member was promoted
@@ -629,7 +622,7 @@ components:
     RoomType:
       type: object
       description: Managed room types
-      enum: [ Group, Temporary, OneToOne, UserRoom ]
+      enum: [ Group, OneToOne ]
     RoomEditableFields:
       type: object
       description: Room fields that can be updated
@@ -707,10 +700,10 @@ components:
       type: object
       description: Preferences that an user has set for a room
       properties:
-        isMuted:
+        muted:
           type: boolean
           description: indicates whether the user has muted
-      required: [ isMuted ]
+      required: [ muted ]
     Member:
       type: object
       description: Information about a user's role in the room
@@ -718,24 +711,22 @@ components:
         userId:
           type: string
           format: uuid
-          readOnly: true
           description: user identifier
-        isOwner:
+        owner:
           type: boolean
           default: false
-          readOnly: true
           description: indicates whether it is the owner
-        isTemporary:
+        temporary:
           type: boolean
           default: false
           readOnly: true
           description: indicates whether it is temporary
-        isExternal:
+        external:
           type: boolean
           default: false
           readOnly: true
           description: indicates whether it is enternal user
-      required: [ userId, isOwner, isTemporary, isExternal ]
+      required: [ userId, owner, temporary, external ]
     Attachment:
       type: object
       description: Attachment of a message

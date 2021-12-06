@@ -27,23 +27,23 @@ public class RoomUserSettingsDto {
    * indicates whether the user has muted
   **/
   @ApiModelProperty(required = true, value = "indicates whether the user has muted")
-  @JsonProperty("isMuted") @NotNull
-  private Boolean isMuted;
+  @JsonProperty("muted") @NotNull
+  private Boolean muted;
 
   public static RoomUserSettingsDto create() {
     return new RoomUserSettingsDto();
   }
 
-  public Boolean getIsMuted() {
-    return isMuted;
+  public Boolean isMuted() {
+    return muted;
   }
 
-  public void setIsMuted(Boolean isMuted) {
-    this.isMuted = isMuted;
+  public void setMuted(Boolean muted) {
+    this.muted = muted;
   }
 
-  public RoomUserSettingsDto isMuted(Boolean isMuted) {
-    this.isMuted = isMuted;
+  public RoomUserSettingsDto muted(Boolean muted) {
+    this.muted = muted;
     return this;
   }
 
@@ -56,19 +56,19 @@ public class RoomUserSettingsDto {
       return false;
     }
     RoomUserSettingsDto roomUserSettings = (RoomUserSettingsDto) o;
-    return Objects.equals(this.isMuted, roomUserSettings.isMuted);
+    return Objects.equals(this.muted, roomUserSettings.muted);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(isMuted);
+    return Objects.hash(muted);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("class RoomUserSettingsDto {\n");
-    sb.append("  isMuted: ").append(StringUtil.toIndentedString(isMuted)).append("\n");
+    sb.append("  muted: ").append(StringUtil.toIndentedString(muted)).append("\n");
     sb.append("}");
     return sb.toString();
   }

@@ -1,5 +1,7 @@
 package com.zextras.chats.core.data.entity;
 
+import io.ebean.annotation.WhenCreated;
+import io.ebean.annotation.WhenModified;
 import java.time.OffsetDateTime;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
@@ -34,6 +36,17 @@ public class RoomUserSettings {
   @Column(name = "CLEARED_AT")
   @Temporal(TemporalType.TIMESTAMP)
   private OffsetDateTime clearedAt;
+
+  @Column(name = "CREATED_AT")
+  @Temporal(TemporalType.TIMESTAMP)
+  @WhenCreated
+  private OffsetDateTime createdAt;
+
+  @Column(name = "UPDATED_AT")
+  @Temporal(TemporalType.TIMESTAMP)
+  @WhenModified
+  private OffsetDateTime updatedAt;
+
 
   public static RoomUserSettings create() {
     return new RoomUserSettings();
@@ -102,5 +115,13 @@ public class RoomUserSettings {
   public RoomUserSettings clearedAt(OffsetDateTime clearedAt) {
     this.clearedAt = clearedAt;
     return this;
+  }
+
+  public OffsetDateTime getCreatedAt() {
+    return createdAt;
+  }
+
+  public OffsetDateTime getUpdatedAt() {
+    return updatedAt;
   }
 }

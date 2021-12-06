@@ -1,20 +1,19 @@
 package com.zextras.chats.core.data.event;
 
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
-public class RoomHashResetEvent extends Event {
+public class RoomHashResetEvent extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_HASH_RESET_EVENT;
 
   public String hash;
 
-  public RoomHashResetEvent(UUID roomId, OffsetDateTime sentDate) {
-    super(roomId, EVENT_TYPE, sentDate);
+  public RoomHashResetEvent(UUID roomId) {
+    super(roomId, EVENT_TYPE);
   }
 
-  public static RoomHashResetEvent create(UUID roomId, OffsetDateTime sentDate) {
-    return new RoomHashResetEvent(roomId, sentDate);
+  public static RoomHashResetEvent create(UUID roomId) {
+    return new RoomHashResetEvent(roomId);
   }
 
   public String getHash() {

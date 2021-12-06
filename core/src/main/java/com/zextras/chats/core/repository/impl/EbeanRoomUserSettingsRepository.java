@@ -7,9 +7,11 @@ import io.ebean.Database;
 import io.ebean.annotation.Transactional;
 import java.util.Optional;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 
 @Transactional
+@Singleton
 public class EbeanRoomUserSettingsRepository implements RoomUserSettingsRepository {
 
   private final Database db;

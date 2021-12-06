@@ -7,5 +7,5 @@ public interface RoomImageRepository {
 
   Optional<RoomImage> getByRoomId(String roomId);
 
-  void save(RoomImage roomImage);
+  RoomImage save(RoomImage roomImage);
 }

@@ -7,8 +7,10 @@ import io.ebean.Database;
 import io.ebean.annotation.Transactional;
 import java.util.Optional;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 @Transactional
+@Singleton
 public class EbeanSubscriptionRepository implements SubscriptionRepository {
 
   private final Database db;
@@ -23,7 +25,22 @@ public class EbeanSubscriptionRepository implements SubscriptionRepository {
   }
 
   @Override
-  public void update(Subscription subscription) {
+  public Subscription update(Subscription subscription) {
     db.update(subscription);
+    return subscription;
+  }
+
+  @Override
+  public Subscription insert(Subscription subscription) {
+    if(subscription.getId() == null) {
+      subscription.id(new SubscriptionId(subscription.getRoom().getId(), subscription.getUserId()));
+    }
+    db.insert(subscription);
+    return subscription;
+  }
+
+  @Override
+  public void delete(String roomId, String userId) {
+    db.delete(Subscription.class, new SubscriptionId(roomId, userId));
   }
 }

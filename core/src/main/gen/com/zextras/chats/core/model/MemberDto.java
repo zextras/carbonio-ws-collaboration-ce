@@ -35,22 +35,22 @@ public class MemberDto {
    * indicates whether it is the owner
   **/
   @ApiModelProperty(required = true, value = "indicates whether it is the owner")
-  @JsonProperty("isOwner") @NotNull
-  private Boolean isOwner = false;
+  @JsonProperty("owner") @NotNull
+  private Boolean owner = false;
 
   /**
    * indicates whether it is temporary
   **/
   @ApiModelProperty(required = true, value = "indicates whether it is temporary")
-  @JsonProperty("isTemporary") @NotNull
-  private Boolean isTemporary = false;
+  @JsonProperty("temporary") @NotNull
+  private Boolean temporary = false;
 
   /**
    * indicates whether it is enternal user
   **/
   @ApiModelProperty(required = true, value = "indicates whether it is enternal user")
-  @JsonProperty("isExternal") @NotNull
-  private Boolean isExternal = false;
+  @JsonProperty("external") @NotNull
+  private Boolean external = false;
 
   public static MemberDto create() {
     return new MemberDto();
@@ -69,42 +69,42 @@ public class MemberDto {
     return this;
   }
 
-  public Boolean getIsOwner() {
-    return isOwner;
+  public Boolean isOwner() {
+    return owner;
   }
 
-  public void setIsOwner(Boolean isOwner) {
-    this.isOwner = isOwner;
+  public void setOwner(Boolean owner) {
+    this.owner = owner;
   }
 
-  public MemberDto isOwner(Boolean isOwner) {
-    this.isOwner = isOwner;
+  public MemberDto owner(Boolean owner) {
+    this.owner = owner;
     return this;
   }
 
-  public Boolean getIsTemporary() {
-    return isTemporary;
+  public Boolean isTemporary() {
+    return temporary;
   }
 
-  public void setIsTemporary(Boolean isTemporary) {
-    this.isTemporary = isTemporary;
+  public void setTemporary(Boolean temporary) {
+    this.temporary = temporary;
   }
 
-  public MemberDto isTemporary(Boolean isTemporary) {
-    this.isTemporary = isTemporary;
+  public MemberDto temporary(Boolean temporary) {
+    this.temporary = temporary;
     return this;
   }
 
-  public Boolean getIsExternal() {
-    return isExternal;
+  public Boolean isExternal() {
+    return external;
   }
 
-  public void setIsExternal(Boolean isExternal) {
-    this.isExternal = isExternal;
+  public void setExternal(Boolean external) {
+    this.external = external;
   }
 
-  public MemberDto isExternal(Boolean isExternal) {
-    this.isExternal = isExternal;
+  public MemberDto external(Boolean external) {
+    this.external = external;
     return this;
   }
 
@@ -118,14 +118,14 @@ public class MemberDto {
     }
     MemberDto member = (MemberDto) o;
     return Objects.equals(this.userId, member.userId) &&
-      Objects.equals(this.isOwner, member.isOwner) &&
-      Objects.equals(this.isTemporary, member.isTemporary) &&
-      Objects.equals(this.isExternal, member.isExternal);
+      Objects.equals(this.owner, member.owner) &&
+      Objects.equals(this.temporary, member.temporary) &&
+      Objects.equals(this.external, member.external);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(userId, isOwner, isTemporary, isExternal);
+    return Objects.hash(userId, owner, temporary, external);
   }
 
   @Override
@@ -133,9 +133,9 @@ public class MemberDto {
     StringBuilder sb = new StringBuilder();
     sb.append("class MemberDto {\n");
     sb.append("  userId: ").append(StringUtil.toIndentedString(userId)).append("\n");
-    sb.append("  isOwner: ").append(StringUtil.toIndentedString(isOwner)).append("\n");
-    sb.append("  isTemporary: ").append(StringUtil.toIndentedString(isTemporary)).append("\n");
-    sb.append("  isExternal: ").append(StringUtil.toIndentedString(isExternal)).append("\n");
+    sb.append("  owner: ").append(StringUtil.toIndentedString(owner)).append("\n");
+    sb.append("  temporary: ").append(StringUtil.toIndentedString(temporary)).append("\n");
+    sb.append("  external: ").append(StringUtil.toIndentedString(external)).append("\n");
     sb.append("}");
     return sb.toString();
   }

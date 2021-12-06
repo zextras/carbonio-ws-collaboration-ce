@@ -1,6 +1,8 @@
 package com.zextras.chats.core.data.entity;
 
-import java.util.Date;
+import io.ebean.annotation.WhenCreated;
+import io.ebean.annotation.WhenModified;
+import java.time.OffsetDateTime;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
@@ -29,7 +31,7 @@ public class Subscription {
 
   @Column(name = "JOINED_AT")
   @Temporal(TemporalType.TIMESTAMP)
-  private Date joinedAt;
+  private OffsetDateTime joinedAt;
 
   @Column(name = "OWNER")
   private Boolean isOwner = false;
@@ -39,6 +41,16 @@ public class Subscription {
 
   @Column(name = "TEMPORARY")
   private Boolean isTemporary = false;
+
+  @Column(name = "CREATED_AT")
+  @Temporal(TemporalType.TIMESTAMP)
+  @WhenCreated
+  private OffsetDateTime createdAt;
+
+  @Column(name = "UPDATED_AT")
+  @Temporal(TemporalType.TIMESTAMP)
+  @WhenModified
+  private OffsetDateTime updatedAt;
 
   public static Subscription create() {
     return new Subscription();
@@ -56,19 +68,19 @@ public class Subscription {
     return room;
   }
 
-  public Date getJoinedAt() {
+  public OffsetDateTime getJoinedAt() {
     return joinedAt;
   }
 
-  public Boolean getIsOwner() {
+  public Boolean isOwner() {
     return isOwner;
   }
 
-  public Boolean getIsExternal() {
+  public Boolean isExternal() {
     return isExternal;
   }
 
-  public Boolean getIsTemporary() {
+  public Boolean isTemporary() {
     return isTemporary;
   }
 
@@ -87,7 +99,7 @@ public class Subscription {
     return this;
   }
 
-  public Subscription joinedAt(Date joinedAt) {
+  public Subscription joinedAt(OffsetDateTime joinedAt) {
     this.joinedAt = joinedAt;
     return this;
   }
@@ -105,5 +117,13 @@ public class Subscription {
   public Subscription temporary(Boolean temporary) {
     this.isTemporary = temporary;
     return this;
+  }
+
+  public OffsetDateTime getCreatedAt() {
+    return createdAt;
+  }
+
+  public OffsetDateTime getUpdatedAt() {
+    return updatedAt;
   }
 }

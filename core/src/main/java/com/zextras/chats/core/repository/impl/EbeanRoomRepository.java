@@ -7,8 +7,10 @@ import io.ebean.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 @Transactional
+@Singleton
 public class EbeanRoomRepository implements RoomRepository {
 
   private final Database db;
@@ -44,18 +46,15 @@ public class EbeanRoomRepository implements RoomRepository {
   }
 
   @Override
-  public void save(Room room) {
-    db.save(room);
-  }
-
-  @Override
-  public void insert(Room room) {
+  public Room insert(Room room) {
     db.insert(room);
+    return room;
   }
 
   @Override
-  public void update(Room room) {
+  public Room update(Room room) {
     db.update(room);
+    return room;
   }
 
   @Override

@@ -12,11 +12,9 @@ public interface RoomRepository {
 
   Optional<Room> getByIdAndUserId(String roomId, String userId);
 
-  void save(Room room);
+  Room insert(Room room);
 
-  void insert(Room room);
-
-  void update(Room room);
+  Room update(Room room);
 
   void delete(String id);
 

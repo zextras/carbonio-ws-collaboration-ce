@@ -6,8 +6,10 @@ import io.ebean.Database;
 import io.ebean.annotation.Transactional;
 import java.util.Optional;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 @Transactional
+@Singleton
 public class EbeanRoomImageRepository implements RoomImageRepository {
 
   private final Database db;
@@ -23,7 +25,8 @@ public class EbeanRoomImageRepository implements RoomImageRepository {
   }
 
   @Override
-  public void save(RoomImage roomImage) {
+  public RoomImage save(RoomImage roomImage) {
      db.save(roomImage);
+     return roomImage;
   }
 }

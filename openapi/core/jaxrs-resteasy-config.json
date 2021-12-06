@@ -2,7 +2,7 @@
 
   "apiPackage": "com.zextras.chats.core.api",
   "bigDecimalAsString": false,
-  "booleanGetterPrefix": "get",
+  "booleanGetterPrefix": "is",
   "dateLibrary": "java8",
   "disableHtmlEscaping": false,
   "disallowAdditionalPropertiesIfNotPresent": true,
