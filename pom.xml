@@ -103,7 +103,7 @@
       <dependency>
         <groupId>org.jboss.resteasy</groupId>
         <artifactId>resteasy-validator-provider</artifactId>
-        <version>4.7.2.Final</version>
+        <version>${org.jboss.resteasy.version}</version>
       </dependency>
 
       <dependency>
