@@ -44,6 +44,7 @@
     <joda-time.version>2.10.13</joda-time.version>
     <!-- Open api-->
     <io.swagger.version>1.6.3</io.swagger.version>
+    <org.hibernate.validator.version>5.2.4.Final</org.hibernate.validator.version>
   </properties>
 
   <dependencyManagement>
@@ -104,6 +105,12 @@
         <groupId>org.jboss.resteasy</groupId>
         <artifactId>resteasy-validator-provider</artifactId>
         <version>${org.jboss.resteasy.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.hibernate</groupId>
+        <artifactId>hibernate-validator-cdi</artifactId>
+        <version>${org.hibernate.validator.version}</version>
       </dependency>
 
       <dependency>
