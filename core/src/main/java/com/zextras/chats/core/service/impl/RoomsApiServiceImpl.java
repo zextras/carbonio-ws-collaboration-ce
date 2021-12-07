@@ -8,6 +8,7 @@ import com.zextras.chats.core.data.event.RoomCreatedEvent;
 import com.zextras.chats.core.data.event.RoomDeletedEvent;
 import com.zextras.chats.core.data.event.RoomHashResetEvent;
 import com.zextras.chats.core.data.event.RoomUpdatedEvent;
+import com.zextras.chats.core.exception.BadRequestException;
 import com.zextras.chats.core.exception.ForbiddenException;
 import com.zextras.chats.core.exception.NotFoundException;
 import com.zextras.chats.core.exception.UnauthorizedException;
@@ -32,6 +33,7 @@ import io.ebean.annotation.Transactional;
 import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -97,11 +99,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public RoomInfoDto createRoom(RoomCreationFieldsDto roomCreationFieldsDto, SecurityContext securityContext) {
     MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
       .orElseThrow(UnauthorizedException::new);
+    // check for duplicates
+    if (roomCreationFieldsDto.getMembersIds().size() != new HashSet<String>(roomCreationFieldsDto.getMembersIds()).size()) {
+      throw new BadRequestException("Members cannot be duplicated");
+    }
+    // check the users existence
     roomCreationFieldsDto.getMembersIds()
       .forEach(userId ->
         accountService.getById(userId)
-          .orElseThrow(() -> new NotFoundException(String.format("User not found with identifier '%s'", userId))));
-
+          .orElseThrow(() -> new NotFoundException(String.format("User with identifier '%s' not found", userId))));
     // entity building
     UUID id = UUID.randomUUID();
     Room room = Room.create()

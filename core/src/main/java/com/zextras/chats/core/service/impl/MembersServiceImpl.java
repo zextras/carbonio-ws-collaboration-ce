@@ -73,37 +73,35 @@ public class MembersServiceImpl implements MembersService {
     if (room.getType().equals(RoomTypeDto.ONETOONE)) {
       throw new ForbiddenException("Can't add members to a one to one conversation");
     }
-
+    // check that user isn't duplicated
+    if (room.getSubscriptions().stream().anyMatch(member -> userId.toString() == member.getUserId())) {
+      throw new BadRequestException(String.format("User '%s' is already a room member", userId));
+    }
+    // check the users existence
     accountService.getById(userId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("User with id '%s' was not found", userId)));
+    // insert the new member
+    Subscription subscription = subscriptionRepository.insert(
+      Subscription.create()
+        .room(room)
+        .userId(userId.toString())
+        .owner(asOwner)
+        .temporary(false)
+        .external(false)
+        .joinedAt(OffsetDateTime.now())
+    );
 
-    //if the user is already a member, don't insert it
-    return subscriptionMapper.ent2memberDto(room.getSubscriptions().stream()
-      .filter(member -> member.getUserId().equals(userId.toString()))
-      .findFirst()
-      .orElseGet(() -> {
-        Subscription newSubscription = subscriptionRepository.insert(
-          Subscription.create()
-            .room(room)
-            .userId(userId.toString())
-            .owner(asOwner)
-            .temporary(false)
-            .external(false)
-            .joinedAt(OffsetDateTime.now())
-        );
-
-        eventDispatcher.sendToTopic(
-          ((MockUserPrincipal) mockSecurityContext.getUserPrincipal().get()).getId(),
-          room.getId(),
-          RoomMemberAddedEvent
-            .create(UUID.fromString(room.getId()))
-            .memberId(userId)
-            .isOwner(asOwner)
-            .temporary(false)
-            .external(false)
-        );
-        return newSubscription;
-      }));
+    eventDispatcher.sendToTopic(
+      ((MockUserPrincipal) mockSecurityContext.getUserPrincipal().get()).getId(),
+      room.getId(),
+      RoomMemberAddedEvent
+        .create(UUID.fromString(room.getId()))
+        .memberId(userId)
+        .isOwner(asOwner)
+        .temporary(false)
+        .external(false)
+    );
+    return subscriptionMapper.ent2memberDto(subscription);
   }
 
   @Override
