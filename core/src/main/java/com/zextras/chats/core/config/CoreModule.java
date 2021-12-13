@@ -8,6 +8,8 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.chats.core.api.AttachmentsApi;
 import com.zextras.chats.core.api.AttachmentsApiService;
+import com.zextras.chats.core.api.HealthcheckApi;
+import com.zextras.chats.core.api.HealthcheckApiService;
 import com.zextras.chats.core.api.RoomsApi;
 import com.zextras.chats.core.api.RoomsApiService;
 import com.zextras.chats.core.api.UsersApi;
@@ -33,6 +35,7 @@ import com.zextras.chats.core.repository.impl.EbeanSubscriptionRepository;
 import com.zextras.chats.core.service.MembersService;
 import com.zextras.chats.core.service.RoomPictureService;
 import com.zextras.chats.core.service.impl.AttachmentsApiServiceImpl;
+import com.zextras.chats.core.service.impl.HealthcheckApiServiceImpl;
 import com.zextras.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.chats.core.service.impl.RoomPictureServiceImpl;
 import com.zextras.chats.core.service.impl.RoomsApiServiceImpl;
@@ -49,36 +52,15 @@ import com.zextras.chats.core.web.security.impl.MockSecurityContextImpl;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.config.DatabaseConfig;
-import java.util.Properties;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 
 public class CoreModule extends AbstractModule {
 
-  private final Properties properties;
-
-  public CoreModule() {
-    super();
-    properties = new Properties();
-  }
-
-  public CoreModule(Properties properties) {
-    super();
-    this.properties = properties;
-  }
-
   @Override
   protected void configure() {
     super.configure();
-
-    //TODO we should move this away from here
-    Flyway flyway = Flyway.configure()
-      .locations("classpath:migration")
-      .schemas("chats")
-      .dataSource(getHikariDataSource())
-      .load();
-    flyway.migrate();
 
     bind(JacksonConfig.class);
 
@@ -99,6 +81,9 @@ public class CoreModule extends AbstractModule {
 
     bind(UsersApi.class);
     bind(UsersApiService.class).to(UsersApiServiceImpl.class);
+
+    bind(HealthcheckApi.class);
+    bind(HealthcheckApiService.class).to(HealthcheckApiServiceImpl.class);
 
     bind(MembersService.class).to(MembersServiceImpl.class);
     bind(SubscriptionRepository.class).to(EbeanSubscriptionRepository.class);
@@ -121,9 +106,9 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  public Database getDatabase() {
+  public Database getDatabase(AppConfig appConfig) {
     DatabaseConfig databaseConfig = new DatabaseConfig();
-    databaseConfig.setDataSource(getHikariDataSource());
+    databaseConfig.setDataSource(getHikariDataSource(appConfig));
     return DatabaseFactory.create(databaseConfig);
   }
 
@@ -135,18 +120,28 @@ public class CoreModule extends AbstractModule {
       .setDateFormat(new RFC3339DateFormat());
   }
 
-  private DataSource getHikariDataSource() {
+  @Singleton
+  @Provides
+  public Flyway getFlywayInstance(AppConfig appConfig) {
+    return Flyway.configure()
+      .locations("classpath:migration")
+      .schemas("chats")
+      .dataSource(getHikariDataSource(appConfig))
+      .load();
+  }
+
+  private DataSource getHikariDataSource(AppConfig appConfig) {
     HikariConfig config = new HikariConfig();
-    config.setJdbcUrl(properties.getProperty("zextras.chats.datasource.jdbcUrl"));
-    config.setUsername(properties.getProperty("zextras.chats.datasource.username"));
-    config.setPassword(properties.getProperty("zextras.chats.datasource.password"));
-    config.addDataSourceProperty("idleTimeout", properties.getProperty("zextras.chats.datasource.idleTimeout"));
-    config.addDataSourceProperty("minimumIdle", properties.getProperty("zextras.chats.datasource.minPoolSize"));
-    config.addDataSourceProperty("maximumPoolSize", properties.getProperty("zextras.chats.datasource.maxPoolSize"));
-    config.addDataSourceProperty("poolName", properties.getProperty("zextras.chats.datasource.poolName"));
-    config.addDataSourceProperty("driverClassName", properties.getProperty("zextras.chats.datasource.driverClassName"));
+    config.setJdbcUrl(appConfig.get(String.class, "DATABASE_JDBC_URL").orElseThrow());
+    config.setUsername(appConfig.get(String.class, "DATABASE_USERNAME").orElse("chats"));
+    config.setPassword(appConfig.get(String.class, "DATABASE_PASSWORD").orElse("password"));
+    config.addDataSourceProperty("idleTimeout", appConfig.get(Integer.class, "HIKARI_IDLE_TIMEOUT").orElse(300));
+    config.addDataSourceProperty("minimumIdle", appConfig.get(Integer.class, "HIKARI_MIN_POOL_SIZE").orElse(1));
+    config.addDataSourceProperty("maximumPoolSize", appConfig.get(Integer.class, "HIKARI_MAX_POOL_SIZE").orElse(5));
+    config.addDataSourceProperty("poolName", "chats-db-pool");
+    config.addDataSourceProperty("driverClassName", appConfig.get(String.class, "DATASOURCE_DRIVER").orElseThrow());
     config.addDataSourceProperty("leakDetectionThreshold",
-      properties.getProperty("zextras.chats.datasource.leakDetectionThreshold"));
+      appConfig.get(Integer.class, "HIKARI_LEAK_DETECTION_THRESHOLD").orElse(60000));
     return new HikariDataSource(config);
   }
 

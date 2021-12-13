@@ -57,16 +57,16 @@
               <!--<gitUserId></gitUserId>-->
               <!--<gitRepoId></gitRepoId>-->
               <verbose>false</verbose> <!-- to remove -->
-              <inputSpec>core/api.yaml</inputSpec>
+              <inputSpec>openapi/core/api.yaml</inputSpec>
 
               <generatorName>jaxrs-resteasy</generatorName>
 
               <output>${project.parent.basedir}/core</output>
-              <templateDirectory>core/templates</templateDirectory>
+              <templateDirectory>${project.parent.basedir}/openapi/core/templates</templateDirectory>
               <!--<templateResourcePath></templateResourcePath>-->
               <engine>mustache</engine> <!--default: mustache-->
               <!--<auth></auth>-->
-              <configurationFile>core/jaxrs-resteasy-config.json</configurationFile>
+              <configurationFile>${project.parent.basedir}/openapi/core/jaxrs-resteasy-config.json</configurationFile>
               <!--<skipOverwrite></skipOverwrite>-->
               <apiPackage>com.zextras.chats.core.api</apiPackage>
               <modelPackage>com.zextras.chats.core.model</modelPackage>
@@ -78,7 +78,7 @@
               <!--<library></library>-->
               <!--<modelNamePrefix></modelNamePrefix>-->
               <modelNameSuffix>dto</modelNameSuffix>
-              <ignoreFileOverride>core/openapi-generator-ignore</ignoreFileOverride>
+              <ignoreFileOverride>${project.parent.basedir}/openapi/core/openapi-generator-ignore</ignoreFileOverride>
               <!--<httpUserAgent></httpUserAgent>-->
               <!--<removeOperationIdPrefix></removeOperationIdPrefix>-->
               <!--<skipOperationExample></skipOperationExample>-->

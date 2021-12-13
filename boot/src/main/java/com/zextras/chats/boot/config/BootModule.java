@@ -1,23 +1,34 @@
 package com.zextras.chats.boot.config;
 
+import com.google.inject.Provides;
+import com.google.inject.Singleton;
 import com.zextras.chats.core.config.CoreModule;
-import com.zextras.chats.core.utils.EnvConfig;
-import java.util.Properties;
+import com.zextras.chats.core.config.AppConfig;
+import com.zextras.chats.core.config.impl.DotenvAppConfig;
+import io.github.cdimascio.dotenv.Dotenv;
 import org.jboss.resteasy.plugins.guice.ext.RequestScopeModule;
 
 public class BootModule extends RequestScopeModule {
 
-  private final Properties properties;
-
-  public BootModule(Properties properties) {
+  public BootModule() {
     super();
-    this.properties = properties;
   }
 
   @Override
   protected void configure() {
     super.configure();
-    bind(EnvConfig.class).toInstance(new EnvConfig(properties));
-    install(new CoreModule(properties));
+    install(new CoreModule());
+  }
+
+  @Provides
+  @Singleton
+  public AppConfig getAppConfig() {
+    return new DotenvAppConfig(
+      Dotenv.configure()
+        .ignoreIfMissing()
+        .directory("./")
+        .filename(".env")
+        .load()
+    );
   }
 }

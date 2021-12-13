@@ -10,10 +10,26 @@
   <artifactId>community</artifactId>
   <version>0.2.0</version>
 
-  <modules>
-    <module>boot</module>
-    <module>core</module>
-  </modules>
+  <profiles>
+    <profile>
+      <id>openapi-generation</id>
+      <modules>
+        <module>openapi</module>
+        <module>core</module>
+        <module>boot</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>default</id>
+      <modules>
+        <module>core</module>
+        <module>boot</module>
+      </modules>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+    </profile>
+  </profiles>
 
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
@@ -45,6 +61,8 @@
     <!-- Open api-->
     <io.swagger.version>1.6.3</io.swagger.version>
     <org.hibernate.validator.version>5.2.4.Final</org.hibernate.validator.version>
+    <io.github.cdimascio.dotenv-java.version>2.2.0</io.github.cdimascio.dotenv-java.version>
+    <com.spotify.dockerfile-maven.version>1.4.13</com.spotify.dockerfile-maven.version>
   </properties>
 
   <dependencyManagement>
@@ -203,6 +221,13 @@
         <groupId>io.swagger</groupId>
         <artifactId>swagger-annotations</artifactId>
         <version>${io.swagger.version}</version>
+      </dependency>
+
+      <!-- Dotenv dependencies -->
+      <dependency>
+        <groupId>io.github.cdimascio</groupId>
+        <artifactId>dotenv-java</artifactId>
+        <version>${io.github.cdimascio.dotenv-java.version}</version>
       </dependency>
 
     </dependencies>

@@ -12,7 +12,17 @@ tags:
   - name: Members
   - name: Users
   - name: Attachments
+  - name: Operations
 paths:
+  /healthcheck:
+    get:
+      tags:
+        - Operations
+      summary: healthcheck endpoint which will answer according to the service state
+      operationId: healthcheck
+      responses:
+        200:
+          $ref: '#/components/responses/Healthcheck200'
   /rooms:
     get:
       tags:
@@ -484,6 +494,8 @@ paths:
           $ref: '#/components/responses/NotFound'
 components:
   responses:
+    Healthcheck200:
+      description: Everything is operational
     GetRooms200:
       description: List of every room that the user has access to
       content:

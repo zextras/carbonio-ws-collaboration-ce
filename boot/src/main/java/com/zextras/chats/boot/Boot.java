@@ -1,28 +1,40 @@
 package com.zextras.chats.boot;
 
 
-import com.zextras.chats.core.utils.EnvConfig;
+import com.zextras.chats.core.config.AppConfig;
 import javax.inject.Inject;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.flywaydb.core.Flyway;
 import org.jboss.resteasy.plugins.guice.GuiceResteasyBootstrapServletContextListener;
 import org.jboss.resteasy.plugins.server.servlet.HttpServletDispatcher;
 
 public class Boot {
 
-  private final EnvConfig                                    envConfig;
+  private final String CONTEXT_PATH = "/zx/chats";
+
+  private final AppConfig                                    appConfig;
   private final GuiceResteasyBootstrapServletContextListener resteasyListener;
+  private final Flyway                                       flyway;
 
   @Inject
-  public Boot(EnvConfig envConfig, GuiceResteasyBootstrapServletContextListener resteasyListener) {
-    this.envConfig = envConfig;
+  public Boot(
+    AppConfig appConfig,
+    GuiceResteasyBootstrapServletContextListener resteasyListener,
+    Flyway flyway
+  ) {
+    this.appConfig = appConfig;
     this.resteasyListener = resteasyListener;
+    this.flyway = flyway;
   }
 
   public void boot() throws Exception {
-    Server server = new Server(envConfig.getInt("server.port"));
-    ServletContextHandler servletHandler = new ServletContextHandler(server, envConfig.get("servlet.context-root"));
+    flyway.migrate();
+
+    Server server = new Server(appConfig.get(Integer.class, "SERVER_PORT").orElse(8081));
+    ServletContextHandler servletHandler = new ServletContextHandler(server,
+      CONTEXT_PATH);
     servletHandler.addEventListener(resteasyListener);
 
     ServletHolder sh = new ServletHolder(HttpServletDispatcher.class);
