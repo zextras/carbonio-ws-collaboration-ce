@@ -10,8 +10,6 @@ Build using maven:
 mvn clean install -P openapi-generation
 ```
 
-This will also generate the carbonio/chats:<version> docker image.
-
 ## 🚀 How to Run
 
 With the generated fat-jar:
