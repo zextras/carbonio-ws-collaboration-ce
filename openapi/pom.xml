@@ -47,6 +47,7 @@
 
         <executions>
           <execution>
+            <id>chats-core-api</id>
             <goals>
               <goal>generate</goal>
             </goals>

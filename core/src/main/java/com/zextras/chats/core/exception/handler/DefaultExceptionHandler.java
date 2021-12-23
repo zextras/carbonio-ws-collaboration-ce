@@ -1,4 +1,4 @@
-package com.zextras.chats.core.exception.mapper;
+package com.zextras.chats.core.exception.handler;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -11,7 +11,7 @@ import javax.ws.rs.ext.Provider;
 
 @Singleton
 @Provider
-public class DefaultExceptionHandler extends ExceptionHandler implements ExceptionMapper<Exception> {
+public class DefaultExceptionHandler extends ExceptionHandler<Exception> {
 
   @Context
   private UriInfo uriInfo;

@@ -1,5 +1,6 @@
 package com.zextras.chats.core.web.security.impl;
 
+import com.zextras.chats.core.exception.UnauthorizedException;
 import com.zextras.chats.core.web.security.MockSecurityContext;
 import com.zextras.chats.core.web.security.MockUserPrincipal;
 import java.security.Principal;
@@ -30,5 +31,11 @@ public class MockSecurityContextImpl implements MockSecurityContext {
   @Override
   public String getAuthenticationScheme() {
     return "BASIC";
+  }
+
+  @Override
+  public String getUserPrincipalId() {
+    return ((MockUserPrincipal) getUserPrincipal()
+      .orElseThrow(UnauthorizedException::new)).getId().toString();
   }
 }

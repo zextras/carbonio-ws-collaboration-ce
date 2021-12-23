@@ -14,8 +14,11 @@ import com.zextras.chats.core.api.RoomsApi;
 import com.zextras.chats.core.api.RoomsApiService;
 import com.zextras.chats.core.api.UsersApi;
 import com.zextras.chats.core.api.UsersApiService;
-import com.zextras.chats.core.exception.mapper.ChatsHttpExceptionHandler;
-import com.zextras.chats.core.exception.mapper.DefaultExceptionHandler;
+import com.zextras.chats.core.exception.handler.ChatsHttpExceptionHandler;
+import com.zextras.chats.core.exception.handler.DefaultExceptionHandler;
+import com.zextras.chats.core.exception.handler.XmppServerExceptionHandler;
+import com.zextras.chats.core.infrastructure.messaging.MessageService;
+import com.zextras.chats.core.infrastructure.messaging.impl.MessageServiceImpl;
 import com.zextras.chats.core.invoker.JacksonConfig;
 import com.zextras.chats.core.invoker.RFC3339DateFormat;
 import com.zextras.chats.core.mapper.RoomMapper;
@@ -49,6 +52,9 @@ import com.zextras.chats.core.web.security.AccountService;
 import com.zextras.chats.core.web.security.MockSecurityContext;
 import com.zextras.chats.core.web.security.impl.MockAccountServiceImpl;
 import com.zextras.chats.core.web.security.impl.MockSecurityContextImpl;
+import com.zextras.chats.mongooseim.admin.api.MucLightManagementApi;
+import com.zextras.chats.mongooseim.admin.invoker.ApiClient;
+import com.zextras.chats.mongooseim.admin.invoker.Configuration;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.config.DatabaseConfig;
@@ -95,13 +101,31 @@ public class CoreModule extends AbstractModule {
     bind(RoomPictureService.class).to(RoomPictureServiceImpl.class);
     bind(RoomImageRepository.class).to(EbeanRoomImageRepository.class);
 
+    bind(MessageService.class).to(MessageServiceImpl.class);
+
     bind(TestController.class);
     bindExceptionMapper();
   }
 
   private void bindExceptionMapper() {
     bind(ChatsHttpExceptionHandler.class);
+    bind(XmppServerExceptionHandler.class);
     bind(DefaultExceptionHandler.class);
+  }
+
+  @Singleton
+  @Provides
+  private MucLightManagementApi configureMongooseImTools(AppConfig appConfig) {
+    Configuration.setDefaultApiClient(new ApiClient()
+      .setBasePath(appConfig.get(String.class, "MONGOOSEIM_ADMIN_REST_BASE_URL").orElseThrow())
+      .addDefaultHeader("Accept", "*/*")
+      .setDebugging(true));
+    com.zextras.chats.mongooseim.client.invoker.Configuration.setDefaultApiClient(
+      new com.zextras.chats.mongooseim.client.invoker.ApiClient()
+        .setBasePath(appConfig.get(String.class, "MONGOOSEIM_CLIENT_REST_BASE_URL").orElseThrow())
+        .addDefaultHeader("Accept", "*/*")
+        .setDebugging(true));
+    return new MucLightManagementApi();
   }
 
   @Singleton

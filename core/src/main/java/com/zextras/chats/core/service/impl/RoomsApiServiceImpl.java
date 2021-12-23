@@ -3,7 +3,6 @@ package com.zextras.chats.core.service.impl;
 import com.zextras.chats.core.api.RoomsApiService;
 import com.zextras.chats.core.data.entity.Room;
 import com.zextras.chats.core.data.entity.Subscription;
-import com.zextras.chats.core.data.entity.SubscriptionId;
 import com.zextras.chats.core.data.event.RoomCreatedEvent;
 import com.zextras.chats.core.data.event.RoomDeletedEvent;
 import com.zextras.chats.core.data.event.RoomHashResetEvent;
@@ -12,6 +11,7 @@ import com.zextras.chats.core.exception.BadRequestException;
 import com.zextras.chats.core.exception.ForbiddenException;
 import com.zextras.chats.core.exception.NotFoundException;
 import com.zextras.chats.core.exception.UnauthorizedException;
+import com.zextras.chats.core.infrastructure.messaging.MessageService;
 import com.zextras.chats.core.mapper.RoomMapper;
 import com.zextras.chats.core.model.HashDto;
 import com.zextras.chats.core.model.IdDto;
@@ -31,12 +31,10 @@ import com.zextras.chats.core.web.security.MockSecurityContext;
 import com.zextras.chats.core.web.security.MockUserPrincipal;
 import io.ebean.annotation.Transactional;
 import java.io.File;
-import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.core.SecurityContext;
@@ -52,6 +50,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   private final MockSecurityContext        mockSecurityContext;
   private final MembersService             membersService;
   private final RoomPictureService         roomPictureService;
+  private final MessageService             messageService;
 
   @Inject
   public RoomsApiServiceImpl(
@@ -62,7 +61,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     AccountService accountService,
     MockSecurityContext mockSecurityContext,
     MembersService membersService,
-    RoomPictureService roomPictureService
+    RoomPictureService roomPictureService,
+    MessageService messageService
   ) {
     this.roomRepository = roomRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
@@ -72,6 +72,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     this.mockSecurityContext = mockSecurityContext;
     this.membersService = membersService;
     this.roomPictureService = roomPictureService;
+    this.messageService = messageService;
   }
 
   @Override
@@ -100,7 +101,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     MockUserPrincipal user = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
       .orElseThrow(UnauthorizedException::new);
     // check for duplicates
-    if (roomCreationFieldsDto.getMembersIds().size() != new HashSet<String>(roomCreationFieldsDto.getMembersIds()).size()) {
+    if (roomCreationFieldsDto.getMembersIds().size() != new HashSet<>(roomCreationFieldsDto.getMembersIds()).size()) {
       throw new BadRequestException("Members cannot be duplicated");
     }
     // check the users existence
@@ -120,13 +121,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .password(generateRoomPassword());
     room.setSubscriptions(membersService.initRoomSubscriptions(roomCreationFieldsDto.getMembersIds(), room, user));
     // persist room
-    roomRepository.insert(room);
+    room = roomRepository.insert(room);
     // send event
     room.getSubscriptions().forEach(member ->
       eventDispatcher.sendToQueue(user.getId(), member.getUserId(),
         RoomCreatedEvent.create(id).from(user.getId())
       )
     );
+    // room creation on server XMPP
+    messageService.createRoom(room, user.getId().toString());
     // get new room result
     return roomMapper.ent2roomInfoDto(room, user.getId().toString());
   }
@@ -161,7 +164,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     roomRepository.delete(roomId.toString());
     // send to room topic
     eventDispatcher.sendToTopic(user.getId(), roomId.toString(), new RoomDeletedEvent(roomId));
-    // TODO: 30/11/21 remove all room messages
+    // room deleting on server XMPP
+    messageService.deleteRoom(roomId.toString(), user.getId().toString());
   }
 
   @Override

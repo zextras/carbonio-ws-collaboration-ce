@@ -13,4 +13,6 @@ public interface MockSecurityContext {
 
   String getAuthenticationScheme();
 
+  String getUserPrincipalId();
+
 }

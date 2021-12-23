@@ -14,6 +14,7 @@
     <profile>
       <id>openapi-generation</id>
       <modules>
+        <module>mongooseim</module>
         <module>openapi</module>
         <module>core</module>
         <module>boot</module>
@@ -22,6 +23,7 @@
     <profile>
       <id>default</id>
       <modules>
+        <module>mongooseim</module>
         <module>core</module>
         <module>boot</module>
       </modules>
@@ -45,6 +47,8 @@
     <javax.ws.rs.version>2.1.1</javax.ws.rs.version>
     <!-- Ebean -->
     <io.ebean.version>12.12.3</io.ebean.version>
+    <!-- JavaEE api -->
+    <javax.javaee-api.version>7.0</javax.javaee-api.version>
     <!-- Database -->
     <org.flywaydb.version>8.0.5</org.flywaydb.version>
     <com.zaxxer.HikariCP.version>5.0.0</com.zaxxer.HikariCP.version>
@@ -54,6 +58,7 @@
     <logback-classic.version>1.2.6</logback-classic.version>
     <!-- Jackson -->
     <com.fasterxml.jackson.version>2.13.0</com.fasterxml.jackson.version>
+    <org.openapitools.jackson-databind-nullable.version>0.2.2</org.openapitools.jackson-databind-nullable.version>
     <!-- Utilities -->
     <org.mapstruct.version>1.4.2.Final</org.mapstruct.version>
     <org.apache.commons.version>3.12.0</org.apache.commons.version>
@@ -61,8 +66,10 @@
     <!-- Open api-->
     <io.swagger.version>1.6.3</io.swagger.version>
     <org.hibernate.validator.version>5.2.4.Final</org.hibernate.validator.version>
+    <!-- @Nullable annotation -->
+    <com.google.code.findbugs.jsr305.version>3.0.2</com.google.code.findbugs.jsr305.version>
+    <!-- Dotenv file support -->
     <io.github.cdimascio.dotenv-java.version>2.2.0</io.github.cdimascio.dotenv-java.version>
-    <com.spotify.dockerfile-maven.version>1.4.13</com.spotify.dockerfile-maven.version>
   </properties>
 
   <dependencyManagement>
@@ -137,6 +144,25 @@
         <version>${javax.ws.rs.version}</version>
       </dependency>
 
+      <dependency>
+        <groupId>org.jboss.resteasy</groupId>
+        <artifactId>resteasy-client</artifactId>
+        <version>${org.jboss.resteasy.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jboss.resteasy</groupId>
+        <artifactId>resteasy-multipart-provider</artifactId>
+        <version>${org.jboss.resteasy.version}</version>
+      </dependency>
+
+      <!-- JavaEE api -->
+      <dependency>
+        <groupId>javax</groupId>
+        <artifactId>javaee-api</artifactId>
+        <version>${javax.javaee-api.version}</version>
+      </dependency>
+
       <!-- Ebean dependencies -->
       <dependency>
         <groupId>io.ebean</groupId>
@@ -179,8 +205,26 @@
       <!-- Jackson dependencies -->
       <dependency>
         <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>${com.fasterxml.jackson.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
         <artifactId>jackson-annotations</artifactId>
         <version>${com.fasterxml.jackson.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>${com.fasterxml.jackson.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.openapitools</groupId>
+        <artifactId>jackson-databind-nullable</artifactId>
+        <version>${org.openapitools.jackson-databind-nullable.version}</version>
       </dependency>
 
       <dependency>
@@ -229,7 +273,14 @@
         <version>${io.swagger.version}</version>
       </dependency>
 
-      <!-- Dotenv dependencies -->
+      <!-- @Nullable annotation -->
+      <dependency>
+        <groupId>com.google.code.findbugs</groupId>
+        <artifactId>jsr305</artifactId>
+        <version>${com.google.code.findbugs.jsr305.version}</version>
+      </dependency>
+
+      <!-- Dotenv file support -->
       <dependency>
         <groupId>io.github.cdimascio</groupId>
         <artifactId>dotenv-java</artifactId>

@@ -1,4 +1,4 @@
-package com.zextras.chats.core.exception.mapper;
+package com.zextras.chats.core.exception.handler;
 
 import com.google.inject.Singleton;
 import com.zextras.chats.core.exception.ChatsHttpException;
@@ -11,7 +11,7 @@ import javax.ws.rs.ext.Provider;
 
 @Provider
 @Singleton
-public class ChatsHttpExceptionHandler extends ExceptionHandler implements ExceptionMapper<ChatsHttpException> {
+public class ChatsHttpExceptionHandler extends ExceptionHandler<ChatsHttpException> {
 
   @Context
   private UriInfo uriInfo;

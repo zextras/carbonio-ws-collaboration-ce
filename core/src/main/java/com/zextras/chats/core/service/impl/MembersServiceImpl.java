@@ -9,6 +9,8 @@ import com.zextras.chats.core.data.event.RoomOwnerChangedEvent;
 import com.zextras.chats.core.exception.BadRequestException;
 import com.zextras.chats.core.exception.ForbiddenException;
 import com.zextras.chats.core.exception.NotFoundException;
+import com.zextras.chats.core.exception.UnauthorizedException;
+import com.zextras.chats.core.infrastructure.messaging.MessageService;
 import com.zextras.chats.core.mapper.SubscriptionMapper;
 import com.zextras.chats.core.model.MemberDto;
 import com.zextras.chats.core.model.RoomTypeDto;
@@ -33,6 +35,7 @@ public class MembersServiceImpl implements MembersService {
   private final MockSecurityContext    mockSecurityContext;
   private final SubscriptionMapper     subscriptionMapper;
   private final AccountService         accountService;
+  private final MessageService         messageService;
 
   @Inject
   public MembersServiceImpl(
@@ -40,13 +43,15 @@ public class MembersServiceImpl implements MembersService {
     EventDispatcher eventDispatcher,
     MockSecurityContext mockSecurityContext,
     SubscriptionMapper subscriptionMapper,
-    AccountService accountService
+    AccountService accountService,
+    MessageService messageService
   ) {
     this.subscriptionRepository = subscriptionRepository;
     this.eventDispatcher = eventDispatcher;
     this.mockSecurityContext = mockSecurityContext;
     this.subscriptionMapper = subscriptionMapper;
     this.accountService = accountService;
+    this.messageService = messageService;
   }
 
   @Override
@@ -66,10 +71,16 @@ public class MembersServiceImpl implements MembersService {
       ((MockUserPrincipal) mockSecurityContext.getUserPrincipal().get()).getId(), room.getId(),
       RoomOwnerChangedEvent.create(userId).memberId(userId).isOwner(false)
     );
+    // send to server XMPP
+    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+      .orElseThrow(UnauthorizedException::new);
+    messageService.setMemberRole(room.getId(), currentUser.getId().toString(), userId.toString(), isOwner);
   }
 
   @Override
   public MemberDto addRoomMember(Room room, UUID userId, boolean asOwner) {
+    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+      .orElseThrow(UnauthorizedException::new);
     if (room.getType().equals(RoomTypeDto.ONETOONE)) {
       throw new ForbiddenException("Can't add members to a one to one conversation");
     }
@@ -101,6 +112,8 @@ public class MembersServiceImpl implements MembersService {
         .temporary(false)
         .external(false)
     );
+    // send to server xmpp
+    messageService.addRoomMember(room.getId(), currentUser.getId().toString(), userId.toString());
     return subscriptionMapper.ent2memberDto(subscription);
   }
 
@@ -126,6 +139,8 @@ public class MembersServiceImpl implements MembersService {
       room.getId(),
       RoomMemberRemovedEvent.create(UUID.fromString(room.getId())).memberId(userId)
     );
+    // sent to server XMPP
+    messageService.removeRoomMember(room.getId(), mockSecurityContext.getUserPrincipalId(), userId.toString());
   }
 
   @Override

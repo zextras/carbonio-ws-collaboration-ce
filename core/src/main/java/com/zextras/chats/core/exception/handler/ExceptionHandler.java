@@ -1,5 +1,6 @@
-package com.zextras.chats.core.exception.mapper;
+package com.zextras.chats.core.exception.handler;
 
+import com.zextras.chats.core.exception.ChatsHttpException;
 import com.zextras.chats.core.logging.ChatsLogger;
 import java.util.Arrays;
 import java.util.Optional;
@@ -7,9 +8,10 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.ext.ExceptionMapper;
 
 
-public abstract class ExceptionHandler {
+public abstract class ExceptionHandler<E extends Throwable> implements ExceptionMapper<E> {
 
   private static final String APPLICATION_PACKAGE = "com.zextras.chats";
 
