@@ -394,6 +394,12 @@ paths:
             format: uuid
           required: true
           allowEmptyValue: false
+        - in: header
+          name: X-Content-Disposition
+          description: file content type and file name writes with inline format ('fileName=<>;mimeType=<>')
+          schema:
+            type: string
+          required: true
       requestBody:
         description: file stream
         required: true

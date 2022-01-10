@@ -24,7 +24,7 @@ import javax.ws.rs.core.SecurityContext;
 
 @javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
 public interface RoomsApiService {
-      Response addAttachment(UUID roomId,File body,SecurityContext securityContext)
+      Response addAttachment(UUID roomId,String xContentDisposition,File body,SecurityContext securityContext)
       throws NotFoundException;
       Response addOwner(UUID roomId,UUID userId,SecurityContext securityContext)
       throws NotFoundException;

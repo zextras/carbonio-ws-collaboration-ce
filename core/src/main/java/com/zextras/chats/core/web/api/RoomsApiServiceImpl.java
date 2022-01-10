@@ -2,7 +2,7 @@ package com.zextras.chats.core.web.api;
 
 
 import com.zextras.chats.core.api.RoomsApiService;
-import com.zextras.chats.core.data.entity.Room;
+import com.zextras.chats.core.exception.BadRequestException;
 import com.zextras.chats.core.exception.UnauthorizedException;
 import com.zextras.chats.core.model.MemberDto;
 import com.zextras.chats.core.model.RoomCreationFieldsDto;
@@ -14,6 +14,8 @@ import com.zextras.chats.core.service.RoomService;
 import com.zextras.chats.core.web.security.MockSecurityContext;
 import com.zextras.chats.core.web.security.MockUserPrincipal;
 import java.io.File;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -122,9 +124,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     return Response.ok().build();
   }
 
-
-
-
   @Override
   public Response getRoomMembers(UUID roomId, SecurityContext securityContext) {
     MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
@@ -152,9 +151,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     return Response.status(Status.NO_CONTENT).build();
   }
 
-
-
-
   @Override
   public Response addOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
     modifyOwner(roomId, userId, true);
@@ -174,13 +170,32 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response addAttachment(UUID roomId, File body, SecurityContext securityContext) {
+  public Response addAttachment(UUID roomId,String xContentDisposition,File body,SecurityContext securityContext) {
     MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
       .orElseThrow(UnauthorizedException::new);
     return Response
       .status(Status.CREATED)
-      .entity(attachmentService.addAttachment(roomId, body, currentUser))
+      .entity(attachmentService.addAttachment(
+        roomId,
+        body,
+        getFilePropertyFromContentDisposition(xContentDisposition, "mimeType")
+          .orElseThrow(() -> new BadRequestException("Mime type not found in X-Content-Disposition header")),
+        getFilePropertyFromContentDisposition(xContentDisposition, "fileName")
+          .orElseThrow(() -> new BadRequestException("File name not found in X-Content-Disposition header")),
+        currentUser))
       .build();
+  }
+
+  private Optional<String> getFilePropertyFromContentDisposition(String xContentDisposition, String property) {
+    if (xContentDisposition.contains(property)) {
+      String value = xContentDisposition.substring(xContentDisposition.indexOf(property) + property.length() + 1);
+      if (value.contains(";")) {
+        value = value.substring(0, value.indexOf(";"));
+      }
+      return Optional.of(value.trim());
+    } else {
+      return Optional.empty();
+    }
   }
 
 }

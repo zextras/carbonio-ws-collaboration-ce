@@ -49,9 +49,9 @@ public class RoomsApi  {
         @io.swagger.annotations.ApiResponse(code = 201, message = "File identifier", response = IdDto.class),
         
         @io.swagger.annotations.ApiResponse(code = 413, message = "The request had a payload that was too big", response = Void.class) })
-    public Response addAttachment( @PathParam("roomId") UUID roomId,@ApiParam(value = "file stream" ,required=true) @NotNull @Valid File body,@Context SecurityContext securityContext)
+    public Response addAttachment( @PathParam("roomId") UUID roomId, @NotNull  @ApiParam(value = "file content type and file name writes with inline format ('fileName=<>;mimeType=<>')" ,required=true) @HeaderParam("X-Content-Disposition") String xContentDisposition,@ApiParam(value = "file stream" ,required=true) @NotNull @Valid File body,@Context SecurityContext securityContext)
     throws NotFoundException {
-        return service.addAttachment(roomId,body,securityContext);
+        return service.addAttachment(roomId,xContentDisposition,body,securityContext);
     }
     @PUT
     @Path("/{roomId}/members/{userId}/owner")

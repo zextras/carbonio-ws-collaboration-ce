@@ -41,10 +41,12 @@ public interface AttachmentService {
    *
    * @param roomId      identifier of the room attachment {@link UUID}
    * @param file        file to save {@link File}
+   * @param mimeType    file mime type
+   * @param fileName    file name
    * @param currentUser current authenticated user {@link MockUserPrincipal}
    * @return The added file identifier {@link IdDto}
    */
-  IdDto addAttachment(UUID roomId, File file, MockUserPrincipal currentUser);
+  IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, MockUserPrincipal currentUser);
 
   /**
    * Deletes a room's attachment file

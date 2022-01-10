@@ -64,16 +64,6 @@ public class MessageServiceImpl implements MessageService {
   }
 
   @Override
-  public void attachmentAdded(String roomId, String senderId, String fileId) {
-    // TODO: 04/01/22
-  }
-
-  @Override
-  public void attachmentRemoved(String roomId, String senderId, String fileId) {
-    // TODO: 04/01/22
-  }
-
-  @Override
   public void deleteRoom(String roomId, String userIc) {
     mucLightManagementApi.mucLightsXMPPMUCHostRoomNameUserManagementDelete(XMPP_HOST, roomId, userId2userDomain(userIc));
   }
