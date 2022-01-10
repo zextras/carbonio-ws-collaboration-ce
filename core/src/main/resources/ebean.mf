@@ -1,2 +1,0 @@
-entity-packages: com.zextras.chats.core.data.entity
-transactional-packages: com.zextras.chats.core.repository, com.zextras.chats.core.service

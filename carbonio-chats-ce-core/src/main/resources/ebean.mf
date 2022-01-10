@@ -1,0 +1,2 @@
+entity-packages: com.zextras.carbonio.chats.core.data.entity
+transactional-packages: com.zextras.carbonio.chats.core.repository, com.zextras.carbonio.chats.core.service
