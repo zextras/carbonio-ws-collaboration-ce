@@ -1,15 +1,19 @@
 package com.zextras.chats.core.mapper;
 
-import com.zextras.chats.core.model.RoomUserSettingsDto;
 import com.zextras.chats.core.data.entity.RoomUserSettings;
+import com.zextras.chats.core.model.RoomUserSettingsDto;
 import java.util.List;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-public interface RoomUserSettingsMapper {
+@Mapper(componentModel = "jsr330")
+public abstract class RoomUserSettingsMapper {
 
-  RoomUserSettingsDto ent2dto(RoomUserSettings roomUserSettings);
+  @Mapping(target = "muted", expression = "java(roomUserSettings != null && roomUserSettings.getMutedUntil() != null)")
+  public abstract RoomUserSettingsDto ent2dto(RoomUserSettings roomUserSettings);
 
-  RoomUserSettingsDto ent2dto(List<RoomUserSettings> roomUserSettingsList, String userId);
-
-
-
+  public RoomUserSettingsDto ent2dto(List<RoomUserSettings> roomUserSettingsList, String userId) {
+    return ent2dto(roomUserSettingsList == null ? null :
+      roomUserSettingsList.stream().filter(settings -> settings.getUserId().equals(userId)).findAny().orElse(null));
+  }
 }

@@ -34,8 +34,8 @@ public class MockSecurityContextImpl implements MockSecurityContext {
   }
 
   @Override
-  public String getUserPrincipalId() {
+  public UUID getUserPrincipalId() {
     return ((MockUserPrincipal) getUserPrincipal()
-      .orElseThrow(UnauthorizedException::new)).getId().toString();
+      .orElseThrow(UnauthorizedException::new)).getId();
   }
 }

@@ -5,14 +5,13 @@ import com.zextras.chats.core.data.entity.RoomImage;
 import com.zextras.chats.core.data.event.RoomPictureChangedEvent;
 import com.zextras.chats.core.exception.BadRequestException;
 import com.zextras.chats.core.exception.InternalErrorException;
-import com.zextras.chats.core.exception.UnauthorizedException;
 import com.zextras.chats.core.infrastructure.messaging.MessageService;
 import com.zextras.chats.core.model.RoomTypeDto;
 import com.zextras.chats.core.repository.RoomImageRepository;
 import com.zextras.chats.core.service.RoomPictureService;
+import com.zextras.chats.core.service.RoomService;
 import com.zextras.chats.core.utils.Messages;
 import com.zextras.chats.core.web.dispatcher.EventDispatcher;
-import com.zextras.chats.core.web.security.MockSecurityContext;
 import com.zextras.chats.core.web.security.MockUserPrincipal;
 import io.ebean.annotation.Transactional;
 import java.io.File;
@@ -27,26 +26,27 @@ public class RoomPictureServiceImpl implements RoomPictureService {
 
   private static final long MAX_FILE_SIZE_IN_KB = 256;
 
+  private final RoomService         roomService;
   private final RoomImageRepository roomImageRepository;
   private final EventDispatcher     eventDispatcher;
-  private final MockSecurityContext mockSecurityContext;
   private final MessageService      messageService;
 
   @Inject
   public RoomPictureServiceImpl(
-    RoomImageRepository roomImageRepository, EventDispatcher eventDispatcher, MockSecurityContext mockSecurityContext,
+    RoomService roomService, RoomImageRepository roomImageRepository, EventDispatcher eventDispatcher,
     MessageService messageService
   ) {
+    this.roomService = roomService;
     this.roomImageRepository = roomImageRepository;
     this.eventDispatcher = eventDispatcher;
-    this.mockSecurityContext = mockSecurityContext;
     this.messageService = messageService;
   }
 
   @Override
   @Transactional
-  public void setPictureForRoom(Room room, File image) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal().orElseThrow(UnauthorizedException::new);
+  public void setPictureForRoom(UUID roomId, File image, MockUserPrincipal currentUser) {
+    // gets the room and check that the user is a member
+    Room room = roomService.getRoomAndCheckUser(roomId, currentUser, false);
     // validate field
     if (!RoomTypeDto.GROUP.equals(room.getType())) {
       throw new BadRequestException("The room picture can only be set to group type rooms");
@@ -70,7 +70,7 @@ public class RoomPictureServiceImpl implements RoomPictureService {
     try {
       return FileUtils.readFileToByteArray(file);
     } catch (IOException e) {
-      throw new InternalErrorException();
+      throw new InternalErrorException("Unable to read file stream", e);
     }
   }
 

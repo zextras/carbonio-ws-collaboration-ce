@@ -1,18 +1,20 @@
 package com.zextras.chats.core.api;
 
+import com.zextras.chats.core.api.*;
+import com.zextras.chats.core.model.*;
+
+
 
 import java.util.List;
-import javax.annotation.Generated;
+import com.zextras.chats.core.api.NotFoundException;
+
+import java.io.InputStream;
+
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
-@Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
+@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
 public interface HealthcheckApiService {
-
-  /**
-   * healthcheck endpoint which will answer according to the service state
-   *
-   * @param securityContext security context {@link SecurityContext}
-  **/
-  void healthcheck(SecurityContext securityContext);
-
+      Response healthcheck(SecurityContext securityContext)
+      throws NotFoundException;
 }

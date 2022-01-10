@@ -39,11 +39,13 @@ Ignore gradle files
 .openapi-generator
 
 ### Ignore exceptions
-**/ApiException.java
-**/NotFoundException.java
+########## -> **/ApiException.java
+########## -> **/NotFoundException.java
 
 ### Ignore service implementation
 **/impl/*
 
 ### Ignore models
 **/ApiResponseMessage.java
+
+**/JacksonConfig.java

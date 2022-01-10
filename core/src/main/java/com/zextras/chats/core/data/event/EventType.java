@@ -9,7 +9,9 @@ public enum EventType {
   ROOM_OWNER_CHANGED("roomOwnerChanged"),
   ROOM_PICTURE_CHANGED("roomPictureChanged"),
   ROOM_MEMBER_ADDED("roomMemberAdded"),
-  ROOM_MEMBER_REMOVED("roomMemberRemoved");
+  ROOM_MEMBER_REMOVED("roomMemberRemoved"),
+  ATTACHMENT_ADDED("attachmentAdded"),
+  ATTACHMENT_REMOVED("attachmentRemoved");
 
   private final String name;
 

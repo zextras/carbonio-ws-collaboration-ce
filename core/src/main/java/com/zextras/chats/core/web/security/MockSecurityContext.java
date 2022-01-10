@@ -2,6 +2,7 @@ package com.zextras.chats.core.web.security;
 
 import java.security.Principal;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface MockSecurityContext {
 
@@ -13,6 +14,6 @@ public interface MockSecurityContext {
 
   String getAuthenticationScheme();
 
-  String getUserPrincipalId();
+  UUID getUserPrincipalId();
 
 }

@@ -19,30 +19,43 @@ import com.zextras.chats.core.exception.handler.DefaultExceptionHandler;
 import com.zextras.chats.core.exception.handler.XmppServerExceptionHandler;
 import com.zextras.chats.core.infrastructure.messaging.MessageService;
 import com.zextras.chats.core.infrastructure.messaging.impl.MessageServiceImpl;
-import com.zextras.chats.core.invoker.JacksonConfig;
+import com.zextras.chats.core.infrastructure.storage.StorageService;
+import com.zextras.chats.core.infrastructure.storage.impl.StorageServiceImpl;
 import com.zextras.chats.core.invoker.RFC3339DateFormat;
+import com.zextras.chats.core.mapper.AttachmentMapper;
+import com.zextras.chats.core.mapper.AttachmentMapperImpl;
 import com.zextras.chats.core.mapper.RoomMapper;
 import com.zextras.chats.core.mapper.RoomMapperImpl;
 import com.zextras.chats.core.mapper.RoomUserSettingsMapper;
+import com.zextras.chats.core.mapper.RoomUserSettingsMapperImpl;
 import com.zextras.chats.core.mapper.SubscriptionMapper;
 import com.zextras.chats.core.mapper.SubscriptionMapperImpl;
-import com.zextras.chats.core.mapper.impl.RoomUserSettingsMapperImpl;
+import com.zextras.chats.core.repository.FileMetadataRepository;
 import com.zextras.chats.core.repository.RoomImageRepository;
 import com.zextras.chats.core.repository.RoomRepository;
 import com.zextras.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.chats.core.repository.SubscriptionRepository;
+import com.zextras.chats.core.repository.impl.EbeanFileMetadataRepository;
 import com.zextras.chats.core.repository.impl.EbeanRoomImageRepository;
 import com.zextras.chats.core.repository.impl.EbeanRoomRepository;
 import com.zextras.chats.core.repository.impl.EbeanRoomUserSettingsRepository;
 import com.zextras.chats.core.repository.impl.EbeanSubscriptionRepository;
+import com.zextras.chats.core.service.AttachmentService;
+import com.zextras.chats.core.service.HealthcheckService;
 import com.zextras.chats.core.service.MembersService;
 import com.zextras.chats.core.service.RoomPictureService;
-import com.zextras.chats.core.service.impl.AttachmentsApiServiceImpl;
-import com.zextras.chats.core.service.impl.HealthcheckApiServiceImpl;
+import com.zextras.chats.core.service.RoomService;
+import com.zextras.chats.core.service.UserService;
+import com.zextras.chats.core.service.impl.AttachmentServiceImpl;
+import com.zextras.chats.core.service.impl.HealthcheckServiceImpl;
 import com.zextras.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.chats.core.service.impl.RoomPictureServiceImpl;
-import com.zextras.chats.core.service.impl.RoomsApiServiceImpl;
-import com.zextras.chats.core.service.impl.UsersApiServiceImpl;
+import com.zextras.chats.core.service.impl.RoomServiceImpl;
+import com.zextras.chats.core.service.impl.UserServiceImpl;
+import com.zextras.chats.core.web.api.AttachmentsApiServiceImpl;
+import com.zextras.chats.core.web.api.HealthcheckApiServiceImpl;
+import com.zextras.chats.core.web.api.RoomsApiServiceImpl;
+import com.zextras.chats.core.web.api.UsersApiServiceImpl;
 import com.zextras.chats.core.web.controller.TestController;
 import com.zextras.chats.core.web.dispatcher.EventDispatcher;
 import com.zextras.chats.core.web.dispatcher.MessageDispatcher;
@@ -81,15 +94,21 @@ public class CoreModule extends AbstractModule {
     bind(RoomsApiService.class).to(RoomsApiServiceImpl.class);
     bind(RoomRepository.class).to(EbeanRoomRepository.class);
     bind(RoomMapper.class).to(RoomMapperImpl.class);
+    bind(RoomService.class).to(RoomServiceImpl.class);
 
     bind(AttachmentsApi.class);
     bind(AttachmentsApiService.class).to(AttachmentsApiServiceImpl.class);
+    bind(AttachmentService.class).to(AttachmentServiceImpl.class);
+    bind(AttachmentMapper.class).to(AttachmentMapperImpl.class);
+    bind(FileMetadataRepository.class).to(EbeanFileMetadataRepository.class);
 
     bind(UsersApi.class);
     bind(UsersApiService.class).to(UsersApiServiceImpl.class);
+    bind(UserService.class).to(UserServiceImpl.class);
 
     bind(HealthcheckApi.class);
     bind(HealthcheckApiService.class).to(HealthcheckApiServiceImpl.class);
+    bind(HealthcheckService.class).to(HealthcheckServiceImpl.class);
 
     bind(MembersService.class).to(MembersServiceImpl.class);
     bind(SubscriptionRepository.class).to(EbeanSubscriptionRepository.class);
@@ -102,6 +121,7 @@ public class CoreModule extends AbstractModule {
     bind(RoomImageRepository.class).to(EbeanRoomImageRepository.class);
 
     bind(MessageService.class).to(MessageServiceImpl.class);
+    bind(StorageService.class).to(StorageServiceImpl.class);
 
     bind(TestController.class);
     bindExceptionMapper();

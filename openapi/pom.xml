@@ -58,12 +58,12 @@
               <!--<gitUserId></gitUserId>-->
               <!--<gitRepoId></gitRepoId>-->
               <verbose>false</verbose> <!-- to remove -->
-              <inputSpec>openapi/core/api.yaml</inputSpec>
+              <inputSpec>${project.parent.basedir}/openapi/core/api.yaml</inputSpec>
 
               <generatorName>jaxrs-resteasy</generatorName>
 
               <output>${project.parent.basedir}/core</output>
-              <templateDirectory>${project.parent.basedir}/openapi/core/templates</templateDirectory>
+<!--              <templateDirectory>${project.parent.basedir}/openapi/core/templates</templateDirectory>-->
               <!--<templateResourcePath></templateResourcePath>-->
               <engine>mustache</engine> <!--default: mustache-->
               <!--<auth></auth>-->

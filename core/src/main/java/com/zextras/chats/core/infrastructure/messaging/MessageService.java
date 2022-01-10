@@ -56,4 +56,22 @@ public interface MessageService {
    * @param message  message to send
    */
   void sendMessageToRoom(String roomId, String senderId, String message);
+
+  /**
+   * Added attachment file
+   *
+   * @param roomId   room identifier
+   * @param senderId operation user identifier
+   * @param fileId   identifier of added attachment
+   */
+  void attachmentAdded(String roomId, String senderId, String fileId);
+
+  /**
+   * Removed attachment file
+   *
+   * @param roomId   room identifier
+   * @param senderId operation user identifier
+   * @param fileId   identifier of removed attachment
+   */
+  void attachmentRemoved(String roomId, String senderId, String fileId);
 }

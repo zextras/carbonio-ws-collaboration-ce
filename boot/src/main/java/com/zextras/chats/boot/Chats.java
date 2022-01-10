@@ -6,7 +6,6 @@ import com.zextras.chats.core.logging.ChatsLogger;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.Objects;
-import java.util.Properties;
 import java.util.stream.Collectors;
 
 public class Chats {

@@ -127,12 +127,6 @@
       <artifactId>swagger-annotations</artifactId>
     </dependency>
 
-    <!-- Joda time dependencies -->
-    <dependency>
-      <groupId>joda-time</groupId>
-      <artifactId>joda-time</artifactId>
-    </dependency>
-
     <!--Dotenv dependencies-->
     <dependency>
       <groupId>io.github.cdimascio</groupId>

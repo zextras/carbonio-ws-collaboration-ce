@@ -1,14 +1,7 @@
 package com.zextras.chats.core.model;
 
-import com.zextras.chats.core.invoker.StringUtil;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.zextras.chats.core.utils.CustomLocalDateTimeDeserializer;
-import com.zextras.chats.core.utils.CustomLocalDateTimeSerializer;
 import java.util.Objects;
 import java.util.ArrayList;
-import javax.annotation.Generated;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.zextras.chats.core.model.RoomAllOfDto;
@@ -19,175 +12,130 @@ import io.swagger.annotations.ApiModelProperty;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import javax.validation.constraints.*;
+import io.swagger.annotations.*;
 
-/**
- * Room data
- */
-@ApiModel(description = "Room data")
-@Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class RoomDto {
+@ApiModel(description="Room data")@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
+public class RoomDto   {
+  
+  private String name;
+  private String description;
+  private RoomTypeDto type;
+  private UUID id;
+  private String hash;
+  private OffsetDateTime createdAt;
+  private OffsetDateTime updatedAt;
+  private String password;
 
   /**
    * room name
-  **/
+   **/
+  
   @ApiModelProperty(required = true, value = "room name")
-  @JsonProperty("name") @NotNull
-  private String name;
-
-  /**
-   * room description
-  **/
-  @ApiModelProperty(required = true, value = "room description")
-  @JsonProperty("description") @NotNull
-  private String description;
-
-  @ApiModelProperty(required = true, value = "")
-  @JsonProperty("type") @NotNull
-  private RoomTypeDto type;
-
-  /**
-   * room identifier
-  **/
-  @ApiModelProperty(required = true, value = "room identifier")
-  @JsonProperty("id") @NotNull
-  private UUID id;
-
-  /**
-   * an hash that can be used to compose the room&#39;s link
-  **/
-  @ApiModelProperty(required = true, value = "an hash that can be used to compose the room's link")
-  @JsonProperty("hash") @NotNull
-  private String hash;
-
-  /**
-   * creation date
-  **/
-  @ApiModelProperty(required = true, value = "creation date")
-  @JsonProperty("createdAt") @NotNull
-  private OffsetDateTime createdAt;
-
-  /**
-   * update date
-  **/
-  @ApiModelProperty(required = true, value = "update date")
-  @JsonProperty("updatedAt") @NotNull
-  private OffsetDateTime updatedAt;
-
-  /**
-   * password to room access
-  **/
-  @ApiModelProperty(value = "password to room access")
-  @JsonProperty("password") 
-  private String password;
-
-  public static RoomDto create() {
-    return new RoomDto();
-  }
-
+  @JsonProperty("name")
+  @NotNull
   public String getName() {
     return name;
   }
-
   public void setName(String name) {
     this.name = name;
   }
 
-  public RoomDto name(String name) {
-    this.name = name;
-    return this;
-  }
-
+  /**
+   * room description
+   **/
+  
+  @ApiModelProperty(required = true, value = "room description")
+  @JsonProperty("description")
+  @NotNull
   public String getDescription() {
     return description;
   }
-
   public void setDescription(String description) {
     this.description = description;
   }
 
-  public RoomDto description(String description) {
-    this.description = description;
-    return this;
-  }
-
+  /**
+   **/
+  
+  @ApiModelProperty(required = true, value = "")
+  @JsonProperty("type")
+  @NotNull
   public RoomTypeDto getType() {
     return type;
   }
-
   public void setType(RoomTypeDto type) {
     this.type = type;
   }
 
-  public RoomDto type(RoomTypeDto type) {
-    this.type = type;
-    return this;
-  }
-
+  /**
+   * room identifier
+   **/
+  
+  @ApiModelProperty(required = true, value = "room identifier")
+  @JsonProperty("id")
+  @NotNull
   public UUID getId() {
     return id;
   }
-
   public void setId(UUID id) {
     this.id = id;
   }
 
-  public RoomDto id(UUID id) {
-    this.id = id;
-    return this;
-  }
-
+  /**
+   * an hash that can be used to compose the room&#39;s link
+   **/
+  
+  @ApiModelProperty(required = true, value = "an hash that can be used to compose the room's link")
+  @JsonProperty("hash")
+  @NotNull
   public String getHash() {
     return hash;
   }
-
   public void setHash(String hash) {
     this.hash = hash;
   }
 
-  public RoomDto hash(String hash) {
-    this.hash = hash;
-    return this;
-  }
-
+  /**
+   * creation date
+   **/
+  
+  @ApiModelProperty(required = true, value = "creation date")
+  @JsonProperty("createdAt")
+  @NotNull
   public OffsetDateTime getCreatedAt() {
     return createdAt;
   }
-
   public void setCreatedAt(OffsetDateTime createdAt) {
     this.createdAt = createdAt;
   }
 
-  public RoomDto createdAt(OffsetDateTime createdAt) {
-    this.createdAt = createdAt;
-    return this;
-  }
-
+  /**
+   * update date
+   **/
+  
+  @ApiModelProperty(required = true, value = "update date")
+  @JsonProperty("updatedAt")
+  @NotNull
   public OffsetDateTime getUpdatedAt() {
     return updatedAt;
   }
-
   public void setUpdatedAt(OffsetDateTime updatedAt) {
     this.updatedAt = updatedAt;
   }
 
-  public RoomDto updatedAt(OffsetDateTime updatedAt) {
-    this.updatedAt = updatedAt;
-    return this;
-  }
-
+  /**
+   * password to room access
+   **/
+  
+  @ApiModelProperty(value = "password to room access")
+  @JsonProperty("password")
   public String getPassword() {
     return password;
   }
-
   public void setPassword(String password) {
     this.password = password;
   }
 
-  public RoomDto password(String password) {
-    this.password = password;
-    return this;
-  }
 
   @Override
   public boolean equals(Object o) {
@@ -198,14 +146,14 @@ public class RoomDto {
       return false;
     }
     RoomDto room = (RoomDto) o;
-    return Objects.equals(this.name, room.name) &&
-      Objects.equals(this.description, room.description) &&
-      Objects.equals(this.type, room.type) &&
-      Objects.equals(this.id, room.id) &&
-      Objects.equals(this.hash, room.hash) &&
-      Objects.equals(this.createdAt, room.createdAt) &&
-      Objects.equals(this.updatedAt, room.updatedAt) &&
-      Objects.equals(this.password, room.password);
+    return Objects.equals(name, room.name) &&
+        Objects.equals(description, room.description) &&
+        Objects.equals(type, room.type) &&
+        Objects.equals(id, room.id) &&
+        Objects.equals(hash, room.hash) &&
+        Objects.equals(createdAt, room.createdAt) &&
+        Objects.equals(updatedAt, room.updatedAt) &&
+        Objects.equals(password, room.password);
   }
 
   @Override
@@ -217,15 +165,28 @@ public class RoomDto {
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("class RoomDto {\n");
-    sb.append("  name: ").append(StringUtil.toIndentedString(name)).append("\n");
-    sb.append("  description: ").append(StringUtil.toIndentedString(description)).append("\n");
-    sb.append("  type: ").append(StringUtil.toIndentedString(type)).append("\n");
-    sb.append("  id: ").append(StringUtil.toIndentedString(id)).append("\n");
-    sb.append("  hash: ").append(StringUtil.toIndentedString(hash)).append("\n");
-    sb.append("  createdAt: ").append(StringUtil.toIndentedString(createdAt)).append("\n");
-    sb.append("  updatedAt: ").append(StringUtil.toIndentedString(updatedAt)).append("\n");
-    sb.append("  password: ").append(StringUtil.toIndentedString(password)).append("\n");
+    
+    sb.append("    name: ").append(toIndentedString(name)).append("\n");
+    sb.append("    description: ").append(toIndentedString(description)).append("\n");
+    sb.append("    type: ").append(toIndentedString(type)).append("\n");
+    sb.append("    id: ").append(toIndentedString(id)).append("\n");
+    sb.append("    hash: ").append(toIndentedString(hash)).append("\n");
+    sb.append("    createdAt: ").append(toIndentedString(createdAt)).append("\n");
+    sb.append("    updatedAt: ").append(toIndentedString(updatedAt)).append("\n");
+    sb.append("    password: ").append(toIndentedString(password)).append("\n");
     sb.append("}");
     return sb.toString();
   }
+
+  /**
+   * Convert the given object to string with each line indented by 4 spaces
+   * (except the first line).
+   */
+  private String toIndentedString(Object o) {
+    if (o == null) {
+      return "null";
+    }
+    return o.toString().replace("\n", "\n    ");
+  }
 }
+

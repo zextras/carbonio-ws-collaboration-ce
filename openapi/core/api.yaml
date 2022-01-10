@@ -753,7 +753,7 @@ components:
           description: file name
         size:
           type: integer
-          format: int32
+          format: int64
           readOnly: true
           description: file length
         mimeType:
