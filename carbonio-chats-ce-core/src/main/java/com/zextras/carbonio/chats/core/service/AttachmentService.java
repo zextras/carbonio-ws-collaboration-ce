@@ -1,6 +1,6 @@
 package com.zextras.carbonio.chats.core.service;
 
-import com.zextras.carbonio.chats.core.data.model.AttachmentFile;
+import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.model.AttachmentDto;
 import com.zextras.carbonio.chats.core.model.IdDto;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
@@ -16,7 +16,7 @@ public interface AttachmentService {
    * @param currentUser current authenticated user {@link MockUserPrincipal}
    * @return The attachment file requested {@link File}
    */
-  AttachmentFile getAttachmentById(UUID fileId, MockUserPrincipal currentUser);
+  FileContentAndMetadata getAttachmentById(UUID fileId, MockUserPrincipal currentUser);
 
   /**
    * Retrieves the preview of an uploaded attachment
@@ -25,7 +25,7 @@ public interface AttachmentService {
    * @param currentUser security context {@link MockUserPrincipal}
    * @return The requested file preview {@link File}
    **/
-  AttachmentFile getAttachmentPreviewById(UUID fileId, MockUserPrincipal currentUser);
+  FileContentAndMetadata getAttachmentPreviewById(UUID fileId, MockUserPrincipal currentUser);
 
   /**
    * Retrieves info related to an uploaded attachment

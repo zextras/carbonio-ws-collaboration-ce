@@ -143,6 +143,27 @@ paths:
         403:
           $ref: '#/components/responses/Forbidden'
   /rooms/{roomId}/picture:
+    get:
+      tags:
+        - Rooms
+      summary: Retrieves the room picture
+      operationId: getRoomPicture
+      parameters:
+        - in: path
+          name: roomId
+          description: room identifier
+          schema:
+            type: string
+            format: uuid
+          required: true
+          allowEmptyValue: false
+      responses:
+        200:
+          $ref: '#/components/responses/GetRoomPicture200'
+        403:
+          $ref: '#/components/responses/Forbidden'
+        404:
+          $ref: '#/components/responses/NotFound'
     post:
       tags:
         - Rooms
@@ -155,6 +176,13 @@ paths:
           schema:
             type: string
             format: uuid
+          required: true
+          allowEmptyValue: false
+        - in: header
+          name: X-Content-Disposition
+          description: file content type and file name writes with inline format ('fileName=<>;mimeType=<>')
+          schema:
+            type: string
           required: true
           allowEmptyValue: false
       requestBody:
@@ -420,6 +448,7 @@ paths:
           schema:
             type: string
           required: true
+          allowEmptyValue: false
       requestBody:
         description: file stream
         required: true
@@ -560,6 +589,13 @@ components:
             $ref: '#/components/schemas/Room'
     DeleteRoom204:
       description: Room was deleted correctly or it never existed
+    GetRoomPicture200:
+      description: The requested picture
+      content:
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
     SetRoomPicture204:
       description: Room picture was changed correctly
     MuteRoom204:
@@ -657,13 +693,15 @@ components:
       description: Health status of a service dependency
       properties:
         name:
-          type: string
-          description: name of the dependency
-          readOnly: true
+          $ref: '#/components/schemas/HealthDependencyType'
         isHealthy:
           type: boolean
           description: whether the dependency is available and operative
           readOnly: true
+    HealthDependencyType:
+      type: object
+      description: Health dependency types
+      enum: [ DATABASE, XMPP_SERVER, EVENT_DISPATCHER, STORAGE_SERVICE ]
     Id:
       type: object
       description: Identifier object
@@ -699,7 +737,7 @@ components:
     RoomType:
       type: object
       description: Managed room types
-      enum: [ Group, OneToOne ]
+      enum: [ GROUP, ONE_TO_ONE ]
     RoomEditableFields:
       type: object
       description: Room fields that can be updated

@@ -142,6 +142,21 @@ public class RoomsApi  {
         return service.getRoomMembers(roomId,securityContext);
     }
     @GET
+    @Path("/{roomId}/picture")
+    
+    @Produces({ "application/octet-stream" })
+    @io.swagger.annotations.ApiOperation(value = "Retrieves the room picture", notes = "", response = File.class, tags={ "Rooms", })
+    @io.swagger.annotations.ApiResponses(value = { 
+        @io.swagger.annotations.ApiResponse(code = 200, message = "The requested picture", response = File.class),
+        
+        @io.swagger.annotations.ApiResponse(code = 403, message = "The requester could not access the resource", response = Void.class),
+        
+        @io.swagger.annotations.ApiResponse(code = 404, message = "The requested resource was not found", response = Void.class) })
+    public Response getRoomPicture( @PathParam("roomId") UUID roomId,@Context SecurityContext securityContext)
+    throws NotFoundException {
+        return service.getRoomPicture(roomId,securityContext);
+    }
+    @GET
     
     
     @Produces({ "application/json" })
@@ -217,9 +232,9 @@ public class RoomsApi  {
     @io.swagger.annotations.ApiOperation(value = "Uploads and sets a new room picture", notes = "", response = Void.class, tags={ "Rooms", })
     @io.swagger.annotations.ApiResponses(value = { 
         @io.swagger.annotations.ApiResponse(code = 204, message = "Room picture was changed correctly", response = Void.class) })
-    public Response setRoomPicture( @PathParam("roomId") UUID roomId,@ApiParam(value = "image to set" ,required=true) @NotNull @Valid File body,@Context SecurityContext securityContext)
+    public Response setRoomPicture( @PathParam("roomId") UUID roomId, @NotNull  @ApiParam(value = "file content type and file name writes with inline format ('fileName=<>;mimeType=<>')" ,required=true) @HeaderParam("X-Content-Disposition") String xContentDisposition,@ApiParam(value = "image to set" ,required=true) @NotNull @Valid File body,@Context SecurityContext securityContext)
     throws NotFoundException {
-        return service.setRoomPicture(roomId,body,securityContext);
+        return service.setRoomPicture(roomId,xContentDisposition,body,securityContext);
     }
     @DELETE
     @Path("/{roomId}/mute")

@@ -1,19 +1,34 @@
 package com.zextras.carbonio.chats.core.infrastructure.storage;
 
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
+import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import java.io.File;
 
-public interface StorageService {
-
-  File getFileById(String fileId);
+public interface StorageService  extends HealthIndicator {
 
   /**
-   * Save a file on the repository
+   * Retrieves the file associated to the identifier
    *
-   * @param file     file to save
-   * @param metadata file metadata
+   * @param fileId        file identifier
+   * @param currentUserId identifier of the current user
+   * @return Required file {@link File}
    */
-  void saveFile(File file, FileMetadata metadata);
+  File getFileById(String fileId, String currentUserId);
 
-  void deleteFile(String fileId);
+  /**
+   * Saves a file on the repository
+   *
+   * @param file          file to save
+   * @param metadata      file metadata
+   * @param currentUserId identifier of the current user
+   */
+  void saveFile(File file, FileMetadata metadata, String currentUserId);
+
+  /**
+   * Deletes a file from the repository
+   *
+   * @param fileId        file identifier
+   * @param currentUserId identifier of the current user
+   */
+  void deleteFile(String fileId, String currentUserId);
 }

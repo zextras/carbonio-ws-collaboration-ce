@@ -47,9 +47,9 @@ public class HealthApi  {
     @Path("/live")
     
     
-    @io.swagger.annotations.ApiOperation(value = "Returns 200 if the service is alive", notes = "", response = Void.class, tags={ "Health", })
+    @io.swagger.annotations.ApiOperation(value = "Returns 204 if the service is alive", notes = "", response = Void.class, tags={ "Health", })
     @io.swagger.annotations.ApiResponses(value = { 
-        @io.swagger.annotations.ApiResponse(code = 200, message = "", response = Void.class) })
+        @io.swagger.annotations.ApiResponse(code = 204, message = "The service is alive", response = Void.class) })
     public Response isLive(@Context SecurityContext securityContext)
     throws NotFoundException {
         return service.isLive(securityContext);
@@ -58,9 +58,9 @@ public class HealthApi  {
     @Path("/ready")
     
     
-    @io.swagger.annotations.ApiOperation(value = "Returns 200 if the service is ready to receive requests", notes = "", response = Void.class, tags={ "Health", })
+    @io.swagger.annotations.ApiOperation(value = "Returns 204 if the service is ready to receive requests", notes = "", response = Void.class, tags={ "Health", })
     @io.swagger.annotations.ApiResponses(value = { 
-        @io.swagger.annotations.ApiResponse(code = 200, message = "", response = Void.class),
+        @io.swagger.annotations.ApiResponse(code = 204, message = "The service is ready to receive requests", response = Void.class),
         
         @io.swagger.annotations.ApiResponse(code = 500, message = "The service is not yet ready to receive requests", response = Void.class) })
     public Response isReady(@Context SecurityContext securityContext)

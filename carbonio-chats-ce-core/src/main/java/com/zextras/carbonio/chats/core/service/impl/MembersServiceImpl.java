@@ -3,22 +3,22 @@ package com.zextras.carbonio.chats.core.service.impl;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
+import com.zextras.carbonio.chats.core.data.event.RoomMemberAddedEvent;
+import com.zextras.carbonio.chats.core.data.event.RoomMemberRemovedEvent;
+import com.zextras.carbonio.chats.core.data.event.RoomOwnerChangedEvent;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
+import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.model.MemberDto;
 import com.zextras.carbonio.chats.core.model.RoomTypeDto;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
-import com.zextras.carbonio.chats.core.infrastructure.dispatcher.EventDispatcher;
-import com.zextras.carbonio.chats.core.web.security.AccountService;
-import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
-import com.zextras.carbonio.chats.core.data.event.RoomMemberAddedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomMemberRemovedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomOwnerChangedEvent;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.web.security.AccountService;
+import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -33,8 +33,8 @@ public class MembersServiceImpl implements MembersService {
   private final SubscriptionRepository subscriptionRepository;
   private final EventDispatcher        eventDispatcher;
   private final SubscriptionMapper     subscriptionMapper;
-  private final AccountService    accountService;
-  private final MessageDispatcher messageService;
+  private final AccountService         accountService;
+  private final MessageDispatcher      messageService;
 
   @Inject
   public MembersServiceImpl(
@@ -79,7 +79,7 @@ public class MembersServiceImpl implements MembersService {
     // gets room and check if current user is owner
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
     // room cannot be one to one
-    if (room.getType().equals(RoomTypeDto.ONETOONE)) {
+    if (room.getType().equals(RoomTypeDto.ONE_TO_ONE)) {
       throw new ForbiddenException("Can't add members to a one to one conversation");
     }
     // check that user isn't duplicated
@@ -119,7 +119,7 @@ public class MembersServiceImpl implements MembersService {
   public void removeRoomMember(UUID roomId, UUID userId, MockUserPrincipal currentUser) {
     // gets room and check if current user is owner
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
-    if (room.getType().equals(RoomTypeDto.ONETOONE)) {
+    if (room.getType().equals(RoomTypeDto.ONE_TO_ONE)) {
       throw new ForbiddenException("Can't remove members from a one to one conversation");
     }
 

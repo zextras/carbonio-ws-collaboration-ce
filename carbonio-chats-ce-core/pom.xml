@@ -26,6 +26,11 @@
       <version>0.1.1</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.zextras</groupId>
+      <artifactId>slimstore-sdk</artifactId>
+    </dependency>
+
     <!-- Guice dependencies -->
     <dependency>
       <groupId>com.google.inject</groupId>

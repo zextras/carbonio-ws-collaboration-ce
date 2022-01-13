@@ -1,4 +1,4 @@
-package com.zextras.carbonio.chats.core.infrastructure.dispatcher;
+package com.zextras.carbonio.chats.core.infrastructure.event;
 
 import com.zextras.carbonio.chats.core.data.event.DomainEvent;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;

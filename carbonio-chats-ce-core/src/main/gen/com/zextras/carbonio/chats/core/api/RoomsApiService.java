@@ -38,6 +38,8 @@ public interface RoomsApiService {
       throws NotFoundException;
       Response getRoomMembers(UUID roomId,SecurityContext securityContext)
       throws NotFoundException;
+      Response getRoomPicture(UUID roomId,SecurityContext securityContext)
+      throws NotFoundException;
       Response getRooms(SecurityContext securityContext)
       throws NotFoundException;
       Response muteRoom(UUID roomId,SecurityContext securityContext)
@@ -48,7 +50,7 @@ public interface RoomsApiService {
       throws NotFoundException;
       Response resetRoomHash(UUID roomId,SecurityContext securityContext)
       throws NotFoundException;
-      Response setRoomPicture(UUID roomId,File body,SecurityContext securityContext)
+      Response setRoomPicture(UUID roomId,String xContentDisposition,File body,SecurityContext securityContext)
       throws NotFoundException;
       Response unmuteRoom(UUID roomId,SecurityContext securityContext)
       throws NotFoundException;

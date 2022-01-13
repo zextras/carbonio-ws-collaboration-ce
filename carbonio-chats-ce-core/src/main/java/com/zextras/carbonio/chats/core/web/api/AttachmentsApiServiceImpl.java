@@ -1,7 +1,7 @@
 package com.zextras.carbonio.chats.core.web.api;
 
 
-import com.zextras.carbonio.chats.core.data.model.AttachmentFile;
+import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.web.security.MockSecurityContext;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
@@ -30,7 +30,7 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
   public Response getAttachment(UUID fileId, SecurityContext securityContext) {
     MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
       .orElseThrow(UnauthorizedException::new);
-    AttachmentFile attachment = attachmentService.getAttachmentById(fileId, currentUser);
+    FileContentAndMetadata attachment = attachmentService.getAttachmentById(fileId, currentUser);
     return Response
       .status(Status.OK)
       .entity(attachment.getFile())
@@ -44,7 +44,7 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
   public Response getAttachmentPreview(UUID fileId, SecurityContext securityContext) {
     MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
       .orElseThrow(UnauthorizedException::new);
-    AttachmentFile attachment = attachmentService.getAttachmentPreviewById(fileId, currentUser);
+    FileContentAndMetadata attachment = attachmentService.getAttachmentPreviewById(fileId, currentUser);
     return Response
       .status(Status.OK)
       .entity(attachment.getFile())

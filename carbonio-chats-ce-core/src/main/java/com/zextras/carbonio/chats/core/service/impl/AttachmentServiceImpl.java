@@ -4,7 +4,7 @@ import com.zextras.carbonio.chats.core.data.builder.IdDtoBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.event.AttachmentAddedEvent;
 import com.zextras.carbonio.chats.core.data.event.AttachmentRemovedEvent;
-import com.zextras.carbonio.chats.core.data.model.AttachmentFile;
+import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
@@ -12,7 +12,7 @@ import com.zextras.carbonio.chats.core.model.AttachmentDto;
 import com.zextras.carbonio.chats.core.model.IdDto;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
-import com.zextras.carbonio.chats.core.infrastructure.dispatcher.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
@@ -47,19 +47,19 @@ public class AttachmentServiceImpl implements AttachmentService {
 
   @Override
   @Transactional
-  public AttachmentFile getAttachmentById(UUID fileId, MockUserPrincipal currentUser) {
+  public FileContentAndMetadata getAttachmentById(UUID fileId, MockUserPrincipal currentUser) {
     // gets file metadata from DB
     FileMetadata metadata = fileMetadataRepository.getById(fileId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
     // checks if current user is a member of the attachment room
     roomService.getRoomAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
     // gets file from repository
-    File file = storageService.getFileById(metadata.getId());
-    return new AttachmentFile(file, metadata);
+    File file = storageService.getFileById(metadata.getId(), currentUser.getId().toString());
+    return new FileContentAndMetadata(file, metadata);
   }
 
   @Override
-  public AttachmentFile getAttachmentPreviewById(UUID fileId, MockUserPrincipal currentUser) {
+  public FileContentAndMetadata getAttachmentPreviewById(UUID fileId, MockUserPrincipal currentUser) {
     // TODO: 07/01/22 momentarily returns the original file
     return getAttachmentById(fileId, currentUser);
   }
@@ -92,7 +92,7 @@ public class AttachmentServiceImpl implements AttachmentService {
       .roomId(roomId.toString());
     fileMetadataRepository.save(metadata);
     // save the file in repository
-    storageService.saveFile(file, metadata);
+    storageService.saveFile(file, metadata, currentUser.getId().toString());
     // sends event
     eventDispatcher.sendToTopic(currentUser.getId(), roomId.toString(), AttachmentAddedEvent
       .create(roomId)
@@ -112,7 +112,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     // delete file data from DB
     fileMetadataRepository.delete(metadata);
     // deletes file from repository
-    storageService.deleteFile(fileId.toString());
+    storageService.deleteFile(fileId.toString(), currentUser.getId().toString());
     // sends the event
     eventDispatcher.sendToTopic(currentUser.getId(), room.getId(), AttachmentRemovedEvent
       .create(UUID.fromString(room.getId()))

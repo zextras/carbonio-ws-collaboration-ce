@@ -3,12 +3,12 @@ package com.zextras.carbonio.chats.core.data.model;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import java.io.File;
 
-public class AttachmentFile {
+public class FileContentAndMetadata {
 
-  private File         file;
-  private FileMetadata metadata;
+  private final File         file;
+  private final FileMetadata metadata;
 
-  public AttachmentFile(File file, FileMetadata metadata) {
+  public FileContentAndMetadata(File file, FileMetadata metadata) {
     this.file = file;
     this.metadata = metadata;
   }

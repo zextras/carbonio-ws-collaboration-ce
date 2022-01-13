@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.ArrayList;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.zextras.carbonio.chats.core.model.HealthDependencyTypeDto;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import javax.validation.constraints.*;
@@ -12,19 +13,18 @@ import io.swagger.annotations.*;
 @ApiModel(description="Health status of a service dependency")@javax.annotation.Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
 public class DependencyHealthDto   {
   
-  private String name;
+  private HealthDependencyTypeDto name;
   private Boolean isHealthy;
 
   /**
-   * name of the dependency
    **/
   
-  @ApiModelProperty(value = "name of the dependency")
+  @ApiModelProperty(value = "")
   @JsonProperty("name")
-  public String getName() {
+  public HealthDependencyTypeDto getName() {
     return name;
   }
-  public void setName(String name) {
+  public void setName(HealthDependencyTypeDto name) {
     this.name = name;
   }
 

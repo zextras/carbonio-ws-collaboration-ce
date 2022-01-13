@@ -1,6 +1,8 @@
 package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
+import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import java.util.List;
 import java.util.Optional;
 
 public interface FileMetadataRepository {
@@ -12,6 +14,15 @@ public interface FileMetadataRepository {
    * @return The required file metadata
    */
   Optional<FileMetadata> getById(String fileId);
+
+  /**
+   * Gets a list of file metadata info filtered by roomId and type
+   *
+   * @param roomId room identifier
+   * @param type   file metadata type {@link FileMetadataType}
+   * @return The required file metadata list {@link FileMetadata}
+   */
+  List<FileMetadata> getByRoomIdAndType(String roomId, FileMetadataType type);
 
   /**
    * Saves a new file metadata entity
