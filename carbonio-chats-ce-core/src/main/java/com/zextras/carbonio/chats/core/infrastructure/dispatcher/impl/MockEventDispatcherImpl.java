@@ -1,10 +1,10 @@
-package com.zextras.carbonio.chats.core.web.dispatcher.impl;
+package com.zextras.carbonio.chats.core.infrastructure.dispatcher.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.data.event.DomainEvent;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.core.web.dispatcher.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.dispatcher.EventDispatcher;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -50,6 +50,11 @@ public class MockEventDispatcherImpl implements EventDispatcher {
       ChatsLogger.error(MockEventDispatcherImpl.class,
         "sentToQueue - unable to parse the event", e);
     }
+  }
+
+  @Override
+  public boolean isAlive() {
+    return true;
   }
 
 }

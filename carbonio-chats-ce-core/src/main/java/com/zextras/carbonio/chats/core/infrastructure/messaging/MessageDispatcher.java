@@ -1,8 +1,9 @@
 package com.zextras.carbonio.chats.core.infrastructure.messaging;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 
-public interface MessageService {
+public interface MessageDispatcher extends HealthIndicator {
 
   /**
    * Creates a room on XMPP server

@@ -8,8 +8,8 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.core.api.AttachmentsApi;
 import com.zextras.carbonio.chats.core.api.AttachmentsApiService;
-import com.zextras.carbonio.chats.core.api.HealthcheckApi;
-import com.zextras.carbonio.chats.core.api.HealthcheckApiService;
+import com.zextras.carbonio.chats.core.api.HealthApi;
+import com.zextras.carbonio.chats.core.api.HealthApiService;
 import com.zextras.carbonio.chats.core.api.RoomsApi;
 import com.zextras.carbonio.chats.core.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.api.UsersApi;
@@ -17,8 +17,8 @@ import com.zextras.carbonio.chats.core.api.UsersApiService;
 import com.zextras.carbonio.chats.core.exception.handler.ChatsHttpExceptionHandler;
 import com.zextras.carbonio.chats.core.exception.handler.DefaultExceptionHandler;
 import com.zextras.carbonio.chats.core.exception.handler.XmppServerExceptionHandler;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageService;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageServiceImpl;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherImpl;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StorageServiceImpl;
 import com.zextras.carbonio.chats.core.invoker.RFC3339DateFormat;
@@ -41,30 +41,31 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanSubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
+import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomPictureService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentServiceImpl;
+import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabaseInfoService;
 import com.zextras.carbonio.chats.core.service.impl.HealthcheckServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomPictureServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
-import com.zextras.carbonio.chats.core.web.api.HealthcheckApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.controller.TestController;
-import com.zextras.carbonio.chats.core.web.dispatcher.EventDispatcher;
-import com.zextras.carbonio.chats.core.web.dispatcher.MessageDispatcher;
-import com.zextras.carbonio.chats.core.web.dispatcher.impl.MockEventDispatcherImpl;
-import com.zextras.carbonio.chats.core.web.dispatcher.impl.MockMessageDispatcherImpl;
+import com.zextras.carbonio.chats.core.infrastructure.dispatcher.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.dispatcher.impl.MockEventDispatcherImpl;
 import com.zextras.carbonio.chats.core.web.security.AccountService;
 import com.zextras.carbonio.chats.core.web.security.MockSecurityContext;
 import com.zextras.carbonio.chats.core.web.security.impl.MockAccountServiceImpl;
 import com.zextras.carbonio.chats.core.web.security.impl.MockSecurityContextImpl;
+import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.ApiClient;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.Configuration;
@@ -86,7 +87,6 @@ public class CoreModule extends AbstractModule {
     bind(MockSecurityContext.class).to(MockSecurityContextImpl.class);
 
     bind(EventDispatcher.class).to(MockEventDispatcherImpl.class);
-    bind(MessageDispatcher.class).to(MockMessageDispatcherImpl.class);
 
     bind(AccountService.class).to(MockAccountServiceImpl.class);
 
@@ -106,9 +106,10 @@ public class CoreModule extends AbstractModule {
     bind(UsersApiService.class).to(UsersApiServiceImpl.class);
     bind(UserService.class).to(UserServiceImpl.class);
 
-    bind(HealthcheckApi.class);
-    bind(HealthcheckApiService.class).to(HealthcheckApiServiceImpl.class);
+    bind(HealthApi.class);
+    bind(HealthApiService.class).to(HealthApiServiceImpl.class);
     bind(HealthcheckService.class).to(HealthcheckServiceImpl.class);
+    bind(DatabaseInfoService.class).to(EbeanDatabaseInfoService.class);
 
     bind(MembersService.class).to(MembersServiceImpl.class);
     bind(SubscriptionRepository.class).to(EbeanSubscriptionRepository.class);
@@ -120,7 +121,7 @@ public class CoreModule extends AbstractModule {
     bind(RoomPictureService.class).to(RoomPictureServiceImpl.class);
     bind(RoomImageRepository.class).to(EbeanRoomImageRepository.class);
 
-    bind(MessageService.class).to(MessageServiceImpl.class);
+    bind(MessageDispatcher.class).to(MessageDispatcherImpl.class);
     bind(StorageService.class).to(StorageServiceImpl.class);
 
     bind(TestController.class);
@@ -135,7 +136,7 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private MucLightManagementApi configureMongooseImTools(AppConfig appConfig) {
+  private MucLightManagementApi initMongooseImMucLight(AppConfig appConfig) {
     Configuration.setDefaultApiClient(new ApiClient()
       .setBasePath(appConfig.get(String.class, "MONGOOSEIM_ADMIN_REST_BASE_URL").orElseThrow())
       .addDefaultHeader("Accept", "*/*")
@@ -146,6 +147,21 @@ public class CoreModule extends AbstractModule {
         .addDefaultHeader("Accept", "*/*")
         .setDebugging(true));
     return new MucLightManagementApi();
+  }
+
+  @Singleton
+  @Provides
+  private CommandsApi initMongooseImCommands(AppConfig appConfig) {
+    Configuration.setDefaultApiClient(new ApiClient()
+      .setBasePath(appConfig.get(String.class, "MONGOOSEIM_ADMIN_REST_BASE_URL").orElseThrow())
+      .addDefaultHeader("Accept", "*/*")
+      .setDebugging(true));
+    com.zextras.carbonio.chats.mongooseim.client.invoker.Configuration.setDefaultApiClient(
+      new com.zextras.carbonio.chats.mongooseim.client.invoker.ApiClient()
+        .setBasePath(appConfig.get(String.class, "MONGOOSEIM_CLIENT_REST_BASE_URL").orElseThrow())
+        .addDefaultHeader("Accept", "*/*")
+        .setDebugging(true));
+    return new CommandsApi();
   }
 
   @Singleton

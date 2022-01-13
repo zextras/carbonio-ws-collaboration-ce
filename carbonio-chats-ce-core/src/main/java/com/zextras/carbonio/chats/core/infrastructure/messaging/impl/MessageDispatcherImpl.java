@@ -1,7 +1,8 @@
 package com.zextras.carbonio.chats.core.infrastructure.messaging.impl;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageService;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
+import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
 import com.zextras.carbonio.chats.mongooseim.admin.model.ChatMessageDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
@@ -10,15 +11,17 @@ import com.zextras.carbonio.chats.mongooseim.client.api.RoomsApi;
 import java.util.Base64;
 import javax.inject.Inject;
 
-public class MessageServiceImpl implements MessageService {
+public class MessageDispatcherImpl implements MessageDispatcher {
 
   private static final String XMPP_HOST = "localhost";
 
   private final MucLightManagementApi mucLightManagementApi;
+  private final CommandsApi           commandsApi;
 
   @Inject
-  public MessageServiceImpl(MucLightManagementApi mucLightManagementApi) {
+  public MessageDispatcherImpl(MucLightManagementApi mucLightManagementApi, CommandsApi commandsApi) {
     this.mucLightManagementApi = mucLightManagementApi;
+    this.commandsApi = commandsApi;
   }
 
   @Override
@@ -64,8 +67,19 @@ public class MessageServiceImpl implements MessageService {
   }
 
   @Override
+  public boolean isAlive() {
+    try {
+      commandsApi.commandsGet();
+      return true;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  @Override
   public void deleteRoom(String roomId, String userIc) {
-    mucLightManagementApi.mucLightsXMPPMUCHostRoomNameUserManagementDelete(XMPP_HOST, roomId, userId2userDomain(userIc));
+    mucLightManagementApi.mucLightsXMPPMUCHostRoomNameUserManagementDelete(XMPP_HOST, roomId,
+      userId2userDomain(userIc));
   }
 
   private String userId2userDomain(String userId) {

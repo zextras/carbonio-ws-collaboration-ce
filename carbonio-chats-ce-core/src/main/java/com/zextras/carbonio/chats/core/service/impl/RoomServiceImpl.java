@@ -10,7 +10,7 @@ import com.zextras.carbonio.chats.core.data.event.RoomUpdatedEvent;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageService;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.model.HashDto;
 import com.zextras.carbonio.chats.core.model.RoomCreationFieldsDto;
@@ -22,7 +22,7 @@ import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.Utils;
-import com.zextras.carbonio.chats.core.web.dispatcher.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.dispatcher.EventDispatcher;
 import com.zextras.carbonio.chats.core.web.security.AccountService;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
 import io.ebean.annotation.Transactional;
@@ -41,8 +41,8 @@ public class RoomServiceImpl implements RoomService {
   private final RoomMapper                 roomMapper;
   private final EventDispatcher            eventDispatcher;
   private final AccountService             accountService;
-  private final MembersService             membersService;
-  private final MessageService             messageService;
+  private final MembersService    membersService;
+  private final MessageDispatcher messageService;
 
   @Inject
   public RoomServiceImpl(
@@ -52,7 +52,7 @@ public class RoomServiceImpl implements RoomService {
     EventDispatcher eventDispatcher,
     AccountService accountService,
     MembersService membersService,
-    MessageService messageService
+    MessageDispatcher messageDispatcher
   ) {
     this.roomRepository = roomRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
@@ -60,7 +60,7 @@ public class RoomServiceImpl implements RoomService {
     this.eventDispatcher = eventDispatcher;
     this.accountService = accountService;
     this.membersService = membersService;
-    this.messageService = messageService;
+    this.messageService = messageDispatcher;
   }
 
   @Override

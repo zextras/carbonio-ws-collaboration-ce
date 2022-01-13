@@ -10,13 +10,13 @@ import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.model.MemberDto;
 import com.zextras.carbonio.chats.core.model.RoomTypeDto;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
-import com.zextras.carbonio.chats.core.web.dispatcher.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.dispatcher.EventDispatcher;
 import com.zextras.carbonio.chats.core.web.security.AccountService;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
 import com.zextras.carbonio.chats.core.data.event.RoomMemberAddedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomMemberRemovedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomOwnerChangedEvent;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageService;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import java.time.OffsetDateTime;
@@ -33,8 +33,8 @@ public class MembersServiceImpl implements MembersService {
   private final SubscriptionRepository subscriptionRepository;
   private final EventDispatcher        eventDispatcher;
   private final SubscriptionMapper     subscriptionMapper;
-  private final AccountService         accountService;
-  private final MessageService         messageService;
+  private final AccountService    accountService;
+  private final MessageDispatcher messageService;
 
   @Inject
   public MembersServiceImpl(
@@ -42,14 +42,14 @@ public class MembersServiceImpl implements MembersService {
     EventDispatcher eventDispatcher,
     SubscriptionMapper subscriptionMapper,
     AccountService accountService,
-    MessageService messageService
+    MessageDispatcher messageDispatcher
   ) {
     this.roomService = roomService;
     this.subscriptionRepository = subscriptionRepository;
     this.eventDispatcher = eventDispatcher;
     this.subscriptionMapper = subscriptionMapper;
     this.accountService = accountService;
-    this.messageService = messageService;
+    this.messageService = messageDispatcher;
   }
 
   @Override

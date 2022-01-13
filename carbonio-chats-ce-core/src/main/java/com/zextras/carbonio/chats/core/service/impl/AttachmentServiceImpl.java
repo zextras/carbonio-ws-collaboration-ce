@@ -12,7 +12,7 @@ import com.zextras.carbonio.chats.core.model.AttachmentDto;
 import com.zextras.carbonio.chats.core.model.IdDto;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
-import com.zextras.carbonio.chats.core.web.dispatcher.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.dispatcher.EventDispatcher;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;

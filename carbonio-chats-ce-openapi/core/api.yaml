@@ -6,23 +6,43 @@ info:
   contact:
     email: smokybeans@zextras.com
 servers:
-  - url: https://zextras.com/zx/chats
+  - url: http://localhost:8081/zx/chats
 tags:
   - name: Rooms
   - name: Members
   - name: Users
   - name: Attachments
-  - name: Operations
+  - name: Health
 paths:
-  /healthcheck:
+  /health:
     get:
       tags:
-        - Operations
-      summary: healthcheck endpoint which will answer according to the service state
-      operationId: healthcheck
+        - Health
+      summary: Returns the general service status
+      operationId: healthInfo
       responses:
         200:
-          $ref: '#/components/responses/Healthcheck200'
+          $ref: '#/components/responses/HealthInfo200'
+  /health/live:
+    get:
+      tags:
+        - Health
+      summary: Returns 204 if the service is alive
+      operationId: isLive
+      responses:
+        204:
+          $ref: '#/components/responses/IsLive204'
+  /health/ready:
+    get:
+      tags:
+        - Health
+      summary: Returns 204 if the service is ready to receive requests
+      operationId: isReady
+      responses:
+        204:
+          $ref: '#/components/responses/IsReady204'
+        500:
+          $ref: '#/components/responses/IsReady500'
   /rooms:
     get:
       tags:
@@ -500,8 +520,18 @@ paths:
           $ref: '#/components/responses/NotFound'
 components:
   responses:
-    Healthcheck200:
-      description: Everything is operational
+    HealthInfo200:
+      description: General status of the service and its dependencies
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HealthResponse'
+    IsLive204:
+      description: The service is alive
+    IsReady204:
+      description: The service is ready to receive requests
+    IsReady500:
+      description: The service is not yet ready to receive requests
     GetRooms200:
       description: List of every room that the user has access to
       content:
@@ -605,6 +635,35 @@ components:
     PayloadTooLarge:
       description: The request had a payload that was too big
   schemas:
+    HealthResponse:
+      type: object
+      description: Health status of the service and its dependencies
+      properties:
+        isLive:
+          type: boolean
+          description: describes if the service is alive
+          readOnly: true
+        isReady:
+          type: boolean
+          description: describes if the service is ready to accept requests
+          readOnly: true
+        dependencies:
+          type: array
+          description: health of this service dependencies
+          items:
+            $ref: '#/components/schemas/DependencyHealth'
+    DependencyHealth:
+      type: object
+      description: Health status of a service dependency
+      properties:
+        name:
+          type: string
+          description: name of the dependency
+          readOnly: true
+        isHealthy:
+          type: boolean
+          description: whether the dependency is available and operative
+          readOnly: true
     Id:
       type: object
       description: Identifier object

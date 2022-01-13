@@ -6,10 +6,10 @@ import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.model.RoomTypeDto;
 import com.zextras.carbonio.chats.core.repository.RoomImageRepository;
-import com.zextras.carbonio.chats.core.web.dispatcher.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.dispatcher.EventDispatcher;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
 import com.zextras.carbonio.chats.core.data.event.RoomPictureChangedEvent;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageService;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.service.RoomPictureService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.Messages;
@@ -28,18 +28,18 @@ public class RoomPictureServiceImpl implements RoomPictureService {
 
   private final RoomService         roomService;
   private final RoomImageRepository roomImageRepository;
-  private final EventDispatcher     eventDispatcher;
-  private final MessageService      messageService;
+  private final EventDispatcher   eventDispatcher;
+  private final MessageDispatcher messageService;
 
   @Inject
   public RoomPictureServiceImpl(
     RoomService roomService, RoomImageRepository roomImageRepository, EventDispatcher eventDispatcher,
-    MessageService messageService
+    MessageDispatcher messageDispatcher
   ) {
     this.roomService = roomService;
     this.roomImageRepository = roomImageRepository;
     this.eventDispatcher = eventDispatcher;
-    this.messageService = messageService;
+    this.messageService = messageDispatcher;
   }
 
   @Override
