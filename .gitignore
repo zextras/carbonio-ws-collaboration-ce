@@ -43,8 +43,14 @@ Thumbs.db
 *.mov
 *.wmv
 
-.env
+.env*
+!.env.example
 .openapi-generator/
 Dockerfile
 docker-compose.yml
 mongoose/
+
+# Artifacts
+*.deb
+*.rpm
+artifacts

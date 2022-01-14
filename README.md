@@ -10,6 +10,11 @@ Build using maven:
 mvn clean install -P openapi-generation
 ```
 
+If you also want to generate artifacts, run
+```shell
+mvn clean install -P openapi-generation,build-artifacts
+```
+
 ## 🚀 How to Run
 
 With the generated fat-jar:

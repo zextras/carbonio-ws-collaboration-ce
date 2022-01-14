@@ -1,0 +1,85 @@
+targets=(
+   "centos"
+   "ubuntu"
+)
+pkgname="carbonio-chats-ce"
+pkgver="0.1.2"
+pkgrel="1"
+pkgdesc="Chats for carbonio CE"
+pkgdesclong=(
+   "Chats for carbonio CE"
+)
+maintainer="Zextras <packages@zextras.com>"
+arch="amd64"
+license=("AGPL3.0")
+section="admin"
+priority="optional"
+url="https://www.zextras.com/"
+depends=(
+   "pending-setups"
+   "carbonio-openjdk"
+   "service-discover"
+)
+sources=(
+   "carbonio-chats-ce.service"
+   "carbonio-chats-ce.sh"
+   "carbonio-chats-ce.hcl"
+   "carbonio-chats-ce-sidecar.service"
+)
+hashsums=(
+   "skip"
+   "skip"
+   "skip"
+   "skip"
+)
+
+package() {
+  cd "${srcdir}"/../../chats
+  install -Dm 644 ./carbonio-chats-ce-boot/target/carbonio-chats-ce-fatjar.jar \
+    "${pkgdir}/usr/lib/carbonio-chats-ce/carbonio-chats-ce-fatjar.jar"
+  install -Dm 644 "${srcdir}/carbonio-chats-ce.service" \
+    "${pkgdir}/lib/systemd/system/carbonio-chats-ce.service"
+  install -Dm 644 "${srcdir}/carbonio-chats-ce.hcl" \
+    "${pkgdir}/etc/zextras/service-discover/carbonio-chats-ce.hcl"
+  install -Dm 755 "${srcdir}/carbonio-chats-ce.sh" \
+    "${pkgdir}/etc/zextras/pending-setups.d/carbonio-chats-ce.sh"
+  install -Dm 644 "${srcdir}/carbonio-chats-ce-sidecar.service" \
+    "${pkgdir}/lib/systemd/system/carbonio-chats-ce-sidecar.service"
+  mkdir -pm 0755 "${pkgdir}/etc/zextras/carbonio-chats-ce"
+  install -Dm 644 ./.env.package \
+      "${pkgdir}/etc/zextras/carbonio-chats-ce/chatsenv" # This is a temporary solution, discussion might be needed
+}
+
+postinst() {
+  getent group 'carbonio-chats-ce' >/dev/null ||
+    groupadd -r 'carbonio-chats-ce'
+  getent passwd 'carbonio-chats-ce' >/dev/null ||
+    useradd -r -M -g 'carbonio-chats-ce' -s /sbin/nologin 'carbonio-chats-ce'
+
+  mkdir -p '/etc/zextras/carbonio-chats-ce/'
+  chown 'carbonio-chats-ce:carbonio-chats-ce' '/etc/zextras/carbonio-chats-ce/'
+
+  if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload >/dev/null 2>&1 || :
+    systemctl enable carbonio-chats-ce.service >/dev/null 2>&1 || :
+    systemctl enable carbonio-chats-ce-sidecar.service >/dev/null 2>&1 || :
+  fi
+
+  echo "Chats CE installed correctly."
+}
+
+prerm() {
+  if [ -d /run/systemd/system ]; then
+    systemctl --no-reload disable carbonio-chats-ce.service >/dev/null 2>&1 || :
+    systemctl --no-reload disable carbonio-chats-ce-sidecar.service >/dev/null 2>&1 || :
+    systemctl stop carbonio-chats-ce.service >/dev/null 2>&1 || :
+    systemctl stop carbonio-chats-ce-sidecar.service >/dev/null 2>&1 || :
+  fi
+}
+
+postrm() {
+  rm -rf "/etc/zextras/carbonio-chats-ce/"
+  if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload >/dev/null 2>&1 || :
+  fi
+}

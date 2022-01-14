@@ -1,0 +1,11 @@
+{
+  "name": "carbonio-chats-ce",
+  "description": "Chats for carbonio CE",
+  "build_dir": "/tmp/",
+  "output": "artifacts",
+  "projects": [
+    {
+      "name": "package"
+    }
+  ]
+}
