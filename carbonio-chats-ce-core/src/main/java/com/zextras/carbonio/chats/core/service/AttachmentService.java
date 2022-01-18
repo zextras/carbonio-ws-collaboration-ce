@@ -1,8 +1,8 @@
 package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
-import com.zextras.carbonio.chats.core.model.AttachmentDto;
-import com.zextras.carbonio.chats.core.model.IdDto;
+import com.zextras.carbonio.chats.model.AttachmentDto;
+import com.zextras.carbonio.chats.model.IdDto;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
 import java.io.File;
 import java.util.UUID;

@@ -1,6 +1,6 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
-import com.zextras.carbonio.chats.core.model.UserDto;
+import com.zextras.carbonio.chats.model.UserDto;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
 import java.util.UUID;

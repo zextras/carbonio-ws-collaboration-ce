@@ -12,8 +12,8 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
-import com.zextras.carbonio.chats.core.model.MemberDto;
-import com.zextras.carbonio.chats.core.model.RoomTypeDto;
+import com.zextras.carbonio.chats.model.MemberDto;
+import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
@@ -75,7 +75,7 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  public MemberDto addRoomMember(UUID roomId, MemberDto memberDto, MockUserPrincipal currentUser) {
+  public MemberDto insertRoomMember(UUID roomId, MemberDto memberDto, MockUserPrincipal currentUser) {
     // gets room and check if current user is owner
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
     // room cannot be one to one
@@ -116,7 +116,7 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  public void removeRoomMember(UUID roomId, UUID userId, MockUserPrincipal currentUser) {
+  public void deleteRoomMember(UUID roomId, UUID userId, MockUserPrincipal currentUser) {
     // gets room and check if current user is owner
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
     if (room.getType().equals(RoomTypeDto.ONE_TO_ONE)) {

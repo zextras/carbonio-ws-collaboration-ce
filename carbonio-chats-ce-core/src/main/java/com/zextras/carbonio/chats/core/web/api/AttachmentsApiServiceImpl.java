@@ -5,7 +5,7 @@ import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.web.security.MockSecurityContext;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
-import com.zextras.carbonio.chats.core.api.AttachmentsApiService;
+import com.zextras.carbonio.chats.api.AttachmentsApiService;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import java.util.UUID;
 import javax.inject.Inject;

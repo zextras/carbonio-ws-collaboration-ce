@@ -7,7 +7,7 @@ This is the official repository for Carbonio chats CE.
 Build using maven:
 
 ```shell
-mvn clean install -P openapi-generation
+mvn clean install
 ```
 
 If you also want to generate artifacts, run

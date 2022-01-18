@@ -1,7 +1,7 @@
 package com.zextras.carbonio.chats.core.mapper;
 
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
-import com.zextras.carbonio.chats.core.model.AttachmentDto;
+import com.zextras.carbonio.chats.model.AttachmentDto;
 import java.util.UUID;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

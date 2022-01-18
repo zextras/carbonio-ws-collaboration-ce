@@ -12,18 +12,9 @@
 
   <profiles>
     <profile>
-      <id>openapi-generation</id>
-      <modules>
-        <module>carbonio-chats-ce-mongooseim</module>
-        <module>carbonio-chats-ce-openapi</module>
-        <module>carbonio-chats-ce-core</module>
-        <module>carbonio-chats-ce-boot</module>
-      </modules>
-    </profile>
-    <profile>
       <id>default</id>
       <modules>
-        <module>carbonio-chats-ce-mongooseim</module>
+        <module>carbonio-chats-ce-openapi</module>
         <module>carbonio-chats-ce-core</module>
         <module>carbonio-chats-ce-boot</module>
       </modules>
@@ -37,7 +28,7 @@
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <!-- Slimstore -->
-    <slimstore-sdk.version>0.0.3-SNAPSHOT</slimstore-sdk.version>
+    <slimstore-sdk.version>0.0.4-SNAPSHOT</slimstore-sdk.version>
     <!-- Jetty -->
     <org.eclipse.jetty.version>10.0.6</org.eclipse.jetty.version>
     <!-- Guice -->
@@ -49,7 +40,7 @@
     <!-- Ebean -->
     <io.ebean.version>12.12.3</io.ebean.version>
     <!-- JavaEE api -->
-    <javax.javaee-api.version>7.0</javax.javaee-api.version>
+    <javax.javaee-api.version>8.0</javax.javaee-api.version>
     <!-- Database -->
     <org.flywaydb.version>8.0.5</org.flywaydb.version>
     <com.zaxxer.HikariCP.version>5.0.0</com.zaxxer.HikariCP.version>

@@ -2,12 +2,12 @@ package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
-import com.zextras.carbonio.chats.core.model.HashDto;
-import com.zextras.carbonio.chats.core.model.RoomCreationFieldsDto;
-import com.zextras.carbonio.chats.core.model.RoomDto;
-import com.zextras.carbonio.chats.core.model.RoomEditableFieldsDto;
-import com.zextras.carbonio.chats.core.model.RoomInfoDto;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
+import com.zextras.carbonio.chats.model.HashDto;
+import com.zextras.carbonio.chats.model.InsertRoomRequestDto;
+import com.zextras.carbonio.chats.model.RoomDto;
+import com.zextras.carbonio.chats.model.RoomResponseDto;
+import com.zextras.carbonio.chats.model.UpdateRoomRequestDto;
 import java.io.File;
 import java.util.List;
 import java.util.UUID;
@@ -27,11 +27,11 @@ public interface RoomService {
   /**
    * Creates a room of the specified type
    *
-   * @param roomCreationFieldsDto room to create {@link RoomCreationFieldsDto }
-   * @param currentUser           current authenticated user {@link MockUserPrincipal}
-   * @return The newly created room {@link RoomInfoDto }
+   * @param insertRoomRequestDto room to create {@link InsertRoomRequestDto }
+   * @param currentUser          current authenticated user {@link MockUserPrincipal}
+   * @return The newly created room {@link RoomResponseDto }
    **/
-  RoomInfoDto createRoom(RoomCreationFieldsDto roomCreationFieldsDto, MockUserPrincipal currentUser);
+  RoomResponseDto createRoom(InsertRoomRequestDto insertRoomRequestDto, MockUserPrincipal currentUser);
 
   /**
    * Deletes the specified room
@@ -47,9 +47,9 @@ public interface RoomService {
    *
    * @param roomId      room identifier {@link UUID }
    * @param currentUser current authenticated user {@link MockUserPrincipal}
-   * @return Requested room {@link RoomInfoDto }
+   * @return Requested room {@link RoomResponseDto }
    **/
-  RoomInfoDto getRoomById(UUID roomId, MockUserPrincipal currentUser);
+  RoomResponseDto getRoomById(UUID roomId, MockUserPrincipal currentUser);
 
   /**
    * Retrieves a list of every room the user has access to
@@ -89,16 +89,17 @@ public interface RoomService {
   /**
    * Updates a room information
    *
-   * @param roomId                room identifier {@link UUID }
-   * @param roomEditableFieldsDto room fields to update {@link RoomEditableFieldsDto }
-   * @param currentUser           current authenticated user {@link MockUserPrincipal}
+   * @param roomId               room identifier {@link UUID }
+   * @param updateRoomRequestDto room fields to update {@link UpdateRoomRequestDto }
+   * @param currentUser          current authenticated user {@link MockUserPrincipal}
    * @return Updated room {@link RoomDto }
    **/
-  RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto roomEditableFieldsDto, MockUserPrincipal currentUser);
+  RoomDto updateRoom(UUID roomId, UpdateRoomRequestDto updateRoomRequestDto, MockUserPrincipal currentUser);
 
   /**
    * Gets the room picture
-   * @param roomId room identifier
+   *
+   * @param roomId      room identifier
    * @param currentUser current authenticated user {@link MockUserPrincipal}
    * @return The room picture
    */

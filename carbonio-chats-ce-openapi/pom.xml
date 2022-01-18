@@ -2,8 +2,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
   <modelVersion>4.0.0</modelVersion>
-  <packaging>pom</packaging>
+  <packaging>jar</packaging>
 
   <parent>
     <groupId>com.zextras.carbonio.chats</groupId>
@@ -18,33 +19,84 @@
     <maven.compiler.target>11</maven.compiler.target>
   </properties>
 
+  <dependencies>
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-annotations</artifactId>
+    </dependency>
+    <!-- @Nullable annotation -->
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>jsr305</artifactId>
+    </dependency>
+    <!-- HTTP client: jersey-client -->
+    <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-multipart-provider</artifactId>
+    </dependency>
+    <!-- JSON processing: jackson -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.openapitools</groupId>
+      <artifactId>jackson-databind-nullable</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.jboss.resteasy</groupId>
+      <artifactId>resteasy-jackson2-provider</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+
+    <!-- JavaEE api -->
+    <dependency>
+      <groupId>javax</groupId>
+      <artifactId>javaee-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Open API dependencies-->
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-jaxrs</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-annotations</artifactId>
+    </dependency>
+  </dependencies>
+
+
   <build>
     <plugins>
 
-      <plugin>
-        <artifactId>maven-clean-plugin</artifactId>
-        <version>3.1.0</version>
-        <configuration>
-          <filesets>
-            <fileset>
-              <directory>${project.parent.basedir}/carbonio-chats-ce-core</directory>
-              <includes>
-                <include>.openapi-generator/**</include>
-                <include>src/main/gen/**</include>
-                <include>src/main/webapp/**</include>
-                <include>.openapi-generator-ignore</include>
-              </includes>
-              <followSymlinks>false</followSymlinks>
-            </fileset>
-          </filesets>
-        </configuration>
-      </plugin>
 
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>5.1.0</version>
-
+        <version>5.3.0</version>
         <executions>
           <execution>
             <id>chats-core-api</id>
@@ -52,82 +104,66 @@
               <goal>generate</goal>
             </goals>
             <configuration>
-              <!-- <configuration> documentation: https://github.com/OpenAPITools/openapi-generator/blob/master/modules/openapi-generator-maven-plugin/README.md -->
-
-              <!--<gitHost></gitHost>-->
-              <!--<gitUserId></gitUserId>-->
-              <!--<gitRepoId></gitRepoId>-->
-              <verbose>false</verbose> <!-- to remove -->
-              <inputSpec>${project.parent.basedir}/${project.artifactId}/core/api.yaml</inputSpec>
-
               <generatorName>jaxrs-resteasy</generatorName>
-
-              <output>${project.parent.basedir}/carbonio-chats-ce-core</output>
-<!--              <templateDirectory>${project.parent.basedir}/openapi/core/templates</templateDirectory>-->
-              <!--<templateResourcePath></templateResourcePath>-->
-              <engine>mustache</engine> <!--default: mustache-->
-              <!--<auth></auth>-->
-              <configurationFile>${project.parent.basedir}/${project.artifactId}/core/jaxrs-resteasy-config.json</configurationFile>
-              <!--<skipOverwrite></skipOverwrite>-->
-              <apiPackage>com.zextras.carbonio.chats.core.api</apiPackage>
-              <modelPackage>com.zextras.carbonio.chats.core.model</modelPackage>
-              <invokerPackage>com.zextras.carbonio.chats.core.invoker</invokerPackage>
-              <packageName>com.zextras.carbonio.chats.core</packageName>
-              <groupId>com.zextras.carbonio.chats</groupId>
-              <artifactId>carbonio-chats-ce-core</artifactId>
-              <artifactVersion>${project.version}</artifactVersion>
-              <!--<library></library>-->
-              <!--<modelNamePrefix></modelNamePrefix>-->
+              <engine>mustache</engine>
+              <!-- Openapi files -->
+              <inputSpec>${project.basedir}/openapi/chats-api.yaml</inputSpec>
+              <configurationFile>${project.basedir}/openapi/chats-generator-config.json</configurationFile>
+              <ignoreFileOverride>${project.basedir}/openapi/chats-generator-ignore</ignoreFileOverride>
+              <!-- Generation options -->
+              <output>${project.build.directory}/generated-sources/chats</output>
               <modelNameSuffix>dto</modelNameSuffix>
-              <ignoreFileOverride>${project.parent.basedir}/${project.artifactId}/core/openapi-generator-ignore</ignoreFileOverride>
-              <!--<httpUserAgent></httpUserAgent>-->
-              <!--<removeOperationIdPrefix></removeOperationIdPrefix>-->
-              <!--<skipOperationExample></skipOperationExample>-->
-              <!--<logToStderr></logToStderr>-->
-              <enablePostProcessFile>true</enablePostProcessFile>
-              <!--skipValidateSpec></skipValidateSpec>-->
-              <!--<strictSpec></strictSpec>-->
-              <!--<generateAliasAsModel></generateAliasAsModel>-->
-
-              <!--<instantiationTypes></instantiationTypes>-->
-              <!--<importMappings></importMappings>-->
-              <!--<typeMappings></typeMappings>-->
-              <!--<languageSpecificPrimitives></languageSpecificPrimitives>-->
-              <!--<additionalProperties></additionalProperties>-->
-              <!--<serverVariableOverrides></serverVariableOverrides>-->
-              <!--<reservedWordsMappings></reservedWordsMappings>-->
-              <generateApis>true</generateApis>
-              <!--<apisToGenerate></apisToGenerate>-->
-              <generateModels>true</generateModels>
-              <!--<modelsToGenerate></modelsToGenerate>-->
-              <generateSupportingFiles>true</generateSupportingFiles>
-              <!--<supportingFilesToGenerate></supportingFilesToGenerate>-->
-              <generateModelTests>true</generateModelTests>
-              <generateModelDocumentation>true</generateModelDocumentation>
-              <generateApiTests>true</generateApiTests>
-              <generateApiDocumentation>true</generateApiDocumentation>
-              <!--<withXml></withXml>-->
-              <!--<skip></skip>-->
-              <!--<skipIfSpecIsUnchanged></skipIfSpecIsUnchanged>-->
-              <addCompileSourceRoot>false</addCompileSourceRoot>
-              <addTestCompileSourceRoot>true</addTestCompileSourceRoot>
-              <!--<environmentVariables></environmentVariables> DEPRECATED-->
-              <globalProperties></globalProperties>
-              <configHelp>false</configHelp>
-
-
-              <!--              <generateModels>true</generateModels>-->
-              <!--              <generateModelTests>true</generateModelTests>-->
-              <!--              <generateModelDocumentation>true</generateModelDocumentation>-->
-
-              <!--              <generateApis>true</generateApis>-->
-              <!--              <generateApiTests>true</generateApiTests>-->
-              <!--              <generateApiDocumentation>true</generateApiDocumentation>-->
-
             </configuration>
           </execution>
+          <execution>
+            <id>mongooseim-admin</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <generatorName>java</generatorName>
+              <engine>mustache</engine>
+              <!-- Openapi files -->
+              <inputSpec>${project.basedir}/openapi/mongooseim-admin-api.yaml</inputSpec>
+              <configurationFile>${project.basedir}/openapi/mongooseim-admin-generator-config.json</configurationFile>
+              <ignoreFileOverride>${project.basedir}/openapi/mongooseim-admin-generator-ignore</ignoreFileOverride>
+              <!-- Generation options -->
+              <output>${project.build.directory}/generated-sources/mongooseim-admin</output>
+              <modelNameSuffix>dto</modelNameSuffix>
+
+              <generateModelTests>false</generateModelTests>
+              <generateModelDocumentation>false</generateModelDocumentation>
+              <generateApiTests>false</generateApiTests>
+              <generateApiDocumentation>false</generateApiDocumentation>
+            </configuration>
+          </execution>
+
+          <execution>
+            <id>mongooseim-client</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <generatorName>java</generatorName>
+              <engine>mustache</engine>
+              <!-- Openapi files -->
+              <inputSpec>${project.basedir}/openapi/mongooseim-client-api.yaml</inputSpec>
+              <configurationFile>${project.basedir}/openapi/mongooseim-client-generator-config.json</configurationFile>
+              <ignoreFileOverride>${project.basedir}/openapi/mongooseim-client-generator-ignore</ignoreFileOverride>
+              <!-- Generation options -->
+              <output>${project.build.directory}/generated-sources/mongooseim-client</output>
+              <modelNameSuffix>dto</modelNameSuffix>
+
+              <generateModelTests>false</generateModelTests>
+              <generateModelDocumentation>false</generateModelDocumentation>
+              <generateApiTests>false</generateApiTests>
+              <generateApiDocumentation>false</generateApiDocumentation>
+            </configuration>
+          </execution>
+
         </executions>
       </plugin>
+
     </plugins>
   </build>
 

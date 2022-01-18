@@ -4,10 +4,10 @@ import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoServi
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
-import com.zextras.carbonio.chats.core.model.DependencyHealthDto;
-import com.zextras.carbonio.chats.core.model.HealthDependencyTypeDto;
-import com.zextras.carbonio.chats.core.model.HealthResponseDto;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
+import com.zextras.carbonio.chats.model.DependencyHealthDto;
+import com.zextras.carbonio.chats.model.HealthDependencyTypeDto;
+import com.zextras.carbonio.chats.model.HealthStatusResponseDto;
 import java.util.ArrayList;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -43,8 +43,8 @@ public class HealthcheckServiceImpl implements HealthcheckService {
   }
 
   @Override
-  public HealthResponseDto getServiceHealth() {
-    HealthResponseDto healthResponseDto = new HealthResponseDto();
+  public HealthStatusResponseDto getServiceHealth() {
+    HealthStatusResponseDto healthResponseDto = new HealthStatusResponseDto();
     healthResponseDto.setIsLive(true);
     healthResponseDto.setIsReady(true);
 

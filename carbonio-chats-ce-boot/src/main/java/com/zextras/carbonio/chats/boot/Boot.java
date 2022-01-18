@@ -12,7 +12,7 @@ import org.jboss.resteasy.plugins.server.servlet.HttpServletDispatcher;
 
 public class Boot {
 
-  private final String CONTEXT_PATH = "/zx/chats";
+  private final String CONTEXT_PATH = "/chats";
 
   private final AppConfig                                    appConfig;
   private final GuiceResteasyBootstrapServletContextListener resteasyListener;

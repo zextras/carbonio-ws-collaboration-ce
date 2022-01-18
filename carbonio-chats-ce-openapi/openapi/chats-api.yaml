@@ -1,12 +1,12 @@
 openapi: 3.0.3
 info:
-  title: Chats Api
-  description: Chats HTTP APIs definition.
-  version: 0.1.2
+  title: Zextras Carbonio Chats CE Api
+  description: Zextras Carbonio Chats CE HTTP APIs definition.
+  version: 0.1.1
   contact:
     email: smokybeans@zextras.com
 servers:
-  - url: http://localhost:8081/zx/chats
+  - url: http://localhost:8081/chats
 tags:
   - name: Rooms
   - name: Members
@@ -19,10 +19,10 @@ paths:
       tags:
         - Health
       summary: Returns the general service status
-      operationId: healthInfo
+      operationId: getHealthStatus
       responses:
         200:
-          $ref: '#/components/responses/HealthInfo200'
+          $ref: '#/components/responses/200HealthStatusResponse'
   /health/live:
     get:
       tags:
@@ -31,7 +31,7 @@ paths:
       operationId: isLive
       responses:
         204:
-          $ref: '#/components/responses/IsLive204'
+          $ref: '#/components/responses/204IsLiveResponse'
   /health/ready:
     get:
       tags:
@@ -40,46 +40,46 @@ paths:
       operationId: isReady
       responses:
         204:
-          $ref: '#/components/responses/IsReady204'
+          $ref: '#/components/responses/204IsReadyResponse'
         500:
-          $ref: '#/components/responses/IsReady500'
+          $ref: '#/components/responses/500IsReadyResponse'
   /rooms:
     get:
       tags:
         - Rooms
       summary: Retrieves a list of every room the user has access to
-      operationId: getRooms
+      operationId: listRoom
       responses:
         200:
-          $ref: '#/components/responses/GetRooms200'
+          $ref: '#/components/responses/200ListRoomResponse'
     post:
       tags:
         - Rooms
       summary: Creates a room of the specified type
-      operationId: createRoom
+      operationId: insertRoom
       requestBody:
         description: room to create
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RoomCreationFields'
+              $ref: '#/components/schemas/InsertRoomRequest'
       responses:
         201:
-          $ref: '#/components/responses/CreateRoom201'
-        403:
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/201InsertRoomResponse'
         400:
-          $ref: '#/components/responses/BadRequest'
-  /rooms/{roomId}:
+          $ref: '#/components/responses/400BadRequestResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+  /rooms/{pathRoomId}:
     get:
       tags:
         - Rooms
       summary: Retrieves the requested room
-      operationId: getRoomById
+      operationId: getRoom
       parameters:
         - in: path
-          name: roomId
+          name: pathRoomId
           description: room identifier
           schema:
             type: string
@@ -88,11 +88,11 @@ paths:
           allowEmptyValue: false
       responses:
         200:
-          $ref: '#/components/responses/GetRoomById200'
+          $ref: '#/components/responses/200GetRoomResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/403ForbiddenResponse'
         404:
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/404NotFoundResponse'
     put:
       tags:
         - Rooms
@@ -100,7 +100,7 @@ paths:
       operationId: updateRoom
       parameters:
         - in: path
-          name: roomId
+          name: pathRoomId
           description: room identifier
           schema:
             type: string
@@ -113,16 +113,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RoomEditableFields'
+              $ref: '#/components/schemas/UpdateRoomRequest'
       responses:
         200:
-          $ref: '#/components/responses/UpdateRoom200'
+          $ref: '#/components/responses/200UpdateRoomResponse'
         400:
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/400BadRequestResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/403ForbiddenResponse'
         404:
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/404NotFoundResponse'
     delete:
       tags:
         - Rooms
@@ -130,7 +130,7 @@ paths:
       operationId: deleteRoom
       parameters:
         - in: path
-          name: roomId
+          name: pathRoomId
           description: room identifier
           schema:
             type: string
@@ -139,10 +139,10 @@ paths:
           allowEmptyValue: false
       responses:
         204:
-          $ref: '#/components/responses/DeleteRoom204'
+          $ref: '#/components/responses/204DeleteRoomResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
-  /rooms/{roomId}/picture:
+          $ref: '#/components/responses/403ForbiddenResponse'
+  /rooms/{pathRoomId}/picture:
     get:
       tags:
         - Rooms
@@ -150,7 +150,7 @@ paths:
       operationId: getRoomPicture
       parameters:
         - in: path
-          name: roomId
+          name: pathRoomId
           description: room identifier
           schema:
             type: string
@@ -159,19 +159,19 @@ paths:
           allowEmptyValue: false
       responses:
         200:
-          $ref: '#/components/responses/GetRoomPicture200'
+          $ref: '#/components/responses/200GetRoomPictureResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/403ForbiddenResponse'
         404:
-          $ref: '#/components/responses/NotFound'
-    post:
+          $ref: '#/components/responses/404NotFoundResponse'
+    put:
       tags:
         - Rooms
       summary: Uploads and sets a new room picture
-      operationId: setRoomPicture
+      operationId: updateRoomPicture
       parameters:
         - in: path
-          name: roomId
+          name: pathRoomId
           description: room identifier
           schema:
             type: string
@@ -195,8 +195,8 @@ paths:
               format: binary
       responses:
         204:
-          $ref: '#/components/responses/SetRoomPicture204'
-  /rooms/{roomId}/mute:
+          $ref: '#/components/responses/204UpdateRoomPictureResponse'
+  /rooms/{pathRoomId}/mute:
     put:
       tags:
         - Rooms
@@ -204,7 +204,7 @@ paths:
       operationId: muteRoom
       parameters:
         - in: path
-          name: roomId
+          name: pathRoomId
           description: room identifier
           schema:
             type: string
@@ -213,11 +213,11 @@ paths:
           allowEmptyValue: false
       responses:
         204:
-          $ref: '#/components/responses/MuteRoom204'
+          $ref: '#/components/responses/204MuteRoomResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/403ForbiddenResponse'
         404:
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/404NotFoundResponse'
     delete:
       tags:
         - Rooms
@@ -225,7 +225,7 @@ paths:
       operationId: unmuteRoom
       parameters:
         - in: path
-          name: roomId
+          name: pathRoomId
           description: room identifier
           schema:
             type: string
@@ -234,12 +234,12 @@ paths:
           allowEmptyValue: false
       responses:
         204:
-          $ref: '#/components/responses/UnmuteRoom204'
+          $ref: '#/components/responses/204UnmuteRoomResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/403ForbiddenResponse'
         404:
-          $ref: '#/components/responses/NotFound'
-  /rooms/{roomId}/hash:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{pathRoomId}/hash:
     put:
       tags:
         - Rooms
@@ -247,7 +247,7 @@ paths:
       operationId: resetRoomHash
       parameters:
         - in: path
-          name: roomId
+          name: pathRoomId
           description: room identifier
           schema:
             type: string
@@ -256,21 +256,21 @@ paths:
           allowEmptyValue: false
       responses:
         200:
-          $ref: '#/components/responses/ResetRoomHash200'
+          $ref: '#/components/responses/200ResetRoomHashResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/403ForbiddenResponse'
         404:
-          $ref: '#/components/responses/NotFound'
-  /rooms/{roomId}/members:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{pathRoomId}/members:
     get:
       tags:
         - Rooms
         - Members
       summary: Retrieves every member to the given room
-      operationId: getRoomMembers
+      operationId: listRoomMember
       parameters:
         - in: path
-          name: roomId
+          name: pathRoomId
           description: room identifier
           schema:
             type: string
@@ -279,11 +279,11 @@ paths:
           allowEmptyValue: false
       responses:
         200:
-          $ref: '#/components/responses/GetRoomMembers200'
+          $ref: '#/components/responses/200ListRoomMemberResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/403ForbiddenResponse'
         404:
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/404NotFoundResponse'
     post:
       tags:
         - Rooms
@@ -291,10 +291,10 @@ paths:
       summary: Adds or invites the specified user to the room
       description: |
         Adds the specified user to the room. This can only be performed by an of the given room
-      operationId: addRoomMember
+      operationId: insertRoomMember
       parameters:
         - in: path
-          name: roomId
+          name: pathRoomId
           description: room identifier
           schema:
             type: string
@@ -310,12 +310,12 @@ paths:
               $ref: '#/components/schemas/Member'
       responses:
         201:
-          $ref: '#/components/responses/AddRoomMember200'
+          $ref: '#/components/responses/200InsertRoomMemberResponse'
         400:
-          $ref: '#/components/responses/BadRequest'
+          $ref: '#/components/responses/400BadRequestResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
-  /rooms/{roomId}/members/{userId}:
+          $ref: '#/components/responses/403ForbiddenResponse'
+  /rooms/{pathRoomId}/members/{pathUserId}:
     delete:
       tags:
         - Rooms
@@ -324,10 +324,10 @@ paths:
       description: |
         Removes a member from the specified room. If the specified user is different from
         the requester, this action is considered as a kick
-      operationId: removeRoomMember
+      operationId: deleteRoomMember
       parameters:
         - in: path
-          name: roomId
+          name: pathRoomId
           description: room identifier
           schema:
             type: string
@@ -335,7 +335,7 @@ paths:
           required: true
           allowEmptyValue: false
         - in: path
-          name: userId
+          name: pathUserId
           description: user identifier
           schema:
             type: string
@@ -344,18 +344,18 @@ paths:
           allowEmptyValue: false
       responses:
         204:
-          $ref: '#/components/responses/RemoveRoomMember204'
+          $ref: '#/components/responses/204DeleteRoomMemberResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
-  /rooms/{roomId}/members/{userId}/owner:
+          $ref: '#/components/responses/403ForbiddenResponse'
+  /rooms/{pathRoomId}/members/{pathUserId}/owner:
     put:
       tags:
         - Members
       summary: Promotes a member to owner
-      operationId: addOwner
+      operationId: updateToOwner
       parameters:
         - in: path
-          name: roomId
+          name: pathRoomId
           description: room identifier
           schema:
             type: string
@@ -363,7 +363,7 @@ paths:
           required: true
           allowEmptyValue: false
         - in: path
-          name: userId
+          name: pathUserId
           description: user identifier
           schema:
             type: string
@@ -372,19 +372,19 @@ paths:
           allowEmptyValue: false
       responses:
         204:
-          $ref: '#/components/responses/AddOwner204'
+          $ref: '#/components/responses/204UpdateToOwnerResponse'
         404:
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/404NotFoundResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/403ForbiddenResponse'
     delete:
       tags:
         - Members
       summary: Demotes a member from owner to normal member
-      operationId: removeOwner
+      operationId: deleteOwner
       parameters:
         - in: path
-          name: roomId
+          name: pathRoomId
           description: room identifier
           schema:
             type: string
@@ -392,7 +392,7 @@ paths:
           required: true
           allowEmptyValue: false
         - in: path
-          name: userId
+          name: pathUserId
           description: user identifier
           schema:
             type: string
@@ -401,20 +401,20 @@ paths:
           allowEmptyValue: false
       responses:
         204:
-          $ref: '#/components/responses/RemoveOwner204'
+          $ref: '#/components/responses/204DeleteOwnerResponse'
         404:
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/404NotFoundResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
-  /users/{userId}:
+          $ref: '#/components/responses/403ForbiddenResponse'
+  /users/{pathUserId}:
     get:
       tags:
         - Users
       summary: Retrieves a user
-      operationId: getUserById
+      operationId: getUser
       parameters:
         - in: path
-          name: userId
+          name: pathUserId
           description: user identifier
           schema:
             type: string
@@ -423,19 +423,19 @@ paths:
           allowEmptyValue: false
       responses:
         200:
-          $ref: '#/components/responses/GetUserById200'
+          $ref: '#/components/responses/200GetUserResponse'
         404:
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/404NotFoundResponse'
 
-  /rooms/{roomId}/attachments:
+  /rooms/{pathRoomId}/attachments:
     post:
       tags:
         - Attachments
       summary: Uploads a new attachment
-      operationId: addAttachment
+      operationId: insertAttachment
       parameters:
         - in: path
-          name: roomId
+          name: pathRoomId
           description: room identifier
           schema:
             type: string
@@ -459,10 +459,10 @@ paths:
               format: binary
       responses:
         201:
-          $ref: '#/components/responses/UploadAttachment201'
+          $ref: '#/components/responses/201InsertAttachmentResponse'
         413:
-          $ref: '#/components/responses/PayloadTooLarge'
-  /attachments/{fileId}:
+          $ref: '#/components/responses/413PayloadTooLargeResponse'
+  /attachments/{pathFileId}:
     delete:
       tags:
         - Attachments
@@ -470,7 +470,7 @@ paths:
       operationId: deleteAttachment
       parameters:
         - in: path
-          name: fileId
+          name: pathFileId
           description: file identifier
           schema:
             type: string
@@ -479,9 +479,9 @@ paths:
           allowEmptyValue: false
       responses:
         204:
-          $ref: '#/components/responses/DeleteAttachment204'
+          $ref: '#/components/responses/204DeleteAttachmentResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/403ForbiddenResponse'
     get:
       tags:
         - Attachments
@@ -489,7 +489,7 @@ paths:
       operationId: getAttachmentInfo
       parameters:
         - in: path
-          name: fileId
+          name: pathFileId
           description: file identifier
           schema:
             type: string
@@ -498,12 +498,12 @@ paths:
           allowEmptyValue: false
       responses:
         200:
-          $ref: '#/components/responses/GetAttachmentInfo200'
+          $ref: '#/components/responses/200GetAttachmentInfoResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/403ForbiddenResponse'
         404:
-          $ref: '#/components/responses/NotFound'
-  /attachments/{fileId}/download:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /attachments/{pathFileId}/download:
     get:
       tags:
         - Attachments
@@ -511,7 +511,7 @@ paths:
       operationId: getAttachment
       parameters:
         - in: path
-          name: fileId
+          name: pathFileId
           description: file identifier
           schema:
             type: string
@@ -520,12 +520,12 @@ paths:
           allowEmptyValue: false
       responses:
         200:
-          $ref: '#/components/responses/GetAttachment200'
+          $ref: '#/components/responses/200GetAttachmentResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/403ForbiddenResponse'
         404:
-          $ref: '#/components/responses/NotFound'
-  /attachments/{fileId}/preview:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /attachments/{pathFileId}/preview:
     get:
       tags:
         - Attachments
@@ -533,7 +533,7 @@ paths:
       operationId: getAttachmentPreview
       parameters:
         - in: path
-          name: fileId
+          name: pathFileId
           description: file identifier
           schema:
             type: string
@@ -542,26 +542,26 @@ paths:
           allowEmptyValue: false
       responses:
         200:
-          $ref: '#/components/responses/GetAttachmentPreview200'
+          $ref: '#/components/responses/200GetAttachmentPreviewResponse'
         403:
-          $ref: '#/components/responses/Forbidden'
+          $ref: '#/components/responses/403ForbiddenResponse'
         404:
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/404NotFoundResponse'
 components:
   responses:
-    HealthInfo200:
+    200HealthStatusResponse:
       description: General status of the service and its dependencies
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/HealthResponse'
-    IsLive204:
+            $ref: '#/components/schemas/HealthStatusResponse'
+    204IsLiveResponse:
       description: The service is alive
-    IsReady204:
+    204IsReadyResponse:
       description: The service is ready to receive requests
-    IsReady500:
+    500IsReadyResponse:
       description: The service is not yet ready to receive requests
-    GetRooms200:
+    200ListRoomResponse:
       description: List of every room that the user has access to
       content:
         application/json:
@@ -569,46 +569,46 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/Room'
-    CreateRoom201:
+    201InsertRoomResponse:
       description: The newly created room
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RoomInfo'
-    GetRoomById200:
+            $ref: '#/components/schemas/RoomResponse'
+    200GetRoomResponse:
       description: Requested room
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RoomInfo'
-    UpdateRoom200:
+            $ref: '#/components/schemas/RoomResponse'
+    200UpdateRoomResponse:
       description: Updated room
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Room'
-    DeleteRoom204:
+    204DeleteRoomResponse:
       description: Room was deleted correctly or it never existed
-    GetRoomPicture200:
+    200GetRoomPictureResponse:
       description: The requested picture
       content:
         application/octet-stream:
           schema:
             type: string
             format: binary
-    SetRoomPicture204:
+    204UpdateRoomPictureResponse:
       description: Room picture was changed correctly
-    MuteRoom204:
+    204MuteRoomResponse:
       description: Room was muted correctly
-    UnmuteRoom204:
+    204UnmuteRoomResponse:
       description: Room was unmuted correctly
-    ResetRoomHash200:
+    200ResetRoomHashResponse:
       description: Room's hash
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Hash'
-    GetRoomMembers200:
+    200ListRoomMemberResponse:
       description: The room members list
       content:
         application/json:
@@ -616,62 +616,62 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/Member'
-    AddRoomMember200:
+    200InsertRoomMemberResponse:
       description: The member added or invited
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Member'
-    RemoveRoomMember204:
+    204DeleteRoomMemberResponse:
       description: The member was deleted correctly or it never existed
-    AddOwner204:
+    204UpdateToOwnerResponse:
       description: The member was promoted
-    RemoveOwner204:
+    204DeleteOwnerResponse:
       description: The member was demoted
-    GetUserById200:
+    200GetUserResponse:
       description: Requested user
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/User'
-    UploadAttachment201:
+    201InsertAttachmentResponse:
       description: File identifier
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Id'
-    DeleteAttachment204:
+    204DeleteAttachmentResponse:
       description: The file was deleted correctly
-    GetAttachmentInfo200:
+    200GetAttachmentInfoResponse:
       description: Attachment informations
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Attachment'
-    GetAttachment200:
+    200GetAttachmentResponse:
       description: The requested file
       content:
         application/octet-stream:
           schema:
             type: string
             format: binary
-    GetAttachmentPreview200:
+    200GetAttachmentPreviewResponse:
       description: The requested file preview
       content:
         application/octet-stream:
           schema:
             type: string
             format: binary
-    NotFound:
+    404NotFoundResponse:
       description: The requested resource was not found
-    Forbidden:
+    403ForbiddenResponse:
       description: The requester could not access the resource
-    BadRequest:
+    400BadRequestResponse:
       description: The request had wrong or missing parameters
-    PayloadTooLarge:
+    413PayloadTooLargeResponse:
       description: The request had a payload that was too big
   schemas:
-    HealthResponse:
+    HealthStatusResponse:
       type: object
       description: Health status of the service and its dependencies
       properties:
@@ -699,9 +699,13 @@ components:
           description: whether the dependency is available and operative
           readOnly: true
     HealthDependencyType:
-      type: object
+      type: string
       description: Health dependency types
-      enum: [ DATABASE, XMPP_SERVER, EVENT_DISPATCHER, STORAGE_SERVICE ]
+      enum:
+        - database
+        - xmpp_server
+        - event_dispatcher
+        - storage_service
     Id:
       type: object
       description: Identifier object
@@ -735,10 +739,12 @@ components:
           description: user's name
       required: [ email, name ]
     RoomType:
-      type: object
+      type: string
       description: Managed room types
-      enum: [ GROUP, ONE_TO_ONE ]
-    RoomEditableFields:
+      enum:
+        - group
+        - one_to_one
+    UpdateRoomRequest:
       type: object
       description: Room fields that can be updated
       properties:
@@ -749,11 +755,11 @@ components:
           type: string
           description: room description
       required: [ name, description ]
-    RoomCreationFields:
+    InsertRoomRequest:
       type: object
       description: Room fields for its creation
       allOf:
-        - $ref: '#/components/schemas/RoomEditableFields'
+        - $ref: '#/components/schemas/UpdateRoomRequest'
         - type: object
           properties:
             type:
@@ -770,7 +776,7 @@ components:
       type: object
       description: Room data
       allOf:
-        - $ref: '#/components/schemas/RoomCreationFields'
+        - $ref: '#/components/schemas/InsertRoomRequest'
         - type: object
           properties:
             id:
@@ -797,7 +803,7 @@ components:
               readOnly: true
               description: update date
       required: [ id, hash, createdAt, updatedAt ]
-    RoomInfo:
+    RoomResponse:
       description: Room data with members list and current user settings
       type: object
       allOf:

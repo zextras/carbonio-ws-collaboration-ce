@@ -1,7 +1,7 @@
 package com.zextras.carbonio.chats.core.mapper;
 
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
-import com.zextras.carbonio.chats.core.model.RoomUserSettingsDto;
+import com.zextras.carbonio.chats.model.RoomUserSettingsDto;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

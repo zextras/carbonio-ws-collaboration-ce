@@ -19,12 +19,6 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
-import com.zextras.carbonio.chats.core.model.HashDto;
-import com.zextras.carbonio.chats.core.model.RoomCreationFieldsDto;
-import com.zextras.carbonio.chats.core.model.RoomDto;
-import com.zextras.carbonio.chats.core.model.RoomEditableFieldsDto;
-import com.zextras.carbonio.chats.core.model.RoomInfoDto;
-import com.zextras.carbonio.chats.core.model.RoomTypeDto;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
@@ -34,6 +28,12 @@ import com.zextras.carbonio.chats.core.utils.Messages;
 import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.AccountService;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
+import com.zextras.carbonio.chats.model.HashDto;
+import com.zextras.carbonio.chats.model.InsertRoomRequestDto;
+import com.zextras.carbonio.chats.model.RoomDto;
+import com.zextras.carbonio.chats.model.RoomResponseDto;
+import com.zextras.carbonio.chats.model.RoomTypeDto;
+import com.zextras.carbonio.chats.model.UpdateRoomRequestDto;
 import io.ebean.annotation.Transactional;
 import java.io.File;
 import java.util.Collections;
@@ -87,7 +87,7 @@ public class RoomServiceImpl implements RoomService {
 
   @Override
   @Transactional
-  public RoomInfoDto getRoomById(UUID roomId, MockUserPrincipal currentUser) {
+  public RoomResponseDto getRoomById(UUID roomId, MockUserPrincipal currentUser) {
     // get the room
     Room room = getRoomAndCheckUser(roomId, currentUser, false);
     // get current user settings for the room
@@ -97,13 +97,13 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  public RoomInfoDto createRoom(RoomCreationFieldsDto roomCreationFieldsDto, MockUserPrincipal currentUser) {
+  public RoomResponseDto createRoom(InsertRoomRequestDto insertRoomRequestDto, MockUserPrincipal currentUser) {
     // check for duplicates
-    if (roomCreationFieldsDto.getMembersIds().size() != new HashSet<>(roomCreationFieldsDto.getMembersIds()).size()) {
+    if (insertRoomRequestDto.getMembersIds().size() != new HashSet<>(insertRoomRequestDto.getMembersIds()).size()) {
       throw new BadRequestException("Members cannot be duplicated");
     }
     // check the users existence
-    roomCreationFieldsDto.getMembersIds()
+    insertRoomRequestDto.getMembersIds()
       .forEach(userId ->
         accountService.getById(userId)
           .orElseThrow(() -> new NotFoundException(String.format("User with identifier '%s' not found", userId))));
@@ -111,13 +111,13 @@ public class RoomServiceImpl implements RoomService {
     UUID id = UUID.randomUUID();
     Room room = Room.create()
       .id(id.toString())
-      .name(roomCreationFieldsDto.getName())
-      .description(roomCreationFieldsDto.getDescription())
+      .name(insertRoomRequestDto.getName())
+      .description(insertRoomRequestDto.getDescription())
       .hash(Utils.encodeUuidHash(id.toString()))
       .domain(null)
-      .type(roomCreationFieldsDto.getType())
+      .type(insertRoomRequestDto.getType())
       .password(generateRoomPassword());
-    room.setSubscriptions(membersService.initRoomSubscriptions(roomCreationFieldsDto.getMembersIds(), room, currentUser));
+    room.setSubscriptions(membersService.initRoomSubscriptions(insertRoomRequestDto.getMembersIds(), room, currentUser));
     // persist room
     room = roomRepository.insert(room);
     // send event
@@ -134,13 +134,13 @@ public class RoomServiceImpl implements RoomService {
 
   @Override
   @Transactional
-  public RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto roomEditableFieldsDto, MockUserPrincipal currentUser) {
+  public RoomDto updateRoom(UUID roomId, UpdateRoomRequestDto updateRoomRequestDto, MockUserPrincipal currentUser) {
     // get room
     Room room = getRoomAndCheckUser(roomId, currentUser, true);
     // change name and description
     room
-      .name(roomEditableFieldsDto.getName())
-      .description(roomEditableFieldsDto.getDescription());
+      .name(updateRoomRequestDto.getName())
+      .description(updateRoomRequestDto.getDescription());
     // room update
     roomRepository.update(room);
     // send update event to room topic

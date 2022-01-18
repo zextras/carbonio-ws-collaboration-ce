@@ -6,14 +6,15 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import com.zextras.carbonio.chats.core.api.AttachmentsApi;
-import com.zextras.carbonio.chats.core.api.AttachmentsApiService;
-import com.zextras.carbonio.chats.core.api.HealthApi;
-import com.zextras.carbonio.chats.core.api.HealthApiService;
-import com.zextras.carbonio.chats.core.api.RoomsApi;
-import com.zextras.carbonio.chats.core.api.RoomsApiService;
-import com.zextras.carbonio.chats.core.api.UsersApi;
-import com.zextras.carbonio.chats.core.api.UsersApiService;
+import com.zextras.carbonio.chats.api.AttachmentsApi;
+import com.zextras.carbonio.chats.api.AttachmentsApiService;
+import com.zextras.carbonio.chats.api.HealthApi;
+import com.zextras.carbonio.chats.api.HealthApiService;
+import com.zextras.carbonio.chats.api.RFC3339DateFormat;
+import com.zextras.carbonio.chats.api.RoomsApi;
+import com.zextras.carbonio.chats.api.RoomsApiService;
+import com.zextras.carbonio.chats.api.UsersApi;
+import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.exception.handler.ChatsHttpExceptionHandler;
 import com.zextras.carbonio.chats.core.exception.handler.DefaultExceptionHandler;
 import com.zextras.carbonio.chats.core.exception.handler.XmppServerExceptionHandler;
@@ -25,7 +26,6 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherImpl;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.SlimstoreStorageServiceImpl;
-import com.zextras.carbonio.chats.core.invoker.RFC3339DateFormat;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
@@ -136,8 +136,8 @@ public class CoreModule extends AbstractModule {
       .setBasePath(appConfig.get(String.class, "MONGOOSEIM_ADMIN_REST_BASE_URL").orElseThrow())
       .addDefaultHeader("Accept", "*/*")
       .setDebugging(true));
-    com.zextras.carbonio.chats.mongooseim.client.invoker.Configuration.setDefaultApiClient(
-      new com.zextras.carbonio.chats.mongooseim.client.invoker.ApiClient()
+    com.zextras.carbonio.chats.mongooseim.client.api.Configuration.setDefaultApiClient(
+      new com.zextras.carbonio.chats.mongooseim.client.api.ApiClient()
         .setBasePath(appConfig.get(String.class, "MONGOOSEIM_CLIENT_REST_BASE_URL").orElseThrow())
         .addDefaultHeader("Accept", "*/*")
         .setDebugging(true));
@@ -151,8 +151,8 @@ public class CoreModule extends AbstractModule {
       .setBasePath(appConfig.get(String.class, "MONGOOSEIM_ADMIN_REST_BASE_URL").orElseThrow())
       .addDefaultHeader("Accept", "*/*")
       .setDebugging(true));
-    com.zextras.carbonio.chats.mongooseim.client.invoker.Configuration.setDefaultApiClient(
-      new com.zextras.carbonio.chats.mongooseim.client.invoker.ApiClient()
+    com.zextras.carbonio.chats.mongooseim.client.api.Configuration.setDefaultApiClient(
+      new com.zextras.carbonio.chats.mongooseim.client.api.ApiClient()
         .setBasePath(appConfig.get(String.class, "MONGOOSEIM_CLIENT_REST_BASE_URL").orElseThrow())
         .addDefaultHeader("Accept", "*/*")
         .setDebugging(true));

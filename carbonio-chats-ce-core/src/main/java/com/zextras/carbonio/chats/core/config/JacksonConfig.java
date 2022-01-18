@@ -2,7 +2,7 @@ package com.zextras.carbonio.chats.core.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.zextras.carbonio.chats.core.invoker.RFC3339DateFormat;
+import com.zextras.carbonio.chats.api.RFC3339DateFormat;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 

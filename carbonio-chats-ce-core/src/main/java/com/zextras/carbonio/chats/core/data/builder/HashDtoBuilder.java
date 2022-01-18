@@ -1,6 +1,6 @@
 package com.zextras.carbonio.chats.core.data.builder;
 
-import com.zextras.carbonio.chats.core.model.HashDto;
+import com.zextras.carbonio.chats.model.HashDto;
 
 public class HashDtoBuilder {
 

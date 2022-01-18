@@ -1,9 +1,9 @@
 package com.zextras.carbonio.chats.core.mapper;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
-import com.zextras.carbonio.chats.core.model.RoomInfoDto;
-import com.zextras.carbonio.chats.core.model.RoomDto;
-import com.zextras.carbonio.chats.core.model.RoomUserSettingsDto;
+import com.zextras.carbonio.chats.model.RoomDto;
+import com.zextras.carbonio.chats.model.RoomResponseDto;
+import com.zextras.carbonio.chats.model.RoomUserSettingsDto;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +34,6 @@ public abstract class RoomMapper {
     @Mapping(target = "members", expression = "java(subscriptionMapper.ent2memberDto(room.getSubscriptions()))"),
     @Mapping(target = "userSettings", expression = "java(roomUserSettingsMapper.ent2dto(room.getUserSettings(), userId))")
   })
-  public abstract RoomInfoDto ent2roomInfoDto(Room room, String userId);
+  public abstract RoomResponseDto ent2roomInfoDto(Room room, String userId);
 
 }

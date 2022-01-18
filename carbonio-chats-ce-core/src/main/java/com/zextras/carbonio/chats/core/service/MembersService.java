@@ -2,7 +2,7 @@ package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.model.MemberDto;
+import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
 import java.util.List;
 import java.util.UUID;
@@ -27,7 +27,7 @@ public interface MembersService {
    * @param currentUser current authenticated user {@link MockUserPrincipal}
    * @return The member added or invited {@link MemberDto }
    **/
-  MemberDto addRoomMember(UUID roomId, MemberDto memberDto, MockUserPrincipal currentUser);
+  MemberDto insertRoomMember(UUID roomId, MemberDto memberDto, MockUserPrincipal currentUser);
 
   /**
    * Removes a member from the specified room. If the specified user is different from the requester, this action is considered as a kick
@@ -36,7 +36,7 @@ public interface MembersService {
    * @param userId          user identifier {@link UUID }
    * @param currentUser     current authenticated user {@link MockUserPrincipal}
    **/
-  void removeRoomMember(UUID roomId, UUID userId, MockUserPrincipal currentUser);
+  void deleteRoomMember(UUID roomId, UUID userId, MockUserPrincipal currentUser);
 
 
   /**

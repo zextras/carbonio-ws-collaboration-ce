@@ -1,6 +1,6 @@
 package com.zextras.carbonio.chats.core.data.entity;
 
-import com.zextras.carbonio.chats.core.model.RoomTypeDto;
+import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
 import java.time.OffsetDateTime;

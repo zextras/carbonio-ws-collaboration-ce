@@ -1,6 +1,6 @@
 package com.zextras.carbonio.chats.core.data.builder;
 
-import com.zextras.carbonio.chats.core.model.IdDto;
+import com.zextras.carbonio.chats.model.IdDto;
 import java.util.UUID;
 
 public class IdDtoBuilder {

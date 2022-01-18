@@ -2,7 +2,7 @@ package com.zextras.carbonio.chats.core.service;
 
 
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
-import com.zextras.carbonio.chats.core.model.UserDto;
+import com.zextras.carbonio.chats.model.UserDto;
 import java.util.UUID;
 import javax.annotation.Generated;
 

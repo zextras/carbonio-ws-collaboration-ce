@@ -1,7 +1,7 @@
 package com.zextras.carbonio.chats.core.mapper;
 
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.model.MemberDto;
+import com.zextras.carbonio.chats.model.MemberDto;
 import java.util.List;
 import java.util.UUID;
 import org.mapstruct.Mapper;

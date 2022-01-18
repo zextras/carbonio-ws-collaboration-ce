@@ -1,7 +1,7 @@
 package com.zextras.carbonio.chats.core.web.api;
 
 
-import com.zextras.carbonio.chats.core.api.UsersApiService;
+import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.MockSecurityContext;
@@ -25,7 +25,7 @@ public class UsersApiServiceImpl implements UsersApiService {
     this.mockSecurityContext = mockSecurityContext;
   }
 
-  public Response getUserById(UUID userId, SecurityContext securityContext) {
+  public Response getUser(UUID userId, SecurityContext securityContext) {
     MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
       .orElseThrow(UnauthorizedException::new);
     return Response
