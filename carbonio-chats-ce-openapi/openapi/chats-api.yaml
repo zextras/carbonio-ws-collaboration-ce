@@ -71,7 +71,7 @@ paths:
           $ref: '#/components/responses/400BadRequestResponse'
         403:
           $ref: '#/components/responses/403ForbiddenResponse'
-  /rooms/{pathRoomId}:
+  /rooms/{roomId}:
     get:
       tags:
         - Rooms
@@ -79,11 +79,10 @@ paths:
       operationId: getRoom
       parameters:
         - in: path
-          name: pathRoomId
+          name: roomId
           description: room identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathRoomId'
           required: true
           allowEmptyValue: false
       responses:
@@ -100,11 +99,10 @@ paths:
       operationId: updateRoom
       parameters:
         - in: path
-          name: pathRoomId
+          name: roomId
           description: room identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathRoomId'
           required: true
           allowEmptyValue: false
       requestBody:
@@ -130,11 +128,10 @@ paths:
       operationId: deleteRoom
       parameters:
         - in: path
-          name: pathRoomId
+          name: roomId
           description: room identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathRoomId'
           required: true
           allowEmptyValue: false
       responses:
@@ -142,7 +139,7 @@ paths:
           $ref: '#/components/responses/204DeleteRoomResponse'
         403:
           $ref: '#/components/responses/403ForbiddenResponse'
-  /rooms/{pathRoomId}/picture:
+  /rooms/{roomId}/picture:
     get:
       tags:
         - Rooms
@@ -150,11 +147,10 @@ paths:
       operationId: getRoomPicture
       parameters:
         - in: path
-          name: pathRoomId
+          name: roomId
           description: room identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathRoomId'
           required: true
           allowEmptyValue: false
       responses:
@@ -171,18 +167,17 @@ paths:
       operationId: updateRoomPicture
       parameters:
         - in: path
-          name: pathRoomId
+          name: roomId
           description: room identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathRoomId'
           required: true
           allowEmptyValue: false
         - in: header
           name: X-Content-Disposition
           description: file content type and file name writes with inline format ('fileName=<>;mimeType=<>')
           schema:
-            type: string
+            $ref: '#/components/schemas/headerXContentDisposition'
           required: true
           allowEmptyValue: false
       requestBody:
@@ -191,12 +186,11 @@ paths:
         content:
           application/octet-stream:
             schema:
-              type: string
-              format: binary
+              $ref: '#/components/schemas/bodyBinaryFile'
       responses:
         204:
           $ref: '#/components/responses/204UpdateRoomPictureResponse'
-  /rooms/{pathRoomId}/mute:
+  /rooms/{roomId}/mute:
     put:
       tags:
         - Rooms
@@ -204,11 +198,10 @@ paths:
       operationId: muteRoom
       parameters:
         - in: path
-          name: pathRoomId
+          name: roomId
           description: room identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathRoomId'
           required: true
           allowEmptyValue: false
       responses:
@@ -225,11 +218,10 @@ paths:
       operationId: unmuteRoom
       parameters:
         - in: path
-          name: pathRoomId
+          name: roomId
           description: room identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathRoomId'
           required: true
           allowEmptyValue: false
       responses:
@@ -239,7 +231,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /rooms/{pathRoomId}/hash:
+  /rooms/{roomId}/hash:
     put:
       tags:
         - Rooms
@@ -247,11 +239,10 @@ paths:
       operationId: resetRoomHash
       parameters:
         - in: path
-          name: pathRoomId
+          name: roomId
           description: room identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathRoomId'
           required: true
           allowEmptyValue: false
       responses:
@@ -261,7 +252,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /rooms/{pathRoomId}/members:
+  /rooms/{roomId}/members:
     get:
       tags:
         - Rooms
@@ -270,11 +261,10 @@ paths:
       operationId: listRoomMember
       parameters:
         - in: path
-          name: pathRoomId
+          name: roomId
           description: room identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathRoomId'
           required: true
           allowEmptyValue: false
       responses:
@@ -294,11 +284,10 @@ paths:
       operationId: insertRoomMember
       parameters:
         - in: path
-          name: pathRoomId
+          name: roomId
           description: room identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathRoomId'
           required: true
           allowEmptyValue: false
       requestBody:
@@ -315,7 +304,7 @@ paths:
           $ref: '#/components/responses/400BadRequestResponse'
         403:
           $ref: '#/components/responses/403ForbiddenResponse'
-  /rooms/{pathRoomId}/members/{pathUserId}:
+  /rooms/{roomId}/members/{userId}:
     delete:
       tags:
         - Rooms
@@ -327,19 +316,17 @@ paths:
       operationId: deleteRoomMember
       parameters:
         - in: path
-          name: pathRoomId
+          name: roomId
           description: room identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathRoomId'
           required: true
           allowEmptyValue: false
         - in: path
-          name: pathUserId
+          name: userId
           description: user identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathUserId'
           required: true
           allowEmptyValue: false
       responses:
@@ -347,7 +334,7 @@ paths:
           $ref: '#/components/responses/204DeleteRoomMemberResponse'
         403:
           $ref: '#/components/responses/403ForbiddenResponse'
-  /rooms/{pathRoomId}/members/{pathUserId}/owner:
+  /rooms/{roomId}/members/{userId}/owner:
     put:
       tags:
         - Members
@@ -355,19 +342,17 @@ paths:
       operationId: updateToOwner
       parameters:
         - in: path
-          name: pathRoomId
+          name: roomId
           description: room identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathRoomId'
           required: true
           allowEmptyValue: false
         - in: path
-          name: pathUserId
+          name: userId
           description: user identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathUserId'
           required: true
           allowEmptyValue: false
       responses:
@@ -384,19 +369,17 @@ paths:
       operationId: deleteOwner
       parameters:
         - in: path
-          name: pathRoomId
+          name: roomId
           description: room identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathRoomId'
           required: true
           allowEmptyValue: false
         - in: path
-          name: pathUserId
+          name: userId
           description: user identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathUserId'
           required: true
           allowEmptyValue: false
       responses:
@@ -406,7 +389,7 @@ paths:
           $ref: '#/components/responses/404NotFoundResponse'
         403:
           $ref: '#/components/responses/403ForbiddenResponse'
-  /users/{pathUserId}:
+  /users/{userId}:
     get:
       tags:
         - Users
@@ -414,11 +397,10 @@ paths:
       operationId: getUser
       parameters:
         - in: path
-          name: pathUserId
+          name: userId
           description: user identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathUserId'
           required: true
           allowEmptyValue: false
       responses:
@@ -427,7 +409,7 @@ paths:
         404:
           $ref: '#/components/responses/404NotFoundResponse'
 
-  /rooms/{pathRoomId}/attachments:
+  /rooms/{roomId}/attachments:
     post:
       tags:
         - Attachments
@@ -435,18 +417,17 @@ paths:
       operationId: insertAttachment
       parameters:
         - in: path
-          name: pathRoomId
+          name: roomId
           description: room identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathRoomId'
           required: true
           allowEmptyValue: false
         - in: header
           name: X-Content-Disposition
           description: file content type and file name writes with inline format ('fileName=<>;mimeType=<>')
           schema:
-            type: string
+            $ref: '#/components/schemas/headerXContentDisposition'
           required: true
           allowEmptyValue: false
       requestBody:
@@ -455,14 +436,13 @@ paths:
         content:
           application/octet-stream:
             schema:
-              type: string
-              format: binary
+              $ref: '#/components/schemas/bodyBinaryFile'
       responses:
         201:
           $ref: '#/components/responses/201InsertAttachmentResponse'
         413:
           $ref: '#/components/responses/413PayloadTooLargeResponse'
-  /attachments/{pathFileId}:
+  /attachments/{fileId}:
     delete:
       tags:
         - Attachments
@@ -470,11 +450,10 @@ paths:
       operationId: deleteAttachment
       parameters:
         - in: path
-          name: pathFileId
+          name: fileId
           description: file identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathFileId'
           required: true
           allowEmptyValue: false
       responses:
@@ -489,11 +468,10 @@ paths:
       operationId: getAttachmentInfo
       parameters:
         - in: path
-          name: pathFileId
+          name: fileId
           description: file identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathFileId'
           required: true
           allowEmptyValue: false
       responses:
@@ -503,7 +481,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /attachments/{pathFileId}/download:
+  /attachments/{fileId}/download:
     get:
       tags:
         - Attachments
@@ -511,11 +489,10 @@ paths:
       operationId: getAttachment
       parameters:
         - in: path
-          name: pathFileId
+          name: fileId
           description: file identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathFileId'
           required: true
           allowEmptyValue: false
       responses:
@@ -525,7 +502,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /attachments/{pathFileId}/preview:
+  /attachments/{fileId}/preview:
     get:
       tags:
         - Attachments
@@ -533,11 +510,10 @@ paths:
       operationId: getAttachmentPreview
       parameters:
         - in: path
-          name: pathFileId
+          name: fileId
           description: file identifier
           schema:
-            type: string
-            format: uuid
+            $ref: '#/components/schemas/pathFileId'
           required: true
           allowEmptyValue: false
       responses:
@@ -671,6 +647,20 @@ components:
     413PayloadTooLargeResponse:
       description: The request had a payload that was too big
   schemas:
+    pathRoomId:
+      type: string
+      format: uuid
+    pathFileId:
+      type: string
+      format: uuid
+    pathUserId:
+      type: string
+      format: uuid
+    headerXContentDisposition:
+      type: string
+    bodyBinaryFile:
+      type: string
+      format: binary
     HealthStatusResponse:
       type: object
       description: Health status of the service and its dependencies
