@@ -78,13 +78,7 @@ paths:
       summary: Retrieves the requested room
       operationId: getRoom
       parameters:
-        - in: path
-          name: roomId
-          description: room identifier
-          schema:
-            $ref: '#/components/schemas/pathRoomId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathRoomId'
       responses:
         200:
           $ref: '#/components/responses/200GetRoomResponse'
@@ -98,13 +92,7 @@ paths:
       summary: Updates a room information
       operationId: updateRoom
       parameters:
-        - in: path
-          name: roomId
-          description: room identifier
-          schema:
-            $ref: '#/components/schemas/pathRoomId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathRoomId'
       requestBody:
         description: room fields to update
         required: true
@@ -127,13 +115,7 @@ paths:
       summary: Deletes the specified room
       operationId: deleteRoom
       parameters:
-        - in: path
-          name: roomId
-          description: room identifier
-          schema:
-            $ref: '#/components/schemas/pathRoomId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathRoomId'
       responses:
         204:
           $ref: '#/components/responses/204DeleteRoomResponse'
@@ -146,13 +128,7 @@ paths:
       summary: Retrieves the room picture
       operationId: getRoomPicture
       parameters:
-        - in: path
-          name: roomId
-          description: room identifier
-          schema:
-            $ref: '#/components/schemas/pathRoomId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathRoomId'
       responses:
         200:
           $ref: '#/components/responses/200GetRoomPictureResponse'
@@ -166,20 +142,8 @@ paths:
       summary: Uploads and sets a new room picture
       operationId: updateRoomPicture
       parameters:
-        - in: path
-          name: roomId
-          description: room identifier
-          schema:
-            $ref: '#/components/schemas/pathRoomId'
-          required: true
-          allowEmptyValue: false
-        - in: header
-          name: X-Content-Disposition
-          description: file content type and file name writes with inline format ('fileName=<>;mimeType=<>')
-          schema:
-            $ref: '#/components/schemas/headerXContentDisposition'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/headerXContentDisposition'
       requestBody:
         description: image to set
         required: true
@@ -197,13 +161,7 @@ paths:
       summary: Mutes notification for the specified room
       operationId: muteRoom
       parameters:
-        - in: path
-          name: roomId
-          description: room identifier
-          schema:
-            $ref: '#/components/schemas/pathRoomId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathRoomId'
       responses:
         204:
           $ref: '#/components/responses/204MuteRoomResponse'
@@ -217,13 +175,7 @@ paths:
       summary: Unmutes notification for the specified room
       operationId: unmuteRoom
       parameters:
-        - in: path
-          name: roomId
-          description: room identifier
-          schema:
-            $ref: '#/components/schemas/pathRoomId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathRoomId'
       responses:
         204:
           $ref: '#/components/responses/204UnmuteRoomResponse'
@@ -238,13 +190,7 @@ paths:
       summary: Resets the specified room hash
       operationId: resetRoomHash
       parameters:
-        - in: path
-          name: roomId
-          description: room identifier
-          schema:
-            $ref: '#/components/schemas/pathRoomId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathRoomId'
       responses:
         200:
           $ref: '#/components/responses/200ResetRoomHashResponse'
@@ -260,13 +206,7 @@ paths:
       summary: Retrieves every member to the given room
       operationId: listRoomMember
       parameters:
-        - in: path
-          name: roomId
-          description: room identifier
-          schema:
-            $ref: '#/components/schemas/pathRoomId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathRoomId'
       responses:
         200:
           $ref: '#/components/responses/200ListRoomMemberResponse'
@@ -283,13 +223,7 @@ paths:
         Adds the specified user to the room. This can only be performed by an of the given room
       operationId: insertRoomMember
       parameters:
-        - in: path
-          name: roomId
-          description: room identifier
-          schema:
-            $ref: '#/components/schemas/pathRoomId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathRoomId'
       requestBody:
         description: member to add or invite
         required: true
@@ -315,20 +249,8 @@ paths:
         the requester, this action is considered as a kick
       operationId: deleteRoomMember
       parameters:
-        - in: path
-          name: roomId
-          description: room identifier
-          schema:
-            $ref: '#/components/schemas/pathRoomId'
-          required: true
-          allowEmptyValue: false
-        - in: path
-          name: userId
-          description: user identifier
-          schema:
-            $ref: '#/components/schemas/pathUserId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/pathUserId'
       responses:
         204:
           $ref: '#/components/responses/204DeleteRoomMemberResponse'
@@ -341,20 +263,8 @@ paths:
       summary: Promotes a member to owner
       operationId: updateToOwner
       parameters:
-        - in: path
-          name: roomId
-          description: room identifier
-          schema:
-            $ref: '#/components/schemas/pathRoomId'
-          required: true
-          allowEmptyValue: false
-        - in: path
-          name: userId
-          description: user identifier
-          schema:
-            $ref: '#/components/schemas/pathUserId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/pathUserId'
       responses:
         204:
           $ref: '#/components/responses/204UpdateToOwnerResponse'
@@ -368,20 +278,8 @@ paths:
       summary: Demotes a member from owner to normal member
       operationId: deleteOwner
       parameters:
-        - in: path
-          name: roomId
-          description: room identifier
-          schema:
-            $ref: '#/components/schemas/pathRoomId'
-          required: true
-          allowEmptyValue: false
-        - in: path
-          name: userId
-          description: user identifier
-          schema:
-            $ref: '#/components/schemas/pathUserId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/pathUserId'
       responses:
         204:
           $ref: '#/components/responses/204DeleteOwnerResponse'
@@ -396,19 +294,12 @@ paths:
       summary: Retrieves a user
       operationId: getUser
       parameters:
-        - in: path
-          name: userId
-          description: user identifier
-          schema:
-            $ref: '#/components/schemas/pathUserId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathUserId'
       responses:
         200:
           $ref: '#/components/responses/200GetUserResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-
   /rooms/{roomId}/attachments:
     post:
       tags:
@@ -416,20 +307,8 @@ paths:
       summary: Uploads a new attachment
       operationId: insertAttachment
       parameters:
-        - in: path
-          name: roomId
-          description: room identifier
-          schema:
-            $ref: '#/components/schemas/pathRoomId'
-          required: true
-          allowEmptyValue: false
-        - in: header
-          name: X-Content-Disposition
-          description: file content type and file name writes with inline format ('fileName=<>;mimeType=<>')
-          schema:
-            $ref: '#/components/schemas/headerXContentDisposition'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/headerXContentDisposition'
       requestBody:
         description: file stream
         required: true
@@ -449,13 +328,7 @@ paths:
       summary: Deletes an uploaded attachment
       operationId: deleteAttachment
       parameters:
-        - in: path
-          name: fileId
-          description: file identifier
-          schema:
-            $ref: '#/components/schemas/pathFileId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathFileId'
       responses:
         204:
           $ref: '#/components/responses/204DeleteAttachmentResponse'
@@ -467,13 +340,7 @@ paths:
       summary: Retrieves info related to an uploaded attachment
       operationId: getAttachmentInfo
       parameters:
-        - in: path
-          name: fileId
-          description: file identifier
-          schema:
-            $ref: '#/components/schemas/pathFileId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathFileId'
       responses:
         200:
           $ref: '#/components/responses/200GetAttachmentInfoResponse'
@@ -488,13 +355,7 @@ paths:
       summary: Retrieves an uploaded attachment
       operationId: getAttachment
       parameters:
-        - in: path
-          name: fileId
-          description: file identifier
-          schema:
-            $ref: '#/components/schemas/pathFileId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathFileId'
       responses:
         200:
           $ref: '#/components/responses/200GetAttachmentResponse'
@@ -509,13 +370,7 @@ paths:
       summary: Retrieves the prefiew of an uploaded attachment
       operationId: getAttachmentPreview
       parameters:
-        - in: path
-          name: fileId
-          description: file identifier
-          schema:
-            $ref: '#/components/schemas/pathFileId'
-          required: true
-          allowEmptyValue: false
+        - $ref: '#/components/parameters/pathFileId'
       responses:
         200:
           $ref: '#/components/responses/200GetAttachmentPreviewResponse'
@@ -524,6 +379,42 @@ paths:
         404:
           $ref: '#/components/responses/404NotFoundResponse'
 components:
+  parameters:
+    pathRoomId:
+      in: path
+      name: roomId
+      description: room identifier
+      schema:
+        type: string
+        format: uuid
+      required: true
+      allowEmptyValue: false
+    pathFileId:
+      in: path
+      name: fileId
+      description: file identifier
+      schema:
+        type: string
+        format: uuid
+      required: true
+      allowEmptyValue: false
+    pathUserId:
+      in: path
+      name: userId
+      description: user identifier
+      schema:
+        type: string
+        format: uuid
+      required: true
+      allowEmptyValue: false
+    headerXContentDisposition:
+      in: header
+      name: X-Content-Disposition
+      description: file content type and file name writes with inline format ('fileName=<>;mimeType=<>')
+      schema:
+        type: string
+      required: true
+      allowEmptyValue: false
   responses:
     200HealthStatusResponse:
       description: General status of the service and its dependencies
@@ -647,17 +538,6 @@ components:
     413PayloadTooLargeResponse:
       description: The request had a payload that was too big
   schemas:
-    pathRoomId:
-      type: string
-      format: uuid
-    pathFileId:
-      type: string
-      format: uuid
-    pathUserId:
-      type: string
-      format: uuid
-    headerXContentDisposition:
-      type: string
     bodyBinaryFile:
       type: string
       format: binary
