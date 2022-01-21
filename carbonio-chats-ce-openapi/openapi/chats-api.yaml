@@ -55,15 +55,10 @@ paths:
     post:
       tags:
         - Rooms
-      summary: Creates a room of the specified type
+      summary: Insert a room of the specified type
       operationId: insertRoom
       requestBody:
-        description: room to create
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/InsertRoomRequest'
+        $ref: '#/components/requestBodies/InsertRoomRequest'
       responses:
         201:
           $ref: '#/components/responses/201InsertRoomResponse'
@@ -94,12 +89,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
       requestBody:
-        description: room fields to update
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateRoomRequest'
+        $ref: '#/components/requestBodies/UpdateRoomRequest'
       responses:
         200:
           $ref: '#/components/responses/200UpdateRoomResponse'
@@ -145,12 +135,7 @@ paths:
         - $ref: '#/components/parameters/pathRoomId'
         - $ref: '#/components/parameters/headerXContentDisposition'
       requestBody:
-        description: image to set
-        required: true
-        content:
-          application/octet-stream:
-            schema:
-              $ref: '#/components/schemas/bodyBinaryFile'
+        $ref: '#/components/requestBodies/UpdateRoomPictureRequest'
       responses:
         204:
           $ref: '#/components/responses/204UpdateRoomPictureResponse'
@@ -225,12 +210,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
       requestBody:
-        description: member to add or invite
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Member'
+        $ref: '#/components/requestBodies/InsertRoomMemberRequest'
       responses:
         201:
           $ref: '#/components/responses/200InsertRoomMemberResponse'
@@ -304,18 +284,13 @@ paths:
     post:
       tags:
         - Attachments
-      summary: Uploads a new attachment
+      summary: Insert an attachment
       operationId: insertAttachment
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
         - $ref: '#/components/parameters/headerXContentDisposition'
       requestBody:
-        description: file stream
-        required: true
-        content:
-          application/octet-stream:
-            schema:
-              $ref: '#/components/schemas/bodyBinaryFile'
+        $ref: '#/components/requestBodies/InsertAttachmentRequest'
       responses:
         201:
           $ref: '#/components/responses/201InsertAttachmentResponse'
@@ -381,7 +356,7 @@ paths:
 components:
   parameters:
     pathRoomId:
-      in: path
+      in: query
       name: roomId
       description: room identifier
       schema:
@@ -415,6 +390,42 @@ components:
         type: string
       required: true
       allowEmptyValue: false
+  requestBodies:
+    InsertRoomRequest:
+      description: room to insert
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InsertRoomRequest'
+    UpdateRoomRequest:
+      description: room fields to update
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateRoomRequest'
+    UpdateRoomPictureRequest:
+      description: image to set
+      required: true
+      content:
+        application/octet-stream:
+          schema:
+            $ref: '#/components/schemas/binaryFile'
+    InsertRoomMemberRequest:
+      description: member to add or invite
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Member'
+    InsertAttachmentRequest:
+      description: file stream
+      required: true
+      content:
+        application/octet-stream:
+          schema:
+            $ref: '#/components/schemas/binaryFile'
   responses:
     200HealthStatusResponse:
       description: General status of the service and its dependencies
@@ -538,7 +549,7 @@ components:
     413PayloadTooLargeResponse:
       description: The request had a payload that was too big
   schemas:
-    bodyBinaryFile:
+    binaryFile:
       type: string
       format: binary
     HealthStatusResponse:
