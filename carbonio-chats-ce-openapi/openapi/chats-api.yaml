@@ -356,7 +356,7 @@ paths:
 components:
   parameters:
     pathRoomId:
-      in: query
+      in: path
       name: roomId
       description: room identifier
       schema:
@@ -397,21 +397,22 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/InsertRoomRequest'
+            $ref: '#/components/schemas/RoomCreationFields'
     UpdateRoomRequest:
       description: room fields to update
       required: true
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/UpdateRoomRequest'
+            $ref: '#/components/schemas/RoomEditableFields'
     UpdateRoomPictureRequest:
       description: image to set
       required: true
       content:
         application/octet-stream:
           schema:
-            $ref: '#/components/schemas/binaryFile'
+            type: string
+            format: binary
     InsertRoomMemberRequest:
       description: member to add or invite
       required: true
@@ -425,14 +426,15 @@ components:
       content:
         application/octet-stream:
           schema:
-            $ref: '#/components/schemas/binaryFile'
+            type: string
+            format: binary
   responses:
     200HealthStatusResponse:
       description: General status of the service and its dependencies
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/HealthStatusResponse'
+            $ref: '#/components/schemas/HealthStatus'
     204IsLiveResponse:
       description: The service is alive
     204IsReadyResponse:
@@ -452,13 +454,13 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RoomResponse'
+            $ref: '#/components/schemas/RoomInfo'
     200GetRoomResponse:
       description: Requested room
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RoomResponse'
+            $ref: '#/components/schemas/RoomInfo'
     200UpdateRoomResponse:
       description: Updated room
       content:
@@ -549,10 +551,7 @@ components:
     413PayloadTooLargeResponse:
       description: The request had a payload that was too big
   schemas:
-    binaryFile:
-      type: string
-      format: binary
-    HealthStatusResponse:
+    HealthStatus:
       type: object
       description: Health status of the service and its dependencies
       properties:
@@ -574,12 +573,12 @@ components:
       description: Health status of a service dependency
       properties:
         name:
-          $ref: '#/components/schemas/HealthDependencyType'
+          $ref: '#/components/schemas/DependencyHealthType'
         isHealthy:
           type: boolean
           description: whether the dependency is available and operative
           readOnly: true
-    HealthDependencyType:
+    DependencyHealthType:
       type: string
       description: Health dependency types
       enum:
@@ -625,7 +624,7 @@ components:
       enum:
         - group
         - one_to_one
-    UpdateRoomRequest:
+    RoomEditableFields:
       type: object
       description: Room fields that can be updated
       properties:
@@ -636,11 +635,11 @@ components:
           type: string
           description: room description
       required: [ name, description ]
-    InsertRoomRequest:
+    RoomCreationFields:
       type: object
       description: Room fields for its creation
       allOf:
-        - $ref: '#/components/schemas/UpdateRoomRequest'
+        - $ref: '#/components/schemas/RoomEditableFields'
         - type: object
           properties:
             type:
@@ -657,7 +656,7 @@ components:
       type: object
       description: Room data
       allOf:
-        - $ref: '#/components/schemas/InsertRoomRequest'
+        - $ref: '#/components/schemas/RoomCreationFields'
         - type: object
           properties:
             id:
@@ -684,7 +683,7 @@ components:
               readOnly: true
               description: update date
       required: [ id, hash, createdAt, updatedAt ]
-    RoomResponse:
+    RoomInfo:
       description: Room data with members list and current user settings
       type: object
       allOf:

@@ -1,7 +1,7 @@
 package com.zextras.carbonio.chats.core.service;
 
 
-import com.zextras.carbonio.chats.model.HealthStatusResponseDto;
+import com.zextras.carbonio.chats.model.HealthStatusDto;
 
 public interface HealthcheckService {
 
@@ -15,7 +15,7 @@ public interface HealthcheckService {
   /**
    * Returns an object that represents the service health status
    *
-   * @return a {@link HealthStatusResponseDto} which represent this service instance health status
+   * @return a {@link HealthStatusDto} which represent this service instance health status
    */
-  HealthStatusResponseDto getServiceHealth();
+  HealthStatusDto getServiceHealth();
 }

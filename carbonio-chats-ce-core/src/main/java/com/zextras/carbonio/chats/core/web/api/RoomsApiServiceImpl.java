@@ -10,9 +10,9 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.MockSecurityContext;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
-import com.zextras.carbonio.chats.model.InsertRoomRequestDto;
 import com.zextras.carbonio.chats.model.MemberDto;
-import com.zextras.carbonio.chats.model.UpdateRoomRequestDto;
+import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
+import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import java.io.File;
 import java.util.Optional;
 import java.util.UUID;
@@ -62,7 +62,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response insertRoom(InsertRoomRequestDto insertRoomRequestDto, SecurityContext securityContext) {
+  public Response insertRoom(RoomCreationFieldsDto insertRoomRequestDto, SecurityContext securityContext) {
     MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
       .orElseThrow(UnauthorizedException::new);
     return Response
@@ -80,7 +80,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response updateRoom(UUID roomId, UpdateRoomRequestDto updateRoomRequestDto, SecurityContext securityContext) {
+  public Response updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, SecurityContext securityContext) {
     MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
       .orElseThrow(UnauthorizedException::new);
     return Response.status(Status.OK)

@@ -6,8 +6,9 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.model.DependencyHealthDto;
-import com.zextras.carbonio.chats.model.HealthDependencyTypeDto;
-import com.zextras.carbonio.chats.model.HealthStatusResponseDto;
+
+import com.zextras.carbonio.chats.model.DependencyHealthTypeDto;
+import com.zextras.carbonio.chats.model.HealthStatusDto;
 import java.util.ArrayList;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -43,8 +44,8 @@ public class HealthcheckServiceImpl implements HealthcheckService {
   }
 
   @Override
-  public HealthStatusResponseDto getServiceHealth() {
-    HealthStatusResponseDto healthResponseDto = new HealthStatusResponseDto();
+  public HealthStatusDto getServiceHealth() {
+    HealthStatusDto healthResponseDto = new HealthStatusDto();
     healthResponseDto.setIsLive(true);
     healthResponseDto.setIsReady(true);
 
@@ -52,24 +53,24 @@ public class HealthcheckServiceImpl implements HealthcheckService {
 
     //Database check
     DependencyHealthDto dependencyHealthDto = new DependencyHealthDto();
-    dependencyHealthDto.setName(HealthDependencyTypeDto.DATABASE);
+    dependencyHealthDto.setName(DependencyHealthTypeDto.DATABASE);
     dependencyHealthDto.setIsHealthy(databaseInfoService.isAlive());
     dependencies.add(dependencyHealthDto);
 
     //XMPP Server check
     dependencyHealthDto = new DependencyHealthDto();
-    dependencyHealthDto.setName(HealthDependencyTypeDto.XMPP_SERVER);
+    dependencyHealthDto.setName(DependencyHealthTypeDto.XMPP_SERVER);
     dependencyHealthDto.setIsHealthy(messageService.isAlive());
     dependencies.add(dependencyHealthDto);
 
     //Event dispatcher check
     dependencyHealthDto = new DependencyHealthDto();
-    dependencyHealthDto.setName(HealthDependencyTypeDto.EVENT_DISPATCHER);
+    dependencyHealthDto.setName(DependencyHealthTypeDto.EVENT_DISPATCHER);
     dependencyHealthDto.setIsHealthy(eventDispatcher.isAlive());
     dependencies.add(dependencyHealthDto);
 
     dependencyHealthDto = new DependencyHealthDto();
-    dependencyHealthDto.setName(HealthDependencyTypeDto.STORAGE_SERVICE);
+    dependencyHealthDto.setName(DependencyHealthTypeDto.STORAGE_SERVICE);
     dependencyHealthDto.setIsHealthy(storageService.isAlive());
     dependencies.add(dependencyHealthDto);
 

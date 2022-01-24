@@ -29,11 +29,11 @@ import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.AccountService;
 import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
 import com.zextras.carbonio.chats.model.HashDto;
-import com.zextras.carbonio.chats.model.InsertRoomRequestDto;
+import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
-import com.zextras.carbonio.chats.model.RoomResponseDto;
+import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
+import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import com.zextras.carbonio.chats.model.UpdateRoomRequestDto;
 import io.ebean.annotation.Transactional;
 import java.io.File;
 import java.util.Collections;
@@ -87,7 +87,7 @@ public class RoomServiceImpl implements RoomService {
 
   @Override
   @Transactional
-  public RoomResponseDto getRoomById(UUID roomId, MockUserPrincipal currentUser) {
+  public RoomInfoDto getRoomById(UUID roomId, MockUserPrincipal currentUser) {
     // get the room
     Room room = getRoomAndCheckUser(roomId, currentUser, false);
     // get current user settings for the room
@@ -97,7 +97,7 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  public RoomResponseDto createRoom(InsertRoomRequestDto insertRoomRequestDto, MockUserPrincipal currentUser) {
+  public RoomInfoDto createRoom(RoomCreationFieldsDto insertRoomRequestDto, MockUserPrincipal currentUser) {
     // check for duplicates
     if (insertRoomRequestDto.getMembersIds().size() != new HashSet<>(insertRoomRequestDto.getMembersIds()).size()) {
       throw new BadRequestException("Members cannot be duplicated");
@@ -134,7 +134,7 @@ public class RoomServiceImpl implements RoomService {
 
   @Override
   @Transactional
-  public RoomDto updateRoom(UUID roomId, UpdateRoomRequestDto updateRoomRequestDto, MockUserPrincipal currentUser) {
+  public RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, MockUserPrincipal currentUser) {
     // get room
     Room room = getRoomAndCheckUser(roomId, currentUser, true);
     // change name and description
