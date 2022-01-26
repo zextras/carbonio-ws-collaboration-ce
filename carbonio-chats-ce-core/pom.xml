@@ -26,9 +26,10 @@
       <version>0.1.1</version>
     </dependency>
 
+    <!-- Storages -->
     <dependency>
       <groupId>com.zextras</groupId>
-      <artifactId>slimstore-sdk</artifactId>
+      <artifactId>storages-ce-sdk</artifactId>
     </dependency>
 
     <!-- Guice dependencies -->

@@ -66,7 +66,7 @@ import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.ApiClient;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.Configuration;
 import com.zextras.filestore.api.Filestore;
-import com.zextras.slimstore.api.SlimstoreClient;
+import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.config.DatabaseConfig;
@@ -162,7 +162,7 @@ public class CoreModule extends AbstractModule {
   @Singleton
   @Provides
   private Filestore getSlimstorClient(AppConfig appConfig) {
-    return SlimstoreClient.atUrl(appConfig.get(String.class, "FILESTORE_URL").orElseThrow());
+    return StoragesClient.atUrl(appConfig.get(String.class, "FILESTORE_URL").orElseThrow());
   }
 
   @Singleton

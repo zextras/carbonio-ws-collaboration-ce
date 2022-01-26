@@ -5,8 +5,9 @@ import com.zextras.carbonio.chats.core.exception.GenericHttpException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
 import com.zextras.filestore.api.Filestore;
-import com.zextras.filestore.model.DriveIdentifier;
-import com.zextras.slimstore.api.exception.SlimstoreHTTPException;
+import com.zextras.filestore.api.Filestore.Liveness;
+import com.zextras.filestore.model.ChatsIdentifier;
+import com.zextras.storages.api.exception.StoragesException;
 import java.io.File;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -27,11 +28,9 @@ public class SlimstoreStorageServiceImpl implements StorageService {
     try {
       File file = File.createTempFile(fileId, ".tmp");
       FileUtils.copyInputStreamToFile(
-        filestore.download(DriveIdentifier.of(fileId, 1, currentUserId)),
+        filestore.download(ChatsIdentifier.of(fileId, currentUserId)),
         file);
       return file;
-    } catch (SlimstoreHTTPException e) {
-      throw new GenericHttpException(e.getCode(), e.getMessage(), e);
     } catch (Exception e) {
       throw new InternalErrorException(String.format("Cannot recover the file '%s'", fileId), e);
     }
@@ -41,10 +40,8 @@ public class SlimstoreStorageServiceImpl implements StorageService {
   public void saveFile(File file, FileMetadata metadata, String currentUserId) {
     try {
       filestore.uploadPut(
-        DriveIdentifier.of(metadata.getId(), 1, currentUserId),
+        ChatsIdentifier.of(metadata.getId(), currentUserId),
         FileUtils.openInputStream(file));
-    } catch (SlimstoreHTTPException e) {
-      throw new GenericHttpException(e.getCode(), e.getMessage(), e);
     } catch (Exception e) {
       throw new InternalErrorException("An error occurred while file inserting", e);
     }
@@ -53,9 +50,7 @@ public class SlimstoreStorageServiceImpl implements StorageService {
   @Override
   public void deleteFile(String fileId, String currentUserId) {
     try {
-      filestore.delete(DriveIdentifier.of(fileId, 1, currentUserId));
-    } catch (SlimstoreHTTPException e) {
-      throw new GenericHttpException(e.getCode(), e.getMessage(), e);
+      filestore.delete(ChatsIdentifier.of(fileId, currentUserId));
     } catch (Exception e) {
       throw new InternalErrorException("An error occurred while file deleting", e);
     }
@@ -63,7 +58,6 @@ public class SlimstoreStorageServiceImpl implements StorageService {
 
   @Override
   public boolean isAlive() {
-    // TODO: 13/01/22 waiting of health check in slimstore-sdk
-    return true;
+    return filestore.checkLiveness().equals(Liveness.OK);
   }
 }
