@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2022 2021 Zextras <https://www.zextras.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 # Carbonio Chats CE
 
 This is the official repository for Carbonio chats CE.
