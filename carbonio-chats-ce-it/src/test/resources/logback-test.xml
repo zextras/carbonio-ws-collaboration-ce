@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+	<appender name="CONSOLE_LOG" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>%-4relative [%thread] %-5level %logger{35} - %msg %n</pattern>
+		</encoder>
+	</appender>
+
+	<logger name="io.ebean" level="INFO"/>
+	<logger name="org.testcontainers" level="INFO"/>
+	<logger name="com.github.dockerjava" level="WARN"/>
+	<logger name="org.flywaydb" level="INFO"/>
+	<logger name="com.zaxxer.hikari" level="INFO"/>
+	<logger name="org.mockserver" level="DEBUG"/>
+	<logger name="io.netty" level="INFO"/>
+	<logger name="io.swagger" level="INFO"/>
+	<logger name="org.mockserver" level="WARN"/>
+	<logger name="org.jboss.resteasy" level="INFO"/>
+	<root level="DEBUG">
+		<appender-ref ref="CONSOLE_LOG"/>
+	</root>
+
+
+</configuration>

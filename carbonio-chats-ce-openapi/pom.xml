@@ -114,9 +114,9 @@ SPDX-License-Identifier: AGPL-3.0-only
               <generatorName>jaxrs-resteasy</generatorName>
               <engine>mustache</engine>
               <!-- Openapi files -->
-              <inputSpec>${project.basedir}/openapi/chats-api.yaml</inputSpec>
-              <configurationFile>${project.basedir}/openapi/chats-generator-config.json</configurationFile>
-              <ignoreFileOverride>${project.basedir}/openapi/chats-generator-ignore</ignoreFileOverride>
+              <inputSpec>${project.basedir}/src/main/resources/openapi/chats-api.yaml</inputSpec>
+              <configurationFile>${project.basedir}/src/main/resources/openapi/chats-generator-config.json</configurationFile>
+              <ignoreFileOverride>${project.basedir}/src/main/resources/openapi/chats-generator-ignore</ignoreFileOverride>
               <!-- Generation options -->
               <output>${project.build.directory}/generated-sources/chats</output>
               <modelNameSuffix>dto</modelNameSuffix>
@@ -131,9 +131,9 @@ SPDX-License-Identifier: AGPL-3.0-only
               <generatorName>java</generatorName>
               <engine>mustache</engine>
               <!-- Openapi files -->
-              <inputSpec>${project.basedir}/openapi/mongooseim-admin-api.yaml</inputSpec>
-              <configurationFile>${project.basedir}/openapi/mongooseim-admin-generator-config.json</configurationFile>
-              <ignoreFileOverride>${project.basedir}/openapi/mongooseim-admin-generator-ignore</ignoreFileOverride>
+              <inputSpec>${project.basedir}/src/main/resources/openapi/mongooseim-admin-api.yaml</inputSpec>
+              <configurationFile>${project.basedir}/src/main/resources/openapi/mongooseim-admin-generator-config.json</configurationFile>
+              <ignoreFileOverride>${project.basedir}/src/main/resources/openapi/mongooseim-admin-generator-ignore</ignoreFileOverride>
               <!-- Generation options -->
               <output>${project.build.directory}/generated-sources/mongooseim-admin</output>
               <modelNameSuffix>dto</modelNameSuffix>
@@ -154,9 +154,9 @@ SPDX-License-Identifier: AGPL-3.0-only
               <generatorName>java</generatorName>
               <engine>mustache</engine>
               <!-- Openapi files -->
-              <inputSpec>${project.basedir}/openapi/mongooseim-client-api.yaml</inputSpec>
-              <configurationFile>${project.basedir}/openapi/mongooseim-client-generator-config.json</configurationFile>
-              <ignoreFileOverride>${project.basedir}/openapi/mongooseim-client-generator-ignore</ignoreFileOverride>
+              <inputSpec>${project.basedir}/src/main/resources/openapi/mongooseim-client-api.yaml</inputSpec>
+              <configurationFile>${project.basedir}/src/main/resources/openapi/mongooseim-client-generator-config.json</configurationFile>
+              <ignoreFileOverride>${project.basedir}/src/main/resources/openapi/mongooseim-client-generator-ignore</ignoreFileOverride>
               <!-- Generation options -->
               <output>${project.build.directory}/generated-sources/mongooseim-client</output>
               <modelNameSuffix>dto</modelNameSuffix>

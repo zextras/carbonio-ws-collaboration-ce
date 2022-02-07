@@ -60,7 +60,6 @@ import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
-import com.zextras.carbonio.chats.core.web.controller.TestController;
 import com.zextras.carbonio.chats.core.web.security.AccountService;
 import com.zextras.carbonio.chats.core.web.security.MockSecurityContext;
 import com.zextras.carbonio.chats.core.web.security.impl.MockAccountServiceImpl;
@@ -123,7 +122,6 @@ public class CoreModule extends AbstractModule {
     bind(MessageDispatcher.class).to(MessageDispatcherImpl.class);
     bind(StorageService.class).to(SlimstoreStorageServiceImpl.class);
 
-    bind(TestController.class);
     bindExceptionMapper();
   }
 
@@ -165,7 +163,7 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private Filestore getSlimstorClient(AppConfig appConfig) {
+  private Filestore getSlimstoreClient(AppConfig appConfig) {
     return StoragesClient.atUrl(appConfig.get(String.class, "FILESTORE_URL").orElseThrow());
   }
 

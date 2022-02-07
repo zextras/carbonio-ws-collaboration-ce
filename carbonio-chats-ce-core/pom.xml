@@ -30,7 +30,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <dependency>
       <groupId>com.zextras.carbonio.chats</groupId>
       <artifactId>carbonio-chats-ce-openapi</artifactId>
-      <version>0.1.1</version>
+      <version>${project.version}</version>
     </dependency>
 
     <!-- Storages -->

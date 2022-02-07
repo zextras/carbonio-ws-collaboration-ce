@@ -15,7 +15,7 @@ public class JacksonConfig implements ContextResolver<ObjectMapper> {
 
   private final ObjectMapper objectMapper;
 
-  public JacksonConfig() throws Exception {
+  public JacksonConfig() {
     objectMapper = new ObjectMapper()
       .registerModule(new JavaTimeModule())
       .setDateFormat(new RFC3339DateFormat());

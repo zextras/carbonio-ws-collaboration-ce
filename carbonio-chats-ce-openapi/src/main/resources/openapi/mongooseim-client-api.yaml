@@ -294,11 +294,7 @@ paths:
         200:
           description: Returns a list of not deleted users
           schema:
-            properties:
-              not_deleted:
-                type: array
-                items:
-                  type: string
+            $ref: "#/definitions/DeleteContactsResponse"
   /contacts/{contact}:
     put:
       description: "Manage subscription"
@@ -563,6 +559,12 @@ definitions:
             enum: [received, displayed, acknowledged]
           id:
             type: string
+  DeleteContactsResponse:
+    properties:
+      not_deleted:
+        type: array
+        items:
+          type: string
   JID:
     type: string
     example: "alice@wonderland.lit"

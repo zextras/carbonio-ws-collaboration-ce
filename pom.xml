@@ -23,6 +23,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <modules>
         <module>carbonio-chats-ce-openapi</module>
         <module>carbonio-chats-ce-core</module>
+        <module>carbonio-chats-ce-it</module>
         <module>carbonio-chats-ce-boot</module>
       </modules>
       <activation>
@@ -68,6 +69,17 @@ SPDX-License-Identifier: AGPL-3.0-only
     <com.google.code.findbugs.jsr305.version>3.0.2</com.google.code.findbugs.jsr305.version>
     <!-- Dotenv file support -->
     <io.github.cdimascio.dotenv-java.version>2.2.0</io.github.cdimascio.dotenv-java.version>
+
+    <!-- Tests dependency -->
+    <!-- JUnit Jupiter -->
+    <org.junit.jupiter.version>5.8.2</org.junit.jupiter.version>
+    <!-- Mockito -->
+    <org.mockito.version>4.3.0</org.mockito.version>
+
+    <!-- Integration Tests dependency -->
+    <org.testcontainers.version>1.16.2</org.testcontainers.version>
+    <org.mock-server.version>5.11.2</org.mock-server.version>
+
   </properties>
 
   <dependencyManagement>
@@ -128,6 +140,12 @@ SPDX-License-Identifier: AGPL-3.0-only
       <dependency>
         <groupId>org.jboss.resteasy</groupId>
         <artifactId>jaxrs-api</artifactId>
+        <version>${org.jboss.resteasy.jaxrs-api.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.jboss.resteasy</groupId>
+        <artifactId>resteasy-jaxrs</artifactId>
         <version>${org.jboss.resteasy.jaxrs-api.version}</version>
       </dependency>
 
@@ -285,6 +303,65 @@ SPDX-License-Identifier: AGPL-3.0-only
         <version>${io.github.cdimascio.dotenv-java.version}</version>
       </dependency>
 
+      <!-- Tests dependency -->
+      <!-- JUnit Jupiter -->
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter-api</artifactId>
+        <version>${org.junit.jupiter.version}</version>
+      </dependency>
+
+      <!-- Mockito -->
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${org.mockito.version}</version>
+      </dependency>
+
+      <!-- Ebean -->
+      <dependency>
+        <groupId>io.ebean</groupId>
+        <artifactId>ebean-test</artifactId>
+        <version>${io.ebean.version}</version>
+      </dependency>
+
+      <!-- Cucumber -->
+      <dependency>
+        <groupId>io.cucumber</groupId>
+        <artifactId>cucumber-java8</artifactId>
+        <version>7.0.0</version>
+      </dependency>
+
+      <!-- Integration Tests dependency -->
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers</artifactId>
+        <version>${org.testcontainers.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <version>${org.testcontainers.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>${org.testcontainers.version}</version>
+      </dependency>
+
+      <dependency>
+        <artifactId>junit-jupiter</artifactId>
+        <groupId>org.testcontainers</groupId>
+        <version>${org.testcontainers.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.mock-server</groupId>
+        <artifactId>mockserver-netty</artifactId>
+        <version>${org.mock-server.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
