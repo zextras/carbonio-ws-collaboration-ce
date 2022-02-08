@@ -75,8 +75,8 @@ public class DatabaseExtension implements AfterAllCallback, BeforeAllCallback, A
   public void afterAll(ExtensionContext context) throws Exception {
     ChatsLogger.debug("Closing test db...");
     Optional.ofNullable(context.getStore(EXTENSION_NAMESPACE).get(DATABASE_STORE_ENTRY))
-        .map(objectDatabase -> (PostgreSQLContainer<?>) objectDatabase)
-          .ifPresent(GenericContainer::stop);
+      .map(objectDatabase -> (PostgreSQLContainer<?>) objectDatabase)
+      .ifPresent(GenericContainer::stop);
     ChatsLogger.debug("Test DB closed");
   }
 }

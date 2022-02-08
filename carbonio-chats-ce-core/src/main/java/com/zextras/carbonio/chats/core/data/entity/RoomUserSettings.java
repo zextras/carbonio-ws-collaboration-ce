@@ -51,10 +51,23 @@ public class RoomUserSettings {
   @WhenModified
   private OffsetDateTime updatedAt;
 
+  public RoomUserSettings() {
+  }
+
+  public RoomUserSettings(Room room, String userId) {
+    this.id = new SubscriptionId(room.getId(), userId);
+    this.room = room;
+    this.userId = userId;
+  }
 
   public static RoomUserSettings create() {
     return new RoomUserSettings();
   }
+
+  public static RoomUserSettings create(Room room, String userId) {
+    return new RoomUserSettings(room, userId);
+  }
+
 
   public SubscriptionId getId() {
     return id;
@@ -73,12 +86,13 @@ public class RoomUserSettings {
     return userId;
   }
 
-  public void setUserId(String user) {
-    this.userId = user;
+  public void setUserId(String userId) {
+    this.userId = userId;
+    this.id.setUserId(this.userId);
   }
 
-  public RoomUserSettings userId(String user) {
-    this.userId = user;
+  public RoomUserSettings userId(String userId) {
+    setUserId(userId);
     return this;
   }
 

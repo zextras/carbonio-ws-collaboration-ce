@@ -56,8 +56,21 @@ public class Subscription {
   @WhenModified
   private OffsetDateTime updatedAt;
 
+  public Subscription() {
+  }
+
+  public Subscription(Room room, String userId) {
+    this.id = new SubscriptionId(room.getId(), userId);
+    this.room = room;
+    this.userId = userId;
+  }
+
   public static Subscription create() {
     return new Subscription();
+  }
+
+  public static Subscription create(Room room, String userId) {
+    return new Subscription(room, userId);
   }
 
   public SubscriptionId getId() {
@@ -95,11 +108,13 @@ public class Subscription {
 
   public Subscription userId(String userId) {
     this.userId = userId;
+    this.id.setUserId(userId);
     return this;
   }
 
   public Subscription room(Room room) {
     this.room = room;
+    this.id.setRoomId(room.getId());
     return this;
   }
 

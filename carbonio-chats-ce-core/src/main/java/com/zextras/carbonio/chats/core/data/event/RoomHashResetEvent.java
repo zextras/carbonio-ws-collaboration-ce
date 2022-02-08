@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class RoomHashResetEvent extends DomainEvent {
@@ -27,5 +28,24 @@ public class RoomHashResetEvent extends DomainEvent {
   public RoomHashResetEvent hash(String hash) {
     this.hash = hash;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    RoomHashResetEvent that = (RoomHashResetEvent) o;
+    return Objects.equals(getType(), that.getType()) &&
+      Objects.equals(getRoomId(), that.getRoomId()) &&
+      Objects.equals(hash, that.hash);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getType(), getRoomId(), hash);
   }
 }

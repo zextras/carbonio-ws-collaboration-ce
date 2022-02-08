@@ -52,6 +52,6 @@ public interface MembersService {
    **/
   List<MemberDto> getRoomMembers(UUID roomId, MockUserPrincipal currentUser);
 
-  List<Subscription> initRoomSubscriptions(List<String> membersIds, Room room, MockUserPrincipal requester);
+  List<Subscription> initRoomSubscriptions(List<UUID> membersIds, Room room, MockUserPrincipal requester);
 
 }

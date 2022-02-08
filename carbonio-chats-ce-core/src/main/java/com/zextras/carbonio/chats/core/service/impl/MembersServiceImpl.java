@@ -155,11 +155,11 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  public List<Subscription> initRoomSubscriptions(List<String> membersIds, Room room, MockUserPrincipal requester) {
+  public List<Subscription> initRoomSubscriptions(List<UUID> membersIds, Room room, MockUserPrincipal requester) {
     List<Subscription> result = membersIds.stream().map(userId ->
       Subscription.create()
-        .id(new SubscriptionId(room.getId(), userId))
-        .userId(userId)
+        .id(new SubscriptionId(room.getId(), userId.toString()))
+        .userId(userId.toString())
         .room(room)
         .owner(false)
         .temporary(false)

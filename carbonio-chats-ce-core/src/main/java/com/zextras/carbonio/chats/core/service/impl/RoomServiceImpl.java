@@ -84,7 +84,6 @@ public class RoomServiceImpl implements RoomService {
 
   @Override
   public List<RoomDto> getRooms(MockUserPrincipal currentUser) {
-
     List<Room> rooms = roomRepository.getByUserId(currentUser.getId().toString());
     return roomMapper.ent2roomDto(rooms);
   }
@@ -109,7 +108,7 @@ public class RoomServiceImpl implements RoomService {
     // check the users existence
     insertRoomRequestDto.getMembersIds()
       .forEach(userId ->
-        accountService.getById(userId)
+        accountService.getById(userId.toString())
           .orElseThrow(() -> new NotFoundException(String.format("User with identifier '%s' not found", userId))));
     // entity building
     UUID id = UUID.randomUUID();
@@ -125,9 +124,10 @@ public class RoomServiceImpl implements RoomService {
     // persist room
     room = roomRepository.insert(room);
     // send event
+    UUID finalId = UUID.fromString(room.getId());
     room.getSubscriptions().forEach(member ->
       eventDispatcher.sendToQueue(currentUser.getId(), member.getUserId(),
-        RoomCreatedEvent.create(id).from(currentUser.getId())
+        RoomCreatedEvent.create(finalId).from(currentUser.getId())
       )
     );
     // room creation on server XMPP
