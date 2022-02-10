@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.boot;
 
 
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ChatsConstant;
 import javax.inject.Inject;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -36,9 +37,8 @@ public class Boot {
   public void boot() throws Exception {
     flyway.migrate();
 
-    Server server = new Server(appConfig.get(Integer.class, "SERVER_PORT").orElse(8081));
-    ServletContextHandler servletHandler = new ServletContextHandler(server,
-      CONTEXT_PATH);
+    Server server = new Server(ChatsConstant.SERVER_PORT);
+    ServletContextHandler servletHandler = new ServletContextHandler(server, CONTEXT_PATH);
     servletHandler.addEventListener(resteasyListener);
 
     ServletHolder sh = new ServletHolder(HttpServletDispatcher.class);

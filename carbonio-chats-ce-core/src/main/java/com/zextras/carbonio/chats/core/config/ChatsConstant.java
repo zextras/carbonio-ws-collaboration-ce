@@ -5,5 +5,6 @@
 package com.zextras.carbonio.chats.core.config;
 
 public class ChatsConstant {
+  public static final int SERVER_PORT = 10000;
   public static final long MAX_ROOM_IMAGE_SIZE_IN_KB = 256L;
 }

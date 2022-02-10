@@ -41,17 +41,14 @@ public class HealthcheckServiceImpl implements HealthcheckService {
   @Override
   public boolean isServiceReady() {
     //if one of these services is not available, we're not ready to respond to requests
-    return messageService.isAlive() &&
-      databaseInfoService.isAlive() &&
-      eventDispatcher.isAlive() &&
-      storageService.isAlive();
+    return checkServiceReadiness();
   }
 
   @Override
   public HealthStatusDto getServiceHealth() {
     HealthStatusDto healthResponseDto = new HealthStatusDto();
     healthResponseDto.setIsLive(true);
-    healthResponseDto.setIsReady(true);
+    healthResponseDto.setIsReady(checkServiceReadiness());
 
     ArrayList<DependencyHealthDto> dependencies = new ArrayList<>();
 
@@ -80,5 +77,12 @@ public class HealthcheckServiceImpl implements HealthcheckService {
 
     healthResponseDto.setDependencies(dependencies);
     return healthResponseDto;
+  }
+
+  private boolean checkServiceReadiness() {
+    return messageService.isAlive() &&
+      databaseInfoService.isAlive() &&
+      eventDispatcher.isAlive() &&
+      storageService.isAlive();
   }
 }

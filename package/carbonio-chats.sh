@@ -4,14 +4,19 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-if [[ "$1" != "setup" ]]; then
-  echo "Syntax: carbonio-chats <setup> to automatically setup the service"
-  exit 1;
-fi
-
 # decrypt the bootstrap token, asking the password to the sys admin
 # --setup check for SETUP_CONSUL_TOKEN env. variable and uses it
 # to avoid re-asking for the password
+if [[ $(id -u) -ne 0 ]]; then
+  echo "Please run as root"
+  exit 1
+fi
+
+if [[ "$1" != "setup" ]]; then
+  echo "Syntax: carbonio-storages <setup> to automatically setup the service"
+  exit 1
+fi
+
 echo -n "insert the cluster credential password: "
 export CONSUL_HTTP_TOKEN=$(service-discover bootstrap-token --setup)
 EXIT_CODE="$?"
@@ -23,11 +28,11 @@ fi
 # limit secret visibility as much as possible
 export -n SETUP_CONSUL_TOKEN
 
-POLICY_NAME='carbonio-chats-ce-policy'
-POLICY_DESCRIPTION='Preview service policy for service and sidecar proxy'
+POLICY_NAME='carbonio-chats-policy'
+POLICY_DESCRIPTION='Carbonio chats policy for service and sidecar proxy'
 POLICY_RULES="$(cat <<EOF
 "key_prefix" = {
-  "carbonio-chats-ce/" = {
+  "carbonio-chats/" = {
     "policy" = "read"
   }
 }
@@ -37,10 +42,10 @@ POLICY_RULES="$(cat <<EOF
   }
 }
 "service" = {
-  "carbonio-chats-ce" = {
+  "carbonio-chats" = {
     "policy" = "write"
   }
-  "carbonio-chats-ce-sidecar-proxy" = {
+  "carbonio-chats-sidecar-proxy" = {
     "policy" = "write"
   }
 }
@@ -61,31 +66,31 @@ fi
 cat <<EOF | consul config write -
 {
   "kind": "service-defaults",
-  "name": "carbonio-chats-ce",
+  "name": "carbonio-chats",
   "protocol": "http"
 }
 EOF
 
-if [[ ! -f "/etc/zextras/carbonio-chats-ce/token" ]]; then
+if [[ ! -f "/etc/carbonio/chats/token" ]]; then
     # create the token
-    consul acl token create -format json -policy-name "${POLICY_NAME}" -description "Token for carbonio-chats-ce/$(hostname -A)" |
-      jq -r '.SecretID' > /etc/zextras/carbonio-chats-ce/token;
-    chown carbonio-chats-ce:carbonio-chats-ce /etc/zextras/carbonio-chats-ce/token
-    chmod 0600 /etc/zextras/carbonio-chats-ce/token
+    consul acl token create -format json -policy-name "${POLICY_NAME}" -description "Token for carbonio-chats/$(hostname -A)" |
+      jq -r '.SecretID' > /etc/carbonio/chats/token;
+    chown carbonio-chats:carbonio-chats /etc/carbonio/chats/token
+    chmod 0600 /etc/carbonio/chats/token
 
     # populate the config to allow configuration generation
-    # something like: consul kv put carbonio-chats-ce/resolution 128
+    # something like: consul kv put carbonio-chats/resolution 128
 
     # to pass the token to consul-template we need to inject it to a env. variable
     # since it doesn't accept a file as an argument
     # !!IMPORTANT!!: make the consul token available to the application only if the
     # application is explicitly contacting consul (to fetch configuration or other stuff)
-    mkdir -p /etc/systemd/system/carbonio-chats-ce.service.d/
-    cat >/etc/systemd/system/carbonio-chats-ce.service.d/override.conf <<EOF
+    mkdir -p /etc/systemd/system/carbonio-chats.service.d/
+    cat >/etc/systemd/system/carbonio-chats.service.d/override.conf <<EOF
 [Service]
-Environment="CONSUL_HTTP_TOKEN=$(cat /etc/zextras/carbonio-chats-ce/token)"
+Environment="CONSUL_HTTP_TOKEN=$(cat /etc/carbonio/chats/token)"
 EOF
-    chmod 0600 /etc/systemd/system/carbonio-chats-ce.service.d/override.conf
+    chmod 0600 /etc/systemd/system/carbonio-chats.service.d/override.conf
     systemctl daemon-reload
 fi
 
@@ -94,5 +99,5 @@ consul reload
 # limit token visibility as much as possible
 export -n CONSUL_HTTP_TOKEN
 
-systemctl restart carbonio-chats-ce.service
-systemctl restart carbonio-chats-ce-sidecar.service
+systemctl restart carbonio-chats.service
+systemctl restart carbonio-chats-sidecar.service

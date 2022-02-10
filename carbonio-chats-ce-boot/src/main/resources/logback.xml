@@ -14,11 +14,16 @@ SPDX-License-Identifier: AGPL-3.0-only
 		</encoder>
 	</appender>
 
-<!-- To log generated queries-->
-<!--	<logger name="io.ebean.DDL" level="TRACE"/>-->
-<!--	<logger name="io.ebean.SQL" level="TRACE"/>-->
-<!--	<logger name="io.ebean.TXN" level="TRACE"/>-->
-	<logger name="io.ebean" level="TRACE"/>
+	<logger name="io.ebean" level="INFO"/>
+	<logger name="org.testcontainers" level="INFO"/>
+	<logger name="com.github.dockerjava" level="WARN"/>
+	<logger name="org.flywaydb" level="INFO"/>
+	<logger name="com.zaxxer.hikari" level="INFO"/>
+	<logger name="org.mockserver" level="INFO"/>
+	<logger name="io.netty" level="INFO"/>
+	<logger name="io.swagger" level="INFO"/>
+	<logger name="org.mockserver" level="WARN"/>
+	<logger name="org.jboss.resteasy" level="INFO"/>
 	<root level="INFO">
 		<appender-ref ref="CONSOLE_LOG"/>
 	</root>

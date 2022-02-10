@@ -88,11 +88,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <groupId>io.swagger</groupId>
       <artifactId>swagger-jaxrs</artifactId>
     </dependency>
-
-    <dependency>
-      <groupId>io.swagger</groupId>
-      <artifactId>swagger-annotations</artifactId>
-    </dependency>
   </dependencies>
 
 

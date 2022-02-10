@@ -1,18 +1,19 @@
 [Unit]
-Description=ChatsCE
+Description=Chats sidecar proxy
 Documentation=https://docs.zextras.com/zextras-suite-documentation/latest/
 Requires=network-online.target
 After=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/opt/zextras/common/bin/java -jar /usr/lib/carbonio-chats-ce/carbonio-chats-ce-fatjar.jar
-EnvironmentFile=/etc/zextras/carbonio-chats-ce/chatsenv
+ExecStart=/usr/bin/consul connect envoy \
+    -token-file /etc/carbonio/chats/token \
+    -admin-bind localhost:0 \
+    -sidecar-for carbonio-chats
 Restart=on-failure
 RestartSec=15
-User=carbonio-chats-ce
+User=carbonio-chats
 KillMode=process
-ExecReload=/bin/kill -HUP $MAINPID
 KillSignal=SIGKILL
 LimitNOFILE=65536
 TimeoutSec=120

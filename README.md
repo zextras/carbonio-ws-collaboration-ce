@@ -24,7 +24,7 @@ If you want to generate only the artifact for a specific distro
 mvn clean install -P artifacts -D distro=<1>
 ```
 Where
-1. distro value is the distro name
+1. distro value is the distro name (ubuntu or centos)
 ----
 If you want to generate only the artifact for a specific distro
 and deploy it in a test server
@@ -32,12 +32,12 @@ and deploy it in a test server
 mvn clean install -P artifacts -D distro=<1> -D deploy-on=<2>
 ```
 Where
-1. distro value is the distro name
+1. distro value is the distro name (ubuntu or centos)
 2. deploy-on value is the domain name or IP of the server to deploy the artifact
 ---
 ## 🚀 How to Run
 With the generated fat-jar:
 
 ```shell
-java -jar ./boot/target/zextras-chats-community-jar-with-dependencies.jar
+java -jar ./boot/target/zextras-chats-ce-fatjar.jar
 ```

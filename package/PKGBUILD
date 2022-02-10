@@ -21,10 +21,10 @@ depends=(
    "service-discover"
 )
 sources=(
-   "carbonio-chats-ce.service"
-   "carbonio-chats-ce.sh"
-   "carbonio-chats-ce.hcl"
-   "carbonio-chats-ce-sidecar.service"
+   "carbonio-chats.service"
+   "carbonio-chats.sh"
+   "carbonio-chats.hcl"
+   "carbonio-chats-sidecar.service"
 )
 hashsums=(
    "skip"
@@ -36,49 +36,55 @@ hashsums=(
 package() {
   cd "${srcdir}"/../../chats
   install -Dm 644 ./carbonio-chats-ce-boot/target/carbonio-chats-ce-fatjar.jar \
-    "${pkgdir}/usr/lib/carbonio-chats-ce/carbonio-chats-ce-fatjar.jar"
-  install -Dm 644 "${srcdir}/carbonio-chats-ce.service" \
-    "${pkgdir}/lib/systemd/system/carbonio-chats-ce.service"
-  install -Dm 644 "${srcdir}/carbonio-chats-ce.hcl" \
-    "${pkgdir}/etc/zextras/service-discover/carbonio-chats-ce.hcl"
-  install -Dm 755 "${srcdir}/carbonio-chats-ce.sh" \
-    "${pkgdir}/etc/zextras/pending-setups.d/carbonio-chats-ce.sh"
-  install -Dm 644 "${srcdir}/carbonio-chats-ce-sidecar.service" \
-    "${pkgdir}/lib/systemd/system/carbonio-chats-ce-sidecar.service"
-  mkdir -pm 0755 "${pkgdir}/etc/zextras/carbonio-chats-ce"
+    "${pkgdir}/usr/bin/carbonio/chats/carbonio-chats-ce.jar"
+  install -Dm 644 "${srcdir}/carbonio-chats.service" \
+    "${pkgdir}/lib/systemd/system/carbonio-chats.service"
+  install -Dm 644 "${srcdir}/carbonio-chats.hcl" \
+    "${pkgdir}/etc/zextras/service-discover/carbonio-chats.hcl"
+  install -Dm 755 "${srcdir}/carbonio-chats.sh" \
+    "${pkgdir}/usr/bin/carbonio/chats/carbonio-chats"
+  install -Dm 644 "${srcdir}/carbonio-chats-sidecar.service" \
+    "${pkgdir}/lib/systemd/system/carbonio-chats-sidecar.service"
+  mkdir -pm 0755 "${pkgdir}/etc/zextras/carbonio-chats"
   install -Dm 644 ./.env.package \
-      "${pkgdir}/etc/zextras/carbonio-chats-ce/chatsenv" # This is a temporary solution, discussion might be needed
+      "${pkgdir}/etc/carbonio/chats/chatsenv"
 }
 
 postinst() {
-  getent group 'carbonio-chats-ce' >/dev/null ||
-    groupadd -r 'carbonio-chats-ce'
-  getent passwd 'carbonio-chats-ce' >/dev/null ||
-    useradd -r -M -g 'carbonio-chats-ce' -s /sbin/nologin 'carbonio-chats-ce'
+  getent group 'carbonio-chats' >/dev/null ||
+    groupadd -r 'carbonio-chats'
+  getent passwd 'carbonio-chats' >/dev/null ||
+    useradd -r -M -g 'carbonio-chats' -s /sbin/nologin 'carbonio-chats'
 
-  mkdir -p '/etc/zextras/carbonio-chats-ce/'
-  chown 'carbonio-chats-ce:carbonio-chats-ce' '/etc/zextras/carbonio-chats-ce/'
+  mkdir -p '/etc/carbonio/chats/'
+  chown 'carbonio-chats:carbonio-chats' '/etc/carbonio/chats/'
 
   if [ -d /run/systemd/system ]; then
     systemctl daemon-reload >/dev/null 2>&1 || :
-    systemctl enable carbonio-chats-ce.service >/dev/null 2>&1 || :
-    systemctl enable carbonio-chats-ce-sidecar.service >/dev/null 2>&1 || :
+    systemctl enable carbonio-chats.service >/dev/null 2>&1 || :
+    systemctl enable carbonio-chats-sidecar.service >/dev/null 2>&1 || :
   fi
 
+  cat > /etc/zextras/pending-setups.d/carbonio-storages-setup.sh <<EOF
+#!/usr/bin/env bash
+/usr/bin/carbonio/chats/carbonio-chats setup
+EOF
+
   echo "Chats CE installed correctly."
+  echo "Please run 'pending-setups' as root to complete the service setup"
 }
 
 prerm() {
   if [ -d /run/systemd/system ]; then
-    systemctl --no-reload disable carbonio-chats-ce.service >/dev/null 2>&1 || :
-    systemctl --no-reload disable carbonio-chats-ce-sidecar.service >/dev/null 2>&1 || :
-    systemctl stop carbonio-chats-ce.service >/dev/null 2>&1 || :
-    systemctl stop carbonio-chats-ce-sidecar.service >/dev/null 2>&1 || :
+    systemctl --no-reload disable carbonio-chats.service >/dev/null 2>&1 || :
+    systemctl --no-reload disable carbonio-chats-sidecar.service >/dev/null 2>&1 || :
+    systemctl stop carbonio-chats.service >/dev/null 2>&1 || :
+    systemctl stop carbonio-chats-sidecar.service >/dev/null 2>&1 || :
   fi
 }
 
 postrm() {
-  rm -rf "/etc/zextras/carbonio-chats-ce/"
+  rm -rf "/etc/zextras/carbonio-chats/"
   if [ -d /run/systemd/system ]; then
     systemctl daemon-reload >/dev/null 2>&1 || :
   fi

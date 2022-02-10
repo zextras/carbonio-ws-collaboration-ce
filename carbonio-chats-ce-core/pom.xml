@@ -135,13 +135,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>dotenv-java</artifactId>
     </dependency>
 
-    <!-- Test -->
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-api</artifactId>
-      <scope>test</scope>
-    </dependency>
-
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
     <dependency>

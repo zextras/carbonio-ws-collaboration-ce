@@ -348,12 +348,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       </dependency>
 
       <dependency>
-        <artifactId>junit-jupiter</artifactId>
-        <groupId>org.testcontainers</groupId>
-        <version>${org.testcontainers.version}</version>
-      </dependency>
-
-      <dependency>
         <groupId>org.mock-server</groupId>
         <artifactId>mockserver-netty</artifactId>
         <version>${org.mock-server.version}</version>

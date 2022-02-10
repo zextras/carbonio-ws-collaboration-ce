@@ -38,7 +38,12 @@ function build-all-artifacts() {
         echo ""
         # installing the package in the server
         echo "Installing package ..."
-        ssh -o StrictHostKeyChecking=no -q root@"$deploy_on" "dpkg -i ${file_name} && rm ${file_name}"
+        ssh -o StrictHostKeyChecking=no -q root@"$deploy_on" <<EOF
+dpkg -i ${file_name}
+rm ${file_name}
+service carbonio-chats restart
+service carbonio-chats-sidecar restart
+EOF
         ret_val=$?
         if [ "$ret_val" -ne 0 ]; then
           echo "[ERROR] Installing package failed !"
