@@ -80,9 +80,6 @@ import org.flywaydb.core.Flyway;
 
 public class CoreModule extends AbstractModule {
 
-  @Inject
-  private AppConfig appConfig;
-
   @Override
   protected void configure() {
     super.configure();
