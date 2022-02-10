@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.account;
 
+import com.zextras.carbonio.chats.core.data.model.Account;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import java.util.Optional;
 import java.util.UUID;

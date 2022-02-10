@@ -7,7 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.infrastructure.account.impl.FakeAccountServiceImpl;
-import com.zextras.carbonio.chats.core.infrastructure.account.Account;
+import com.zextras.carbonio.chats.core.data.model.Account;
 import com.zextras.carbonio.chats.it.Utils.TimeUtils;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;

@@ -7,7 +7,7 @@ package com.zextras.carbonio.chats.core.service.impl;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
+import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
 import com.zextras.carbonio.chats.model.DependencyHealthDto;
@@ -22,22 +22,22 @@ public class HealthcheckServiceImpl implements HealthcheckService {
 
   private final MessageDispatcher   messageService;
   private final DatabaseInfoService databaseInfoService;
-  private final EventDispatcher     eventDispatcher;
-  private final StorageService      storageService;
-  private final AccountService      accountService;
+  private final EventDispatcher eventDispatcher;
+  private final StoragesService storagesService;
+  private final AccountService  accountService;
 
   @Inject
   public HealthcheckServiceImpl(
     MessageDispatcher messageDispatcher,
     DatabaseInfoService databaseInfoService,
     EventDispatcher eventDispatcher,
-    StorageService storageService,
+    StoragesService storagesService,
     AccountService accountService
   ) {
     this.messageService = messageDispatcher;
     this.databaseInfoService = databaseInfoService;
     this.eventDispatcher = eventDispatcher;
-    this.storageService = storageService;
+    this.storagesService = storagesService;
     this.accountService = accountService;
   }
 
@@ -75,7 +75,7 @@ public class HealthcheckServiceImpl implements HealthcheckService {
     //Storage check
     dependencyHealthDto = new DependencyHealthDto();
     dependencyHealthDto.setName(DependencyHealthTypeDto.STORAGE_SERVICE);
-    dependencyHealthDto.setIsHealthy(storageService.isAlive());
+    dependencyHealthDto.setIsHealthy(storagesService.isAlive());
     dependencies.add(dependencyHealthDto);
 
     //User management check
@@ -93,7 +93,7 @@ public class HealthcheckServiceImpl implements HealthcheckService {
     return messageService.isAlive() &&
       databaseInfoService.isAlive() &&
       eventDispatcher.isAlive() &&
-      storageService.isAlive() &&
+      storagesService.isAlive() &&
       accountService.isAlive();
   }
 }

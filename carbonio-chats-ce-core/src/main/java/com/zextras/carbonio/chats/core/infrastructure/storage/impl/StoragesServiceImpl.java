@@ -5,26 +5,24 @@
 package com.zextras.carbonio.chats.core.infrastructure.storage.impl;
 
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
-import com.zextras.carbonio.chats.core.exception.GenericHttpException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
-import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
-import com.zextras.filestore.api.Filestore;
+import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.filestore.api.Filestore.Liveness;
 import com.zextras.filestore.model.ChatsIdentifier;
-import com.zextras.storages.api.exception.StoragesException;
+import com.zextras.storages.api.StoragesClient;
 import java.io.File;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import org.apache.commons.io.FileUtils;
 
 @Singleton
-public class SlimstoreStorageServiceImpl implements StorageService {
+public class StoragesServiceImpl implements StoragesService {
 
-  private final Filestore filestore;
+  private final StoragesClient storagesClient;
 
   @Inject
-  public SlimstoreStorageServiceImpl(Filestore filestore) {
-    this.filestore = filestore;
+  public StoragesServiceImpl(StoragesClient storagesClient) {
+    this.storagesClient = storagesClient;
   }
 
   @Override
@@ -32,7 +30,7 @@ public class SlimstoreStorageServiceImpl implements StorageService {
     try {
       File file = File.createTempFile(fileId, ".tmp");
       FileUtils.copyInputStreamToFile(
-        filestore.download(ChatsIdentifier.of(fileId, currentUserId)),
+        storagesClient.download(ChatsIdentifier.of(fileId, currentUserId)),
         file);
       return file;
     } catch (Exception e) {
@@ -43,7 +41,7 @@ public class SlimstoreStorageServiceImpl implements StorageService {
   @Override
   public void saveFile(File file, FileMetadata metadata, String currentUserId) {
     try {
-      filestore.uploadPut(
+      storagesClient.uploadPut(
         ChatsIdentifier.of(metadata.getId(), currentUserId),
         FileUtils.openInputStream(file));
     } catch (Exception e) {
@@ -54,7 +52,7 @@ public class SlimstoreStorageServiceImpl implements StorageService {
   @Override
   public void deleteFile(String fileId, String currentUserId) {
     try {
-      filestore.delete(ChatsIdentifier.of(fileId, currentUserId));
+      storagesClient.delete(ChatsIdentifier.of(fileId, currentUserId));
     } catch (Exception e) {
       throw new InternalErrorException("An error occurred while file deleting", e);
     }
@@ -62,6 +60,6 @@ public class SlimstoreStorageServiceImpl implements StorageService {
 
   @Override
   public boolean isAlive() {
-    return filestore.checkLiveness().equals(Liveness.OK);
+    return storagesClient.checkLiveness().equals(Liveness.OK);
   }
 }

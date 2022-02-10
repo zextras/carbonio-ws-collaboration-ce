@@ -10,7 +10,7 @@ import com.zextras.carbonio.chats.core.data.event.AttachmentAddedEvent;
 import com.zextras.carbonio.chats.core.data.event.AttachmentRemovedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
-import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
+import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
@@ -31,20 +31,20 @@ import javax.inject.Singleton;
 public class AttachmentServiceImpl implements AttachmentService {
 
   private final FileMetadataRepository fileMetadataRepository;
-  private final AttachmentMapper       attachmentMapper;
-  private final StorageService         storageService;
-  private final RoomService            roomService;
+  private final AttachmentMapper attachmentMapper;
+  private final StoragesService  storagesService;
+  private final RoomService      roomService;
   private final EventDispatcher        eventDispatcher;
 
   @Inject
   public AttachmentServiceImpl(
-    FileMetadataRepository fileMetadataRepository, AttachmentMapper attachmentMapper, StorageService storageService,
+    FileMetadataRepository fileMetadataRepository, AttachmentMapper attachmentMapper, StoragesService storagesService,
     RoomService roomService,
     EventDispatcher eventDispatcher
   ) {
     this.fileMetadataRepository = fileMetadataRepository;
     this.attachmentMapper = attachmentMapper;
-    this.storageService = storageService;
+    this.storagesService = storagesService;
     this.roomService = roomService;
     this.eventDispatcher = eventDispatcher;
   }
@@ -58,7 +58,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     // checks if current user is a member of the attachment room
     roomService.getRoomAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
     // gets file from repository
-    File file = storageService.getFileById(metadata.getId(), currentUser.getId());
+    File file = storagesService.getFileById(metadata.getId(), currentUser.getId());
     return new FileContentAndMetadata(file, metadata);
   }
 
@@ -96,7 +96,7 @@ public class AttachmentServiceImpl implements AttachmentService {
       .roomId(roomId.toString());
     fileMetadataRepository.save(metadata);
     // save the file in repository
-    storageService.saveFile(file, metadata, currentUser.getId());
+    storagesService.saveFile(file, metadata, currentUser.getId());
     // sends event
     eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(), AttachmentAddedEvent
       .create(roomId)
@@ -116,7 +116,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     // delete file data from DB
     fileMetadataRepository.delete(metadata);
     // deletes file from repository
-    storageService.deleteFile(fileId.toString(), currentUser.getId());
+    storagesService.deleteFile(fileId.toString(), currentUser.getId());
     // sends the event
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(), AttachmentRemovedEvent
       .create(UUID.fromString(room.getId()))

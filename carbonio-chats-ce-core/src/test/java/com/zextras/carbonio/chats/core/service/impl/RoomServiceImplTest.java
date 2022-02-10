@@ -30,7 +30,7 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
+import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
@@ -39,7 +39,7 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.core.infrastructure.account.Account;
+import com.zextras.carbonio.chats.core.data.model.Account;
 import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDtoBuilder;
@@ -71,8 +71,8 @@ class RoomServiceImplTest {
   private final MessageDispatcher          messageDispatcher;
   private final AccountService             accountService;
   private final MembersService             membersService;
-  private final FileMetadataRepository     fileMetadataRepository;
-  private final StorageService             storageService;
+  private final FileMetadataRepository fileMetadataRepository;
+  private final StoragesService        storagesService;
 
   public RoomServiceImplTest(RoomMapper roomMapper) {
     this.roomRepository = mock(RoomRepository.class);
@@ -82,7 +82,7 @@ class RoomServiceImplTest {
     this.eventDispatcher = mock(EventDispatcher.class);
     this.messageDispatcher = mock(MessageDispatcher.class);
     this.fileMetadataRepository = mock(FileMetadataRepository.class);
-    this.storageService = mock(StorageService.class);
+    this.storagesService = mock(StoragesService.class);
     this.roomService = new RoomServiceImpl(
       this.roomRepository,
       this.roomUserSettingsRepository,
@@ -92,7 +92,7 @@ class RoomServiceImplTest {
       this.accountService,
       this.membersService,
       this.fileMetadataRepository,
-      this.storageService);
+      this.storagesService);
   }
 
   private UUID user1Id;
@@ -157,7 +157,7 @@ class RoomServiceImplTest {
       this.eventDispatcher,
       this.messageDispatcher,
       this.fileMetadataRepository,
-      this.storageService
+      this.storagesService
     );
 
   }

@@ -21,7 +21,7 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
+import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
@@ -57,8 +57,8 @@ public class RoomServiceImpl implements RoomService {
   private final MessageDispatcher          messageDispatcher;
   private final AccountService             accountService;
   private final MembersService             membersService;
-  private final FileMetadataRepository     fileMetadataRepository;
-  private final StorageService             storageService;
+  private final FileMetadataRepository fileMetadataRepository;
+  private final StoragesService        storagesService;
 
   @Inject
   public RoomServiceImpl(
@@ -68,7 +68,7 @@ public class RoomServiceImpl implements RoomService {
     AccountService accountService,
     MembersService membersService,
     FileMetadataRepository fileMetadataRepository,
-    StorageService storageService
+    StoragesService storagesService
   ) {
     this.roomRepository = roomRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
@@ -78,7 +78,7 @@ public class RoomServiceImpl implements RoomService {
     this.accountService = accountService;
     this.membersService = membersService;
     this.fileMetadataRepository = fileMetadataRepository;
-    this.storageService = storageService;
+    this.storagesService = storagesService;
   }
 
 
@@ -225,7 +225,7 @@ public class RoomServiceImpl implements RoomService {
     FileMetadata metadata = fileMetadataRepository.getById(roomId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
     // gets file from repository
-    File file = storageService.getFileById(metadata.getId(), currentUser.getId());
+    File file = storagesService.getFileById(metadata.getId(), currentUser.getId());
     return new FileContentAndMetadata(file, metadata);
   }
 
@@ -257,7 +257,7 @@ public class RoomServiceImpl implements RoomService {
       .userId(currentUser.getId());
     fileMetadataRepository.save(metadata);
     // save file in repository
-    storageService.saveFile(image, metadata, currentUser.getId());
+    storagesService.saveFile(image, metadata, currentUser.getId());
     // send event to room topic
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
       RoomPictureChangedEvent.create(UUID.fromString(room.getId())).from(currentUser.getUUID()));

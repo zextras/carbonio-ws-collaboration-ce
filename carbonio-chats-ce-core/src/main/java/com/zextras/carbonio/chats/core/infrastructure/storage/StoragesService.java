@@ -8,7 +8,7 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import java.io.File;
 
-public interface StorageService  extends HealthIndicator {
+public interface StoragesService extends HealthIndicator {
 
   /**
    * Retrieves the file associated to the identifier

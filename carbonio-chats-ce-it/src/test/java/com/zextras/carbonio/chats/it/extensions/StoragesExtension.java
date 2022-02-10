@@ -19,11 +19,11 @@ import org.mockserver.client.MockServerClient;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.BinaryBody;
 
-public class FilestoreExtension implements AfterAllCallback, BeforeAllCallback {
+public class StoragesExtension implements AfterAllCallback, BeforeAllCallback {
 
   private static final String    SERVER_HOST         = "localhost";
   private static final int       SERVER_PORT         = 6794;
-  private final static Namespace EXTENSION_NAMESPACE = Namespace.create(FilestoreExtension.class);
+  private final static Namespace EXTENSION_NAMESPACE = Namespace.create(StoragesExtension.class);
   private final static String    CLIENT_STORE_ENTRY  = "client";
   private final static String    SERVER_STORE_ENTRY  = "server";
   private final static String    UUID_REGEX          = "\\b[0-9a-f]{8}\\b-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-\\b[0-9a-f]{12}\\b";
@@ -40,7 +40,7 @@ public class FilestoreExtension implements AfterAllCallback, BeforeAllCallback {
     mockResponses(client);
     context.getStore(EXTENSION_NAMESPACE).put(CLIENT_STORE_ENTRY, client);
 
-    InMemoryConfigStore.set("FILESTORE_URL", String.format("http://%s:%d", SERVER_HOST, SERVER_PORT));
+    InMemoryConfigStore.set("STORAGES_URL", String.format("http://%s:%d", SERVER_HOST, SERVER_PORT));
     ChatsLogger.debug("Storage extension startup took " + TimeUtils.durationToString(Duration.between(startTime, Instant.now())));
   }
 

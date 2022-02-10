@@ -44,7 +44,7 @@ public class StorageExtension implements AfterAllCallback, BeforeAllCallback, Pa
     mockResponses(client);
     context.getStore(EXTENSION_NAMESPACE).put(CLIENT_STORE_ENTRY, client);
 
-    InMemoryConfigStore.set("FILESTORE_URL", String.format("http://%s:%d", SERVER_HOST, SERVER_PORT));
+    InMemoryConfigStore.set("STORAGES_URL", String.format("http://%s:%d", SERVER_HOST, SERVER_PORT));
     ChatsLogger.debug("Storage extension startup took " + TimeUtils.durationToString(Duration.between(startTime, Instant.now())));
   }
 

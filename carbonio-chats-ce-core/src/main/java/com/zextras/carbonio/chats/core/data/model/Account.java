@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.infrastructure.account;
+package com.zextras.carbonio.chats.core.data.model;
 
 import java.util.UUID;
 

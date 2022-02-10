@@ -28,8 +28,8 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.MockEventDispatcherImpl;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherImpl;
-import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
-import com.zextras.carbonio.chats.core.infrastructure.storage.impl.SlimstoreStorageServiceImpl;
+import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
+import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
@@ -69,7 +69,6 @@ import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.ApiClient;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.Configuration;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
-import com.zextras.filestore.api.Filestore;
 import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
@@ -123,7 +122,7 @@ public class CoreModule extends AbstractModule {
     bind(RoomUserSettingsMapper.class).to(RoomUserSettingsMapperImpl.class);
 
     bind(MessageDispatcher.class).to(MessageDispatcherImpl.class);
-    bind(StorageService.class).to(SlimstoreStorageServiceImpl.class);
+    bind(StoragesService.class).to(StoragesServiceImpl.class);
 
     bindExceptionMapper();
   }
@@ -176,8 +175,8 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private Filestore getSlimstoreClient(AppConfig appConfig) {
-    return StoragesClient.atUrl(appConfig.get(String.class, "FILESTORE_URL").orElseThrow());
+  private StoragesClient getStoragesClient(AppConfig appConfig) {
+    return StoragesClient.atUrl(appConfig.get(String.class, "STORAGES_URL").orElseThrow());
   }
 
   @Singleton
