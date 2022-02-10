@@ -6,7 +6,7 @@ package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
-import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
+import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -22,92 +22,92 @@ public interface RoomService {
    * get room by identifier and check if the current user is subscribed
    *
    * @param roomId      room identifier {@link UUID}
-   * @param currentUser current authenticate user {@link MockUserPrincipal}
+   * @param currentUser current authenticate user {@link UserPrincipal}
    * @param mustBeOwner if true, the user must be a room owner
    * @return The requested room {@link Room}
    */
-  Room getRoomAndCheckUser(UUID roomId, MockUserPrincipal currentUser, boolean mustBeOwner);
+  Room getRoomAndCheckUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner);
 
   /**
    * Creates a room of the specified type
    *
    * @param insertRoomRequestDto room to create {@link RoomCreationFieldsDto }
-   * @param currentUser          current authenticated user {@link MockUserPrincipal}
+   * @param currentUser          current authenticated user {@link UserPrincipal}
    * @return The newly created room {@link RoomInfoDto }
    **/
-  RoomInfoDto createRoom(RoomCreationFieldsDto insertRoomRequestDto, MockUserPrincipal currentUser);
+  RoomInfoDto createRoom(RoomCreationFieldsDto insertRoomRequestDto, UserPrincipal currentUser);
 
   /**
    * Deletes the specified room
    *
    * @param roomId      room identifier {@link UUID }
-   * @param currentUser current authenticate user {@link MockUserPrincipal}
+   * @param currentUser current authenticate user {@link UserPrincipal}
    **/
-  void deleteRoom(UUID roomId, MockUserPrincipal currentUser);
+  void deleteRoom(UUID roomId, UserPrincipal currentUser);
 
 
   /**
    * Retrieves the requested room
    *
    * @param roomId      room identifier {@link UUID }
-   * @param currentUser current authenticated user {@link MockUserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    * @return Requested room {@link RoomInfoDto }
    **/
-  RoomInfoDto getRoomById(UUID roomId, MockUserPrincipal currentUser);
+  RoomInfoDto getRoomById(UUID roomId, UserPrincipal currentUser);
 
   /**
    * Retrieves a list of every room the user has access to
    *
-   * @param currentUser current authenticated user {@link MockUserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    * @return List of every room that the user has access to {@link RoomDto }
    **/
-  List<RoomDto> getRooms(MockUserPrincipal currentUser);
+  List<RoomDto> getRooms(UserPrincipal currentUser);
 
   /**
    * Mutes notification for the specified room
    *
    * @param roomId      room identifier {@link UUID }
-   * @param currentUser current authenticated user {@link MockUserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    **/
-  void muteRoom(UUID roomId, MockUserPrincipal currentUser);
+  void muteRoom(UUID roomId, UserPrincipal currentUser);
 
 
   /**
    * Resets the specified room hash
    *
    * @param roomId      room identifier {@link UUID }
-   * @param currentUser current authenticated user {@link MockUserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    * @return Room's hash {@link HashDto }
    **/
-  HashDto resetRoomHash(UUID roomId, MockUserPrincipal currentUser);
+  HashDto resetRoomHash(UUID roomId, UserPrincipal currentUser);
 
 
   /**
    * Unmutes notification for the specified room
    *
    * @param roomId      room identifier {@link UUID }
-   * @param currentUser current authenticated user {@link MockUserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    **/
-  void unmuteRoom(UUID roomId, MockUserPrincipal currentUser);
+  void unmuteRoom(UUID roomId, UserPrincipal currentUser);
 
   /**
    * Updates a room information
    *
    * @param roomId               room identifier {@link UUID }
    * @param updateRoomRequestDto room fields to update {@link RoomEditableFieldsDto }
-   * @param currentUser          current authenticated user {@link MockUserPrincipal}
+   * @param currentUser          current authenticated user {@link UserPrincipal}
    * @return Updated room {@link RoomDto }
    **/
-  RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, MockUserPrincipal currentUser);
+  RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser);
 
   /**
    * Gets the room picture
    *
    * @param roomId      room identifier
-   * @param currentUser current authenticated user {@link MockUserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    * @return The room picture
    */
-  FileContentAndMetadata getRoomPicture(UUID roomId, MockUserPrincipal currentUser);
+  FileContentAndMetadata getRoomPicture(UUID roomId, UserPrincipal currentUser);
 
   /**
    * Sets a new room picture
@@ -116,8 +116,8 @@ public interface RoomService {
    * @param image       image to set {@link File}
    * @param mimeType    image mime type
    * @param fileName    image file name
-   * @param currentUser current authenticated user {@link MockUserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    **/
-  void setRoomPicture(UUID roomId, File image, String mimeType, String fileName, MockUserPrincipal currentUser);
+  void setRoomPicture(UUID roomId, File image, String mimeType, String fileName, UserPrincipal currentUser);
 
 }

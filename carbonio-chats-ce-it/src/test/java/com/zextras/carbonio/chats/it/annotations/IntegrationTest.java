@@ -5,6 +5,7 @@ import com.zextras.carbonio.chats.it.extensions.GuiceExtension;
 import com.zextras.carbonio.chats.it.extensions.MongooseIMExtension;
 import com.zextras.carbonio.chats.it.extensions.RestEasyExtension;
 import com.zextras.carbonio.chats.it.extensions.StorageExtension;
+import com.zextras.carbonio.chats.it.extensions.UserManagementExtension;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
@@ -12,13 +13,16 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+
+
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
-@ExtendWith(RestEasyExtension.class)
 @ExtendWith(GuiceExtension.class)
+@ExtendWith(RestEasyExtension.class)
 @ExtendWith(DatabaseExtension.class)
 @ExtendWith(StorageExtension.class)
+@ExtendWith(UserManagementExtension.class)
 @ExtendWith(MongooseIMExtension.class)
 public @interface IntegrationTest {
 

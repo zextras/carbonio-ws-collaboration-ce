@@ -30,8 +30,8 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.Messages;
 import com.zextras.carbonio.chats.core.utils.Utils;
-import com.zextras.carbonio.chats.core.web.security.AccountService;
-import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
+import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
+import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -83,24 +83,24 @@ public class RoomServiceImpl implements RoomService {
 
 
   @Override
-  public List<RoomDto> getRooms(MockUserPrincipal currentUser) {
-    List<Room> rooms = roomRepository.getByUserId(currentUser.getId().toString());
+  public List<RoomDto> getRooms(UserPrincipal currentUser) {
+    List<Room> rooms = roomRepository.getByUserId(currentUser.getId());
     return roomMapper.ent2roomDto(rooms);
   }
 
   @Override
   @Transactional
-  public RoomInfoDto getRoomById(UUID roomId, MockUserPrincipal currentUser) {
+  public RoomInfoDto getRoomById(UUID roomId, UserPrincipal currentUser) {
     // get the room
     Room room = getRoomAndCheckUser(roomId, currentUser, false);
     // get current user settings for the room
-    roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId().toString())
+    roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
       .ifPresent(settings -> room.setUserSettings(Collections.singletonList(settings)));
-    return roomMapper.ent2roomInfoDto(room, currentUser.getId().toString());
+    return roomMapper.ent2roomInfoDto(room, currentUser.getId());
   }
 
   @Override
-  public RoomInfoDto createRoom(RoomCreationFieldsDto insertRoomRequestDto, MockUserPrincipal currentUser) {
+  public RoomInfoDto createRoom(RoomCreationFieldsDto insertRoomRequestDto, UserPrincipal currentUser) {
     // check for duplicates
     if (insertRoomRequestDto.getMembersIds().size() != new HashSet<>(insertRoomRequestDto.getMembersIds()).size()) {
       throw new BadRequestException("Members cannot be duplicated");
@@ -108,7 +108,7 @@ public class RoomServiceImpl implements RoomService {
     // check the users existence
     insertRoomRequestDto.getMembersIds()
       .forEach(userId ->
-        accountService.getById(userId.toString())
+        accountService.getByUUID(userId, currentUser)
           .orElseThrow(() -> new NotFoundException(String.format("User with identifier '%s' not found", userId))));
     // entity building
     UUID id = UUID.randomUUID();
@@ -126,19 +126,19 @@ public class RoomServiceImpl implements RoomService {
     // send event
     UUID finalId = UUID.fromString(room.getId());
     room.getSubscriptions().forEach(member ->
-      eventDispatcher.sendToQueue(currentUser.getId(), member.getUserId(),
-        RoomCreatedEvent.create(finalId).from(currentUser.getId())
+      eventDispatcher.sendToQueue(currentUser.getUUID(), member.getUserId(),
+        RoomCreatedEvent.create(finalId).from(currentUser.getUUID())
       )
     );
     // room creation on server XMPP
-    messageDispatcher.createRoom(room, currentUser.getId().toString());
+    messageDispatcher.createRoom(room, currentUser.getId());
     // get new room result
-    return roomMapper.ent2roomInfoDto(room, currentUser.getId().toString());
+    return roomMapper.ent2roomInfoDto(room, currentUser.getId());
   }
 
   @Override
   @Transactional
-  public RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, MockUserPrincipal currentUser) {
+  public RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser) {
     // get room
     Room room = getRoomAndCheckUser(roomId, currentUser, true);
     // change name and description
@@ -148,26 +148,26 @@ public class RoomServiceImpl implements RoomService {
     // room update
     roomRepository.update(room);
     // send update event to room topic
-    eventDispatcher.sendToTopic(currentUser.getId(), roomId.toString(),
-      RoomUpdatedEvent.create(roomId).from(currentUser.getId()));
+    eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
+      RoomUpdatedEvent.create(roomId).from(currentUser.getUUID()));
     return roomMapper.ent2roomDto(room);
   }
 
   @Override
   @Transactional
-  public void deleteRoom(UUID roomId, MockUserPrincipal currentUser) {
+  public void deleteRoom(UUID roomId, UserPrincipal currentUser) {
     // check the room
     getRoomAndCheckUser(roomId, currentUser, true);
-    // this cascades to other   public void deleteRoom(UUID roomId, MockUserPrincipal currentUser) {
+    // this cascades to other
     roomRepository.delete(roomId.toString());
     // send to room topic
-    eventDispatcher.sendToTopic(currentUser.getId(), roomId.toString(), new RoomDeletedEvent(roomId));
+    eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(), new RoomDeletedEvent(roomId));
     // room deleting on server XMPP
-    messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId().toString());
+    messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId());
   }
 
   @Override
-  public HashDto resetRoomHash(UUID roomId, MockUserPrincipal currentUser) {
+  public HashDto resetRoomHash(UUID roomId, UserPrincipal currentUser) {
     // get room
     Room room = getRoomAndCheckUser(roomId, currentUser, true);
     // generate hash
@@ -175,19 +175,19 @@ public class RoomServiceImpl implements RoomService {
     room.hash(hash);
     roomRepository.update(room);
     // send event
-    eventDispatcher.sendToTopic(currentUser.getId(), roomId.toString(),
+    eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
       RoomHashResetEvent.create(roomId).hash(hash));
     return HashDtoBuilder.create().hash(hash).build();
   }
 
 
   @Override
-  public void muteRoom(UUID roomId, MockUserPrincipal currentUser) {
+  public void muteRoom(UUID roomId, UserPrincipal currentUser) {
 
   }
 
   @Override
-  public void unmuteRoom(UUID roomId, MockUserPrincipal currentUser) {
+  public void unmuteRoom(UUID roomId, UserPrincipal currentUser) {
 
   }
 
@@ -197,7 +197,7 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  public Room getRoomAndCheckUser(UUID roomId, MockUserPrincipal currentUser, boolean mustBeOwner) {
+  public Room getRoomAndCheckUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner) {
     // get room
     Room room = roomRepository.getById(roomId.toString()).orElseThrow(() ->
       new NotFoundException(String.format("Room '%s'", roomId)));
@@ -205,13 +205,13 @@ public class RoomServiceImpl implements RoomService {
     if (!currentUser.isSystemUser()) {
       // check that the current user is a member of the room and that he is an owner
       Subscription member = room.getSubscriptions().stream()
-        .filter(subscription -> subscription.getUserId().equals(currentUser.getId().toString()))
+        .filter(subscription -> subscription.getUserId().equals(currentUser.getId()))
         .findAny()
         .orElseThrow(() -> new ForbiddenException(
-          String.format("User '%s' is not a member of room '%s'", currentUser.getId().toString(), roomId)));
+          String.format("User '%s' is not a member of room '%s'", currentUser.getId(), roomId)));
       if (mustBeOwner && !member.isOwner()) {
         throw new ForbiddenException(
-          String.format("User '%s' is not an owner of room '%s'", currentUser.getId().toString(), roomId));
+          String.format("User '%s' is not an owner of room '%s'", currentUser.getId(), roomId));
       }
     }
     return room;
@@ -219,19 +219,19 @@ public class RoomServiceImpl implements RoomService {
 
   @Override
   @Transactional
-  public FileContentAndMetadata getRoomPicture(UUID roomId, MockUserPrincipal currentUser) {
+  public FileContentAndMetadata getRoomPicture(UUID roomId, UserPrincipal currentUser) {
     // gets the room and check that the user is a member
     getRoomAndCheckUser(roomId, currentUser, false);
     FileMetadata metadata = fileMetadataRepository.getById(roomId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
     // gets file from repository
-    File file = storageService.getFileById(metadata.getId(), currentUser.getId().toString());
+    File file = storageService.getFileById(metadata.getId(), currentUser.getId());
     return new FileContentAndMetadata(file, metadata);
   }
 
   @Override
   @Transactional
-  public void setRoomPicture(UUID roomId, File image, String mimeType, String fileName, MockUserPrincipal currentUser) {
+  public void setRoomPicture(UUID roomId, File image, String mimeType, String fileName, UserPrincipal currentUser) {
     // gets the room and check that the user is a member
     Room room = getRoomAndCheckUser(roomId, currentUser, false);
     // validate field
@@ -254,14 +254,14 @@ public class RoomServiceImpl implements RoomService {
       .name(fileName)
       .originalSize(image.length())
       .mimeType(mimeType)
-      .userId(currentUser.getId().toString());
+      .userId(currentUser.getId());
     fileMetadataRepository.save(metadata);
     // save file in repository
-    storageService.saveFile(image, metadata, currentUser.getId().toString());
+    storageService.saveFile(image, metadata, currentUser.getId());
     // send event to room topic
-    eventDispatcher.sendToTopic(currentUser.getId(), room.getId(),
-      RoomPictureChangedEvent.create(UUID.fromString(room.getId())).from(currentUser.getId()));
+    eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
+      RoomPictureChangedEvent.create(UUID.fromString(room.getId())).from(currentUser.getUUID()));
     // send message to XMPP room
-    messageDispatcher.sendMessageToRoom(room.getId(), currentUser.getId().toString(), Messages.SET_PICTURE_FOR_ROOM_MESSAGE);
+    messageDispatcher.sendMessageToRoom(room.getId(), currentUser.getId(), Messages.SET_PICTURE_FOR_ROOM_MESSAGE);
   }
 }

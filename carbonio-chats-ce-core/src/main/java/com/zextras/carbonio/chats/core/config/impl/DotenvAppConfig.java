@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.config.impl;
 
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.EnvironmentType;
 import io.github.cdimascio.dotenv.Dotenv;
 import java.util.Optional;
 
@@ -20,6 +21,11 @@ public class DotenvAppConfig implements AppConfig {
   @Override
   public <T> Optional<T> get(Class<T> clazz, String key) {
     return Optional.ofNullable(dotenv.get(key)).map((stringValue) -> castToGeneric(clazz, stringValue));
+  }
+
+  @Override
+  public EnvironmentType getEnvType() {
+    return EnvironmentType.getByName(get(String.class, "ENV").orElse(EnvironmentType.PRODUCTION.getName()));
   }
 
   private <T> T castToGeneric(Class<T> clazz, String stringValue) {

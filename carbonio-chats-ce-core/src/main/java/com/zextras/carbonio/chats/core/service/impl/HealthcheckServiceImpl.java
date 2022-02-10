@@ -9,8 +9,8 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
+import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
 import com.zextras.carbonio.chats.model.DependencyHealthDto;
-
 import com.zextras.carbonio.chats.model.DependencyHealthTypeDto;
 import com.zextras.carbonio.chats.model.HealthStatusDto;
 import java.util.ArrayList;
@@ -24,23 +24,25 @@ public class HealthcheckServiceImpl implements HealthcheckService {
   private final DatabaseInfoService databaseInfoService;
   private final EventDispatcher     eventDispatcher;
   private final StorageService      storageService;
+  private final AccountService      accountService;
 
   @Inject
   public HealthcheckServiceImpl(
     MessageDispatcher messageDispatcher,
     DatabaseInfoService databaseInfoService,
     EventDispatcher eventDispatcher,
-    StorageService storageService
+    StorageService storageService,
+    AccountService accountService
   ) {
     this.messageService = messageDispatcher;
     this.databaseInfoService = databaseInfoService;
     this.eventDispatcher = eventDispatcher;
     this.storageService = storageService;
+    this.accountService = accountService;
   }
 
   @Override
   public boolean isServiceReady() {
-    //if one of these services is not available, we're not ready to respond to requests
     return checkServiceReadiness();
   }
 
@@ -70,9 +72,16 @@ public class HealthcheckServiceImpl implements HealthcheckService {
     dependencyHealthDto.setIsHealthy(eventDispatcher.isAlive());
     dependencies.add(dependencyHealthDto);
 
+    //Storage check
     dependencyHealthDto = new DependencyHealthDto();
     dependencyHealthDto.setName(DependencyHealthTypeDto.STORAGE_SERVICE);
     dependencyHealthDto.setIsHealthy(storageService.isAlive());
+    dependencies.add(dependencyHealthDto);
+
+    //User management check
+    dependencyHealthDto = new DependencyHealthDto();
+    dependencyHealthDto.setName(DependencyHealthTypeDto.ACCOUNT_SERVICE);
+    dependencyHealthDto.setIsHealthy(accountService.isAlive());
     dependencies.add(dependencyHealthDto);
 
     healthResponseDto.setDependencies(dependencies);
@@ -80,9 +89,11 @@ public class HealthcheckServiceImpl implements HealthcheckService {
   }
 
   private boolean checkServiceReadiness() {
+    //if one of these services is not available, we're not ready to respond to requests
     return messageService.isAlive() &&
       databaseInfoService.isAlive() &&
       eventDispatcher.isAlive() &&
-      storageService.isAlive();
+      storageService.isAlive() &&
+      accountService.isAlive();
   }
 }

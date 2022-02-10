@@ -60,24 +60,29 @@ import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
-import com.zextras.carbonio.chats.core.web.security.AccountService;
-import com.zextras.carbonio.chats.core.web.security.MockSecurityContext;
-import com.zextras.carbonio.chats.core.web.security.impl.MockAccountServiceImpl;
-import com.zextras.carbonio.chats.core.web.security.impl.MockSecurityContextImpl;
+import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
+import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
+import com.zextras.carbonio.chats.core.infrastructure.account.impl.AccountServiceImpl;
+import com.zextras.carbonio.chats.core.infrastructure.account.impl.FakeAccountServiceImpl;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.ApiClient;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.Configuration;
+import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.filestore.api.Filestore;
 import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.config.DatabaseConfig;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 
 public class CoreModule extends AbstractModule {
+
+  @Inject
+  private AppConfig appConfig;
 
   @Override
   protected void configure() {
@@ -85,11 +90,9 @@ public class CoreModule extends AbstractModule {
 
     bind(JacksonConfig.class);
 
-    bind(MockSecurityContext.class).to(MockSecurityContextImpl.class);
-
     bind(EventDispatcher.class).to(MockEventDispatcherImpl.class);
 
-    bind(AccountService.class).to(MockAccountServiceImpl.class);
+    bind(AuthenticationFilter.class);
 
     bind(RoomsApi.class);
     bind(RoomsApiService.class).to(RoomsApiServiceImpl.class);
@@ -133,6 +136,16 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
+  private AccountService getAccountService(AppConfig appConfig, UserManagementClient userManagementClient) {
+    if (EnvironmentType.DEVELOPMENT.equals(appConfig.getEnvType())) {
+      return new FakeAccountServiceImpl(userManagementClient);
+    } else {
+      return new AccountServiceImpl(userManagementClient);
+    }
+  }
+
+  @Singleton
+  @Provides
   private MucLightManagementApi initMongooseImMucLight(AppConfig appConfig) {
     Configuration.setDefaultApiClient(new ApiClient()
       .setBasePath(appConfig.get(String.class, "MONGOOSEIM_ADMIN_REST_BASE_URL").orElseThrow())
@@ -165,6 +178,12 @@ public class CoreModule extends AbstractModule {
   @Provides
   private Filestore getSlimstoreClient(AppConfig appConfig) {
     return StoragesClient.atUrl(appConfig.get(String.class, "FILESTORE_URL").orElseThrow());
+  }
+
+  @Singleton
+  @Provides
+  private UserManagementClient getUserManagementClient(AppConfig appConfig) {
+    return UserManagementClient.atURL(appConfig.get(String.class, "USER_MANAGEMENT_URL").orElseThrow());
   }
 
   @Singleton

@@ -8,8 +8,8 @@ package com.zextras.carbonio.chats.core.web.api;
 import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.UserService;
-import com.zextras.carbonio.chats.core.web.security.MockSecurityContext;
-import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
+import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -20,17 +20,15 @@ import javax.ws.rs.core.SecurityContext;
 @Singleton
 public class UsersApiServiceImpl implements UsersApiService {
 
-  private final UserService         userService;
-  private final MockSecurityContext mockSecurityContext;
+  private final UserService userService;
 
   @Inject
-  public UsersApiServiceImpl(UserService userService, MockSecurityContext mockSecurityContext) {
+  public UsersApiServiceImpl(UserService userService) {
     this.userService = userService;
-    this.mockSecurityContext = mockSecurityContext;
   }
 
   public Response getUser(UUID userId, SecurityContext securityContext) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response
       .status(Status.OK)

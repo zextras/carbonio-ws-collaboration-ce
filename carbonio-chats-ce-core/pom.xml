@@ -33,6 +33,12 @@ SPDX-License-Identifier: AGPL-3.0-only
       <version>${project.version}</version>
     </dependency>
 
+    <!-- Carbonio User Management -->
+    <dependency>
+      <groupId>com.zextras.carbonio.user-management</groupId>
+      <artifactId>carbonio-user-management-sdk</artifactId>
+    </dependency>
+
     <!-- Storages -->
     <dependency>
       <groupId>com.zextras</groupId>

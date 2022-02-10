@@ -16,13 +16,13 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
+import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
-import com.zextras.carbonio.chats.core.web.security.AccountService;
-import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
+import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -57,7 +57,7 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  public void setOwner(UUID roomId, UUID userId, boolean isOwner, MockUserPrincipal currentUser) {
+  public void setOwner(UUID roomId, UUID userId, boolean isOwner, UserPrincipal currentUser) {
     // gets room and check if current user is owner
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
     // find member
@@ -71,15 +71,15 @@ public class MembersServiceImpl implements MembersService {
     // update row
     subscriptionRepository.update(subscription);
     // send event at all room members
-    eventDispatcher.sendToTopic(currentUser.getId(), room.getId(),
+    eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
       RoomOwnerChangedEvent.create(userId).memberId(userId).isOwner(false)
     );
     // send to server XMPP
-    messageService.setMemberRole(room.getId(), currentUser.getId().toString(), userId.toString(), isOwner);
+    messageService.setMemberRole(room.getId(), currentUser.getId(), userId.toString(), isOwner);
   }
 
   @Override
-  public MemberDto insertRoomMember(UUID roomId, MemberDto memberDto, MockUserPrincipal currentUser) {
+  public MemberDto insertRoomMember(UUID roomId, MemberDto memberDto, UserPrincipal currentUser) {
     // gets room and check if current user is owner
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
     // room cannot be one to one
@@ -91,7 +91,7 @@ public class MembersServiceImpl implements MembersService {
       throw new BadRequestException(String.format("User '%s' is already a room member", memberDto.getUserId()));
     }
     // check the users existence
-    accountService.getById(memberDto.getUserId().toString())
+    accountService.getByUUID(memberDto.getUserId(), currentUser)
       .orElseThrow(() -> new NotFoundException(String.format("User with id '%s' was not found", memberDto.getUserId())));
     // insert the new member
     Subscription subscription = subscriptionRepository.insert(
@@ -105,7 +105,7 @@ public class MembersServiceImpl implements MembersService {
     );
 
     eventDispatcher.sendToTopic(
-      currentUser.getId(),
+      currentUser.getUUID(),
       room.getId(),
       RoomMemberAddedEvent
         .create(UUID.fromString(room.getId()))
@@ -115,12 +115,12 @@ public class MembersServiceImpl implements MembersService {
         .external(false)
     );
     // send to server xmpp
-    messageService.addRoomMember(room.getId(), currentUser.getId().toString(), memberDto.getUserId().toString());
+    messageService.addRoomMember(room.getId(), currentUser.getId(), memberDto.getUserId().toString());
     return subscriptionMapper.ent2memberDto(subscription);
   }
 
   @Override
-  public void deleteRoomMember(UUID roomId, UUID userId, MockUserPrincipal currentUser) {
+  public void deleteRoomMember(UUID roomId, UUID userId, UserPrincipal currentUser) {
     // gets room and check if current user is owner
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
     if (room.getType().equals(RoomTypeDto.ONE_TO_ONE)) {
@@ -139,23 +139,23 @@ public class MembersServiceImpl implements MembersService {
     // TODO do we need to delete the room?
     subscriptionRepository.delete(room.getId(), userId.toString());
     eventDispatcher.sendToTopic(
-      currentUser.getId(),
+      currentUser.getUUID(),
       room.getId(),
       RoomMemberRemovedEvent.create(UUID.fromString(room.getId())).memberId(userId)
     );
     // sent to server XMPP
-    messageService.removeRoomMember(room.getId(), currentUser.getId().toString(), userId.toString());
+    messageService.removeRoomMember(room.getId(), currentUser.getId(), userId.toString());
   }
 
   @Override
-  public List<MemberDto> getRoomMembers(UUID roomId, MockUserPrincipal currentUser) {
+  public List<MemberDto> getRoomMembers(UUID roomId, UserPrincipal currentUser) {
     // gets room and check if user is a member
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, false);
     return subscriptionMapper.ent2memberDto(room.getSubscriptions());
   }
 
   @Override
-  public List<Subscription> initRoomSubscriptions(List<UUID> membersIds, Room room, MockUserPrincipal requester) {
+  public List<Subscription> initRoomSubscriptions(List<UUID> membersIds, Room room, UserPrincipal requester) {
     List<Subscription> result = membersIds.stream().map(userId ->
       Subscription.create()
         .id(new SubscriptionId(room.getId(), userId.toString()))
@@ -167,8 +167,8 @@ public class MembersServiceImpl implements MembersService {
         .joinedAt(OffsetDateTime.now())
     ).collect(Collectors.toList());
     result.add(Subscription.create()
-      .id(new SubscriptionId(room.getId(), requester.getId().toString()))
-      .userId(requester.getId().toString())
+      .id(new SubscriptionId(room.getId(), requester.getId()))
+      .userId(requester.getId())
       .room(room)
       .owner(true)
       .temporary(false)

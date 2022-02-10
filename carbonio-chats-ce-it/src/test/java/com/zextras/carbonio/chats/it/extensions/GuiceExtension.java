@@ -16,13 +16,13 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 
 public class GuiceExtension implements ParameterResolver, BeforeAllCallback {
 
-  private final static Namespace EXTENSION_NAMESPACE = Namespace.create(GuiceExtension.class);
-  private final static String    GUICE_STORE_ENTRY   = "guice";
+  private final static   Namespace EXTENSION_NAMESPACE = Namespace.GLOBAL;
+  protected final static String    GUICE_STORE_ENTRY   = "guice";
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
-    context.getStore(EXTENSION_NAMESPACE)
-      .put(GUICE_STORE_ENTRY, Guice.createInjector(Modules.override(new CoreModule()).with(new TestModule())));
+    context.getStore(EXTENSION_NAMESPACE).put(GUICE_STORE_ENTRY,
+      Guice.createInjector(Modules.override(new CoreModule()).with(new TestModule())));
   }
 
   @Override

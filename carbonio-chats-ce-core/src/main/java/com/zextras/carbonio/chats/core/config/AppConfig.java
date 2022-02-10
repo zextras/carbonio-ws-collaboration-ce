@@ -17,4 +17,6 @@ public interface AppConfig {
    * @return an {@link Optional} which contains the configuration, if found
    */
   <T> Optional<T> get(Class<T> clazz, String key);
+
+  EnvironmentType getEnvType();
 }

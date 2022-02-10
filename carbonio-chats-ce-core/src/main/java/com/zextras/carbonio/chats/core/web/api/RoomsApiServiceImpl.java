@@ -4,7 +4,6 @@
 
 package com.zextras.carbonio.chats.core.web.api;
 
-
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -12,8 +11,7 @@ import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
-import com.zextras.carbonio.chats.core.web.security.MockSecurityContext;
-import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
+import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
@@ -29,26 +27,23 @@ import javax.ws.rs.core.SecurityContext;
 @Singleton
 public class RoomsApiServiceImpl implements RoomsApiService {
 
-  private final RoomService         roomService;
-  private final MembersService      membersService;
-  private final AttachmentService   attachmentService;
-  private final MockSecurityContext mockSecurityContext;
+  private final RoomService       roomService;
+  private final MembersService    membersService;
+  private final AttachmentService attachmentService;
 
   @Inject
   public RoomsApiServiceImpl(
     RoomService roomService, MembersService membersService,
-    AttachmentService attachmentService,
-    MockSecurityContext mockSecurityContext
+    AttachmentService attachmentService
   ) {
     this.roomService = roomService;
     this.membersService = membersService;
     this.attachmentService = attachmentService;
-    this.mockSecurityContext = mockSecurityContext;
   }
 
   @Override
   public Response listRoom(SecurityContext securityContext) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response
       .status(Status.OK)
@@ -58,7 +53,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public Response getRoom(UUID roomId, SecurityContext securityContext) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response.status(Status.OK)
       .entity(roomService.getRoomById(roomId, currentUser))
@@ -67,7 +62,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public Response insertRoom(RoomCreationFieldsDto insertRoomRequestDto, SecurityContext securityContext) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response
       .status(Status.CREATED)
@@ -77,7 +72,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public Response deleteRoom(UUID roomId, SecurityContext securityContext) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     roomService.deleteRoom(roomId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
@@ -85,7 +80,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public Response updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, SecurityContext securityContext) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response.status(Status.OK)
       .entity(roomService.updateRoom(roomId, updateRoomRequestDto, currentUser))
@@ -94,7 +89,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public Response getRoomPicture(UUID roomId, SecurityContext securityContext) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     FileContentAndMetadata roomPicture = roomService.getRoomPicture(roomId, currentUser);
     return Response
@@ -108,7 +103,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public Response updateRoomPicture(UUID roomId, String xContentDisposition, File body, SecurityContext securityContext) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     roomService.setRoomPicture(roomId, body,
       getFilePropertyFromContentDisposition(xContentDisposition, "mimeType")
@@ -121,7 +116,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public Response resetRoomHash(UUID roomId, SecurityContext securityContext) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response
       .status(Status.OK)
@@ -143,7 +138,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public Response listRoomMember(UUID roomId, SecurityContext securityContext) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response.status(Status.OK)
       .entity(membersService.getRoomMembers(roomId, currentUser))
@@ -152,7 +147,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public Response insertRoomMember(UUID roomId, MemberDto memberDto, SecurityContext securityContext) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response
       .status(Status.CREATED)
@@ -162,7 +157,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public Response deleteRoomMember(UUID roomId, UUID userId, SecurityContext securityContext) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     membersService.deleteRoomMember(roomId, userId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
@@ -170,25 +165,27 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public Response updateToOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
-    modifyOwner(roomId, userId, true);
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    modifyOwner(roomId, userId, true, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
   public Response deleteOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
-    modifyOwner(roomId, userId, false);
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    modifyOwner(roomId, userId, false, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
-  private void modifyOwner(UUID roomId, UUID userId, boolean isOwner) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
-      .orElseThrow(UnauthorizedException::new);
+  private void modifyOwner(UUID roomId, UUID userId, boolean isOwner, UserPrincipal currentUser) {
     membersService.setOwner(roomId, userId, isOwner, currentUser);
   }
 
   @Override
   public Response insertAttachment(UUID roomId, String xContentDisposition, File body, SecurityContext securityContext) {
-    MockUserPrincipal currentUser = (MockUserPrincipal) mockSecurityContext.getUserPrincipal()
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response
       .status(Status.CREATED)

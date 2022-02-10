@@ -12,12 +12,12 @@ import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StorageService;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
+import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.IdDto;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.service.RoomService;
@@ -51,26 +51,26 @@ public class AttachmentServiceImpl implements AttachmentService {
 
   @Override
   @Transactional
-  public FileContentAndMetadata getAttachmentById(UUID fileId, MockUserPrincipal currentUser) {
+  public FileContentAndMetadata getAttachmentById(UUID fileId, UserPrincipal currentUser) {
     // gets file metadata from DB
     FileMetadata metadata = fileMetadataRepository.getById(fileId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
     // checks if current user is a member of the attachment room
     roomService.getRoomAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
     // gets file from repository
-    File file = storageService.getFileById(metadata.getId(), currentUser.getId().toString());
+    File file = storageService.getFileById(metadata.getId(), currentUser.getId());
     return new FileContentAndMetadata(file, metadata);
   }
 
   @Override
-  public FileContentAndMetadata getAttachmentPreviewById(UUID fileId, MockUserPrincipal currentUser) {
+  public FileContentAndMetadata getAttachmentPreviewById(UUID fileId, UserPrincipal currentUser) {
     // TODO: 07/01/22 momentarily returns the original file
     return getAttachmentById(fileId, currentUser);
   }
 
   @Override
   @Transactional
-  public AttachmentDto getAttachmentInfoById(UUID fileId, MockUserPrincipal currentUser) {
+  public AttachmentDto getAttachmentInfoById(UUID fileId, UserPrincipal currentUser) {
     // gets file metadata from DB
     FileMetadata metadata = fileMetadataRepository.getById(fileId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
@@ -81,7 +81,7 @@ public class AttachmentServiceImpl implements AttachmentService {
 
   @Override
   @Transactional
-  public IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, MockUserPrincipal currentUser) {
+  public IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, UserPrincipal currentUser) {
     roomService.getRoomAndCheckUser(roomId, currentUser, false);
     // generates the file identifier
     UUID id = UUID.randomUUID();
@@ -92,22 +92,22 @@ public class AttachmentServiceImpl implements AttachmentService {
       .originalSize(file.length())
       .mimeType(mimeType)
       .type(FileMetadataType.ATTACHMENT)
-      .userId(currentUser.getId().toString())
+      .userId(currentUser.getId())
       .roomId(roomId.toString());
     fileMetadataRepository.save(metadata);
     // save the file in repository
-    storageService.saveFile(file, metadata, currentUser.getId().toString());
+    storageService.saveFile(file, metadata, currentUser.getId());
     // sends event
-    eventDispatcher.sendToTopic(currentUser.getId(), roomId.toString(), AttachmentAddedEvent
+    eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(), AttachmentAddedEvent
       .create(roomId)
-      .from(currentUser.getId()));
+      .from(currentUser.getUUID()));
 
     return IdDtoBuilder.create().id(id).build();
   }
 
   @Override
   @Transactional
-  public void deleteAttachment(UUID fileId, MockUserPrincipal currentUser) {
+  public void deleteAttachment(UUID fileId, UserPrincipal currentUser) {
     // gets file metadata from DB
     FileMetadata metadata = fileMetadataRepository.getById(fileId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
@@ -116,10 +116,10 @@ public class AttachmentServiceImpl implements AttachmentService {
     // delete file data from DB
     fileMetadataRepository.delete(metadata);
     // deletes file from repository
-    storageService.deleteFile(fileId.toString(), currentUser.getId().toString());
+    storageService.deleteFile(fileId.toString(), currentUser.getId());
     // sends the event
-    eventDispatcher.sendToTopic(currentUser.getId(), room.getId(), AttachmentRemovedEvent
+    eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(), AttachmentRemovedEvent
       .create(UUID.fromString(room.getId()))
-      .from(currentUser.getId()));
+      .from(currentUser.getUUID()));
   }
 }

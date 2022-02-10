@@ -7,7 +7,6 @@ import com.zextras.carbonio.chats.api.HealthApi;
 import com.zextras.carbonio.chats.it.annotations.IntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.model.HealthStatusDto;
-import javax.inject.Inject;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.Test;
@@ -18,7 +17,6 @@ public class HealthApiIT {
   private final ResteasyRequestDispatcher dispatcher;
   private final ObjectMapper              objectMapper;
 
-  @Inject
   public HealthApiIT(HealthApi healthApi, ResteasyRequestDispatcher dispatcher, ObjectMapper objectMapper) {
     this.dispatcher = dispatcher;
     this.dispatcher.getRegistry().addSingletonResource(healthApi);

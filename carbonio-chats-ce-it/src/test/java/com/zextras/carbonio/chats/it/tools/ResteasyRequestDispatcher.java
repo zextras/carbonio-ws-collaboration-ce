@@ -24,12 +24,22 @@ public class ResteasyRequestDispatcher {
 
   public MockHttpResponse sendGet(String url) throws URISyntaxException {
     MockHttpRequest request = MockHttpRequest.get(url);
+    return sendGet(request);
+  }
+
+  public MockHttpResponse sendGet(String url, String carbonioUserToken) throws URISyntaxException {
+    MockHttpRequest request = MockHttpRequest.get(url).cookie("ZM_AUTH_TOKEN", carbonioUserToken);
+    return sendGet(request);
+  }
+
+  private MockHttpResponse sendGet(MockHttpRequest request) throws URISyntaxException {
     MockHttpResponse response = new MockHttpResponse();
     SynchronousExecutionContext synchronousExecutionContext = new SynchronousExecutionContext(
       (SynchronousDispatcher) dispatcher, request, response);
     request.setAsynchronousContext(synchronousExecutionContext);
     return sendHttpRequest(request, response);
   }
+
 
   public MockHttpResponse sendPost(String path, String requestBody, Map<String, String> requestHeaders)
     throws URISyntaxException {

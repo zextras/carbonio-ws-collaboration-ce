@@ -5,9 +5,9 @@
 package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.IdDto;
-import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
 import java.io.File;
 import java.util.UUID;
 
@@ -17,28 +17,28 @@ public interface AttachmentService {
    * Gets a room's attachment
    *
    * @param fileId      identifier of attachment file to delete {@link UUID}
-   * @param currentUser current authenticated user {@link MockUserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    * @return The attachment file requested {@link File}
    */
-  FileContentAndMetadata getAttachmentById(UUID fileId, MockUserPrincipal currentUser);
+  FileContentAndMetadata getAttachmentById(UUID fileId, UserPrincipal currentUser);
 
   /**
    * Retrieves the preview of an uploaded attachment
    *
    * @param fileId      file identifier {@link UUID}
-   * @param currentUser security context {@link MockUserPrincipal}
+   * @param currentUser security context {@link UserPrincipal}
    * @return The requested file preview {@link File}
    **/
-  FileContentAndMetadata getAttachmentPreviewById(UUID fileId, MockUserPrincipal currentUser);
+  FileContentAndMetadata getAttachmentPreviewById(UUID fileId, UserPrincipal currentUser);
 
   /**
    * Retrieves info related to an uploaded attachment
    *
    * @param fileId      file identifier {@link UUID}
-   * @param currentUser security context {@link MockUserPrincipal}
+   * @param currentUser security context {@link UserPrincipal}
    * @return Attachment information {@link AttachmentDto}
    **/
-  AttachmentDto getAttachmentInfoById(UUID fileId, MockUserPrincipal currentUser);
+  AttachmentDto getAttachmentInfoById(UUID fileId, UserPrincipal currentUser);
 
   /**
    * Saves a room's attachment file
@@ -47,16 +47,16 @@ public interface AttachmentService {
    * @param file        file to save {@link File}
    * @param mimeType    file mime type
    * @param fileName    file name
-   * @param currentUser current authenticated user {@link MockUserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    * @return The added file identifier {@link IdDto}
    */
-  IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, MockUserPrincipal currentUser);
+  IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, UserPrincipal currentUser);
 
   /**
    * Deletes a room's attachment file
    *
    * @param fileId      identifier of attachment file to delete {@link UUID}
-   * @param currentUser current authenticated user {@link MockUserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    */
-  void deleteAttachment(UUID fileId, MockUserPrincipal currentUser);
+  void deleteAttachment(UUID fileId, UserPrincipal currentUser);
 }

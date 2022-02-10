@@ -5,7 +5,7 @@
 package com.zextras.carbonio.chats.core.service;
 
 
-import com.zextras.carbonio.chats.core.web.security.MockUserPrincipal;
+import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
 import java.util.UUID;
 import javax.annotation.Generated;
@@ -17,9 +17,9 @@ public interface UserService {
    * Retrieves a user
    *
    * @param userId      user identifier {@link UUID }
-   * @param currentUser current authenticated user {@link MockUserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    * @return Requested user {@link UserDto }
    **/
-  UserDto getUserById(UUID userId, MockUserPrincipal currentUser);
+  UserDto getUserById(UUID userId, UserPrincipal currentUser);
 
 }

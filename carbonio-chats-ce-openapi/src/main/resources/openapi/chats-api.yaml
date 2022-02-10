@@ -590,6 +590,7 @@ components:
         - xmpp_server
         - event_dispatcher
         - storage_service
+        - account_service
     Id:
       type: object
       description: Identifier object

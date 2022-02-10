@@ -22,7 +22,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.Test;
@@ -35,7 +34,6 @@ public class RoomsApiIT {
   private final ResteasyRequestDispatcher dispatcher;
   private final ObjectMapper              objectMapper;
 
-  @Inject
   public RoomsApiIT(
     RoomsApi roomsApi, RoomRepository roomRepository, FileMetadataRepository fileMetadataRepository,
     ObjectMapper objectMapper, ResteasyRequestDispatcher dispatcher
@@ -60,7 +58,7 @@ public class RoomsApiIT {
     roomRepository.insert(room1);
     roomRepository.insert(room2);
 
-    MockHttpResponse response = dispatcher.sendGet("/rooms");
+    MockHttpResponse response = dispatcher.sendGet("/rooms", user1Id.toString());
     assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
     List<RoomDto> rooms = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
     });
@@ -85,7 +83,7 @@ public class RoomsApiIT {
         .type(FileMetadataType.ROOM_AVATAR)
         .userId(user1Id.toString())
         .roomId(roomId.toString()));
-    MockHttpResponse response = dispatcher.sendGet(String.format("/rooms/%s/picture", roomId));
+    MockHttpResponse response = dispatcher.sendGet(String.format("/rooms/%s/picture", roomId), "332a9527-3388-4207-be77-6d7e2978a723");
     assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
   }
 
