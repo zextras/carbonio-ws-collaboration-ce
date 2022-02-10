@@ -7,6 +7,8 @@ package com.zextras.carbonio.chats.boot;
 
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ChatsConstant;
+import com.zextras.carbonio.chats.core.config.EnvironmentType;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import javax.inject.Inject;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -37,6 +39,9 @@ public class Boot {
   public void boot() throws Exception {
     flyway.migrate();
 
+    if(appConfig.getEnvType().equals(EnvironmentType.DEVELOPMENT)) {
+      ChatsLogger.warn("****** RUNNING IN DEVELOPMENT MODE! DO NOT USE IN PRODUCTION ENVIRONMENTS ******");
+    }
     Server server = new Server(ChatsConstant.SERVER_PORT);
     ServletContextHandler servletHandler = new ServletContextHandler(server, CONTEXT_PATH);
     servletHandler.addEventListener(resteasyListener);

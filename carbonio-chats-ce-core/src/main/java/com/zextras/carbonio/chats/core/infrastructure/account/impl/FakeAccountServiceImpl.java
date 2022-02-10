@@ -53,6 +53,6 @@ public class FakeAccountServiceImpl extends AccountServiceImpl {
 
   @Override
   public boolean isAlive() {
-    return super.isAlive();
+    return true;
   }
 }

@@ -100,6 +100,7 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
+  @Transactional
   public RoomInfoDto createRoom(RoomCreationFieldsDto insertRoomRequestDto, UserPrincipal currentUser) {
     // check for duplicates
     if (insertRoomRequestDto.getMembersIds().size() != new HashSet<>(insertRoomRequestDto.getMembersIds()).size()) {
@@ -123,6 +124,10 @@ public class RoomServiceImpl implements RoomService {
     room.setSubscriptions(membersService.initRoomSubscriptions(insertRoomRequestDto.getMembersIds(), room, currentUser));
     // persist room
     room = roomRepository.insert(room);
+
+    // room creation on server XMPP
+    messageDispatcher.createRoom(room, currentUser.getId());
+
     // send event
     UUID finalId = UUID.fromString(room.getId());
     room.getSubscriptions().forEach(member ->
@@ -130,8 +135,6 @@ public class RoomServiceImpl implements RoomService {
         RoomCreatedEvent.create(finalId).from(currentUser.getUUID())
       )
     );
-    // room creation on server XMPP
-    messageDispatcher.createRoom(room, currentUser.getId());
     // get new room result
     return roomMapper.ent2roomInfoDto(room, currentUser.getId());
   }
