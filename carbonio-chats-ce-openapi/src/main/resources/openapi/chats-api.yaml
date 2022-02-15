@@ -551,6 +551,18 @@ components:
     413PayloadTooLargeResponse:
       description: The request had a payload that was too big
   schemas:
+    Error:
+      type: object
+      description: Error object returned from requests with developer mode active
+      properties:
+        traceId:
+          type: string
+          description: random hash used to identify the error within logs
+          readOnly: true
+        message:
+          type: string
+          description: a message describing the error
+          readOnly: true
     HealthStatus:
       type: object
       description: Health status of the service and its dependencies

@@ -19,9 +19,11 @@ import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
-import com.zextras.carbonio.chats.core.exception.handler.ChatsHttpExceptionHandler;
-import com.zextras.carbonio.chats.core.exception.handler.DefaultExceptionHandler;
-import com.zextras.carbonio.chats.core.exception.handler.XmppServerExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -30,7 +32,6 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherImpl;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
-import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
@@ -74,7 +75,6 @@ import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.config.DatabaseConfig;
-import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
@@ -128,6 +128,8 @@ public class CoreModule extends AbstractModule {
   private void bindExceptionMapper() {
     bind(ChatsHttpExceptionHandler.class);
     bind(XmppServerExceptionHandler.class);
+    bind(ClientErrorExceptionHandler.class);
+    bind(JsonProcessingExceptionHandler.class);
     bind(DefaultExceptionHandler.class);
   }
 

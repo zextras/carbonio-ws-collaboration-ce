@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.exception.handler;
+package com.zextras.carbonio.chats.core.web.exceptions;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -16,16 +16,8 @@ import javax.ws.rs.ext.Provider;
 @Provider
 public class DefaultExceptionHandler extends ExceptionHandler<Exception> {
 
-  @Context
-  private UriInfo uriInfo;
-
   @Inject
   public DefaultExceptionHandler() {
-  }
-
-  @Override
-  public UriInfo uriInfo() {
-    return uriInfo;
   }
 
   @Override

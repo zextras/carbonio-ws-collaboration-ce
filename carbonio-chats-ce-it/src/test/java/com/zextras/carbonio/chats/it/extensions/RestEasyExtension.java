@@ -2,9 +2,9 @@ package com.zextras.carbonio.chats.it.extensions;
 
 import com.google.inject.Injector;
 import com.zextras.carbonio.chats.core.config.JacksonConfig;
-import com.zextras.carbonio.chats.core.exception.handler.ChatsHttpExceptionHandler;
-import com.zextras.carbonio.chats.core.exception.handler.DefaultExceptionHandler;
-import com.zextras.carbonio.chats.core.exception.handler.XmppServerExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import java.util.Optional;

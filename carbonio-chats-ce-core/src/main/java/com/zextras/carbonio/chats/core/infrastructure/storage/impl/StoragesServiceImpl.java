@@ -34,7 +34,7 @@ public class StoragesServiceImpl implements StoragesService {
         file);
       return file;
     } catch (Exception e) {
-      throw new InternalErrorException(String.format("Cannot recover the file '%s'", fileId), e);
+      throw new InternalErrorException(String.format("Cannot retrieve the file '%s'", fileId), e);
     }
   }
 
@@ -45,7 +45,7 @@ public class StoragesServiceImpl implements StoragesService {
         ChatsIdentifier.of(metadata.getId(), currentUserId),
         FileUtils.openInputStream(file));
     } catch (Exception e) {
-      throw new InternalErrorException("An error occurred while file inserting", e);
+      throw new InternalErrorException("An error occurred while uploading the file", e);
     }
   }
 
@@ -54,7 +54,7 @@ public class StoragesServiceImpl implements StoragesService {
     try {
       storagesClient.delete(ChatsIdentifier.of(fileId, currentUserId));
     } catch (Exception e) {
-      throw new InternalErrorException("An error occurred while file deleting", e);
+      throw new InternalErrorException("An error occurred while deleting the file", e);
     }
   }
 

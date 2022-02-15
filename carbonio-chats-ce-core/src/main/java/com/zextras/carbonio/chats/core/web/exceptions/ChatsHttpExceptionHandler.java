@@ -2,30 +2,20 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.exception.handler;
+package com.zextras.carbonio.chats.core.web.exceptions;
 
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import javax.inject.Inject;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.Provider;
 
 @Provider
 @Singleton
 public class ChatsHttpExceptionHandler extends ExceptionHandler<ChatsHttpException> {
 
-  @Context
-  private UriInfo uriInfo;
-
   @Inject
   public ChatsHttpExceptionHandler() {
-  }
-
-  @Override
-  public UriInfo uriInfo() {
-    return uriInfo;
   }
 
   @Override
