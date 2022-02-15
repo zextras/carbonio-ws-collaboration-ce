@@ -1,16 +1,10 @@
 package com.zextras.carbonio.chats.it.extensions;
 
 import com.google.inject.Injector;
-import com.zextras.carbonio.chats.core.config.JacksonConfig;
-import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
-import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandler;
-import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
-import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHandler;
-import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
-import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import java.util.Optional;
 import org.jboss.resteasy.mock.MockDispatcherFactory;
+import org.jboss.resteasy.plugins.guice.ModuleProcessor;
 import org.jboss.resteasy.spi.Dispatcher;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
@@ -35,20 +29,12 @@ public class RestEasyExtension implements ParameterResolver {
         get(GuiceExtension.GUICE_STORE_ENTRY))
       .map(objectInjector -> (Injector) objectInjector)
       .orElseThrow(() -> new ParameterResolutionException("No Guice injector found"));
-
     return new ResteasyRequestDispatcher(getDispatcher(injector));
   }
 
   private Dispatcher getDispatcher(Injector injector) {
     Dispatcher dispatcher = MockDispatcherFactory.createDispatcher();
-    dispatcher.getProviderFactory().registerProvider(JacksonConfig.class);
-    dispatcher.getProviderFactory().registerProviderInstance(injector.getInstance(AuthenticationFilter.class));
-    dispatcher.getProviderFactory().registerProviderInstance(injector.getInstance(ChatsHttpExceptionHandler.class));
-    dispatcher.getProviderFactory().registerProviderInstance(injector.getInstance(ClientErrorExceptionHandler.class));
-    dispatcher.getProviderFactory().registerProviderInstance(injector.getInstance(DefaultExceptionHandler.class));
-    dispatcher.getProviderFactory().registerProviderInstance(injector.getInstance(JsonProcessingExceptionHandler.class));
-    dispatcher.getProviderFactory().registerProviderInstance(injector.getInstance(XmppServerExceptionHandler.class));
-
+    new ModuleProcessor(dispatcher.getRegistry(), dispatcher.getProviderFactory()).processInjector(injector);
     return dispatcher;
   }
 }
