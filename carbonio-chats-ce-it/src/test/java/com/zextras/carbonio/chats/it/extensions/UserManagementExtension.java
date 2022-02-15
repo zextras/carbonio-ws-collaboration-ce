@@ -6,8 +6,8 @@ import static org.mockserver.model.HttpResponse.response;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.core.infrastructure.account.impl.FakeAccountServiceImpl;
-import com.zextras.carbonio.chats.core.data.model.Account;
+import com.zextras.carbonio.chats.it.Utils.MockedAccount;
+import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockAccount;
 import com.zextras.carbonio.chats.it.Utils.TimeUtils;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
@@ -50,7 +50,7 @@ public class UserManagementExtension implements AfterAllCallback, BeforeAllCallb
     context.getStore(EXTENSION_NAMESPACE).put(SERVER_STORE_ENTRY, mockServer);
 
     ChatsLogger.debug("Starting User Management mock...");
-    MockServerClient client = new MockServerClient(SERVER_HOST, SERVER_PORT);
+    MockServerClient client = new UserManagementMockServer(SERVER_HOST, SERVER_PORT);
     mockResponses(client);
     context.getStore(EXTENSION_NAMESPACE).put(CLIENT_STORE_ENTRY, client);
 
@@ -74,16 +74,35 @@ public class UserManagementExtension implements AfterAllCallback, BeforeAllCallb
       });
   }
 
+  @Override
+  public boolean supportsParameter(
+    ParameterContext parameterContext, ExtensionContext extensionContext
+  ) throws ParameterResolutionException {
+    return parameterContext.getParameter().getType().equals(UserManagementMockServer.class);
+  }
+
+  @Override
+  public Object resolveParameter(
+    ParameterContext parameterContext, ExtensionContext extensionContext
+  ) throws ParameterResolutionException {
+    if (parameterContext.getParameter().getType().equals(UserManagementMockServer.class)) {
+      return Optional.ofNullable(extensionContext.getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
+        .orElseThrow(() -> new ParameterResolutionException(parameterContext.getParameter().getName()));
+    } else {
+      throw new ParameterResolutionException(parameterContext.getParameter().getName());
+    }
+  }
+
   private void mockResponses(MockServerClient client) throws IOException {
     mockHealthCheck(client);
-    for (Account fakeAccount : FakeAccountServiceImpl.getFakeAccounts()) {
-      mockValidateUserToken(client, new UserId(fakeAccount.getId()), fakeAccount.getId());
-      UserInfo userInfo = new UserInfo(fakeAccount.getId(), fakeAccount.getEmail(), fakeAccount.getName(), fakeAccount.getDomain());
+    for (MockAccount mockAccount : MockedAccount.getAccounts()) {
+      mockValidateUserToken(client, new UserId(mockAccount.getId()), mockAccount.getToken());
+      UserInfo userInfo = new UserInfo(mockAccount.getId(), mockAccount.getEmail(), mockAccount.getName(), mockAccount.getDomain());
       mockGetUserByUUID(client,
         userInfo,
-        fakeAccount.getId()
+        mockAccount.getId()
       );
-      mockGetUserByEmail(client, userInfo, fakeAccount.getEmail());
+      mockGetUserByEmail(client, userInfo, mockAccount.getEmail());
     }
   }
 
@@ -134,24 +153,5 @@ public class UserManagementExtension implements AfterAllCallback, BeforeAllCallb
         .withStatusCode(200)
         .withBody(objectMapper.writeValueAsString(userInfo), MediaType.APPLICATION_JSON)
     );
-  }
-
-  @Override
-  public boolean supportsParameter(
-    ParameterContext parameterContext, ExtensionContext extensionContext
-  ) throws ParameterResolutionException {
-    return parameterContext.getParameter().getType().equals(UserManagementMockServer.class);
-  }
-
-  @Override
-  public Object resolveParameter(
-    ParameterContext parameterContext, ExtensionContext extensionContext
-  ) throws ParameterResolutionException {
-    if (parameterContext.getParameter().getType().equals(UserManagementMockServer.class)) {
-      return Optional.ofNullable(extensionContext.getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
-        .orElseThrow(() -> new ParameterResolutionException(parameterContext.getParameter().getName()));
-    } else {
-      throw new ParameterResolutionException(parameterContext.getParameter().getName());
-    }
   }
 }

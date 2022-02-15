@@ -3,7 +3,9 @@ package com.zextras.carbonio.chats.it.extensions;
 import com.google.inject.Injector;
 import com.zextras.carbonio.chats.core.config.JacksonConfig;
 import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
@@ -40,13 +42,12 @@ public class RestEasyExtension implements ParameterResolver {
   private Dispatcher getDispatcher(Injector injector) {
     Dispatcher dispatcher = MockDispatcherFactory.createDispatcher();
     dispatcher.getProviderFactory().registerProvider(JacksonConfig.class);
-    dispatcher.getProviderFactory().registerProviderInstance(
-      injector.getInstance(AuthenticationFilter.class)
-    );
-
-    dispatcher.getProviderFactory().registerProvider(ChatsHttpExceptionHandler.class);
-    dispatcher.getProviderFactory().registerProvider(DefaultExceptionHandler.class);
-    dispatcher.getProviderFactory().registerProvider(XmppServerExceptionHandler.class);
+    dispatcher.getProviderFactory().registerProviderInstance(injector.getInstance(AuthenticationFilter.class));
+    dispatcher.getProviderFactory().registerProviderInstance(injector.getInstance(ChatsHttpExceptionHandler.class));
+    dispatcher.getProviderFactory().registerProviderInstance(injector.getInstance(ClientErrorExceptionHandler.class));
+    dispatcher.getProviderFactory().registerProviderInstance(injector.getInstance(DefaultExceptionHandler.class));
+    dispatcher.getProviderFactory().registerProviderInstance(injector.getInstance(JsonProcessingExceptionHandler.class));
+    dispatcher.getProviderFactory().registerProviderInstance(injector.getInstance(XmppServerExceptionHandler.class));
 
     return dispatcher;
   }

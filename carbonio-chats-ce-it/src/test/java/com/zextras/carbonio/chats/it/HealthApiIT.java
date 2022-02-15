@@ -25,7 +25,7 @@ public class HealthApiIT {
 
   @Test
   public void getHealthStatusTest() throws Exception {
-    MockHttpResponse response = dispatcher.sendGet("/health");
+    MockHttpResponse response = dispatcher.get("/health");
     assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
     String contentAsString = response.getContentAsString();
     HealthStatusDto healthStatus = objectMapper.readValue(contentAsString, HealthStatusDto.class);

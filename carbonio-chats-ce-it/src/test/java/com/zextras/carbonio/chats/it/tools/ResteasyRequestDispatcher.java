@@ -2,6 +2,8 @@ package com.zextras.carbonio.chats.it.tools;
 
 import java.net.URISyntaxException;
 import java.util.Map;
+import java.util.Optional;
+import javax.annotation.Nullable;
 import javax.ws.rs.core.MediaType;
 import org.jboss.resteasy.core.SynchronousDispatcher;
 import org.jboss.resteasy.core.SynchronousExecutionContext;
@@ -22,63 +24,47 @@ public class ResteasyRequestDispatcher {
     return dispatcher.getRegistry();
   }
 
-  public MockHttpResponse sendGet(String url) throws URISyntaxException {
+  public MockHttpResponse get(String url) throws URISyntaxException {
+    return get(url, null);
+  }
+
+  public MockHttpResponse get(String url, @Nullable String userToken) throws URISyntaxException {
     MockHttpRequest request = MockHttpRequest.get(url);
-    return sendGet(request);
+    Optional.ofNullable(userToken).ifPresent(token -> request.cookie("ZM_AUTH_TOKEN", token));
+    return sendRequest(request);
   }
 
-  public MockHttpResponse sendGet(String url, String carbonioUserToken) throws URISyntaxException {
-    MockHttpRequest request = MockHttpRequest.get(url).cookie("ZM_AUTH_TOKEN", carbonioUserToken);
-    return sendGet(request);
-  }
-
-  private MockHttpResponse sendGet(MockHttpRequest request) throws URISyntaxException {
-    MockHttpResponse response = new MockHttpResponse();
-    SynchronousExecutionContext synchronousExecutionContext = new SynchronousExecutionContext(
-      (SynchronousDispatcher) dispatcher, request, response);
-    request.setAsynchronousContext(synchronousExecutionContext);
-    return sendHttpRequest(request, response);
-  }
-
-
-  public MockHttpResponse sendPost(String path, String requestBody, Map<String, String> requestHeaders)
+  public MockHttpResponse post(String path, String requestBody, Map<String, String> requestHeaders)
     throws URISyntaxException {
     MockHttpRequest request = MockHttpRequest.post(path);
+    Optional.ofNullable(requestHeaders).ifPresent(headers -> headers.forEach(request::header));
     request.accept(MediaType.APPLICATION_JSON);
     request.contentType(MediaType.APPLICATION_JSON_TYPE);
     request.content(requestBody.getBytes());
-
-    MockHttpResponse response = new MockHttpResponse();
-    SynchronousExecutionContext synchronousExecutionContext = new SynchronousExecutionContext(
-      (SynchronousDispatcher) dispatcher, request, response);
-    request.setAsynchronousContext(synchronousExecutionContext);
-    return sendHttpRequest(request, response);
+    return sendRequest(request);
   }
 
-  public MockHttpResponse sendPut(String path, String requestBody, Map<String, String> requestHeaders)
+  public MockHttpResponse put(String path, String requestBody, Map<String, String> requestHeaders)
     throws URISyntaxException {
     MockHttpRequest request = MockHttpRequest.put(path);
+    Optional.ofNullable(requestHeaders).ifPresent(headers -> headers.forEach(request::header));
     request.accept(MediaType.APPLICATION_JSON);
     request.contentType(MediaType.APPLICATION_JSON_TYPE);
     request.content(requestBody.getBytes());
+    return sendRequest(request);
+  }
+
+
+  public MockHttpResponse delete(String path, @Nullable String userToken) throws URISyntaxException {
+    MockHttpRequest request = MockHttpRequest.delete(path).cookie("ZM_AUTH_TOKEN", userToken);
+    return sendRequest(request);
+  }
+
+  private MockHttpResponse sendRequest(MockHttpRequest request) {
     MockHttpResponse response = new MockHttpResponse();
     SynchronousExecutionContext synchronousExecutionContext = new SynchronousExecutionContext(
       (SynchronousDispatcher) dispatcher, request, response);
     request.setAsynchronousContext(synchronousExecutionContext);
-    return sendHttpRequest(request, response);
-  }
-
-  public MockHttpResponse sendDelete(String path) throws URISyntaxException {
-    MockHttpRequest request = MockHttpRequest.delete(path);
-    MockHttpResponse response = new MockHttpResponse();
-    SynchronousExecutionContext synchronousExecutionContext = new SynchronousExecutionContext(
-      (SynchronousDispatcher) dispatcher, request, response);
-    request.setAsynchronousContext(synchronousExecutionContext);
-    return sendHttpRequest(request, response);
-  }
-
-  private MockHttpResponse sendHttpRequest(MockHttpRequest request, MockHttpResponse response)
-    throws URISyntaxException {
     dispatcher.invoke(request, response);
     return response;
   }

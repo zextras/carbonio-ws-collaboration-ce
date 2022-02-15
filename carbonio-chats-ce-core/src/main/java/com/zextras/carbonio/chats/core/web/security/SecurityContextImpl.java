@@ -18,7 +18,7 @@ public class SecurityContextImpl implements SecurityContext {
 
   @Override
   public Principal getUserPrincipal() {
-    return principal;
+    return principal.getName() != null ? principal : null;
   }
 
   @Override
@@ -28,7 +28,7 @@ public class SecurityContextImpl implements SecurityContext {
 
   @Override
   public boolean isSecure() {
-    return principal.getName() != null;
+    return false;
   }
 
   @Override

@@ -5,22 +5,22 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
 import com.zextras.carbonio.chats.core.data.builder.IdDtoBuilder;
+import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.event.AttachmentAddedEvent;
 import com.zextras.carbonio.chats.core.data.event.AttachmentRemovedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
+import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
+import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
+import com.zextras.carbonio.chats.core.service.AttachmentService;
+import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.IdDto;
-import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
-import com.zextras.carbonio.chats.core.service.AttachmentService;
-import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
-import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
-import com.zextras.carbonio.chats.core.service.RoomService;
 import io.ebean.annotation.Transactional;
 import java.io.File;
 import java.util.UUID;
@@ -31,9 +31,9 @@ import javax.inject.Singleton;
 public class AttachmentServiceImpl implements AttachmentService {
 
   private final FileMetadataRepository fileMetadataRepository;
-  private final AttachmentMapper attachmentMapper;
-  private final StoragesService  storagesService;
-  private final RoomService      roomService;
+  private final AttachmentMapper       attachmentMapper;
+  private final StoragesService        storagesService;
+  private final RoomService            roomService;
   private final EventDispatcher        eventDispatcher;
 
   @Inject

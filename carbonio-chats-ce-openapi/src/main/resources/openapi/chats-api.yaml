@@ -342,7 +342,7 @@ paths:
     get:
       tags:
         - Attachments
-      summary: Retrieves the prefiew of an uploaded attachment
+      summary: Retrieves the preview of an uploaded attachment
       operationId: getAttachmentPreview
       parameters:
         - $ref: '#/components/parameters/pathFileId'

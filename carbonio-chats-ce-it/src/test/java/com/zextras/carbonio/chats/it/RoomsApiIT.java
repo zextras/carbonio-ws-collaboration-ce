@@ -58,7 +58,7 @@ public class RoomsApiIT {
     roomRepository.insert(room1);
     roomRepository.insert(room2);
 
-    MockHttpResponse response = dispatcher.sendGet("/rooms", user1Id.toString());
+    MockHttpResponse response = dispatcher.get("/rooms", user1Id.toString());
     assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
     List<RoomDto> rooms = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
     });
@@ -77,13 +77,13 @@ public class RoomsApiIT {
     fileMetadataRepository.save(
       FileMetadata.create()
         .id(roomId.toString())
-        .name("carbonio-for-public-administration.jpg")
+        .name("test-1.jpg")
         .originalSize(37863L)
         .mimeType("image/jpg")
         .type(FileMetadataType.ROOM_AVATAR)
         .userId(user1Id.toString())
         .roomId(roomId.toString()));
-    MockHttpResponse response = dispatcher.sendGet(String.format("/rooms/%s/picture", roomId), "332a9527-3388-4207-be77-6d7e2978a723");
+    MockHttpResponse response = dispatcher.get(String.format("/rooms/%s/picture", roomId), "332a9527-3388-4207-be77-6d7e2978a723");
     assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
   }
 
