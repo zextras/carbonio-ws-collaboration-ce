@@ -29,6 +29,9 @@ public class DatabaseExtension implements AfterAllCallback, BeforeAllCallback, A
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
+    if (ExtensionUtils.isNestedClass(context)) {
+      return;
+    }
     Instant startTime = Instant.now();
     ChatsLogger.debug("Starting test DB...");
     PostgreSQLContainer<?> database = new PostgreSQLContainer<>("postgres:14")
@@ -73,6 +76,9 @@ public class DatabaseExtension implements AfterAllCallback, BeforeAllCallback, A
 
   @Override
   public void afterAll(ExtensionContext context) throws Exception {
+    if (ExtensionUtils.isNestedClass(context)) {
+      return;
+    }
     ChatsLogger.debug("Closing test db...");
     Optional.ofNullable(context.getStore(EXTENSION_NAMESPACE).get(DATABASE_STORE_ENTRY))
       .map(objectDatabase -> (PostgreSQLContainer<?>) objectDatabase)

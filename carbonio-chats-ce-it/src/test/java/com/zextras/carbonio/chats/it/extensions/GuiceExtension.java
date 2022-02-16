@@ -21,6 +21,9 @@ public class GuiceExtension implements ParameterResolver, BeforeAllCallback {
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
+    if (ExtensionUtils.isNestedClass(context)) {
+      return;
+    }
     context.getStore(EXTENSION_NAMESPACE).put(GUICE_STORE_ENTRY,
       Guice.createInjector(Modules.override(new CoreModule()).with(new TestModule())));
   }

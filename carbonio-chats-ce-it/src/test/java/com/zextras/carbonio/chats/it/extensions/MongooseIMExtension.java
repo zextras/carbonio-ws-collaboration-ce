@@ -27,6 +27,9 @@ public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback,
 
   @Override
   public void beforeAll(ExtensionContext context) {
+    if (ExtensionUtils.isNestedClass(context)) {
+      return;
+    }
     Instant startTime = Instant.now();
     ChatsLogger.debug("Starting MongooseIM Mockserver...");
     MockServer mockServer = new MockServer(PORT);
@@ -48,6 +51,9 @@ public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback,
 
   @Override
   public void afterAll(ExtensionContext context) {
+    if (ExtensionUtils.isNestedClass(context)) {
+      return;
+    }
     Optional.ofNullable(context.getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
       .map(objectMockClient -> (MongooseImMockServer) objectMockClient)
       .ifPresent(client -> {

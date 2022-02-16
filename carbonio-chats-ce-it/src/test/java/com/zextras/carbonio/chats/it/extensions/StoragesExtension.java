@@ -35,6 +35,9 @@ public class StoragesExtension implements AfterAllCallback, BeforeAllCallback, P
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
+    if (ExtensionUtils.isNestedClass(context)) {
+      return;
+    }
     Instant startTime = Instant.now();
     ChatsLogger.debug("Starting Storages MockServer...");
     ClientAndServer mockServer = ClientAndServer.startClientAndServer(SERVER_PORT);
@@ -51,6 +54,9 @@ public class StoragesExtension implements AfterAllCallback, BeforeAllCallback, P
 
   @Override
   public void afterAll(ExtensionContext context) throws Exception {
+    if (ExtensionUtils.isNestedClass(context)) {
+      return;
+    }
     Optional.ofNullable(context.getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
       .map(objectMockClient -> (MockServerClient) objectMockClient)
       .ifPresent(client -> {

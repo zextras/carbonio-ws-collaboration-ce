@@ -44,6 +44,9 @@ public class UserManagementExtension implements AfterAllCallback, BeforeAllCallb
 
   @Override
   public void beforeAll(ExtensionContext context) throws Exception {
+    if (ExtensionUtils.isNestedClass(context)) {
+      return;
+    }
     Instant startTime = Instant.now();
     ChatsLogger.debug("Starting User Management MockServer...");
     MockServer mockServer = new MockServer(SERVER_PORT);
@@ -60,6 +63,9 @@ public class UserManagementExtension implements AfterAllCallback, BeforeAllCallb
 
   @Override
   public void afterAll(ExtensionContext context) throws Exception {
+    if (ExtensionUtils.isNestedClass(context)) {
+      return;
+    }
     Optional.ofNullable(context.getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
       .map(objectMockClient -> (MockServerClient) objectMockClient)
       .ifPresent(client -> {
