@@ -18,7 +18,7 @@ import javax.inject.Inject;
 
 public class IntegrationTestUtils {
 
-  private final RoomRepository         roomRepository;
+  private final RoomRepository roomRepository;
   private final FileMetadataRepository fileMetadataRepository;
 
   @Inject
@@ -57,10 +57,12 @@ public class IntegrationTestUtils {
         .roomId(roomId.toString()));
   }
 
-  public FileMetadata generateAndSaveFileMetadata(FileMock fileMock, FileMetadataType fileType, UUID userId, UUID roomId) {
+  public FileMetadata generateAndSaveFileMetadata(
+    FileMock fileMock, FileMetadataType fileType, UUID userId, UUID roomId
+  ) {
     return fileMetadataRepository.save(
       FileMetadata.create()
-        .id(fileMock.getId())
+        .id(fileMock.getId().toString())
         .name(fileMock.getName())
         .originalSize(fileMock.getSize())
         .mimeType(fileMock.getMimeType())

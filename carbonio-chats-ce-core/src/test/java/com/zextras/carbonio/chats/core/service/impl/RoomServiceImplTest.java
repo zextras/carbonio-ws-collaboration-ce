@@ -24,10 +24,12 @@ import com.zextras.carbonio.chats.core.data.event.RoomCreatedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomDeletedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomHashResetEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomUpdatedEvent;
+import com.zextras.carbonio.chats.core.data.model.Account;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
+import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -37,9 +39,7 @@ import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
-import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.core.data.model.Account;
 import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDtoBuilder;
@@ -71,8 +71,8 @@ class RoomServiceImplTest {
   private final MessageDispatcher          messageDispatcher;
   private final AccountService             accountService;
   private final MembersService             membersService;
-  private final FileMetadataRepository fileMetadataRepository;
-  private final StoragesService        storagesService;
+  private final FileMetadataRepository     fileMetadataRepository;
+  private final StoragesService            storagesService;
 
   public RoomServiceImplTest(RoomMapper roomMapper) {
     this.roomRepository = mock(RoomRepository.class);
@@ -223,7 +223,8 @@ class RoomServiceImplTest {
       roomService.getRoomById(room3Id, UserPrincipal.create(user1Id)));
 
     assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
-    assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, room3Id), exception.getMessage());
+    assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, room3Id),
+      exception.getMessage());
   }
 
   @Test
@@ -234,7 +235,8 @@ class RoomServiceImplTest {
       .thenReturn(Optional.of(Account.create(user2Id)));
     when(accountService.getByUUID(user3Id, mockUserPrincipal))
       .thenReturn(Optional.of(Account.create(user3Id)));
-    when(membersService.initRoomSubscriptions(eq(Arrays.asList(user2Id, user3Id)), any(Room.class), eq(mockUserPrincipal)))
+    when(
+      membersService.initRoomSubscriptions(eq(Arrays.asList(user2Id, user3Id)), any(Room.class), eq(mockUserPrincipal)))
       .thenReturn(Stream.of(user2Id, user3Id, user1Id).map(userId ->
         Subscription.create(room1, userId.toString())
       ).collect(Collectors.toList()));
@@ -255,7 +257,8 @@ class RoomServiceImplTest {
     assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user1Id)));
     assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user2Id)));
     assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user3Id)));
-    assertTrue(room.getMembers().stream().filter(member -> member.getUserId().equals(user1Id)).findAny().get().isOwner());
+    assertTrue(
+      room.getMembers().stream().filter(member -> member.getUserId().equals(user1Id)).findAny().get().isOwner());
 
     verify(eventDispatcher, times(1)).sendToQueue(eq(user1Id), eq(user1Id.toString()),
       eq(RoomCreatedEvent.create(room1Id).from(user1Id)));
@@ -285,6 +288,22 @@ class RoomServiceImplTest {
   }
 
   @Test
+  @DisplayName("Given creation fields, if there is current user into invites list throws a 'bad request' exception")
+  public void createRoom_testRoomToCreateWithInvitedUsersListContainsCurrentUser() {
+    RoomCreationFieldsDto creationFields = RoomCreationFieldsDtoBuilder.create()
+      .name("room1")
+      .description("Room one")
+      .type(RoomTypeDto.GROUP)
+      .addMemberId(user1Id)
+      .addMemberId(user2Id)
+      .build();
+    ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+      roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
+    assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+    assertEquals("Bad Request - Invited members list cannot has the current user", exception.getMessage());
+  }
+
+  @Test
   @DisplayName("Given creation fields, if there is an invitee without account then throws a 'not found' exception")
   public void createRoom_testInvitedUserWithoutAccount() {
     UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
@@ -308,11 +327,13 @@ class RoomServiceImplTest {
   @Test
   @DisplayName("Given update fields for a room, correctly updates the room")
   public void updateRoom_testOk() {
-    when(this.roomRepository.getById(room1Id.toString())).thenReturn(Optional.of(room1.name("room1-changed").description("Room one changed")));
+    when(this.roomRepository.getById(room1Id.toString())).thenReturn(
+      Optional.of(room1.name("room1-changed").description("Room one changed")));
     when(this.roomUserSettingsRepository.getByRoomIdAndUserId(room1Id.toString(), user1Id.toString()))
       .thenReturn(Optional.of(RoomUserSettings.create(room1, user1Id.toString()).mutedUntil(OffsetDateTime.now())));
 
-    RoomEditableFieldsDto roomEditableFieldsDto = RoomEditableFieldsDtoBuilder.create().name("room1-changed").description("Room one changed").build();
+    RoomEditableFieldsDto roomEditableFieldsDto = RoomEditableFieldsDtoBuilder.create().name("room1-changed")
+      .description("Room one changed").build();
     RoomDto room = roomService.updateRoom(room1Id, roomEditableFieldsDto, UserPrincipal.create(user1Id));
 
     assertEquals(room1Id, room.getId());
@@ -350,13 +371,15 @@ class RoomServiceImplTest {
         UserPrincipal.create(user1Id)));
 
     assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
-    assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, room3Id), exception.getMessage());
+    assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, room3Id),
+      exception.getMessage());
   }
 
   @Test
   @DisplayName("Given update fields for a room, if the authenticated user isn't owner of required room than throws a 'forbidden' exception")
   public void updateRoom_testAuthenticatedUserIsNotARoomOwner() {
-    when(this.roomRepository.getById(room1Id.toString())).thenReturn(Optional.of(room1.name("room1-changed").description("Room one changed")));
+    when(this.roomRepository.getById(room1Id.toString())).thenReturn(
+      Optional.of(room1.name("room1-changed").description("Room one changed")));
 
     ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
       roomService.updateRoom(room1Id,
@@ -364,7 +387,8 @@ class RoomServiceImplTest {
         UserPrincipal.create(user2Id)));
 
     assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
-    assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, room1Id), exception.getMessage());
+    assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, room1Id),
+      exception.getMessage());
   }
 
   @Test
@@ -400,7 +424,8 @@ class RoomServiceImplTest {
       roomService.deleteRoom(room3Id, UserPrincipal.create(user1Id)));
 
     assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
-    assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, room3Id), exception.getMessage());
+    assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, room3Id),
+      exception.getMessage());
   }
 
   @Test
@@ -412,7 +437,8 @@ class RoomServiceImplTest {
       roomService.deleteRoom(room1Id, UserPrincipal.create(user2Id)));
 
     assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
-    assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, room1Id), exception.getMessage());
+    assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, room1Id),
+      exception.getMessage());
   }
 
   @Test
@@ -451,7 +477,8 @@ class RoomServiceImplTest {
       roomService.resetRoomHash(room3Id, UserPrincipal.create(user1Id)));
 
     assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
-    assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, room3Id), exception.getMessage());
+    assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, room3Id),
+      exception.getMessage());
   }
 
   @Test
@@ -463,7 +490,8 @@ class RoomServiceImplTest {
       roomService.resetRoomHash(room1Id, UserPrincipal.create(user2Id)));
 
     assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
-    assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, room1Id), exception.getMessage());
+    assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, room1Id),
+      exception.getMessage());
   }
 
   @Test
@@ -509,7 +537,8 @@ class RoomServiceImplTest {
       roomService.getRoomAndCheckUser(room3Id, UserPrincipal.create(user1Id), false));
 
     assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
-    assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, room3Id), exception.getMessage());
+    assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, room3Id),
+      exception.getMessage());
   }
 
   @Test
@@ -521,7 +550,8 @@ class RoomServiceImplTest {
       roomService.getRoomAndCheckUser(room1Id, UserPrincipal.create(user2Id), true));
 
     assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
-    assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, room1Id), exception.getMessage());
+    assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, room1Id),
+      exception.getMessage());
   }
 
   @Test

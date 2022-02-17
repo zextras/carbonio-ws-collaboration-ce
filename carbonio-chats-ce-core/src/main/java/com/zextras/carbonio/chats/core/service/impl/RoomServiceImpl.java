@@ -19,6 +19,7 @@ import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
+import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -30,7 +31,6 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.Messages;
 import com.zextras.carbonio.chats.core.utils.Utils;
-import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
@@ -57,8 +57,8 @@ public class RoomServiceImpl implements RoomService {
   private final MessageDispatcher          messageDispatcher;
   private final AccountService             accountService;
   private final MembersService             membersService;
-  private final FileMetadataRepository fileMetadataRepository;
-  private final StoragesService        storagesService;
+  private final FileMetadataRepository     fileMetadataRepository;
+  private final StoragesService            storagesService;
 
   @Inject
   public RoomServiceImpl(
@@ -102,9 +102,14 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public RoomInfoDto createRoom(RoomCreationFieldsDto insertRoomRequestDto, UserPrincipal currentUser) {
-    // check for duplicates
+    // check if invited members list has duplicates
     if (insertRoomRequestDto.getMembersIds().size() != new HashSet<>(insertRoomRequestDto.getMembersIds()).size()) {
       throw new BadRequestException("Members cannot be duplicated");
+    }
+    // check if invited members list has the current user
+    if (insertRoomRequestDto.getMembersIds().stream()
+      .anyMatch(memberId -> memberId.toString().equals(currentUser.getId()))) {
+      throw new BadRequestException("Requester can't be invited to the room");
     }
     // check the users existence
     insertRoomRequestDto.getMembersIds()
@@ -121,7 +126,8 @@ public class RoomServiceImpl implements RoomService {
       .domain(null)
       .type(insertRoomRequestDto.getType())
       .password(generateRoomPassword());
-    room.setSubscriptions(membersService.initRoomSubscriptions(insertRoomRequestDto.getMembersIds(), room, currentUser));
+    room.setSubscriptions(
+      membersService.initRoomSubscriptions(insertRoomRequestDto.getMembersIds(), room, currentUser));
     // persist room
     room = roomRepository.insert(room);
 
@@ -242,7 +248,8 @@ public class RoomServiceImpl implements RoomService {
       throw new BadRequestException("The room picture can only be set to group type rooms");
     }
     if ((ChatsConstant.MAX_ROOM_IMAGE_SIZE_IN_KB * 1024) < image.length()) {
-      throw new BadRequestException(String.format("The room picture cannot be greater than %d KB", ChatsConstant.MAX_ROOM_IMAGE_SIZE_IN_KB));
+      throw new BadRequestException(
+        String.format("The room picture cannot be greater than %d KB", ChatsConstant.MAX_ROOM_IMAGE_SIZE_IN_KB));
     }
     if (!mimeType.startsWith("image/")) {
       throw new BadRequestException("The room picture must be an image");

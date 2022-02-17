@@ -3,25 +3,34 @@ package com.zextras.carbonio.chats.it.Utils;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class MockedFiles {
 
   private static final List<FileMock> mockedFiles = List.of(
-    FileMock.create().id("a6b89d72-dd02-438e-8fcd-4a6639c26269").size(37863L).mimeType("image/jpg").name("test-1.jpg")
+    FileMock.create().id(UUID.randomUUID()).size(33786L).mimeType("image/jpg").name("peanuts.jpg"),
+    FileMock.create().id(UUID.randomUUID()).size(13885L).mimeType("image/jpg").name("snoopy.jpg")
   );
 
   public static List<FileMock> getMockedFiles() {
     return mockedFiles;
   }
 
-  public static FileMock getImages() {
-    return mockedFiles.stream().filter(file -> file.mimeType.startsWith("image/")).findFirst().orElse(null);
+  public static FileMock getRandomFile() {
+    return mockedFiles.get(new Random().nextInt(Integer.MAX_VALUE) % mockedFiles.size());
   }
 
+  public static FileMock getRandomImage() {
+    List<FileMock> fileMocks = mockedFiles.stream().filter(file -> file.mimeType.startsWith("image/"))
+      .collect(Collectors.toList());
+    return fileMocks.get(new Random().nextInt(Integer.MAX_VALUE) % fileMocks.size());
+  }
 
   public static class FileMock {
 
-    private String id;
+    private UUID   id;
     private long   size;
     private String mimeType;
     private String name;
@@ -31,10 +40,14 @@ public class MockedFiles {
     }
 
     public String getId() {
+      return id.toString();
+    }
+
+    public UUID getUUID() {
       return id;
     }
 
-    public FileMock id(String id) {
+    public FileMock id(UUID id) {
       this.id = id;
       return this;
     }
