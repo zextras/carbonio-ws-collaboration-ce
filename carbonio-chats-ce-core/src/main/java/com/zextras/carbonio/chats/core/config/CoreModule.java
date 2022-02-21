@@ -19,11 +19,9 @@ import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
-import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
-import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandler;
-import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
-import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHandler;
-import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
+import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
+import com.zextras.carbonio.chats.core.infrastructure.account.impl.AccountServiceImpl;
+import com.zextras.carbonio.chats.core.infrastructure.account.impl.FakeAccountServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -62,10 +60,12 @@ import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
-import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
+import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
-import com.zextras.carbonio.chats.core.infrastructure.account.impl.AccountServiceImpl;
-import com.zextras.carbonio.chats.core.infrastructure.account.impl.FakeAccountServiceImpl;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.ApiClient;
@@ -75,6 +75,8 @@ import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.config.DatabaseConfig;
+import java.time.Clock;
+import java.time.ZoneId;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
@@ -88,7 +90,6 @@ public class CoreModule extends AbstractModule {
     bind(JacksonConfig.class);
 
     bind(EventDispatcher.class).to(MockEventDispatcherImpl.class);
-
     bind(AuthenticationFilter.class);
 
     bind(RoomsApi.class);
@@ -131,6 +132,12 @@ public class CoreModule extends AbstractModule {
     bind(ClientErrorExceptionHandler.class);
     bind(JsonProcessingExceptionHandler.class);
     bind(DefaultExceptionHandler.class);
+  }
+
+  @Singleton
+  @Provides
+  private Clock getClock() {
+    return Clock.system(ZoneId.systemDefault());
   }
 
   @Singleton
@@ -187,9 +194,10 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  public Database getDatabase(AppConfig appConfig) {
+  public Database getDatabase(AppConfig appConfig, Clock clock) {
     DatabaseConfig databaseConfig = new DatabaseConfig();
     databaseConfig.setDataSource(getHikariDataSource(appConfig));
+    databaseConfig.setClock(clock);
     return DatabaseFactory.create(databaseConfig);
   }
 

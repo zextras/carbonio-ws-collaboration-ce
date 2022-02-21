@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.web.api;
 
+import com.zextras.carbonio.chats.api.NotFoundException;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -102,7 +103,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response updateRoomPicture(UUID roomId, String xContentDisposition, File body, SecurityContext securityContext) {
+  public Response updateRoomPicture(
+    UUID roomId, String xContentDisposition, File body, SecurityContext securityContext
+  ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     roomService.setRoomPicture(roomId, body,
@@ -184,7 +187,16 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response insertAttachment(UUID roomId, String xContentDisposition, File body, SecurityContext securityContext) {
+  public Response listRoomAttachmentInfo(UUID roomId, SecurityContext securityContext) throws NotFoundException {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    return Response.status(Status.OK).entity(attachmentService.getAttachmentInfoByRoomId(roomId, currentUser)).build();
+  }
+
+  @Override
+  public Response insertAttachment(
+    UUID roomId, String xContentDisposition, File body, SecurityContext securityContext
+  ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response

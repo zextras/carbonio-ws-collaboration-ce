@@ -9,6 +9,7 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.IdDto;
 import java.io.File;
+import java.util.List;
 import java.util.UUID;
 
 public interface AttachmentService {
@@ -26,16 +27,25 @@ public interface AttachmentService {
    * Retrieves the preview of an uploaded attachment
    *
    * @param fileId      file identifier {@link UUID}
-   * @param currentUser security context {@link UserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    * @return The requested file preview {@link File}
    **/
   FileContentAndMetadata getAttachmentPreviewById(UUID fileId, UserPrincipal currentUser);
 
   /**
+   * Retrieves metadata of every attachment uploaded to the room
+   *
+   * @param roomId      room identifier {@link UUID}
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   * @return All metadata list f the requested room
+   */
+  List<AttachmentDto> getAttachmentInfoByRoomId(UUID roomId, UserPrincipal currentUser);
+
+  /**
    * Retrieves info related to an uploaded attachment
    *
    * @param fileId      file identifier {@link UUID}
-   * @param currentUser security context {@link UserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    * @return Attachment information {@link AttachmentDto}
    **/
   AttachmentDto getAttachmentInfoById(UUID fileId, UserPrincipal currentUser);

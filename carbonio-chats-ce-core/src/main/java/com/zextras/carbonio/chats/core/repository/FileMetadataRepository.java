@@ -6,8 +6,11 @@ package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import com.zextras.carbonio.chats.core.data.type.OrderDirection;
 import java.util.List;
 import java.util.Optional;
+import javax.annotation.Nullable;
+import javax.swing.SortOrder;
 
 public interface FileMetadataRepository {
 
@@ -24,9 +27,10 @@ public interface FileMetadataRepository {
    *
    * @param roomId room identifier
    * @param type   file metadata type {@link FileMetadataType}
+   * @param order  if present, sets the result order by creation date {@link SortOrder}
    * @return The required file metadata list {@link FileMetadata}
    */
-  List<FileMetadata> getByRoomIdAndType(String roomId, FileMetadataType type);
+  List<FileMetadata> getByRoomIdAndType(String roomId, FileMetadataType type, @Nullable OrderDirection orderDirection);
 
   /**
    * Saves a new file metadata entity

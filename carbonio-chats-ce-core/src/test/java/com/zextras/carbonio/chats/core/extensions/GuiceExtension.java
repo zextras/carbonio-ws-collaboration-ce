@@ -4,6 +4,8 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.TypeLiteral;
+import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
+import com.zextras.carbonio.chats.core.mapper.AttachmentMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.mapper.RoomMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.RoomUserSettingsMapper;
@@ -33,6 +35,7 @@ public class GuiceExtension implements ParameterResolver, BeforeAllCallback {
             bind(RoomMapper.class).to(RoomMapperImpl.class);
             bind(SubscriptionMapper.class).to(SubscriptionMapperImpl.class);
             bind(RoomUserSettingsMapper.class).to(RoomUserSettingsMapperImpl.class);
+            bind(AttachmentMapper.class).to(AttachmentMapperImpl.class);
           }
         })
       );

@@ -300,7 +300,7 @@ class RoomServiceImplTest {
     ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
       roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
     assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
-    assertEquals("Bad Request - Invited members list cannot has the current user", exception.getMessage());
+    assertEquals("Bad Request - Requester can't be invited to the room", exception.getMessage());
   }
 
   @Test

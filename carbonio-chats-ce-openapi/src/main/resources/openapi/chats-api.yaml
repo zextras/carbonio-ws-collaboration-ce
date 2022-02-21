@@ -281,8 +281,26 @@ paths:
         404:
           $ref: '#/components/responses/404NotFoundResponse'
   /rooms/{roomId}/attachments:
+    get:
+      tags:
+        - Rooms
+        - Attachments
+      summary: Retrives metadata of every attachment uploaded to the room
+      operationId: listRoomAttachmentInfo
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+      responses:
+        200:
+          $ref: '#/components/responses/200ListRoomAttachmentInfoResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
     post:
       tags:
+        - Rooms
         - Attachments
       summary: Insert an attachment
       operationId: insertAttachment
@@ -520,6 +538,14 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Id'
+    200ListRoomAttachmentInfoResponse:
+      description: Metadata list of every attachment uploaded to the room
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Attachment'
     204DeleteAttachmentResponse:
       description: The file was deleted correctly
     200GetAttachmentInfoResponse:
@@ -542,6 +568,8 @@ components:
           schema:
             type: string
             format: binary
+    401UnauthorizedResponse:
+      description: User not authorized
     404NotFoundResponse:
       description: The requested resource was not found
     403ForbiddenResponse:
@@ -773,4 +801,9 @@ components:
           format: uuid
           readOnly: true
           description: identifier of destination room
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: creation date
       required: [ id, name, size, mimeType, userId, roomId ]

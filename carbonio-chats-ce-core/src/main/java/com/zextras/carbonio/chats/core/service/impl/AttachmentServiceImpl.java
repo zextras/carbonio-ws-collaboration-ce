@@ -11,6 +11,7 @@ import com.zextras.carbonio.chats.core.data.event.AttachmentAddedEvent;
 import com.zextras.carbonio.chats.core.data.event.AttachmentRemovedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import com.zextras.carbonio.chats.core.data.type.OrderDirection;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -23,9 +24,12 @@ import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.IdDto;
 import io.ebean.annotation.Transactional;
 import java.io.File;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.swing.SortOrder;
 
 @Singleton
 public class AttachmentServiceImpl implements AttachmentService {
@@ -66,6 +70,17 @@ public class AttachmentServiceImpl implements AttachmentService {
   public FileContentAndMetadata getAttachmentPreviewById(UUID fileId, UserPrincipal currentUser) {
     // TODO: 07/01/22 momentarily returns the original file
     return getAttachmentById(fileId, currentUser);
+  }
+
+  @Override
+  @Transactional
+  public List<AttachmentDto> getAttachmentInfoByRoomId(UUID roomId, UserPrincipal currentUser) {
+    // checks if current user is a member of the attachment room
+    roomService.getRoomAndCheckUser(roomId, currentUser, false);
+    // gets file metadata list
+    List<FileMetadata> metadataList = fileMetadataRepository.getByRoomIdAndType(roomId.toString(),
+      FileMetadataType.ATTACHMENT, OrderDirection.DESC);
+    return attachmentMapper.ent2dto(metadataList);
   }
 
   @Override
