@@ -40,12 +40,12 @@ package() {
   install -Dm 644 "${srcdir}/carbonio-chats.service" \
     "${pkgdir}/lib/systemd/system/carbonio-chats.service"
   install -Dm 644 "${srcdir}/carbonio-chats.hcl" \
-    "${pkgdir}/etc/zextras/service-discover/carbonio-chats.hcl"
+    "${pkgdir}/etc/carbonio/service-discover/carbonio-chats.hcl"
   install -Dm 755 "${srcdir}/carbonio-chats.sh" \
     "${pkgdir}/usr/bin/carbonio/chats/carbonio-chats"
   install -Dm 644 "${srcdir}/carbonio-chats-sidecar.service" \
     "${pkgdir}/lib/systemd/system/carbonio-chats-sidecar.service"
-  mkdir -pm 0755 "${pkgdir}/etc/zextras/carbonio-chats"
+  mkdir -pm 0755 "${pkgdir}/etc/carbonio/carbonio-chats"
   install -Dm 644 ./.env.package \
       "${pkgdir}/etc/carbonio/chats/chatsenv"
 }
@@ -84,7 +84,7 @@ prerm() {
 }
 
 postrm() {
-  rm -rf "/etc/zextras/carbonio-chats/"
+  rm -rf "/etc/carbonio/carbonio-chats/"
   if [ -d /run/systemd/system ]; then
     systemctl daemon-reload >/dev/null 2>&1 || :
   fi
