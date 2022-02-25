@@ -161,7 +161,7 @@ public class MembersServiceImpl implements MembersService {
         .id(new SubscriptionId(room.getId(), userId.toString()))
         .userId(userId.toString())
         .room(room)
-        .owner(false)
+        .owner(RoomTypeDto.ONE_TO_ONE.equals(room.getType())) //When we have a one to one, both members are owners
         .temporary(false)
         .external(false)
         .joinedAt(OffsetDateTime.now())
