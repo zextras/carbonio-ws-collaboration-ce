@@ -5,7 +5,6 @@ import static org.mockserver.model.HttpRequest.request;
 import java.util.concurrent.CompletableFuture;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.ClearType;
-import org.mockserver.model.Header;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.verify.VerificationTimes;
 
@@ -28,22 +27,10 @@ public class StorageMockServer extends MockServerClient {
       .withMethod(method)
       .withPath(path)
       .withQueryStringParameter("node", node)
-      .withQueryStringParameter("type", "chats")
-      .withHeaders(
-        Header.header("content-length", "0"),
-        Header.header("Connection", "Keep-Alive"),
-        Header.header("User-Agent", "okhttp/3.14.9"),
-        Header.header("Host", getHost()),
-        Header.header("Accept-Encoding", "gzip")
-      )
-      .withKeepAlive(true)
-      .withSecure(false);
+      .withQueryStringParameter("type", "chats");
+
     verify(request, VerificationTimes.exactly(iterationsNumber));
     clear(request, ClearType.ALL);
-  }
-
-  private String getHost() {
-    return String.join(":", remoteAddress().getHostName(), Integer.toString(remoteAddress().getPort()));
   }
 
 }

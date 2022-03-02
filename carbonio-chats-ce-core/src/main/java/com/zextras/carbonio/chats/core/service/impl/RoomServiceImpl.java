@@ -247,7 +247,7 @@ public class RoomServiceImpl implements RoomService {
     if (!RoomTypeDto.GROUP.equals(room.getType())) {
       throw new BadRequestException("The room picture can only be set to group type rooms");
     }
-    if ((ChatsConstant.MAX_ROOM_IMAGE_SIZE_IN_KB * 1024) < image.length()) {
+    if (image.length() > ChatsConstant.MAX_ROOM_IMAGE_SIZE_IN_KB * 1024) {
       throw new BadRequestException(
         String.format("The room picture cannot be greater than %d KB", ChatsConstant.MAX_ROOM_IMAGE_SIZE_IN_KB));
     }

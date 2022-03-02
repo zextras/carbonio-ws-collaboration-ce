@@ -62,6 +62,7 @@ import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
@@ -132,6 +133,7 @@ public class CoreModule extends AbstractModule {
     bind(ClientErrorExceptionHandler.class);
     bind(JsonProcessingExceptionHandler.class);
     bind(DefaultExceptionHandler.class);
+    bind(ValidationExceptionHandler.class);
   }
 
   @Singleton

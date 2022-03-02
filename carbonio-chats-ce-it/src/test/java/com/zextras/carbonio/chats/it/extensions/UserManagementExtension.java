@@ -3,8 +3,6 @@ package com.zextras.carbonio.chats.it.extensions;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockAccount;
@@ -13,7 +11,6 @@ import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.usermanagement.entities.UserId;
 import com.zextras.carbonio.usermanagement.entities.UserInfo;
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -25,7 +22,7 @@ import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.mockserver.client.MockServerClient;
-import org.mockserver.model.MediaType;
+import org.mockserver.model.JsonBody;
 import org.mockserver.netty.MockServer;
 
 public class UserManagementExtension implements AfterAllCallback, BeforeAllCallback, ParameterResolver {
@@ -36,14 +33,8 @@ public class UserManagementExtension implements AfterAllCallback, BeforeAllCallb
   private final static String    CLIENT_STORE_ENTRY  = "client";
   private final static String    SERVER_STORE_ENTRY  = "server";
 
-  private final ObjectMapper objectMapper;
-
-  public UserManagementExtension() {
-    this.objectMapper = new ObjectMapper();
-  }
-
   @Override
-  public void beforeAll(ExtensionContext context) throws Exception {
+  public void beforeAll(ExtensionContext context) {
     if (ExtensionUtils.isNestedClass(context)) {
       return;
     }
@@ -58,11 +49,12 @@ public class UserManagementExtension implements AfterAllCallback, BeforeAllCallb
     context.getStore(EXTENSION_NAMESPACE).put(CLIENT_STORE_ENTRY, client);
 
     InMemoryConfigStore.set("USER_MANAGEMENT_URL", String.format("http://%s:%d", SERVER_HOST, SERVER_PORT));
-    ChatsLogger.debug("User Management extension startup took " + TimeUtils.durationToString(Duration.between(startTime, Instant.now())));
+    ChatsLogger.debug("User Management extension startup took " + TimeUtils.durationToString(
+      Duration.between(startTime, Instant.now())));
   }
 
   @Override
-  public void afterAll(ExtensionContext context) throws Exception {
+  public void afterAll(ExtensionContext context) {
     if (ExtensionUtils.isNestedClass(context)) {
       return;
     }
@@ -99,16 +91,14 @@ public class UserManagementExtension implements AfterAllCallback, BeforeAllCallb
     }
   }
 
-  private void mockResponses(MockServerClient client) throws IOException {
+  private void mockResponses(MockServerClient client) {
     mockHealthCheck(client);
     for (MockAccount mockAccount : MockedAccount.getAccounts()) {
       mockValidateUserToken(client, new UserId(mockAccount.getId()), mockAccount.getToken());
-      UserInfo userInfo = new UserInfo(mockAccount.getId(), mockAccount.getEmail(), mockAccount.getName(), mockAccount.getDomain());
-      mockGetUserByUUID(client,
-        userInfo,
-        mockAccount.getId()
-      );
-      mockGetUserByEmail(client, userInfo, mockAccount.getEmail());
+      UserInfo userInfo = new UserInfo(mockAccount.getId(), mockAccount.getEmail(), mockAccount.getName(),
+        mockAccount.getDomain());
+      mockGetUserByUUID(client, userInfo);
+      mockGetUserByEmail(client, userInfo);
     }
   }
 
@@ -123,7 +113,7 @@ public class UserManagementExtension implements AfterAllCallback, BeforeAllCallb
     );
   }
 
-  private void mockValidateUserToken(MockServerClient client, UserId userId, String carbonioUserToken) throws JsonProcessingException {
+  private void mockValidateUserToken(MockServerClient client, UserId userId, String carbonioUserToken) {
     client.when(
       request()
         .withMethod("GET")
@@ -131,33 +121,31 @@ public class UserManagementExtension implements AfterAllCallback, BeforeAllCallb
     ).respond(
       response()
         .withStatusCode(200)
-        .withBody(objectMapper.writeValueAsString(userId), MediaType.APPLICATION_JSON)
+        .withBody(JsonBody.json(userId))
     );
   }
 
-  private void mockGetUserByUUID(MockServerClient client, UserInfo userInfo, String cookie) throws JsonProcessingException {
+  private void mockGetUserByUUID(MockServerClient client, UserInfo userInfo) {
     client.when(
       request()
         .withMethod("GET")
         .withPath(String.format("/users/id/%s", userInfo.getId()))
-        .withHeader("Cookie", cookie)
     ).respond(
       response()
         .withStatusCode(200)
-        .withBody(objectMapper.writeValueAsString(userInfo), MediaType.APPLICATION_JSON)
+        .withBody(JsonBody.json(userInfo))
     );
   }
 
-  private void mockGetUserByEmail(MockServerClient client, UserInfo userInfo, String cookie) throws JsonProcessingException {
+  private void mockGetUserByEmail(MockServerClient client, UserInfo userInfo) {
     client.when(
       request()
         .withMethod("GET")
         .withPath(String.format("/users/email/%s", userInfo.getEmail()))
-        .withHeader("Cookie", cookie)
     ).respond(
       response()
         .withStatusCode(200)
-        .withBody(objectMapper.writeValueAsString(userInfo), MediaType.APPLICATION_JSON)
+        .withBody(JsonBody.json(userInfo))
     );
   }
 }

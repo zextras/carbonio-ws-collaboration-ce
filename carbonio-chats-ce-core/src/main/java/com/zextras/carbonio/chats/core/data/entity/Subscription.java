@@ -57,6 +57,7 @@ public class Subscription {
   private OffsetDateTime updatedAt;
 
   public Subscription() {
+    this.id = new SubscriptionId();
   }
 
   public Subscription(Room room, String userId) {

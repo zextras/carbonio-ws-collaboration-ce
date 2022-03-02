@@ -28,7 +28,7 @@ public class DatabaseExtension implements AfterAllCallback, BeforeAllCallback, A
   private final static String DATABASE_DRIVER   = "org.postgresql.Driver";
 
   @Override
-  public void beforeAll(ExtensionContext context) throws Exception {
+  public void beforeAll(ExtensionContext context) {
     if (ExtensionUtils.isNestedClass(context)) {
       return;
     }
@@ -64,7 +64,7 @@ public class DatabaseExtension implements AfterAllCallback, BeforeAllCallback, A
   }
 
   @Override
-  public void afterEach(ExtensionContext extensionContext) throws Exception {
+  public void afterEach(ExtensionContext extensionContext) {
     Optional.ofNullable(extensionContext.getStore(EXTENSION_NAMESPACE).get(FLYWAY_STORE_ENTRY))
       .map(objectFlyway -> (Flyway) objectFlyway)
       .ifPresent(flyway -> {
@@ -75,7 +75,7 @@ public class DatabaseExtension implements AfterAllCallback, BeforeAllCallback, A
   }
 
   @Override
-  public void afterAll(ExtensionContext context) throws Exception {
+  public void afterAll(ExtensionContext context) {
     if (ExtensionUtils.isNestedClass(context)) {
       return;
     }

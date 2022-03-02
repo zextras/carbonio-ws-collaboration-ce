@@ -1,5 +1,6 @@
 package com.zextras.carbonio.chats.it.extensions;
 
+import static org.mockserver.model.BinaryBody.binary;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.Parameter.param;
@@ -10,6 +11,7 @@ import com.zextras.carbonio.chats.it.Utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.Utils.TimeUtils;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
+import com.zextras.storages.internal.pojo.Query;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
@@ -22,8 +24,8 @@ import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.mockserver.client.MockServerClient;
-import org.mockserver.integration.ClientAndServer;
-import org.mockserver.model.BinaryBody;
+import org.mockserver.model.JsonBody;
+import org.mockserver.netty.MockServer;
 
 public class StoragesExtension implements AfterAllCallback, BeforeAllCallback, ParameterResolver {
 
@@ -40,7 +42,7 @@ public class StoragesExtension implements AfterAllCallback, BeforeAllCallback, P
     }
     Instant startTime = Instant.now();
     ChatsLogger.debug("Starting Storages MockServer...");
-    ClientAndServer mockServer = ClientAndServer.startClientAndServer(SERVER_PORT);
+    MockServer mockServer = new MockServer(SERVER_PORT);
     context.getStore(EXTENSION_NAMESPACE).put(SERVER_STORE_ENTRY, mockServer);
 
     ChatsLogger.debug("Starting Storages mock...");
@@ -49,11 +51,12 @@ public class StoragesExtension implements AfterAllCallback, BeforeAllCallback, P
     context.getStore(EXTENSION_NAMESPACE).put(CLIENT_STORE_ENTRY, client);
 
     InMemoryConfigStore.set("STORAGES_URL", String.format("http://%s:%d", SERVER_HOST, SERVER_PORT));
-    ChatsLogger.debug("Storage extension startup took " + TimeUtils.durationToString(Duration.between(startTime, Instant.now())));
+    ChatsLogger.debug(
+      "Storage extension startup took " + TimeUtils.durationToString(Duration.between(startTime, Instant.now())));
   }
 
   @Override
-  public void afterAll(ExtensionContext context) throws Exception {
+  public void afterAll(ExtensionContext context) {
     if (ExtensionUtils.isNestedClass(context)) {
       return;
     }
@@ -64,10 +67,10 @@ public class StoragesExtension implements AfterAllCallback, BeforeAllCallback, P
         client.stop(true);
       });
     Optional.ofNullable(context.getStore(EXTENSION_NAMESPACE).get(SERVER_STORE_ENTRY))
-      .map(objectMockClient -> (ClientAndServer) objectMockClient)
+      .map(objectMockClient -> (MockServer) objectMockClient)
       .ifPresent(client -> {
         ChatsLogger.debug("Stopping MongooseIM Mockserver...");
-        client.stop(true);
+        client.stop();
       });
   }
 
@@ -79,7 +82,8 @@ public class StoragesExtension implements AfterAllCallback, BeforeAllCallback, P
   }
 
   @Override
-  public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
+  public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
+    throws ParameterResolutionException {
     if (parameterContext.getParameter().getType().equals(StorageMockServer.class)) {
       return Optional.ofNullable(extensionContext.getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
         .orElseThrow(() -> new ParameterResolutionException(parameterContext.getParameter().getName()));
@@ -89,9 +93,14 @@ public class StoragesExtension implements AfterAllCallback, BeforeAllCallback, P
   }
 
   private void mockResponses(MockServerClient client) throws IOException {
-    for (FileMock mockedFIle : MockedFiles.getMockedFiles()) {
-      mockDownload(client, mockedFIle);
-      mockDelete(client, mockedFIle.getId());
+    for (FileMock mockedFile : MockedFiles.getMockedFiles()) {
+      mockDownload(client, mockedFile);
+      mockUpload(
+        client,
+        mockedFile,
+        new UploadResponse().digest("").digestAlgorithm("").size(mockedFile.getSize())
+      );
+      mockDelete(client, mockedFile.getId());
     }
     mockHealthLive(client);
   }
@@ -107,8 +116,22 @@ public class StoragesExtension implements AfterAllCallback, BeforeAllCallback, P
       response()
         .withStatusCode(200)
         .withBody(
-          BinaryBody.binary(fileMock.getFileBytes())
+          binary(fileMock.getFileBytes())
         )
+    );
+  }
+
+  private void mockUpload(MockServerClient client, FileMock fileMock, UploadResponse response) {
+    client.when(
+      request()
+        .withMethod("PUT")
+        .withPath("/upload")
+        .withQueryStringParameter(param("node", fileMock.getId()))
+        .withQueryStringParameter(param("type", "chats"))
+    ).respond(
+      response()
+        .withStatusCode(201)
+        .withBody(JsonBody.json(response))
     );
   }
 
@@ -133,5 +156,59 @@ public class StoragesExtension implements AfterAllCallback, BeforeAllCallback, P
       response()
         .withStatusCode(204)
     );
+  }
+
+  static private class UploadResponse implements com.zextras.filestore.api.UploadResponse {
+
+    private Query  query;
+    private String resource;
+    private String digest;
+    private String digestAlgorithm;
+    private long   size;
+
+    public Query getQuery() {
+      return query;
+    }
+
+    public UploadResponse query(Query query) {
+      this.query = query;
+      return this;
+    }
+
+    public String getResource() {
+      return resource;
+    }
+
+    public UploadResponse resource(String resource) {
+      this.resource = resource;
+      return this;
+    }
+
+    public String getDigest() {
+      return digest;
+    }
+
+    public UploadResponse digest(String digest) {
+      this.digest = digest;
+      return this;
+    }
+
+    public String getDigestAlgorithm() {
+      return digestAlgorithm;
+    }
+
+    public UploadResponse digestAlgorithm(String digestAlgorithm) {
+      this.digestAlgorithm = digestAlgorithm;
+      return this;
+    }
+
+    public long getSize() {
+      return size;
+    }
+
+    public UploadResponse size(long size) {
+      this.size = size;
+      return this;
+    }
   }
 }

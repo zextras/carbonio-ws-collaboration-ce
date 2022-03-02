@@ -84,7 +84,7 @@ public class MembersServiceImpl implements MembersService {
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
     // room cannot be one to one
     if (room.getType().equals(RoomTypeDto.ONE_TO_ONE)) {
-      throw new ForbiddenException("Can't add members to a one to one conversation");
+      throw new BadRequestException("Can't add members to a one to one conversation");
     }
     // check that user isn't duplicated
     if (room.getSubscriptions().stream().anyMatch(member -> memberDto.getUserId().toString().equals(member.getUserId()))) {

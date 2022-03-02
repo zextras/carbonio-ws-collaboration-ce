@@ -20,7 +20,7 @@ public class GuiceExtension implements ParameterResolver, BeforeAllCallback {
   protected final static String    GUICE_STORE_ENTRY   = "guice";
 
   @Override
-  public void beforeAll(ExtensionContext context) throws Exception {
+  public void beforeAll(ExtensionContext context) {
     if (ExtensionUtils.isNestedClass(context)) {
       return;
     }

@@ -1,6 +1,5 @@
 package com.zextras.carbonio.chats.it.extensions;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.platform.commons.support.ModifierSupport;
 

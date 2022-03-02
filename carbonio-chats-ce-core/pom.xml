@@ -174,12 +174,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         <version>3.0.0-M5</version>
       </plugin>
 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-failsafe-plugin</artifactId>
-        <version>3.0.0-M5</version>
-      </plugin>
-
       <!-- Code Coverage report generation -->
       <plugin>
         <groupId>org.jacoco</groupId>

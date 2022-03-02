@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.infrastructure.messaging.impl;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
@@ -30,11 +31,15 @@ public class MessageDispatcherImpl implements MessageDispatcher {
 
   @Override
   public void createRoom(Room room, String senderId) {
-    mucLightManagementApi.mucLightsXMPPHostPut(XMPP_HOST, new RoomDetailsDto()
-      .id(room.getId())
-      .owner(userId2userDomain(senderId))
-      .name(room.getId())
-      .subject(room.getDescription()));
+    try {
+      mucLightManagementApi.mucLightsXMPPHostPut(XMPP_HOST, new RoomDetailsDto()
+        .id(room.getId())
+        .owner(userId2userDomain(senderId))
+        .name(room.getId())
+        .subject(room.getDescription()));
+    } catch (Exception e) {
+      throw new InternalErrorException("An error occurred when adding a room to MongooseIm", e);
+    }
     room.getSubscriptions().stream()
       .filter(member -> !member.getUserId().equals(senderId))
       .forEach(member -> addRoomMember(room.getId(), senderId, member.getUserId()));
@@ -42,11 +47,15 @@ public class MessageDispatcherImpl implements MessageDispatcher {
 
   @Override
   public void addRoomMember(String roomId, String senderId, String recipientId) {
-    mucLightManagementApi.mucLightsXMPPMUCHostRoomNameParticipantsPost(XMPP_HOST, roomId,
-      new InviteDto()
-        .sender(userId2userDomain(senderId))
-        .recipient(userId2userDomain(recipientId))
-    );
+    try {
+      mucLightManagementApi.mucLightsXMPPMUCHostRoomNameParticipantsPost(XMPP_HOST, roomId,
+        new InviteDto()
+          .sender(userId2userDomain(senderId))
+          .recipient(userId2userDomain(recipientId))
+      );
+    } catch (Exception e) {
+      throw new InternalErrorException("An error occurred when adding a member to a MongooseIm room", e);
+    }
   }
 
   @Override
