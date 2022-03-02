@@ -139,7 +139,7 @@ public class AttachmentsApiIT {
     @Test
     @DisplayName("Correctly returns the attachment file for requested id")
     public void getAttachment_testOk() throws Exception {
-      FileMock fileMock = MockedFiles.getFile();
+      FileMock fileMock = MockedFiles.getMockedFiles().get(1);
       FileMetadata fileMetadata = fileMetadataRepository.save(
         integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
 
