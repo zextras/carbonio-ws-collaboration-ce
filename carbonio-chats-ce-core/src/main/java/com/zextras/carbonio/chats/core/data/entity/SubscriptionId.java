@@ -37,16 +37,18 @@ public class SubscriptionId implements Serializable {
     return userId;
   }
 
-  public void setUserId(String userId) {
+  public SubscriptionId userId(String userId) {
     this.userId = userId;
+    return this;
   }
 
   public String getRoomId() {
     return roomId;
   }
 
-  public void setRoomId(String roomId) {
+  public SubscriptionId roomId(String roomId) {
     this.roomId = roomId;
+    return this;
   }
 
   @Override

@@ -56,48 +56,54 @@ public class User {
     return id;
   }
 
-  public void setId(String id) {
+  public User id(String id) {
     this.id = id;
+    return this;
   }
 
   public OffsetDateTime getLastSeen() {
     return lastSeen;
   }
 
-  public void setLastSeen(OffsetDateTime lastSeen) {
+  public User setLastSeen(OffsetDateTime lastSeen) {
     this.lastSeen = lastSeen;
+    return this;
   }
 
   public String getStatusMessage() {
     return statusMessage;
   }
 
-  public void setStatusMessage(String statusMessage) {
+  public User statusMessage(String statusMessage) {
     this.statusMessage = statusMessage;
+    return this;
   }
 
   public byte[] getImage() {
     return image;
   }
 
-  public void setImage(byte[] image) {
+  public User image(byte[] image) {
     this.image = image;
+    return this;
   }
 
   public Date getImageUpdatedAt() {
     return imageUpdatedAt;
   }
 
-  public void setImageUpdatedAt(Date imageUpdatedAt) {
+  public User imageUpdatedAt(Date imageUpdatedAt) {
     this.imageUpdatedAt = imageUpdatedAt;
+    return this;
   }
 
   public String getHash() {
     return hash;
   }
 
-  public void setHash(String hash) {
+  public User hash(String hash) {
     this.hash = hash;
+    return this;
   }
 
   public OffsetDateTime getCreatedAt() {

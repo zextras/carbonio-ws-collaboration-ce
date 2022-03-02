@@ -62,7 +62,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     // checks if current user is a member of the attachment room
     roomService.getRoomAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
     // gets file from repository
-    File file = storagesService.getFileById(metadata.getId(), currentUser.getId());
+    File file = storagesService.getFileById(metadata.getId(), metadata.getUserId());
     return new FileContentAndMetadata(file, metadata);
   }
 

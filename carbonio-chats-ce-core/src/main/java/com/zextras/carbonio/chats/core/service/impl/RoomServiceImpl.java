@@ -23,6 +23,7 @@ import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
@@ -43,6 +44,7 @@ import java.io.File;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -95,7 +97,7 @@ public class RoomServiceImpl implements RoomService {
     Room room = getRoomAndCheckUser(roomId, currentUser, false);
     // get current user settings for the room
     roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
-      .ifPresent(settings -> room.setUserSettings(Collections.singletonList(settings)));
+      .ifPresent(settings -> room.userSettings(Collections.singletonList(settings)));
     return roomMapper.ent2roomInfoDto(room, currentUser.getId());
   }
 
@@ -126,7 +128,7 @@ public class RoomServiceImpl implements RoomService {
       .domain(null)
       .type(insertRoomRequestDto.getType())
       .password(generateRoomPassword());
-    room.setSubscriptions(
+    room.subscriptions(
       membersService.initRoomSubscriptions(insertRoomRequestDto.getMembersIds(), room, currentUser));
     // persist room
     room = roomRepository.insert(room);
@@ -169,10 +171,10 @@ public class RoomServiceImpl implements RoomService {
     getRoomAndCheckUser(roomId, currentUser, true);
     // this cascades to other
     roomRepository.delete(roomId.toString());
-    // send to room topic
-    eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(), new RoomDeletedEvent(roomId));
     // room deleting on server XMPP
     messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId());
+    // send to room topic
+    eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(), new RoomDeletedEvent(roomId));
   }
 
   @Override
@@ -234,16 +236,14 @@ public class RoomServiceImpl implements RoomService {
     FileMetadata metadata = fileMetadataRepository.getById(roomId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
     // gets file from repository
-    File file = storagesService.getFileById(metadata.getId(), currentUser.getId());
+    File file = storagesService.getFileById(metadata.getId(), metadata.getUserId());
     return new FileContentAndMetadata(file, metadata);
   }
 
   @Override
   @Transactional
   public void setRoomPicture(UUID roomId, File image, String mimeType, String fileName, UserPrincipal currentUser) {
-    // gets the room and check that the user is a member
     Room room = getRoomAndCheckUser(roomId, currentUser, false);
-    // validate field
     if (!RoomTypeDto.GROUP.equals(room.getType())) {
       throw new BadRequestException("The room picture can only be set to group type rooms");
     }
@@ -254,24 +254,29 @@ public class RoomServiceImpl implements RoomService {
     if (!mimeType.startsWith("image/")) {
       throw new BadRequestException("The room picture must be an image");
     }
-    // get or create the entity
-    FileMetadata metadata = fileMetadataRepository.getById(roomId.toString())
-      .orElseGet(() -> FileMetadata.create()
+
+    Optional<FileMetadata> oldMetadata = fileMetadataRepository.getById(roomId.toString());
+    Optional<String> oldUser = oldMetadata.map(FileMetadata::getUserId);
+    FileMetadata metadata = oldMetadata.orElseGet(() -> FileMetadata.create()
         .id(roomId.toString())
         .type(FileMetadataType.ROOM_AVATAR)
-        .roomId(roomId.toString()));
-    metadata
+        .roomId(roomId.toString())
+      )
       .name(fileName)
       .originalSize(image.length())
       .mimeType(mimeType)
       .userId(currentUser.getId());
     fileMetadataRepository.save(metadata);
-    // save file in repository
+    if (oldUser.isPresent()) {
+      try {
+        storagesService.deleteFile(metadata.getId(), oldUser.get());
+      } catch (Exception e) {
+        ChatsLogger.warn("Could not delete older group profile picture: " + e.getMessage());
+      }
+    }
     storagesService.saveFile(image, metadata, currentUser.getId());
-    // send event to room topic
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
       RoomPictureChangedEvent.create(UUID.fromString(room.getId())).from(currentUser.getUUID()));
-    // send message to XMPP room
     messageDispatcher.sendMessageToRoom(room.getId(), currentUser.getId(), Messages.SET_PICTURE_FOR_ROOM_MESSAGE);
   }
 }

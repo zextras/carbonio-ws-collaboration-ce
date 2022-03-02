@@ -19,7 +19,8 @@ import java.util.UUID;
 public interface RoomService {
 
   /**
-   * get room by identifier and check if the current user is subscribed
+   * Get room by identifier and check if the current user is subscribed. This method returns an entity
+   * because it's intended to be used only to be called by services.
    *
    * @param roomId      room identifier {@link UUID}
    * @param currentUser current authenticate user {@link UserPrincipal}

@@ -8,6 +8,7 @@ import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -62,10 +63,6 @@ public class FileMetadata {
     return id;
   }
 
-  public void setId(String id) {
-    this.id = id;
-  }
-
   public FileMetadata id(String id) {
     this.id = id;
     return this;
@@ -73,10 +70,6 @@ public class FileMetadata {
 
   public String getName() {
     return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
   }
 
   public FileMetadata name(String name) {
@@ -88,10 +81,6 @@ public class FileMetadata {
     return originalSize;
   }
 
-  public void setOriginalSize(Long originalSize) {
-    this.originalSize = originalSize;
-  }
-
   public FileMetadata originalSize(Long originalSize) {
     this.originalSize = originalSize;
     return this;
@@ -99,10 +88,6 @@ public class FileMetadata {
 
   public String getMimeType() {
     return mimeType;
-  }
-
-  public void setMimeType(String mimeType) {
-    this.mimeType = mimeType;
   }
 
   public FileMetadata mimeType(String mimeType) {
@@ -114,10 +99,6 @@ public class FileMetadata {
     return type;
   }
 
-  public void setType(FileMetadataType type) {
-    this.type = type;
-  }
-
   public FileMetadata type(FileMetadataType type) {
     this.type = type;
     return this;
@@ -127,10 +108,6 @@ public class FileMetadata {
     return userId;
   }
 
-  public void setUserId(String userId) {
-    this.userId = userId;
-  }
-
   public FileMetadata userId(String userId) {
     this.userId = userId;
     return this;
@@ -138,10 +115,6 @@ public class FileMetadata {
 
   public String getRoomId() {
     return roomId;
-  }
-
-  public void setRoomId(String roomId) {
-    this.roomId = roomId;
   }
 
   public FileMetadata roomId(String roomId) {

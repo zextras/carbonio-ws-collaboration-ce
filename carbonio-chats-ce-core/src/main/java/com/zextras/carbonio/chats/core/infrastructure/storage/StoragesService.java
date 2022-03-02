@@ -13,11 +13,11 @@ public interface StoragesService extends HealthIndicator {
   /**
    * Retrieves the file associated to the identifier
    *
-   * @param fileId        file identifier
-   * @param currentUserId identifier of the current user
+   * @param fileId  file identifier
+   * @param ownerId identifier of the current user
    * @return Required file {@link File}
    */
-  File getFileById(String fileId, String currentUserId);
+  File getFileById(String fileId, String ownerId);
 
   /**
    * Saves a file on the repository

@@ -108,13 +108,13 @@ public class Subscription {
 
   public Subscription userId(String userId) {
     this.userId = userId;
-    this.id.setUserId(userId);
+    this.id.userId(userId);
     return this;
   }
 
   public Subscription room(Room room) {
     this.room = room;
-    this.id.setRoomId(room.getId());
+    this.id.roomId(room.getId());
     return this;
   }
 

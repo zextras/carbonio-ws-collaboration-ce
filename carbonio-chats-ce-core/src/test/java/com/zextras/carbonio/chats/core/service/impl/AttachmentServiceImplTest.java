@@ -30,7 +30,6 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import javax.swing.SortOrder;
 import javax.ws.rs.core.Response.Status;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;

@@ -73,10 +73,6 @@ public class RoomUserSettings {
     return id;
   }
 
-  public void setId(SubscriptionId id) {
-    this.id = id;
-  }
-
   public RoomUserSettings id(SubscriptionId id) {
     this.id = id;
     return this;
@@ -86,22 +82,13 @@ public class RoomUserSettings {
     return userId;
   }
 
-  public void setUserId(String userId) {
-    this.userId = userId;
-    this.id.setUserId(this.userId);
-  }
-
   public RoomUserSettings userId(String userId) {
-    setUserId(userId);
+    this.userId = userId;
     return this;
   }
 
   public Room getRoom() {
     return room;
-  }
-
-  public void setRoom(Room room) {
-    this.room = room;
   }
 
   public RoomUserSettings room(Room room) {
@@ -113,10 +100,6 @@ public class RoomUserSettings {
     return mutedUntil;
   }
 
-  public void setMutedUntil(OffsetDateTime mutedUntil) {
-    this.mutedUntil = mutedUntil;
-  }
-
   public RoomUserSettings mutedUntil(OffsetDateTime mutedUntil) {
     this.mutedUntil = mutedUntil;
     return this;
@@ -124,10 +107,6 @@ public class RoomUserSettings {
 
   public OffsetDateTime getClearedAt() {
     return clearedAt;
-  }
-
-  public void setClearedAt(OffsetDateTime clearedAt) {
-    this.clearedAt = clearedAt;
   }
 
   public RoomUserSettings clearedAt(OffsetDateTime clearedAt) {

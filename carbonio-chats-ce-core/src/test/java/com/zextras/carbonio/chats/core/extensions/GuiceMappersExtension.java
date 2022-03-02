@@ -20,9 +20,9 @@ import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 
-public class GuiceExtension implements ParameterResolver, BeforeAllCallback {
+public class GuiceMappersExtension implements ParameterResolver, BeforeAllCallback {
 
-  private final static Namespace EXTENSION_NAMESPACE = Namespace.create(GuiceExtension.class);
+  private final static Namespace EXTENSION_NAMESPACE = Namespace.create(GuiceMappersExtension.class);
   private final static String    GUICE_STORE_ENTRY   = "guice";
 
   @Override

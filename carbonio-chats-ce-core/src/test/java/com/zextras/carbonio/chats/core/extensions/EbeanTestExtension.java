@@ -4,7 +4,7 @@ import io.ebean.test.ForTests;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class EbeanExtension implements BeforeAllCallback {
+public class EbeanTestExtension implements BeforeAllCallback {
 
   @Override
   public void beforeAll(ExtensionContext context) {

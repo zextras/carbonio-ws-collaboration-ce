@@ -26,11 +26,11 @@ public class StoragesServiceImpl implements StoragesService {
   }
 
   @Override
-  public File getFileById(String fileId, String currentUserId) {
+  public File getFileById(String fileId, String ownerId) {
     try {
       File file = File.createTempFile(fileId, ".tmp");
       FileUtils.copyInputStreamToFile(
-        storagesClient.download(ChatsIdentifier.of(fileId, currentUserId)),
+        storagesClient.download(ChatsIdentifier.of(fileId, ownerId)),
         file);
       return file;
     } catch (Exception e) {
