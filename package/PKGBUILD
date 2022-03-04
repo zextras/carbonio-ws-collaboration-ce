@@ -40,7 +40,7 @@ package() {
   install -Dm 644 "${srcdir}/carbonio-chats.service" \
     "${pkgdir}/lib/systemd/system/carbonio-chats.service"
   install -Dm 644 "${srcdir}/carbonio-chats.hcl" \
-    "${pkgdir}/etc/carbonio/service-discover/carbonio-chats.hcl"
+    "${pkgdir}/etc/zextras/service-discover/carbonio-chats.hcl"
   install -Dm 755 "${srcdir}/carbonio-chats.sh" \
     "${pkgdir}/usr/bin/carbonio/chats/carbonio-chats"
   install -Dm 644 "${srcdir}/carbonio-chats-sidecar.service" \
