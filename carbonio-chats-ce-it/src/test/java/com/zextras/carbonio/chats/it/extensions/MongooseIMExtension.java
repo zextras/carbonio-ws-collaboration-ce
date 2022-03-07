@@ -4,6 +4,7 @@ import static org.mockserver.model.Header.header;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
+import com.zextras.carbonio.chats.core.config.ConfigValue;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockAccount;
@@ -35,6 +36,7 @@ public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback,
   private final static String    CLIENT_STORE_ENTRY  = "client";
   private final static String    SERVER_STORE_ENTRY  = "server";
   private final static int       PORT                = 12345;
+  private static final String    HOST                = "localhost";
 
   @Override
   public void beforeAll(ExtensionContext context) {
@@ -45,11 +47,11 @@ public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback,
     ChatsLogger.debug("Starting MongooseIM Mockserver...");
     MockServer mockServer = new MockServer(PORT);
     ChatsLogger.debug("Starting MongooseIM client mock...");
-    MockServerClient mockClient = new MongooseImMockServer("localhost", PORT);
+    MockServerClient mockClient = new MongooseImMockServer(HOST, PORT);
     mockResponses(mockClient);
 
-    InMemoryConfigStore.set("MONGOOSEIM_CLIENT_REST_BASE_URL", httpUrlFromMockClient(mockClient));
-    InMemoryConfigStore.set("MONGOOSEIM_ADMIN_REST_BASE_URL", httpUrlFromMockClient(mockClient));
+    InMemoryConfigStore.set(ConfigValue.XMPP_SERVER_HOST, HOST);
+    InMemoryConfigStore.set(ConfigValue.XMPP_SERVER_HTTP_PORT, Integer.toString(PORT));
     context.getStore(EXTENSION_NAMESPACE).put(CLIENT_STORE_ENTRY, mockClient);
     context.getStore(EXTENSION_NAMESPACE).put(SERVER_STORE_ENTRY, mockServer);
     ChatsLogger.debug(
@@ -73,21 +75,6 @@ public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback,
         ChatsLogger.debug("Stopping MongooseIM Mockserver...");
         server.stop();
       });
-  }
-
-  private String httpUrlFromMockClient(MockServerClient mockServerClient) {
-    StringBuilder stringBuilder = new StringBuilder();
-    if (mockServerClient.isSecure()) {
-      stringBuilder.append("https://");
-    } else {
-      stringBuilder.append("http://");
-    }
-    stringBuilder.append(mockServerClient.remoteAddress().getHostString());
-    stringBuilder.append(":");
-    stringBuilder.append(mockServerClient.remoteAddress().getPort());
-    stringBuilder.append("/");
-    stringBuilder.append(mockServerClient.contextPath());
-    return stringBuilder.toString();
   }
 
   @Override
@@ -130,7 +117,7 @@ public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback,
     client.when(
       request()
         .withMethod("PUT")
-        .withPath("/muc-lights/localhost")
+        .withPath("/admin/muc-lights/localhost")
         .withBody(JsonBody.json(new RoomDetailsDto()
           .id(roomId)
           .owner(String.format("%s@localhost", senderId))
@@ -150,7 +137,7 @@ public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback,
     client.when(
       request()
         .withMethod("POST")
-        .withPath("/muc-lights/localhost/{roomId}/participants")
+        .withPath("/admin/muc-lights/localhost/{roomId}/participants")
         .withPathParameter(Parameter.param("roomId", ".*"))
         .withBody(JsonBody.json(new InviteDto()
           .sender(String.format("%s@localhost", senderId))
@@ -165,7 +152,7 @@ public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback,
     client.when(
       request()
         .withMethod("DELETE")
-        .withPath("/rooms/{roomId}/users/{userId}")
+        .withPath("/api/rooms/{roomId}/users/{userId}")
         .withPathParameter(Parameter.param("roomId", ".*"))
         .withPathParameter(Parameter.param("userId", ".*"))
     ).respond(
@@ -178,7 +165,7 @@ public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback,
     client.when(
       request()
         .withMethod("POST")
-        .withPath("/muc-lights/localhost/{roomId}/messages")
+        .withPath("/admin/muc-lights/localhost/{roomId}/messages")
         .withPathParameter("roomId", ".*")
     ).respond(
       response()
@@ -190,7 +177,7 @@ public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback,
     client.when(
       request()
         .withMethod("GET")
-        .withPath("/commands")
+        .withPath("/admin/commands")
     ).respond(
       response()
         .withStatusCode(200)
@@ -201,7 +188,7 @@ public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback,
     client.when(
       request()
         .withMethod("DELETE")
-        .withPath("/muc-lights/localhost/{roomId}/{userId}/management")
+        .withPath("/admin/muc-lights/localhost/{roomId}/{userId}/management")
         .withPathParameter(Parameter.param("roomId", ".*"))
         .withPathParameter(Parameter.param("userId", ".*"))
     ).respond(

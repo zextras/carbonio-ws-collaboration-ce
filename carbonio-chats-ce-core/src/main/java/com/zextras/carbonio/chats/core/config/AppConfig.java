@@ -1,22 +1,48 @@
-// SPDX-FileCopyrightText: 2022 2021 Zextras <https://www.zextras.com>
-//
-// SPDX-License-Identifier: AGPL-3.0-only
-
 package com.zextras.carbonio.chats.core.config;
 
 import java.util.Optional;
 
-public interface AppConfig {
+public abstract class AppConfig {
+
+  private AppConfig next;
 
   /**
-   * Retrieves the specified config or returns null
+   * Retrieves the specified config or returns an empty {@link  Optional}
    *
-   * @param clazz the configuration parameter class (es. {@link Integer}, {@link Boolean} or {@link String})
-   * @param key the configuration name
-   * @param <T> the configuration parameter type
+   * @param clazz      the configuration parameter class (es. {@link Integer}, {@link Boolean} or {@link String})
+   * @param configName configName   the configuration name
+   * @param <T>        the configuration parameter type
    * @return an {@link Optional} which contains the configuration, if found
    */
-  <T> Optional<T> get(Class<T> clazz, String key);
+  public <T> Optional<T> get(Class<T> clazz, ConfigValue configName) {
+    return getAttributeByImplementation(clazz, configName).or(() -> {
+      if (next != null) {
+        return next.getAttributeByImplementation(clazz, configName);
+      } else {
+        return Optional.empty();
+      }
+    });
+  }
 
-  EnvironmentType getEnvType();
+  /**
+   * Retrieves the environment type the application is running in. The default is {@link EnvironmentType#PRODUCTION}
+   *
+   * @return the current {@link EnvironmentType}
+   */
+  public EnvironmentType getEnvType() {
+    return getEnvTypeByImplementation().orElseGet(
+      () -> Optional.ofNullable(next).flatMap(AppConfig::getEnvTypeByImplementation)
+        .orElse(EnvironmentType.PRODUCTION)
+    );
+  }
+
+  protected abstract <T> Optional<T> getAttributeByImplementation(Class<T> clazz, ConfigValue configName);
+
+  protected abstract Optional<EnvironmentType> getEnvTypeByImplementation();
+
+  public AppConfig or(AppConfig nextConfigResolver) {
+    this.next = nextConfigResolver;
+    return this.next;
+  }
+
 }

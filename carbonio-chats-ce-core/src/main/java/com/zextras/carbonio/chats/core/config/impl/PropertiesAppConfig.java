@@ -5,11 +5,12 @@
 package com.zextras.carbonio.chats.core.config.impl;
 
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigValue;
 import com.zextras.carbonio.chats.core.config.EnvironmentType;
 import java.util.Optional;
 import java.util.Properties;
 
-public class PropertiesAppConfig implements AppConfig {
+public class PropertiesAppConfig extends AppConfig {
 
   private final Properties properties;
 
@@ -17,12 +18,12 @@ public class PropertiesAppConfig implements AppConfig {
     this.properties = properties;
   }
 
-  public <T> Optional<T> get(Class<T> clazz, String key) {
-    return Optional.ofNullable(properties.get(key)).map(clazz::cast);
+  protected  <T> Optional<T> getAttributeByImplementation(Class<T> clazz, ConfigValue configName) {
+    return Optional.ofNullable(properties.get(configName.getPropertyName())).map(clazz::cast);
   }
 
   @Override
-  public EnvironmentType getEnvType() {
-    return EnvironmentType.getByName(get(String.class, "ENV").orElse(EnvironmentType.PRODUCTION.getName()));
+  protected Optional<EnvironmentType> getEnvTypeByImplementation() {
+    return get(String.class, ConfigValue.ENV).map(EnvironmentType::getByName);
   }
 }

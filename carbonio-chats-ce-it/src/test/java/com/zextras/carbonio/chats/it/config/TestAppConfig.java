@@ -1,19 +1,22 @@
 package com.zextras.carbonio.chats.it.config;
 
-import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigValue;
 import com.zextras.carbonio.chats.core.config.EnvironmentType;
+import com.zextras.carbonio.chats.core.config.AppConfig;
 import java.util.Optional;
 
-public class TestAppConfig implements AppConfig {
+@SuppressWarnings("unchecked")
+public class TestAppConfig extends AppConfig {
 
   @Override
-  public <T> Optional<T> get(Class<T> clazz, String key) {
-    return InMemoryConfigStore.get(key).map((stringValue) -> castToGeneric(clazz, stringValue));
+  protected  <T> Optional<T> getAttributeByImplementation(Class<T> clazz, ConfigValue configName) {
+    return InMemoryConfigStore.get(configName).map((stringValue) -> castToGeneric(clazz, stringValue));
   }
 
   @Override
-  public EnvironmentType getEnvType() {
-    return EnvironmentType.getByName(get(String.class, "ENV").orElse(EnvironmentType.PRODUCTION.getName()));
+  protected Optional<EnvironmentType> getEnvTypeByImplementation() {
+    return get(String.class, ConfigValue.ENV).map(EnvironmentType::getByName)
+      .or(() -> Optional.of(EnvironmentType.TEST));
   }
 
   private <T> T castToGeneric(Class<T> clazz, String stringValue) {

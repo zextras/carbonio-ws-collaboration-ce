@@ -5,12 +5,13 @@
 package com.zextras.carbonio.chats.core.config.impl;
 
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigValue;
 import com.zextras.carbonio.chats.core.config.EnvironmentType;
 import io.github.cdimascio.dotenv.Dotenv;
 import java.util.Optional;
 
 @SuppressWarnings("unchecked")
-public class DotenvAppConfig implements AppConfig {
+public class DotenvAppConfig extends AppConfig {
 
   private final Dotenv dotenv;
 
@@ -19,13 +20,14 @@ public class DotenvAppConfig implements AppConfig {
   }
 
   @Override
-  public <T> Optional<T> get(Class<T> clazz, String key) {
-    return Optional.ofNullable(dotenv.get(key)).map((stringValue) -> castToGeneric(clazz, stringValue));
+  protected <T> Optional<T> getAttributeByImplementation(Class<T> clazz, ConfigValue configName) {
+    return Optional.ofNullable(dotenv.get(configName.getEnvName()))
+      .map((stringValue) -> castToGeneric(clazz, stringValue));
   }
 
   @Override
-  public EnvironmentType getEnvType() {
-    return EnvironmentType.getByName(get(String.class, "ENV").orElse(EnvironmentType.PRODUCTION.getName()));
+  protected Optional<EnvironmentType> getEnvTypeByImplementation() {
+    return get(String.class, ConfigValue.ENV).map(EnvironmentType::getByName);
   }
 
   private <T> T castToGeneric(Class<T> clazz, String stringValue) {
@@ -41,4 +43,5 @@ public class DotenvAppConfig implements AppConfig {
       throw new RuntimeException("Missing support for " + clazz.getSimpleName());
     }
   }
+
 }

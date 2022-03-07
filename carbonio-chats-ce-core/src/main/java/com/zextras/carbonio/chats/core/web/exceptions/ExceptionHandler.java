@@ -4,8 +4,8 @@
 
 package com.zextras.carbonio.chats.core.web.exceptions;
 
-import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.EnvironmentType;
+import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.model.ErrorDto;
 import java.util.Arrays;

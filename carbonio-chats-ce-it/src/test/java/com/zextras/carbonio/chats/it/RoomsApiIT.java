@@ -186,19 +186,19 @@ public class RoomsApiIT {
       assertEquals(executionInstant, room.getCreatedAt().toInstant());
       assertEquals(executionInstant, room.getUpdatedAt().toInstant());
 
-      mongooseImMockServer.verify("PUT", "/muc-lights/localhost",
+      mongooseImMockServer.verify("PUT", "/admin/muc-lights/localhost",
         new RoomDetailsDto()
           .id(room.getId().toString())
           .owner(String.format("%s@localhost", user1Id))
           .name(room.getId().toString())
           .subject(room.getDescription()), 1);
       mongooseImMockServer.verify("POST",
-        String.format("/muc-lights/localhost/%s/participants", room.getId()),
+        String.format("/admin/muc-lights/localhost/%s/participants", room.getId()),
         new InviteDto()
           .sender(String.format("%s@localhost", user1Id.toString()))
           .recipient(String.format("%s@localhost", user2Id.toString())), 1);
       mongooseImMockServer.verify("POST",
-        String.format("/muc-lights/localhost/%s/participants", room.getId()),
+        String.format("/admin/muc-lights/localhost/%s/participants", room.getId()),
         new InviteDto()
           .sender(String.format("%s@localhost", user1Id.toString()))
           .recipient(String.format("%s@localhost", user3Id.toString())), 1);
@@ -494,7 +494,7 @@ public class RoomsApiIT {
 
       // TODO: 23/02/22 verify event dispatcher interactions
       mongooseImMockServer.verify("DELETE",
-        String.format("/muc-lights/localhost/%s/%s@localhost/management", roomId, user1Id), 1);
+        String.format("/admin/muc-lights/localhost/%s/%s%%40localhost/management", roomId, user1Id), 1);
     }
 
     @Test
@@ -884,7 +884,7 @@ public class RoomsApiIT {
       assertTrue(room.get().getSubscriptions().stream().anyMatch(s -> user4Id.toString().equals(s.getUserId())));
 
       mongooseImMockServer.verify("POST",
-        String.format("/muc-lights/localhost/%s/participants", roomId),
+        String.format("/admin/muc-lights/localhost/%s/participants", roomId),
         new InviteDto()
           .sender(String.format("%s@localhost", user1Id.toString()))
           .recipient(String.format("%s@localhost", user4Id.toString())), 1);
@@ -1020,7 +1020,7 @@ public class RoomsApiIT {
         .isEmpty());
 
       // TODO: 25/02/22 verify event dispatcher
-      mongooseImMockServer.verify("DELETE", String.format("/rooms/%s/users/%s@localhost", roomId, user2Id), 1);
+      mongooseImMockServer.verify("DELETE", String.format("/api/rooms/%s/users/%s%%40localhost", roomId, user2Id), 1);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 

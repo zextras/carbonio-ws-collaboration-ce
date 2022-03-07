@@ -12,7 +12,7 @@ public class NotFoundException extends ChatsHttpException implements Serializabl
 
   private static final long    serialVersionUID = -7586350573263929718L;
   private static final Status  HTTP_STATUS      = Status.NOT_FOUND;
-  private static final boolean IS_TO_LOG        = true;
+  private static final boolean IS_TO_LOG        = false;
 
   public NotFoundException() {
     super(HTTP_STATUS);

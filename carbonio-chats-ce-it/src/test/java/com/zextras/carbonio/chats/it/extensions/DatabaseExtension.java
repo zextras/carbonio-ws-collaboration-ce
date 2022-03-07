@@ -2,6 +2,7 @@ package com.zextras.carbonio.chats.it.extensions;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import com.zextras.carbonio.chats.core.config.ConfigValue;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.TimeUtils;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
@@ -55,10 +56,10 @@ public class DatabaseExtension implements AfterAllCallback, BeforeAllCallback, A
     flyway.migrate();
     context.getStore(EXTENSION_NAMESPACE).put(FLYWAY_STORE_ENTRY, flyway);
     context.getStore(EXTENSION_NAMESPACE).put(DATABASE_STORE_ENTRY, database);
-    InMemoryConfigStore.set("DATABASE_JDBC_URL", database.getJdbcUrl());
-    InMemoryConfigStore.set("DATASOURCE_DRIVER", DATABASE_DRIVER);
-    InMemoryConfigStore.set("DATABASE_USERNAME", DATABASE_USER);
-    InMemoryConfigStore.set("DATABASE_PASSWORD", DATABASE_PASSWORD);
+    InMemoryConfigStore.set(ConfigValue.DATABASE_JDBC_URL, database.getJdbcUrl());
+    InMemoryConfigStore.set(ConfigValue.JDBC_DRIVER, DATABASE_DRIVER);
+    InMemoryConfigStore.set(ConfigValue.DATABASE_USERNAME, DATABASE_USER);
+    InMemoryConfigStore.set(ConfigValue.DATABASE_PASSWORD, DATABASE_PASSWORD);
     ChatsLogger.debug(
       "Database extension startup took " + TimeUtils.durationToString(Duration.between(startTime, Instant.now())));
   }

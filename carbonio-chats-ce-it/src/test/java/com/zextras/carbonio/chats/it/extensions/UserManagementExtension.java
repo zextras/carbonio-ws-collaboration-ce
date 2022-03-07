@@ -3,6 +3,7 @@ package com.zextras.carbonio.chats.it.extensions;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
+import com.zextras.carbonio.chats.core.config.ConfigValue;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockAccount;
@@ -48,7 +49,8 @@ public class UserManagementExtension implements AfterAllCallback, BeforeAllCallb
     mockResponses(client);
     context.getStore(EXTENSION_NAMESPACE).put(CLIENT_STORE_ENTRY, client);
 
-    InMemoryConfigStore.set("USER_MANAGEMENT_URL", String.format("http://%s:%d", SERVER_HOST, SERVER_PORT));
+    InMemoryConfigStore.set(ConfigValue.USER_MANAGEMENT_HOST, SERVER_HOST);
+    InMemoryConfigStore.set(ConfigValue.USER_MANAGEMENT_PORT, Integer.toString(SERVER_PORT));
     ChatsLogger.debug("User Management extension startup took " + TimeUtils.durationToString(
       Duration.between(startTime, Instant.now())));
   }

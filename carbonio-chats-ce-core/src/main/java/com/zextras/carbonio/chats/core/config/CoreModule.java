@@ -155,13 +155,21 @@ public class CoreModule extends AbstractModule {
   @Singleton
   @Provides
   private MucLightManagementApi initMongooseImMucLight(AppConfig appConfig) {
+    String adminBasePath = String.format("http://%s:%s/%s",
+      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HOST).orElseThrow(),
+      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HTTP_PORT).orElseThrow(),
+      ChatsConstant.MONGOOSEIM_ADMIN_ENDPOINT);
+    String clientBasePath = String.format("http://%s:%s/%s",
+      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HOST).orElseThrow(),
+      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HTTP_PORT).orElseThrow(),
+      ChatsConstant.MONGOOSEIM_CLIENT_ENDPOINT);
     Configuration.setDefaultApiClient(new ApiClient()
-      .setBasePath(appConfig.get(String.class, "MONGOOSEIM_ADMIN_REST_BASE_URL").orElseThrow())
+      .setBasePath(adminBasePath)
       .addDefaultHeader("Accept", "*/*")
       .setDebugging(true));
     com.zextras.carbonio.chats.mongooseim.client.api.Configuration.setDefaultApiClient(
       new com.zextras.carbonio.chats.mongooseim.client.api.ApiClient()
-        .setBasePath(appConfig.get(String.class, "MONGOOSEIM_CLIENT_REST_BASE_URL").orElseThrow())
+        .setBasePath(clientBasePath)
         .addDefaultHeader("Accept", "*/*")
         .setDebugging(true));
     return new MucLightManagementApi();
@@ -170,13 +178,21 @@ public class CoreModule extends AbstractModule {
   @Singleton
   @Provides
   private CommandsApi initMongooseImCommands(AppConfig appConfig) {
+    String adminBasePath = String.format("http://%s:%s/%s",
+      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HOST).orElseThrow(),
+      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HTTP_PORT).orElseThrow(),
+      ChatsConstant.MONGOOSEIM_ADMIN_ENDPOINT);
+    String clientBasePath = String.format("http://%s:%s/%s",
+      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HOST).orElseThrow(),
+      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HTTP_PORT).orElseThrow(),
+      ChatsConstant.MONGOOSEIM_CLIENT_ENDPOINT);
     Configuration.setDefaultApiClient(new ApiClient()
-      .setBasePath(appConfig.get(String.class, "MONGOOSEIM_ADMIN_REST_BASE_URL").orElseThrow())
+      .setBasePath(adminBasePath)
       .addDefaultHeader("Accept", "*/*")
       .setDebugging(true));
     com.zextras.carbonio.chats.mongooseim.client.api.Configuration.setDefaultApiClient(
       new com.zextras.carbonio.chats.mongooseim.client.api.ApiClient()
-        .setBasePath(appConfig.get(String.class, "MONGOOSEIM_CLIENT_REST_BASE_URL").orElseThrow())
+        .setBasePath(clientBasePath)
         .addDefaultHeader("Accept", "*/*")
         .setDebugging(true));
     return new CommandsApi();
@@ -185,13 +201,23 @@ public class CoreModule extends AbstractModule {
   @Singleton
   @Provides
   private StoragesClient getStoragesClient(AppConfig appConfig) {
-    return StoragesClient.atUrl(appConfig.get(String.class, "STORAGES_URL").orElseThrow());
+    return StoragesClient.atUrl(
+      String.format("http://%s:%s",
+        appConfig.get(String.class, ConfigValue.STORAGES_HOST).orElseThrow(),
+        appConfig.get(String.class, ConfigValue.STORAGES_PORT).orElseThrow()
+      )
+    );
   }
 
   @Singleton
   @Provides
   private UserManagementClient getUserManagementClient(AppConfig appConfig) {
-    return UserManagementClient.atURL(appConfig.get(String.class, "USER_MANAGEMENT_URL").orElseThrow());
+    return UserManagementClient.atURL(
+      String.format("http://%s:%s",
+        appConfig.get(String.class, ConfigValue.USER_MANAGEMENT_HOST).orElseThrow(),
+        appConfig.get(String.class, ConfigValue.USER_MANAGEMENT_PORT).orElseThrow()
+      )
+    );
   }
 
   @Singleton
@@ -223,16 +249,19 @@ public class CoreModule extends AbstractModule {
 
   private DataSource getHikariDataSource(AppConfig appConfig) {
     HikariConfig config = new HikariConfig();
-    config.setJdbcUrl(appConfig.get(String.class, "DATABASE_JDBC_URL").orElseThrow());
-    config.setUsername(appConfig.get(String.class, "DATABASE_USERNAME").orElse("chats"));
-    config.setPassword(appConfig.get(String.class, "DATABASE_PASSWORD").orElse("password"));
-    config.addDataSourceProperty("idleTimeout", appConfig.get(Integer.class, "HIKARI_IDLE_TIMEOUT").orElse(300));
-    config.addDataSourceProperty("minimumIdle", appConfig.get(Integer.class, "HIKARI_MIN_POOL_SIZE").orElse(1));
-    config.addDataSourceProperty("maximumPoolSize", appConfig.get(Integer.class, "HIKARI_MAX_POOL_SIZE").orElse(5));
+    config.setJdbcUrl(appConfig.get(String.class, ConfigValue.DATABASE_JDBC_URL).orElseThrow());
+    config.setUsername(appConfig.get(String.class, ConfigValue.DATABASE_USERNAME).orElse("chats"));
+    config.setPassword(appConfig.get(String.class, ConfigValue.DATABASE_PASSWORD).orElse("password"));
+    config.addDataSourceProperty("idleTimeout",
+      appConfig.get(Integer.class, ConfigValue.HIKARI_IDLE_TIMEOUT).orElse(300));
+    config.addDataSourceProperty("minimumIdle",
+      appConfig.get(Integer.class, ConfigValue.HIKARI_MIN_POOL_SIZE).orElse(1));
+    config.addDataSourceProperty("maximumPoolSize",
+      appConfig.get(Integer.class, ConfigValue.HIKARI_MAX_POOL_SIZE).orElse(5));
     config.addDataSourceProperty("poolName", "chats-db-pool");
-    config.addDataSourceProperty("driverClassName", appConfig.get(String.class, "DATASOURCE_DRIVER").orElseThrow());
+    config.addDataSourceProperty("driverClassName", appConfig.get(String.class, ConfigValue.JDBC_DRIVER).orElseThrow());
     config.addDataSourceProperty("leakDetectionThreshold",
-      appConfig.get(Integer.class, "HIKARI_LEAK_DETECTION_THRESHOLD").orElse(60000));
+      appConfig.get(Integer.class, ConfigValue.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(60000));
     return new HikariDataSource(config);
   }
 

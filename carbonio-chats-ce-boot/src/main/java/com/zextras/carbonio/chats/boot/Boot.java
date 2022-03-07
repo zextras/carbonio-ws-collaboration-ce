@@ -5,9 +5,9 @@
 package com.zextras.carbonio.chats.boot;
 
 
-import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ChatsConstant;
 import com.zextras.carbonio.chats.core.config.EnvironmentType;
+import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import javax.inject.Inject;
 import org.eclipse.jetty.server.Server;

@@ -5,6 +5,7 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.Parameter.param;
 
+import com.zextras.carbonio.chats.core.config.ConfigValue;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.FileMock;
@@ -49,8 +50,8 @@ public class StoragesExtension implements AfterAllCallback, BeforeAllCallback, P
     MockServerClient client = new StorageMockServer(SERVER_HOST, SERVER_PORT);
     mockResponses(client);
     context.getStore(EXTENSION_NAMESPACE).put(CLIENT_STORE_ENTRY, client);
-
-    InMemoryConfigStore.set("STORAGES_URL", String.format("http://%s:%d", SERVER_HOST, SERVER_PORT));
+    InMemoryConfigStore.set(ConfigValue.STORAGES_HOST, SERVER_HOST);
+    InMemoryConfigStore.set(ConfigValue.STORAGES_PORT, Integer.toString(SERVER_PORT));
     ChatsLogger.debug(
       "Storage extension startup took " + TimeUtils.durationToString(Duration.between(startTime, Instant.now())));
   }

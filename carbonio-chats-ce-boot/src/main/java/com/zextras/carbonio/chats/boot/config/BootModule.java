@@ -6,10 +6,13 @@ package com.zextras.carbonio.chats.boot.config;
 
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.zextras.carbonio.chats.core.config.CoreModule;
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.CoreModule;
+import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
 import com.zextras.carbonio.chats.core.config.impl.DotenvAppConfig;
+import com.zextras.carbonio.chats.core.config.impl.PropertiesAppConfig;
 import io.github.cdimascio.dotenv.Dotenv;
+import java.util.Properties;
 import org.jboss.resteasy.plugins.guice.ext.RequestScopeModule;
 
 public class BootModule extends RequestScopeModule {
@@ -26,13 +29,17 @@ public class BootModule extends RequestScopeModule {
 
   @Provides
   @Singleton
-  public AppConfig getAppConfig() {
-    return new DotenvAppConfig(
+  public AppConfig getAppConfig() throws Exception {
+    Properties properties = new Properties();
+    properties.load(this.getClass().getClassLoader().getResourceAsStream("config.properties"));
+    AppConfig mainConfig = new DotenvAppConfig(
       Dotenv.configure()
         .ignoreIfMissing()
         .directory("./")
         .filename(".env")
         .load()
     );
+    mainConfig.or(new PropertiesAppConfig(properties)).or(new ConsulAppConfig());
+    return mainConfig;
   }
 }

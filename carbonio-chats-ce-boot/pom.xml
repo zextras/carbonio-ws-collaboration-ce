@@ -30,8 +30,9 @@ SPDX-License-Identifier: AGPL-3.0-only
     <profile>
       <id>artifacts</id>
       <properties>
+        <noDocker>false</noDocker>
         <distro></distro>
-        <deploy-on></deploy-on>
+        <deployOn></deployOn>
       </properties>
       <build>
         <plugins>
@@ -53,8 +54,9 @@ SPDX-License-Identifier: AGPL-3.0-only
               <arguments>
                 <argument>${project.version}</argument>
                 <argument>${project.parent.basedir}/artifacts</argument>
+                <argument>${noDocker}</argument>
                 <argument>${distro}</argument>
-                <argument>${deploy-on}</argument>
+                <argument>${deployOn}</argument>
               </arguments>
             </configuration>
           </plugin>
