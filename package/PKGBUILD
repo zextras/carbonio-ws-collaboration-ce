@@ -19,14 +19,25 @@ depends=(
    "pending-setups"
    "carbonio-openjdk"
    "service-discover"
+   "jq"
 )
 sources=(
+   "carbonio-chats"
    "carbonio-chats.service"
-   "carbonio-chats.sh"
    "carbonio-chats.hcl"
    "carbonio-chats-sidecar.service"
+   "carbonio-chats-setup.sh"
+   "policies.json"
+   "intentions.json"
+   "service-protocol.json"
+   "config.properties"
 )
 hashsums=(
+   "skip"
+   "skip"
+   "skip"
+   "skip"
+   "skip"
    "skip"
    "skip"
    "skip"
@@ -36,16 +47,18 @@ hashsums=(
 package() {
   cd "${srcdir}"/../../chats
   install -Dm 644 ./carbonio-chats-ce-boot/target/carbonio-chats-ce-fatjar.jar \
-    "${pkgdir}/usr/bin/carbonio/chats/carbonio-chats-ce.jar"
-  install -Dm 644 "${srcdir}/carbonio-chats.service" \
-    "${pkgdir}/lib/systemd/system/carbonio-chats.service"
-  install -Dm 644 "${srcdir}/carbonio-chats.hcl" \
-    "${pkgdir}/etc/zextras/service-discover/carbonio-chats.hcl"
-  install -Dm 755 "${srcdir}/carbonio-chats.sh" \
-    "${pkgdir}/usr/bin/carbonio/chats/carbonio-chats"
-  install -Dm 644 "${srcdir}/carbonio-chats-sidecar.service" \
-    "${pkgdir}/lib/systemd/system/carbonio-chats-sidecar.service"
-  mkdir -pm 0755 "${pkgdir}/etc/carbonio/carbonio-chats"
+    "${pkgdir}/usr/bin/carbonio/chats/carbonio-chats.jar"
+
+  cd "${srcdir}"
+  install -Dm 755 carbonio-chats "${pkgdir}/usr/bin/carbonio-chats"
+  install -Dm 644 config.properties "${pkgdir}/etc/carbonio/chats/config.properties"
+  install -Dm 644 carbonio-chats.service "${pkgdir}/lib/systemd/system/carbonio-chats.service"
+  install -Dm 644 carbonio-chats-sidecar.service "${pkgdir}/lib/systemd/system/carbonio-chats-sidecar.service"
+  install -Dm 644 carbonio-chats.hcl "${pkgdir}/etc/zextras/service-discover/carbonio-chats.hcl"
+  install -Dm 644 carbonio-chats-setup.sh "${pkgdir}/etc/zextras/pending-setups.d/carbonio-chats.sh"
+  install -Dm 644 policies.json "${pkgdir}/etc/carbonio/chats/service-discover/policies.json"
+  install -Dm 644 intentions.json "${pkgdir}/etc/carbonio/chats/service-discover/intentions.json"
+  install -Dm 644 service-protocol.json "${pkgdir}/etc/carbonio/chats/service-discover/service-protocol.json"
 }
 
 postinst() {
@@ -54,22 +67,16 @@ postinst() {
   getent passwd 'carbonio-chats' >/dev/null ||
     useradd -r -M -g 'carbonio-chats' -s /sbin/nologin 'carbonio-chats'
 
-  mkdir -p '/etc/carbonio/chats/'
-  chown 'carbonio-chats:carbonio-chats' '/etc/carbonio/chats/'
-
   if [ -d /run/systemd/system ]; then
     systemctl daemon-reload >/dev/null 2>&1 || :
     systemctl enable carbonio-chats.service >/dev/null 2>&1 || :
     systemctl enable carbonio-chats-sidecar.service >/dev/null 2>&1 || :
   fi
 
-  cat > /etc/zextras/pending-setups.d/carbonio-chats-setup.sh <<EOF
-#!/usr/bin/env bash
-/usr/bin/carbonio/chats/carbonio-chats setup
-EOF
-
-  echo "Chats CE installed correctly."
-  echo "Please run 'pending-setups' as root to complete the service setup"
+  echo "======================================================"
+  echo "Carbonio chats installed successfully!"
+  echo "You must run pending-setups to configure it correctly."
+  echo "======================================================"
 }
 
 prerm() {
@@ -82,7 +89,7 @@ prerm() {
 }
 
 postrm() {
-  rm -rf "/etc/carbonio/carbonio-chats/"
+  rm -f /etc/carbonio/chats/service-discover/token
   if [ -d /run/systemd/system ]; then
     systemctl daemon-reload >/dev/null 2>&1 || :
   fi

@@ -1,8 +1,4 @@
 services {
-  name = "carbonio-chats"
-  id   = "carbonio-chats"
-  port = 10000
-
   checks = [
     {
       id       = "ready"
@@ -39,4 +35,7 @@ services {
       }
     }
   }
+
+  name = "carbonio-chats"
+  port = 10000
 }

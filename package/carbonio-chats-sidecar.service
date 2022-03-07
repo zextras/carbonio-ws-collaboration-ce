@@ -7,7 +7,7 @@ After=network-online.target
 [Service]
 Type=simple
 ExecStart=/usr/bin/consul connect envoy \
-    -token-file /etc/carbonio/chats/token \
+    -token-file /etc/carbonio/chats/service-discover/token \
     -admin-bind localhost:0 \
     -sidecar-for carbonio-chats
 Restart=on-failure
