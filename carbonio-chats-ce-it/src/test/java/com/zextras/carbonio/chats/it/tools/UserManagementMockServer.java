@@ -28,21 +28,19 @@ public class UserManagementMockServer extends MockServerClient {
   public void verify(String method, String path, int iterationsNumber) {
     HttpRequest request = request()
       .withMethod(method)
-      .withPath(path)
-      .withSecure(false); //TODO why if I remove this, tests fail?
+      .withPath(path);
     verify(request, VerificationTimes.exactly(iterationsNumber));
-    clear(request, ClearType.ALL);
+    clear(request, ClearType.LOG);
   }
 
   public void verify(String method, String path, @Nullable String cookies, int iterationsNumber) {
     HttpRequest request = request()
       .withMethod(method)
-      .withPath(path)
-      .withSecure(false); //TODO why if I remove this, tests fail?
+      .withPath(path);
     Optional.ofNullable(cookies).ifPresent(c -> request.withHeaders(header("Cookie", c)));
 
     verify(request, VerificationTimes.exactly(iterationsNumber));
-    clear(request, ClearType.ALL);
+    clear(request, ClearType.LOG);
   }
 
 }

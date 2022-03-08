@@ -98,7 +98,7 @@ public class PreviewerExtension implements AfterAllCallback, BeforeAllCallback, 
   }
 
   private void mockResponses(MockServerClient client) throws IOException {
-    mockGetPreview(client, MockedFiles.get(MockedFileType.SNOOPY_PREVIEW));
+    mockGetPreview(client, MockedFiles.getPreview(MockedFileType.SNOOPY_PREVIEW));
   }
 
   private void mockGetPreview(MockServerClient client, FileMock fileMock) throws IOException {

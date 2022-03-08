@@ -201,7 +201,7 @@ public class AttachmentsApiIT {
       MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/preview", fileMock.getId()),
         user1Token);
 
-      FileMock expectedFile = MockedFiles.get(MockedFileType.SNOOPY_PREVIEW);
+      FileMock expectedFile = MockedFiles.getPreview(MockedFileType.SNOOPY_PREVIEW);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
       assertArrayEquals(expectedFile.getFileBytes(), response.getOutput());

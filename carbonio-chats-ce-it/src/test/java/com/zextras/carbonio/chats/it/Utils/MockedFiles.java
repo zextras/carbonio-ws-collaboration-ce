@@ -9,15 +9,17 @@ import java.util.UUID;
 
 public class MockedFiles {
 
-  private static final UUID                          snoopyId      = UUID.randomUUID();
-  private static final Map<MockedFileType, FileMock> mapMockedFile = Map.of(
+  private static final UUID                          snoopyId          = UUID.randomUUID();
+  private static final Map<MockedFileType, FileMock> mapMockedFile     = Map.of(
     MockedFileType.PEANUTS_IMAGE,
     FileMock.create().id(UUID.randomUUID()).size(33786L).mimeType("image/jpg").name("peanuts.jpg"),
     MockedFileType.PEANUTS_LARGE_IMAGE,
     FileMock.create().id(UUID.randomUUID()).size(2664054L).mimeType("image/bmp").name("peanuts.bmp"),
     MockedFileType.PEANUTS_PDF,
     FileMock.create().id(UUID.randomUUID()).size(81694L).mimeType("application/pdf").name("peanuts.pdf"),
-    MockedFileType.SNOOPY_IMAGE, FileMock.create().id(snoopyId).size(13705).mimeType("image/jpg").name("snoopy.jpg"),
+    MockedFileType.SNOOPY_IMAGE, FileMock.create().id(snoopyId).size(13705).mimeType("image/jpg").name("snoopy.jpg")
+  );
+  private static final Map<MockedFileType, FileMock> mapMockedPreviews = Map.of(
     MockedFileType.SNOOPY_PREVIEW,
     FileMock.create().id(snoopyId).size(4408).mimeType("image/jpg").name("snoopy-preview.jpg")
   );
@@ -26,8 +28,16 @@ public class MockedFiles {
     return new ArrayList<>(mapMockedFile.values());
   }
 
+  public static List<FileMock> getMockedPreviews() {
+    return new ArrayList<>(mapMockedPreviews.values());
+  }
+
   public static FileMock get(MockedFileType type) {
     return mapMockedFile.get(type);
+  }
+
+  public static FileMock getPreview(MockedFileType type) {
+    return mapMockedPreviews.get(type);
   }
 
   public enum MockedFileType {
