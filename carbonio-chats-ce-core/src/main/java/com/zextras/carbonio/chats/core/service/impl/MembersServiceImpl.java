@@ -22,7 +22,7 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
-import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
+import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -36,23 +36,23 @@ public class MembersServiceImpl implements MembersService {
   private final RoomService            roomService;
   private final SubscriptionRepository subscriptionRepository;
   private final EventDispatcher        eventDispatcher;
-  private final SubscriptionMapper     subscriptionMapper;
-  private final AccountService         accountService;
-  private final MessageDispatcher      messageService;
+  private final SubscriptionMapper    subscriptionMapper;
+  private final AuthenticationService authenticationService;
+  private final MessageDispatcher     messageService;
 
   @Inject
   public MembersServiceImpl(
     RoomService roomService, SubscriptionRepository subscriptionRepository,
     EventDispatcher eventDispatcher,
     SubscriptionMapper subscriptionMapper,
-    AccountService accountService,
+    AuthenticationService authenticationService,
     MessageDispatcher messageDispatcher
   ) {
     this.roomService = roomService;
     this.subscriptionRepository = subscriptionRepository;
     this.eventDispatcher = eventDispatcher;
     this.subscriptionMapper = subscriptionMapper;
-    this.accountService = accountService;
+    this.authenticationService = authenticationService;
     this.messageService = messageDispatcher;
   }
 
@@ -91,7 +91,7 @@ public class MembersServiceImpl implements MembersService {
       throw new BadRequestException(String.format("User '%s' is already a room member", memberDto.getUserId()));
     }
     // check the users existence
-    accountService.getByUUID(memberDto.getUserId(), currentUser)
+    authenticationService.getByUUID(memberDto.getUserId(), currentUser)
       .orElseThrow(() -> new NotFoundException(String.format("User with id '%s' was not found", memberDto.getUserId())));
     // insert the new member
     Subscription subscription = subscriptionRepository.insert(

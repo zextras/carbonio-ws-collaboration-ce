@@ -19,9 +19,9 @@ import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
-import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
-import com.zextras.carbonio.chats.core.infrastructure.account.impl.AccountServiceImpl;
-import com.zextras.carbonio.chats.core.infrastructure.account.impl.FakeAccountServiceImpl;
+import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
+import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
+import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.FakeAuthenticationServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -148,11 +148,11 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private AccountService getAccountService(AppConfig appConfig, UserManagementClient userManagementClient) {
+  private AuthenticationService getAccountService(AppConfig appConfig, UserManagementClient userManagementClient) {
     if (EnvironmentType.DEVELOPMENT.equals(appConfig.getEnvType())) {
-      return new FakeAccountServiceImpl(userManagementClient);
+      return new FakeAuthenticationServiceImpl(userManagementClient);
     } else {
-      return new AccountServiceImpl(userManagementClient);
+      return new UserManagementAuthenticationService(userManagementClient);
     }
   }
 

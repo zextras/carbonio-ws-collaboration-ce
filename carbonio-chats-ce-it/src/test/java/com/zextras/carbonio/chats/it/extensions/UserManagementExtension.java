@@ -6,7 +6,7 @@ import static org.mockserver.model.HttpResponse.response;
 import com.zextras.carbonio.chats.core.config.ConfigValue;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
-import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockAccount;
+import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockUserProfile;
 import com.zextras.carbonio.chats.it.Utils.TimeUtils;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
@@ -95,7 +95,7 @@ public class UserManagementExtension implements AfterAllCallback, BeforeAllCallb
 
   private void mockResponses(MockServerClient client) {
     mockHealthCheck(client);
-    for (MockAccount mockAccount : MockedAccount.getAccounts()) {
+    for (MockUserProfile mockAccount : MockedAccount.getAccounts()) {
       mockValidateUserToken(client, new UserId(mockAccount.getId()), mockAccount.getToken());
       UserInfo userInfo = new UserInfo(mockAccount.getId(), mockAccount.getEmail(), mockAccount.getName(),
         mockAccount.getDomain());

@@ -7,7 +7,7 @@ import static org.mockserver.model.HttpResponse.response;
 import com.zextras.carbonio.chats.core.config.ConfigValue;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
-import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockAccount;
+import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockUserProfile;
 import com.zextras.carbonio.chats.it.Utils.TimeUtils;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
@@ -100,7 +100,7 @@ public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback,
     String room1Id = "86cc37de-1217-4056-8c95-69997a6bccce";
     String room2Id = "b7774109-15ba-4889-b480-2dcf952d0991";
     List<String> roomsIds = List.of(room1Id, room2Id);
-    List<MockAccount> accounts = MockedAccount.getAccounts();
+    List<MockUserProfile> accounts = MockedAccount.getAccounts();
     mockIsAlive(client);
     mockRemoveRoomMember(client);
     mockDeleteRoom(client);

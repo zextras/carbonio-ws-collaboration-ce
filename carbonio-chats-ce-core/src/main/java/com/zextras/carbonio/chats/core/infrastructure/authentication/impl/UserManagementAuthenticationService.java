@@ -1,8 +1,8 @@
-package com.zextras.carbonio.chats.core.infrastructure.account.impl;
+package com.zextras.carbonio.chats.core.infrastructure.authentication.impl;
 
-import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
+import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.core.data.model.Account;
+import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.carbonio.usermanagement.entities.UserId;
 import com.zextras.carbonio.usermanagement.entities.UserInfo;
@@ -13,12 +13,12 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 @Singleton
-public class AccountServiceImpl implements AccountService {
+public class UserManagementAuthenticationService implements AuthenticationService {
 
   private final UserManagementClient userManagementClient;
 
   @Inject
-  public AccountServiceImpl(UserManagementClient userManagementClient) {
+  public UserManagementAuthenticationService(UserManagementClient userManagementClient) {
     this.userManagementClient = userManagementClient;
   }
 
@@ -34,13 +34,13 @@ public class AccountServiceImpl implements AccountService {
   }
 
   @Override
-  public Optional<Account> getByUUID(UUID userId, UserPrincipal currentUser) {
-    if (currentUser.getCookie() != null) {
-      Try<UserInfo> userByUUID = userManagementClient.getUserByUUID(currentUser.getCookie(), userId);
+  public Optional<UserProfile> getByUUID(UUID userId, UserPrincipal currentUser) {
+    if (currentUser.getCookieString() != null) {
+      Try<UserInfo> userByUUID = userManagementClient.getUserByUUID(currentUser.getCookieString(), userId);
       if (userByUUID.isSuccess()) {
         UserInfo userInfo = userByUUID.get();
         return Optional.of(
-          Account.create(userInfo.getId())
+          UserProfile.create(userInfo.getId())
             .name(userInfo.getFullName())
             .email(userInfo.getEmail())
             .domain(userInfo.getDomain()));

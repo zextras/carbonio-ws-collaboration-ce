@@ -52,6 +52,10 @@ public class User {
   @WhenModified
   private OffsetDateTime updatedAt;
 
+  public static User create() {
+    return new User();
+  }
+
   public String getId() {
     return id;
   }
@@ -65,7 +69,7 @@ public class User {
     return lastSeen;
   }
 
-  public User setLastSeen(OffsetDateTime lastSeen) {
+  public User lastSeen(OffsetDateTime lastSeen) {
     this.lastSeen = lastSeen;
     return this;
   }
@@ -76,24 +80,6 @@ public class User {
 
   public User statusMessage(String statusMessage) {
     this.statusMessage = statusMessage;
-    return this;
-  }
-
-  public byte[] getImage() {
-    return image;
-  }
-
-  public User image(byte[] image) {
-    this.image = image;
-    return this;
-  }
-
-  public Date getImageUpdatedAt() {
-    return imageUpdatedAt;
-  }
-
-  public User imageUpdatedAt(Date imageUpdatedAt) {
-    this.imageUpdatedAt = imageUpdatedAt;
     return this;
   }
 

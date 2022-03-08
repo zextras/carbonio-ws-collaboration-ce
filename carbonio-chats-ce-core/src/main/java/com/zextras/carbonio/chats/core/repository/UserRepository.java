@@ -1,0 +1,16 @@
+package com.zextras.carbonio.chats.core.repository;
+
+import com.zextras.carbonio.chats.core.data.entity.User;
+import java.util.Optional;
+
+public interface UserRepository {
+
+  /**
+   * Returns the user associated with the given id.
+   *
+   * @param id the user id to retrieve
+   * @return an {@link Optional} which contains the {@link User}, or empty if it was not found
+   */
+  Optional<User> getById(String id);
+
+}

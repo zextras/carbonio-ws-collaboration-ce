@@ -19,7 +19,7 @@ import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
-import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
+import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -56,9 +56,9 @@ public class RoomServiceImpl implements RoomService {
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final RoomMapper                 roomMapper;
   private final EventDispatcher            eventDispatcher;
-  private final MessageDispatcher          messageDispatcher;
-  private final AccountService             accountService;
-  private final MembersService             membersService;
+  private final MessageDispatcher     messageDispatcher;
+  private final AuthenticationService authenticationService;
+  private final MembersService        membersService;
   private final FileMetadataRepository     fileMetadataRepository;
   private final StoragesService            storagesService;
 
@@ -67,7 +67,7 @@ public class RoomServiceImpl implements RoomService {
     RoomRepository roomRepository, RoomUserSettingsRepository roomUserSettingsRepository, RoomMapper roomMapper,
     EventDispatcher eventDispatcher,
     MessageDispatcher messageDispatcher,
-    AccountService accountService,
+    AuthenticationService authenticationService,
     MembersService membersService,
     FileMetadataRepository fileMetadataRepository,
     StoragesService storagesService
@@ -77,7 +77,7 @@ public class RoomServiceImpl implements RoomService {
     this.roomMapper = roomMapper;
     this.eventDispatcher = eventDispatcher;
     this.messageDispatcher = messageDispatcher;
-    this.accountService = accountService;
+    this.authenticationService = authenticationService;
     this.membersService = membersService;
     this.fileMetadataRepository = fileMetadataRepository;
     this.storagesService = storagesService;
@@ -116,7 +116,7 @@ public class RoomServiceImpl implements RoomService {
     // check the users existence
     insertRoomRequestDto.getMembersIds()
       .forEach(userId ->
-        accountService.getByUUID(userId, currentUser)
+        authenticationService.getByUUID(userId, currentUser)
           .orElseThrow(() -> new NotFoundException(String.format("User with identifier '%s' not found", userId))));
     // entity building
     UUID id = UUID.randomUUID();

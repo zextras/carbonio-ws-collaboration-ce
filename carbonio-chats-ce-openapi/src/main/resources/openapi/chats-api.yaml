@@ -659,7 +659,15 @@ components:
           type: string
           readOnly: true
           description: user's name
-      required: [ email, name ]
+        lastSeen:
+          type: integer
+          format: int64
+          readOnly: true
+          description: user's last seen timestamp
+        statusMessage:
+          type: string
+          description: the user's status message
+      required: [ email, name, lastSeen, statusMessage ]
     RoomType:
       type: string
       description: Managed room types

@@ -28,14 +28,14 @@ import com.zextras.carbonio.chats.core.data.event.RoomDeletedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomHashResetEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomPictureChangedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomUpdatedEvent;
-import com.zextras.carbonio.chats.core.data.model.Account;
+import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
-import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
+import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -75,16 +75,16 @@ class RoomServiceImplTest {
   private final RoomRepository             roomRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final EventDispatcher            eventDispatcher;
-  private final MessageDispatcher          messageDispatcher;
-  private final AccountService             accountService;
-  private final MembersService             membersService;
+  private final MessageDispatcher     messageDispatcher;
+  private final AuthenticationService authenticationService;
+  private final MembersService        membersService;
   private final FileMetadataRepository     fileMetadataRepository;
   private final StoragesService            storagesService;
 
   public RoomServiceImplTest(RoomMapper roomMapper) {
     this.roomRepository = mock(RoomRepository.class);
     this.roomUserSettingsRepository = mock(RoomUserSettingsRepository.class);
-    this.accountService = mock(AccountService.class);
+    this.authenticationService = mock(AuthenticationService.class);
     this.membersService = mock(MembersService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.messageDispatcher = mock(MessageDispatcher.class);
@@ -96,7 +96,7 @@ class RoomServiceImplTest {
       roomMapper,
       this.eventDispatcher,
       this.messageDispatcher,
-      this.accountService,
+      this.authenticationService,
       this.membersService,
       this.fileMetadataRepository,
       this.storagesService);
@@ -172,7 +172,7 @@ class RoomServiceImplTest {
     reset(
       this.roomRepository,
       this.roomUserSettingsRepository,
-      this.accountService,
+      this.authenticationService,
       this.membersService,
       this.eventDispatcher,
       this.messageDispatcher,
@@ -280,10 +280,10 @@ class RoomServiceImplTest {
     @DisplayName("It creates the room and returns it")
     public void createRoom_testOk() {
       UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
-      when(accountService.getByUUID(user2Id, mockUserPrincipal))
-        .thenReturn(Optional.of(Account.create(user2Id)));
-      when(accountService.getByUUID(user3Id, mockUserPrincipal))
-        .thenReturn(Optional.of(Account.create(user3Id)));
+      when(authenticationService.getByUUID(user2Id, mockUserPrincipal))
+        .thenReturn(Optional.of(UserProfile.create(user2Id)));
+      when(authenticationService.getByUUID(user3Id, mockUserPrincipal))
+        .thenReturn(Optional.of(UserProfile.create(user3Id)));
       when(
         membersService.initRoomSubscriptions(eq(Arrays.asList(user2Id, user3Id)), any(Room.class),
           eq(mockUserPrincipal)))
@@ -351,7 +351,7 @@ class RoomServiceImplTest {
     @DisplayName("If there is an invitee without account, it throws a 'not found' exception")
     public void createRoom_testInvitedUserWithoutAccount() {
       UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
-      when(accountService.getByUUID(user2Id, mockUserPrincipal))
+      when(authenticationService.getByUUID(user2Id, mockUserPrincipal))
         .thenReturn(Optional.empty());
 
       RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()

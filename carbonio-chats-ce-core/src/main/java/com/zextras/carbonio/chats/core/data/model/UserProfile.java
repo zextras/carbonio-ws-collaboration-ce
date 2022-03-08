@@ -6,29 +6,29 @@ package com.zextras.carbonio.chats.core.data.model;
 
 import java.util.UUID;
 
-public class Account {
+public class UserProfile {
 
   private String id;
   private String email;
   private String name;
   private String domain;
 
-  public Account(String id) {
+  public UserProfile(String id) {
     this.id = id;
   }
 
-  public static Account create(String id) {
-    return new Account(id);
+  public static UserProfile create(String id) {
+    return new UserProfile(id);
   }
-  public static Account create(UUID id) {
-    return new Account(id.toString());
+  public static UserProfile create(UUID id) {
+    return new UserProfile(id.toString());
   }
 
   public String getId() {
     return id;
   }
 
-  public Account id(String id) {
+  public UserProfile id(String id) {
     this.id = id;
     return this;
   }
@@ -37,7 +37,7 @@ public class Account {
     return email;
   }
 
-  public Account email(String email) {
+  public UserProfile email(String email) {
     this.email = email;
     return this;
   }
@@ -46,7 +46,7 @@ public class Account {
     return name;
   }
 
-  public Account name(String name) {
+  public UserProfile name(String name) {
     this.name = name;
     return this;
   }
@@ -55,7 +55,7 @@ public class Account {
     return domain;
   }
 
-  public Account domain(String domain) {
+  public UserProfile domain(String domain) {
     this.domain = domain;
     return this;
   }

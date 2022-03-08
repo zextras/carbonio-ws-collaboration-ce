@@ -10,7 +10,7 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
-import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
+import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.model.DependencyHealthDto;
 import com.zextras.carbonio.chats.model.DependencyHealthTypeDto;
 import com.zextras.carbonio.chats.model.HealthStatusDto;
@@ -25,8 +25,8 @@ public class HealthcheckServiceImpl implements HealthcheckService {
   private final DatabaseInfoService databaseInfoService;
   private final EventDispatcher eventDispatcher;
   private final StoragesService storagesService;
-  private final PreviewerService previewerService;
-  private final AccountService  accountService;
+  private final PreviewerService      previewerService;
+  private final AuthenticationService accountService;
 
   @Inject
   public HealthcheckServiceImpl(
@@ -35,14 +35,14 @@ public class HealthcheckServiceImpl implements HealthcheckService {
     EventDispatcher eventDispatcher,
     StoragesService storagesService,
     PreviewerService previewerService,
-    AccountService accountService
+    AuthenticationService authenticationService
   ) {
     this.messageService = messageDispatcher;
     this.databaseInfoService = databaseInfoService;
     this.eventDispatcher = eventDispatcher;
     this.storagesService = storagesService;
     this.previewerService = previewerService;
-    this.accountService = accountService;
+    this.accountService = authenticationService;
   }
 
   @Override

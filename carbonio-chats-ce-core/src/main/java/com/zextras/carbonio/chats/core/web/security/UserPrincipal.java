@@ -9,7 +9,7 @@ public class UserPrincipal implements Principal {
 
   private String  userId;
   private boolean systemUser = false;
-  private String  cookie;
+  private String  cookieString;
 
 
   public UserPrincipal() {
@@ -55,12 +55,12 @@ public class UserPrincipal implements Principal {
     return this;
   }
 
-  public String getCookie() {
-    return cookie;
+  public String getCookieString() {
+    return cookieString;
   }
 
-  public UserPrincipal cookie(String cookie) {
-    this.cookie = cookie;
+  public UserPrincipal cookieString(String cookie) {
+    this.cookieString = cookie;
     return this;
   }
 
