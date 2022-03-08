@@ -48,10 +48,9 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
-import com.zextras.carbonio.chats.model.RoomCreationFieldsDtoBuilder;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
-import com.zextras.carbonio.chats.model.RoomEditableFieldsDtoBuilder;
+
 import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.io.File;
@@ -293,13 +292,11 @@ class RoomServiceImplTest {
         ).collect(Collectors.toList()));
       when(roomRepository.insert(any(Room.class))).thenReturn(room1);
 
-      RoomCreationFieldsDto creationFields = RoomCreationFieldsDtoBuilder.create()
+      RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
         .name("room1")
         .description("Room one")
         .type(RoomTypeDto.GROUP)
-        .addMemberId(user2Id)
-        .addMemberId(user3Id)
-        .build();
+        .membersIds(List.of(user2Id, user3Id));
       RoomInfoDto room = roomService.createRoom(creationFields, mockUserPrincipal);
       assertEquals(creationFields.getName(), room.getName());
       assertEquals(creationFields.getDescription(), room.getDescription());
@@ -325,13 +322,11 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("If there are duplicate invites, it throws a 'bad request' exception")
     public void createRoom_testRoomToCreateWithDuplicateInvites() {
-      RoomCreationFieldsDto creationFields = RoomCreationFieldsDtoBuilder.create()
+      RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
         .name("room1")
         .description("Room one")
         .type(RoomTypeDto.GROUP)
-        .addMemberId(user2Id)
-        .addMemberId(user2Id)
-        .build();
+        .membersIds(List.of(user2Id, user2Id));
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
       assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
@@ -341,13 +336,11 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("If the current user is invited, it throws a 'bad request' exception")
     public void createRoom_testRoomToCreateWithInvitedUsersListContainsCurrentUser() {
-      RoomCreationFieldsDto creationFields = RoomCreationFieldsDtoBuilder.create()
+      RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
         .name("room1")
         .description("Room one")
         .type(RoomTypeDto.GROUP)
-        .addMemberId(user1Id)
-        .addMemberId(user2Id)
-        .build();
+        .membersIds(List.of(user1Id, user2Id));
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
       assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
@@ -361,14 +354,11 @@ class RoomServiceImplTest {
       when(accountService.getByUUID(user2Id, mockUserPrincipal))
         .thenReturn(Optional.empty());
 
-      RoomCreationFieldsDto creationFields = RoomCreationFieldsDtoBuilder.create()
+      RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
         .name("room1")
         .description("Room one")
         .type(RoomTypeDto.GROUP)
-        .addMemberId(user2Id)
-        .addMemberId(user3Id)
-        .build();
-
+        .membersIds(List.of(user2Id, user3Id));
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
         roomService.createRoom(creationFields, mockUserPrincipal));
       assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
@@ -388,8 +378,8 @@ class RoomServiceImplTest {
       when(roomUserSettingsRepository.getByRoomIdAndUserId(room1Id.toString(), user1Id.toString()))
         .thenReturn(Optional.of(RoomUserSettings.create(room1, user1Id.toString()).mutedUntil(OffsetDateTime.now())));
 
-      RoomEditableFieldsDto roomEditableFieldsDto = RoomEditableFieldsDtoBuilder.create().name("room1-changed")
-        .description("Room one changed").build();
+      RoomEditableFieldsDto roomEditableFieldsDto = RoomEditableFieldsDto.create().name("room1-changed")
+        .description("Room one changed");
       RoomDto room = roomService.updateRoom(room1Id, roomEditableFieldsDto, UserPrincipal.create(user1Id));
 
       assertEquals(room1Id, room.getId());
@@ -409,7 +399,7 @@ class RoomServiceImplTest {
     public void updateRoom_testRoomNotExists() {
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
         roomService.updateRoom(room1Id,
-          RoomEditableFieldsDtoBuilder.create().name("room1-changed").description("Room one changed").build(),
+          RoomEditableFieldsDto.create().name("room1-changed").description("Room one changed"),
           UserPrincipal.create(user1Id)));
 
       assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
@@ -423,7 +413,7 @@ class RoomServiceImplTest {
 
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
         roomService.updateRoom(room3Id,
-          RoomEditableFieldsDtoBuilder.create().name("room1-changed").description("Room one changed").build(),
+          RoomEditableFieldsDto.create().name("room1-changed").description("Room one changed"),
           UserPrincipal.create(user1Id)));
 
       assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
@@ -439,7 +429,7 @@ class RoomServiceImplTest {
 
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
         roomService.updateRoom(room1Id,
-          RoomEditableFieldsDtoBuilder.create().name("room1-changed").description("Room one changed").build(),
+          RoomEditableFieldsDto.create().name("room1-changed").description("Room one changed"),
           UserPrincipal.create(user2Id)));
 
       assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
@@ -735,7 +725,7 @@ class RoomServiceImplTest {
       verify(fileMetadataRepository, times(1)).getById(room1Id.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, user1Id.toString());
-      verify(storagesService, times(1)).deleteFile("123","fake-old-user");
+      verify(storagesService, times(1)).deleteFile("123", "fake-old-user");
       verify(eventDispatcher, times(1)).sendToTopic(user1Id, room1Id.toString(),
         RoomPictureChangedEvent.create(room1Id).from(user1Id));
       verify(messageDispatcher, times(1)).sendMessageToRoom(room1Id.toString(), user1Id.toString(),
