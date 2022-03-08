@@ -618,7 +618,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Given a room identifier and a picture file, correctly updates the room pictures")
     public void updateRoomPicture_testOk() throws Exception {
-      FileMock fileMock = MockedFiles.getMockedFiles().get(1);
+      FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
 

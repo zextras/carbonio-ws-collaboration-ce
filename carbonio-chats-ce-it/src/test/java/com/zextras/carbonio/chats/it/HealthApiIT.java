@@ -25,14 +25,13 @@ public class HealthApiIT {
     this.objectMapper = objectMapper;
   }
 
-  @Disabled
   @Test
   public void getHealthStatusTest() throws Exception {
     MockHttpResponse response = dispatcher.get("/health");
     assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
     String contentAsString = response.getContentAsString();
     HealthStatusDto healthStatus = objectMapper.readValue(contentAsString, HealthStatusDto.class);
-    assertEquals(4, healthStatus.getDependencies().size());
+    assertEquals(6, healthStatus.getDependencies().size());
   }
 
 }
