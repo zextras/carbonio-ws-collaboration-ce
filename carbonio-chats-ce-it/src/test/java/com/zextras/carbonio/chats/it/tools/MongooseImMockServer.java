@@ -35,7 +35,7 @@ public class MongooseImMockServer extends MockServerClient {
     try {
       verify(request, VerificationTimes.exactly(iterationsNumber));
     } finally {
-      clear(request, ClearType.ALL);
+      clear(request, ClearType.LOG);
     }
   }
 

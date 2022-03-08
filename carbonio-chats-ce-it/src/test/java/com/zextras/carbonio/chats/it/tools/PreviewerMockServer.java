@@ -33,7 +33,7 @@ public class PreviewerMockServer extends MockServerClient {
       parameters.forEach(request::withQueryStringParameter
       ));
     verify(request, VerificationTimes.exactly(iterationsNumber));
-    clear(request, ClearType.ALL);
+    clear(request, ClearType.LOG);
   }
 
 }

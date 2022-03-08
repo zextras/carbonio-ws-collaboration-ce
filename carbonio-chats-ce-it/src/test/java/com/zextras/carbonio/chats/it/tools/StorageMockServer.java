@@ -30,7 +30,7 @@ public class StorageMockServer extends MockServerClient {
       .withQueryStringParameter("type", "chats");
 
     verify(request, VerificationTimes.exactly(iterationsNumber));
-    clear(request, ClearType.ALL);
+    clear(request, ClearType.LOG);
   }
 
 }
