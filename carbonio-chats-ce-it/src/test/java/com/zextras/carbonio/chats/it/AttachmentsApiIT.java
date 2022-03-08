@@ -14,13 +14,16 @@ import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.FileMock;
+import com.zextras.carbonio.chats.it.Utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.it.annotations.IntegrationTest;
+import com.zextras.carbonio.chats.it.tools.PreviewerMockServer;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import javax.ws.rs.core.Response.Status;
 import org.jboss.resteasy.mock.MockHttpResponse;
@@ -38,6 +41,7 @@ public class AttachmentsApiIT {
   private final ObjectMapper              objectMapper;
   private final IntegrationTestUtils      integrationTestUtils;
   private final StorageMockServer         storageMockServer;
+  private final PreviewerMockServer       previewerMockServer;
   private final UserManagementMockServer  userManagementMockServer;
 
   public AttachmentsApiIT(
@@ -45,6 +49,7 @@ public class AttachmentsApiIT {
     ObjectMapper objectMapper, ResteasyRequestDispatcher dispatcher,
     IntegrationTestUtils integrationTestUtils,
     StorageMockServer storageMockServer,
+    PreviewerMockServer previewerMockServer,
     UserManagementMockServer userManagementMockServer
   ) {
     this.fileMetadataRepository = fileMetadataRepository;
@@ -52,6 +57,7 @@ public class AttachmentsApiIT {
     this.dispatcher = dispatcher;
     this.integrationTestUtils = integrationTestUtils;
     this.storageMockServer = storageMockServer;
+    this.previewerMockServer = previewerMockServer;
     this.userManagementMockServer = userManagementMockServer;
     this.dispatcher.getRegistry().addSingletonResource(attachmentsApi);
   }
@@ -169,7 +175,7 @@ public class AttachmentsApiIT {
     @Test
     @DisplayName("Given an attachment identifier, if authenticated user isn't a room member then return a status code 403")
     public void getAttachment_testErrorUserIsNotARoomMember() throws Exception {
-      FileMock fileMock = MockedFiles.getFile();
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
 
       MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/download", fileMock.getId()),
@@ -189,22 +195,25 @@ public class AttachmentsApiIT {
     @Test
     @DisplayName("Correctly returns the attachment preview for requested id")
     public void getAttachmentPreview_testOk() throws Exception {
-      FileMock fileMock = MockedFiles.getFile();
-      FileMetadata fileMetadata = integrationTestUtils.generateAndSaveFileMetadata(fileMock,
-        FileMetadataType.ATTACHMENT, user1Id, roomId);
+      FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
+      integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
 
       MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/preview", fileMock.getId()),
         user1Token);
 
+      FileMock expectedFile = MockedFiles.get(MockedFileType.SNOOPY_PREVIEW);
+
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
-      assertArrayEquals(fileMock.getFileBytes(), response.getOutput());
+      assertArrayEquals(expectedFile.getFileBytes(), response.getOutput());
       assertEquals(
         String.format("inline; filename=\"%s\"", fileMock.getName()),
         response.getOutputHeaders().get("Content-Disposition").get(0));
       assertEquals(fileMock.getMimeType(), response.getOutputHeaders().get("Content-Type").get(0).toString());
-      assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
+      assertEquals(expectedFile.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("GET", "/download", fileMetadata.getId(), 1);
+      previewerMockServer.verify("GET",
+        String.format("/preview/image/%s/1/320x160/", fileMock.getId()),
+        Map.of("service_type", "chats"), 1);
     }
 
     @Test
@@ -219,7 +228,7 @@ public class AttachmentsApiIT {
     @Test
     @DisplayName("Given an attachment identifier, if authenticated user isn't a room member then return a status code 403")
     public void getAttachmentPreview_testErrorUserIsNotARoomMember() throws Exception {
-      FileMock fileMock = MockedFiles.getFile();
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
 
       MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/preview", fileMock.getId()),
@@ -262,7 +271,7 @@ public class AttachmentsApiIT {
     @Test
     @DisplayName("Given an attachment identifier, if authenticated user isn't a room member then return a status code 403")
     public void getAttachmentInfo_testErrorUserIsNotARoomMember() throws Exception {
-      FileMock fileMock = MockedFiles.getFile();
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
 
       MockHttpResponse response = dispatcher.get(String.format("/attachments/%s", fileMock.getId()), user3Token);
@@ -280,7 +289,8 @@ public class AttachmentsApiIT {
     @Test
     @DisplayName("Correctly deletes the attachment with requested id")
     public void deleteAttachment_testOk() throws Exception {
-      FileMetadata fileMetadata = integrationTestUtils.generateAndSaveFileMetadata(MockedFiles.getFile(),
+      FileMetadata fileMetadata = integrationTestUtils.generateAndSaveFileMetadata(
+        MockedFiles.get(MockedFileType.PEANUTS_IMAGE),
         FileMetadataType.ATTACHMENT, user1Id, roomId);
 
       MockHttpResponse response = dispatcher.delete(String.format("/attachments/%s", fileMetadata.getId()), user1Token);
@@ -303,7 +313,7 @@ public class AttachmentsApiIT {
     @Test
     @DisplayName("Given an attachment identifier, if authenticated user isn't a room member then return a status code 403")
     public void deleteAttachment_testErrorUserIsNotARoomMember() throws Exception {
-      FileMock fileMock = MockedFiles.getFile();
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
 
       MockHttpResponse response = dispatcher.delete(String.join("", "/attachments/", fileMock.getId()), user3Token);

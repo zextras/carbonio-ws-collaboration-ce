@@ -3,6 +3,7 @@ package com.zextras.carbonio.chats.it.annotations;
 import com.zextras.carbonio.chats.it.extensions.DatabaseExtension;
 import com.zextras.carbonio.chats.it.extensions.GuiceExtension;
 import com.zextras.carbonio.chats.it.extensions.MongooseIMExtension;
+import com.zextras.carbonio.chats.it.extensions.PreviewerExtension;
 import com.zextras.carbonio.chats.it.extensions.RestEasyExtension;
 import com.zextras.carbonio.chats.it.extensions.StoragesExtension;
 import com.zextras.carbonio.chats.it.extensions.UserManagementExtension;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(RestEasyExtension.class)
 @ExtendWith(DatabaseExtension.class)
 @ExtendWith(StoragesExtension.class)
+@ExtendWith(PreviewerExtension.class)
 @ExtendWith(UserManagementExtension.class)
 @ExtendWith(MongooseIMExtension.class)
 public @interface IntegrationTest {

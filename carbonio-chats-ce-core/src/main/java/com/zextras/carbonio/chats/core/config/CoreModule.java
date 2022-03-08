@@ -28,6 +28,8 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.MockEventDispatcherImpl;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherImpl;
+import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
+import com.zextras.carbonio.chats.core.infrastructure.previewer.impl.PreviewerServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
@@ -62,15 +64,16 @@ import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandler;
-import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHandler;
+import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.ApiClient;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.Configuration;
+import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
@@ -123,6 +126,7 @@ public class CoreModule extends AbstractModule {
 
     bind(MessageDispatcher.class).to(MessageDispatcherImpl.class);
     bind(StoragesService.class).to(StoragesServiceImpl.class);
+    bind(PreviewerService.class).to(PreviewerServiceImpl.class);
 
     bindExceptionMapper();
   }
@@ -207,6 +211,14 @@ public class CoreModule extends AbstractModule {
         appConfig.get(String.class, ConfigValue.STORAGES_PORT).orElseThrow()
       )
     );
+  }
+
+  @Singleton
+  @Provides
+  private PreviewClient getPreviewClient(AppConfig appConfig) {
+    return PreviewClient.atURL(String.format("http://%s:%s",
+      appConfig.get(String.class, ConfigValue.PREVIEWER_HOST).orElseThrow(),
+      appConfig.get(String.class, ConfigValue.PREVIEWER_PORT).orElseThrow()));
   }
 
   @Singleton

@@ -1,37 +1,41 @@
 package com.zextras.carbonio.chats.it.Utils;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
 public class MockedFiles {
 
-  private static final List<FileMock> mockedFiles = List.of(
+  private static final UUID                          snoopyId      = UUID.randomUUID();
+  private static final Map<MockedFileType, FileMock> mapMockedFile = Map.of(
+    MockedFileType.PEANUTS_IMAGE,
     FileMock.create().id(UUID.randomUUID()).size(33786L).mimeType("image/jpg").name("peanuts.jpg"),
-    FileMock.create().id(UUID.randomUUID()).size(13705).mimeType("image/jpg").name("snoopy.jpg"),
+    MockedFileType.PEANUTS_LARGE_IMAGE,
     FileMock.create().id(UUID.randomUUID()).size(2664054L).mimeType("image/bmp").name("peanuts.bmp"),
-    FileMock.create().id(UUID.randomUUID()).size(81694L).mimeType("application/pdf").name("peanuts.pdf")
+    MockedFileType.PEANUTS_PDF,
+    FileMock.create().id(UUID.randomUUID()).size(81694L).mimeType("application/pdf").name("peanuts.pdf"),
+    MockedFileType.SNOOPY_IMAGE, FileMock.create().id(snoopyId).size(13705).mimeType("image/jpg").name("snoopy.jpg"),
+    MockedFileType.SNOOPY_PREVIEW,
+    FileMock.create().id(snoopyId).size(4408).mimeType("image/jpg").name("snoopy-preview.jpg")
   );
 
   public static List<FileMock> getMockedFiles() {
-    return mockedFiles;
+    return new ArrayList<>(mapMockedFile.values());
   }
 
-  public static FileMock getFile() {
-    return mockedFiles.get(0);
+  public static FileMock get(MockedFileType type) {
+    return mapMockedFile.get(type);
   }
 
-  public static FileMock getImage() {
-    return mockedFiles.get(0);
-  }
-
-  public static FileMock getLargeImage() {
-    return mockedFiles.get(2);
-  }
-
-  public static FileMock getPdf() {
-    return mockedFiles.get(3);
+  public enum MockedFileType {
+    PEANUTS_IMAGE,
+    PEANUTS_LARGE_IMAGE,
+    PEANUTS_PDF,
+    SNOOPY_IMAGE,
+    SNOOPY_PREVIEW
   }
 
   public static class FileMock {

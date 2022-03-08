@@ -25,11 +25,9 @@ import com.zextras.carbonio.chats.model.IdDto;
 import io.ebean.annotation.Transactional;
 import java.io.File;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.swing.SortOrder;
 
 @Singleton
 public class AttachmentServiceImpl implements AttachmentService {
@@ -68,8 +66,11 @@ public class AttachmentServiceImpl implements AttachmentService {
 
   @Override
   public FileContentAndMetadata getAttachmentPreviewById(UUID fileId, UserPrincipal currentUser) {
-    // TODO: 07/01/22 momentarily returns the original file
-    return getAttachmentById(fileId, currentUser);
+    FileMetadata metadata = fileMetadataRepository.getById(fileId.toString())
+      .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
+    roomService.getRoomAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
+    File file = storagesService.getPreview(metadata, metadata.getUserId());
+    return new FileContentAndMetadata(file, metadata);
   }
 
   @Override

@@ -15,7 +15,10 @@ public enum ConfigValue {
   STORAGES_HOST("carbonio.storages.host", "STORAGES_HOST"),
   STORAGES_PORT("carbonio.storages.port", "STORAGES_PORT"),
   USER_MANAGEMENT_HOST("carbonio.usermanagement.host", "USER_MANAGEMENT_HOST"),
-  USER_MANAGEMENT_PORT("carbonio.usermanagement.port", "USER_MANAGEMENT_PORT");
+  USER_MANAGEMENT_PORT("carbonio.usermanagement.port", "USER_MANAGEMENT_PORT"),
+  PREVIEWER_HOST("carbonio.preview.host", "PREVIEWER_HOST"),
+  PREVIEWER_PORT("carbonio.preview.port", "PREVIEWER_PORT");
+
 
   private final String propertyName;
   private final String envName;

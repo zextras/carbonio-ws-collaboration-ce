@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.infrastructure.storage;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import java.io.File;
+import java.io.IOException;
 
 public interface StoragesService extends HealthIndicator {
 
@@ -18,6 +19,8 @@ public interface StoragesService extends HealthIndicator {
    * @return Required file {@link File}
    */
   File getFileById(String fileId, String ownerId);
+
+  File getPreview(FileMetadata file, String ownerId);
 
   /**
    * Saves a file on the repository

@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.service.impl;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.core.infrastructure.account.AccountService;
@@ -24,6 +25,7 @@ public class HealthcheckServiceImpl implements HealthcheckService {
   private final DatabaseInfoService databaseInfoService;
   private final EventDispatcher eventDispatcher;
   private final StoragesService storagesService;
+  private final PreviewerService previewerService;
   private final AccountService  accountService;
 
   @Inject
@@ -32,12 +34,14 @@ public class HealthcheckServiceImpl implements HealthcheckService {
     DatabaseInfoService databaseInfoService,
     EventDispatcher eventDispatcher,
     StoragesService storagesService,
+    PreviewerService previewerService,
     AccountService accountService
   ) {
     this.messageService = messageDispatcher;
     this.databaseInfoService = databaseInfoService;
     this.eventDispatcher = eventDispatcher;
     this.storagesService = storagesService;
+    this.previewerService = previewerService;
     this.accountService = accountService;
   }
 
@@ -76,6 +80,12 @@ public class HealthcheckServiceImpl implements HealthcheckService {
     dependencyHealthDto = new DependencyHealthDto();
     dependencyHealthDto.setName(DependencyHealthTypeDto.STORAGE_SERVICE);
     dependencyHealthDto.setIsHealthy(storagesService.isAlive());
+    dependencies.add(dependencyHealthDto);
+
+    //Previewer check
+    dependencyHealthDto = new DependencyHealthDto();
+    dependencyHealthDto.setName(DependencyHealthTypeDto.PREVIEWER_SERVICE);
+    dependencyHealthDto.setIsHealthy(previewerService.isAlive());
     dependencies.add(dependencyHealthDto);
 
     //User management check

@@ -17,6 +17,7 @@ import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.FileMock;
+import com.zextras.carbonio.chats.it.Utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.it.annotations.IntegrationTest;
 import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
@@ -541,7 +542,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Given a room identifier, correctly returns the room picture")
     public void getRoomPicture_testOk() throws Exception {
-      FileMock fileMock = MockedFiles.getImage();
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
@@ -637,7 +638,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Given a room identifier and a picture file, if user is not authenticated returns status code 401")
     public void updateRoomPicture_testErrorUnauthenticatedUser() throws Exception {
-      FileMock fileMock = MockedFiles.getImage();
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       MockHttpResponse response = dispatcher.put(url(UUID.fromString(fileMock.getId())), fileMock.getFileBytes(),
         Map.of("Content-Type", "application/octet-stream",
           "X-Content-Disposition",
@@ -650,7 +651,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Given a room identifier and a picture file, if X-Content-Disposition is missing returns status code 400")
     public void updateRoomPicture_testErrorMissingXContentDisposition() throws Exception {
-      FileMock fileMock = MockedFiles.getImage();
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       MockHttpResponse response = dispatcher.put(url(UUID.fromString(fileMock.getId())), fileMock.getFileBytes(),
         Collections.singletonMap("Content-Type", "application/octet-stream"),
         user1Token);
@@ -662,7 +663,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Given a room identifier and a picture file, if user is not a room member returns status code 403")
     public void updateRoomPicture_testErrorUserIsNotRoomMember() throws Exception {
-      FileMock fileMock = MockedFiles.getImage();
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
 
@@ -679,7 +680,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Given a room identifier and a picture file, if the room isn't a group returns status code 400")
     public void updateRoomPicture_testErrorRoomIsNotRoomGroup() throws Exception {
-      FileMock fileMock = MockedFiles.getImage();
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.ONE_TO_ONE, "room", List.of(user1Id, user2Id));
 
@@ -696,7 +697,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Given a room identifier and a picture file, if the image is too large returns status code 400")
     public void updateRoomPicture_testErrorImageTooLarge() throws Exception {
-      FileMock fileMock = MockedFiles.getLargeImage();
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_LARGE_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
 
@@ -713,7 +714,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Given a room identifier and a picture file, if the file isn't an image returns status code 400")
     public void updateRoomPicture_testErrorFileIsNotImage() throws Exception {
-      FileMock fileMock = MockedFiles.getPdf();
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_PDF);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
 
@@ -1272,7 +1273,7 @@ public class RoomsApiIT {
     public void insertAttachment_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
-      FileMock fileMock = MockedFiles.getFile();
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
 
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -1300,7 +1301,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Given a room identifier and an attachment, if there isn't an authenticated user returns a status code 401")
     public void insertAttachment_testErrorUnauthenticatedUser() throws Exception {
-      FileMock fileMock = MockedFiles.getFile();
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       MockHttpResponse response = dispatcher.post(url(UUID.randomUUID()), fileMock.getFileBytes(),
         Map.of("Content-Type", "application/octet-stream",
           "X-Content-Disposition",
@@ -1315,7 +1316,7 @@ public class RoomsApiIT {
     public void insertAttachment_testErrorAuthenticatedUserNotRoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
-      FileMock fileMock = MockedFiles.getFile();
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
 
       MockHttpResponse response = dispatcher.post(url(roomId), fileMock.getFileBytes(),
         Map.of("Content-Type", "application/octet-stream",

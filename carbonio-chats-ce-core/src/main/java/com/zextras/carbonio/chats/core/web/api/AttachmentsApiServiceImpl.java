@@ -52,7 +52,7 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
       .status(Status.OK)
       .entity(attachment.getFile())
       .header("Content-Type", attachment.getMetadata().getMimeType())
-      .header("Content-Length", attachment.getMetadata().getOriginalSize())
+      .header("Content-Length", attachment.getFile().length())
       .header("Content-Disposition", String.format("inline; filename=\"%s\"", attachment.getMetadata().getName()))
       .build();
   }

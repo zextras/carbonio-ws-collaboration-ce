@@ -39,10 +39,16 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>carbonio-user-management-sdk</artifactId>
     </dependency>
 
-    <!-- Storages -->
+    <!-- Storages sdk -->
     <dependency>
       <groupId>com.zextras</groupId>
       <artifactId>storages-ce-sdk</artifactId>
+    </dependency>
+
+    <!-- Previewer sdk -->
+    <dependency>
+      <groupId>com.zextras.carbonio.preview</groupId>
+      <artifactId>carbonio-preview-ce-sdk</artifactId>
     </dependency>
 
     <!-- Guice dependencies -->
