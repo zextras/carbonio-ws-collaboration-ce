@@ -1,6 +1,8 @@
 package com.zextras.carbonio.chats.core.web.security;
 
 import java.security.Principal;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -9,8 +11,7 @@ public class UserPrincipal implements Principal {
 
   private String  userId;
   private boolean systemUser = false;
-  private String  cookieString;
-
+  private Map<AuthenticationMethod, String> authCredentials;
 
   public UserPrincipal() {
 
@@ -55,12 +56,12 @@ public class UserPrincipal implements Principal {
     return this;
   }
 
-  public String getCookieString() {
-    return cookieString;
+  public Map<AuthenticationMethod, String> getAuthCredentials() {
+    return new HashMap<>(authCredentials);
   }
 
-  public UserPrincipal cookieString(String cookie) {
-    this.cookieString = cookie;
+  public UserPrincipal authCredentials(Map<AuthenticationMethod, String> authCredentials) {
+    this.authCredentials = authCredentials;
     return this;
   }
 

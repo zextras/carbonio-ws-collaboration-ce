@@ -4,10 +4,12 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.authentication.impl;
 
+import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -38,8 +40,8 @@ public class FakeAuthenticationServiceImpl extends UserManagementAuthenticationS
 
 
   @Override
-  public Optional<String> validateToken(String token) {
-    return Optional.of(super.validateToken(token).orElse(fakeAccounts.get(0).getId()));
+  public Optional<String> validateToken(Map<AuthenticationMethod, String> credentials) {
+    return Optional.of(super.validateToken(credentials).orElse(fakeAccounts.get(0).getId()));
   }
 
   @Override

@@ -5,19 +5,21 @@
 package com.zextras.carbonio.chats.core.infrastructure.authentication;
 
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
+import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface AuthenticationService {
 
   /**
-   * Validates the token
+   * Validates the user's credentials
    *
-   * @param token token to validate
+   * @param credentials a map of possible credentials related to the user
    * @return the user's identifier if the token is valid
    */
-  Optional<String> validateToken(String token);
+  Optional<String> validateToken(Map<AuthenticationMethod, String> credentials);
 
   /**
    * Gets the account by user identifier
