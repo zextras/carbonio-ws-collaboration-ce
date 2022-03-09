@@ -17,13 +17,20 @@ import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
+import org.apache.commons.io.IOUtils;
+import org.jboss.resteasy.plugins.providers.multipart.InputPart;
+import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
 
 @Singleton
 public class RoomsApiServiceImpl implements RoomsApiService {
@@ -88,6 +95,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .build();
   }
 
+
+
   @Override
   public Response getRoomPicture(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
@@ -102,7 +111,19 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .build();
   }
 
-  @Override
+  public Response updateRoomPicture(
+    UUID roomId, String xContentDisposition, Integer contentLength, File body, SecurityContext securityContext
+  )  {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    roomService.setRoomPicture(roomId, body,
+      getFilePropertyFromContentDisposition(xContentDisposition, "mimeType")
+        .orElseThrow(() -> new BadRequestException("Mime type not found in X-Content-Disposition header")),
+      getFilePropertyFromContentDisposition(xContentDisposition, "fileName")
+        .orElseThrow(() -> new BadRequestException("File name not found in X-Content-Disposition header")),
+      currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
   public Response updateRoomPicture(
     UUID roomId, String xContentDisposition, File body, SecurityContext securityContext
   ) {
@@ -115,6 +136,89 @@ public class RoomsApiServiceImpl implements RoomsApiService {
         .orElseThrow(() -> new BadRequestException("File name not found in X-Content-Disposition header")),
       currentUser);
     return Response.status(Status.NO_CONTENT).build();
+  }
+
+  public Response updateRoomPicture(
+    MultipartFormDataInput input, UUID roomId, String xContentDisposition, Integer contentLength,
+    SecurityContext securityContext
+  ) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    InputPart inputPart = input.getFormDataMap().get("picture").get(0);
+    String fileName = getFileName(inputPart.getHeaders())
+      .orElseThrow(() -> new BadRequestException("File name not found"));
+    String mimeType = inputPart.getMediaType().toString();
+    InputStream inputStream = null;
+    try {
+      inputStream = inputPart.getBody(InputStream.class,null);
+    } catch (IOException e) {
+      throw new BadRequestException("Unable to get the file content", e);
+    }
+    roomService.setRoomPicture(roomId, inputStream, mimeType, fileName, contentLength, currentUser);
+//    byte [] bytes = new byte[0];
+//    try {
+//      bytes = IOUtils.toByteArray(inputStream);
+//    } catch (IOException e) {
+//      e.printStackTrace();
+//    }
+//
+//    //constructs upload file path
+//    String fileFullName = "/home/luca/temp/test/" +  fileName;
+//
+//
+//    try {
+//    File file = new File(fileFullName);
+//
+//    if (!file.exists()) {
+//
+//        file.createNewFile();
+//
+//    }
+//
+//    FileOutputStream fop = new FileOutputStream(file);
+//
+//    fop.write(bytes);
+//    fop.flush();
+//    fop.close();
+//    } catch (IOException e) {
+//      e.printStackTrace();
+//    }
+
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  private Optional<String> getFileName(MultivaluedMap<String, String> header) {
+
+    String[] contentDisposition = header.getFirst("Content-Disposition").split(";");
+
+    for (String filename : contentDisposition) {
+      if ((filename.trim().startsWith("filename"))) {
+
+        String[] name = filename.split("=");
+
+        String finalFileName = name[1].trim().replaceAll("\"", "");
+        return Optional.of(finalFileName);
+      }
+    }
+    return Optional.empty();
+  }
+
+  private InputStream getBinaryArtifact(MultipartFormDataInput input) {
+    if (input == null || input.getParts() == null || input.getParts().isEmpty()) {
+      throw new IllegalArgumentException("Multipart request is empty");
+    }
+
+    try {
+      final InputStream result = input.getFormDataPart("picture", InputStream.class, null);
+
+      if (result == null) {
+        throw new IllegalArgumentException("Can't find a valid 'file' part in the multipart request");
+      }
+
+      return result;
+    } catch (IOException e) {
+      throw new BadRequestException("Error while reading multipart request", e);
+    }
   }
 
   @Override

@@ -8,6 +8,7 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 public interface StoragesService extends HealthIndicator {
 
@@ -30,6 +31,7 @@ public interface StoragesService extends HealthIndicator {
    * @param currentUserId identifier of the current user
    */
   void saveFile(File file, FileMetadata metadata, String currentUserId);
+  void saveFile(InputStream stream, FileMetadata metadata, String currentUserId);
 
   /**
    * Deletes a file from the repository

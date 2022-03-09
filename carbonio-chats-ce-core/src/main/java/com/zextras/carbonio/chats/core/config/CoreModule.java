@@ -27,6 +27,7 @@ import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabas
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.MockEventDispatcherImpl;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.FakeMessageDispatcherImpl;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherImpl;
 import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
 import com.zextras.carbonio.chats.core.infrastructure.previewer.impl.PreviewerServiceImpl;
@@ -124,7 +125,7 @@ public class CoreModule extends AbstractModule {
     bind(RoomUserSettingsRepository.class).to(EbeanRoomUserSettingsRepository.class);
     bind(RoomUserSettingsMapper.class).to(RoomUserSettingsMapperImpl.class);
 
-    bind(MessageDispatcher.class).to(MessageDispatcherImpl.class);
+    bind(MessageDispatcher.class).to(FakeMessageDispatcherImpl.class);
     bind(StoragesService.class).to(StoragesServiceImpl.class);
     bind(PreviewerService.class).to(PreviewerServiceImpl.class);
 

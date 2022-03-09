@@ -13,6 +13,7 @@ import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomInfoDto;
 import java.io.File;
+import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
 
@@ -120,5 +121,6 @@ public interface RoomService {
    * @param currentUser current authenticated user {@link UserPrincipal}
    **/
   void setRoomPicture(UUID roomId, File image, String mimeType, String fileName, UserPrincipal currentUser);
+  void setRoomPicture(UUID roomId, InputStream stream, String mimeType, String fileName, Integer fileSize, UserPrincipal currentUser);
 
 }

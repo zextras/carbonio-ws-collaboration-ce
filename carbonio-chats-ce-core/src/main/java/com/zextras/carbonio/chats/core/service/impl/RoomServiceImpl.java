@@ -41,6 +41,7 @@ import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
 import java.io.File;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -275,6 +276,49 @@ public class RoomServiceImpl implements RoomService {
       }
     }
     storagesService.saveFile(image, metadata, currentUser.getId());
+    eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
+      RoomPictureChangedEvent.create(UUID.fromString(room.getId())).from(currentUser.getUUID()));
+    messageDispatcher.sendMessageToRoom(room.getId(), currentUser.getId(), Messages.SET_PICTURE_FOR_ROOM_MESSAGE);
+  }
+
+  @Override
+  @Transactional
+  public void setRoomPicture(
+    UUID roomId, InputStream stream, String mimeType, String fileName, Integer fileSize,
+    UserPrincipal currentUser
+  ) {
+    Room room = getRoomAndCheckUser(roomId, currentUser, false);
+    if (!RoomTypeDto.GROUP.equals(room.getType())) {
+      throw new BadRequestException("The room picture can only be set to group type rooms");
+    }
+    if (fileSize > ChatsConstant.MAX_ROOM_IMAGE_SIZE_IN_KB * 1024) {
+      throw new BadRequestException(
+        String.format("The room picture cannot be greater than %d KB", ChatsConstant.MAX_ROOM_IMAGE_SIZE_IN_KB));
+    }
+    if (!mimeType.startsWith("image/")) {
+      throw new BadRequestException("The room picture must be an image");
+    }
+
+    Optional<FileMetadata> oldMetadata = fileMetadataRepository.getById(roomId.toString());
+    Optional<String> oldUser = oldMetadata.map(FileMetadata::getUserId);
+    FileMetadata metadata = oldMetadata.orElseGet(() -> FileMetadata.create()
+        .id(roomId.toString())
+        .type(FileMetadataType.ROOM_AVATAR)
+        .roomId(roomId.toString())
+      )
+      .name(fileName)
+      .originalSize(Long.valueOf(fileSize))
+      .mimeType(mimeType)
+      .userId(currentUser.getId());
+    fileMetadataRepository.save(metadata);
+    if (oldUser.isPresent()) {
+      try {
+        storagesService.deleteFile(metadata.getId(), oldUser.get());
+      } catch (Exception e) {
+        ChatsLogger.warn("Could not delete older group profile picture: " + e.getMessage());
+      }
+    }
+    storagesService.saveFile(stream, metadata, currentUser.getId());
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
       RoomPictureChangedEvent.create(UUID.fromString(room.getId())).from(currentUser.getUUID()));
     messageDispatcher.sendMessageToRoom(room.getId(), currentUser.getId(), Messages.SET_PICTURE_FOR_ROOM_MESSAGE);

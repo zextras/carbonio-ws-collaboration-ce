@@ -20,6 +20,7 @@ import com.zextras.storages.api.StoragesClient;
 import io.vavr.control.Try;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.function.Supplier;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -80,6 +81,16 @@ public class StoragesServiceImpl implements StoragesService {
       storagesClient.uploadPut(
         ChatsIdentifier.of(metadata.getId(), currentUserId),
         FileUtils.openInputStream(file));
+    } catch (Exception e) {
+      throw new InternalErrorException("An error occurred while uploading the file", e);
+    }
+  }
+
+  @Override
+  public void saveFile(InputStream stream, FileMetadata metadata, String currentUserId) {
+    try {
+      storagesClient.uploadPut(
+        ChatsIdentifier.of(metadata.getId(), currentUserId), stream);
     } catch (Exception e) {
       throw new InternalErrorException("An error occurred while uploading the file", e);
     }
