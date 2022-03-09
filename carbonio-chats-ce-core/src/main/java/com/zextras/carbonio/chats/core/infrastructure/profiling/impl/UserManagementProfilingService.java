@@ -12,6 +12,7 @@ import io.vavr.API.Match;
 import io.vavr.API.Match.Case;
 import java.util.Optional;
 import java.util.UUID;
+import javax.inject.Inject;
 
 public class UserManagementProfilingService implements ProfilingService {
 
@@ -19,6 +20,7 @@ public class UserManagementProfilingService implements ProfilingService {
 
   private final UserManagementClient userManagementClient;
 
+  @Inject
   public UserManagementProfilingService(UserManagementClient userManagementClient) {
     this.userManagementClient = userManagementClient;
   }

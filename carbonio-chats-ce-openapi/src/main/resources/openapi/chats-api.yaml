@@ -650,6 +650,11 @@ components:
       type: object
       description: User data
       properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: user's id
         email:
           type: string
           format: email
@@ -667,7 +672,7 @@ components:
         statusMessage:
           type: string
           description: the user's status message
-      required: [ email, name, lastSeen, statusMessage ]
+      required: [ id, email, name ]
     RoomType:
       type: string
       description: Managed room types

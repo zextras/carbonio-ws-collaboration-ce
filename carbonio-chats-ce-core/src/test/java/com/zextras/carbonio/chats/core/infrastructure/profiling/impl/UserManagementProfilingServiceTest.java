@@ -1,13 +1,16 @@
 package com.zextras.carbonio.chats.core.infrastructure.profiling.impl;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
-import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
@@ -18,17 +21,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 @UnitTest
 class UserManagementProfilingServiceTest {
 
-  private UserManagementProfilingService profilingService;
-  private UserManagementClient           userManagementClient;
+  private final UserManagementProfilingService profilingService;
+  private final UserManagementClient           userManagementClient;
 
   public UserManagementProfilingServiceTest() {
     this.userManagementClient = mock(UserManagementClient.class);

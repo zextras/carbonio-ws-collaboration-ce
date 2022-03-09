@@ -7,19 +7,19 @@ package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
+import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Generated;
 
-@Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
 public interface UserService {
 
   /**
-   * Retrieves a user
+   * Retrieves info about a user
    *
-   * @param userId      user identifier {@link UUID }
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return Requested user {@link UserDto }
+   * @param userId      the requested user's {@link UUID}
+   * @param currentUser the currently authenticated {@link UserPrincipal}
+   * @return an {@link Optional} containing the requested {@link UserDto} or empty if it was not found
    **/
-  UserDto getUserById(UUID userId, UserPrincipal currentUser);
+  Optional<UserDto> getUserById(UUID userId, UserPrincipal currentUser);
 
 }

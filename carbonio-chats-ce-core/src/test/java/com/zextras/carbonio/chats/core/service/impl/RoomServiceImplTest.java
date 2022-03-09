@@ -45,6 +45,7 @@ import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
@@ -53,6 +54,7 @@ import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 
 import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import com.zextras.carbonio.chats.model.UserDto;
 import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -75,16 +77,16 @@ class RoomServiceImplTest {
   private final RoomRepository             roomRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final EventDispatcher            eventDispatcher;
-  private final MessageDispatcher     messageDispatcher;
-  private final AuthenticationService authenticationService;
-  private final MembersService        membersService;
+  private final MessageDispatcher          messageDispatcher;
+  private final UserService                userService;
+  private final MembersService             membersService;
   private final FileMetadataRepository     fileMetadataRepository;
   private final StoragesService            storagesService;
 
   public RoomServiceImplTest(RoomMapper roomMapper) {
     this.roomRepository = mock(RoomRepository.class);
     this.roomUserSettingsRepository = mock(RoomUserSettingsRepository.class);
-    this.authenticationService = mock(AuthenticationService.class);
+    this.userService = mock(UserService.class);
     this.membersService = mock(MembersService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.messageDispatcher = mock(MessageDispatcher.class);
@@ -96,7 +98,7 @@ class RoomServiceImplTest {
       roomMapper,
       this.eventDispatcher,
       this.messageDispatcher,
-      this.authenticationService,
+      this.userService,
       this.membersService,
       this.fileMetadataRepository,
       this.storagesService);
@@ -172,7 +174,7 @@ class RoomServiceImplTest {
     reset(
       this.roomRepository,
       this.roomUserSettingsRepository,
-      this.authenticationService,
+      this.userService,
       this.membersService,
       this.eventDispatcher,
       this.messageDispatcher,
@@ -280,10 +282,10 @@ class RoomServiceImplTest {
     @DisplayName("It creates the room and returns it")
     public void createRoom_testOk() {
       UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
-      when(authenticationService.getByUUID(user2Id, mockUserPrincipal))
-        .thenReturn(Optional.of(UserProfile.create(user2Id)));
-      when(authenticationService.getByUUID(user3Id, mockUserPrincipal))
-        .thenReturn(Optional.of(UserProfile.create(user3Id)));
+      when(userService.getUserById(user2Id, mockUserPrincipal))
+        .thenReturn(Optional.of(UserDto.create().id(user2Id)));
+      when(userService.getUserById(user3Id, mockUserPrincipal))
+        .thenReturn(Optional.of(UserDto.create().id(user3Id)));
       when(
         membersService.initRoomSubscriptions(eq(Arrays.asList(user2Id, user3Id)), any(Room.class),
           eq(mockUserPrincipal)))
@@ -351,7 +353,7 @@ class RoomServiceImplTest {
     @DisplayName("If there is an invitee without account, it throws a 'not found' exception")
     public void createRoom_testInvitedUserWithoutAccount() {
       UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
-      when(authenticationService.getByUUID(user2Id, mockUserPrincipal))
+      when(userService.getUserById(user2Id, mockUserPrincipal))
         .thenReturn(Optional.empty());
 
       RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()

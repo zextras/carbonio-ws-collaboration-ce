@@ -21,7 +21,6 @@ import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
-import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.FakeAuthenticationServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -30,6 +29,8 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherImpl;
 import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
 import com.zextras.carbonio.chats.core.infrastructure.previewer.impl.PreviewerServiceImpl;
+import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
+import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagementProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
@@ -44,10 +45,12 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
+import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanFileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanSubscriptionRepository;
+import com.zextras.carbonio.chats.core.repository.impl.EbeanUserRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.core.service.MembersService;
@@ -124,9 +127,14 @@ public class CoreModule extends AbstractModule {
     bind(RoomUserSettingsRepository.class).to(EbeanRoomUserSettingsRepository.class);
     bind(RoomUserSettingsMapper.class).to(RoomUserSettingsMapperImpl.class);
 
+    bind(UserService.class).to(UserServiceImpl.class);
+    bind(UserRepository.class).to(EbeanUserRepository.class);
+
     bind(MessageDispatcher.class).to(MessageDispatcherImpl.class);
     bind(StoragesService.class).to(StoragesServiceImpl.class);
     bind(PreviewerService.class).to(PreviewerServiceImpl.class);
+    bind(ProfilingService.class).to(UserManagementProfilingService.class);
+    bind(AuthenticationService.class).to(UserManagementAuthenticationService.class);
 
     bindExceptionMapper();
   }
@@ -144,16 +152,6 @@ public class CoreModule extends AbstractModule {
   @Provides
   private Clock getClock() {
     return Clock.system(ZoneId.systemDefault());
-  }
-
-  @Singleton
-  @Provides
-  private AuthenticationService getAccountService(AppConfig appConfig, UserManagementClient userManagementClient) {
-    if (EnvironmentType.DEVELOPMENT.equals(appConfig.getEnvType())) {
-      return new FakeAuthenticationServiceImpl(userManagementClient);
-    } else {
-      return new UserManagementAuthenticationService(userManagementClient);
-    }
   }
 
   @Singleton

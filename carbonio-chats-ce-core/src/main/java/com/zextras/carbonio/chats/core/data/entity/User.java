@@ -31,14 +31,6 @@ public class User {
   @Column(name = "STATUS_MESSAGE", length = 256, nullable = false)
   private String statusMessage = "";
 
-  @Column(name = "IMAGE")
-  @Lob
-  private byte[] image;
-
-  @Column(name = "IMAGE_UPDATED_AT")
-  @Temporal(TemporalType.TIMESTAMP)
-  private Date imageUpdatedAt;
-
   @Column(name = "HASH", length = 256, unique = true, nullable = false)
   private String hash;
 

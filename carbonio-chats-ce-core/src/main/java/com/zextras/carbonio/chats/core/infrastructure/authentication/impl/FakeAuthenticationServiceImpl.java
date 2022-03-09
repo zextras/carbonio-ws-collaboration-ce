@@ -14,6 +14,9 @@ import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
 
+/**
+ * This is a stub class that can be used to stub authentication, if needed
+ */
 public class FakeAuthenticationServiceImpl extends UserManagementAuthenticationService {
 
   private static final List<UserProfile> fakeAccounts = List.of(
@@ -25,32 +28,14 @@ public class FakeAuthenticationServiceImpl extends UserManagementAuthenticationS
     UserProfile.create("120bbfbe-b97b-44d0-81ac-2f23bc244878").name("Marcie Johnson").email("marcie.johnson@peanuts.com"),
     UserProfile.create("92d84bb0-9300-4409-a471-eece9abc614c").name("Schroeder").email("schroeder@peanuts.com"));
 
-  public static List<UserProfile> getFakeAccounts() {
-    return fakeAccounts;
-  }
-
-  public static String getFakeAuthenticatedUserId() {
-    return fakeAccounts.get(0).getId();
-  }
-
   @Inject
   public FakeAuthenticationServiceImpl(UserManagementClient userManagementClient) {
     super(userManagementClient);
   }
 
-
   @Override
   public Optional<String> validateToken(Map<AuthenticationMethod, String> credentials) {
     return Optional.of(super.validateToken(credentials).orElse(fakeAccounts.get(0).getId()));
-  }
-
-  @Override
-  public Optional<UserProfile> getByUUID(UUID userId, UserPrincipal currentUser) {
-    return Optional.ofNullable(super.getByUUID(userId, currentUser).orElse(
-      fakeAccounts.stream()
-        .filter(account -> account.getId().equals(userId.toString()))
-        .findAny()
-        .orElse(null)));
   }
 
   @Override
