@@ -4,13 +4,14 @@ import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 
 public class UserPrincipal implements Principal {
 
-  private String  userId;
-  private boolean systemUser = false;
+  private String                            userId;
+  private boolean                           systemUser = false;
   private Map<AuthenticationMethod, String> authCredentials;
 
   public UserPrincipal() {
@@ -58,6 +59,10 @@ public class UserPrincipal implements Principal {
 
   public Map<AuthenticationMethod, String> getAuthCredentials() {
     return new HashMap<>(authCredentials);
+  }
+
+  public Optional<String> getAuthCredentialFor(AuthenticationMethod method) {
+    return Optional.ofNullable(authCredentials).map(credentialsMap -> credentialsMap.get(method));
   }
 
   public UserPrincipal authCredentials(Map<AuthenticationMethod, String> authCredentials) {

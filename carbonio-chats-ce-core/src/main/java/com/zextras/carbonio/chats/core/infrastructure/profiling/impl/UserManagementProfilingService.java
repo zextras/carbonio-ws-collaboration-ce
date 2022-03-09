@@ -25,7 +25,7 @@ public class UserManagementProfilingService implements ProfilingService {
 
   @Override
   public Optional<UserProfile> getById(UserPrincipal principal, UUID userId) {
-    String token = Optional.ofNullable(principal.getAuthCredentials().get(AuthenticationMethod.ZM_AUTH_TOKEN))
+    String token = principal.getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN)
       .orElseThrow(ForbiddenException::new);
     return Optional.ofNullable(
       userManagementClient.getUserByUUID(String.format("%s=%s", AUTH_COOKIE, token), userId).map(userInfo ->
@@ -34,7 +34,7 @@ public class UserManagementProfilingService implements ProfilingService {
           .email(userInfo.getEmail())
           .domain(userInfo.getDomain())
       ).recover(UserNotFound.class, e -> null)
-        .getOrElseThrow(() -> new InternalErrorException()));
+        .getOrElseThrow((fail) -> new InternalErrorException(fail)));
   }
 
   @Override

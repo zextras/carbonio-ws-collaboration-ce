@@ -26,7 +26,8 @@ public class UserManagementAuthenticationService implements AuthenticationServic
 
   @Override
   public Optional<String> validateToken(Map<AuthenticationMethod, String> credentials) {
-    return Optional.ofNullable(credentials.get(AuthenticationMethod.ZM_AUTH_TOKEN))
+    return Optional.ofNullable(credentials)
+      .map(credentialMap -> credentialMap.get(AuthenticationMethod.ZM_AUTH_TOKEN))
       .map(token -> userManagementClient.validateUserToken(token).map(UserId::getUserId).getOrElse(() -> null));
   }
 
