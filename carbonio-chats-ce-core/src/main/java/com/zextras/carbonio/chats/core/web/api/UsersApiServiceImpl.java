@@ -32,7 +32,7 @@ public class UsersApiServiceImpl implements UsersApiService {
       .orElseThrow(UnauthorizedException::new);
     return Response
       .status(Status.OK)
-      .entity(userService.getUserById(userId, currentUser))
+      .entity(userService.getUserByIdRefactor(userId, currentUser))
       .build();
   }
 }

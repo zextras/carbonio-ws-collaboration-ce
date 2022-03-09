@@ -1,7 +1,10 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -9,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.User;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
+import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -56,15 +60,15 @@ class UserServiceImplTest {
         .thenReturn(Optional.of(
           UserProfile.create(requestedUserId).email("test@example.com").domain("mydomain.com").name("test user")));
 
-      Optional<UserDto> userById = userService.getUserById(requestedUserId, currentPrincipal);
+      UserDto userById = userService.getUserByIdRefactor(requestedUserId, currentPrincipal);
 
-      assertTrue(userById.isPresent());
-      assertEquals(requestedUserId, userById.get().getId());
+      assertNotNull(userById);
+      assertEquals(requestedUserId, userById.getId());
       assertEquals(OffsetDateTime.of(2022, 12, 1, 12, 12, 12, 12, ZoneOffset.UTC).toEpochSecond(),
-        userById.get().getLastSeen());
-      assertEquals("my status!", userById.get().getStatusMessage());
-      assertEquals("test user", userById.get().getName());
-      assertEquals("test@example.com", userById.get().getEmail());
+        userById.getLastSeen());
+      assertEquals("my status!", userById.getStatusMessage());
+      assertEquals("test user", userById.getName());
+      assertEquals("test@example.com", userById.getEmail());
     }
 
     @Test
@@ -78,27 +82,52 @@ class UserServiceImplTest {
           UserProfile.create(requestedUserId).email("test@example.com").domain("mydomain.com").name("test user"))
         );
 
-      Optional<UserDto> userById = userService.getUserById(requestedUserId, currentPrincipal);
+      UserDto userById = userService.getUserByIdRefactor(requestedUserId, currentPrincipal);
 
-      assertTrue(userById.isPresent());
-      assertEquals(requestedUserId, userById.get().getId());
-      assertNull(userById.get().getLastSeen());
-      assertNull(userById.get().getStatusMessage());
-      assertEquals("test user", userById.get().getName());
-      assertEquals("test@example.com", userById.get().getEmail());
+      assertNotNull(userById);
+      assertEquals(requestedUserId, userById.getId());
+      assertNull(userById.getLastSeen());
+      assertNull(userById.getStatusMessage());
+      assertEquals("test user", userById.getName());
+      assertEquals("test@example.com", userById.getEmail());
     }
 
     @Test
-    @DisplayName("Returns and empty optional if the user profiling info were not found")
+    @DisplayName("Throws NotFoundException if the user was not found using the profiling service")
     public void getUserById_testProfilingNotFound() {
       UUID requestedUserId = UUID.randomUUID();
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId);
       when(userRepository.getById(requestedUserId.toString())).thenReturn(Optional.empty());
       when(profilingService.getById(currentPrincipal, requestedUserId)).thenReturn(Optional.empty());
 
-      Optional<UserDto> userById = userService.getUserById(requestedUserId, currentPrincipal);
+      assertThrows(NotFoundException.class, () -> userService.getUserByIdRefactor(requestedUserId, currentPrincipal));
+    }
 
-      assertTrue(userById.isEmpty());
+  }
+
+  @Nested
+  @DisplayName("User exists tests")
+  class UserExistsTests {
+
+    @Test
+    @DisplayName("Returns true if the user exists in the profiler")
+    public void userExists_testOk() {
+      UUID requestedUserId = UUID.randomUUID();
+      UserPrincipal currentPrincipal = UserPrincipal.create(UUID.randomUUID());
+      when(profilingService.getById(currentPrincipal, requestedUserId)).thenReturn(
+        Optional.of(UserProfile.create(requestedUserId)));
+
+      assertTrue(userService.userExists(requestedUserId, currentPrincipal));
+    }
+
+    @Test
+    @DisplayName("Returns true if the user exists in the profiler")
+    public void userExists_testUserDoesNotExist() {
+      UUID requestedUserId = UUID.randomUUID();
+      UserPrincipal currentPrincipal = UserPrincipal.create(UUID.randomUUID());
+      when(profilingService.getById(currentPrincipal, requestedUserId)).thenReturn(Optional.empty());
+
+      assertFalse(userService.userExists(requestedUserId, currentPrincipal));
     }
 
   }

@@ -282,10 +282,10 @@ class RoomServiceImplTest {
     @DisplayName("It creates the room and returns it")
     public void createRoom_testOk() {
       UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
-      when(userService.getUserById(user2Id, mockUserPrincipal))
-        .thenReturn(Optional.of(UserDto.create().id(user2Id)));
-      when(userService.getUserById(user3Id, mockUserPrincipal))
-        .thenReturn(Optional.of(UserDto.create().id(user3Id)));
+      when(userService.userExists(user2Id, mockUserPrincipal))
+        .thenReturn(true);
+      when(userService.userExists(user3Id, mockUserPrincipal))
+        .thenReturn(true);
       when(
         membersService.initRoomSubscriptions(eq(Arrays.asList(user2Id, user3Id)), any(Room.class),
           eq(mockUserPrincipal)))
@@ -353,8 +353,8 @@ class RoomServiceImplTest {
     @DisplayName("If there is an invitee without account, it throws a 'not found' exception")
     public void createRoom_testInvitedUserWithoutAccount() {
       UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
-      when(userService.getUserById(user2Id, mockUserPrincipal))
-        .thenReturn(Optional.empty());
+      when(userService.userExists(user2Id, mockUserPrincipal))
+        .thenReturn(false);
 
       RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
         .name("room1")

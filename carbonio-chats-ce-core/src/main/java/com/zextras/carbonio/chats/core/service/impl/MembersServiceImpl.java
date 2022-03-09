@@ -91,10 +91,10 @@ public class MembersServiceImpl implements MembersService {
       .anyMatch(member -> memberDto.getUserId().toString().equals(member.getUserId()))) {
       throw new BadRequestException(String.format("User '%s' is already a room member", memberDto.getUserId()));
     }
-    // check the users existence
-    userService.getUserById(memberDto.getUserId(), currentUser)
-      .orElseThrow(
-        () -> new NotFoundException(String.format("User with id '%s' was not found", memberDto.getUserId())));
+
+    if(!userService.userExists(memberDto.getUserId(), currentUser)) {
+      throw new NotFoundException(String.format("User with id '%s' was not found", memberDto.getUserId()));
+    }
     // insert the new member
     Subscription subscription = subscriptionRepository.insert(
       Subscription.create()

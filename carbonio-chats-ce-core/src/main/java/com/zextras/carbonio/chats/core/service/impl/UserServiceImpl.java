@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
+import com.zextras.carbonio.chats.core.data.model.UserProfile;
+import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.service.UserService;
@@ -27,14 +29,20 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public Optional<UserDto> getUserById(UUID userId, UserPrincipal currentUser) {
-    return profilingService.getById(currentUser, userId)
-      .map(profile -> UserDto.create().id(UUID.fromString(profile.getId())).email(profile.getEmail())
-        .name(profile.getName()))
-      .map(partialDto -> userRepository.getById(userId.toString()).map(repoUser -> {
-        partialDto.lastSeen(repoUser.getLastSeen().toEpochSecond());
-        partialDto.statusMessage(repoUser.getStatusMessage());
-        return partialDto;
-      }).orElse(partialDto));
+  public UserDto getUserByIdRefactor(UUID userId, UserPrincipal currentUser) {
+    UserProfile userProfile = profilingService.getById(currentUser, userId) //TODO make this better
+      .orElseThrow(() -> new NotFoundException(String.format("User %s was not found", userId.toString())));
+    UserDto partialDto = UserDto.create().id(UUID.fromString(userProfile.getId())).email(userProfile.getEmail())
+      .name(userProfile.getName());
+    userRepository.getById(userId.toString()).ifPresent(user -> {
+      partialDto.lastSeen(user.getLastSeen().toEpochSecond());
+      partialDto.statusMessage(user.getStatusMessage());
+    });
+    return partialDto;
+  }
+
+  @Override
+  public boolean userExists(UUID userId, UserPrincipal currentUser) {
+    return profilingService.getById(currentUser, userId).isPresent();
   }
 }

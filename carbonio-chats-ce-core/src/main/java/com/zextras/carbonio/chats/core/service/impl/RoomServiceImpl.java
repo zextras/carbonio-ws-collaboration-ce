@@ -113,11 +113,12 @@ public class RoomServiceImpl implements RoomService {
       .anyMatch(memberId -> memberId.toString().equals(currentUser.getId()))) {
       throw new BadRequestException("Requester can't be invited to the room");
     }
-    // check the users existence
-    insertRoomRequestDto.getMembersIds()
-      .forEach(userId ->
-        userService.getUserById(userId, currentUser)
-          .orElseThrow(() -> new NotFoundException(String.format("User with identifier '%s' not found", userId))));
+    insertRoomRequestDto.getMembersIds().stream()
+      .filter(memberId -> !userService.userExists(memberId, currentUser))
+      .findFirst()
+      .ifPresent((uuid) -> {
+        throw new NotFoundException(String.format("User with identifier '%s' not found", uuid));
+      });
     // entity building
     UUID id = UUID.randomUUID();
     Room room = Room.create()
