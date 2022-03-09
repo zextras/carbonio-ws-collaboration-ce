@@ -33,8 +33,19 @@ public class UserManagementAuthenticationService implements AuthenticationServic
 
   @Override
   public Optional<UserProfile> getByUUID(UUID userId, UserPrincipal currentUser) {
-    //TODO mocked
-    return Optional.of(UserProfile.create(userId.toString()));
+    if (currentUser.getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN).isPresent()) {
+      Try<UserInfo> userByUUID = userManagementClient.getUserByUUID(
+        currentUser.getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN).get(), userId);
+      if (userByUUID.isSuccess()) {
+        UserInfo userInfo = userByUUID.get();
+        return Optional.of(
+          UserProfile.create(userInfo.getId())
+            .name(userInfo.getFullName())
+            .email(userInfo.getEmail())
+            .domain(userInfo.getDomain()));
+      }
+    }
+    return Optional.empty();
   }
 
   @Override
