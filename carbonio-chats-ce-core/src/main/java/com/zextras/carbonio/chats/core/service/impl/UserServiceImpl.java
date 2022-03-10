@@ -29,11 +29,11 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public UserDto getUserByIdRefactor(UUID userId, UserPrincipal currentUser) {
-    UserProfile userProfile = profilingService.getById(currentUser, userId) //TODO make this better
+  public UserDto getUserById(UUID userId, UserPrincipal currentUser) {
+    UserDto partialDto = profilingService.getById(currentUser, userId)
+      .map(profile -> UserDto.create().id(UUID.fromString(profile.getId())).email(profile.getEmail())
+        .name(profile.getName()))
       .orElseThrow(() -> new NotFoundException(String.format("User %s was not found", userId.toString())));
-    UserDto partialDto = UserDto.create().id(UUID.fromString(userProfile.getId())).email(userProfile.getEmail())
-      .name(userProfile.getName());
     userRepository.getById(userId.toString()).ifPresent(user -> {
       partialDto.lastSeen(user.getLastSeen().toEpochSecond());
       partialDto.statusMessage(user.getStatusMessage());

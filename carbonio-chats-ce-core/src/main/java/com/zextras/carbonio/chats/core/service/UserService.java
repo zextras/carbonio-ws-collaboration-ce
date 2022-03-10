@@ -7,7 +7,6 @@ package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
-import java.util.Optional;
 import java.util.UUID;
 
 public interface UserService {
@@ -18,7 +17,7 @@ public interface UserService {
    * @param currentUser the currently authenticated {@link UserPrincipal}
    * @return the requested {@link UserDto}
    **/
-  UserDto getUserByIdRefactor(UUID userId, UserPrincipal currentUser);
+  UserDto getUserById(UUID userId, UserPrincipal currentUser);
 
   /**
    * Checks if a user exists. Current implementations checks the {@link com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService}

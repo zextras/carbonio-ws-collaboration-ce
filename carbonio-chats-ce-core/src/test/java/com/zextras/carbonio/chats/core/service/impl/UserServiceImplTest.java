@@ -60,7 +60,7 @@ class UserServiceImplTest {
         .thenReturn(Optional.of(
           UserProfile.create(requestedUserId).email("test@example.com").domain("mydomain.com").name("test user")));
 
-      UserDto userById = userService.getUserByIdRefactor(requestedUserId, currentPrincipal);
+      UserDto userById = userService.getUserById(requestedUserId, currentPrincipal);
 
       assertNotNull(userById);
       assertEquals(requestedUserId, userById.getId());
@@ -82,7 +82,7 @@ class UserServiceImplTest {
           UserProfile.create(requestedUserId).email("test@example.com").domain("mydomain.com").name("test user"))
         );
 
-      UserDto userById = userService.getUserByIdRefactor(requestedUserId, currentPrincipal);
+      UserDto userById = userService.getUserById(requestedUserId, currentPrincipal);
 
       assertNotNull(userById);
       assertEquals(requestedUserId, userById.getId());
@@ -100,7 +100,7 @@ class UserServiceImplTest {
       when(userRepository.getById(requestedUserId.toString())).thenReturn(Optional.empty());
       when(profilingService.getById(currentPrincipal, requestedUserId)).thenReturn(Optional.empty());
 
-      assertThrows(NotFoundException.class, () -> userService.getUserByIdRefactor(requestedUserId, currentPrincipal));
+      assertThrows(NotFoundException.class, () -> userService.getUserById(requestedUserId, currentPrincipal));
     }
 
   }
