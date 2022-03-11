@@ -13,6 +13,7 @@ import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.preview.queries.BlobResponse;
 import com.zextras.carbonio.preview.queries.Query;
 import com.zextras.carbonio.preview.queries.Query.QueryBuilder;
+import com.zextras.carbonio.preview.queries.enums.Format;
 import com.zextras.carbonio.preview.queries.enums.ServiceType;
 import com.zextras.filestore.api.Filestore.Liveness;
 import com.zextras.filestore.model.ChatsIdentifier;
@@ -54,12 +55,13 @@ public class StoragesServiceImpl implements StoragesService {
   public File getPreview(FileMetadata metadata, String ownerId) {
     Query query = new QueryBuilder(metadata.getId(), 1, ServiceType.CHATS)
       .setPreviewArea(ChatsConstant.PREVIEW_AREA)
+      .setOutputFormat(Format.JPEG)
       .build();
     Try<BlobResponse> response;
     if (metadata.getMimeType().startsWith("image/")) {
       response = previewClient.getPreviewOfImage(query);
     } else if (metadata.getMimeType().startsWith("application/pdf")) {
-      response = previewClient.getPreviewOfPdf(query);
+      response = previewClient.getThumbnailOfPdf(query);
     } else {
       throw new BadRequestException("MimeType not supported by previewer");
     }

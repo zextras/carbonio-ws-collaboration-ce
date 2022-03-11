@@ -205,10 +205,7 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
       assertArrayEquals(expectedFile.getFileBytes(), response.getOutput());
-      assertEquals(
-        String.format("inline; filename=\"%s\"", fileMock.getName()),
-        response.getOutputHeaders().get("Content-Disposition").get(0));
-      assertEquals(fileMock.getMimeType(), response.getOutputHeaders().get("Content-Type").get(0).toString());
+      assertEquals("image/jpeg", response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(expectedFile.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       previewerMockServer.verify("GET",

@@ -286,15 +286,11 @@ public class AttachmentServiceImplTest {
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(metadata));
       when(storagesService.getPreview(metadata, user1Id.toString()))
         .thenReturn(Files.createFile(tempDir.resolve("temp.txt")).toFile());
-      FileContentAndMetadata attachmentPreviewById = attachmentService.getAttachmentPreviewById(attachmentUuid,
+      File attachment = attachmentService.getAttachmentPreviewById(attachmentUuid,
         currentUser);
 
-      assertNotNull(attachmentPreviewById);
-      assertNotNull(attachmentPreviewById.getMetadata());
-      assertNotNull(attachmentPreviewById.getFile());
-      assertEquals(attachmentUuid.toString(), attachmentPreviewById.getMetadata().getId());
-      assertEquals("image/jpeg", attachmentPreviewById.getMetadata().getMimeType());
-      assertEquals("temp.txt", attachmentPreviewById.getFile().getName());
+      assertNotNull(attachment);
+      assertEquals("temp.txt", attachment.getName());
 
       verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
@@ -443,7 +439,7 @@ public class AttachmentServiceImplTest {
   }
 
   @Nested
-  @DisplayName("add attachment tests")
+  @DisplayName("Add attachment tests")
   class AddAttachmentTests {
 
     @Test

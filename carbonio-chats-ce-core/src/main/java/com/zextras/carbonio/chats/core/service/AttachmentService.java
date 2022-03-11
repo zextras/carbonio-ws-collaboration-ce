@@ -30,7 +30,7 @@ public interface AttachmentService {
    * @param currentUser current authenticated user {@link UserPrincipal}
    * @return The requested file preview {@link File}
    **/
-  FileContentAndMetadata getAttachmentPreviewById(UUID fileId, UserPrincipal currentUser);
+  File getAttachmentPreviewById(UUID fileId, UserPrincipal currentUser);
 
   /**
    * Retrieves metadata of every attachment uploaded to the room
