@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class AttachmentAddedEvent extends DomainEvent {
@@ -27,5 +28,24 @@ public class AttachmentAddedEvent extends DomainEvent {
   public AttachmentAddedEvent from(UUID from) {
     this.from = from;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    AttachmentAddedEvent that = (AttachmentAddedEvent) o;
+    return Objects.equals(getType(), that.getType()) &&
+      Objects.equals(getRoomId(), that.getRoomId()) &&
+      Objects.equals(from, that.from);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(from);
   }
 }

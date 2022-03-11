@@ -86,9 +86,9 @@ public class StoragesServiceImpl implements StoragesService {
   }
 
   @Override
-  public void deleteFile(String fileId, String currentUserId) {
+  public void deleteFile(String fileId, String ownerId) {
     try {
-      storagesClient.delete(ChatsIdentifier.of(fileId, currentUserId));
+      storagesClient.delete(ChatsIdentifier.of(fileId, ownerId));
     } catch (Exception e) {
       throw new InternalErrorException("An error occurred while deleting the file", e);
     }

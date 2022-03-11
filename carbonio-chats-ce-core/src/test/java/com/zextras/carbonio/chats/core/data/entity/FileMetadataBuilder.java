@@ -53,17 +53,25 @@ public class FileMetadataBuilder extends FileMetadata {
     return this;
   }
 
-  public FileMetadataBuilder createdAt(OffsetDateTime createdAt) throws NoSuchFieldException, IllegalAccessException {
-    Field createdAtField = FileMetadata.class.getDeclaredField("createdAt");
-    createdAtField.setAccessible(true);
-    createdAtField.set(this, createdAt);
+  public FileMetadataBuilder createdAt(OffsetDateTime createdAt) {
+    try {
+      Field createdAtField = FileMetadata.class.getDeclaredField("createdAt");
+      createdAtField.setAccessible(true);
+      createdAtField.set(this, createdAt);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
     return this;
   }
 
-  public FileMetadataBuilder updatedAt(OffsetDateTime updatedAt) throws NoSuchFieldException, IllegalAccessException {
-    Field updatedAtField = FileMetadata.class.getDeclaredField("updatedAt");
-    updatedAtField.setAccessible(true);
-    updatedAtField.set(this, updatedAt);
+  public FileMetadataBuilder updatedAt(OffsetDateTime updatedAt) {
+    try {
+      Field updatedAtField = FileMetadata.class.getDeclaredField("updatedAt");
+      updatedAtField.setAccessible(true);
+      updatedAtField.set(this, updatedAt);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
     return this;
   }
 

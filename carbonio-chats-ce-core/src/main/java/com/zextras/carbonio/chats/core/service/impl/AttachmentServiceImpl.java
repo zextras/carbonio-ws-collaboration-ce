@@ -117,7 +117,7 @@ public class AttachmentServiceImpl implements AttachmentService {
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
     Room room = roomService.getRoomAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
     fileMetadataRepository.delete(metadata);
-    storagesService.deleteFile(fileId.toString(), currentUser.getId());
+    storagesService.deleteFile(fileId.toString(), metadata.getUserId());
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(), AttachmentRemovedEvent
       .create(UUID.fromString(room.getId()))
       .from(currentUser.getUUID()));

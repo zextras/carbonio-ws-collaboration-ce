@@ -49,6 +49,8 @@ class EbeanUserRepositoryTest {
     @Test
     @DisplayName("Returns an empty optional if the user was not found")
     public void getById_testNotFound() {
+      when(database.find(User.class).where().eq("id", "123").findOneOrEmpty()).thenReturn(
+        Optional.empty());
       Optional<User> user = ebeanUserRepository.getById("123");
 
       assertTrue(user.isEmpty());

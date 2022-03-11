@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class AttachmentRemovedEvent extends DomainEvent {
@@ -27,5 +28,19 @@ public class AttachmentRemovedEvent extends DomainEvent {
   public AttachmentRemovedEvent from(UUID from) {
     this.from = from;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    AttachmentRemovedEvent that = (AttachmentRemovedEvent) o;
+    return Objects.equals(getType(), that.getType()) &&
+      Objects.equals(getRoomId(), that.getRoomId()) &&
+      Objects.equals(from, that.from);
   }
 }

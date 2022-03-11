@@ -35,7 +35,7 @@ public interface StoragesService extends HealthIndicator {
    * Deletes a file from the repository
    *
    * @param fileId        file identifier
-   * @param currentUserId identifier of the current user
+   * @param ownerId identifier of the current user
    */
-  void deleteFile(String fileId, String currentUserId);
+  void deleteFile(String fileId, String ownerId);
 }
