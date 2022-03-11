@@ -15,7 +15,9 @@ import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
 import com.zextras.carbonio.chats.mongooseim.client.api.RoomsApi;
 import java.util.Base64;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
+@Singleton
 public class MessageDispatcherImpl implements MessageDispatcher {
 
   private static final String XMPP_HOST = "localhost";

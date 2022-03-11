@@ -8,7 +8,9 @@ import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoServi
 import io.ebean.Database;
 import io.ebean.Transaction;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
+@Singleton
 public class EbeanDatabaseInfoService implements DatabaseInfoService {
 
   private final Database database;

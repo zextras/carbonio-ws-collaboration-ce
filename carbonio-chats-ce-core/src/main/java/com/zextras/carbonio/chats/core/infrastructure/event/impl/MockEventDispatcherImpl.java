@@ -7,13 +7,15 @@ package com.zextras.carbonio.chats.core.infrastructure.event.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.data.event.DomainEvent;
-import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
+@Singleton
 public class MockEventDispatcherImpl implements EventDispatcher {
 
   private final ObjectMapper objectMapper;

@@ -8,12 +8,12 @@ import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.carbonio.usermanagement.exceptions.UserNotFound;
-import io.vavr.API.Match;
-import io.vavr.API.Match.Case;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
+@Singleton
 public class UserManagementProfilingService implements ProfilingService {
 
   private static final String AUTH_COOKIE = "ZM_AUTH_TOKEN";
