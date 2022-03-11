@@ -23,4 +23,10 @@ public class EbeanUserRepository implements UserRepository {
       .eq("id", id)
       .findOneOrEmpty();
   }
+
+  @Override
+  public User insert(User user) {
+    database.insert(user);
+    return user;
+  }
 }

@@ -5,9 +5,11 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
+import com.zextras.carbonio.chats.core.data.entity.User;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
+import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
@@ -23,11 +25,15 @@ public class IntegrationTestUtils {
 
   private final RoomRepository         roomRepository;
   private final FileMetadataRepository fileMetadataRepository;
+  private final UserRepository         userRepository;
 
   @Inject
-  public IntegrationTestUtils(RoomRepository roomRepository, FileMetadataRepository fileMetadataRepository) {
+  public IntegrationTestUtils(
+    RoomRepository roomRepository, FileMetadataRepository fileMetadataRepository, UserRepository userRepository
+  ) {
     this.roomRepository = roomRepository;
     this.fileMetadataRepository = fileMetadataRepository;
+    this.userRepository = userRepository;
   }
 
   public Room generateAndSaveRoom(UUID id, RoomTypeDto type, String name, List<UUID> usersIds) {
@@ -97,5 +103,15 @@ public class IntegrationTestUtils {
 
   public List<FileMetadata> getFileMetadataByRoomIdAndType(UUID roomId, FileMetadataType type) {
     return fileMetadataRepository.getByRoomIdAndType(roomId.toString(), type, null);
+  }
+
+  public User generateAndSaveUser(UUID id, String statusMessage, OffsetDateTime lastSeenTimestamp, String hash) {
+    return userRepository.insert(
+      User.create()
+        .id(id.toString())
+        .statusMessage(statusMessage)
+        .lastSeen(lastSeenTimestamp)
+        .hash(hash)
+    );
   }
 }

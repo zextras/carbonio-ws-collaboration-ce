@@ -13,4 +13,12 @@ public interface UserRepository {
    */
   Optional<User> getById(String id);
 
+  /**
+   * Inserts the given user
+   *
+   * @param user the {@link User} to insert
+   * @return the inserted {@link User}
+   */
+  User insert(User user);
+
 }
