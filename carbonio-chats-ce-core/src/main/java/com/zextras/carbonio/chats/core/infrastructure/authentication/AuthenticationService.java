@@ -4,11 +4,12 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.authentication;
 
+import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import java.util.Map;
 import java.util.Optional;
 
-public interface AuthenticationService {
+public interface AuthenticationService extends HealthIndicator {
 
   /**
    * Validates the user's credentials
@@ -18,10 +19,4 @@ public interface AuthenticationService {
    */
   Optional<String> validateToken(Map<AuthenticationMethod, String> credentials);
 
-  /**
-   * Returns whether we can communicate with the component or not
-   *
-   * @return a {@link Boolean} which indicates if we can communicate with the component or not
-   */
-  boolean isAlive();
 }

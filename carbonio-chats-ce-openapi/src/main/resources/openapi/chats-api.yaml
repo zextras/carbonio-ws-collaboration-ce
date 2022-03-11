@@ -41,6 +41,8 @@ paths:
       responses:
         204:
           $ref: '#/components/responses/204IsReadyResponse'
+        429:
+          $ref: '#/components/responses/429IsReadyResponse'
         500:
           $ref: '#/components/responses/500IsReadyResponse'
   /rooms:
@@ -457,6 +459,8 @@ components:
       description: The service is alive
     204IsReadyResponse:
       description: The service is ready to receive requests
+    429IsReadyResponse:
+      description: The service is ready but some non-fundamental dependencies are not reachable
     500IsReadyResponse:
       description: The service is not yet ready to receive requests
     200ListRoomResponse:
@@ -599,15 +603,20 @@ components:
           type: boolean
           description: describes if the service is alive
           readOnly: true
-        isReady:
-          type: boolean
-          description: describes if the service is ready to accept requests
-          readOnly: true
+        status:
+          $ref: '#/components/schemas/HealthStatusType'
         dependencies:
           type: array
           description: health of this service dependencies
           items:
             $ref: '#/components/schemas/DependencyHealth'
+    HealthStatusType:
+      type: string
+      description: Health status types
+      enum:
+        - ok
+        - warn
+        - error
     DependencyHealth:
       type: object
       description: Health status of a service dependency
