@@ -41,6 +41,8 @@ paths:
       responses:
         204:
           $ref: '#/components/responses/204IsReadyResponse'
+        429:
+          $ref: '#/components/responses/429IsReadyResponse'
         500:
           $ref: '#/components/responses/500IsReadyResponse'
   /rooms:
@@ -126,11 +128,57 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{roomId}/picture/fake:
     put:
       tags:
         - Rooms
-      summary: Uploads and sets a new room picture
-      operationId: updateRoomPicture
+      summary: Fake uploads a new room picture and save it in a generic folder
+      operationId: fakeUpdateRoomPicture
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/headerXContentDisposition'
+        - $ref: '#/components/parameters/headerContentLength'
+      requestBody:
+        description: image to set
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                picture:
+                  type: string
+                  format: binary
+      responses:
+        204:
+          $ref: '#/components/responses/204UpdateRoomPictureResponse'
+  /rooms/{roomId}/picture/file:
+    put:
+      tags:
+        - Rooms
+      summary: Uploads and sets a new room picture with File
+      operationId: updateRoomPictureWithFile
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/headerXContentDisposition'
+        - $ref: '#/components/parameters/headerContentLength'
+      requestBody:
+        description: image to set
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        204:
+          $ref: '#/components/responses/204UpdateRoomPictureResponse'
+  /rooms/{roomId}/picture/stream:
+    put:
+      tags:
+        - Rooms
+      summary: Uploads and sets a new room picture with MultipartFormDataInput
+      operationId: updateRoomPictureWithStream
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
         - $ref: '#/components/parameters/headerXContentDisposition'
@@ -486,6 +534,8 @@ components:
       description: The service is alive
     204IsReadyResponse:
       description: The service is ready to receive requests
+    429IsReadyResponse:
+      description: The service is ready but some non-fundamental dependencies are not reachable
     500IsReadyResponse:
       description: The service is not yet ready to receive requests
     200ListRoomResponse:
@@ -628,15 +678,20 @@ components:
           type: boolean
           description: describes if the service is alive
           readOnly: true
-        isReady:
-          type: boolean
-          description: describes if the service is ready to accept requests
-          readOnly: true
+        status:
+          $ref: '#/components/schemas/HealthStatusType'
         dependencies:
           type: array
           description: health of this service dependencies
           items:
             $ref: '#/components/schemas/DependencyHealth'
+    HealthStatusType:
+      type: string
+      description: Health status types
+      enum:
+        - ok
+        - warn
+        - error
     DependencyHealth:
       type: object
       description: Health status of a service dependency
@@ -679,6 +734,11 @@ components:
       type: object
       description: User data
       properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: user's id
         email:
           type: string
           format: email
@@ -696,7 +756,7 @@ components:
         statusMessage:
           type: string
           description: the user's status message
-      required: [ email, name, lastSeen, statusMessage ]
+      required: [ id, email, name ]
     RoomType:
       type: string
       description: Managed room types

@@ -8,6 +8,7 @@ import com.zextras.carbonio.chats.api.NotFoundException;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
+import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.MembersService;
@@ -20,6 +21,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -95,8 +98,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .build();
   }
 
-
-
   @Override
   public Response getRoomPicture(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
@@ -111,21 +112,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .build();
   }
 
-  public Response updateRoomPicture(
-    UUID roomId, String xContentDisposition, Integer contentLength, File body, SecurityContext securityContext
-  )  {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
-    roomService.setRoomPicture(roomId, body,
-      getFilePropertyFromContentDisposition(xContentDisposition, "mimeType")
-        .orElseThrow(() -> new BadRequestException("Mime type not found in X-Content-Disposition header")),
-      getFilePropertyFromContentDisposition(xContentDisposition, "fileName")
-        .orElseThrow(() -> new BadRequestException("File name not found in X-Content-Disposition header")),
-      currentUser);
-    return Response.status(Status.NO_CONTENT).build();
-  }
-  public Response updateRoomPicture(
-    UUID roomId, String xContentDisposition, File body, SecurityContext securityContext
+  @Override
+  public Response updateRoomPictureWithFile(
+    UUID roomId,String xContentDisposition,Integer contentLength,File body,SecurityContext securityContext
   ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -138,7 +127,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     return Response.status(Status.NO_CONTENT).build();
   }
 
-  public Response updateRoomPicture(
+  @Override
+  public Response updateRoomPictureWithStream(
     MultipartFormDataInput input, UUID roomId, String xContentDisposition, Integer contentLength,
     SecurityContext securityContext
   ) {
@@ -150,52 +140,62 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     String mimeType = inputPart.getMediaType().toString();
     InputStream inputStream = null;
     try {
-      inputStream = inputPart.getBody(InputStream.class,null);
+      inputStream = inputPart.getBody(InputStream.class, null);
     } catch (IOException e) {
       throw new BadRequestException("Unable to get the file content", e);
     }
     roomService.setRoomPicture(roomId, inputStream, mimeType, fileName, contentLength, currentUser);
-//    byte [] bytes = new byte[0];
-//    try {
-//      bytes = IOUtils.toByteArray(inputStream);
-//    } catch (IOException e) {
-//      e.printStackTrace();
-//    }
-//
-//    //constructs upload file path
-//    String fileFullName = "/home/luca/temp/test/" +  fileName;
-//
-//
-//    try {
-//    File file = new File(fileFullName);
-//
-//    if (!file.exists()) {
-//
-//        file.createNewFile();
-//
-//    }
-//
-//    FileOutputStream fop = new FileOutputStream(file);
-//
-//    fop.write(bytes);
-//    fop.flush();
-//    fop.close();
-//    } catch (IOException e) {
-//      e.printStackTrace();
-//    }
+    return Response.status(Status.NO_CONTENT).build();
+  }
 
+
+  @Override
+  public Response fakeUpdateRoomPicture(
+    MultipartFormDataInput input, UUID roomId, String xContentDisposition, Integer contentLength,
+    SecurityContext securityContext
+  ) {
+    InputPart inputPart = input.getFormDataMap().get("picture").get(0);
+    String fileName = getFileName(inputPart.getHeaders())
+      .orElseThrow(() -> new BadRequestException("File name not found"));
+    InputStream inputStream;
+    try {
+      inputStream = inputPart.getBody(InputStream.class, null);
+    } catch (IOException e) {
+      throw new BadRequestException("Unable to get the file content", e);
+    }
+    byte[] bytes = new byte[0];
+    try {
+      bytes = IOUtils.toByteArray(inputStream);
+    } catch (IOException e) {
+      throw new InternalErrorException("Unable to convert file input stream to a byte array", e);
+    }
+    String folder = String.format("%s/chats-tests", System.getProperty("user.home"));
+    try {
+      Files.createDirectories(Paths.get(folder));
+    } catch (IOException e) {
+      throw new InternalErrorException(String.format("Unable to create the folder %s", folder), e);
+    }
+    String fileFullName = String.join("/", folder, fileName);
+    try {
+      File file = new File(fileFullName);
+      if (!file.exists()) {
+        file.createNewFile();
+      }
+      FileOutputStream fop = new FileOutputStream(file);
+      fop.write(bytes);
+      fop.flush();
+      fop.close();
+    } catch (IOException e) {
+      throw new InternalErrorException(String.format("Unable to create the file %s", fileFullName), e);
+    }
     return Response.status(Status.NO_CONTENT).build();
   }
 
   private Optional<String> getFileName(MultivaluedMap<String, String> header) {
-
     String[] contentDisposition = header.getFirst("Content-Disposition").split(";");
-
     for (String filename : contentDisposition) {
       if ((filename.trim().startsWith("filename"))) {
-
         String[] name = filename.split("=");
-
         String finalFileName = name[1].trim().replaceAll("\"", "");
         return Optional.of(finalFileName);
       }

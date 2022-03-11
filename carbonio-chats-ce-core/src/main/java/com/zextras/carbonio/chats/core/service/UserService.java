@@ -8,18 +8,25 @@ package com.zextras.carbonio.chats.core.service;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
 import java.util.UUID;
-import javax.annotation.Generated;
 
-@Generated(value = "org.openapitools.codegen.languages.JavaResteasyServerCodegen")
 public interface UserService {
-
   /**
-   * Retrieves a user
+   * Retrieves info about a user
    *
-   * @param userId      user identifier {@link UUID }
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return Requested user {@link UserDto }
+   * @param userId      the requested user's {@link UUID}
+   * @param currentUser the currently authenticated {@link UserPrincipal}
+   * @return the requested {@link UserDto}
    **/
   UserDto getUserById(UUID userId, UserPrincipal currentUser);
+
+  /**
+   * Checks if a user exists. Current implementations checks the {@link com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService}
+   * to check if the user exists.
+   *
+   * @param userId the user whose existance we need to check
+   * @param currentUser the current authenticated user
+   * @return a {@link Boolean} which indicates if the user exists or not
+   */
+  boolean userExists(UUID userId, UserPrincipal currentUser);
 
 }

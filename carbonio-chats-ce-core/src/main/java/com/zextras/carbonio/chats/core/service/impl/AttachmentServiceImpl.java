@@ -54,12 +54,9 @@ public class AttachmentServiceImpl implements AttachmentService {
   @Override
   @Transactional
   public FileContentAndMetadata getAttachmentById(UUID fileId, UserPrincipal currentUser) {
-    // gets file metadata from DB
     FileMetadata metadata = fileMetadataRepository.getById(fileId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
-    // checks if current user is a member of the attachment room
     roomService.getRoomAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
-    // gets file from repository
     File file = storagesService.getFileById(metadata.getId(), metadata.getUserId());
     return new FileContentAndMetadata(file, metadata);
   }
@@ -76,9 +73,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   @Override
   @Transactional
   public List<AttachmentDto> getAttachmentInfoByRoomId(UUID roomId, UserPrincipal currentUser) {
-    // checks if current user is a member of the attachment room
     roomService.getRoomAndCheckUser(roomId, currentUser, false);
-    // gets file metadata list
     List<FileMetadata> metadataList = fileMetadataRepository.getByRoomIdAndType(roomId.toString(),
       FileMetadataType.ATTACHMENT, OrderDirection.DESC);
     return attachmentMapper.ent2dto(metadataList);
@@ -87,10 +82,8 @@ public class AttachmentServiceImpl implements AttachmentService {
   @Override
   @Transactional
   public AttachmentDto getAttachmentInfoById(UUID fileId, UserPrincipal currentUser) {
-    // gets file metadata from DB
     FileMetadata metadata = fileMetadataRepository.getById(fileId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
-    // checks if current user is a member of the attachment room
     roomService.getRoomAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
     return attachmentMapper.ent2dto(metadata);
   }
@@ -99,9 +92,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   @Transactional
   public IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, UserPrincipal currentUser) {
     roomService.getRoomAndCheckUser(roomId, currentUser, false);
-    // generates the file identifier
     UUID id = UUID.randomUUID();
-    // creates the entity and saves it in DB
     FileMetadata metadata = FileMetadata.create()
       .id(id.toString())
       .name(fileName)
@@ -111,9 +102,7 @@ public class AttachmentServiceImpl implements AttachmentService {
       .userId(currentUser.getId())
       .roomId(roomId.toString());
     fileMetadataRepository.save(metadata);
-    // save the file in repository
     storagesService.saveFile(file, metadata, currentUser.getId());
-    // sends event
     eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(), AttachmentAddedEvent
       .create(roomId)
       .from(currentUser.getUUID()));
@@ -124,16 +113,11 @@ public class AttachmentServiceImpl implements AttachmentService {
   @Override
   @Transactional
   public void deleteAttachment(UUID fileId, UserPrincipal currentUser) {
-    // gets file metadata from DB
     FileMetadata metadata = fileMetadataRepository.getById(fileId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
-    // checks if current user is a member of the attachment room
     Room room = roomService.getRoomAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
-    // delete file data from DB
     fileMetadataRepository.delete(metadata);
-    // deletes file from repository
     storagesService.deleteFile(fileId.toString(), currentUser.getId());
-    // sends the event
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(), AttachmentRemovedEvent
       .create(UUID.fromString(room.getId()))
       .from(currentUser.getUUID()));

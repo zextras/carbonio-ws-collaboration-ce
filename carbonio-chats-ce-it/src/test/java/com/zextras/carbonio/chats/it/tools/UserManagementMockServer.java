@@ -37,7 +37,8 @@ public class UserManagementMockServer extends MockServerClient {
     HttpRequest request = request()
       .withMethod(method)
       .withPath(path);
-    Optional.ofNullable(cookies).ifPresent(c -> request.withHeaders(header("Cookie", c)));
+    Optional.ofNullable(cookies)
+      .ifPresent(c -> request.withHeaders(header("Cookie", String.format("ZM_AUTH_TOKEN=%s", c))));
 
     verify(request, VerificationTimes.exactly(iterationsNumber));
     clear(request, ClearType.LOG);

@@ -16,13 +16,13 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
+import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
-import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -36,23 +36,23 @@ public class MembersServiceImpl implements MembersService {
   private final RoomService            roomService;
   private final SubscriptionRepository subscriptionRepository;
   private final EventDispatcher        eventDispatcher;
-  private final SubscriptionMapper    subscriptionMapper;
-  private final AuthenticationService authenticationService;
-  private final MessageDispatcher     messageService;
+  private final SubscriptionMapper     subscriptionMapper;
+  private final UserService            userService;
+  private final MessageDispatcher      messageService;
 
   @Inject
   public MembersServiceImpl(
     RoomService roomService, SubscriptionRepository subscriptionRepository,
     EventDispatcher eventDispatcher,
     SubscriptionMapper subscriptionMapper,
-    AuthenticationService authenticationService,
+    UserService userService,
     MessageDispatcher messageDispatcher
   ) {
     this.roomService = roomService;
     this.subscriptionRepository = subscriptionRepository;
     this.eventDispatcher = eventDispatcher;
     this.subscriptionMapper = subscriptionMapper;
-    this.authenticationService = authenticationService;
+    this.userService = userService;
     this.messageService = messageDispatcher;
   }
 
@@ -87,12 +87,14 @@ public class MembersServiceImpl implements MembersService {
       throw new BadRequestException("Can't add members to a one to one conversation");
     }
     // check that user isn't duplicated
-    if (room.getSubscriptions().stream().anyMatch(member -> memberDto.getUserId().toString().equals(member.getUserId()))) {
+    if (room.getSubscriptions().stream()
+      .anyMatch(member -> memberDto.getUserId().toString().equals(member.getUserId()))) {
       throw new BadRequestException(String.format("User '%s' is already a room member", memberDto.getUserId()));
     }
-    // check the users existence
-    authenticationService.getByUUID(memberDto.getUserId(), currentUser)
-      .orElseThrow(() -> new NotFoundException(String.format("User with id '%s' was not found", memberDto.getUserId())));
+
+    if(!userService.userExists(memberDto.getUserId(), currentUser)) {
+      throw new NotFoundException(String.format("User with id '%s' was not found", memberDto.getUserId()));
+    }
     // insert the new member
     Subscription subscription = subscriptionRepository.insert(
       Subscription.create()

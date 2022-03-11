@@ -27,7 +27,7 @@ public interface FileMetadataRepository {
    *
    * @param roomId room identifier
    * @param type   file metadata type {@link FileMetadataType}
-   * @param order  if present, sets the result order by creation date {@link SortOrder}
+   * @param orderDirection  if present, sets the result order by creation date {@link SortOrder}
    * @return The required file metadata list {@link FileMetadata}
    */
   List<FileMetadata> getByRoomIdAndType(String roomId, FileMetadataType type, @Nullable OrderDirection orderDirection);

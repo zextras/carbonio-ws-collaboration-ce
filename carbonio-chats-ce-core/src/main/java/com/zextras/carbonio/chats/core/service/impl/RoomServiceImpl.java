@@ -19,7 +19,6 @@ import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
-import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -30,6 +29,7 @@ import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.utils.Messages;
 import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -57,9 +57,9 @@ public class RoomServiceImpl implements RoomService {
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final RoomMapper                 roomMapper;
   private final EventDispatcher            eventDispatcher;
-  private final MessageDispatcher     messageDispatcher;
-  private final AuthenticationService authenticationService;
-  private final MembersService        membersService;
+  private final MessageDispatcher          messageDispatcher;
+  private final UserService                userService;
+  private final MembersService             membersService;
   private final FileMetadataRepository     fileMetadataRepository;
   private final StoragesService            storagesService;
 
@@ -68,7 +68,7 @@ public class RoomServiceImpl implements RoomService {
     RoomRepository roomRepository, RoomUserSettingsRepository roomUserSettingsRepository, RoomMapper roomMapper,
     EventDispatcher eventDispatcher,
     MessageDispatcher messageDispatcher,
-    AuthenticationService authenticationService,
+    UserService userService,
     MembersService membersService,
     FileMetadataRepository fileMetadataRepository,
     StoragesService storagesService
@@ -78,7 +78,7 @@ public class RoomServiceImpl implements RoomService {
     this.roomMapper = roomMapper;
     this.eventDispatcher = eventDispatcher;
     this.messageDispatcher = messageDispatcher;
-    this.authenticationService = authenticationService;
+    this.userService = userService;
     this.membersService = membersService;
     this.fileMetadataRepository = fileMetadataRepository;
     this.storagesService = storagesService;
@@ -114,11 +114,12 @@ public class RoomServiceImpl implements RoomService {
       .anyMatch(memberId -> memberId.toString().equals(currentUser.getId()))) {
       throw new BadRequestException("Requester can't be invited to the room");
     }
-    // check the users existence
-    insertRoomRequestDto.getMembersIds()
-      .forEach(userId ->
-        authenticationService.getByUUID(userId, currentUser)
-          .orElseThrow(() -> new NotFoundException(String.format("User with identifier '%s' not found", userId))));
+    insertRoomRequestDto.getMembersIds().stream()
+      .filter(memberId -> !userService.userExists(memberId, currentUser))
+      .findFirst()
+      .ifPresent((uuid) -> {
+        throw new NotFoundException(String.format("User with identifier '%s' not found", uuid));
+      });
     // entity building
     UUID id = UUID.randomUUID();
     Room room = Room.create()

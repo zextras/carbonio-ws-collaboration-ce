@@ -15,6 +15,7 @@ pipeline {
   }
   environment {
     NETWORK_OPTS = '--network ci_agent'
+    FAILURE_EMAIL_RECIPIENTS='alberto.pontini@zextras.com, luca.gasparini@zextras.com, noman.alishaukat@zextras.com'
   }
   stages {
     stage('Build setup') {
@@ -29,6 +30,15 @@ pipeline {
       steps {
         sh 'mvn -T1C -B -q --settings settings-jenkins.xml compile'
       }
+      post {
+        failure {
+          script {
+            if (branch.equals("main")) {
+              sendFailureEmail(STAGE_NAME)
+            }
+          }
+        }
+      }
     }
     stage('Testing') {
       steps {
@@ -37,6 +47,15 @@ pipeline {
             -Dlogback.configurationFile="$(pwd)"/carbonio-chats-ce-boot/src/main/resources/logback-test-silent.xml \
             verify
         '''
+      }
+      post {
+        failure {
+          script {
+            if (branch.equals("main")) {
+              sendFailureEmail(STAGE_NAME)
+            }
+          }
+        }
       }
     }
     stage('Stashing for packaging') {
@@ -133,4 +152,19 @@ pipeline {
       }
     }
   }
+}
+
+void sendFailureEmail(String step) {
+  def commitInfo =sh(
+     script: 'git log -1 --pretty=tformat:\'<ul><li>Revision: %H</li><li>Title: %s</li><li>Author: %ae</li></ul>\'',
+     returnStdout: true
+  )
+  emailext body: """\
+    <b>${step.capitalize()}</b> step has failed on trunk.<br /><br />
+    Last commit info: <br />
+    ${commitInfo}<br /><br />
+    Check the failing build at the <a href=\"${BUILD_URL}\">following link</a><br />
+  """,
+  subject: "[CHATS TRUNK FAILURE] Trunk ${step} step failure",
+  to: FAILURE_EMAIL_RECIPIENTS
 }

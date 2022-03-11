@@ -1,6 +1,8 @@
 package com.zextras.carbonio.chats.core.web.security;
 
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -24,11 +26,14 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
   @Override
   public void filter(ContainerRequestContext requestContext) {
-    Optional<Cookie> cookie = Optional.ofNullable(requestContext.getCookies().get(AUTHORIZATION_COOKIE));
+    Map<AuthenticationMethod, String> credentials = new HashMap<>();
+    Optional.ofNullable(requestContext.getCookies().get(AUTHORIZATION_COOKIE))
+      .ifPresent(cookie -> credentials.put(AuthenticationMethod.ZM_AUTH_TOKEN, cookie.getValue()));
     requestContext.setSecurityContext(
       SecurityContextImpl.create(
-        UserPrincipal.create(authenticationService.validateToken(cookie.map(Cookie::getValue).orElse(null)).orElse(null))
-          .cookieString(requestContext.getHeaderString("Cookie"))
+        UserPrincipal
+          .create(authenticationService.validateToken(credentials).orElse(null))
+          .authCredentials(credentials)
       )
     );
   }
