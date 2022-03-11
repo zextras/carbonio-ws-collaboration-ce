@@ -10,6 +10,7 @@ import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoServi
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
+import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.model.DependencyHealthDto;
@@ -33,11 +34,13 @@ public class HealthcheckServiceImpl implements HealthcheckService {
     EventDispatcher eventDispatcher,
     StoragesService storagesService,
     PreviewerService previewerService,
-    AuthenticationService authenticationService
+    AuthenticationService authenticationService,
+    ProfilingService profilingService
   ) {
     dependencies = List.of(
       HealthDependency.create(databaseInfoService, DependencyHealthTypeDto.DATABASE, true),
-      HealthDependency.create(authenticationService, DependencyHealthTypeDto.ACCOUNT_SERVICE, true),
+      HealthDependency.create(authenticationService, DependencyHealthTypeDto.AUTHENTICATION_SERVICE, true),
+      HealthDependency.create(profilingService, DependencyHealthTypeDto.PROFILING_SERVICE, true),
       HealthDependency.create(messageDispatcher, DependencyHealthTypeDto.XMPP_SERVER, true),
       HealthDependency.create(eventDispatcher, DependencyHealthTypeDto.EVENT_DISPATCHER, false),
       HealthDependency.create(storagesService, DependencyHealthTypeDto.STORAGE_SERVICE, false),

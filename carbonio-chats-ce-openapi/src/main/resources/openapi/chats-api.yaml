@@ -636,7 +636,8 @@ components:
         - event_dispatcher
         - storage_service
         - previewer_service
-        - account_service
+        - authentication_service
+        - profiling_service
     Id:
       type: object
       description: Identifier object

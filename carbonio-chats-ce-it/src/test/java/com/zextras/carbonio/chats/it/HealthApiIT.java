@@ -26,6 +26,7 @@ public class HealthApiIT {
   }
 
   @Test
+  @Disabled
   public void getHealthStatusTest() throws Exception {
     MockHttpResponse response = dispatcher.get("/health");
     assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
