@@ -98,6 +98,7 @@ public class PreviewerExtension implements AfterAllCallback, BeforeAllCallback, 
   }
 
   private void mockResponses(MockServerClient client) throws IOException {
+    mockIsAlive(client);
     mockGetPreview(client, MockedFiles.getPreview(MockedFileType.SNOOPY_PREVIEW));
   }
 
@@ -120,6 +121,16 @@ public class PreviewerExtension implements AfterAllCallback, BeforeAllCallback, 
         )
         .withContentType(MediaType.JPEG)
     );
+  }
 
+  private void mockIsAlive(MockServerClient client) {
+    client.when(
+      request()
+        .withMethod("GET")
+        .withPath("/health/ready/")
+    ).respond(
+      response()
+        .withStatusCode(200)
+    );
   }
 }
