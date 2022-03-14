@@ -1,8 +1,4 @@
 pipeline {
-  parameters {
-    booleanParam defaultValue: false, description: 'Whether to build artifacts', name: 'ARTIFACTS'
-    booleanParam defaultValue: false, description: 'Whether to upload the packages in playground repositories (needs artifacts parameter)', name: 'PLAYGROUND'
-  }
   options {
     skipDefaultCheckout()
     buildDiscarder(logRotator(numToKeepStr: '5'))
@@ -61,7 +57,7 @@ pipeline {
     stage('Stashing for packaging') {
       when {
         anyOf {
-          expression { params.ARTIFACTS == true }
+          branch "main"
         }
       }
       steps {
@@ -71,7 +67,7 @@ pipeline {
     stage('Building packages') {
       when {
         anyOf {
-          expression { params.ARTIFACTS == true }
+          branch "main"
         }
       }
       parallel {
@@ -121,9 +117,8 @@ pipeline {
     }
     stage('Upload To Playground') {
       when {
-        allOf {
-          expression { params.PLAYGROUND == true }
-          expression { params.ARTIFACTS == true }
+        anyOf {
+          branch "main"
         }
       }
       steps {
