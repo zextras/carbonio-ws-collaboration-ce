@@ -1,6 +1,7 @@
 package com.zextras.carbonio.chats.it.tools;
 
 import static org.mockserver.model.HttpRequest.request;
+import static org.mockserver.model.HttpResponse.response;
 
 import java.util.Map;
 import java.util.Optional;
@@ -34,6 +35,16 @@ public class PreviewerMockServer extends MockServerClient {
       ));
     verify(request, VerificationTimes.exactly(iterationsNumber));
     clear(request, ClearType.LOG);
+  }
+
+  public void setIsAliveResponse(boolean success) {
+    HttpRequest request = request().withMethod("GET").withPath("/health/ready/");
+    clear(request);
+    when(request)
+      .respond(
+        response()
+          .withStatusCode(success ? 200 : 500)
+      );
   }
 
 }

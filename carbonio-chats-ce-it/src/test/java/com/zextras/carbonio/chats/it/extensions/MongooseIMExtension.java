@@ -27,6 +27,7 @@ import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.JsonBody;
+import org.mockserver.model.MediaType;
 import org.mockserver.model.Parameter;
 import org.mockserver.netty.MockServer;
 
@@ -181,6 +182,7 @@ public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback,
     ).respond(
       response()
         .withStatusCode(200)
+        .withContentType(MediaType.APPLICATION_JSON)
     );
   }
 

@@ -1,6 +1,7 @@
 package com.zextras.carbonio.chats.it.tools;
 
 import static org.mockserver.model.HttpRequest.request;
+import static org.mockserver.model.HttpResponse.response;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -10,6 +11,7 @@ import org.mockserver.matchers.MatchType;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.JsonBody;
+import org.mockserver.model.MediaType;
 import org.mockserver.verify.VerificationTimes;
 
 public class MongooseImMockServer extends MockServerClient {
@@ -38,6 +40,18 @@ public class MongooseImMockServer extends MockServerClient {
       clear(request, ClearType.LOG);
     }
   }
+
+  public void setIsAliveResponse(boolean success) {
+    HttpRequest request = request().withMethod("GET").withPath("/admin/commands");
+    clear(request);
+    when(request)
+      .respond(
+        response()
+          .withStatusCode(success ? 200 : 500)
+          .withContentType(MediaType.APPLICATION_JSON)
+      );
+  }
+
 
   public HttpRequest getRequestDefinition(String method, String path, @Nullable Object body) {
     HttpRequest request = request()
