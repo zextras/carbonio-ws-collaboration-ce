@@ -20,8 +20,6 @@ import org.jboss.resteasy.plugins.server.servlet.HttpServletDispatcher;
 
 public class Boot {
 
-  private final String CONTEXT_PATH = "/chats";
-
   private final AppConfig                                    appConfig;
   private final GuiceResteasyBootstrapServletContextListener resteasyListener;
   private final Flyway                                       flyway;
@@ -44,7 +42,7 @@ public class Boot {
       ChatsLogger.warn("****** RUNNING IN DEVELOPMENT MODE! DO NOT USE IN PRODUCTION ENVIRONMENTS ******");
     }
     Server server = new Server(new InetSocketAddress(ChatsConstant.SERVER_HOST, ChatsConstant.SERVER_PORT));
-    ServletContextHandler servletHandler = new ServletContextHandler(server, CONTEXT_PATH);
+    ServletContextHandler servletHandler = new ServletContextHandler(server, "");
     servletHandler.addEventListener(resteasyListener);
 
     ServletHolder sh = new ServletHolder(HttpServletDispatcher.class);

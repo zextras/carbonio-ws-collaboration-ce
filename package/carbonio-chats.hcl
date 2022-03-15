@@ -2,14 +2,14 @@ services {
   checks = [
     {
       id       = "ready",
-      http     = "http://127.78.0.4:10000/chats/health/ready",
+      http     = "http://127.78.0.4:10000/health/ready",
       method   = "GET",
       timeout  = "1s",
       interval = "5s"
     },
     {
       id       = "live",
-      http     = "http://127.78.0.4:10000/chats/health/live",
+      http     = "http://127.78.0.4:10000/health/live",
       method   = "GET",
       timeout  = "1s",
       interval = "5s"

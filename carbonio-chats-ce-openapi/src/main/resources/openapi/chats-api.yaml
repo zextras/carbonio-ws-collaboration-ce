@@ -6,7 +6,7 @@ info:
   contact:
     email: smokybeans@zextras.com
 servers:
-  - url: http://localhost:10000/chats
+  - url: http://localhost:10000
 tags:
   - name: Rooms
   - name: Members
