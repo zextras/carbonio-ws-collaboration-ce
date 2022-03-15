@@ -1279,6 +1279,7 @@ public class RoomsApiIT {
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
         uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         response = dispatcher.post(url(roomId), fileMock.getFileBytes(),
           Map.of("Content-Type", "application/octet-stream",
             "X-Content-Disposition",
@@ -1286,9 +1287,9 @@ public class RoomsApiIT {
           user1Token);
       }
 
+      assertEquals(201, response.getStatus());
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
-      assertEquals(201, response.getStatus());
       IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
 
       assertTrue(

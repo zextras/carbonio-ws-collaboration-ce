@@ -1,14 +1,15 @@
 package com.zextras.carbonio.chats.core.web.security;
 
+import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.core.Cookie;
 import javax.ws.rs.ext.Provider;
 
 @Provider
@@ -29,13 +30,26 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     Map<AuthenticationMethod, String> credentials = new HashMap<>();
     Optional.ofNullable(requestContext.getCookies().get(AUTHORIZATION_COOKIE))
       .ifPresent(cookie -> credentials.put(AuthenticationMethod.ZM_AUTH_TOKEN, cookie.getValue()));
-    requestContext.setSecurityContext(
-      SecurityContextImpl.create(
-        UserPrincipal
-          .create(authenticationService.validateToken(credentials).orElse(null))
-          .authCredentials(credentials)
-      )
-    );
+    if(credentials.isEmpty()) {
+      //The user didn't specify any authorization, we're logging him/her as anonymous (useful for healthchecks)
+      requestContext.setSecurityContext(
+        SecurityContextImpl.create(
+          UserPrincipal
+            .create((UUID) null)
+            .authCredentials(credentials)
+        )
+      );
+    } else {
+      //If the user token is invalid, we won't authenticate him/her as anonymous
+      requestContext.setSecurityContext(
+        SecurityContextImpl.create(
+          UserPrincipal
+            .create(authenticationService.validateToken(credentials).map(UUID::fromString).orElseThrow(
+              UnauthorizedException::new))
+            .authCredentials(credentials)
+        )
+      );
+    }
   }
 }
 

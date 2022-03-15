@@ -6,11 +6,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import javax.annotation.Nullable;
 
 
 public class UserPrincipal implements Principal {
 
-  private String                            userId;
+  @Nullable
+  private UUID                              userId;
   private boolean                           systemUser = false;
   private Map<AuthenticationMethod, String> authCredentials;
 
@@ -18,32 +20,32 @@ public class UserPrincipal implements Principal {
 
   }
 
-  public UserPrincipal(String userId) {
+  public UserPrincipal(@Nullable UUID userId) {
     this.userId = userId;
   }
 
   public static UserPrincipal create(String userId) {
-    return new UserPrincipal(userId);
+    return new UserPrincipal(UUID.fromString(userId));
   }
 
   public static UserPrincipal create(UUID userId) {
-    return new UserPrincipal(userId.toString());
+    return new UserPrincipal(userId);
   }
 
   @Override
   public String getName() {
-    return userId;
+    return userId != null ? userId.toString() : null;
   }
 
   public String getId() {
-    return userId;
+    return userId != null ? userId.toString() : null;
   }
 
   public UUID getUUID() {
-    return UUID.fromString(userId);
+    return userId;
   }
 
-  public UserPrincipal id(String userId) {
+  public UserPrincipal id(UUID userId) {
     this.userId = userId;
     return this;
   }
@@ -89,6 +91,6 @@ public class UserPrincipal implements Principal {
 
   @Override
   public String toString() {
-    return userId;
+    return userId != null ? userId.toString() : null;
   }
 }
