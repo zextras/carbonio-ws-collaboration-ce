@@ -32,7 +32,7 @@ mvn clean install -P artifacts -D distro=<1>
 
 Where
 
-1. distro value is the distro name (ubuntu or centos)
+1. distro value is the distro name (ubuntu or rocky-8)
 
 ----
 If you want to generate only the artifact for a specific distro and deploy it in
@@ -44,7 +44,7 @@ mvn clean install -P artifacts -D distro=<1> -D deployOn=<2>
 
 Where
 
-1. distro value is the distro name (ubuntu or centos)
+1. distro value is the distro name (ubuntu or rocky-8)
 2. deploy-on value is the domain name or IP of the server to deploy the artifact
 
 There's also a `noDocker` option which will build artifacts using a local pacur
