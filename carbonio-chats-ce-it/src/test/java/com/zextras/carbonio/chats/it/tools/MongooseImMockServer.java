@@ -3,10 +3,13 @@ package com.zextras.carbonio.chats.it.tools;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nullable;
+import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.client.MockServerClient;
+import org.mockserver.integration.ClientAndServer;
 import org.mockserver.matchers.MatchType;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
@@ -14,18 +17,14 @@ import org.mockserver.model.JsonBody;
 import org.mockserver.model.MediaType;
 import org.mockserver.verify.VerificationTimes;
 
-public class MongooseImMockServer extends MockServerClient {
+public class MongooseImMockServer extends ClientAndServer implements CloseableResource {
 
-  public MongooseImMockServer(CompletableFuture<Integer> portFuture) {
-    super(portFuture);
+  public MongooseImMockServer(Integer... ports) {
+    super(ports);
   }
 
-  public MongooseImMockServer(String host, int port) {
-    super(host, port);
-  }
-
-  public MongooseImMockServer(String host, int port, String contextPath) {
-    super(host, port, contextPath);
+  public MongooseImMockServer(String remoteHost, Integer remotePort, Integer... ports) {
+    super(remoteHost, remotePort, ports);
   }
 
   public void verify(String method, String path, int iterationsNumber) {
@@ -60,5 +59,11 @@ public class MongooseImMockServer extends MockServerClient {
     Optional.ofNullable(body)
       .ifPresent(b -> request.withBody(JsonBody.json(b, MatchType.ONLY_MATCHING_FIELDS)));
     return request;
+  }
+
+  @Override
+  public void close() {
+    ChatsLogger.debug("Stopping mongooseIM mock...");
+    super.close();
   }
 }

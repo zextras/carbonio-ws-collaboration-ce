@@ -8,17 +8,15 @@ import com.zextras.carbonio.chats.core.config.ConfigValue;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockUserProfile;
-import com.zextras.carbonio.chats.it.Utils.TimeUtils;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
+import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
@@ -26,56 +24,28 @@ import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.mockserver.client.MockServerClient;
+import org.mockserver.model.ClearType;
 import org.mockserver.model.JsonBody;
 import org.mockserver.model.MediaType;
 import org.mockserver.model.Parameter;
-import org.mockserver.netty.MockServer;
 
-public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback, ParameterResolver {
+public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback, ParameterResolver {
 
   private final static Namespace EXTENSION_NAMESPACE = Namespace.create(MongooseIMExtension.class);
-  private final static String    CLIENT_STORE_ENTRY  = "client";
-  private final static String    SERVER_STORE_ENTRY  = "server";
+  private final static String    CLIENT_STORE_ENTRY  = "mongoose_client";
   private final static int       PORT                = 12345;
   private static final String    HOST                = "localhost";
 
   @Override
   public void beforeAll(ExtensionContext context) {
-    if (ExtensionUtils.isNestedClass(context)) {
-      return;
-    }
-    Instant startTime = Instant.now();
-    ChatsLogger.debug("Starting MongooseIM Mockserver...");
-    MockServer mockServer = new MockServer(PORT);
-    ChatsLogger.debug("Starting MongooseIM client mock...");
-    MockServerClient mockClient = new MongooseImMockServer(HOST, PORT);
-    mockResponses(mockClient);
-
-    InMemoryConfigStore.set(ConfigValue.XMPP_SERVER_HOST, HOST);
-    InMemoryConfigStore.set(ConfigValue.XMPP_SERVER_HTTP_PORT, Integer.toString(PORT));
-    context.getStore(EXTENSION_NAMESPACE).put(CLIENT_STORE_ENTRY, mockClient);
-    context.getStore(EXTENSION_NAMESPACE).put(SERVER_STORE_ENTRY, mockServer);
-    ChatsLogger.debug(
-      "Mongoose extension startup took " + TimeUtils.durationToString(Duration.between(startTime, Instant.now())));
-  }
-
-  @Override
-  public void afterAll(ExtensionContext context) {
-    if (ExtensionUtils.isNestedClass(context)) {
-      return;
-    }
-    Optional.ofNullable(context.getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
-      .map(objectMockClient -> (MongooseImMockServer) objectMockClient)
-      .ifPresent(client -> {
-        ChatsLogger.debug("Stopping MongooseIM client mock...");
-        client.stop(true);
-      });
-    Optional.ofNullable(context.getStore(EXTENSION_NAMESPACE).get(SERVER_STORE_ENTRY))
-      .map(objectMockClient -> (MockServer) objectMockClient)
-      .ifPresent(server -> {
-        ChatsLogger.debug("Stopping MongooseIM Mockserver...");
-        server.stop();
-      });
+    context.getRoot().getStore(EXTENSION_NAMESPACE).getOrComputeIfAbsent(CLIENT_STORE_ENTRY, (key) -> {
+      ChatsLogger.debug("Starting MongooseIM client mock...");
+      MongooseImMockServer client = new MongooseImMockServer(PORT);
+      mockResponses(client);
+      InMemoryConfigStore.set(ConfigValue.XMPP_SERVER_HOST, HOST);
+      InMemoryConfigStore.set(ConfigValue.XMPP_SERVER_HTTP_PORT, Integer.toString(PORT));
+      return client;
+    }, MongooseImMockServer.class);
   }
 
   @Override
@@ -90,11 +60,20 @@ public class MongooseIMExtension implements AfterAllCallback, BeforeAllCallback,
     ParameterContext parameterContext, ExtensionContext extensionContext
   ) throws ParameterResolutionException {
     if (parameterContext.getParameter().getType().equals(MongooseImMockServer.class)) {
-      return Optional.ofNullable(extensionContext.getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
+      return Optional.ofNullable(extensionContext.getRoot().getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
         .orElseThrow(() -> new ParameterResolutionException(parameterContext.getParameter().getName()));
     } else {
       throw new ParameterResolutionException(parameterContext.getParameter().getName());
     }
+  }
+
+  @Override
+  public void afterEach(ExtensionContext context) {
+    Optional.ofNullable(context.getRoot().getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
+      .map(mock -> (MongooseImMockServer) mock)
+      .ifPresent(
+        mock -> mock.clear(request(), ClearType.LOG)
+      );
   }
 
   private void mockResponses(MockServerClient client) {

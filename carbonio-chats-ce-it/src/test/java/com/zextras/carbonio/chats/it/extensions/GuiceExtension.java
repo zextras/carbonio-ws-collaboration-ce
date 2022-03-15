@@ -24,15 +24,17 @@ public class GuiceExtension implements ParameterResolver, BeforeAllCallback {
     if (ExtensionUtils.isNestedClass(context)) {
       return;
     }
-    context.getStore(EXTENSION_NAMESPACE).put(GUICE_STORE_ENTRY,
-      Guice.createInjector(Modules.override(new CoreModule()).with(new TestModule())));
+    context.getRoot().getStore(EXTENSION_NAMESPACE).getOrComputeIfAbsent(GUICE_STORE_ENTRY,
+      (key) -> Guice.createInjector(Modules.override(new CoreModule()).with(new TestModule())),
+      Injector.class
+    );
   }
 
   @Override
   public boolean supportsParameter(
     ParameterContext parameterContext, ExtensionContext extensionContext
   ) throws ParameterResolutionException {
-    return !Optional.ofNullable(extensionContext.getStore(EXTENSION_NAMESPACE).get(GUICE_STORE_ENTRY))
+    return !Optional.ofNullable(extensionContext.getRoot().getStore(EXTENSION_NAMESPACE).get(GUICE_STORE_ENTRY))
       .map(objectInjector -> (Injector) objectInjector)
       .orElseThrow(() -> new ParameterResolutionException("No Guice injector found"))
       .findBindingsByType(TypeLiteral.get(parameterContext.getParameter().getType())).isEmpty();
@@ -42,7 +44,7 @@ public class GuiceExtension implements ParameterResolver, BeforeAllCallback {
   public Object resolveParameter(
     ParameterContext parameterContext, ExtensionContext extensionContext
   ) throws ParameterResolutionException {
-    return Optional.ofNullable(extensionContext.getStore(EXTENSION_NAMESPACE).get(GUICE_STORE_ENTRY))
+    return Optional.ofNullable(extensionContext.getRoot().getStore(EXTENSION_NAMESPACE).get(GUICE_STORE_ENTRY))
       .map(objectInjector -> (Injector) objectInjector)
       .orElseThrow(() -> new ParameterResolutionException("No Guice injector found"))
       .getInstance(parameterContext.getParameter().getType());

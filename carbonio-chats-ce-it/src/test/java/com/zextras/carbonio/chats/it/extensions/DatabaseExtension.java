@@ -6,6 +6,7 @@ import com.zextras.carbonio.chats.core.config.ConfigValue;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.TimeUtils;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
+import com.zextras.carbonio.chats.it.tools.CloseablePostgreSQLContainer;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -15,10 +16,11 @@ import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
+import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-public class DatabaseExtension implements AfterAllCallback, BeforeAllCallback, AfterEachCallback {
+public class DatabaseExtension implements BeforeAllCallback, AfterEachCallback {
 
   private final static Namespace EXTENSION_NAMESPACE  = Namespace.create(DatabaseExtension.class);
   private final static String    FLYWAY_STORE_ENTRY   = "flyway";
@@ -30,60 +32,54 @@ public class DatabaseExtension implements AfterAllCallback, BeforeAllCallback, A
 
   @Override
   public void beforeAll(ExtensionContext context) {
-    if (ExtensionUtils.isNestedClass(context)) {
-      return;
-    }
-    Instant startTime = Instant.now();
-    ChatsLogger.debug("Starting test DB...");
-    PostgreSQLContainer<?> database = new PostgreSQLContainer<>("postgres:14")
-      .withDatabaseName("chats_it")
-      .withUsername(DATABASE_USER)
-      .withPassword(DATABASE_PASSWORD);
-    database.start();
+    PostgreSQLContainer<?> postgreDatabase = context.getRoot().getStore(EXTENSION_NAMESPACE).getOrComputeIfAbsent(
+      DATABASE_STORE_ENTRY,
+      (key) -> {
+        ChatsLogger.debug("Starting test DB...");
+        PostgreSQLContainer<?> database = new CloseablePostgreSQLContainer<>("postgres:14")
+          .withDatabaseName("chats_it")
+          .withUsername(DATABASE_USER)
+          .withPassword(DATABASE_PASSWORD);
+        database.start();
+        InMemoryConfigStore.set(ConfigValue.DATABASE_JDBC_URL, database.getJdbcUrl());
+        InMemoryConfigStore.set(ConfigValue.JDBC_DRIVER, DATABASE_DRIVER);
+        InMemoryConfigStore.set(ConfigValue.DATABASE_USERNAME, DATABASE_USER);
+        InMemoryConfigStore.set(ConfigValue.DATABASE_PASSWORD, DATABASE_PASSWORD);
+        return database;
+      },
+      PostgreSQLContainer.class
+    );
 
-    HikariConfig config = new HikariConfig();
-    config.setJdbcUrl(database.getJdbcUrl());
-    config.setUsername(DATABASE_USER);
-    config.setPassword(DATABASE_PASSWORD);
-    config.addDataSourceProperty("driverClassName", DATABASE_DRIVER);
+    context.getRoot().getStore(EXTENSION_NAMESPACE).getOrComputeIfAbsent(
+      FLYWAY_STORE_ENTRY,
+      (key) -> {
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(postgreDatabase.getJdbcUrl());
+        config.setUsername(DATABASE_USER);
+        config.setPassword(DATABASE_PASSWORD);
+        config.addDataSourceProperty("driverClassName", DATABASE_DRIVER);
 
-    ChatsLogger.debug("Migrating test DB...");
-    Flyway flyway = Flyway.configure()
-      .locations("classpath:migration")
-      .schemas("chats")
-      .dataSource(new HikariDataSource(config))
-      .load();
-    flyway.migrate();
-    context.getStore(EXTENSION_NAMESPACE).put(FLYWAY_STORE_ENTRY, flyway);
-    context.getStore(EXTENSION_NAMESPACE).put(DATABASE_STORE_ENTRY, database);
-    InMemoryConfigStore.set(ConfigValue.DATABASE_JDBC_URL, database.getJdbcUrl());
-    InMemoryConfigStore.set(ConfigValue.JDBC_DRIVER, DATABASE_DRIVER);
-    InMemoryConfigStore.set(ConfigValue.DATABASE_USERNAME, DATABASE_USER);
-    InMemoryConfigStore.set(ConfigValue.DATABASE_PASSWORD, DATABASE_PASSWORD);
-    ChatsLogger.debug(
-      "Database extension startup took " + TimeUtils.durationToString(Duration.between(startTime, Instant.now())));
+        ChatsLogger.debug("Migrating test DB...");
+        Flyway flyway = Flyway.configure()
+          .locations("classpath:migration")
+          .schemas("chats")
+          .dataSource(new HikariDataSource(config))
+          .load();
+        flyway.migrate();
+        return flyway;
+      },
+      Flyway.class
+    );
   }
 
   @Override
   public void afterEach(ExtensionContext extensionContext) {
-    Optional.ofNullable(extensionContext.getStore(EXTENSION_NAMESPACE).get(FLYWAY_STORE_ENTRY))
+    Optional.ofNullable(extensionContext.getRoot().getStore(EXTENSION_NAMESPACE).get(FLYWAY_STORE_ENTRY))
       .map(objectFlyway -> (Flyway) objectFlyway)
       .ifPresent(flyway -> {
         ChatsLogger.debug("Cleaning up test DB...");
         flyway.clean();
         flyway.migrate();
       });
-  }
-
-  @Override
-  public void afterAll(ExtensionContext context) {
-    if (ExtensionUtils.isNestedClass(context)) {
-      return;
-    }
-    ChatsLogger.debug("Closing test db...");
-    Optional.ofNullable(context.getStore(EXTENSION_NAMESPACE).get(DATABASE_STORE_ENTRY))
-      .map(objectDatabase -> (PostgreSQLContainer<?>) objectDatabase)
-      .ifPresent(GenericContainer::stop);
-    ChatsLogger.debug("Test DB closed");
   }
 }

@@ -3,27 +3,26 @@ package com.zextras.carbonio.chats.it.tools;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nullable;
+import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.client.MockServerClient;
+import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.verify.VerificationTimes;
 
-public class PreviewerMockServer extends MockServerClient {
+public class PreviewerMockServer extends ClientAndServer implements CloseableResource {
 
-  public PreviewerMockServer(CompletableFuture<Integer> portFuture) {
-    super(portFuture);
+  public PreviewerMockServer(Integer... ports) {
+    super(ports);
   }
 
-  public PreviewerMockServer(String host, int port) {
-    super(host, port);
-  }
-
-  public PreviewerMockServer(String host, int port, String contextPath) {
-    super(host, port, contextPath);
+  public PreviewerMockServer(String remoteHost, Integer remotePort, Integer... ports) {
+    super(remoteHost, remotePort, ports);
   }
 
   public void verify(String method, String path, @Nullable Map<String, String> queryParameters, int iterationsNumber) {
@@ -45,6 +44,12 @@ public class PreviewerMockServer extends MockServerClient {
         response()
           .withStatusCode(success ? 200 : 500)
       );
+  }
+
+  @Override
+  public void close() {
+    ChatsLogger.debug("Stopping previewer mock...");
+    super.close();
   }
 
 }
