@@ -29,7 +29,7 @@ pipeline {
       post {
         failure {
           script {
-            if (env.BRANCH_NAME.equals("main")) {
+            if ("main".equals(env.BRANCH_NAME)) {
               sendFailureEmail(STAGE_NAME)
             }
           }
@@ -47,7 +47,7 @@ pipeline {
       post {
         failure {
           script {
-            if (env.BRANCH_NAME.equals("main")) {
+            if ("main".equals(env.BRANCH_NAME)) {
               sendFailureEmail(STAGE_NAME)
             }
           }
@@ -87,6 +87,13 @@ pipeline {
             stash includes: 'artifacts/', name: 'artifacts-ubuntu-focal'
           }
           post {
+            failure {
+              script {
+                if ("main".equals(env.BRANCH_NAME)) {
+                  sendFailureEmail(STAGE_NAME)
+                }
+              }
+            }
             always {
               archiveArtifacts artifacts: 'artifacts/*.deb', fingerprint: true
             }
@@ -108,6 +115,13 @@ pipeline {
             stash includes: 'artifacts/', name: 'artifacts-rocky-8'
           }
           post {
+            failure {
+              script {
+                if ("main".equals(env.BRANCH_NAME)) {
+                  sendFailureEmail(STAGE_NAME)
+                }
+              }
+            }
             always {
               archiveArtifacts artifacts: 'artifacts/*.rpm', fingerprint: true
             }
