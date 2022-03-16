@@ -21,6 +21,10 @@ depends=(
    "service-discover"
    "jq"
 )
+backup=(
+   "etc/carbonio/chats/config.properties"
+   "etc/zextras/service-discover/carbonio-chats.hcl"
+)
 sources=(
    "carbonio-chats"
    "carbonio-chats.service"
