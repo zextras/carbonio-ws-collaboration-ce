@@ -75,7 +75,7 @@ function build-ubuntu-artifact() {
       --rm --entrypoint "" \
       -v "$(pwd)":/tmp/chats \
       -e VERSION="$1" \
-      registry.dev.zextras.com/jenkins/pacur/ubuntu-18.04:v1 /bin/bash -c 'cd /tmp/chats && pacur build ubuntu'
+      registry.dev.zextras.com/jenkins/pacur/ubuntu-20.04:v1 /bin/bash -c 'cd /tmp/chats && pacur build ubuntu'
   fi
 }
 
