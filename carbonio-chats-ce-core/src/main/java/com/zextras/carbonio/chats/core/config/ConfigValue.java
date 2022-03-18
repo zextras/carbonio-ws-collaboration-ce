@@ -1,7 +1,7 @@
 package com.zextras.carbonio.chats.core.config;
 
 public enum ConfigValue {
-  ENV("project.env", "CHATS_ENV"),
+  ENV("chats.env", "CHATS_ENV"),
   JDBC_DRIVER("database.jdbc.driver", "DATABASE_JDBC_DRIVER"),
   DATABASE_JDBC_URL("database.jdbc.url", "DATABASE_JDBC_URL"),
   DATABASE_USERNAME("database.username", "DATABASE_USERNAME"),
