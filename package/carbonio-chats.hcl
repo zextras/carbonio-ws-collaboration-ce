@@ -40,6 +40,11 @@ services {
             destination_name   = "carbonio-chats-db"
             local_bind_address = "127.78.0.4"
             local_bind_port    = 20003
+          },
+          {
+            destination_name   = "carbonio-messaging-http"
+            local_bind_address = "127.78.0.4"
+            local_bind_port    = 20004
           }
         ]
       }
