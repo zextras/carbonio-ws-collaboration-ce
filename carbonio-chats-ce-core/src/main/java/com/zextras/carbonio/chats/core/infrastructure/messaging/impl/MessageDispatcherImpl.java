@@ -20,7 +20,7 @@ import javax.inject.Singleton;
 @Singleton
 public class MessageDispatcherImpl implements MessageDispatcher {
 
-  private static final String XMPP_HOST = "localhost";
+  private static final String XMPP_HOST = "carbonio";
 
   private final MucLightManagementApi mucLightManagementApi;
   private final CommandsApi           commandsApi;

@@ -10,7 +10,6 @@ import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockUserProfile;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
-import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
 import java.util.List;
@@ -97,10 +96,10 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
     client.when(
       request()
         .withMethod("PUT")
-        .withPath("/admin/muc-lights/localhost")
+        .withPath("/admin/muc-lights/carbonio")
         .withBody(JsonBody.json(new RoomDetailsDto()
           .id(roomId)
-          .owner(String.format("%s@localhost", senderId))
+          .owner(String.format("%s@carbonio", senderId))
           .name(roomId)
           .subject("Test room")))
     ).respond(
@@ -117,11 +116,11 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
     client.when(
       request()
         .withMethod("POST")
-        .withPath("/admin/muc-lights/localhost/{roomId}/participants")
+        .withPath("/admin/muc-lights/carbonio/{roomId}/participants")
         .withPathParameter(Parameter.param("roomId", ".*"))
         .withBody(JsonBody.json(new InviteDto()
-          .sender(String.format("%s@localhost", senderId))
-          .recipient(String.format("%s@localhost", recipientId))))
+          .sender(String.format("%s@carbonio", senderId))
+          .recipient(String.format("%s@carbonio", recipientId))))
     ).respond(
       response()
         .withStatusCode(200)
@@ -145,7 +144,7 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
     client.when(
       request()
         .withMethod("POST")
-        .withPath("/admin/muc-lights/localhost/{roomId}/messages")
+        .withPath("/admin/muc-lights/carbonio/{roomId}/messages")
         .withPathParameter("roomId", ".*")
     ).respond(
       response()
@@ -169,7 +168,7 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
     client.when(
       request()
         .withMethod("DELETE")
-        .withPath("/admin/muc-lights/localhost/{roomId}/{userId}/management")
+        .withPath("/admin/muc-lights/carbonio/{roomId}/{userId}/management")
         .withPathParameter(Parameter.param("roomId", ".*"))
         .withPathParameter(Parameter.param("userId", ".*"))
     ).respond(
