@@ -12,6 +12,7 @@ import com.zextras.carbonio.chats.core.data.event.AttachmentRemovedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.data.type.OrderDirection;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -115,6 +116,11 @@ public class AttachmentServiceImpl implements AttachmentService {
     FileMetadata metadata = fileMetadataRepository.getById(fileId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
     Room room = roomService.getRoomAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
+    room.getSubscriptions().stream()
+      .filter(subscription -> subscription.getUserId().equals(currentUser.getId()) && (
+        subscription.getUserId().equals(metadata.getUserId()) || subscription.isOwner()
+      )).findAny().orElseThrow(() -> new ForbiddenException(
+        String.format("User '%s' can not delete attachment '%s'", currentUser.getId(), fileId)));
     fileMetadataRepository.delete(metadata);
     storagesService.deleteFile(fileId.toString(), metadata.getUserId());
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(), AttachmentRemovedEvent

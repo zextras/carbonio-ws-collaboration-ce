@@ -65,6 +65,7 @@ public class AttachmentsApiIT {
   private static UUID   user1Id;
   private static UUID   user2Id;
   private static String user1Token;
+  private static String user2Token;
   private static String user3Token;
   private static UUID   roomId;
 
@@ -73,6 +74,7 @@ public class AttachmentsApiIT {
     user1Id = MockedAccount.getAccounts().get(0).getUUID();
     user1Token = MockedAccount.getAccounts().get(0).getToken();
     user2Id = MockedAccount.getAccounts().get(1).getUUID();
+    user2Token = MockedAccount.getAccounts().get(1).getToken();
     user3Token = MockedAccount.getAccounts().get(2).getToken();
     roomId = UUID.randomUUID();
   }
@@ -284,11 +286,25 @@ public class AttachmentsApiIT {
   public class DeletesAttachmentTests {
 
     @Test
-    @DisplayName("Correctly deletes the attachment with requested id")
-    public void deleteAttachment_testOk() throws Exception {
+    @DisplayName("Correctly deletes the attachment with requested id by its owner")
+    public void deleteAttachment_testOkByAttachmentOwner() throws Exception {
       FileMetadata fileMetadata = integrationTestUtils.generateAndSaveFileMetadata(
         MockedFiles.get(MockedFileType.PEANUTS_IMAGE),
-        FileMetadataType.ATTACHMENT, user1Id, roomId);
+        FileMetadataType.ATTACHMENT, user2Id, roomId);
+
+      MockHttpResponse response = dispatcher.delete(String.format("/attachments/%s", fileMetadata.getId()), user2Token);
+      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+      assertTrue(fileMetadataRepository.getById(fileMetadata.getId()).isEmpty());
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user2Token), 1);
+      storageMockServer.verify("DELETE", "/delete", fileMetadata.getId(), 1);
+    }
+
+    @Test
+    @DisplayName("Correctly deletes the attachment with requested id by room owner")
+    public void deleteAttachment_testOkByRoomOwner() throws Exception {
+      FileMetadata fileMetadata = integrationTestUtils.generateAndSaveFileMetadata(
+        MockedFiles.get(MockedFileType.PEANUTS_IMAGE),
+        FileMetadataType.ATTACHMENT, user2Id, roomId);
 
       MockHttpResponse response = dispatcher.delete(String.format("/attachments/%s", fileMetadata.getId()), user1Token);
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
@@ -318,6 +334,19 @@ public class AttachmentsApiIT {
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given an attachment identifier, if authenticated user isn't the attachment owner then return a status code 403")
+    public void deleteAttachment_testErrorUserIsNotAnAttachmentOwner() throws Exception {
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+      integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
+
+      MockHttpResponse response = dispatcher.delete(String.join("", "/attachments/", fileMock.getId()), user2Token);
+
+      assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user2Token), 1);
     }
   }
 }

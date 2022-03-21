@@ -529,8 +529,30 @@ public class AttachmentServiceImplTest {
   class DeleteAttachmentTests {
 
     @Test
-    @DisplayName("Correctly deletes the attachment")
-    public void deleteAttachment_testOk() {
+    @DisplayName("Correctly deletes the attachment by its owner")
+    public void deleteAttachment_testOkByAttachmentOwner() {
+      UUID attachmentUuid = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user2Id);
+      FileMetadataBuilder expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+        .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
+        .userId(user2Id.toString()).roomId(roomId.toString());
+      when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
+      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenReturn(room);
+
+      attachmentService.deleteAttachment(attachmentUuid, currentUser);
+
+      verify(fileMetadataRepository, times(1)).delete(expectedMetadata);
+      verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
+      verifyNoMoreInteractions(fileMetadataRepository);
+      verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
+      verifyNoMoreInteractions(storagesService);
+      verify(eventDispatcher, times(1)).sendToTopic(user2Id, roomId.toString(),
+        AttachmentRemovedEvent.create(roomId).from(user2Id));
+    }
+
+    @Test
+    @DisplayName("Correctly deletes the attachment by room owner")
+    public void deleteAttachment_testOkByRoomOwner() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       FileMetadataBuilder expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
@@ -595,7 +617,18 @@ public class AttachmentServiceImplTest {
       assertThrows(InternalErrorException.class, () -> attachmentService.deleteAttachment(attachmentUuid, currentUser));
     }
 
+    @Test
+    @DisplayName("Throws a forbidden exception if authenticated user isn't attachment owner or room owner")
+    public void deleteAttachment_testAuthenticatedUserIsNotAttachmentOwnerOrRoomOwner() {
+      UUID attachmentUuid = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user3Id);
+      FileMetadataBuilder expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+        .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
+        .userId(user2Id.toString()).roomId(roomId.toString());
+      when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
+      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenReturn(room);
+
+      assertThrows(ForbiddenException.class, () -> attachmentService.deleteAttachment(attachmentUuid, currentUser));
+    }
   }
-
-
 }
