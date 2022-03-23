@@ -4,15 +4,21 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
+import static org.apache.commons.lang3.math.NumberUtils.min;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.data.builder.IdDtoBuilder;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.event.AttachmentAddedEvent;
 import com.zextras.carbonio.chats.core.data.event.AttachmentRemovedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
-import com.zextras.carbonio.chats.core.data.type.OrderDirection;
+import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
+import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -22,11 +28,16 @@ import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
+import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.IdDto;
 import io.ebean.annotation.Transactional;
 import java.io.File;
+import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -38,18 +49,20 @@ public class AttachmentServiceImpl implements AttachmentService {
   private final StoragesService        storagesService;
   private final RoomService            roomService;
   private final EventDispatcher        eventDispatcher;
+  private final ObjectMapper           objectMapper;
+
 
   @Inject
   public AttachmentServiceImpl(
     FileMetadataRepository fileMetadataRepository, AttachmentMapper attachmentMapper, StoragesService storagesService,
-    RoomService roomService,
-    EventDispatcher eventDispatcher
+    RoomService roomService, EventDispatcher eventDispatcher, ObjectMapper objectMapper
   ) {
     this.fileMetadataRepository = fileMetadataRepository;
     this.attachmentMapper = attachmentMapper;
     this.storagesService = storagesService;
     this.roomService = roomService;
     this.eventDispatcher = eventDispatcher;
+    this.objectMapper = objectMapper;
   }
 
   @Override
@@ -72,11 +85,38 @@ public class AttachmentServiceImpl implements AttachmentService {
 
   @Override
   @Transactional
-  public List<AttachmentDto> getAttachmentInfoByRoomId(UUID roomId, UserPrincipal currentUser) {
+  public AttachmentsPaginationDto getAttachmentInfoByRoomId(
+    UUID roomId, Integer itemsNumber, @Nullable String filter, UserPrincipal currentUser
+  ) {
     roomService.getRoomAndCheckUser(roomId, currentUser, false);
+    PaginationFilter paginationFilter = null;
+    if (filter != null) {
+      try {
+        paginationFilter = objectMapper.readValue(Base64.getDecoder().decode(filter), PaginationFilter.class);
+      } catch (IOException e) {
+        throw new BadRequestException("Cannot parse pagination filter", e);
+      }
+    }
     List<FileMetadata> metadataList = fileMetadataRepository.getByRoomIdAndType(roomId.toString(),
-      FileMetadataType.ATTACHMENT, OrderDirection.DESC);
-    return attachmentMapper.ent2dto(metadataList);
+      FileMetadataType.ATTACHMENT, itemsNumber + 1, paginationFilter);
+    return AttachmentsPaginationDto.create()
+      .attachments(attachmentMapper.ent2dto(metadataList.subList(0, min(itemsNumber, metadataList.size()))))
+      .filter(createNextPaginationFilter(metadataList, itemsNumber).orElse(null));
+  }
+
+  private Optional<String> createNextPaginationFilter(List<FileMetadata> list, int itemsNumber) {
+    if (list.size() > itemsNumber) {
+      try {
+        return Optional.of(Base64.getEncoder().encodeToString(
+          objectMapper.writeValueAsBytes(
+            PaginationFilter.create(list.get(itemsNumber - 1).getId(), list.get(itemsNumber - 1).getCreatedAt())
+          )
+        ));
+      } catch (JsonProcessingException e) {
+        throw new InternalErrorException("Cannot generate next pagination filter");
+      }
+    }
+    return Optional.empty();
   }
 
   @Override

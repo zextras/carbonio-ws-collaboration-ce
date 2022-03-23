@@ -4,7 +4,6 @@
 
 package com.zextras.carbonio.chats.core.web.api;
 
-import com.zextras.carbonio.chats.api.NotFoundException;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -187,10 +186,10 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response listRoomAttachmentInfo(UUID roomId, SecurityContext securityContext) throws NotFoundException {
+  public Response listRoomAttachmentInfo(UUID roomId,Integer itemsNumber,String filter,SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    return Response.status(Status.OK).entity(attachmentService.getAttachmentInfoByRoomId(roomId, currentUser)).build();
+    return Response.status(Status.OK).entity(attachmentService.getAttachmentInfoByRoomId(roomId, itemsNumber, filter, currentUser)).build();
   }
 
   @Override

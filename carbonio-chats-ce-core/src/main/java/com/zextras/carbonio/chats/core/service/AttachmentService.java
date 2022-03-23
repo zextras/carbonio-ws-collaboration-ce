@@ -5,12 +5,14 @@
 package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
+import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.IdDto;
 import java.io.File;
-import java.util.List;
 import java.util.UUID;
+import javax.annotation.Nullable;
 
 public interface AttachmentService {
 
@@ -33,13 +35,17 @@ public interface AttachmentService {
   File getAttachmentPreviewById(UUID fileId, UserPrincipal currentUser);
 
   /**
-   * Retrieves metadata of every attachment uploaded to the room
+   * Retrieves paged list of metadata of every attachment uploaded to the room and the filter for the next page
    *
    * @param roomId      room identifier {@link UUID}
+   * @param itemsNumber items number for a page
+   * @param filter      base64 encoded string of a json-serialized {@link PaginationFilter}
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return All metadata list f the requested room
+   * @return paged list of attachments metadata for the requested room
    */
-  List<AttachmentDto> getAttachmentInfoByRoomId(UUID roomId, UserPrincipal currentUser);
+  AttachmentsPaginationDto getAttachmentInfoByRoomId(
+    UUID roomId, Integer itemsNumber, @Nullable String filter, UserPrincipal currentUser
+  );
 
   /**
    * Retrieves info related to an uploaded attachment

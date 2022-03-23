@@ -287,10 +287,12 @@ paths:
       tags:
         - Rooms
         - Attachments
-      summary: Retrives metadata of every attachment uploaded to the room
+      summary: Retrieves paged list of metadata of every attachment uploaded to the room  and the filter for the next page
       operationId: listRoomAttachmentInfo
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
+        - $ref: '#/components/parameters/queryPageItemsNumber'
+        - $ref: '#/components/parameters/queryPageFilter'
       responses:
         200:
           $ref: '#/components/responses/200ListRoomAttachmentInfoResponse'
@@ -410,6 +412,21 @@ components:
         type: string
       required: true
       allowEmptyValue: false
+    queryPageItemsNumber:
+      in: query
+      name: itemsNumber
+      description: number of page items
+      schema:
+        type: integer
+        default: 10
+      required: false
+    queryPageFilter:
+      in: query
+      name: filter
+      description: pagination filter
+      schema:
+        type: string
+      required: false
   requestBodies:
     InsertRoomRequest:
       description: room to insert
@@ -543,13 +560,11 @@ components:
           schema:
             $ref: '#/components/schemas/Id'
     200ListRoomAttachmentInfoResponse:
-      description: Metadata list of every attachment uploaded to the room
+      description: Paged list of metadata of every attachment uploaded to the room
       content:
         application/json:
           schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/Attachment'
+            $ref: '#/components/schemas/AttachmentsPagination'
     204DeleteAttachmentResponse:
       description: The file was deleted correctly
     200GetAttachmentInfoResponse:
@@ -831,3 +846,15 @@ components:
           readOnly: true
           description: creation date
       required: [ id, name, size, mimeType, userId, roomId ]
+    AttachmentsPagination:
+      type: object
+      description: Attachment pagination
+      properties:
+        filter:
+          type: string
+          description: filter for the next page
+        attachments:
+          type: array
+          description: paged list of attachments metadata
+          items:
+            $ref: '#/components/schemas/Attachment'

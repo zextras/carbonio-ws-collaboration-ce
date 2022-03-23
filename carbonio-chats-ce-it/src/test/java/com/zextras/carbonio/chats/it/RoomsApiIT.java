@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -24,7 +25,7 @@ import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
-import com.zextras.carbonio.chats.model.AttachmentDto;
+import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.IdDto;
 import com.zextras.carbonio.chats.model.MemberDto;
@@ -1199,7 +1200,7 @@ public class RoomsApiIT {
   }
 
   @Nested
-  @DisplayName("Gets list of room attachment information tests")
+  @DisplayName("Gets paged list of room attachment information tests")
   public class ListOfRoomAttachmentInformationTests {
 
     private String url(UUID roomId) {
@@ -1207,34 +1208,95 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier, correctly returns all attachments info of the required room")
-    public void listRoomAttachmentInfo_testOk() throws Exception {
+    @DisplayName("Given a room identifier, correctly returns a single paged list of attachments info of the required room")
+    public void listRoomAttachmentInfo_testOkSinglePage() throws Exception {
 
       UUID room1Id = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
 
       clock.fixTimeAt(Instant.parse("2022-01-01T00:00:00Z"));
-      FileMetadata file1 = integrationTestUtils.generateAndSaveFileMetadata(UUID.randomUUID(),
+      FileMetadata file1 = integrationTestUtils.generateAndSaveFileMetadata(
+        UUID.fromString("faec1132-567d-451c-a969-18ca9131bdfa"),
         FileMetadataType.ATTACHMENT, user1Id, room1Id);
       clock.fixTimeAt(Instant.parse("2020-12-31T00:00:00Z"));
-      FileMetadata file2 = integrationTestUtils.generateAndSaveFileMetadata(UUID.randomUUID(),
+      FileMetadata file2 = integrationTestUtils.generateAndSaveFileMetadata(
+        UUID.fromString("6a6a1f06-0947-4b5f-a6ac-7631426e3a62"),
         FileMetadataType.ATTACHMENT, user1Id, room1Id);
       clock.fixTimeAt(Instant.parse("2022-01-02T00:00:00Z"));
-      FileMetadata file3 = integrationTestUtils.generateAndSaveFileMetadata(UUID.randomUUID(),
+      FileMetadata file3 = integrationTestUtils.generateAndSaveFileMetadata(
+        UUID.fromString("991b5178-1108-459e-a017-4197647167ec"),
+        FileMetadataType.ATTACHMENT, user1Id, room1Id);
+      FileMetadata file4 = integrationTestUtils.generateAndSaveFileMetadata(
+        UUID.fromString("5a3d8dd2-f431-4195-acc1-5108948c6d26"),
         FileMetadataType.ATTACHMENT, user1Id, room1Id);
       clock.removeFixTime();
 
       MockHttpResponse response = dispatcher.get(url(room1Id), user1Token);
 
       assertEquals(200, response.getStatus());
-      List<AttachmentDto> attachments = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
-      });
-      assertEquals(3, attachments.size());
+      AttachmentsPaginationDto attachments = objectMapper.readValue(response.getContentAsString(),
+        new TypeReference<>() {
+        });
+      assertEquals(4, attachments.getAttachments().size());
       assertEquals(
-        List.of(file3.getId(), file1.getId(), file2.getId()),
-        attachments.stream()
+        List.of(file3.getId(), file4.getId(), file1.getId(), file2.getId()),
+        attachments.getAttachments().stream()
           .map(attachment -> attachment.getId().toString())
           .collect(Collectors.toList()));
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a room identifier, correctly returns multiple paged lists of attachments info of the required room")
+    public void listRoomAttachmentInfo_testOkMultiplePages() throws Exception {
+
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+
+      clock.fixTimeAt(Instant.parse("2022-01-01T00:00:00Z"));
+      FileMetadata file1 = integrationTestUtils.generateAndSaveFileMetadata(
+        UUID.fromString("faec1132-567d-451c-a969-18ca9131bdfa"),
+        FileMetadataType.ATTACHMENT, user1Id, room1Id);
+      clock.fixTimeAt(Instant.parse("2020-12-31T00:00:00Z"));
+      FileMetadata file2 = integrationTestUtils.generateAndSaveFileMetadata(
+        UUID.fromString("6a6a1f06-0947-4b5f-a6ac-7631426e3a62"),
+        FileMetadataType.ATTACHMENT, user1Id, room1Id);
+      clock.fixTimeAt(Instant.parse("2022-01-02T00:00:00Z"));
+      FileMetadata file3 = integrationTestUtils.generateAndSaveFileMetadata(
+        UUID.fromString("991b5178-1108-459e-a017-4197647167ec"),
+        FileMetadataType.ATTACHMENT, user1Id, room1Id);
+      clock.fixTimeAt(Instant.parse("2021-07-05T00:00:00Z"));
+      FileMetadata file4 = integrationTestUtils.generateAndSaveFileMetadata(
+        UUID.fromString("5a3d8dd2-f431-4195-acc1-5108948c6d26"),
+        FileMetadataType.ATTACHMENT, user1Id, room1Id);
+      clock.removeFixTime();
+
+      MockHttpResponse response1 = dispatcher.get(
+        String.join("", url(room1Id), "?itemsNumber=2"), user1Token);
+      assertEquals(200, response1.getStatus());
+      AttachmentsPaginationDto attachmentsPage1 = objectMapper.readValue(response1.getContentAsString(),
+        AttachmentsPaginationDto.class);
+      assertEquals(2, attachmentsPage1.getAttachments().size());
+      assertEquals(
+        List.of(file3.getId(), file1.getId()),
+        attachmentsPage1.getAttachments().stream()
+          .map(attachment -> attachment.getId().toString())
+          .collect(Collectors.toList()));
+      assertNotNull(attachmentsPage1.getFilter());
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+
+      MockHttpResponse response2 = dispatcher.get(
+        String.join("", url(room1Id), "?itemsNumber=2&filter=", attachmentsPage1.getFilter()), user1Token);
+      assertEquals(200, response2.getStatus());
+      AttachmentsPaginationDto attachmentsPage2 = objectMapper.readValue(response2.getContentAsString(),
+        AttachmentsPaginationDto.class);
+      assertEquals(2, attachmentsPage2.getAttachments().size());
+      assertEquals(
+        List.of(file4.getId(), file2.getId()),
+        attachmentsPage2.getAttachments().stream()
+          .map(attachment -> attachment.getId().toString())
+          .collect(Collectors.toList()));
+      assertNull(attachmentsPage2.getFilter());
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 

@@ -102,7 +102,7 @@ public class IntegrationTestUtils {
   }
 
   public List<FileMetadata> getFileMetadataByRoomIdAndType(UUID roomId, FileMetadataType type) {
-    return fileMetadataRepository.getByRoomIdAndType(roomId.toString(), type, null);
+    return fileMetadataRepository.getByRoomIdAndType(roomId.toString(), type, 1000, null);
   }
 
   public User generateAndSaveUser(UUID id, String statusMessage, OffsetDateTime lastSeenTimestamp, String hash) {

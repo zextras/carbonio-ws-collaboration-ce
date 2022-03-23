@@ -2,7 +2,10 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -10,6 +13,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.zextras.carbonio.chats.api.RFC3339DateFormat;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -17,9 +23,8 @@ import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.AttachmentAddedEvent;
 import com.zextras.carbonio.chats.core.data.event.AttachmentRemovedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
-import com.zextras.carbonio.chats.core.data.type.OrderDirection;
-import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -31,11 +36,13 @@ import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
+import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -56,6 +63,7 @@ public class AttachmentServiceImplTest {
   private final StoragesService        storagesService;
   private final RoomService            roomService;
   private final EventDispatcher        eventDispatcher;
+  private final ObjectMapper           objectMapper;
 
   @TempDir
   private Path tempDir;
@@ -65,12 +73,17 @@ public class AttachmentServiceImplTest {
     this.storagesService = mock(StoragesService.class);
     this.roomService = mock(RoomService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
+    this.objectMapper = new ObjectMapper()
+      .registerModule(new JavaTimeModule())
+      .setDateFormat(new RFC3339DateFormat());
+    ;
     this.attachmentService = new AttachmentServiceImpl(
       this.fileMetadataRepository,
       attachmentMapper,
       this.storagesService,
       this.roomService,
-      this.eventDispatcher);
+      this.eventDispatcher,
+      this.objectMapper);
   }
 
   private static UUID user1Id;
@@ -103,14 +116,14 @@ public class AttachmentServiceImplTest {
   public class GetsAllRoomAttachmentInfoTests {
 
     @Test
-    @DisplayName("Returns all attachments info of the required room")
-    public void getAttachmentInfoByRoomId_testOk() {
+    @DisplayName("Returns a single page of attachments info of the required room")
+    public void getAttachmentInfoByRoomId_testOkSinglePage() {
       UUID file1Id = UUID.randomUUID();
       UUID file2Id = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       OffsetDateTime attachmentTimestamp = OffsetDateTime.now();
       when(
-        fileMetadataRepository.getByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT, OrderDirection.DESC))
+        fileMetadataRepository.getByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT, 11, null))
         .thenReturn(List.of(
           FileMetadataBuilder.create().id(file1Id.toString()).name("image1.jpg")
             .originalSize(0L).mimeType("image/jpg").type(FileMetadataType.ATTACHMENT)
@@ -120,11 +133,78 @@ public class AttachmentServiceImplTest {
             .originalSize(0L).mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
             .userId(user2Id.toString()).roomId(roomId.toString()).createdAt(attachmentTimestamp.plusHours(1))
             .updatedAt(attachmentTimestamp.plusHours(1))));
-      List<AttachmentDto> attachmentInfo = attachmentService.getAttachmentInfoByRoomId(roomId, currentUser);
+      AttachmentsPaginationDto attachmentsPagination = attachmentService.getAttachmentInfoByRoomId(roomId, 10, null,
+        currentUser);
 
-      assertEquals(2, attachmentInfo.size());
-      assertEquals(file1Id, attachmentInfo.get(0).getId());
-      assertEquals(file2Id, attachmentInfo.get(1).getId());
+      assertEquals(2, attachmentsPagination.getAttachments().size());
+      assertEquals(file1Id, attachmentsPagination.getAttachments().get(0).getId());
+      assertEquals(file2Id, attachmentsPagination.getAttachments().get(1).getId());
+      assertNull(attachmentsPagination.getFilter());
+      verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
+      verifyNoMoreInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("Returns first page of attachments info of the required room")
+    public void getAttachmentInfoByRoomId_testOkFirstPage() throws Exception {
+      UUID file1Id = UUID.randomUUID();
+      UUID file2Id = UUID.randomUUID();
+      UUID file3Id = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      OffsetDateTime attachmentTimestamp = OffsetDateTime.now();
+      when(
+        fileMetadataRepository.getByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT, 3, null))
+        .thenReturn(List.of(
+          FileMetadataBuilder.create().id(file1Id.toString()).name("image1.jpg")
+            .originalSize(0L).mimeType("image/jpg").type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(attachmentTimestamp.plusHours(2))
+            .updatedAt(attachmentTimestamp.plusHours(2)),
+          FileMetadataBuilder.create().id(file2Id.toString()).name("image2.jpg")
+            .originalSize(0L).mimeType("image/jpg").type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(attachmentTimestamp.plusHours(1))
+            .updatedAt(attachmentTimestamp.plusHours(1)),
+          FileMetadataBuilder.create().id(file3Id.toString()).name("pdf1.pdf")
+            .originalSize(0L).mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
+            .userId(user2Id.toString()).roomId(roomId.toString()).createdAt(attachmentTimestamp)
+            .updatedAt(attachmentTimestamp)));
+      AttachmentsPaginationDto attachmentsPagination = attachmentService.getAttachmentInfoByRoomId(roomId, 2, null,
+        currentUser);
+
+      assertEquals(2, attachmentsPagination.getAttachments().size());
+      assertEquals(file1Id, attachmentsPagination.getAttachments().get(0).getId());
+      assertEquals(file2Id, attachmentsPagination.getAttachments().get(1).getId());
+      assertNotNull(attachmentsPagination.getFilter());
+      String expectedFilter = Base64.getEncoder().encodeToString(objectMapper.writeValueAsBytes(
+        PaginationFilter.create(file2Id.toString(), attachmentTimestamp.plusHours(1))));
+      assertEquals(expectedFilter, attachmentsPagination.getFilter());
+      verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
+      verifyNoMoreInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("Returns last page of attachments info of the required room")
+    public void getAttachmentInfoByRoomId_testOkLastPage() throws Exception {
+      UUID file1Id = UUID.randomUUID();
+      UUID file2Id = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      OffsetDateTime attachmentTimestamp = OffsetDateTime.now();
+      PaginationFilter paginationFilter = PaginationFilter.create(file1Id.toString(), attachmentTimestamp.plusHours(1));
+      String filter = Base64.getEncoder().encodeToString(objectMapper.writeValueAsBytes(paginationFilter));
+      when(
+        fileMetadataRepository.getByRoomIdAndType(eq(roomId.toString()), eq(FileMetadataType.ATTACHMENT), eq(3),
+          any(PaginationFilter.class)))
+        .thenReturn(List.of(
+          FileMetadataBuilder.create().id(file2Id.toString()).name("pdf1.pdf")
+            .originalSize(0L).mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
+            .userId(user2Id.toString()).roomId(roomId.toString()).createdAt(attachmentTimestamp)
+            .updatedAt(attachmentTimestamp)));
+
+      AttachmentsPaginationDto attachmentsPagination = attachmentService.getAttachmentInfoByRoomId(roomId, 2,
+        filter, currentUser);
+
+      assertEquals(1, attachmentsPagination.getAttachments().size());
+      assertEquals(file2Id, attachmentsPagination.getAttachments().get(0).getId());
+      assertNull(attachmentsPagination.getFilter());
       verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
@@ -138,7 +218,7 @@ public class AttachmentServiceImplTest {
           String.format("User '%s' is not a member of room '%s'", currentUser.getId(), roomId)));
 
       assertThrows(ForbiddenException.class, () ->
-        attachmentService.getAttachmentInfoByRoomId(roomId, currentUser));
+        attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, currentUser));
     }
 
     @Test
@@ -149,7 +229,7 @@ public class AttachmentServiceImplTest {
         .thenThrow(new NotFoundException());
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class, () ->
-        attachmentService.getAttachmentInfoByRoomId(roomId, currentUser));
+        attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, currentUser));
       assertEquals(String.format("Not Found - Not Found"), notFoundException.getMessage());
     }
 
@@ -158,17 +238,18 @@ public class AttachmentServiceImplTest {
     public void getAttachmentInfoByRoomId_testNoAttachment() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       when(
-        fileMetadataRepository.getByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT, OrderDirection.DESC))
+        fileMetadataRepository.getByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT, 11, null))
         .thenReturn(List.of());
 
-      List<AttachmentDto> attachmentInfo = attachmentService.getAttachmentInfoByRoomId(roomId, currentUser);
+      AttachmentsPaginationDto attachmentsPagination = attachmentService.getAttachmentInfoByRoomId(roomId, 10, null,
+        currentUser);
 
-      assertNotNull(attachmentInfo);
-      assertEquals(0, attachmentInfo.size());
+      assertNotNull(attachmentsPagination);
+      assertEquals(0, attachmentsPagination.getAttachments().size());
+      assertNull(attachmentsPagination.getFilter());
       verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
-
   }
 
   @Nested
