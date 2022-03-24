@@ -141,7 +141,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>commons-lang3</artifactId>
     </dependency>
 
-    <!--Dotenv dependencies-->
+    <!-- Dotenv dependencies -->
     <dependency>
       <groupId>io.github.cdimascio</groupId>
       <artifactId>dotenv-java</artifactId>
@@ -183,7 +183,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M5</version>
         <configuration>
           <parallel>classes</parallel>
         </configuration>
@@ -193,20 +192,27 @@ SPDX-License-Identifier: AGPL-3.0-only
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.7</version>
-
         <executions>
           <execution>
+            <id>pre-unit-tests-execution</id>
             <goals>
               <goal>prepare-agent</goal>
             </goals>
+            <configuration>
+              <destFile>${project.parent.build.directory}/coverage-reports/jacoco-ut.exec</destFile>
+            </configuration>
           </execution>
+
           <execution>
-            <id>generate-code-coverage-report</id>
+            <id>post-unit-tests-execution</id>
             <phase>test</phase>
             <goals>
               <goal>report</goal>
             </goals>
+            <configuration>
+              <dataFile>${project.parent.build.directory}/coverage-reports/jacoco-ut.exec</dataFile>
+              <outputDirectory>${project.parent.reporting.outputDirectory}/jacoco-ut</outputDirectory>
+            </configuration>
           </execution>
         </executions>
       </plugin>
