@@ -93,9 +93,7 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public RoomInfoDto getRoomById(UUID roomId, UserPrincipal currentUser) {
-    // get the room
     Room room = getRoomAndCheckUser(roomId, currentUser, false);
-    // get current user settings for the room
     roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
       .ifPresent(settings -> room.userSettings(Collections.singletonList(settings)));
     return roomMapper.ent2roomInfoDto(room, currentUser.getId());
@@ -104,11 +102,9 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public RoomInfoDto createRoom(RoomCreationFieldsDto insertRoomRequestDto, UserPrincipal currentUser) {
-    // check if invited members list has duplicates
     if (insertRoomRequestDto.getMembersIds().size() != new HashSet<>(insertRoomRequestDto.getMembersIds()).size()) {
       throw new BadRequestException("Members cannot be duplicated");
     }
-    // check if invited members list has the current user
     if (insertRoomRequestDto.getMembersIds().stream()
       .anyMatch(memberId -> memberId.toString().equals(currentUser.getId()))) {
       throw new BadRequestException("Requester can't be invited to the room");
@@ -119,7 +115,6 @@ public class RoomServiceImpl implements RoomService {
       .ifPresent((uuid) -> {
         throw new NotFoundException(String.format("User with identifier '%s' not found", uuid));
       });
-    // entity building
     UUID id = UUID.randomUUID();
     Room room = Room.create()
       .id(id.toString())
@@ -131,35 +126,25 @@ public class RoomServiceImpl implements RoomService {
       .password(generateRoomPassword());
     room.subscriptions(
       membersService.initRoomSubscriptions(insertRoomRequestDto.getMembersIds(), room, currentUser));
-    // persist room
     room = roomRepository.insert(room);
-
-    // room creation on server XMPP
     messageDispatcher.createRoom(room, currentUser.getId());
-
-    // send event
     UUID finalId = UUID.fromString(room.getId());
     room.getSubscriptions().forEach(member ->
       eventDispatcher.sendToQueue(currentUser.getUUID(), member.getUserId(),
         RoomCreatedEvent.create(finalId).from(currentUser.getUUID())
       )
     );
-    // get new room result
     return roomMapper.ent2roomInfoDto(room, currentUser.getId());
   }
 
   @Override
   @Transactional
   public RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser) {
-    // get room
     Room room = getRoomAndCheckUser(roomId, currentUser, true);
-    // change name and description
     room
       .name(updateRoomRequestDto.getName())
       .description(updateRoomRequestDto.getDescription());
-    // room update
     roomRepository.update(room);
-    // send update event to room topic
     eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
       RoomUpdatedEvent.create(roomId).from(currentUser.getUUID()));
     return roomMapper.ent2roomDto(room);
@@ -168,25 +153,18 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public void deleteRoom(UUID roomId, UserPrincipal currentUser) {
-    // check the room
     getRoomAndCheckUser(roomId, currentUser, true);
-    // this cascades to other
     roomRepository.delete(roomId.toString());
-    // room deleting on server XMPP
     messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId());
-    // send to room topic
     eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(), new RoomDeletedEvent(roomId));
   }
 
   @Override
   public HashDto resetRoomHash(UUID roomId, UserPrincipal currentUser) {
-    // get room
     Room room = getRoomAndCheckUser(roomId, currentUser, true);
-    // generate hash
     String hash = Utils.encodeUuidHash(roomId.toString());
     room.hash(hash);
     roomRepository.update(room);
-    // send event
     eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
       RoomHashResetEvent.create(roomId).hash(hash));
     return HashDtoBuilder.create().hash(hash).build();
@@ -210,12 +188,9 @@ public class RoomServiceImpl implements RoomService {
 
   @Override
   public Room getRoomAndCheckUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner) {
-    // get room
     Room room = roomRepository.getById(roomId.toString()).orElseThrow(() ->
       new NotFoundException(String.format("Room '%s'", roomId)));
-
     if (!currentUser.isSystemUser()) {
-      // check that the current user is a member of the room and that he is an owner
       Subscription member = room.getSubscriptions().stream()
         .filter(subscription -> subscription.getUserId().equals(currentUser.getId()))
         .findAny()
@@ -232,11 +207,9 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public FileContentAndMetadata getRoomPicture(UUID roomId, UserPrincipal currentUser) {
-    // gets the room and check that the user is a member
     getRoomAndCheckUser(roomId, currentUser, false);
     FileMetadata metadata = fileMetadataRepository.getById(roomId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
-    // gets file from repository
     File file = storagesService.getFileById(metadata.getId(), metadata.getUserId());
     return new FileContentAndMetadata(file, metadata);
   }
@@ -255,7 +228,6 @@ public class RoomServiceImpl implements RoomService {
     if (!mimeType.startsWith("image/")) {
       throw new BadRequestException("The room picture must be an image");
     }
-
     Optional<FileMetadata> oldMetadata = fileMetadataRepository.getById(roomId.toString());
     Optional<String> oldUser = oldMetadata.map(FileMetadata::getUserId);
     FileMetadata metadata = oldMetadata.orElseGet(() -> FileMetadata.create()

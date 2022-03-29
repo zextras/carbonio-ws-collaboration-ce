@@ -22,7 +22,6 @@ public class EbeanDatabaseInfoService implements DatabaseInfoService {
 
   @Override
   public boolean isAlive() {
-    //If the statement in the try-with-resources throws an exception, it will be caught.
     try (Transaction transaction = database.beginTransaction()) {
       return true;
     } catch (Exception e) {
