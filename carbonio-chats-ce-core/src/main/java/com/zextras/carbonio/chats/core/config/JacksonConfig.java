@@ -4,7 +4,9 @@
 
 package com.zextras.carbonio.chats.core.config;
 
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.zextras.carbonio.chats.api.RFC3339DateFormat;
 import javax.ws.rs.ext.ContextResolver;
@@ -16,7 +18,9 @@ public class JacksonConfig implements ContextResolver<ObjectMapper> {
   private final ObjectMapper objectMapper;
 
   public JacksonConfig() {
-    objectMapper = new ObjectMapper()
+    objectMapper = JsonMapper.builder()
+      .enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS)
+      .build()
       .registerModule(new JavaTimeModule())
       .setDateFormat(new RFC3339DateFormat());
   }

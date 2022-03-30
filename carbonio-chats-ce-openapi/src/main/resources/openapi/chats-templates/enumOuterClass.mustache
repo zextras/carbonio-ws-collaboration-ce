@@ -1,0 +1,37 @@
+import javax.ws.rs.BadRequestException;
+
+{{#description}}
+/**
+* {{.}}
+*/
+@ApiModel(description="{{{.}}}")
+{{/description}}
+{{>additionalEnumTypeAnnotations}}{{>generatedAnnotation}}
+public enum {{datatypeWithEnum}}{{^datatypeWithEnum}}{{classname}}{{/datatypeWithEnum}} {
+  {{#allowableValues}}
+  {{#enumVars}}
+  {{{name}}}({{{value}}}){{^-last}},{{/-last}}{{#-last}};{{/-last}}
+  {{/enumVars}}
+  {{/allowableValues}}
+
+  private final {{dataType}} value;
+
+  {{datatypeWithEnum}}{{^datatypeWithEnum}}{{classname}}{{/datatypeWithEnum}}({{dataType}} value) {
+    this.value = value;
+  }
+
+  @Override
+  @JsonValue
+  public String toString() {
+    return String.valueOf(value);
+  }
+
+  public static {{classname}} fromString(String param) {
+    String toUpper = param.toUpperCase();
+    try {
+      return valueOf(toUpper);
+    } catch (Exception e) {
+      throw new BadRequestException(String.format("Cannot deserialize '%s'", param));
+    }
+  }
+}
