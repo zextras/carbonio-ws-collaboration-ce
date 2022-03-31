@@ -242,8 +242,8 @@ class RoomServiceImplTest {
     public void getRooms_testOkCompleteRooms() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       when(roomRepository.getByUserId(user1Id.toString(), true)).thenReturn(Arrays.asList(room1, room2));
-      when(roomUserSettingsRepository.getByRoomIdAndUserId(room1Id.toString(), currentUser.getId())).thenReturn(
-        Optional.of(RoomUserSettings.create(room1, user1Id.toString()).mutedUntil(OffsetDateTime.now()))
+      when(roomUserSettingsRepository.getByUserId(currentUser.getId())).thenReturn(
+        List.of(RoomUserSettings.create(room1, user1Id.toString()).mutedUntil(OffsetDateTime.now()))
       );
       List<RoomDto> rooms = roomService.getRooms(List.of(RoomExtraFieldDto.MEMBERS, RoomExtraFieldDto.SETTINGS),
         currentUser);
