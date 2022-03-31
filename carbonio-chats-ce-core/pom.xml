@@ -149,8 +149,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <!-- Consul -->
     <dependency>
-      <groupId>com.orbitz.consul</groupId>
-      <artifactId>consul-client</artifactId>
+      <groupId>com.ecwid.consul</groupId>
+      <artifactId>consul-api</artifactId>
     </dependency>
 
     <!-- Tests dependency -->

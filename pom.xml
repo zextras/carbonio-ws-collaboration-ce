@@ -93,7 +93,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Dotenv file support -->
     <io.github.cdimascio.dotenv-java.version>2.2.0</io.github.cdimascio.dotenv-java.version>
     <!-- Consul -->
-    <com.orbitz.consul.consul-client.version>1.5.3</com.orbitz.consul.consul-client.version>
+    <com.ecwid.consul.consul-api.version>1.4.5</com.ecwid.consul.consul-api.version>
 
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
@@ -349,15 +349,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <!-- Consul -->
       <dependency>
-        <groupId>com.orbitz.consul</groupId>
-        <artifactId>consul-client</artifactId>
-        <version>${com.orbitz.consul.consul-client.version}</version>
-        <exclusions>
-          <exclusion>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-          </exclusion>
-        </exclusions>
+        <groupId>com.ecwid.consul</groupId>
+        <artifactId>consul-api</artifactId>
+        <version>1.4.5</version>
       </dependency>
 
       <!-- Tests dependency -->

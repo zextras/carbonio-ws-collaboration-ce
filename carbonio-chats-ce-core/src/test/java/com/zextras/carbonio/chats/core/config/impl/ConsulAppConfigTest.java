@@ -2,7 +2,7 @@ package com.zextras.carbonio.chats.core.config.impl;
 
 import static org.mockito.Mockito.mock;
 
-import com.orbitz.consul.Consul;
+import com.ecwid.consul.v1.ConsulClient;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.config.ConfigValue;
 import org.junit.jupiter.api.Disabled;
@@ -14,10 +14,10 @@ import org.junit.jupiter.api.Test;
 class ConsulAppConfigTest {
 
   private ConsulAppConfig consulAppConfig;
-  private Consul          consulClient;
+  private ConsulClient    consulClient;
 
   public ConsulAppConfigTest() {
-    consulClient = mock(Consul.class);
+    consulClient = mock(ConsulClient.class);
     consulAppConfig = new ConsulAppConfig(consulClient);
   }
 

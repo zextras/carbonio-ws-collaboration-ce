@@ -1,6 +1,6 @@
 package com.zextras.carbonio.chats.core.config.impl;
 
-import com.orbitz.consul.Consul;
+import com.ecwid.consul.v1.ConsulClient;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigValue;
 import com.zextras.carbonio.chats.core.config.EnvironmentType;
@@ -11,9 +11,9 @@ import java.util.Optional;
  */
 public class ConsulAppConfig extends AppConfig {
 
-  private final Consul consulClient;
+  private final ConsulClient consulClient;
 
-  public ConsulAppConfig(Consul consulClient) {
+  public ConsulAppConfig(ConsulClient consulClient) {
     super();
     this.consulClient = consulClient;
   }
