@@ -102,11 +102,20 @@ public class RoomsApiIT {
   @DisplayName("Gets rooms list tests")
   public class GetsRoomsListTests {
 
-    private static final String URL = "/rooms";
+    private String url(@Nullable Map<String, List<String>> queryParams) {
+      StringBuilder url = new StringBuilder();
+      Optional.ofNullable(queryParams).ifPresent(params ->
+        params.forEach((key, values) ->
+          values.forEach(v -> {
+            url.append(url.length() > 0 ? "&" : "");
+            url.append(String.join("=", key, v));
+          })));
+      return "/rooms" + (url.length() > 0 ? "?" + url : "");
+    }
 
     @Test
-    @DisplayName("Correctly gets the rooms list of authenticated user")
-    public void listRoom_testOk() throws Exception {
+    @DisplayName("Correctly gets the basic rooms  of authenticated user")
+    public void listRoom_testOkBasicRooms() throws Exception {
       UUID room1Id = UUID.randomUUID();
       UUID room2Id = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(room1Id, RoomTypeDto.GROUP, "room1",
@@ -114,13 +123,97 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(room2Id, RoomTypeDto.GROUP, "room2",
         List.of(user1Id, user2Id));
 
-      MockHttpResponse response = dispatcher.get(URL, user1Token);
+      MockHttpResponse response = dispatcher.get(url(null), user1Token);
+      assertEquals(200, response.getStatus());
+      assertFalse(response.getContentAsString().contains("members"));
+      assertFalse(response.getContentAsString().contains("userSettings"));
+      List<RoomDto> rooms = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
+      });
+      assertEquals(2, rooms.size());
+      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room1Id)));
+      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room2Id)));
+      assertEquals(0, rooms.get(0).getMembers().size());
+      assertEquals(0, rooms.get(1).getMembers().size());
+      assertNull(rooms.get(0).getUserSettings());
+      assertNull(rooms.get(1).getUserSettings());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Correctly gets the rooms list with members of authenticated user")
+    public void listRoom_testOkWithMembers() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      UUID room2Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(room1Id, RoomTypeDto.GROUP, "room1",
+        List.of(user1Id, user2Id, user3Id));
+      integrationTestUtils.generateAndSaveRoom(room2Id, RoomTypeDto.GROUP, "room2",
+        List.of(user1Id, user2Id));
+
+      MockHttpResponse response = dispatcher.get(url(Map.of("extraFields", List.of("members"))), user1Token);
+      assertEquals(200, response.getStatus());
+      assertFalse(response.getContentAsString().contains("userSettings"));
+      List<RoomDto> rooms = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
+      });
+      assertEquals(2, rooms.size());
+      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room1Id)));
+      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room2Id)));
+      assertNotNull(rooms.get(0).getMembers());
+      assertNotNull(rooms.get(1).getMembers());
+      assertNull(rooms.get(0).getUserSettings());
+      assertNull(rooms.get(1).getUserSettings());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Correctly gets the rooms list with user settings of authenticated user")
+    public void listRoom_testOkWithUserSettings() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      UUID room2Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(room1Id, RoomTypeDto.GROUP, "room1",
+        List.of(user1Id, user2Id, user3Id));
+      integrationTestUtils.generateAndSaveRoom(room2Id, RoomTypeDto.GROUP, "room2",
+        List.of(user1Id, user2Id));
+
+      MockHttpResponse response = dispatcher.get(url(Map.of("extraFields", List.of("settings"))), user1Token);
+      assertEquals(200, response.getStatus());
+      assertFalse(response.getContentAsString().contains("members"));
+      List<RoomDto> rooms = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
+      });
+      assertEquals(2, rooms.size());
+      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room1Id)));
+      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room2Id)));
+      assertEquals(0, rooms.get(0).getMembers().size());
+      assertEquals(0, rooms.get(1).getMembers().size());
+      assertNotNull(rooms.get(0).getUserSettings());
+      assertNotNull(rooms.get(1).getUserSettings());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Correctly gets the complete rooms list of authenticated user")
+    public void listRoom_testOkCompleteRooms() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      UUID room2Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(room1Id, RoomTypeDto.GROUP, "room1",
+        List.of(user1Id, user2Id, user3Id));
+      integrationTestUtils.generateAndSaveRoom(room2Id, RoomTypeDto.GROUP, "room2",
+        List.of(user1Id, user2Id));
+
+      MockHttpResponse response = dispatcher.get(url(Map.of("extraFields", List.of("members", "settings"))),
+        user1Token);
       assertEquals(200, response.getStatus());
       List<RoomDto> rooms = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
       });
       assertEquals(2, rooms.size());
       assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room1Id)));
       assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room2Id)));
+      assertNotNull(rooms.get(0).getMembers());
+      assertNotNull(rooms.get(1).getMembers());
+      assertNotNull(rooms.get(0).getUserSettings());
+      assertNotNull(rooms.get(1).getUserSettings());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -128,7 +221,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Correctly returns an empty list if the authenticated user isn't a member for any room")
     public void listRoom_testNoRooms() throws Exception {
-      MockHttpResponse response = dispatcher.get(URL, user1Token);
+      MockHttpResponse response = dispatcher.get(url(null), user1Token);
       assertEquals(200, response.getStatus());
       List<RoomDto> rooms = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
       });
@@ -139,7 +232,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName("If there isn't an authenticated user return a status code 401")
     public void listRoom_testErrorUnauthenticatedUser() throws Exception {
-      MockHttpResponse response = dispatcher.get(URL, null);
+      MockHttpResponse response = dispatcher.get(url(null), null);
 
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);

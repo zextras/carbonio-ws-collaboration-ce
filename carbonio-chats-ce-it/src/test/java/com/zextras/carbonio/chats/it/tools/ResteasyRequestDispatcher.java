@@ -31,6 +31,7 @@ public class ResteasyRequestDispatcher {
   public MockHttpResponse get(String url, @Nullable String userToken) throws URISyntaxException {
     MockHttpRequest request = MockHttpRequest.get(url);
     Optional.ofNullable(userToken).ifPresent(token -> request.cookie("ZM_AUTH_TOKEN", token));
+
     return sendRequest(request);
   }
 
