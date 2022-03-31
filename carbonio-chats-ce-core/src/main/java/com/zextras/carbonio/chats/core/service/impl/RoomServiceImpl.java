@@ -46,8 +46,11 @@ import java.io.File;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -98,11 +101,10 @@ public class RoomServiceImpl implements RoomService {
     }
     List<Room> rooms = roomRepository.getByUserId(currentUser.getId(), includeMembers);
     if (includeSettings) {
-      List<RoomUserSettings> allSettings = roomUserSettingsRepository.getByUserId(currentUser.getId());
+      Map<String, RoomUserSettings> settingsMap = roomUserSettingsRepository.getByUserId(currentUser.getId()).stream()
+        .collect(Collectors.toMap(s -> s.getId().getRoomId(), Function.identity()));
       rooms.forEach(room ->
-        allSettings.stream()
-          .filter(setting -> room.getId().equals(setting.getId().getRoomId()))
-          .findAny()
+        Optional.ofNullable(settingsMap.get(room.getId()))
           .ifPresent(s -> room.userSettings(Collections.singletonList(s))));
     }
     return roomMapper.ent2roomDto(rooms, includeMembers, includeSettings);
