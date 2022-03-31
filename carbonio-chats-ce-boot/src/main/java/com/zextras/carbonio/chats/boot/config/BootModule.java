@@ -6,18 +6,17 @@ package com.zextras.carbonio.chats.boot.config;
 
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import com.orbitz.consul.Consul;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ChatsConstant;
 import com.zextras.carbonio.chats.core.config.CoreModule;
-import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
 import com.zextras.carbonio.chats.core.config.impl.DotenvAppConfig;
 import com.zextras.carbonio.chats.core.config.impl.PropertiesAppConfig;
+import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import io.github.cdimascio.dotenv.Dotenv;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Properties;
 import org.jboss.resteasy.plugins.guice.ext.RequestScopeModule;
 
@@ -63,7 +62,7 @@ public class BootModule extends RequestScopeModule {
     AppConfig mainConfig = new DotenvAppConfig(dotenv);
     mainConfig
       .or(new PropertiesAppConfig(properties))
-      .or(new ConsulAppConfig());
+      .or(new ConsulAppConfig(Consul.builder().build()));
     return mainConfig;
   }
 }

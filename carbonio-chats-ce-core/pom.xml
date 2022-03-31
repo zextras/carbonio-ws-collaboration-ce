@@ -147,6 +147,12 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>dotenv-java</artifactId>
     </dependency>
 
+    <!-- Consul -->
+    <dependency>
+      <groupId>com.orbitz.consul</groupId>
+      <artifactId>consul-client</artifactId>
+    </dependency>
+
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
     <dependency>
