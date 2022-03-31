@@ -56,13 +56,12 @@ public class BootModule extends RequestScopeModule {
       properties.load(propertiesStream);
       ChatsLogger.info("Properties config loaded");
     } catch (Exception e) {
-      ChatsLogger.debug("Could not load properties file: " + e.getMessage());
+      ChatsLogger.warn("Could not load properties file: " + e.getMessage());
     }
 
     AppConfig mainConfig = new DotenvAppConfig(dotenv);
     mainConfig
-      .or(new PropertiesAppConfig(properties))
-      .or(new ConsulAppConfig(new ConsulClient()));
+      .or(new PropertiesAppConfig(properties));
     return mainConfig;
   }
 }

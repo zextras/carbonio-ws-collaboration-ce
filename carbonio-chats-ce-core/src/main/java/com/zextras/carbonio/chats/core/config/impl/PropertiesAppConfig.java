@@ -18,7 +18,7 @@ public class PropertiesAppConfig extends AppConfig {
     this.properties = properties;
   }
 
-  protected <T> Optional<T> getAttributeByImplementation(Class<T> clazz, ConfigValue configName) {
+  protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigValue configName) {
     return Optional.ofNullable(properties.get(configName.getPropertyName())).map(clazz::cast);
   }
 

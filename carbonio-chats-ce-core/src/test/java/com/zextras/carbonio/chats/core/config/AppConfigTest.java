@@ -106,7 +106,7 @@ class AppConfigTest {
     }
 
     @Override
-    protected <T> Optional<T> getAttributeByImplementation(Class<T> clazz, ConfigValue configName) {
+    protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigValue configName) {
       return Optional.ofNullable(configMap.get(configName)).map(clazz::cast);
     }
 
