@@ -36,7 +36,7 @@ public abstract class RoomMapper {
   })
   public abstract RoomDto ent2roomDto(@Nullable Room room, boolean includeMembers, boolean includeSettings);
 
-  public List<RoomDto> ent2roomDto(List<Room> rooms, boolean includeMembers, boolean includeSettings) {
+  public List<RoomDto> ent2roomDto(@Nullable List<Room> rooms, boolean includeMembers, boolean includeSettings) {
     if (rooms == null) {
       return null;
     }

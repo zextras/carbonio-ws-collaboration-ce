@@ -9,6 +9,7 @@ import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import io.ebean.Database;
 import io.ebean.annotation.Transactional;
+import java.util.List;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -31,6 +32,13 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
       .where()
       .eq("id", new SubscriptionId(roomId, userId))
       .findOneOrEmpty();
+  }
+
+  @Override
+  public List<RoomUserSettings> getByUserId(String userId) {
+    return db.find(RoomUserSettings.class)
+      .where().eq("userId", userId)
+      .findList();
   }
 
   @Override

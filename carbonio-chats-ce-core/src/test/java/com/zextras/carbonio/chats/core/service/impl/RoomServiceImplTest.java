@@ -50,7 +50,7 @@ import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
-
+import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.io.File;
@@ -187,8 +187,8 @@ class RoomServiceImplTest {
   class GetRoomTests {
 
     @Test
-    @DisplayName("Returns all rooms of which the authenticated user is a member")
-    public void getRooms_testOk() {
+    @DisplayName("Returns all rooms without members or user settings of which the authenticated user is a member")
+    public void getRooms_testOkBasicRooms() {
       when(roomRepository.getByUserId(user1Id.toString(), false)).thenReturn(Arrays.asList(room1, room2));
       List<RoomDto> rooms = roomService.getRooms(null, UserPrincipal.create(user1Id));
 
@@ -197,6 +197,68 @@ class RoomServiceImplTest {
       assertEquals(RoomTypeDto.GROUP, rooms.get(0).getType());
       assertEquals(room2Id.toString(), rooms.get(1).getId().toString());
       assertEquals(RoomTypeDto.ONE_TO_ONE, rooms.get(1).getType());
+      assertNull(rooms.get(0).getMembers());
+      assertNull(rooms.get(1).getMembers());
+      assertNull(rooms.get(0).getUserSettings());
+      assertNull(rooms.get(1).getUserSettings());
+    }
+
+    @Test
+    @DisplayName("Returns all rooms with members and without user settings of which the authenticated user is a member")
+    public void getRooms_testOkWithMembers() {
+      when(roomRepository.getByUserId(user1Id.toString(), true)).thenReturn(Arrays.asList(room1, room2));
+      List<RoomDto> rooms = roomService.getRooms(List.of(RoomExtraFieldDto.MEMBERS), UserPrincipal.create(user1Id));
+
+      assertEquals(2, rooms.size());
+      assertEquals(room1Id.toString(), rooms.get(0).getId().toString());
+      assertEquals(RoomTypeDto.GROUP, rooms.get(0).getType());
+      assertEquals(room2Id.toString(), rooms.get(1).getId().toString());
+      assertEquals(RoomTypeDto.ONE_TO_ONE, rooms.get(1).getType());
+      assertNotNull(rooms.get(0).getMembers());
+      assertNotNull(rooms.get(1).getMembers());
+      assertNull(rooms.get(0).getUserSettings());
+      assertNull(rooms.get(1).getUserSettings());
+    }
+
+    @Test
+    @DisplayName("Returns all rooms without members and with user settings of which the authenticated user is a member")
+    public void getRooms_testOkWithSettings() {
+      when(roomRepository.getByUserId(user1Id.toString(), false)).thenReturn(Arrays.asList(room1, room2));
+      List<RoomDto> rooms = roomService.getRooms(List.of(RoomExtraFieldDto.SETTINGS), UserPrincipal.create(user1Id));
+
+      assertEquals(2, rooms.size());
+      assertEquals(room1Id.toString(), rooms.get(0).getId().toString());
+      assertEquals(RoomTypeDto.GROUP, rooms.get(0).getType());
+      assertEquals(room2Id.toString(), rooms.get(1).getId().toString());
+      assertEquals(RoomTypeDto.ONE_TO_ONE, rooms.get(1).getType());
+      assertNull(rooms.get(0).getMembers());
+      assertNull(rooms.get(1).getMembers());
+      assertNotNull(rooms.get(0).getUserSettings());
+      assertNotNull(rooms.get(1).getUserSettings());
+    }
+
+    @Test
+    @DisplayName("Returns all complete rooms of which the authenticated user is a member")
+    public void getRooms_testOkCompleteRooms() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      when(roomRepository.getByUserId(user1Id.toString(), true)).thenReturn(Arrays.asList(room1, room2));
+      when(roomUserSettingsRepository.getByRoomIdAndUserId(room1Id.toString(), currentUser.getId())).thenReturn(
+        Optional.of(RoomUserSettings.create(room1, user1Id.toString()).mutedUntil(OffsetDateTime.now()))
+      );
+      List<RoomDto> rooms = roomService.getRooms(List.of(RoomExtraFieldDto.MEMBERS, RoomExtraFieldDto.SETTINGS),
+        currentUser);
+      assertEquals(2, rooms.size());
+      assertEquals(room1Id.toString(), rooms.get(0).getId().toString());
+      assertEquals(RoomTypeDto.GROUP, rooms.get(0).getType());
+      assertEquals(room2Id.toString(), rooms.get(1).getId().toString());
+      assertEquals(RoomTypeDto.ONE_TO_ONE, rooms.get(1).getType());
+      assertNotNull(rooms.get(0).getMembers());
+      assertNotNull(rooms.get(1).getMembers());
+      assertNotNull(rooms.get(0).getUserSettings());
+      assertNotNull(rooms.get(1).getUserSettings());
+      assertTrue(rooms.get(0).getUserSettings().isMuted());
+      assertFalse(rooms.get(1).getUserSettings().isMuted());
+
     }
   }
 

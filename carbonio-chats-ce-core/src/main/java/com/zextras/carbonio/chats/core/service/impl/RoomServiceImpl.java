@@ -97,8 +97,11 @@ public class RoomServiceImpl implements RoomService {
     }
     List<Room> rooms = roomRepository.getByUserId(currentUser.getId(), includeMembers);
     if (includeSettings) {
-      rooms.forEach(room -> roomUserSettingsRepository.getByRoomIdAndUserId(room.getId(), currentUser.getId())
-        .ifPresent(settings -> room.userSettings(Collections.singletonList(settings))));
+      rooms.forEach(room ->
+        roomUserSettingsRepository.getByUserId(currentUser.getId()).stream()
+          .filter(setting -> room.getId().equals(setting.getId().getRoomId()))
+          .findAny()
+          .ifPresent(s -> room.userSettings(Collections.singletonList(s))));
     }
     return roomMapper.ent2roomDto(rooms, includeMembers, includeSettings);
   }
@@ -160,7 +163,7 @@ public class RoomServiceImpl implements RoomService {
     roomRepository.update(room);
     eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
       RoomUpdatedEvent.create(roomId).from(currentUser.getUUID()));
-    return roomMapper.ent2roomDto(room,false, false);
+    return roomMapper.ent2roomDto(room, false, false);
   }
 
   @Override
