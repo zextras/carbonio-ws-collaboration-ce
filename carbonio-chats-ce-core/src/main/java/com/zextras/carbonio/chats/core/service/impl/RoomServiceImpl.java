@@ -8,6 +8,7 @@ import com.zextras.carbonio.chats.core.config.ChatsConstant;
 import com.zextras.carbonio.chats.core.data.builder.HashDtoBuilder;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.RoomCreatedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomDeletedEvent;
@@ -97,8 +98,9 @@ public class RoomServiceImpl implements RoomService {
     }
     List<Room> rooms = roomRepository.getByUserId(currentUser.getId(), includeMembers);
     if (includeSettings) {
+      List<RoomUserSettings> allSettings = roomUserSettingsRepository.getByUserId(currentUser.getId());
       rooms.forEach(room ->
-        roomUserSettingsRepository.getByUserId(currentUser.getId()).stream()
+        allSettings.stream()
           .filter(setting -> room.getId().equals(setting.getId().getRoomId()))
           .findAny()
           .ifPresent(s -> room.userSettings(Collections.singletonList(s))));
