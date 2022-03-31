@@ -1,6 +1,7 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -28,14 +29,12 @@ import com.zextras.carbonio.chats.core.data.event.RoomDeletedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomHashResetEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomPictureChangedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomUpdatedEvent;
-import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
-import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -54,7 +53,6 @@ import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 
 import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import com.zextras.carbonio.chats.model.UserDto;
 import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -191,8 +189,8 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("Returns all rooms of which the authenticated user is a member")
     public void getRooms_testOk() {
-      when(roomRepository.getByUserId(user1Id.toString())).thenReturn(Arrays.asList(room1, room2));
-      List<RoomDto> rooms = roomService.getRooms(UserPrincipal.create(user1Id));
+      when(roomRepository.getByUserId(user1Id.toString(), false)).thenReturn(Arrays.asList(room1, room2));
+      List<RoomDto> rooms = roomService.getRooms(null, UserPrincipal.create(user1Id));
 
       assertEquals(2, rooms.size());
       assertEquals(room1Id.toString(), rooms.get(0).getId().toString());
@@ -247,7 +245,8 @@ class RoomServiceImplTest {
       assertEquals(room1Id, room.getId());
       assertEquals(3, room.getMembers().size());
       assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user1Id)));
-      assertNull(room.getUserSettings());
+      assertNotNull(room.getUserSettings());
+      assertFalse(room.getUserSettings().isMuted());
     }
 
     @Test

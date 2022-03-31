@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public interface RoomRepository {
 
-  List<Room> getByUserId(String userId);
+  List<Room> getByUserId(String userId, boolean addSubscriptions);
 
   Optional<Room> getById(String id);
 

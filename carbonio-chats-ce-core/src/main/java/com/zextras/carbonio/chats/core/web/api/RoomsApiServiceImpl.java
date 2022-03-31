@@ -15,7 +15,9 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
+import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import java.io.File;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -42,12 +44,12 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response listRoom(SecurityContext securityContext) {
+  public Response listRoom(List<RoomExtraFieldDto> extraFields, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response
       .status(Status.OK)
-      .entity(roomService.getRooms(currentUser))
+      .entity(roomService.getRooms(extraFields, currentUser))
       .build();
   }
 

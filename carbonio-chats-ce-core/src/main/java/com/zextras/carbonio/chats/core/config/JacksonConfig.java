@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.config;
 
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -22,7 +23,8 @@ public class JacksonConfig implements ContextResolver<ObjectMapper> {
       .enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS)
       .build()
       .registerModule(new JavaTimeModule())
-      .setDateFormat(new RFC3339DateFormat());
+      .setDateFormat(new RFC3339DateFormat())
+      .setSerializationInclusion(Include.NON_NULL);;
   }
 
   public ObjectMapper getContext(Class<?> arg0) {

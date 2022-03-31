@@ -51,6 +51,8 @@ paths:
         - Rooms
       summary: Retrieves a list of every room the user has access to
       operationId: listRoom
+      parameters:
+        - $ref: '#/components/parameters/queryRoomsExtraFields'
       responses:
         200:
           $ref: '#/components/responses/200ListRoomResponse'
@@ -427,6 +429,15 @@ components:
       schema:
         type: string
       required: false
+    queryRoomsExtraFields:
+      in: query
+      name: extraFields
+      description: Rooms extra fields
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/RoomExtraField'
+      required: false
   requestBodies:
     InsertRoomRequest:
       description: room to insert
@@ -763,20 +774,19 @@ components:
               format: date-time
               readOnly: true
               description: update date
+            members:
+              type: array
+              items:
+                $ref: '#/components/schemas/Member'
+              description: list of users subscribed to the room
+            userSettings:
+              $ref: '#/components/schemas/RoomUserSettings'
       required: [ id, hash, createdAt, updatedAt ]
     RoomInfo:
       description: Room data with members list and current user settings
       type: object
       allOf:
         - $ref: '#/components/schemas/Room'
-      properties:
-        members:
-          type: array
-          items:
-            $ref: '#/components/schemas/Member'
-          description: list of users subscribed to the room
-        userSettings:
-          $ref: '#/components/schemas/RoomUserSettings'
       required: [ members, userSettings ]
     RoomUserSettings:
       type: object
@@ -786,6 +796,12 @@ components:
           type: boolean
           description: indicates whether the user has muted
       required: [ muted ]
+    RoomExtraField:
+      type: string
+      description: Room extra fields
+      enum:
+        - members
+        - settings
     Member:
       type: object
       description: Information about a user's role in the room

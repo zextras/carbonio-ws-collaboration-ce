@@ -7,6 +7,8 @@ package com.zextras.carbonio.chats.core.repository.impl;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import io.ebean.Database;
+import io.ebean.ExpressionList;
+import io.ebean.Query;
 import io.ebean.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
@@ -25,9 +27,12 @@ public class EbeanRoomRepository implements RoomRepository {
   }
 
   @Override
-  public List<Room> getByUserId(String userId) {
-    return db.find(Room.class)
-      .where().eq("subscriptions.userId", userId)
+  public List<Room> getByUserId(String userId, boolean addSubscriptions) {
+    Query<Room> roomQuery = db.find(Room.class);
+    if (addSubscriptions) {
+      roomQuery = roomQuery.fetch("subscriptions");
+    }
+    return roomQuery.where().eq("subscriptions.userId", userId)
       .findList();
   }
 

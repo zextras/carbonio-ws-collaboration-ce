@@ -7,17 +7,18 @@ package com.zextras.carbonio.chats.core.mapper;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.model.RoomUserSettingsDto;
 import java.util.List;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import javax.annotation.Nullable;
+import javax.inject.Singleton;
 
-@Mapper(componentModel = "jsr330")
-public abstract class RoomUserSettingsMapper {
+@Singleton
+public class RoomUserSettingsMapper {
 
-  @Mapping(target = "muted", expression = "java(roomUserSettings != null && roomUserSettings.getMutedUntil() != null)")
-  public abstract RoomUserSettingsDto ent2dto(RoomUserSettings roomUserSettings);
+  public RoomUserSettingsDto ent2dto(@Nullable RoomUserSettings roomUserSettings) {
+    return RoomUserSettingsDto.create().muted(roomUserSettings != null && roomUserSettings.getMutedUntil() != null);
+  }
 
-  public RoomUserSettingsDto ent2dto(List<RoomUserSettings> roomUserSettingsList, String userId) {
-    return ent2dto(roomUserSettingsList == null ? null :
-      roomUserSettingsList.stream().filter(settings -> settings.getUserId().equals(userId)).findAny().orElse(null));
+  public RoomUserSettingsDto ent2dto(List<RoomUserSettings> roomUserSettingsList) {
+    return ent2dto(roomUserSettingsList != null && !roomUserSettingsList.isEmpty() ?
+      roomUserSettingsList.get(0) : null);
   }
 }

@@ -38,7 +38,6 @@ import com.zextras.carbonio.chats.core.mapper.AttachmentMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.mapper.RoomMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.RoomUserSettingsMapper;
-import com.zextras.carbonio.chats.core.mapper.RoomUserSettingsMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapperImpl;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
@@ -125,7 +124,7 @@ public class CoreModule extends AbstractModule {
     bind(SubscriptionMapper.class).to(SubscriptionMapperImpl.class);
 
     bind(RoomUserSettingsRepository.class).to(EbeanRoomUserSettingsRepository.class);
-    bind(RoomUserSettingsMapper.class).to(RoomUserSettingsMapperImpl.class);
+    bind(RoomUserSettingsMapper.class);
 
     bind(UserService.class).to(UserServiceImpl.class);
     bind(UserRepository.class).to(EbeanUserRepository.class);

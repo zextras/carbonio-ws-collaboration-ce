@@ -11,16 +11,18 @@ import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
+import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomInfoDto;
 import java.io.File;
 import java.util.List;
 import java.util.UUID;
+import javax.annotation.Nullable;
 
 public interface RoomService {
 
   /**
-   * Get room by identifier and check if the current user is subscribed. This method returns an entity
-   * because it's intended to be used only to be called by services.
+   * Get room by identifier and check if the current user is subscribed. This method returns an entity because it's
+   * intended to be used only to be called by services.
    *
    * @param roomId      room identifier {@link UUID}
    * @param currentUser current authenticate user {@link UserPrincipal}
@@ -59,10 +61,11 @@ public interface RoomService {
   /**
    * Retrieves a list of every room the user has access to
    *
+   * @param extraFields
    * @param currentUser current authenticated user {@link UserPrincipal}
    * @return List of every room that the user has access to {@link RoomDto }
    **/
-  List<RoomDto> getRooms(UserPrincipal currentUser);
+  List<RoomDto> getRooms(@Nullable List<RoomExtraFieldDto> extraFields, UserPrincipal currentUser);
 
   /**
    * Mutes notification for the specified room

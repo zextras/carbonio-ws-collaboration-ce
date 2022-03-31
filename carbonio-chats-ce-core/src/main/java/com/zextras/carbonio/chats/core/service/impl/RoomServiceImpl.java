@@ -37,6 +37,7 @@ import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
+import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
@@ -46,6 +47,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -83,11 +85,22 @@ public class RoomServiceImpl implements RoomService {
     this.storagesService = storagesService;
   }
 
-
   @Override
-  public List<RoomDto> getRooms(UserPrincipal currentUser) {
-    List<Room> rooms = roomRepository.getByUserId(currentUser.getId());
-    return roomMapper.ent2roomDto(rooms);
+  @Transactional
+  public List<RoomDto> getRooms(
+    @Nullable List<RoomExtraFieldDto> extraFields, UserPrincipal currentUser
+  ) {
+    boolean includeMembers = false, includeSettings = false;
+    if (extraFields != null) {
+      includeMembers = extraFields.contains(RoomExtraFieldDto.MEMBERS);
+      includeSettings = extraFields.contains(RoomExtraFieldDto.SETTINGS);
+    }
+    List<Room> rooms = roomRepository.getByUserId(currentUser.getId(), includeMembers);
+    if (includeSettings) {
+      rooms.forEach(room -> roomUserSettingsRepository.getByRoomIdAndUserId(room.getId(), currentUser.getId())
+        .ifPresent(settings -> room.userSettings(Collections.singletonList(settings))));
+    }
+    return roomMapper.ent2roomDto(rooms, includeMembers, includeSettings);
   }
 
   @Override
@@ -96,7 +109,7 @@ public class RoomServiceImpl implements RoomService {
     Room room = getRoomAndCheckUser(roomId, currentUser, false);
     roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
       .ifPresent(settings -> room.userSettings(Collections.singletonList(settings)));
-    return roomMapper.ent2roomInfoDto(room, currentUser.getId());
+    return roomMapper.ent2roomInfoDto(room);
   }
 
   @Override
@@ -134,7 +147,7 @@ public class RoomServiceImpl implements RoomService {
         RoomCreatedEvent.create(finalId).from(currentUser.getUUID())
       )
     );
-    return roomMapper.ent2roomInfoDto(room, currentUser.getId());
+    return roomMapper.ent2roomInfoDto(room);
   }
 
   @Override
@@ -147,7 +160,7 @@ public class RoomServiceImpl implements RoomService {
     roomRepository.update(room);
     eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
       RoomUpdatedEvent.create(roomId).from(currentUser.getUUID()));
-    return roomMapper.ent2roomDto(room);
+    return roomMapper.ent2roomDto(room,false, false);
   }
 
   @Override
