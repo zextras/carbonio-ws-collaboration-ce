@@ -92,6 +92,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     <com.google.code.findbugs.jsr305.version>3.0.2</com.google.code.findbugs.jsr305.version>
     <!-- Dotenv file support -->
     <io.github.cdimascio.dotenv-java.version>2.2.0</io.github.cdimascio.dotenv-java.version>
+    <!-- Consul -->
+    <com.ecwid.consul.consul-api.version>1.4.5</com.ecwid.consul.consul-api.version>
 
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
@@ -343,6 +345,13 @@ SPDX-License-Identifier: AGPL-3.0-only
         <groupId>io.github.cdimascio</groupId>
         <artifactId>dotenv-java</artifactId>
         <version>${io.github.cdimascio.dotenv-java.version}</version>
+      </dependency>
+
+      <!-- Consul -->
+      <dependency>
+        <groupId>com.ecwid.consul</groupId>
+        <artifactId>consul-api</artifactId>
+        <version>${com.ecwid.consul.consul-api.version}</version>
       </dependency>
 
       <!-- Tests dependency -->
