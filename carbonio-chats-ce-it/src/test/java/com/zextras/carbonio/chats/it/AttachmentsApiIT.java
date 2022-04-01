@@ -15,7 +15,7 @@ import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.MockedFileType;
-import com.zextras.carbonio.chats.it.annotations.IntegrationTest;
+import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.PreviewerMockServer;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
@@ -33,7 +33,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-@IntegrationTest
+@ApiIntegrationTest
 public class AttachmentsApiIT {
 
   private final FileMetadataRepository    fileMetadataRepository;

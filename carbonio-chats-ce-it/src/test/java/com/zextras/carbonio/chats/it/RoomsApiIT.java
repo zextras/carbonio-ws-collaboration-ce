@@ -19,7 +19,7 @@ import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.MockedFileType;
-import com.zextras.carbonio.chats.it.annotations.IntegrationTest;
+import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
@@ -53,7 +53,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
-@IntegrationTest
+@ApiIntegrationTest
 public class RoomsApiIT {
 
   private final ResteasyRequestDispatcher dispatcher;

@@ -7,9 +7,6 @@ import com.zextras.carbonio.chats.core.config.EnvironmentType;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.util.Optional;
 
-/**
- * Stub configuration until consul config is implemented
- */
 public class ConsulAppConfig extends AppConfig {
 
   private final ConsulClient consulClient;
@@ -24,6 +21,7 @@ public class ConsulAppConfig extends AppConfig {
   @Override
   protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigValue configName) {
     try {
+      //We might want to cache configuration values and to add some consul watchers to allow for quicker config lookup
       return Optional.ofNullable(consulClient.getKVValue(configName.getConsulName(), authToken)
         .getValue().getDecodedValue()).map(value -> castToGeneric(clazz, value));
     } catch (RuntimeException ex) {

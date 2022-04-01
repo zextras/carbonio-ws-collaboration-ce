@@ -25,6 +25,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(PreviewerExtension.class)
 @ExtendWith(UserManagementExtension.class)
 @ExtendWith(MongooseIMExtension.class)
-public @interface IntegrationTest {
+public @interface ApiIntegrationTest {
 
 }

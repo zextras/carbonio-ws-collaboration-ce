@@ -81,6 +81,7 @@ import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.config.DatabaseConfig;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.ZoneId;
 import javax.inject.Singleton;
@@ -94,6 +95,9 @@ public class CoreModule extends AbstractModule {
     super.configure();
 
     bind(JacksonConfig.class);
+    bind(AppConfig.class)
+      .toProvider(new ConfigProvider(Path.of("."), Path.of(ChatsConstant.CONFIG_PATH)))
+      .in(Singleton.class);
 
     bind(EventDispatcher.class).to(MockEventDispatcherImpl.class);
     bind(AuthenticationFilter.class);

@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.api.HealthApi;
-import com.zextras.carbonio.chats.it.annotations.IntegrationTest;
+import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
 import com.zextras.carbonio.chats.it.tools.PreviewerMockServer;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
@@ -20,7 +20,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-@IntegrationTest
+@ApiIntegrationTest
 public class HealthApiIT {
 
   private final ResteasyRequestDispatcher dispatcher;
