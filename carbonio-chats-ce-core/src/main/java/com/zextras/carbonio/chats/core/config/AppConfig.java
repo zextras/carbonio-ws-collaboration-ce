@@ -18,7 +18,7 @@ public abstract class AppConfig {
   public <T> Optional<T> get(Class<T> clazz, ConfigValue configName) {
     return getConfigByImplementation(clazz, configName).or(() -> {
       if (next != null) {
-        return next.getConfigByImplementation(clazz, configName);
+        return next.get(clazz, configName);
       } else {
         return Optional.empty();
       }
@@ -32,7 +32,7 @@ public abstract class AppConfig {
    */
   public EnvironmentType getEnvType() {
     return getEnvTypeByImplementation().orElseGet(
-      () -> Optional.ofNullable(next).flatMap(AppConfig::getEnvTypeByImplementation)
+      () -> Optional.ofNullable(next).map(AppConfig::getEnvType)
         .orElse(EnvironmentType.PRODUCTION)
     );
   }

@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.config;
 
+import com.ecwid.consul.v1.ConsulClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.inject.AbstractModule;
@@ -95,9 +96,6 @@ public class CoreModule extends AbstractModule {
     super.configure();
 
     bind(JacksonConfig.class);
-    bind(AppConfig.class)
-      .toProvider(new ConfigProvider(Path.of("."), Path.of(ChatsConstant.CONFIG_PATH)))
-      .in(Singleton.class);
 
     bind(EventDispatcher.class).to(MockEventDispatcherImpl.class);
     bind(AuthenticationFilter.class);
@@ -149,6 +147,18 @@ public class CoreModule extends AbstractModule {
     bind(JsonProcessingExceptionHandler.class);
     bind(DefaultExceptionHandler.class);
     bind(ValidationExceptionHandler.class);
+  }
+
+  @Singleton
+  @Provides
+  private AppConfig getAppConfig(ConsulClient consulClient) {
+    return new ConfigFactory(Path.of("."), Path.of(ChatsConstant.CONFIG_PATH), consulClient).create();
+  }
+
+  @Singleton
+  @Provides
+  private ConsulClient getConsulClient() {
+    return new ConsulClient(ChatsConstant.CONSUL_HOST, ChatsConstant.CONSUL_PORT);
   }
 
   @Singleton

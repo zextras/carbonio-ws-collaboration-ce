@@ -21,11 +21,12 @@ class AppConfigTest {
 
     @Test
     @DisplayName("Retrieves attribute from the first chain block")
-    public void get_retrieFromFirstBlock() {
+    public void get_valueFromFirstBlock() {
       MockConfig config1 = new MockConfig().setConfig(ConfigValue.DATABASE_JDBC_URL, "value1");
       MockConfig config2 = new MockConfig().setConfig(ConfigValue.DATABASE_JDBC_URL, "value2");
+      MockConfig config3 = new MockConfig().setConfig(ConfigValue.DATABASE_JDBC_URL, "value3");
 
-      config1.or(config2);
+      config1.or(config2).or(config3);
 
       assertTrue(config1.get(String.class, ConfigValue.DATABASE_JDBC_URL).isPresent());
       assertEquals("value1", config1.get(String.class, ConfigValue.DATABASE_JDBC_URL).get());
@@ -33,14 +34,28 @@ class AppConfigTest {
 
     @Test
     @DisplayName("Retrieves attribute from the second chain block if the first is null")
-    public void get_retrieFromSecondBlock() {
+    public void get_valueFromSecondBlock() {
       MockConfig config1 = new MockConfig();
       MockConfig config2 = new MockConfig().setConfig(ConfigValue.DATABASE_JDBC_URL, "value2");
+      MockConfig config3 = new MockConfig().setConfig(ConfigValue.DATABASE_JDBC_URL, "value3");
 
-      config1.or(config2);
+      config1.or(config2).or(config3);
 
       assertTrue(config1.get(String.class, ConfigValue.DATABASE_JDBC_URL).isPresent());
       assertEquals("value2", config1.get(String.class, ConfigValue.DATABASE_JDBC_URL).get());
+    }
+
+    @Test
+    @DisplayName("Retrieves attribute from the third chain block if the second is null")
+    public void get_valueFromThirdBlock() {
+      MockConfig config1 = new MockConfig();
+      MockConfig config2 = new MockConfig();
+      MockConfig config3 = new MockConfig().setConfig(ConfigValue.DATABASE_JDBC_URL, "value3");
+
+      config1.or(config2).or(config3);
+
+      assertTrue(config1.get(String.class, ConfigValue.DATABASE_JDBC_URL).isPresent());
+      assertEquals("value3", config1.get(String.class, ConfigValue.DATABASE_JDBC_URL).get());
     }
 
     @Test
@@ -48,8 +63,9 @@ class AppConfigTest {
     public void get_returnsEmptyOptional() {
       MockConfig config1 = new MockConfig();
       MockConfig config2 = new MockConfig();
+      MockConfig config3 = new MockConfig();
 
-      config1.or(config2);
+      config1.or(config2).or(config3);
 
       assertFalse(config1.get(String.class, ConfigValue.DATABASE_JDBC_URL).isPresent());
     }
@@ -62,22 +78,36 @@ class AppConfigTest {
 
     @Test
     @DisplayName("Retrieves env type from the first chain block")
-    public void getEnvType_retrieFromFirstBlock() {
+    public void getEnvType_valueFromFirstBlock() {
       MockConfig config1 = new MockConfig().setEnv(EnvironmentType.DEVELOPMENT);
       MockConfig config2 = new MockConfig().setEnv(EnvironmentType.TEST);
+      MockConfig config3 = new MockConfig().setEnv(EnvironmentType.TEST);
 
-      config1.or(config2);
+      config1.or(config2).or(config3);
 
       assertEquals(EnvironmentType.DEVELOPMENT, config1.getEnvType());
     }
 
     @Test
     @DisplayName("Retrieves env type from the second chain block if the first is null")
-    public void getEnvType_retrieFromSecondBlock() {
+    public void getEnvType_valueFromSecondBlock() {
       MockConfig config1 = new MockConfig();
-      MockConfig config2 = new MockConfig().setEnv(EnvironmentType.TEST);
+      MockConfig config2 = new MockConfig().setEnv(EnvironmentType.DEVELOPMENT);
+      MockConfig config3 = new MockConfig().setEnv(EnvironmentType.TEST);
 
-      config1.or(config2);
+      config1.or(config2).or(config3);
+
+      assertEquals(EnvironmentType.DEVELOPMENT, config1.getEnvType());
+    }
+
+    @Test
+    @DisplayName("Retrieves env type from the third chain block if the second is null")
+    public void getEnvType_valueFromThirdBlock() {
+      MockConfig config1 = new MockConfig();
+      MockConfig config2 = new MockConfig();
+      MockConfig config3 = new MockConfig().setEnv(EnvironmentType.TEST);
+
+      config1.or(config2).or(config3);
 
       assertEquals(EnvironmentType.TEST, config1.getEnvType());
     }
