@@ -123,18 +123,26 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public RoomInfoDto createRoom(RoomCreationFieldsDto insertRoomRequestDto, UserPrincipal currentUser) {
-    if (insertRoomRequestDto.getMembersIds().size() != new HashSet<>(insertRoomRequestDto.getMembersIds()).size()) {
+    HashSet<UUID> membersSet = new HashSet<>(insertRoomRequestDto.getMembersIds());
+    if (insertRoomRequestDto.getMembersIds().size() != membersSet.size()) {
       throw new BadRequestException("Members cannot be duplicated");
     }
+    if (insertRoomRequestDto.getMembersIds().stream()
+      .anyMatch(memberId -> memberId.toString().equals(currentUser.getId()))) {
+      throw new BadRequestException("Requester can't be invited to the room");
+    }
+    if(RoomTypeDto.ONE_TO_ONE.equals(insertRoomRequestDto.getType()) && membersSet.size() != 1) {
+      throw new BadRequestException("Only two users can participate to a one to one");
+    } else if(RoomTypeDto.GROUP.equals(insertRoomRequestDto.getType()) && membersSet.size() < 2 ) {
+      throw new BadRequestException("Too few members (required at least 3)");
+    }
     insertRoomRequestDto.getMembersIds().stream()
-      .filter(memberId -> !memberId.equals(currentUser.getUUID()))
       .filter(memberId -> !userService.userExists(memberId, currentUser))
       .findFirst()
       .ifPresent((uuid) -> {
         throw new NotFoundException(String.format("User with identifier '%s' not found", uuid));
       });
-    //Adding the requester as a member, this way clients may choose whether to specify it in the members list or not
-    HashSet<UUID> membersSet = new HashSet<>(insertRoomRequestDto.getMembersIds());
+    //Adding the requester as a member
     membersSet.add(UUID.fromString(currentUser.getId()));
     UUID newRoomId = UUID.randomUUID();
     Room room = Room.create()

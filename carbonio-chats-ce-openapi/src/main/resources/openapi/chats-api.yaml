@@ -62,8 +62,9 @@ paths:
       summary: Insert a room of the specified type
       description: |
         Inserts a room of the specified type. The user performing the request will be included in the final members
-        list if not specified. If the room is a one to one, only a single member can be specified other than the user
-        performing the request.
+        list if not specified. If the room is a one to one, only a single member can be specified and name and
+        description are replaced with an empty string. If the room is not a one to
+        one, there must be at least two members specified.
       operationId: insertRoom
       requestBody:
         $ref: '#/components/requestBodies/InsertRoomRequest'
@@ -749,7 +750,7 @@ components:
           items:
             type: string
             format: uuid
-          minItems: 2
+          minItems: 1
           description: members identifiers list to be subscribed to the room
       required: [ type, membersIds ]
     Room:
