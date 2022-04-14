@@ -351,14 +351,58 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given creation fields, if there is current user into invites list returns a status code 400")
-    public void insertRoom_testRoomToCreateWithInvitedUsersListContainsCurrentUser() throws Exception {
-      MockHttpResponse response = dispatcher.post(URL,
-        getInsertRoomRequestBody("room", "Room", RoomTypeDto.GROUP, List.of(user1Id, user2Id, user3Id)),
-        user1Token);
+    public void insertRoom_testRoomToCreateWithInvitedUsersListContainingCurrentUser() throws Exception {
+      Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
 
-      assertEquals(400, response.getStatus());
-      assertEquals(0, response.getOutput().length);
+      clock.fixTimeAt(executionInstant);
+      MockHttpResponse response;
+      UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(roomId);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
+        uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        response = dispatcher.post(URL,
+          getInsertRoomRequestBody("testRoom", "Test room", RoomTypeDto.GROUP, List.of(user1Id, user2Id, user3Id)),
+          user1Token);
+      }
+      clock.removeFixTime();
+      userManagementMockServer.verify("GET", String.format("/users/id/%s", user2Id), user1Token, 1);
+      userManagementMockServer.verify("GET", String.format("/users/id/%s", user3Id), user1Token, 1);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      assertEquals(201, response.getStatus());
+      RoomInfoDto room = objectMapper.readValue(response.getContentAsString(), RoomInfoDto.class);
+      assertEquals("testRoom", room.getName());
+      assertEquals("Test room", room.getDescription());
+      assertEquals(RoomTypeDto.GROUP, room.getType());
+      assertEquals(3, room.getMembers().size());
+      assertTrue(room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
+      assertTrue(
+        room.getMembers().stream().filter(member -> user1Id.equals(member.getUserId())).findAny().get().isOwner());
+      assertTrue(room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
+      assertTrue(room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
+      assertEquals(executionInstant, room.getCreatedAt().toInstant());
+      assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+
+      mongooseImMockServer.verify("PUT", "/admin/muc-lights/carbonio",
+        new RoomDetailsDto()
+          .id(room.getId().toString())
+          .owner(String.format("%s@carbonio", user1Id))
+          .name(room.getId().toString())
+          .subject(room.getDescription()), 1);
+      mongooseImMockServer.verify("POST",
+        String.format("/admin/muc-lights/carbonio/%s/participants", room.getId()),
+        new InviteDto()
+          .sender(String.format("%s@carbonio", user1Id.toString()))
+          .recipient(String.format("%s@carbonio", user2Id.toString())), 1);
+      mongooseImMockServer.verify("POST",
+        String.format("/admin/muc-lights/carbonio/%s/participants", room.getId()),
+        new InviteDto()
+          .sender(String.format("%s@carbonio", user1Id.toString()))
+          .recipient(String.format("%s@carbonio", user3Id.toString())), 1);
+
+      // TODO: 23/02/22 verify event dispatcher interactions
     }
 
     @Test

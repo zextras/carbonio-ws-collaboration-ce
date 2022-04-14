@@ -43,6 +43,7 @@ import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -125,27 +126,27 @@ public class RoomServiceImpl implements RoomService {
     if (insertRoomRequestDto.getMembersIds().size() != new HashSet<>(insertRoomRequestDto.getMembersIds()).size()) {
       throw new BadRequestException("Members cannot be duplicated");
     }
-    if (insertRoomRequestDto.getMembersIds().stream()
-      .anyMatch(memberId -> memberId.toString().equals(currentUser.getId()))) {
-      throw new BadRequestException("Requester can't be invited to the room");
-    }
     insertRoomRequestDto.getMembersIds().stream()
+      .filter(memberId -> !memberId.equals(currentUser.getUUID()))
       .filter(memberId -> !userService.userExists(memberId, currentUser))
       .findFirst()
       .ifPresent((uuid) -> {
         throw new NotFoundException(String.format("User with identifier '%s' not found", uuid));
       });
-    UUID id = UUID.randomUUID();
+    //Adding the requester as a member, this way clients may choose whether to specify it in the members list or not
+    HashSet<UUID> membersSet = new HashSet<>(insertRoomRequestDto.getMembersIds());
+    membersSet.add(UUID.fromString(currentUser.getId()));
+    UUID newRoomId = UUID.randomUUID();
     Room room = Room.create()
-      .id(id.toString())
+      .id(newRoomId.toString())
       .name(insertRoomRequestDto.getName())
       .description(insertRoomRequestDto.getDescription())
-      .hash(Utils.encodeUuidHash(id.toString()))
+      .hash(Utils.encodeUuidHash(newRoomId.toString()))
       .domain(null)
       .type(insertRoomRequestDto.getType())
       .password(generateRoomPassword());
     room.subscriptions(
-      membersService.initRoomSubscriptions(insertRoomRequestDto.getMembersIds(), room, currentUser));
+      membersService.initRoomSubscriptions(new ArrayList<>(membersSet), room, currentUser));
     room = roomRepository.insert(room);
     messageDispatcher.createRoom(room, currentUser.getId());
     UUID finalId = UUID.fromString(room.getId());

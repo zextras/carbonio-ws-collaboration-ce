@@ -64,9 +64,12 @@ import java.util.stream.Stream;
 import javax.ws.rs.core.Response.Status;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 @UnitTest
 class RoomServiceImplTest {
@@ -351,16 +354,24 @@ class RoomServiceImplTest {
         membersService.initRoomSubscriptions(eq(Arrays.asList(user2Id, user3Id)), any(Room.class),
           eq(mockUserPrincipal)))
         .thenReturn(Stream.of(user2Id, user3Id, user1Id).map(userId ->
-          Subscription.create(room1, userId.toString())
+          Subscription.create(room1, userId.toString()).owner(userId.equals(user1Id))
         ).collect(Collectors.toList()));
-      when(roomRepository.insert(any(Room.class))).thenReturn(room1);
+      when(roomRepository.insert(room1)).thenReturn(room1);
 
       RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
         .name("room1")
         .description("Room one")
         .type(RoomTypeDto.GROUP)
         .membersIds(List.of(user2Id, user3Id));
-      RoomInfoDto room = roomService.createRoom(creationFields, mockUserPrincipal);
+      RoomInfoDto room;
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(room1Id);
+        uuid.when(() -> UUID.fromString(room1.getId())).thenReturn(room1Id);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
+        uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
+        room = roomService.createRoom(creationFields, mockUserPrincipal);
+      }
       assertEquals(creationFields.getName(), room.getName());
       assertEquals(creationFields.getDescription(), room.getDescription());
       assertEquals(creationFields.getType(), room.getType());
@@ -397,17 +408,52 @@ class RoomServiceImplTest {
     }
 
     @Test
-    @DisplayName("If the current user is invited, it throws a 'bad request' exception")
+    @DisplayName("If the current user is invited, it creates the room anyway")
     public void createRoom_testRoomToCreateWithInvitedUsersListContainsCurrentUser() {
+      UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
+      when(userService.userExists(user2Id, mockUserPrincipal))
+        .thenReturn(true);
+      when(userService.userExists(user3Id, mockUserPrincipal))
+        .thenReturn(true);
+      when(membersService.initRoomSubscriptions(any(), any(Room.class), eq(mockUserPrincipal)))
+        .thenReturn(Stream.of(user2Id, user3Id, user1Id).map(userId ->
+          Subscription.create(room1, userId.toString()).owner(userId.equals(user1Id))
+        ).collect(Collectors.toList()));
+      when(roomRepository.insert(room1)).thenReturn(room1);
+
       RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
         .name("room1")
         .description("Room one")
         .type(RoomTypeDto.GROUP)
-        .membersIds(List.of(user1Id, user2Id));
-      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
-        roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
-      assertEquals("Bad Request - Requester can't be invited to the room", exception.getMessage());
+        .membersIds(List.of(user1Id, user2Id, user3Id));
+      RoomInfoDto room;
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(room1Id);
+        uuid.when(() -> UUID.fromString(room1.getId())).thenReturn(room1Id);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
+        uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
+        room = roomService.createRoom(creationFields, mockUserPrincipal);
+      }
+      assertEquals(creationFields.getName(), room.getName());
+      assertEquals(creationFields.getDescription(), room.getDescription());
+      assertEquals(creationFields.getType(), room.getType());
+      assertEquals(3, room.getMembers().size());
+      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user1Id)));
+      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user2Id)));
+      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user3Id)));
+      assertTrue(
+        room.getMembers().stream().filter(member -> member.getUserId().equals(user1Id)).findAny().get().isOwner());
+
+      verify(eventDispatcher, times(1)).sendToQueue(eq(user1Id), eq(user1Id.toString()),
+        eq(RoomCreatedEvent.create(room1Id).from(user1Id)));
+      verify(eventDispatcher, times(1)).sendToQueue(eq(user1Id), eq(user2Id.toString()),
+        eq(RoomCreatedEvent.create(room1Id).from(user1Id)));
+      verify(eventDispatcher, times(1)).sendToQueue(eq(user1Id), eq(user3Id.toString()),
+        eq(RoomCreatedEvent.create(room1Id).from(user1Id)));
+      verifyNoMoreInteractions(eventDispatcher);
+      verify(messageDispatcher, times(1)).createRoom(room1, user1Id.toString());
+      verifyNoMoreInteractions(messageDispatcher);
     }
 
     @Test

@@ -141,24 +141,16 @@ public class MembersServiceImpl implements MembersService {
 
   @Override
   public List<Subscription> initRoomSubscriptions(List<UUID> membersIds, Room room, UserPrincipal requester) {
-    List<Subscription> result = membersIds.stream().map(userId ->
+    return membersIds.stream().map(userId ->
       Subscription.create()
         .id(new SubscriptionId(room.getId(), userId.toString()))
         .userId(userId.toString())
         .room(room)
-        .owner(RoomTypeDto.ONE_TO_ONE.equals(room.getType()))  //When we have a one to one, both members are owners
+        //When we have a one to one, both members are owners
+        .owner(userId.equals(requester.getUUID()) || RoomTypeDto.ONE_TO_ONE.equals(room.getType()))
         .temporary(false)
         .external(false)
         .joinedAt(OffsetDateTime.now())
     ).collect(Collectors.toList());
-    result.add(Subscription.create()
-      .id(new SubscriptionId(room.getId(), requester.getId()))
-      .userId(requester.getId())
-      .room(room)
-      .owner(true)
-      .temporary(false)
-      .external(false)
-      .joinedAt(OffsetDateTime.now()));
-    return result;
   }
 }
