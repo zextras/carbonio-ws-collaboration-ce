@@ -63,7 +63,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Jetty -->
     <org.eclipse.jetty.version>10.0.6</org.eclipse.jetty.version>
     <!-- Guice -->
-    <com.google.inject.version>4.2.2</com.google.inject.version>
+    <com.google.inject.version>5.0.1</com.google.inject.version>
     <!-- Rest easy -->
     <org.jboss.resteasy.version>4.7.2.Final</org.jboss.resteasy.version>
     <org.jboss.resteasy.jaxrs-api.version>3.0.12.Final</org.jboss.resteasy.jaxrs-api.version>
