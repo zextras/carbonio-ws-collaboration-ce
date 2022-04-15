@@ -150,11 +150,9 @@ public class RoomServiceImpl implements RoomService {
       .name(insertRoomRequestDto.getName())
       .description(insertRoomRequestDto.getDescription())
       .hash(Utils.encodeUuidHash(newRoomId.toString()))
-      .domain(null)
       .type(insertRoomRequestDto.getType())
       .password(generateRoomPassword());
-    room.subscriptions(
-      membersService.initRoomSubscriptions(new ArrayList<>(membersSet), room, currentUser));
+    room.subscriptions(membersService.initRoomSubscriptions(new ArrayList<>(membersSet), room, currentUser));
     room = roomRepository.insert(room);
     messageDispatcher.createRoom(room, currentUser.getId());
     UUID finalId = UUID.fromString(room.getId());

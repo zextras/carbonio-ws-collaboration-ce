@@ -207,6 +207,24 @@ class RoomServiceImplTest {
     }
 
     @Test
+    @DisplayName("Returns all rooms without members or user settings and with the profile picture update date")
+    public void getRooms_testOkRoomsWithProfilePictureDate() {
+      when(roomRepository.getByUserId(user1Id.toString(), false)).thenReturn(Arrays.asList(room1, room2));
+
+      List<RoomDto> rooms = roomService.getRooms(null, UserPrincipal.create(user1Id));
+
+      assertEquals(2, rooms.size());
+      assertEquals(room1Id.toString(), rooms.get(0).getId().toString());
+      assertEquals(RoomTypeDto.GROUP, rooms.get(0).getType());
+      assertEquals(room2Id.toString(), rooms.get(1).getId().toString());
+      assertEquals(RoomTypeDto.ONE_TO_ONE, rooms.get(1).getType());
+      assertNull(rooms.get(0).getMembers());
+      assertNull(rooms.get(1).getMembers());
+      assertNull(rooms.get(0).getUserSettings());
+      assertNull(rooms.get(1).getUserSettings());
+    }
+
+    @Test
     @DisplayName("Returns all rooms with members and without user settings of which the authenticated user is a member")
     public void getRooms_testOkWithMembers() {
       when(roomRepository.getByUserId(user1Id.toString(), true)).thenReturn(Arrays.asList(room1, room2));

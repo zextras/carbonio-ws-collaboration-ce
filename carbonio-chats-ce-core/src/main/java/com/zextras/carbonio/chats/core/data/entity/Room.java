@@ -38,9 +38,6 @@ public class Room {
   @Column(name = "HASH", length = 256, unique = true, nullable = false)
   private String hash;
 
-  @Column(name = "DOMAIN", length = 256)
-  private String domain;
-
   @Column(name = "TYPE", length = 32, nullable = false)
   @Enumerated(EnumType.STRING)
   private RoomTypeDto type;
@@ -101,15 +98,6 @@ public class Room {
 
   public Room hash(String hash) {
     this.hash = hash;
-    return this;
-  }
-
-  public String getDomain() {
-    return domain;
-  }
-
-  public Room domain(String domain) {
-    this.domain = domain;
     return this;
   }
 

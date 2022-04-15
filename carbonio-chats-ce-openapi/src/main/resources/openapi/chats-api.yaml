@@ -773,12 +773,19 @@ components:
               type: string
               format: date-time
               readOnly: true
-              description: creation date
+              description: entity creation date
             updatedAt:
               type: string
               format: date-time
               readOnly: true
-              description: update date
+              description: entity update date
+            pictureUpdatedAt:
+              type: string
+              format: date-time
+              readOnly: true
+              description: |
+                room profile picture update timestamp,
+                returned only if the room picture was set at least once
             members:
               type: array
               items:
