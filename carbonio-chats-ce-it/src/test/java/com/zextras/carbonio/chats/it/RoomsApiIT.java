@@ -14,6 +14,7 @@ import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles;
@@ -38,6 +39,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
@@ -63,6 +65,7 @@ public class RoomsApiIT {
   private final UserManagementMockServer  userManagementMockServer;
   private final MongooseImMockServer      mongooseImMockServer;
   private final StorageMockServer         storageMockServer;
+  private final RoomRepository            roomRepository;
 
   private final AppClock clock;
 
@@ -70,7 +73,8 @@ public class RoomsApiIT {
     RoomsApi roomsApi, ResteasyRequestDispatcher dispatcher, ObjectMapper objectMapper,
     IntegrationTestUtils integrationTestUtils,
     UserManagementMockServer userManagementMockServer,
-    MongooseImMockServer mongooseImMockServer, StorageMockServer storageMockServer, Clock clock
+    MongooseImMockServer mongooseImMockServer, StorageMockServer storageMockServer, Clock clock,
+    RoomRepository roomRepository
   ) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
@@ -78,6 +82,7 @@ public class RoomsApiIT {
     this.userManagementMockServer = userManagementMockServer;
     this.mongooseImMockServer = mongooseImMockServer;
     this.storageMockServer = storageMockServer;
+    this.roomRepository = roomRepository;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
     this.clock = (AppClock) clock;
   }
@@ -422,7 +427,8 @@ public class RoomsApiIT {
     public void getRoom_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom",
-        List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id), OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+        List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
+        OffsetDateTime.parse("2022-01-01T00:00:00Z"));
 
       MockHttpResponse response = dispatcher.get(url(roomId), user1Token);
       assertEquals(200, response.getStatus());
@@ -514,7 +520,8 @@ public class RoomsApiIT {
       Instant insertRoomInstant = executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
       clock.fixTimeAt(insertRoomInstant);
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom",
-        List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id), OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+        List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
+        OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response = dispatcher.put(url(roomId),
         getUpdateRoomRequestBody("updatedRoom", "Updated room"), user1Token);
@@ -755,7 +762,8 @@ public class RoomsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
-
+      Instant now = Instant.now();
+      clock.fixTimeAt(now);
       MockHttpResponse response = dispatcher.put(url(roomId), fileMock.getId().getBytes(),
         Map.of("Content-Type", "application/octet-stream",
           "X-Content-Disposition",
@@ -764,6 +772,10 @@ public class RoomsApiIT {
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       // TODO: 01/03/22 verify event dispatcher iterations
       storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
+      Optional<Room> room = roomRepository.getById(roomId.toString());
+      assertTrue(room.isPresent());
+      assertEquals(OffsetDateTime.ofInstant(now, clock.getZone()).toEpochSecond(),
+        room.get().getUpdatedAt().toEpochSecond());
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -991,8 +1003,8 @@ public class RoomsApiIT {
   }
 
   @Nested
-  @DisplayName("Inserts a room member tests")
-  public class InsertsRoomMemberTests {
+  @DisplayName("Insert a room member tests")
+  public class InsertRoomMemberTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s/members", roomId);
@@ -1133,8 +1145,8 @@ public class RoomsApiIT {
   }
 
   @Nested
-  @DisplayName("Removes a member from the room tests")
-  public class RemovesRoomMemberTests {
+  @DisplayName("Remove a member from the room tests")
+  public class RemoveRoomMemberTests {
 
     private String url(UUID roomId, UUID userId) {
       return String.format("/rooms/%s/members/%s", roomId, userId);
@@ -1205,8 +1217,8 @@ public class RoomsApiIT {
   }
 
   @Nested
-  @DisplayName("Promotes a member to owner tests")
-  public class PromotesMemberToOwnerTests {
+  @DisplayName("Promote a member to owner tests")
+  public class PromoteMemberToOwnerTests {
 
     private String url(UUID roomId, UUID userId) {
       return String.format("/rooms/%s/members/%s/owner", roomId, userId);
@@ -1272,8 +1284,8 @@ public class RoomsApiIT {
   }
 
   @Nested
-  @DisplayName("Demotes a member from owner to normal member tests")
-  public class DemotesRoomMember_testOk {
+  @DisplayName("Demote a member from owner to normal member tests")
+  public class DemoteOwnerTests {
 
     private String url(UUID roomId, UUID userId) {
       return String.format("/rooms/%s/members/%s/owner", roomId, userId);
@@ -1334,7 +1346,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Gets paged list of room attachment information tests")
-  public class ListOfRoomAttachmentInformationTests {
+  public class ListRoomAttachmentInformationTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s/attachments", roomId);

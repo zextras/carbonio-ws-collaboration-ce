@@ -44,6 +44,7 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
 import java.io.File;
 import java.time.Clock;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -270,7 +271,9 @@ public class RoomServiceImpl implements RoomService {
       .originalSize(image.length())
       .mimeType(mimeType)
       .userId(currentUser.getId());
+    room.pictureUpdatedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone()));
     fileMetadataRepository.save(metadata);
+    roomRepository.update(room);
     if (oldUser.isPresent()) {
       try {
         storagesService.deleteFile(metadata.getId(), oldUser.get());

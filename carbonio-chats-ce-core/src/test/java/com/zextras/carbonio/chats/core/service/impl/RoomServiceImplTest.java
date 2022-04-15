@@ -55,7 +55,9 @@ import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.io.File;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -876,16 +878,20 @@ class RoomServiceImplTest {
     void setRoomPicture_testOkInsert() {
       when(roomRepository.getById(room1Id.toString())).thenReturn(Optional.of(room1));
       when(fileMetadataRepository.getById(room1Id.toString())).thenReturn(Optional.empty());
+      when(clock.instant()).thenReturn(Instant.parse("2022-01-01T00:00:00Z"));
+      when(clock.getZone()).thenReturn(ZoneId.systemDefault());
       File file = mock(File.class);
       when(file.length()).thenReturn(123L);
       when(storagesService.getFileById(room1Id.toString(), user2Id.toString())).thenReturn(file);
 
       roomService.setRoomPicture(room1Id, file, "image/jpeg", "picture", UserPrincipal.create(user1Id));
 
+      room1.pictureUpdatedAt(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()));
       FileMetadata expectedMetadata = FileMetadataBuilder.create().id(room1.getId()).roomId(room1.getId())
         .mimeType("image/jpeg").type(FileMetadataType.ROOM_AVATAR).name("picture").originalSize(123L)
         .userId(user1Id.toString());
       verify(roomRepository, times(1)).getById(room1Id.toString());
+      verify(roomRepository, times(1)).update(room1);
       verify(fileMetadataRepository, times(1)).getById(room1Id.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, user1Id.toString());
@@ -903,16 +909,20 @@ class RoomServiceImplTest {
       when(fileMetadataRepository.getById(room1Id.toString()))
         .thenReturn(Optional.of(FileMetadata.create().id("123").type(FileMetadataType.ROOM_AVATAR)
           .roomId(room1Id.toString()).userId("fake-old-user")));
+      when(clock.instant()).thenReturn(Instant.parse("2022-01-01T00:00:00Z"));
+      when(clock.getZone()).thenReturn(ZoneId.systemDefault());
       File file = mock(File.class);
       when(file.length()).thenReturn(123L);
       when(storagesService.getFileById(room1Id.toString(), user2Id.toString())).thenReturn(file);
 
       roomService.setRoomPicture(room1Id, file, "image/jpeg", "picture", UserPrincipal.create(user1Id));
 
+      room1.pictureUpdatedAt(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()));
       FileMetadata expectedMetadata = FileMetadataBuilder.create().id("123").roomId(room1.getId())
         .mimeType("image/jpeg").type(FileMetadataType.ROOM_AVATAR).name("picture").originalSize(123L)
         .userId(user1Id.toString());
       verify(roomRepository, times(1)).getById(room1Id.toString());
+      verify(roomRepository, times(1)).update(room1);
       verify(fileMetadataRepository, times(1)).getById(room1Id.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, user1Id.toString());
@@ -930,6 +940,8 @@ class RoomServiceImplTest {
       when(fileMetadataRepository.getById(room3Id.toString()))
         .thenReturn(Optional.of(FileMetadata.create().id("123").type(FileMetadataType.ROOM_AVATAR)
           .roomId(room3Id.toString())));
+      when(clock.instant()).thenReturn(Instant.parse("2022-01-01T00:00:00Z"));
+      when(clock.getZone()).thenReturn(ZoneId.systemDefault());
       File file = mock(File.class);
       when(file.length()).thenReturn(123L);
       when(storagesService.getFileById(room3Id.toString(), user2Id.toString())).thenReturn(file);
@@ -937,10 +949,12 @@ class RoomServiceImplTest {
       roomService.setRoomPicture(room3Id, file, "image/jpeg", "picture",
         UserPrincipal.create(user1Id).systemUser(true));
 
+      room3.pictureUpdatedAt(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()));
       FileMetadata expectedMetadata = FileMetadataBuilder.create().id("123").roomId(room3.getId())
         .mimeType("image/jpeg").type(FileMetadataType.ROOM_AVATAR).name("picture").originalSize(123L)
         .userId(user1Id.toString());
       verify(roomRepository, times(1)).getById(room3Id.toString());
+      verify(roomRepository, times(1)).update(room3);
       verify(fileMetadataRepository, times(1)).getById(room3Id.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, user1Id.toString());

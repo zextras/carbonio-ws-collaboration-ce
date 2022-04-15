@@ -37,6 +37,15 @@ public class AppClock extends Clock {
     }
   }
 
+  @Override
+  public long millis() {
+    if(instant == null) {
+      return Clock.systemUTC().millis();
+    } else {
+      return instant.toEpochMilli();
+    }
+  }
+
   public AppClock fixTimeAt(Instant instant) {
     this.instant = instant;
     return this;
