@@ -54,6 +54,7 @@ import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.io.File;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -83,6 +84,7 @@ class RoomServiceImplTest {
   private final MembersService             membersService;
   private final FileMetadataRepository     fileMetadataRepository;
   private final StoragesService            storagesService;
+  private final Clock                      clock;
 
   public RoomServiceImplTest(RoomMapper roomMapper) {
     this.roomRepository = mock(RoomRepository.class);
@@ -93,6 +95,7 @@ class RoomServiceImplTest {
     this.messageDispatcher = mock(MessageDispatcher.class);
     this.fileMetadataRepository = mock(FileMetadataRepository.class);
     this.storagesService = mock(StoragesService.class);
+    this.clock = mock(Clock.class);
     this.roomService = new RoomServiceImpl(
       this.roomRepository,
       this.roomUserSettingsRepository,
@@ -102,7 +105,9 @@ class RoomServiceImplTest {
       this.userService,
       this.membersService,
       this.fileMetadataRepository,
-      this.storagesService);
+      this.storagesService,
+      this.clock
+    );
   }
 
   private UUID user1Id;
@@ -134,6 +139,7 @@ class RoomServiceImplTest {
       .type(RoomTypeDto.GROUP)
       .name("room1")
       .description("Room one")
+      .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
       .subscriptions(List.of(
         Subscription.create(room1, user1Id.toString()).owner(true),
         Subscription.create(room1, user2Id.toString()).owner(false),
@@ -193,23 +199,6 @@ class RoomServiceImplTest {
     @DisplayName("Returns all rooms without members or user settings of which the authenticated user is a member")
     public void getRooms_testOkBasicRooms() {
       when(roomRepository.getByUserId(user1Id.toString(), false)).thenReturn(Arrays.asList(room1, room2));
-      List<RoomDto> rooms = roomService.getRooms(null, UserPrincipal.create(user1Id));
-
-      assertEquals(2, rooms.size());
-      assertEquals(room1Id.toString(), rooms.get(0).getId().toString());
-      assertEquals(RoomTypeDto.GROUP, rooms.get(0).getType());
-      assertEquals(room2Id.toString(), rooms.get(1).getId().toString());
-      assertEquals(RoomTypeDto.ONE_TO_ONE, rooms.get(1).getType());
-      assertNull(rooms.get(0).getMembers());
-      assertNull(rooms.get(1).getMembers());
-      assertNull(rooms.get(0).getUserSettings());
-      assertNull(rooms.get(1).getUserSettings());
-    }
-
-    @Test
-    @DisplayName("Returns all rooms without members or user settings and with the profile picture update date")
-    public void getRooms_testOkRoomsWithProfilePictureDate() {
-      when(roomRepository.getByUserId(user1Id.toString(), false)).thenReturn(Arrays.asList(room1, room2));
 
       List<RoomDto> rooms = roomService.getRooms(null, UserPrincipal.create(user1Id));
 
@@ -222,6 +211,8 @@ class RoomServiceImplTest {
       assertNull(rooms.get(1).getMembers());
       assertNull(rooms.get(0).getUserSettings());
       assertNull(rooms.get(1).getUserSettings());
+      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), rooms.get(0).getPictureUpdatedAt());
+      assertNull(rooms.get(1).getPictureUpdatedAt());
     }
 
     @Test

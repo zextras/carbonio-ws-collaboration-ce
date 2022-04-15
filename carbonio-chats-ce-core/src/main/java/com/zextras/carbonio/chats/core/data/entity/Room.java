@@ -45,6 +45,11 @@ public class Room {
   @Column(name = "PASSWORD", length = 256)
   private String password;
 
+  //This is a redundancy which simplifies querying, allowing us to retrieve this without a join on the attachment table
+  @Column(name = "PICTURE_UPDATED_AT")
+  @Temporal(TemporalType.TIMESTAMP)
+  private OffsetDateTime pictureUpdatedAt;
+
   @Column(name = "CREATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
   @WhenCreated
@@ -125,6 +130,15 @@ public class Room {
 
   public OffsetDateTime getUpdatedAt() {
     return updatedAt;
+  }
+
+  public OffsetDateTime getPictureUpdatedAt() {
+    return pictureUpdatedAt;
+  }
+
+  public Room pictureUpdatedAt(OffsetDateTime pictureUpdatedAt) {
+    this.pictureUpdatedAt = pictureUpdatedAt;
+    return this;
   }
 
   public List<Subscription> getSubscriptions() {

@@ -37,6 +37,7 @@ import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
@@ -114,14 +115,14 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Correctly gets the basic rooms  of authenticated user")
+    @DisplayName("Correctly gets the basic rooms of authenticated user")
     public void listRoom_testOkBasicRooms() throws Exception {
       UUID room1Id = UUID.randomUUID();
       UUID room2Id = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(room1Id, RoomTypeDto.GROUP, "room1",
         List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveRoom(room2Id, RoomTypeDto.GROUP, "room2",
-        List.of(user1Id, user2Id));
+        List.of(user1Id, user2Id), List.of(user1Id), List.of(user1Id), OffsetDateTime.parse("2022-01-01T00:00:00Z"));
 
       MockHttpResponse response = dispatcher.get(url(null), user1Token);
       assertEquals(200, response.getStatus());
@@ -136,6 +137,9 @@ public class RoomsApiIT {
       assertEquals(0, rooms.get(1).getMembers().size());
       assertNull(rooms.get(0).getUserSettings());
       assertNull(rooms.get(1).getUserSettings());
+      assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() != null && room.getPictureUpdatedAt()
+        .equals(OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
+      assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() == null));
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -408,7 +412,7 @@ public class RoomsApiIT {
     public void getRoom_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom",
-        List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id));
+        List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id), null);
 
       MockHttpResponse response = dispatcher.get(url(roomId), user1Token);
       assertEquals(200, response.getStatus());
@@ -1244,7 +1248,7 @@ public class RoomsApiIT {
     public void deleteOwner_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id),
-        List.of(user1Id, user2Id, user3Id), List.of());
+        List.of(user1Id, user2Id, user3Id), List.of(), null);
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1273,7 +1277,7 @@ public class RoomsApiIT {
     public void deleteOwner_testErrorAuthenticatedUserNotRoomOwner() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id),
-        List.of(user2Id, user3Id), List.of());
+        List.of(user2Id, user3Id), List.of(), null);
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);

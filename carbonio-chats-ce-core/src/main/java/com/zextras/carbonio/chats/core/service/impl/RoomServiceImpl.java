@@ -43,6 +43,7 @@ import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
 import java.io.File;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -68,6 +69,7 @@ public class RoomServiceImpl implements RoomService {
   private final MembersService             membersService;
   private final FileMetadataRepository     fileMetadataRepository;
   private final StoragesService            storagesService;
+  private final Clock                      clock;
 
   @Inject
   public RoomServiceImpl(
@@ -77,7 +79,8 @@ public class RoomServiceImpl implements RoomService {
     UserService userService,
     MembersService membersService,
     FileMetadataRepository fileMetadataRepository,
-    StoragesService storagesService
+    StoragesService storagesService,
+    Clock clock
   ) {
     this.roomRepository = roomRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
@@ -88,6 +91,7 @@ public class RoomServiceImpl implements RoomService {
     this.membersService = membersService;
     this.fileMetadataRepository = fileMetadataRepository;
     this.storagesService = storagesService;
+    this.clock = clock;
   }
 
   @Override
@@ -131,9 +135,9 @@ public class RoomServiceImpl implements RoomService {
       .anyMatch(memberId -> memberId.toString().equals(currentUser.getId()))) {
       throw new BadRequestException("Requester can't be invited to the room");
     }
-    if(RoomTypeDto.ONE_TO_ONE.equals(insertRoomRequestDto.getType()) && membersSet.size() != 1) {
+    if (RoomTypeDto.ONE_TO_ONE.equals(insertRoomRequestDto.getType()) && membersSet.size() != 1) {
       throw new BadRequestException("Only two users can participate to a one to one");
-    } else if(RoomTypeDto.GROUP.equals(insertRoomRequestDto.getType()) && membersSet.size() < 2 ) {
+    } else if (RoomTypeDto.GROUP.equals(insertRoomRequestDto.getType()) && membersSet.size() < 2) {
       throw new BadRequestException("Too few members (required at least 3)");
     }
     insertRoomRequestDto.getMembersIds().stream()

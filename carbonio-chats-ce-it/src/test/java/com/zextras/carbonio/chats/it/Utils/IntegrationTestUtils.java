@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 
 public class IntegrationTestUtils {
@@ -37,11 +38,12 @@ public class IntegrationTestUtils {
   }
 
   public Room generateAndSaveRoom(UUID id, RoomTypeDto type, String name, List<UUID> usersIds) {
-    return generateAndSaveRoom(id, type, name, usersIds, List.of(usersIds.get(0)), List.of(usersIds.get(0)));
+    return generateAndSaveRoom(id, type, name, usersIds, List.of(usersIds.get(0)), List.of(usersIds.get(0)), null);
   }
 
   public Room generateAndSaveRoom(
-    UUID id, RoomTypeDto type, String name, List<UUID> usersIds, List<UUID> ownerIds, List<UUID> mutedIds
+    UUID id, RoomTypeDto type, String name, List<UUID> usersIds, List<UUID> ownerIds, List<UUID> mutedIds,
+    @Nullable OffsetDateTime pictureUpdateTimestamp
   ) {
     Room room = Room.create();
     room
@@ -67,6 +69,7 @@ public class IntegrationTestUtils {
         RoomUserSettings.create(room, mutedId.toString())
           .mutedUntil(OffsetDateTime.now())
       ));
+    Optional.ofNullable(pictureUpdateTimestamp).ifPresent(room::pictureUpdatedAt);
 
     return roomRepository.insert(room);
   }
