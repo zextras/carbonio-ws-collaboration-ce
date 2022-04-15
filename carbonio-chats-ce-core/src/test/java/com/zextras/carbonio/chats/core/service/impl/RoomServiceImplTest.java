@@ -139,7 +139,6 @@ class RoomServiceImplTest {
       .type(RoomTypeDto.GROUP)
       .name("room1")
       .description("Room one")
-      .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
       .subscriptions(List.of(
         Subscription.create(room1, user1Id.toString()).owner(true),
         Subscription.create(room1, user2Id.toString()).owner(false),
@@ -161,6 +160,7 @@ class RoomServiceImplTest {
       .type(RoomTypeDto.GROUP)
       .name("room3")
       .description("Room three")
+      .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
       .subscriptions(List.of(
         Subscription.create(room3, user2Id.toString()).owner(true),
         Subscription.create(room3, user3Id.toString()).owner(false)));
@@ -198,12 +198,12 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("Returns all rooms without members or user settings of which the authenticated user is a member")
     public void getRooms_testOkBasicRooms() {
-      when(roomRepository.getByUserId(user1Id.toString(), false)).thenReturn(Arrays.asList(room1, room2));
+      when(roomRepository.getByUserId(user1Id.toString(), false)).thenReturn(Arrays.asList(room3, room2));
 
       List<RoomDto> rooms = roomService.getRooms(null, UserPrincipal.create(user1Id));
 
       assertEquals(2, rooms.size());
-      assertEquals(room1Id.toString(), rooms.get(0).getId().toString());
+      assertEquals(room3Id.toString(), rooms.get(0).getId().toString());
       assertEquals(RoomTypeDto.GROUP, rooms.get(0).getType());
       assertEquals(room2Id.toString(), rooms.get(1).getId().toString());
       assertEquals(RoomTypeDto.ONE_TO_ONE, rooms.get(1).getType());
@@ -281,45 +281,66 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("Returns the required room with all members and room user settings")
     public void getRoomById_testOk() {
-      when(roomRepository.getById(room1Id.toString())).thenReturn(Optional.of(room1));
-      when(roomUserSettingsRepository.getByRoomIdAndUserId(room1Id.toString(), user1Id.toString()))
-        .thenReturn(Optional.of(RoomUserSettings.create(room1, user1Id.toString()).mutedUntil(OffsetDateTime.now())));
-      RoomInfoDto room = roomService.getRoomById(room1Id, UserPrincipal.create(user1Id));
+      when(roomRepository.getById(room3Id.toString())).thenReturn(Optional.of(room3));
+      when(roomUserSettingsRepository.getByRoomIdAndUserId(room3Id.toString(), user2Id.toString()))
+        .thenReturn(Optional.of(RoomUserSettings.create(room3, user2Id.toString()).mutedUntil(OffsetDateTime.now())));
+      RoomInfoDto room = roomService.getRoomById(room3Id, UserPrincipal.create(user2Id));
 
-      assertEquals(room1Id, room.getId());
-      assertEquals(3, room.getMembers().size());
+      assertEquals(room3Id, room.getId());
+      assertEquals(2, room.getMembers().size());
+      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user2Id)));
+      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user3Id)));
+      assertNotNull(room.getUserSettings());
+      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
+      assertTrue(room.getUserSettings().isMuted());
+    }
+
+    @Test
+    @DisplayName("Returns the required room with no profile picture with all members and room user settings")
+    public void getRoomById_testOkWithoutPicture() {
+      when(roomRepository.getById(room2Id.toString())).thenReturn(Optional.of(room2));
+      when(roomUserSettingsRepository.getByRoomIdAndUserId(room2Id.toString(), user1Id.toString()))
+        .thenReturn(Optional.of(RoomUserSettings.create(room2, user1Id.toString()).mutedUntil(OffsetDateTime.now())));
+      RoomInfoDto room = roomService.getRoomById(room2Id, UserPrincipal.create(user1Id));
+
+      assertEquals(room2Id, room.getId());
+      assertEquals(2, room.getMembers().size());
       assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user1Id)));
       assertNotNull(room.getUserSettings());
+      assertNull(room.getPictureUpdatedAt());
       assertTrue(room.getUserSettings().isMuted());
     }
 
     @Test
     @DisplayName("If the user is a system user, it returns the required room with all members and room user settings")
     public void getRoomById_testWithSystemUser() {
-      when(roomRepository.getById(room1Id.toString())).thenReturn(Optional.of(room1));
-      when(roomUserSettingsRepository.getByRoomIdAndUserId(room1Id.toString(), user1Id.toString()))
-        .thenReturn(Optional.of(RoomUserSettings.create(room1, user1Id.toString()).mutedUntil(OffsetDateTime.now())));
-      RoomInfoDto room = roomService.getRoomById(room1Id, UserPrincipal.create(user1Id).systemUser(true));
+      when(roomRepository.getById(room3Id.toString())).thenReturn(Optional.of(room3));
+      when(roomUserSettingsRepository.getByRoomIdAndUserId(room3Id.toString(), user2Id.toString()))
+        .thenReturn(Optional.of(RoomUserSettings.create(room3, user2Id.toString()).mutedUntil(OffsetDateTime.now())));
+      RoomInfoDto room = roomService.getRoomById(room3Id, UserPrincipal.create(user2Id).systemUser(true));
 
-      assertEquals(room1Id, room.getId());
-      assertEquals(3, room.getMembers().size());
-      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user1Id)));
+      assertEquals(room3Id, room.getId());
+      assertEquals(2, room.getMembers().size());
+      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user2Id)));
+      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user3Id)));
       assertNotNull(room.getUserSettings());
+      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
       assertTrue(room.getUserSettings().isMuted());
     }
 
     @Test
     @DisplayName("If the user didn't set anything, it correctly returns the required room with all members and default room user settings")
     public void getRoomById_testMemberWithoutSettings() {
-      when(roomRepository.getById(room1Id.toString())).thenReturn(Optional.of(room1));
-      when(roomUserSettingsRepository.getByRoomIdAndUserId(room1Id.toString(), user1Id.toString()))
+      when(roomRepository.getById(room3Id.toString())).thenReturn(Optional.of(room3));
+      when(roomUserSettingsRepository.getByRoomIdAndUserId(room3Id.toString(), user2Id.toString()))
         .thenReturn(Optional.empty());
-      RoomInfoDto room = roomService.getRoomById(room1Id, UserPrincipal.create(user1Id));
+      RoomInfoDto room = roomService.getRoomById(room3Id, UserPrincipal.create(user2Id));
 
-      assertEquals(room1Id, room.getId());
-      assertEquals(3, room.getMembers().size());
-      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user1Id)));
+      assertEquals(room3Id, room.getId());
+      assertEquals(2, room.getMembers().size());
+      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user2Id)));
       assertNotNull(room.getUserSettings());
+      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
       assertFalse(room.getUserSettings().isMuted());
     }
 
@@ -327,10 +348,10 @@ class RoomServiceImplTest {
     @DisplayName("If the room doesn't exist, it throws a 'not found' exception")
     public void getRoomById_testRoomNotExists() {
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        roomService.getRoomById(room1Id, UserPrincipal.create(user1Id)));
+        roomService.getRoomById(room3Id, UserPrincipal.create(user2Id)));
 
       assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
-      assertEquals(String.format("Not Found - Room '%s'", room1Id), exception.getMessage());
+      assertEquals(String.format("Not Found - Room '%s'", room3Id), exception.getMessage());
     }
 
     @Test
@@ -493,6 +514,7 @@ class RoomServiceImplTest {
       assertEquals("", room.getDescription());
       assertEquals(creationFields.getType(), room.getType());
       assertEquals(2, room.getMembers().size());
+      assertNull(room.getPictureUpdatedAt());
       assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user1Id)));
       assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user2Id)));
       assertTrue(

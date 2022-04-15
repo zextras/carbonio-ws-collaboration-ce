@@ -152,7 +152,7 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(room1Id, RoomTypeDto.GROUP, "room1",
         List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveRoom(room2Id, RoomTypeDto.GROUP, "room2",
-        List.of(user1Id, user2Id));
+        List.of(user1Id, user2Id), List.of(user1Id), List.of(user1Id), OffsetDateTime.parse("2022-01-01T00:00:00Z"));
 
       MockHttpResponse response = dispatcher.get(url(Map.of("extraFields", List.of("members"))), user1Token);
       assertEquals(200, response.getStatus());
@@ -166,6 +166,9 @@ public class RoomsApiIT {
       assertNotNull(rooms.get(1).getMembers());
       assertNull(rooms.get(0).getUserSettings());
       assertNull(rooms.get(1).getUserSettings());
+      assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() != null && room.getPictureUpdatedAt()
+        .equals(OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
+      assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() == null));
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -178,7 +181,7 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(room1Id, RoomTypeDto.GROUP, "room1",
         List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveRoom(room2Id, RoomTypeDto.GROUP, "room2",
-        List.of(user1Id, user2Id));
+        List.of(user1Id, user2Id), List.of(user1Id), List.of(user1Id), OffsetDateTime.parse("2022-01-01T00:00:00Z"));
 
       MockHttpResponse response = dispatcher.get(url(Map.of("extraFields", List.of("settings"))), user1Token);
       assertEquals(200, response.getStatus());
@@ -192,6 +195,9 @@ public class RoomsApiIT {
       assertEquals(0, rooms.get(1).getMembers().size());
       assertNotNull(rooms.get(0).getUserSettings());
       assertNotNull(rooms.get(1).getUserSettings());
+      assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() != null && room.getPictureUpdatedAt()
+        .equals(OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
+      assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() == null));
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -204,7 +210,7 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(room1Id, RoomTypeDto.GROUP, "room1",
         List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveRoom(room2Id, RoomTypeDto.GROUP, "room2",
-        List.of(user1Id, user2Id));
+        List.of(user1Id, user2Id), List.of(user1Id), List.of(user1Id), OffsetDateTime.parse("2022-01-01T00:00:00Z"));
 
       MockHttpResponse response = dispatcher.get(url(Map.of("extraFields", List.of("members", "settings"))),
         user1Token);
@@ -218,6 +224,9 @@ public class RoomsApiIT {
       assertNotNull(rooms.get(1).getMembers());
       assertNotNull(rooms.get(0).getUserSettings());
       assertNotNull(rooms.get(1).getUserSettings());
+      assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() != null && room.getPictureUpdatedAt()
+        .equals(OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
+      assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() == null));
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -284,6 +293,7 @@ public class RoomsApiIT {
       assertTrue(room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
       assertEquals(executionInstant, room.getCreatedAt().toInstant());
       assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+      assertNull(room.getPictureUpdatedAt());
 
       mongooseImMockServer.verify("PUT", "/admin/muc-lights/carbonio",
         new RoomDetailsDto()
@@ -412,6 +422,30 @@ public class RoomsApiIT {
     public void getRoom_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom",
+        List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id), OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+
+      MockHttpResponse response = dispatcher.get(url(roomId), user1Token);
+      assertEquals(200, response.getStatus());
+      RoomInfoDto room = objectMapper.readValue(response.getContentAsString(), RoomInfoDto.class);
+      assertEquals(roomId, room.getId());
+      assertEquals("testRoom", room.getName());
+      assertNotNull(room.getMembers());
+      assertEquals(3, room.getMembers().size());
+      assertTrue(room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
+      assertTrue(room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
+      assertTrue(room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
+      assertNotNull(room.getUserSettings());
+      assertTrue(room.getUserSettings().isMuted());
+      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a room without a picture, correctly returns the room information with members and user settings")
+    public void getRoom_testOkWithoutPicture() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom",
         List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id), null);
 
       MockHttpResponse response = dispatcher.get(url(roomId), user1Token);
@@ -426,6 +460,7 @@ public class RoomsApiIT {
       assertTrue(room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
       assertNotNull(room.getUserSettings());
       assertTrue(room.getUserSettings().isMuted());
+      assertNull(room.getPictureUpdatedAt());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -479,7 +514,7 @@ public class RoomsApiIT {
       Instant insertRoomInstant = executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
       clock.fixTimeAt(insertRoomInstant);
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom",
-        List.of(user1Id, user2Id, user3Id));
+        List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id), OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response = dispatcher.put(url(roomId),
         getUpdateRoomRequestBody("updatedRoom", "Updated room"), user1Token);
@@ -491,6 +526,7 @@ public class RoomsApiIT {
       assertEquals(insertRoomInstant, room.getCreatedAt().toInstant());
       assertEquals(executionInstant, room.getUpdatedAt().toInstant());
       assertEquals(Duration.ofDays(1L), Duration.between(room.getCreatedAt(), room.getUpdatedAt()));
+      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
 
       // TODO: 23/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
