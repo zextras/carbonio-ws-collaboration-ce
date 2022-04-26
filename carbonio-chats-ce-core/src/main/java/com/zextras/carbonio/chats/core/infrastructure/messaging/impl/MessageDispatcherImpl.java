@@ -24,11 +24,16 @@ public class MessageDispatcherImpl implements MessageDispatcher {
 
   private final MucLightManagementApi mucLightManagementApi;
   private final CommandsApi           commandsApi;
+  private final RoomsApi              roomsApi;
 
   @Inject
-  public MessageDispatcherImpl(MucLightManagementApi mucLightManagementApi, CommandsApi commandsApi) {
+  public MessageDispatcherImpl(
+    MucLightManagementApi mucLightManagementApi, CommandsApi commandsApi,
+    RoomsApi roomsApi
+  ) {
     this.mucLightManagementApi = mucLightManagementApi;
     this.commandsApi = commandsApi;
+    this.roomsApi = roomsApi;
   }
 
   @Override
@@ -103,7 +108,6 @@ public class MessageDispatcherImpl implements MessageDispatcher {
 
   private RoomsApi getRoomsApi(String userId) {
     // TODO: 22/12/21 set authorizations by cookies
-    RoomsApi roomsApi = new RoomsApi();
     roomsApi.getApiClient().addDefaultHeader("Authorization",
       String.format("Basic %s",
         Base64.getEncoder().encodeToString(
