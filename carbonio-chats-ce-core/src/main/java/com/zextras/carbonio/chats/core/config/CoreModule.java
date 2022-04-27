@@ -75,7 +75,6 @@ import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.ApiClient;
-import com.zextras.carbonio.chats.mongooseim.admin.invoker.Configuration;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.storages.api.StoragesClient;
@@ -169,48 +168,39 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private MucLightManagementApi initMongooseImMucLight(AppConfig appConfig) {
-    String adminBasePath = String.format("http://%s:%s/%s",
-      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HOST).orElseThrow(),
-      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HTTP_PORT).orElseThrow(),
-      ChatsConstant.MONGOOSEIM_ADMIN_ENDPOINT);
-    String clientBasePath = String.format("http://%s:%s/%s",
-      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HOST).orElseThrow(),
-      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HTTP_PORT).orElseThrow(),
-      ChatsConstant.MONGOOSEIM_CLIENT_ENDPOINT);
-    Configuration.setDefaultApiClient(new ApiClient()
-      .setBasePath(adminBasePath)
+  private ApiClient getMongooseImAdminApiClient(AppConfig appConfig) {
+    return new ApiClient()
+      .setBasePath(String.format("http://%s:%s/%s",
+        appConfig.get(String.class, ConfigValue.XMPP_SERVER_HOST).orElseThrow(),
+        appConfig.get(String.class, ConfigValue.XMPP_SERVER_HTTP_PORT).orElseThrow(),
+        ChatsConstant.MONGOOSEIM_ADMIN_ENDPOINT))
       .addDefaultHeader("Accept", "*/*")
-      .setDebugging(true));
-    com.zextras.carbonio.chats.mongooseim.client.api.Configuration.setDefaultApiClient(
-      new com.zextras.carbonio.chats.mongooseim.client.api.ApiClient()
-        .setBasePath(clientBasePath)
-        .addDefaultHeader("Accept", "*/*")
-        .setDebugging(true));
-    return new MucLightManagementApi();
+      .setDebugging(true);
   }
 
   @Singleton
   @Provides
-  private CommandsApi initMongooseImCommands(AppConfig appConfig) {
-    String adminBasePath = String.format("http://%s:%s/%s",
-      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HOST).orElseThrow(),
-      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HTTP_PORT).orElseThrow(),
-      ChatsConstant.MONGOOSEIM_ADMIN_ENDPOINT);
-    String clientBasePath = String.format("http://%s:%s/%s",
-      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HOST).orElseThrow(),
-      appConfig.get(String.class, ConfigValue.XMPP_SERVER_HTTP_PORT).orElseThrow(),
-      ChatsConstant.MONGOOSEIM_CLIENT_ENDPOINT);
-    Configuration.setDefaultApiClient(new ApiClient()
-      .setBasePath(adminBasePath)
+  private com.zextras.carbonio.chats.mongooseim.client.api.ApiClient getMongooseImClientApiClient(AppConfig appConfig) {
+    return new com.zextras.carbonio.chats.mongooseim.client.api.ApiClient()
+      .setBasePath(String.format("http://%s:%s/%s",
+        appConfig.get(String.class, ConfigValue.XMPP_SERVER_HOST).orElseThrow(),
+        appConfig.get(String.class, ConfigValue.XMPP_SERVER_HTTP_PORT).orElseThrow(),
+        ChatsConstant.MONGOOSEIM_CLIENT_ENDPOINT))
       .addDefaultHeader("Accept", "*/*")
-      .setDebugging(true));
-    com.zextras.carbonio.chats.mongooseim.client.api.Configuration.setDefaultApiClient(
-      new com.zextras.carbonio.chats.mongooseim.client.api.ApiClient()
-        .setBasePath(clientBasePath)
-        .addDefaultHeader("Accept", "*/*")
-        .setDebugging(true));
-    return new CommandsApi();
+      .setDebugging(true);
+  }
+
+  @Singleton
+  @Provides
+  private MucLightManagementApi getMongooseImMucLight(ApiClient apiClient) {
+    return new MucLightManagementApi(apiClient);
+  }
+
+  @Singleton
+  @Provides
+  private com.zextras.carbonio.chats.mongooseim.client.api.RoomsApi getMongooseImRoomsApi(
+    com.zextras.carbonio.chats.mongooseim.client.api.ApiClient apiClient) {
+    return new com.zextras.carbonio.chats.mongooseim.client.api.RoomsApi(apiClient);
   }
 
   @Singleton
@@ -288,4 +278,9 @@ public class CoreModule extends AbstractModule {
     return new HikariDataSource(config);
   }
 
+  @Singleton
+  @Provides
+  private CommandsApi getMongooseImCommands(ApiClient apiClient) {
+    return new CommandsApi(apiClient);
+  }
 }
