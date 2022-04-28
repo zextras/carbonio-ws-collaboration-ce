@@ -160,6 +160,11 @@ public class RoomServiceImpl implements RoomService {
     room.subscriptions(membersService.initRoomSubscriptions(new ArrayList<>(membersSet), room, currentUser));
     room = roomRepository.insert(room);
     messageDispatcher.createRoom(room, currentUser.getId());
+    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+      messageDispatcher.setUserToRoster(
+        room.getSubscriptions().get(0).getUserId(),
+        room.getSubscriptions().get(1).getUserId());
+    }
     UUID finalId = UUID.fromString(room.getId());
     room.getSubscriptions().forEach(member ->
       eventDispatcher.sendToQueue(currentUser.getUUID(), member.getUserId(),

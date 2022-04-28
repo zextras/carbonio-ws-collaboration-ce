@@ -44,6 +44,14 @@ public interface MessageDispatcher extends HealthIndicator {
   void removeRoomMember(String roomId, String senderId, String recipientId);
 
   /**
+   * Sets two users in their respective rosters so that they can both see each other's presence
+   *
+   * @param user1id first user identifier
+   * @param user2id second user identifier
+   */
+  void setUserToRoster(String user1id, String user2id);
+
+  /**
    * Sets the member role
    *
    * @param roomId      room identifier

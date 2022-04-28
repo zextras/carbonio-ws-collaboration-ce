@@ -8,7 +8,9 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
+import com.zextras.carbonio.chats.mongooseim.admin.api.ContactsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
+import com.zextras.carbonio.chats.mongooseim.admin.model.AddcontactDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.ChatMessageDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
@@ -25,15 +27,18 @@ public class MessageDispatcherImpl implements MessageDispatcher {
   private final MucLightManagementApi mucLightManagementApi;
   private final CommandsApi           commandsApi;
   private final RoomsApi              roomsApi;
+  private final ContactsApi           contactsApi;
 
   @Inject
   public MessageDispatcherImpl(
     MucLightManagementApi mucLightManagementApi, CommandsApi commandsApi,
-    RoomsApi roomsApi
+    RoomsApi roomsApi,
+    ContactsApi contactsApi
   ) {
     this.mucLightManagementApi = mucLightManagementApi;
     this.commandsApi = commandsApi;
     this.roomsApi = roomsApi;
+    this.contactsApi = contactsApi;
   }
 
   @Override
@@ -70,6 +75,17 @@ public class MessageDispatcherImpl implements MessageDispatcher {
     // TODO: 22/12/21 add request to MongooseIM administrative tools
     RoomsApi roomsApi = getRoomsApi(senderId);
     roomsApi.roomsIdUsersUserDelete(roomId, userId2userDomain(recipientId));
+  }
+
+  @Override
+  public void setUserToRoster(String user1id, String user2id) {
+    if (user1id.equals(user2id)) {
+      return;
+    }
+    String user1jid = userId2userDomain(user1id);
+    String user2jid = userId2userDomain(user2id);
+    contactsApi.contactsUserPost(user1jid, new AddcontactDto().jid(user2jid));
+    contactsApi.contactsUserPost(user2jid, new AddcontactDto().jid(user1jid));
   }
 
   @Override

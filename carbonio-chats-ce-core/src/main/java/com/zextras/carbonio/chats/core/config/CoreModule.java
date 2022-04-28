@@ -73,6 +73,7 @@ import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler
 import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
+import com.zextras.carbonio.chats.mongooseim.admin.api.ContactsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.ApiClient;
 import com.zextras.carbonio.preview.PreviewClient;
@@ -198,8 +199,15 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
+  private ContactsApi getMongooseImContacts(ApiClient apiClient) {
+    return new ContactsApi(apiClient);
+  }
+
+  @Singleton
+  @Provides
   private com.zextras.carbonio.chats.mongooseim.client.api.RoomsApi getMongooseImRoomsApi(
-    com.zextras.carbonio.chats.mongooseim.client.api.ApiClient apiClient) {
+    com.zextras.carbonio.chats.mongooseim.client.api.ApiClient apiClient
+  ) {
     return new com.zextras.carbonio.chats.mongooseim.client.api.RoomsApi(apiClient);
   }
 

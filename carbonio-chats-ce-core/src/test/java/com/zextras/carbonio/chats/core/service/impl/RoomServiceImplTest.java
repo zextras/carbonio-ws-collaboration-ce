@@ -67,7 +67,6 @@ import java.util.stream.Stream;
 import javax.ws.rs.core.Response.Status;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -422,6 +421,7 @@ class RoomServiceImplTest {
         eq(RoomCreatedEvent.create(room1Id).from(user1Id)));
       verifyNoMoreInteractions(eventDispatcher);
       verify(messageDispatcher, times(1)).createRoom(room1, user1Id.toString());
+      verify(messageDispatcher, times(0)).setUserToRoster(anyString(), anyString());
       verifyNoMoreInteractions(messageDispatcher);
     }
 
@@ -527,6 +527,7 @@ class RoomServiceImplTest {
         eq(RoomCreatedEvent.create(room2Id).from(user1Id)));
       verifyNoMoreInteractions(eventDispatcher);
       verify(messageDispatcher, times(1)).createRoom(room2, user1Id.toString());
+      verify(messageDispatcher, times(1)).setUserToRoster(user1Id.toString(), user2Id.toString());
       verifyNoMoreInteractions(messageDispatcher);
     }
 

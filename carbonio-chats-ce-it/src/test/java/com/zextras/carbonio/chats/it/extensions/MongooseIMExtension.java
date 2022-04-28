@@ -10,6 +10,7 @@ import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockUserProfile;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
+import com.zextras.carbonio.chats.mongooseim.admin.model.AddcontactDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
 import java.util.List;
@@ -76,9 +77,10 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
   }
 
   private void mockResponses(MockServerClient client) {
-    String room1Id = "86cc37de-1217-4056-8c95-69997a6bccce";
-    String room2Id = "b7774109-15ba-4889-b480-2dcf952d0991";
-    List<String> roomsIds = List.of(room1Id, room2Id);
+    List<String> roomsIds = List.of(
+      "86cc37de-1217-4056-8c95-69997a6bccce",
+      "b7774109-15ba-4889-b480-2dcf952d0991",
+      "c9f83f1c-9b96-4731-9404-79e45a5d6d3c");
     List<MockUserProfile> accounts = MockedAccount.getAccounts();
     mockIsAlive(client);
     mockRemoveRoomMember(client);
@@ -86,10 +88,16 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
     mockSendMessageToRoom(client);
     accounts.forEach(account -> {
       roomsIds.forEach(roomId -> mockCreateRoom(client, roomId, account.getUUID()));
-      accounts.forEach(account2 ->
-        mockAddRoomMember(client, account.getUUID(), account2.getUUID())
-      );
+      accounts.forEach(account2 -> {
+        mockAddRoomMember(client, account.getUUID(), account2.getUUID());
+      });
     });
+    List<String> userIds = List.of("332a9527-3388-4207-be77-6d7e2978a723", "82735f6d-4c6c-471e-99d9-4eef91b1ec45");
+    userIds.forEach(user1id ->
+      userIds.forEach(user2id -> mockUserToRoster(client, user1id, user2id))
+    );
+
+
   }
 
   private void mockCreateRoom(MockServerClient client, String roomId, UUID senderId) {
@@ -121,6 +129,22 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
         .withBody(JsonBody.json(new InviteDto()
           .sender(String.format("%s@carbonio", senderId))
           .recipient(String.format("%s@carbonio", recipientId))))
+    ).respond(
+      response()
+        .withStatusCode(200)
+    );
+  }
+
+  private void mockUserToRoster(MockServerClient client, String user1id, String user2id) {
+    if (user1id.equals(user2id)) {
+      return;
+    }
+    client.when(
+      request()
+        .withMethod("POST")
+        .withPath("/admin/contacts/{user}")
+        .withPathParameter(Parameter.param("user", String.format("%s%scarbonio", user1id, "%40")))
+        .withBody(JsonBody.json(new AddcontactDto().jid(String.format("%s@carbonio", user2id))))
     ).respond(
       response()
         .withStatusCode(200)
