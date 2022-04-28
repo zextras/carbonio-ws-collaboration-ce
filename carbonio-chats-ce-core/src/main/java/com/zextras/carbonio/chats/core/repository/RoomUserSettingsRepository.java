@@ -16,4 +16,6 @@ public interface RoomUserSettingsRepository {
 
   void deleteByRoomId(String roomId);
 
+  RoomUserSettings save(RoomUserSettings roomUserSettings);
+
 }

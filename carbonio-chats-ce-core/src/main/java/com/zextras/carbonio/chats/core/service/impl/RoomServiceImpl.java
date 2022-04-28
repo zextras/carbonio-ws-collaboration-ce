@@ -15,6 +15,8 @@ import com.zextras.carbonio.chats.core.data.event.RoomDeletedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomHashResetEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomPictureChangedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomUpdatedEvent;
+import com.zextras.carbonio.chats.core.data.event.UserMutedEvent;
+import com.zextras.carbonio.chats.core.data.event.UserUnmutedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -207,15 +209,29 @@ public class RoomServiceImpl implements RoomService {
     return HashDtoBuilder.create().hash(hash).build();
   }
 
-
   @Override
+  @Transactional
   public void muteRoom(UUID roomId, UserPrincipal currentUser) {
-
+    RoomUserSettings settings = roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
+      .orElseGet(() -> RoomUserSettings.create(getRoomAndCheckUser(roomId, currentUser, false), currentUser.getId()));
+    if (settings.getMutedUntil() == null) {
+      roomUserSettingsRepository.save(settings.mutedUntil(OffsetDateTime.now()));
+      eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
+        UserMutedEvent.create(roomId).memberId(currentUser.getUUID()));
+    }
   }
 
   @Override
+  @Transactional
   public void unmuteRoom(UUID roomId, UserPrincipal currentUser) {
-
+    roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId()).ifPresentOrElse(
+      settings -> {
+        if (settings.getMutedUntil() != null) {
+          roomUserSettingsRepository.save(settings.mutedUntil(null));
+          eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
+            UserUnmutedEvent.create(roomId).memberId(currentUser.getUUID()));
+        }
+      }, () -> getRoomAndCheckUser(roomId, currentUser, false));
   }
 
   private String generateRoomPassword() {

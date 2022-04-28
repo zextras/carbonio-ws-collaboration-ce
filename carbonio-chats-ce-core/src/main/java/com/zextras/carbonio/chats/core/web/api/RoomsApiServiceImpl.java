@@ -130,13 +130,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public Response muteRoom(UUID roomId, SecurityContext securityContext) {
-    // TODO: 07/01/22  
+    roomService.muteRoom(roomId, Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new));
     return Response.ok().build();
   }
 
   @Override
   public Response unmuteRoom(UUID roomId, SecurityContext securityContext) {
-    // TODO: 07/01/22  
+    roomService.unmuteRoom(roomId, Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new));
     return Response.ok().build();
   }
 

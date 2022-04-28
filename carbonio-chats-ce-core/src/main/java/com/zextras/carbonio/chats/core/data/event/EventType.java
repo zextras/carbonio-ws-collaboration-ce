@@ -15,7 +15,9 @@ public enum EventType {
   ROOM_MEMBER_ADDED("roomMemberAdded"),
   ROOM_MEMBER_REMOVED("roomMemberRemoved"),
   ATTACHMENT_ADDED("attachmentAdded"),
-  ATTACHMENT_REMOVED("attachmentRemoved");
+  ATTACHMENT_REMOVED("attachmentRemoved"),
+  USER_MUTED("userMuted"),
+  USER_UNMUTED("userUnmuted");
 
   private final String name;
 

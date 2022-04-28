@@ -45,4 +45,10 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
   public void deleteByRoomId(String roomId) {
     db.find(RoomUserSettings.class).where().eq("id.roomId", roomId).delete();
   }
+
+  @Override
+  public RoomUserSettings save(RoomUserSettings roomUserSettings) {
+    db.save(roomUserSettings);
+    return roomUserSettings;
+  }
 }
