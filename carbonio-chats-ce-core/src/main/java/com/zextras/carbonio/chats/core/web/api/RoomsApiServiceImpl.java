@@ -132,14 +132,14 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response muteRoom(UUID roomId, SecurityContext securityContext) {
     roomService.muteRoom(roomId, Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new));
-    return Response.ok().build();
+    return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
   public Response unmuteRoom(UUID roomId, SecurityContext securityContext) {
     roomService.unmuteRoom(roomId, Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new));
-    return Response.ok().build();
+    return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
@@ -190,10 +190,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response listRoomAttachmentInfo(UUID roomId,Integer itemsNumber,String filter,SecurityContext securityContext) {
+  public Response listRoomAttachmentInfo(
+    UUID roomId, Integer itemsNumber, String filter, SecurityContext securityContext
+  ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    return Response.status(Status.OK).entity(attachmentService.getAttachmentInfoByRoomId(roomId, itemsNumber, filter, currentUser)).build();
+    return Response.status(Status.OK)
+      .entity(attachmentService.getAttachmentInfoByRoomId(roomId, itemsNumber, filter, currentUser)).build();
   }
 
   @Override

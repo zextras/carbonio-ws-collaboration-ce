@@ -762,23 +762,20 @@ class RoomServiceImplTest {
       roomService.muteRoom(room1Id, UserPrincipal.create(user1Id));
 
       verify(roomRepository, times(1)).getById(room1Id.toString());
-      verifyNoMoreInteractions(roomRepository);
-
       verify(roomUserSettingsRepository, times(1))
         .getByRoomIdAndUserId(room1Id.toString(), user1Id.toString());
       verify(roomUserSettingsRepository, times(1))
         .save(RoomUserSettings.create(room1, user1Id.toString())
           .mutedUntil(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
-      verifyNoMoreInteractions(roomUserSettingsRepository);
-
       verify(eventDispatcher, times(1)).sendToTopic(user1Id, room1Id.toString(),
         UserMutedEvent.create(room1Id).memberId(user1Id));
-      verifyNoMoreInteractions(eventDispatcher);
+      verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 
     @Test
     @DisplayName("Mute the current user in a specific room when user settings exists")
     void muteRoom_testOkUserSettingExists() {
+      when(roomRepository.getById(room1Id.toString())).thenReturn(Optional.of(room1));
       RoomUserSettings roomUserSettings = RoomUserSettings.create(room1, user1Id.toString());
       when(roomUserSettingsRepository.getByRoomIdAndUserId(room1Id.toString(), user1Id.toString())).thenReturn(
         Optional.of(roomUserSettings));
@@ -786,31 +783,30 @@ class RoomServiceImplTest {
       when(clock.getZone()).thenReturn(ZoneId.systemDefault());
       roomService.muteRoom(room1Id, UserPrincipal.create(user1Id));
 
-      verifyNoInteractions(roomRepository);
+      verify(roomRepository, times(1)).getById(room1Id.toString());
       verify(roomUserSettingsRepository, times(1))
         .getByRoomIdAndUserId(room1Id.toString(), user1Id.toString());
       verify(roomUserSettingsRepository, times(1))
         .save(roomUserSettings
           .mutedUntil(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
-      verifyNoMoreInteractions(roomUserSettingsRepository);
-
       verify(eventDispatcher, times(1)).sendToTopic(user1Id, room1Id.toString(),
         UserMutedEvent.create(room1Id).memberId(user1Id));
-      verifyNoMoreInteractions(eventDispatcher);
+      verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 
     @Test
     @DisplayName("Correctly does nothing if the user has already muted")
     void muteRoom_testOkUserAlreadyMuted() {
+      when(roomRepository.getById(room1Id.toString())).thenReturn(Optional.of(room1));
       when(roomUserSettingsRepository.getByRoomIdAndUserId(room1Id.toString(), user1Id.toString())).thenReturn(
         Optional.of(RoomUserSettings
           .create(room1, user1Id.toString()).mutedUntil(OffsetDateTime.now())));
       roomService.muteRoom(room1Id, UserPrincipal.create(user1Id));
 
-      verifyNoInteractions(roomRepository);
+      verify(roomRepository, times(1)).getById(room1Id.toString());
       verify(roomUserSettingsRepository, times(1))
         .getByRoomIdAndUserId(room1Id.toString(), user1Id.toString());
-      verifyNoMoreInteractions(roomUserSettingsRepository);
+      verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository);
       verifyNoInteractions(eventDispatcher);
     }
 
@@ -829,9 +825,8 @@ class RoomServiceImplTest {
         exception.getMessage());
 
       verify(roomRepository, times(1)).getById(room3Id.toString());
-      verify(roomUserSettingsRepository, times(1)).getByRoomIdAndUserId(room3Id.toString(), user1Id.toString());
-      verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository);
-      verifyNoInteractions(eventDispatcher);
+      verifyNoMoreInteractions(roomRepository);
+      verifyNoInteractions(eventDispatcher, roomUserSettingsRepository);
     }
 
     @Test
@@ -859,47 +854,44 @@ class RoomServiceImplTest {
       roomService.unmuteRoom(room1Id, UserPrincipal.create(user1Id));
 
       verify(roomRepository, times(1)).getById(room1Id.toString());
-      verifyNoMoreInteractions(roomRepository);
-
       verify(roomUserSettingsRepository, times(1))
         .getByRoomIdAndUserId(room1Id.toString(), user1Id.toString());
-      verifyNoMoreInteractions(roomUserSettingsRepository);
-
+      verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository);
       verifyNoInteractions(eventDispatcher);
     }
 
     @Test
     @DisplayName("Unmute the current user in a specific room")
     void unmuteRoom_testOkUserSettingExists() {
+      when(roomRepository.getById(room1Id.toString())).thenReturn(Optional.of(room1));
       RoomUserSettings roomUserSettings = RoomUserSettings.create(room1, user1Id.toString())
         .mutedUntil(OffsetDateTime.now());
       when(roomUserSettingsRepository.getByRoomIdAndUserId(room1Id.toString(), user1Id.toString())).thenReturn(
         Optional.of(roomUserSettings));
       roomService.unmuteRoom(room1Id, UserPrincipal.create(user1Id));
 
-      verifyNoInteractions(roomRepository);
+      verify(roomRepository, times(1)).getById(room1Id.toString());
       verify(roomUserSettingsRepository, times(1))
         .getByRoomIdAndUserId(room1Id.toString(), user1Id.toString());
       verify(roomUserSettingsRepository, times(1))
         .save(roomUserSettings.mutedUntil(null));
-      verifyNoMoreInteractions(roomUserSettingsRepository);
-
       verify(eventDispatcher, times(1)).sendToTopic(user1Id, room1Id.toString(),
         UserUnmutedEvent.create(room1Id).memberId(user1Id));
-      verifyNoMoreInteractions(eventDispatcher);
+      verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 
     @Test
     @DisplayName("Correctly does nothing if the user has already unmuted")
     void unmuteRoom_testOkUserAlreadyUnmuted() {
+      when(roomRepository.getById(room1Id.toString())).thenReturn(Optional.of(room1));
       when(roomUserSettingsRepository.getByRoomIdAndUserId(room1Id.toString(), user1Id.toString())).thenReturn(
         Optional.of(RoomUserSettings.create(room1, user1Id.toString())));
       roomService.unmuteRoom(room1Id, UserPrincipal.create(user1Id));
 
-      verifyNoInteractions(roomRepository);
+      verify(roomRepository, times(1)).getById(room1Id.toString());
       verify(roomUserSettingsRepository, times(1))
         .getByRoomIdAndUserId(room1Id.toString(), user1Id.toString());
-      verifyNoMoreInteractions(roomUserSettingsRepository);
+      verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository);
       verifyNoInteractions(eventDispatcher);
     }
 
@@ -918,9 +910,8 @@ class RoomServiceImplTest {
         exception.getMessage());
 
       verify(roomRepository, times(1)).getById(room3Id.toString());
-      verify(roomUserSettingsRepository, times(1)).getByRoomIdAndUserId(room3Id.toString(), user1Id.toString());
-      verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository);
-      verifyNoInteractions(eventDispatcher);
+      verifyNoMoreInteractions(roomRepository);
+      verifyNoInteractions(eventDispatcher, roomUserSettingsRepository);
     }
 
     @Test

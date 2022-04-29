@@ -47,6 +47,7 @@ import io.ebean.annotation.Transactional;
 import java.io.File;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -62,6 +63,9 @@ import javax.inject.Singleton;
 
 @Singleton
 public class RoomServiceImpl implements RoomService {
+
+  private static final OffsetDateTime MUTED_TO_INFINITY =
+    OffsetDateTime.of(0, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
 
   private final RoomRepository             roomRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
@@ -212,10 +216,11 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public void muteRoom(UUID roomId, UserPrincipal currentUser) {
+    Room room = getRoomAndCheckUser(roomId, currentUser, false);
     RoomUserSettings settings = roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
-      .orElseGet(() -> RoomUserSettings.create(getRoomAndCheckUser(roomId, currentUser, false), currentUser.getId()));
+      .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
     if (settings.getMutedUntil() == null) {
-      roomUserSettingsRepository.save(settings.mutedUntil(OffsetDateTime.now()));
+      roomUserSettingsRepository.save(settings.mutedUntil(MUTED_TO_INFINITY));
       eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
         UserMutedEvent.create(roomId).memberId(currentUser.getUUID()));
     }
@@ -224,14 +229,15 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public void unmuteRoom(UUID roomId, UserPrincipal currentUser) {
-    roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId()).ifPresentOrElse(
+    getRoomAndCheckUser(roomId, currentUser, false);
+    roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId()).ifPresent(
       settings -> {
         if (settings.getMutedUntil() != null) {
           roomUserSettingsRepository.save(settings.mutedUntil(null));
           eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
             UserUnmutedEvent.create(roomId).memberId(currentUser.getUUID()));
         }
-      }, () -> getRoomAndCheckUser(roomId, currentUser, false));
+      });
   }
 
   private String generateRoomPassword() {
