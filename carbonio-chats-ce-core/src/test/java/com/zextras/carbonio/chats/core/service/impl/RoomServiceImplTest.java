@@ -61,6 +61,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -239,6 +240,7 @@ class RoomServiceImplTest {
     @DisplayName("Returns all rooms without members and with user settings of which the authenticated user is a member")
     public void getRooms_testOkWithSettings() {
       when(roomRepository.getByUserId(user1Id.toString(), false)).thenReturn(Arrays.asList(room1, room2));
+      when(roomUserSettingsRepository.getByUserId(user1Id.toString())).thenReturn(Collections.emptyList());
       List<RoomDto> rooms = roomService.getRooms(List.of(RoomExtraFieldDto.SETTINGS), UserPrincipal.create(user1Id));
 
       assertEquals(2, rooms.size());
@@ -795,7 +797,7 @@ class RoomServiceImplTest {
     }
 
     @Test
-    @DisplayName("Correctly does nothing if the user has already muted")
+    @DisplayName("Correctly does nothing if the user is already muted")
     void muteRoom_testOkUserAlreadyMuted() {
       when(roomRepository.getById(room1Id.toString())).thenReturn(Optional.of(room1));
       when(roomUserSettingsRepository.getByRoomIdAndUserId(room1Id.toString(), user1Id.toString())).thenReturn(

@@ -9,6 +9,7 @@ import com.zextras.carbonio.chats.core.data.entity.User;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
+import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.FileMock;
@@ -24,25 +25,28 @@ import javax.inject.Inject;
 
 public class IntegrationTestUtils {
 
-  private final RoomRepository         roomRepository;
-  private final FileMetadataRepository fileMetadataRepository;
-  private final UserRepository         userRepository;
+  private final RoomRepository             roomRepository;
+  private final FileMetadataRepository     fileMetadataRepository;
+  private final UserRepository             userRepository;
+  private final RoomUserSettingsRepository roomUserSettingsRepository;
 
   @Inject
   public IntegrationTestUtils(
-    RoomRepository roomRepository, FileMetadataRepository fileMetadataRepository, UserRepository userRepository
+    RoomRepository roomRepository, FileMetadataRepository fileMetadataRepository, UserRepository userRepository,
+    RoomUserSettingsRepository roomUserSettingsRepository
   ) {
     this.roomRepository = roomRepository;
     this.fileMetadataRepository = fileMetadataRepository;
     this.userRepository = userRepository;
+    this.roomUserSettingsRepository = roomUserSettingsRepository;
   }
 
   public Room generateAndSaveRoom(UUID id, RoomTypeDto type, String name, List<UUID> usersIds) {
-    return generateAndSaveRoom(id, type, name, usersIds, List.of(usersIds.get(0)), List.of(usersIds.get(0)), null);
+    return generateAndSaveRoom(id, type, name, usersIds, List.of(usersIds.get(0)), null, null);
   }
 
   public Room generateAndSaveRoom(
-    UUID id, RoomTypeDto type, String name, List<UUID> usersIds, List<UUID> ownerIds, List<UUID> mutedIds,
+    UUID id, RoomTypeDto type, String name, List<UUID> usersIds, List<UUID> ownerIds, @Nullable List<UUID> mutedIds,
     @Nullable OffsetDateTime pictureUpdateTimestamp
   ) {
     Room room = Room.create();
@@ -64,11 +68,12 @@ public class IntegrationTestUtils {
         s.owner(true)
       ));
     room.userSettings(new ArrayList<>());
-    mutedIds.forEach(mutedId ->
-      room.getUserSettings().add(
-        RoomUserSettings.create(room, mutedId.toString())
-          .mutedUntil(OffsetDateTime.now())
-      ));
+    Optional.ofNullable(mutedIds).ifPresent(ids ->
+      mutedIds.forEach(mutedId ->
+        room.getUserSettings().add(
+          RoomUserSettings.create(room, mutedId.toString())
+            .mutedUntil(OffsetDateTime.parse("0001-01-01T00:00:00Z"))
+        )));
     Optional.ofNullable(pictureUpdateTimestamp).ifPresent(room::pictureUpdatedAt);
 
     return roomRepository.insert(room);
@@ -116,5 +121,14 @@ public class IntegrationTestUtils {
         .lastSeen(lastSeenTimestamp)
         .hash(hash)
     );
+  }
+
+  public Optional<RoomUserSettings> getRoomUserSettings(UUID roomId, UUID userId) {
+    return roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), userId.toString());
+  }
+
+  public RoomUserSettings setRoomUserSettings(RoomUserSettings roomUserSettings) {
+    roomUserSettingsRepository.save(roomUserSettings);
+    return roomUserSettings;
   }
 }

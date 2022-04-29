@@ -18,7 +18,7 @@ public class RoomUserSettingsMapper {
   }
 
   public RoomUserSettingsDto ent2dto(List<RoomUserSettings> roomUserSettingsList) {
-    return ent2dto(roomUserSettingsList != null && !roomUserSettingsList.isEmpty() ?
+    return ent2dto(roomUserSettingsList != null && roomUserSettingsList.size() > 0 ?
       roomUserSettingsList.get(0) : null);
   }
 }

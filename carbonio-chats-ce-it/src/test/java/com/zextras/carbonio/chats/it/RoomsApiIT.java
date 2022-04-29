@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils;
@@ -934,12 +935,171 @@ public class RoomsApiIT {
   @DisplayName("Mutes room for authenticated user tests")
   public class MutesRoomForAuthenticatedUserTests {
 
+    private final OffsetDateTime MUTED_TO_INFINITY = OffsetDateTime.parse("0001-01-01T00:00:00Z");
+
+    private String url(UUID roomId) {
+      return String.format("/rooms/%s/mute", roomId);
+    }
+
+    @Test
+    @DisplayName("Mute the current user in a specific room when user settings not exists")
+    public void muteRoom_testOkUserSettingNotExists() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
+        List.of(user1Id, user2Id, user3Id));
+
+      MockHttpResponse response = dispatcher.put(url(roomId), null, user3Token);
+      assertEquals(204, response.getStatus());
+      Optional<RoomUserSettings> roomUserSettings = integrationTestUtils.getRoomUserSettings(roomId, user3Id);
+      assertTrue(roomUserSettings.isPresent());
+      assertEquals(MUTED_TO_INFINITY.toInstant(),
+        roomUserSettings.get().getMutedUntil().toInstant());
+
+      // TODO: 23/02/22 verify event dispatcher interactions
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("Mute the current user in a specific room when user settings exists")
+    public void muteRoom_testOkUserSettingExists() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      Room room = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
+        List.of(user1Id, user2Id, user3Id));
+      integrationTestUtils.setRoomUserSettings(RoomUserSettings.create(room, user3Id.toString()));
+
+      MockHttpResponse response = dispatcher.put(url(roomId), null, user3Token);
+      assertEquals(204, response.getStatus());
+      Optional<RoomUserSettings> roomUserSettings = integrationTestUtils.getRoomUserSettings(roomId, user3Id);
+      assertTrue(roomUserSettings.isPresent());
+      assertEquals(MUTED_TO_INFINITY.toInstant(),
+        roomUserSettings.get().getMutedUntil().toInstant());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("Correctly does nothing if the user is already muted")
+    public void muteRoom_testOkUserAlreadyMuted() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      Room room = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
+        List.of(user1Id, user2Id, user3Id));
+      integrationTestUtils.setRoomUserSettings(
+        RoomUserSettings.create(room, user3Id.toString()).mutedUntil(MUTED_TO_INFINITY));
+
+      MockHttpResponse response = dispatcher.put(url(roomId), null, user3Token);
+      assertEquals(204, response.getStatus());
+      Optional<RoomUserSettings> roomUserSettings = integrationTestUtils.getRoomUserSettings(roomId, user3Id);
+      assertTrue(roomUserSettings.isPresent());
+      assertEquals(MUTED_TO_INFINITY.toInstant(),
+        roomUserSettings.get().getMutedUntil().toInstant());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("If the authenticated user isn't a room member, it throws a 'forbidden' exception")
+    public void muteRoom_testAuthenticatedUserIsNotARoomMember() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
+
+      MockHttpResponse response = dispatcher.put(url(roomId), null, user3Token);
+      assertEquals(403, response.getStatus());
+      assertEquals(0, response.getContentAsString().length());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("If the room doesn't exist, it throws a 'not found' exception")
+    public void muteRoom_testRoomNotExists() throws Exception {
+      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()), null, user3Token);
+      assertEquals(404, response.getStatus());
+      assertEquals(0, response.getContentAsString().length());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
   }
 
   @Nested
   @DisplayName("Unmute room for authenticated user tests")
   public class UnmuteRoomForAuthenticatedUserTests {
 
+    private final OffsetDateTime MUTED_TO_INFINITY = OffsetDateTime.parse("0001-01-01T00:00:00Z");
+
+    private String url(UUID roomId) {
+      return String.format("/rooms/%s/mute", roomId);
+    }
+
+    @Test
+    @DisplayName("Correctly does nothing if user settings not exists")
+    public void unmuteRoom_testOkUserSettingNotExists() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
+        List.of(user1Id, user2Id, user3Id));
+
+      MockHttpResponse response = dispatcher.delete(url(roomId), user3Token);
+      assertEquals(204, response.getStatus());
+      Optional<RoomUserSettings> roomUserSettings = integrationTestUtils.getRoomUserSettings(roomId, user3Id);
+      assertFalse(roomUserSettings.isPresent());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("Unmute the current user in a specific room")
+    public void unmuteRoom_testOkUserSettingExists() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      Room room = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
+        List.of(user1Id, user2Id, user3Id));
+      integrationTestUtils.setRoomUserSettings(
+        RoomUserSettings.create(room, user3Id.toString()).mutedUntil(MUTED_TO_INFINITY));
+      MockHttpResponse response = dispatcher.delete(url(roomId), user3Token);
+      assertEquals(204, response.getStatus());
+      Optional<RoomUserSettings> roomUserSettings = integrationTestUtils.getRoomUserSettings(roomId, user3Id);
+      assertTrue(roomUserSettings.isPresent());
+      assertNull(roomUserSettings.get().getMutedUntil());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("Correctly does nothing if the user has already unmuted")
+    public void unmuteRoom_testOkUserAlreadyUnmuted() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      Room room = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
+        List.of(user1Id, user2Id, user3Id));
+      integrationTestUtils.setRoomUserSettings(RoomUserSettings.create(room, user3Id.toString()));
+      MockHttpResponse response = dispatcher.delete(url(roomId), user3Token);
+      assertEquals(204, response.getStatus());
+      Optional<RoomUserSettings> roomUserSettings = integrationTestUtils.getRoomUserSettings(roomId, user3Id);
+      assertTrue(roomUserSettings.isPresent());
+      assertNull(roomUserSettings.get().getMutedUntil());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("If the authenticated user isn't a room member, it throws a 'forbidden' exception")
+    public void unmuteRoom_testAuthenticatedUserIsNotARoomMember() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
+
+      MockHttpResponse response = dispatcher.delete(url(roomId), user3Token);
+      assertEquals(403, response.getStatus());
+      assertEquals(0, response.getContentAsString().length());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("If the room doesn't exist, it throws a 'not found' exception")
+    public void unmuteRoom_testRoomNotExists() throws Exception {
+      MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID()), user3Token);
+      assertEquals(404, response.getStatus());
+      assertEquals(0, response.getContentAsString().length());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
   }
 
   @Nested

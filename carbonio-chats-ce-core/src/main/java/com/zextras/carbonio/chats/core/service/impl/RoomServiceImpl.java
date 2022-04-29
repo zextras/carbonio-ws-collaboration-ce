@@ -47,7 +47,6 @@ import io.ebean.annotation.Transactional;
 import java.io.File;
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -64,8 +63,7 @@ import javax.inject.Singleton;
 @Singleton
 public class RoomServiceImpl implements RoomService {
 
-  private static final OffsetDateTime MUTED_TO_INFINITY =
-    OffsetDateTime.of(0, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+  private static final OffsetDateTime MUTED_TO_INFINITY = OffsetDateTime.parse("0001-01-01T00:00:00Z");
 
   private final RoomRepository             roomRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
@@ -102,7 +100,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public List<RoomDto> getRooms(
     @Nullable List<RoomExtraFieldDto> extraFields, UserPrincipal currentUser
   ) {
@@ -112,14 +109,12 @@ public class RoomServiceImpl implements RoomService {
       includeSettings = extraFields.contains(RoomExtraFieldDto.SETTINGS);
     }
     List<Room> rooms = roomRepository.getByUserId(currentUser.getId(), includeMembers);
+    Map<String, RoomUserSettings> settingsMap = null;
     if (includeSettings) {
-      Map<String, RoomUserSettings> settingsMap = roomUserSettingsRepository.getByUserId(currentUser.getId()).stream()
+      settingsMap = roomUserSettingsRepository.getByUserId(currentUser.getId()).stream()
         .collect(Collectors.toMap(s -> s.getId().getRoomId(), Function.identity()));
-      rooms.forEach(room ->
-        Optional.ofNullable(settingsMap.get(room.getId()))
-          .ifPresent(s -> room.userSettings(Collections.singletonList(s))));
     }
-    return roomMapper.ent2roomDto(rooms, includeMembers, includeSettings);
+    return roomMapper.ent2roomDto(rooms, includeMembers, settingsMap);
   }
 
   @Override
@@ -190,7 +185,7 @@ public class RoomServiceImpl implements RoomService {
     roomRepository.update(room);
     eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
       RoomUpdatedEvent.create(roomId).from(currentUser.getUUID()));
-    return roomMapper.ent2roomDto(room, false, false);
+    return roomMapper.ent2roomDto(room, false);
   }
 
   @Override

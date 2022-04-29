@@ -5,11 +5,13 @@
 package com.zextras.carbonio.chats.core.mapper;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomUserSettingsDto;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -29,20 +31,21 @@ public abstract class RoomMapper {
 
   @Mappings({
     @Mapping(target = "id", expression = "java(UUID.fromString(room.getId()))"),
-    @Mapping(target = "members", expression =
-      "java(includeMembers ? subscriptionMapper.ent2memberDto(room.getSubscriptions()) : null)"),
-    @Mapping(target = "userSettings", expression =
-      "java(includeSettings ? roomUserSettingsMapper.ent2dto(room.getUserSettings()) : null)")
+    @Mapping(target = "members", expression = "java(includeMembers ? subscriptionMapper.ent2memberDto(room.getSubscriptions()) : null)"),
+    @Mapping(target = "userSettings", ignore = true)
   })
-  public abstract RoomDto ent2roomDto(@Nullable Room room, boolean includeMembers, boolean includeSettings);
+  public abstract RoomDto ent2roomDto(@Nullable Room room, boolean includeMembers);
 
-  public List<RoomDto> ent2roomDto(@Nullable List<Room> rooms, boolean includeMembers, boolean includeSettings) {
+  public List<RoomDto> ent2roomDto(
+    @Nullable List<Room> rooms, boolean includeMembers, @Nullable Map<String, RoomUserSettings> settingsMap
+  ) {
     if (rooms == null) {
       return null;
     }
     return rooms.stream()
-      .map(room -> ent2roomDto(room, includeMembers, includeSettings))
-      .collect(Collectors.toList());
+      .map(room -> ent2roomDto(room, includeMembers)
+        .userSettings(settingsMap == null ? null : roomUserSettingsMapper.ent2dto(settingsMap.get(room.getId())))
+      ).collect(Collectors.toList());
   }
 
   @Mappings({
