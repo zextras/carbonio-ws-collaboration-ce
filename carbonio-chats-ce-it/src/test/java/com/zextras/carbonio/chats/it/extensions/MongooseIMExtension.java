@@ -4,7 +4,7 @@ import static org.mockserver.model.Header.header;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
-import com.zextras.carbonio.chats.core.config.ConfigValue;
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockUserProfile;
@@ -42,8 +42,8 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
       ChatsLogger.debug("Starting MongooseIM client mock...");
       MongooseImMockServer client = new MongooseImMockServer(PORT);
       mockResponses(client);
-      InMemoryConfigStore.set(ConfigValue.XMPP_SERVER_HOST, HOST);
-      InMemoryConfigStore.set(ConfigValue.XMPP_SERVER_HTTP_PORT, Integer.toString(PORT));
+      InMemoryConfigStore.set(ConfigName.XMPP_SERVER_HOST, HOST);
+      InMemoryConfigStore.set(ConfigName.XMPP_SERVER_HTTP_PORT, Integer.toString(PORT));
       return client;
     }, MongooseImMockServer.class);
   }

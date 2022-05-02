@@ -5,13 +5,12 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.Parameter.param;
 
-import com.zextras.carbonio.chats.core.config.ConfigValue;
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
-import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.storages.internal.pojo.Query;
 import java.io.IOException;
 import java.util.Optional;
@@ -39,8 +38,8 @@ public class StoragesExtension implements AfterEachCallback, BeforeAllCallback, 
       ChatsLogger.debug("Starting Storages mock...");
       StorageMockServer client = new StorageMockServer(SERVER_PORT);
       mockResponses(client);
-      InMemoryConfigStore.set(ConfigValue.STORAGES_HOST, SERVER_HOST);
-      InMemoryConfigStore.set(ConfigValue.STORAGES_PORT, Integer.toString(SERVER_PORT));
+      InMemoryConfigStore.set(ConfigName.STORAGES_HOST, SERVER_HOST);
+      InMemoryConfigStore.set(ConfigName.STORAGES_PORT, Integer.toString(SERVER_PORT));
       return client;
     }, StorageMockServer.class);
   }

@@ -22,27 +22,27 @@ class AppConfigTest {
     @Test
     @DisplayName("Retrieves attribute from the first chain block")
     public void get_valueFromFirstBlock() {
-      MockConfig config1 = new MockConfig().setConfig(ConfigValue.DATABASE_JDBC_URL, "value1");
-      MockConfig config2 = new MockConfig().setConfig(ConfigValue.DATABASE_JDBC_URL, "value2");
-      MockConfig config3 = new MockConfig().setConfig(ConfigValue.DATABASE_JDBC_URL, "value3");
+      MockConfig config1 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value1");
+      MockConfig config2 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value2");
+      MockConfig config3 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value3");
 
       config1.or(config2).or(config3);
 
-      assertTrue(config1.get(String.class, ConfigValue.DATABASE_JDBC_URL).isPresent());
-      assertEquals("value1", config1.get(String.class, ConfigValue.DATABASE_JDBC_URL).get());
+      assertTrue(config1.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
+      assertEquals("value1", config1.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
     }
 
     @Test
     @DisplayName("Retrieves attribute from the second chain block if the first is null")
     public void get_valueFromSecondBlock() {
       MockConfig config1 = new MockConfig();
-      MockConfig config2 = new MockConfig().setConfig(ConfigValue.DATABASE_JDBC_URL, "value2");
-      MockConfig config3 = new MockConfig().setConfig(ConfigValue.DATABASE_JDBC_URL, "value3");
+      MockConfig config2 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value2");
+      MockConfig config3 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value3");
 
       config1.or(config2).or(config3);
 
-      assertTrue(config1.get(String.class, ConfigValue.DATABASE_JDBC_URL).isPresent());
-      assertEquals("value2", config1.get(String.class, ConfigValue.DATABASE_JDBC_URL).get());
+      assertTrue(config1.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
+      assertEquals("value2", config1.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
     }
 
     @Test
@@ -50,12 +50,12 @@ class AppConfigTest {
     public void get_valueFromThirdBlock() {
       MockConfig config1 = new MockConfig();
       MockConfig config2 = new MockConfig();
-      MockConfig config3 = new MockConfig().setConfig(ConfigValue.DATABASE_JDBC_URL, "value3");
+      MockConfig config3 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value3");
 
       config1.or(config2).or(config3);
 
-      assertTrue(config1.get(String.class, ConfigValue.DATABASE_JDBC_URL).isPresent());
-      assertEquals("value3", config1.get(String.class, ConfigValue.DATABASE_JDBC_URL).get());
+      assertTrue(config1.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
+      assertEquals("value3", config1.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
     }
 
     @Test
@@ -67,7 +67,7 @@ class AppConfigTest {
 
       config1.or(config2).or(config3);
 
-      assertFalse(config1.get(String.class, ConfigValue.DATABASE_JDBC_URL).isPresent());
+      assertFalse(config1.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
     }
 
   }
@@ -127,8 +127,8 @@ class AppConfigTest {
 
   private static class MockConfig extends AppConfig {
 
-    private final Map<ConfigValue, String> configMap;
-    private       EnvironmentType          environmentType;
+    private final Map<ConfigName, String> configMap;
+    private       EnvironmentType         environmentType;
 
     public MockConfig() {
       configMap = new HashMap<>();
@@ -136,7 +136,7 @@ class AppConfigTest {
     }
 
     @Override
-    protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigValue configName) {
+    protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigName configName) {
       return Optional.ofNullable(configMap.get(configName)).map(clazz::cast);
     }
 
@@ -145,7 +145,7 @@ class AppConfigTest {
       return Optional.ofNullable(environmentType);
     }
 
-    public MockConfig setConfig(ConfigValue key, String value) {
+    public MockConfig setConfig(ConfigName key, String value) {
       configMap.put(key, value);
       return this;
     }

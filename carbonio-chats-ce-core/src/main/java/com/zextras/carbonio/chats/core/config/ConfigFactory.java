@@ -54,8 +54,13 @@ class ConfigFactory {
     }
 
     ConsulAppConfig consulAppConfig = new ConsulAppConfig(consulClient,
-      mainConfig.get(String.class, ConfigValue.CONSUL_TOKEN).orElseThrow());
-    ChatsLogger.info("Consul config loaded");
+      mainConfig.get(String.class, ConfigName.CONSUL_TOKEN).orElseThrow());
+    try {
+      consulAppConfig.loadConfigurations();
+      ChatsLogger.info("Consul config loaded");
+    } catch (RuntimeException ex) {
+      ChatsLogger.warn(String.format("Error while loading consul config: %s", ex.getMessage()));
+    }
 
     mainConfig
       .or(new PropertiesAppConfig(properties))

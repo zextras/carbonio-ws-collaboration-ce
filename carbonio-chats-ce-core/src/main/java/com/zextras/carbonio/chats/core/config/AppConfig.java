@@ -15,7 +15,7 @@ public abstract class AppConfig {
    * @param <T>        the configuration parameter type
    * @return an {@link Optional} which contains the configuration, if found
    */
-  public <T> Optional<T> get(Class<T> clazz, ConfigValue configName) {
+  public <T> Optional<T> get(Class<T> clazz, ConfigName configName) {
     return getConfigByImplementation(clazz, configName).or(() -> {
       if (next != null) {
         return next.get(clazz, configName);
@@ -45,7 +45,7 @@ public abstract class AppConfig {
    * @param <T>        the configuration parameter type
    * @return an {@link Optional} which contains the configuration, if found
    */
-  protected abstract <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigValue configName);
+  protected abstract <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigName configName);
 
   /**
    * Returns the configured environment type or an empty optional if it was not found. N.B. The returned {@link

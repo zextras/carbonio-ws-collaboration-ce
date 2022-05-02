@@ -5,14 +5,13 @@ import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.Parameter.param;
 
 import com.zextras.carbonio.chats.core.config.ChatsConstant;
-import com.zextras.carbonio.chats.core.config.ConfigValue;
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.PreviewerMockServer;
-import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Optional;
@@ -42,8 +41,8 @@ public class PreviewerExtension implements AfterEachCallback, BeforeAllCallback,
       ChatsLogger.debug("Starting Previewer mock...");
       PreviewerMockServer client = new PreviewerMockServer(SERVER_PORT);
       mockResponses(client);
-      InMemoryConfigStore.set(ConfigValue.PREVIEWER_HOST, SERVER_HOST);
-      InMemoryConfigStore.set(ConfigValue.PREVIEWER_PORT, Integer.toString(SERVER_PORT));
+      InMemoryConfigStore.set(ConfigName.PREVIEWER_HOST, SERVER_HOST);
+      InMemoryConfigStore.set(ConfigName.PREVIEWER_PORT, Integer.toString(SERVER_PORT));
       return client;
     }, PreviewerMockServer.class);
   }

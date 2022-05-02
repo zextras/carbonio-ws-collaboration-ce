@@ -40,17 +40,17 @@ class ConfigFactoryTest {
     Path propertiesFile = tempConfigPath.resolve("config.properties");
 
     Files.write(envFile, List.of(
-      String.format("%s=%s", ConfigValue.DATABASE_PASSWORD.getEnvName(), "envpsw"),
-      String.format("%s=%s", ConfigValue.CONSUL_TOKEN.getEnvName(), "token") //mock it as an env variable
+      String.format("%s=%s", ConfigName.DATABASE_PASSWORD.getEnvName(), "envpsw"),
+      String.format("%s=%s", ConfigName.CONSUL_TOKEN.getEnvName(), "token") //mock it as an env variable
     ));
     Files.writeString(propertiesFile,
-      String.format("%s=%s", ConfigValue.DATABASE_PASSWORD.getPropertyName(), "proppsw"));
+      String.format("%s=%s", ConfigName.DATABASE_PASSWORD.getPropertyName(), "proppsw"));
     GetValue mockValue = mock(GetValue.class);
     when(mockValue.getDecodedValue()).thenReturn("consulpsw");
-    when(consulClient.getKVValue(ConfigValue.DATABASE_PASSWORD.getConsulName(), "token"))
+    when(consulClient.getKVValue(ConfigName.DATABASE_PASSWORD.getConsulName(), "token"))
       .thenReturn(new Response<>(mockValue, 12L, true, 12L));
 
-    Optional<String> paramValue = configFactory.create().get(String.class, ConfigValue.DATABASE_PASSWORD);
+    Optional<String> paramValue = configFactory.create().get(String.class, ConfigName.DATABASE_PASSWORD);
 
     assertTrue(paramValue.isPresent());
     assertEquals("envpsw", paramValue.get());
@@ -63,16 +63,16 @@ class ConfigFactoryTest {
     Path propertiesFile = tempConfigPath.resolve("config.properties");
 
     Files.write(envFile, List.of(
-      String.format("%s=%s", ConfigValue.CONSUL_TOKEN.getEnvName(), "token") //mock it as an env variable
+      String.format("%s=%s", ConfigName.CONSUL_TOKEN.getEnvName(), "token") //mock it as an env variable
     ));
     Files.writeString(propertiesFile,
-      String.format("%s=%s", ConfigValue.DATABASE_PASSWORD.getPropertyName(), "proppsw"));
+      String.format("%s=%s", ConfigName.DATABASE_PASSWORD.getPropertyName(), "proppsw"));
     GetValue mockValue = mock(GetValue.class);
     when(mockValue.getDecodedValue()).thenReturn("consulpsw");
-    when(consulClient.getKVValue(ConfigValue.DATABASE_PASSWORD.getConsulName(), "token"))
+    when(consulClient.getKVValue(ConfigName.DATABASE_PASSWORD.getConsulName(), "token"))
       .thenReturn(new Response<>(mockValue, 12L, true, 12L));
 
-    Optional<String> paramValue = configFactory.create().get(String.class, ConfigValue.DATABASE_PASSWORD);
+    Optional<String> paramValue = configFactory.create().get(String.class, ConfigName.DATABASE_PASSWORD);
 
     assertTrue(paramValue.isPresent());
     assertEquals("proppsw", paramValue.get());
@@ -84,14 +84,15 @@ class ConfigFactoryTest {
     Path envFile = tempConfigPath.resolve(".env");
 
     Files.write(envFile, List.of(
-      String.format("%s=%s", ConfigValue.CONSUL_TOKEN.getEnvName(), "token") //mock it as an env variable
+      String.format("%s=%s", ConfigName.CONSUL_TOKEN.getEnvName(), "token") //mock it as an env variable
     ));
     GetValue mockValue = mock(GetValue.class);
+    when(mockValue.getKey()).thenReturn("carbonio-chats/db-password");
     when(mockValue.getDecodedValue()).thenReturn("consulpsw");
-    when(consulClient.getKVValue(ConfigValue.DATABASE_PASSWORD.getConsulName(), "token"))
-      .thenReturn(new Response<>(mockValue, 12L, true, 12L));
+    when(consulClient.getKVValues("carbonio-chats", "token"))
+      .thenReturn(new Response<>(List.of(mockValue), 12L, true, 12L));
 
-    Optional<String> paramValue = configFactory.create().get(String.class, ConfigValue.DATABASE_PASSWORD);
+    Optional<String> paramValue = configFactory.create().get(String.class, ConfigName.DATABASE_PASSWORD);
 
     assertTrue(paramValue.isPresent());
     assertEquals("consulpsw", paramValue.get());
@@ -103,10 +104,10 @@ class ConfigFactoryTest {
     Path envFile = tempConfigPath.resolve(".env");
 
     Files.write(envFile, List.of(
-      String.format("%s=%s", ConfigValue.CONSUL_TOKEN.getEnvName(), "token") //mock it as an env variable
+      String.format("%s=%s", ConfigName.CONSUL_TOKEN.getEnvName(), "token") //mock it as an env variable
     ));
 
-    Optional<String> paramValue = configFactory.create().get(String.class, ConfigValue.DATABASE_PASSWORD);
+    Optional<String> paramValue = configFactory.create().get(String.class, ConfigName.DATABASE_PASSWORD);
 
     assertTrue(paramValue.isEmpty());
   }
@@ -116,9 +117,9 @@ class ConfigFactoryTest {
   public void consulTokenNotSetTest() {
     GetValue mockValue = mock(GetValue.class);
     when(mockValue.getDecodedValue()).thenReturn("consulpsw");
-    when(consulClient.getKVValue(ConfigValue.DATABASE_PASSWORD.getConsulName(), "token"))
+    when(consulClient.getKVValue(ConfigName.DATABASE_PASSWORD.getConsulName(), "token"))
       .thenReturn(new Response<>(mockValue, 12L, true, 12L));
 
-    assertThrows(RuntimeException.class, () -> configFactory.create().get(String.class, ConfigValue.DATABASE_PASSWORD));
+    assertThrows(RuntimeException.class, () -> configFactory.create().get(String.class, ConfigName.DATABASE_PASSWORD));
   }
 }

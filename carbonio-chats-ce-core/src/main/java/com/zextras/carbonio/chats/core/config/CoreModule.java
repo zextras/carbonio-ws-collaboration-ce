@@ -172,8 +172,8 @@ public class CoreModule extends AbstractModule {
   private ApiClient getMongooseImAdminApiClient(AppConfig appConfig) {
     return new ApiClient()
       .setBasePath(String.format("http://%s:%s/%s",
-        appConfig.get(String.class, ConfigValue.XMPP_SERVER_HOST).orElseThrow(),
-        appConfig.get(String.class, ConfigValue.XMPP_SERVER_HTTP_PORT).orElseThrow(),
+        appConfig.get(String.class, ConfigName.XMPP_SERVER_HOST).orElseThrow(),
+        appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow(),
         ChatsConstant.MONGOOSEIM_ADMIN_ENDPOINT))
       .addDefaultHeader("Accept", "*/*")
       .setDebugging(true);
@@ -184,8 +184,8 @@ public class CoreModule extends AbstractModule {
   private com.zextras.carbonio.chats.mongooseim.client.api.ApiClient getMongooseImClientApiClient(AppConfig appConfig) {
     return new com.zextras.carbonio.chats.mongooseim.client.api.ApiClient()
       .setBasePath(String.format("http://%s:%s/%s",
-        appConfig.get(String.class, ConfigValue.XMPP_SERVER_HOST).orElseThrow(),
-        appConfig.get(String.class, ConfigValue.XMPP_SERVER_HTTP_PORT).orElseThrow(),
+        appConfig.get(String.class, ConfigName.XMPP_SERVER_HOST).orElseThrow(),
+        appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow(),
         ChatsConstant.MONGOOSEIM_CLIENT_ENDPOINT))
       .addDefaultHeader("Accept", "*/*")
       .setDebugging(true);
@@ -216,8 +216,8 @@ public class CoreModule extends AbstractModule {
   private StoragesClient getStoragesClient(AppConfig appConfig) {
     return StoragesClient.atUrl(
       String.format("http://%s:%s",
-        appConfig.get(String.class, ConfigValue.STORAGES_HOST).orElseThrow(),
-        appConfig.get(String.class, ConfigValue.STORAGES_PORT).orElseThrow()
+        appConfig.get(String.class, ConfigName.STORAGES_HOST).orElseThrow(),
+        appConfig.get(String.class, ConfigName.STORAGES_PORT).orElseThrow()
       )
     );
   }
@@ -226,8 +226,8 @@ public class CoreModule extends AbstractModule {
   @Provides
   private PreviewClient getPreviewClient(AppConfig appConfig) {
     return PreviewClient.atURL(String.format("http://%s:%s",
-      appConfig.get(String.class, ConfigValue.PREVIEWER_HOST).orElseThrow(),
-      appConfig.get(String.class, ConfigValue.PREVIEWER_PORT).orElseThrow()));
+      appConfig.get(String.class, ConfigName.PREVIEWER_HOST).orElseThrow(),
+      appConfig.get(String.class, ConfigName.PREVIEWER_PORT).orElseThrow()));
   }
 
   @Singleton
@@ -235,8 +235,8 @@ public class CoreModule extends AbstractModule {
   private UserManagementClient getUserManagementClient(AppConfig appConfig) {
     return UserManagementClient.atURL(
       String.format("http://%s:%s",
-        appConfig.get(String.class, ConfigValue.USER_MANAGEMENT_HOST).orElseThrow(),
-        appConfig.get(String.class, ConfigValue.USER_MANAGEMENT_PORT).orElseThrow()
+        appConfig.get(String.class, ConfigName.USER_MANAGEMENT_HOST).orElseThrow(),
+        appConfig.get(String.class, ConfigName.USER_MANAGEMENT_PORT).orElseThrow()
       )
     );
   }
@@ -270,19 +270,19 @@ public class CoreModule extends AbstractModule {
 
   private DataSource getHikariDataSource(AppConfig appConfig) {
     HikariConfig config = new HikariConfig();
-    config.setJdbcUrl(appConfig.get(String.class, ConfigValue.DATABASE_JDBC_URL).orElseThrow());
-    config.setUsername(appConfig.get(String.class, ConfigValue.DATABASE_USERNAME).orElse("chats"));
-    config.setPassword(appConfig.get(String.class, ConfigValue.DATABASE_PASSWORD).orElse("password"));
+    config.setJdbcUrl(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).orElseThrow());
+    config.setUsername(appConfig.get(String.class, ConfigName.DATABASE_USERNAME).orElse("chats"));
+    config.setPassword(appConfig.get(String.class, ConfigName.DATABASE_PASSWORD).orElse("password"));
     config.addDataSourceProperty("idleTimeout",
-      appConfig.get(Integer.class, ConfigValue.HIKARI_IDLE_TIMEOUT).orElse(300));
+      appConfig.get(Integer.class, ConfigName.HIKARI_IDLE_TIMEOUT).orElse(300));
     config.addDataSourceProperty("minimumIdle",
-      appConfig.get(Integer.class, ConfigValue.HIKARI_MIN_POOL_SIZE).orElse(1));
+      appConfig.get(Integer.class, ConfigName.HIKARI_MIN_POOL_SIZE).orElse(1));
     config.addDataSourceProperty("maximumPoolSize",
-      appConfig.get(Integer.class, ConfigValue.HIKARI_MAX_POOL_SIZE).orElse(5));
+      appConfig.get(Integer.class, ConfigName.HIKARI_MAX_POOL_SIZE).orElse(5));
     config.addDataSourceProperty("poolName", "chats-db-pool");
-    config.addDataSourceProperty("driverClassName", appConfig.get(String.class, ConfigValue.JDBC_DRIVER).orElseThrow());
+    config.addDataSourceProperty("driverClassName", appConfig.get(String.class, ConfigName.JDBC_DRIVER).orElseThrow());
     config.addDataSourceProperty("leakDetectionThreshold",
-      appConfig.get(Integer.class, ConfigValue.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(60000));
+      appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(60000));
     return new HikariDataSource(config);
   }
 

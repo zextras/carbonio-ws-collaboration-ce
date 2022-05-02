@@ -2,22 +2,16 @@ package com.zextras.carbonio.chats.it.extensions;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import com.zextras.carbonio.chats.core.config.ConfigValue;
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.it.Utils.TimeUtils;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.CloseablePostgreSQLContainer;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Optional;
 import org.flywaydb.core.Flyway;
-import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
-import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 public class DatabaseExtension implements BeforeAllCallback, AfterEachCallback {
@@ -41,10 +35,10 @@ public class DatabaseExtension implements BeforeAllCallback, AfterEachCallback {
           .withUsername(DATABASE_USER)
           .withPassword(DATABASE_PASSWORD);
         database.start();
-        InMemoryConfigStore.set(ConfigValue.DATABASE_JDBC_URL, database.getJdbcUrl());
-        InMemoryConfigStore.set(ConfigValue.JDBC_DRIVER, DATABASE_DRIVER);
-        InMemoryConfigStore.set(ConfigValue.DATABASE_USERNAME, DATABASE_USER);
-        InMemoryConfigStore.set(ConfigValue.DATABASE_PASSWORD, DATABASE_PASSWORD);
+        InMemoryConfigStore.set(ConfigName.DATABASE_JDBC_URL, database.getJdbcUrl());
+        InMemoryConfigStore.set(ConfigName.JDBC_DRIVER, DATABASE_DRIVER);
+        InMemoryConfigStore.set(ConfigName.DATABASE_USERNAME, DATABASE_USER);
+        InMemoryConfigStore.set(ConfigName.DATABASE_PASSWORD, DATABASE_PASSWORD);
         return database;
       },
       PostgreSQLContainer.class

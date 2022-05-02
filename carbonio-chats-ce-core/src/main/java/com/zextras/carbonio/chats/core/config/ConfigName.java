@@ -1,6 +1,10 @@
 package com.zextras.carbonio.chats.core.config;
 
-public enum ConfigValue {
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+public enum ConfigName {
   ENV("chats.env", "CHATS_ENV", "carbonio-chats/chats-env"),
   JDBC_DRIVER("database.jdbc.driver", "DATABASE_JDBC_DRIVER", "carbonio-chats/jdbc-driver"),
   DATABASE_JDBC_URL("database.jdbc.url", "DATABASE_JDBC_URL", "carbonio-chats/jdbc-url"),
@@ -26,7 +30,7 @@ public enum ConfigValue {
   private final String envName;
   private final String consulName;
 
-  ConfigValue(String propertyName, String envName, String consulName) {
+  ConfigName(String propertyName, String envName, String consulName) {
     this.propertyName = propertyName;
     this.envName = envName;
     this.consulName = consulName;
@@ -42,5 +46,11 @@ public enum ConfigValue {
 
   public String getConsulName() {
     return consulName;
+  }
+
+  public static Set<String> getConsulPrefixes() {
+    return Arrays.stream(ConfigName.values())
+      .map(name -> name.consulName.substring(0, name.consulName.indexOf("/")))
+      .collect(Collectors.toSet());
   }
 }

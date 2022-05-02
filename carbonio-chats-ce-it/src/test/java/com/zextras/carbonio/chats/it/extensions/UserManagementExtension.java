@@ -3,7 +3,7 @@ package com.zextras.carbonio.chats.it.extensions;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
-import com.zextras.carbonio.chats.core.config.ConfigValue;
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockUserProfile;
@@ -36,8 +36,8 @@ public class UserManagementExtension implements AfterEachCallback, BeforeAllCall
       ChatsLogger.debug("Starting User Management mock...");
       UserManagementMockServer client = new UserManagementMockServer(SERVER_PORT);
       mockResponses(client);
-      InMemoryConfigStore.set(ConfigValue.USER_MANAGEMENT_HOST, SERVER_HOST);
-      InMemoryConfigStore.set(ConfigValue.USER_MANAGEMENT_PORT, Integer.toString(SERVER_PORT));
+      InMemoryConfigStore.set(ConfigName.USER_MANAGEMENT_HOST, SERVER_HOST);
+      InMemoryConfigStore.set(ConfigName.USER_MANAGEMENT_PORT, Integer.toString(SERVER_PORT));
       return client;
     }, UserManagementMockServer.class);
   }
