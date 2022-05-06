@@ -10,6 +10,7 @@ function build-all-artifacts() {
   no_docker=$3
   distro=$4
   deploy_on=$5
+  debug_mode=$6
 
   declare -a distros=(
     #   "DISTRO  | NAME PRE VERSION   | NAME POST VERSION"
@@ -22,14 +23,24 @@ function build-all-artifacts() {
     if [[ "$distro" == "${distros_item[0]}" || "$distro" == "" ]]; then
       distro_found=true
       print-banner "Building ${distros_item[0]} package"
+      cp package/carbonio-chats.service package/carbonio-chats.original
+      debug_agent=""
+      dev_mode=""
+      if [ "$debug_mode" = true ]; then
+        debug_agent="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5006"
+        dev_mode="CHATS_ENV=dev"
+      fi
+      sed "s/<debug-agent>/$debug_agent/" package/carbonio-chats.service -i
+      sed "s/<dev-mode>/$dev_mode/" package/carbonio-chats.service -i
       eval "build-${distros_item[0]}-artifact"
-
+      cp package/carbonio-chats.original package/carbonio-chats.service
+      rm package/carbonio-chats.original
       if [[ "$distro" != "" && "$deploy_on" != "" ]]; then
         file_name="${distros_item[1]}$version${distros_item[2]}"
         print-banner "Publishing to $deploy_on"
         # uploading to the server
         echo "Uploading package ..."
-        scp -o StrictHostKeyChecking=no -q "$artifacts_folder/${file_name}" "root@$deploy_on:$file_name"
+        scp -o StrictHostKeyChecking=no -q "$artifacts_folder/${file_name}" "root@$deploy_on:"
         ret_val=$?
         if [ "$ret_val" -ne 0 ]; then
           echo "[ERROR] Uploading package failed !"
@@ -39,11 +50,19 @@ function build-all-artifacts() {
         echo ""
         # installing the package in the server
         echo "Installing package ..."
-        ssh -o StrictHostKeyChecking=no -q root@"$deploy_on" <<EOF
-dpkg -i ${file_name}
-rm ${file_name}
-service carbonio-chats restart
-service carbonio-chats-sidecar restart
+        ssh root@"$deploy_on" /bin/bash << EOF
+          dpkg -i ${file_name}
+          rm -r ${file_name}
+          tokens=( \$(consul acl token create -format json -policy-name global-management -description \"pending-setup token\") )
+          for (( j=0; j<\${#tokens[@]}; j++ )); do
+            if [[ "\${tokens[\$j]}" == "\"SecretID\":" ]]; then
+              secret_id="\${tokens[\$j+1]}"
+              break
+            fi
+          done
+          secret_id=\$(tr -d '",' <<< "\$secret_id")
+          export SETUP_CONSUL_TOKEN="\$secret_id"
+          pending-setups --execute-all
 EOF
         ret_val=$?
         if [ "$ret_val" -ne 0 ]; then
@@ -126,4 +145,4 @@ function print-banner() {
   echo "$border_string"
 }
 
-build-all-artifacts "$1" "$2" "$3" "$4" "$5"
+build-all-artifacts "$1" "$2" "$3" "$4" "$5" "$6"

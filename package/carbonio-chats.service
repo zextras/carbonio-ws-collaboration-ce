@@ -7,13 +7,14 @@ After=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/opt/zextras/common/bin/java  -Djava.net.preferIPv4Stack=true -jar /usr/bin/carbonio/chats/carbonio-chats.jar
+ExecStart=/opt/zextras/common/bin/java <debug-agent> -Djava.net.preferIPv4Stack=true -jar /usr/bin/carbonio/chats/carbonio-chats.jar
 User=carbonio-chats
 Group=carbonio-chats
 Restart=on-failure
 RestartSec=15
 TimeoutSec=60
 TimeoutStopSec=120
+Environment=<dev-mode>
 
 [Install]
 WantedBy=multi-user.target
