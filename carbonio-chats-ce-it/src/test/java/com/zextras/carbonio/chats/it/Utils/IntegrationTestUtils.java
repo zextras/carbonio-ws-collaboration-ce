@@ -42,7 +42,9 @@ public class IntegrationTestUtils {
   }
 
   public Room generateAndSaveRoom(UUID id, RoomTypeDto type, String name, List<UUID> usersIds) {
-    return generateAndSaveRoom(id, type, name, usersIds, List.of(usersIds.get(0)), null, null);
+    return generateAndSaveRoom(id, type, name, usersIds,
+      RoomTypeDto.ONE_TO_ONE.equals(type) ? usersIds : List.of(usersIds.get(0)),
+      null, null);
   }
 
   public Room generateAndSaveRoom(

@@ -16,6 +16,8 @@ public interface RoomRepository {
 
   Optional<Room> getByIdAndUserId(String roomId, String userId);
 
+  Optional<Room> getOneToOneByAllUserIds(String user1Id, String user2Id);
+
   Room insert(Room room);
 
   Room update(Room room);

@@ -3,10 +3,12 @@ package com.zextras.carbonio.chats.core.repository.impl;
 import com.zextras.carbonio.chats.core.data.entity.User;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import io.ebean.Database;
+import io.ebean.annotation.Transactional;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+@Transactional
 @Singleton
 public class EbeanUserRepository implements UserRepository {
 

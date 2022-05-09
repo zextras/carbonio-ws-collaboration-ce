@@ -75,6 +75,8 @@ paths:
           $ref: '#/components/responses/400BadRequestResponse'
         403:
           $ref: '#/components/responses/403ForbiddenResponse'
+        409:
+          $ref: '#/components/responses/409Conflict'
   /rooms/{roomId}:
     get:
       tags:
@@ -603,14 +605,16 @@ components:
           schema:
             type: string
             format: binary
-    401UnauthorizedResponse:
-      description: User not authorized
-    404NotFoundResponse:
-      description: The requested resource was not found
-    403ForbiddenResponse:
-      description: The requester could not access the resource
     400BadRequestResponse:
       description: The request had wrong or missing parameters
+    401UnauthorizedResponse:
+      description: User not authorized
+    403ForbiddenResponse:
+      description: The requester could not access the resource
+    404NotFoundResponse:
+      description: The requested resource was not found
+    409Conflict:
+      description: The request conflict with the current state
     413PayloadTooLargeResponse:
       description: The request had a payload that was too big
   schemas:

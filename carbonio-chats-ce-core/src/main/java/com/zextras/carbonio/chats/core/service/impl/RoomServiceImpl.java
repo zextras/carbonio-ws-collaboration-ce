@@ -20,6 +20,7 @@ import com.zextras.carbonio.chats.core.data.event.UserUnmutedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
+import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -142,6 +143,12 @@ public class RoomServiceImpl implements RoomService {
     } else if (RoomTypeDto.GROUP.equals(insertRoomRequestDto.getType()) && membersSet.size() < 2) {
       throw new BadRequestException("Too few members (required at least 3)");
     }
+    if (RoomTypeDto.ONE_TO_ONE.equals(insertRoomRequestDto.getType()) &&
+      roomRepository.getOneToOneByAllUserIds(currentUser.getId(),
+        insertRoomRequestDto.getMembersIds().get(0).toString()).isPresent()) {
+      throw new ConflictException("The one to one room already exists for these users");
+    }
+
     insertRoomRequestDto.getMembersIds().stream()
       .filter(memberId -> !userService.userExists(memberId, currentUser))
       .findFirst()

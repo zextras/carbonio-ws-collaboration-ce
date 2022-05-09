@@ -6,8 +6,8 @@ package com.zextras.carbonio.chats.core.repository.impl;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
+import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
-import io.ebean.ExpressionList;
 import io.ebean.Query;
 import io.ebean.annotation.Transactional;
 import java.util.List;
@@ -55,6 +55,21 @@ public class EbeanRoomRepository implements RoomRepository {
   }
 
   @Override
+  public Optional<Room> getOneToOneByAllUserIds(String user1Id, String user2Id) {
+    return db.find(Room.class).where()
+      .eq("type", RoomTypeDto.ONE_TO_ONE)
+      .and().raw("id in ( " +
+        "select distinct a.room_id from chats.subscription a " +
+        "inner join chats.subscription b on a.room_id = b.room_id " +
+        "and (a.user_id = '" + user1Id + "' or a.user_id = '" + user2Id + "') " +
+        "and (b.user_id = '" + user1Id + "' or b.user_id = '" + user2Id + "') " +
+        "where (a.user_id = '" + user1Id + "' and b.user_id = '" + user2Id + "') " +
+        "or (a.user_id = '" + user2Id + "' and b.user_id = '" + user1Id + "'))")
+      .findOneOrEmpty();
+  }
+
+
+  @Override
   public Room insert(Room room) {
     db.insert(room);
     return room;
@@ -71,3 +86,4 @@ public class EbeanRoomRepository implements RoomRepository {
     db.delete(Room.class, id);
   }
 }
+

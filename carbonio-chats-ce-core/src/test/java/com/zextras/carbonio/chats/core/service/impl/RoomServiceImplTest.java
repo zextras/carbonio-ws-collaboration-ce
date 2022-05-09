@@ -35,6 +35,7 @@ import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
+import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -561,6 +562,22 @@ class RoomServiceImplTest {
         roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
       assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
       assertEquals("Bad Request - Only two users can participate to a one to one", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Given creation fields for a one to one room, if there is a room with those users returns a status code 409")
+    public void insertRoom_testOneToOneAlreadyExists() throws Exception {
+      when(roomRepository.getOneToOneByAllUserIds(user1Id.toString(), user2Id.toString())).thenReturn(
+        Optional.of(room2));
+      RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
+        .name("room1")
+        .description("Room one")
+        .type(RoomTypeDto.ONE_TO_ONE)
+        .membersIds(List.of(user2Id));
+      ChatsHttpException exception = assertThrows(ConflictException.class, () ->
+        roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
+      assertEquals(Status.CONFLICT, exception.getHttpStatus());
+      assertEquals("Conflict - The one to one room already exists for these users", exception.getMessage());
     }
   }
 

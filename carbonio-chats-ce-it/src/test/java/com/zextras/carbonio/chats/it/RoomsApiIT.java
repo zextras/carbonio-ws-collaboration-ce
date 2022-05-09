@@ -378,6 +378,26 @@ public class RoomsApiIT {
     }
 
     @Test
+    @DisplayName("Given creation fields for a one to one room, if there is a room with those users returns a status code 409")
+    public void insertRoom_testOneToOneAlreadyExists() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.ONE_TO_ONE, "testOneToOne",
+        List.of(user1Id, user2Id));
+      integrationTestUtils.generateAndSaveRoom(UUID.randomUUID(), RoomTypeDto.ONE_TO_ONE, "testOneToOne",
+        List.of(user1Id, user3Id));
+      integrationTestUtils.generateAndSaveRoom(UUID.randomUUID(), RoomTypeDto.ONE_TO_ONE, "testOneToOne",
+        List.of(user2Id, user3Id));
+
+      MockHttpResponse response = dispatcher.post(URL,
+        getInsertRoomRequestBody("testOneToOne", "Test room", RoomTypeDto.ONE_TO_ONE, List.of(user2Id)),
+        user1Token);
+      assertEquals(409, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      mongooseImMockServer.verifyZeroInteractions();
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
     @DisplayName("Given creation fields, if there isn't name field returns a status code 400")
     public void insertRoom_testErrorRequestWithoutName() throws Exception {
       MockHttpResponse response = dispatcher.post(URL,
