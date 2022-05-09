@@ -40,7 +40,7 @@ class UserManagementAuthenticationServiceTest {
         .thenReturn(Try.success(new UserId("myUser")));
 
       Map<AuthenticationMethod, String> credentials = Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "tokenz");
-      Optional<String> userId = userManagementAuthenticationService.validateToken(credentials);
+      Optional<String> userId = userManagementAuthenticationService.validateCredentials(credentials);
 
       assertTrue(userId.isPresent());
       assertEquals("myUser", userId.get());
@@ -53,7 +53,7 @@ class UserManagementAuthenticationServiceTest {
         .thenReturn(Try.failure(new Unauthorized()));
 
       Map<AuthenticationMethod, String> credentials = Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "tokenz");
-      Optional<String> userId = userManagementAuthenticationService.validateToken(credentials);
+      Optional<String> userId = userManagementAuthenticationService.validateCredentials(credentials);
 
       assertTrue(userId.isEmpty());
     }
@@ -61,7 +61,7 @@ class UserManagementAuthenticationServiceTest {
     @Test
     @DisplayName("Returns an empty optional if credential map is null")
     public void validateToken_testEmptyCredentials() {
-      Optional<String> userId = userManagementAuthenticationService.validateToken(null);
+      Optional<String> userId = userManagementAuthenticationService.validateCredentials(null);
 
       assertTrue(userId.isEmpty());
     }
@@ -70,7 +70,7 @@ class UserManagementAuthenticationServiceTest {
     @DisplayName("Returns an empty optional if the token is not in the credentials")
     public void validateToken_testNoZmAuthToken() {
       Map<AuthenticationMethod, String> credentials = Map.of();
-      Optional<String> userId = userManagementAuthenticationService.validateToken(credentials);
+      Optional<String> userId = userManagementAuthenticationService.validateCredentials(credentials);
 
       assertTrue(userId.isEmpty());
     }
@@ -82,7 +82,7 @@ class UserManagementAuthenticationServiceTest {
         .thenReturn(Try.failure(new InternalServerError(new Exception())));
 
       Map<AuthenticationMethod, String> credentials = Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "tokenz");
-      Optional<String> userId = userManagementAuthenticationService.validateToken(credentials);
+      Optional<String> userId = userManagementAuthenticationService.validateCredentials(credentials);
 
       assertTrue(userId.isEmpty());
     }

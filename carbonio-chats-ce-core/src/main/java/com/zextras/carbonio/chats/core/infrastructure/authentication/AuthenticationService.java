@@ -17,6 +17,6 @@ public interface AuthenticationService extends HealthIndicator {
    * @param credentials a map of possible credentials related to the user
    * @return the user's identifier if the token is valid
    */
-  Optional<String> validateToken(Map<AuthenticationMethod, String> credentials);
+  Optional<String> validateCredentials(Map<AuthenticationMethod, String> credentials);
 
 }

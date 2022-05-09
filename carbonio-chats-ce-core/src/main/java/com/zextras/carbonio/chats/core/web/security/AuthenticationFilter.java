@@ -44,7 +44,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
       requestContext.setSecurityContext(
         SecurityContextImpl.create(
           UserPrincipal
-            .create(authenticationService.validateToken(credentials).map(UUID::fromString).orElseThrow(
+            .create(authenticationService.validateCredentials(credentials).map(UUID::fromString).orElseThrow(
               UnauthorizedException::new))
             .authCredentials(credentials)
         )

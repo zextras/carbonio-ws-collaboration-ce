@@ -94,8 +94,9 @@ public class CoreModule extends AbstractModule {
   @Override
   protected void configure() {
     super.configure();
-
+    //This is bound twice, once for RestEasy injection and one for everything else
     bind(JacksonConfig.class);
+    bind(ObjectMapper.class).toProvider(JacksonConfig.class);
 
     bind(EventDispatcher.class).to(MockEventDispatcherImpl.class);
     bind(AuthenticationFilter.class);
@@ -248,14 +249,6 @@ public class CoreModule extends AbstractModule {
     databaseConfig.setDataSource(getHikariDataSource(appConfig));
     databaseConfig.setClock(clock);
     return DatabaseFactory.create(databaseConfig);
-  }
-
-  @Singleton
-  @Provides
-  public ObjectMapper getObjectMapper() {
-    return new ObjectMapper()
-      .registerModule(new JavaTimeModule())
-      .setDateFormat(new RFC3339DateFormat());
   }
 
   @Singleton

@@ -46,7 +46,7 @@ class AuthenticationFilterTest {
         "ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")
       ));
       Map<AuthenticationMethod, String> credentials = Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "token");
-      when(authenticationService.validateToken(credentials)).thenReturn(Optional.of(userId.toString()));
+      when(authenticationService.validateCredentials(credentials)).thenReturn(Optional.of(userId.toString()));
 
       authenticationFilter.filter(requestContext);
 
@@ -80,7 +80,7 @@ class AuthenticationFilterTest {
         "ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")
       ));
       Map<AuthenticationMethod, String> credentials = Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "token");
-      when(authenticationService.validateToken(credentials)).thenReturn(Optional.empty());
+      when(authenticationService.validateCredentials(credentials)).thenReturn(Optional.empty());
 
       assertThrows(UnauthorizedException.class, () -> authenticationFilter.filter(requestContext));
     }

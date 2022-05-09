@@ -14,7 +14,7 @@ import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
 
 @Provider
-public class JacksonConfig implements ContextResolver<ObjectMapper> {
+public class JacksonConfig implements javax.inject.Provider<ObjectMapper>, ContextResolver<ObjectMapper> {
 
   private final ObjectMapper objectMapper;
 
@@ -24,10 +24,15 @@ public class JacksonConfig implements ContextResolver<ObjectMapper> {
       .build()
       .registerModule(new JavaTimeModule())
       .setDateFormat(new RFC3339DateFormat())
-      .setSerializationInclusion(Include.NON_NULL);;
+      .setDefaultPropertyInclusion(Include.NON_NULL);
   }
 
   public ObjectMapper getContext(Class<?> arg0) {
+    return objectMapper;
+  }
+
+  @Override
+  public ObjectMapper get() {
     return objectMapper;
   }
 }
