@@ -13,6 +13,7 @@ public class ChatsConstant {
   public static final long   MAX_ROOM_IMAGE_SIZE_IN_KB  = 256L;
   public static final String PREVIEW_AREA               = "320x160";
   public static final String CONFIG_PATH                = "/etc/carbonio/chats/config.properties";
+  public static final String LOGGER_CONFIG_PATH         = "/etc/carbonio/chats/logback.xml";
   public static final String MONGOOSEIM_ADMIN_ENDPOINT  = "admin";
   public static final String MONGOOSEIM_CLIENT_ENDPOINT = "api";
 }

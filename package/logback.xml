@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+SPDX-FileCopyrightText: 2022 2021 Zextras <https://www.zextras.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
+<configuration>
+
+  <appender name="FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>/var/log/carbonio/chats/chats.log</file>
+    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+      <Pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} %5p %-30.30logger{29} : %m%n</Pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <FileNamePattern>/var/log/carbonio/chats/chats.%d{yyyy-MM-dd}.log.gz</FileNamePattern>
+      <MaxHistory>28</MaxHistory>
+    </rollingPolicy>
+  </appender>
+
+  <appender name="CONSOLE_LOG" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} %5p %-30.30logger{29} : %m%n</pattern>
+    </encoder>
+  </appender>
+
+  <logger name="com.zextras.carbonio.chats.core" level="DEBUG">
+    <appender-ref ref="FILE_APPENDER"/>
+    <appender-ref ref="CONSOLE_LOG"/>
+  </logger>
+  <logger name="com.zextras.carbonio.chats" level="DEBUG">
+    <appender-ref ref="FILE_APPENDER"/>
+    <appender-ref ref="CONSOLE_LOG"/>
+  </logger>
+  <logger name="io.ebean" level="INFO">
+    <appender-ref ref="FILE_APPENDER"/>
+    <appender-ref ref="CONSOLE_LOG"/>
+  </logger>
+  <logger name="org.testcontainers" level="INFO">
+    <appender-ref ref="FILE_APPENDER"/>
+    <appender-ref ref="CONSOLE_LOG"/>
+  </logger>
+  <logger name="com.github.dockerjava" level="WARN">
+    <appender-ref ref="FILE_APPENDER"/>
+    <appender-ref ref="CONSOLE_LOG"/>
+  </logger>
+  <logger name="org.flywaydb" level="INFO">
+    <appender-ref ref="FILE_APPENDER"/>
+    <appender-ref ref="CONSOLE_LOG"/>
+  </logger>
+  <logger name="com.zaxxer.hikari" level="INFO">
+    <appender-ref ref="FILE_APPENDER"/>
+    <appender-ref ref="CONSOLE_LOG"/>
+  </logger>
+  <logger name="io.netty" level="INFO">
+    <appender-ref ref="FILE_APPENDER"/>
+    <appender-ref ref="CONSOLE_LOG"/>
+  </logger>
+  <logger name="io.swagger" level="INFO">
+    <appender-ref ref="FILE_APPENDER"/>
+    <appender-ref ref="CONSOLE_LOG"/>
+  </logger>
+  <logger name="org.mockserver" level="WARN">
+    <appender-ref ref="FILE_APPENDER"/>
+    <appender-ref ref="CONSOLE_LOG"/>
+  </logger>
+  <logger name="org.jboss.resteasy" level="INFO">
+    <appender-ref ref="FILE_APPENDER"/>
+    <appender-ref ref="CONSOLE_LOG"/>
+  </logger>
+
+  <root level="INFO">
+    <appender-ref ref="FILE_APPENDER"/>
+    <appender-ref ref="CONSOLE_LOG"/>
+  </root>
+
+</configuration>

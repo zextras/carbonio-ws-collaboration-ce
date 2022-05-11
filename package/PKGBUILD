@@ -23,6 +23,7 @@ depends=(
 )
 backup=(
    "etc/carbonio/chats/config.properties"
+   "etc/carbonio/chats/logback.xml"
    "etc/zextras/service-discover/carbonio-chats.hcl"
 )
 sources=(
@@ -35,17 +36,19 @@ sources=(
    "intentions.json"
    "service-protocol.json"
    "config.properties"
+   "logback.xml"
 )
 hashsums=(
    "98682f7cb5269c92c21b90f265f666c009e38e1e79bedf9c56c3aecdb39774f2"
-   "a2c94d87acf4d349c29f87c74bc8a4265e3032dbbb285827942fbf21f4e2e97c"
-   "0b0ad442b482a3f3ed61291fe2adf3ac3d51a6075d18061f1f16e8eb8a35a2a5"
-   "a2c94d87acf4d349c29f87c74bc8a4265e3032dbbb285827942fbf21f4e2e97c"
+   "skip"
+   "e5fcf04a04b79018eaea64c9bfe2cc79da896005589e593824ea3ab877bcd749"
+   "407d7bdf5c3165b06663b18ccb8634004f8c4fc93775766fe61fdaa94bdf738c"
    "ff1f0590ffef56db8f8efd27dd4d263c927470ad8924fdffdbc80c58b55c7b12"
    "806966d4f4eae0d8960f55d233ac171b133edf17244a231f8e2961f3db238344"
    "0470b9333a8bf2d6b3a0a2bcd6111c63292f5f02a293cc08105c86dcc369de9d"
    "2487ad2189ddcf1b8217c5465cc0f5a3cf7e5bd562f73e8dc42bdf27eadeb760"
-   "39fc8fab94f0845c1f7c2f0e7d327013daf7378738f4dc8af2ddf6fcd778abc3"
+   "b675e59d000c52ee713fd19fd1a9c0b39fa75b5824fca8a4274918bb1b023fb8"
+   "f750ea21d594be6d115be5e8ecf0a77a9b91a66323f1b106a4f4d38c9b43ba44"
 )
 
 package() {
@@ -56,6 +59,7 @@ package() {
   cd "${srcdir}"
   install -Dm 755 carbonio-chats "${pkgdir}/usr/bin/carbonio-chats"
   install -Dm 644 config.properties "${pkgdir}/etc/carbonio/chats/config.properties"
+  install -Dm 644 logback.xml "${pkgdir}/etc/carbonio/chats/logback.xml"
   install -Dm 644 carbonio-chats.service "${pkgdir}/lib/systemd/system/carbonio-chats.service"
   install -Dm 644 carbonio-chats-sidecar.service "${pkgdir}/lib/systemd/system/carbonio-chats-sidecar.service"
   install -Dm 644 carbonio-chats.hcl "${pkgdir}/etc/zextras/service-discover/carbonio-chats.hcl"
@@ -70,6 +74,9 @@ postinst() {
     groupadd -r 'carbonio-chats'
   getent passwd 'carbonio-chats' >/dev/null ||
     useradd -r -M -g 'carbonio-chats' -s /sbin/nologin 'carbonio-chats'
+
+  mkdir -p /var/log/carbonio/chats
+  chown carbonio-chats:carbonio-chats /var/log/carbonio/chats
 
   if [ -d /run/systemd/system ]; then
     systemctl daemon-reload >/dev/null 2>&1 || :
