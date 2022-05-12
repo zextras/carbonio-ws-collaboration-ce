@@ -113,13 +113,15 @@ class ConfigFactoryTest {
   }
 
   @Test
-  @DisplayName("Throws an exception if consul token is not set")
+  @DisplayName("Returns an empty optional if consul token is not set")
   public void consulTokenNotSetTest() {
     GetValue mockValue = mock(GetValue.class);
     when(mockValue.getDecodedValue()).thenReturn("consulpsw");
     when(consulClient.getKVValue(ConfigName.DATABASE_PASSWORD.getConsulName(), "token"))
       .thenReturn(new Response<>(mockValue, 12L, true, 12L));
 
-    assertThrows(RuntimeException.class, () -> configFactory.create().get(String.class, ConfigName.DATABASE_PASSWORD));
+    Optional<String> paramValue = configFactory.create().get(String.class, ConfigName.DATABASE_PASSWORD);
+
+    assertTrue(paramValue.isEmpty());
   }
 }

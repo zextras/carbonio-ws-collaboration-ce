@@ -8,6 +8,7 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import io.github.cdimascio.dotenv.Dotenv;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
@@ -45,26 +46,30 @@ class ConfigFactory {
     AppConfig mainConfig = new DotenvAppConfig(dotenv);
     ChatsLogger.info("Env config loaded");
 
-    Properties properties = new Properties();
-    try (InputStream propertiesStream = new FileInputStream(propertiesPath.toString())) {
-      properties.load(propertiesStream);
-      ChatsLogger.info("Properties config loaded");
-    } catch (Exception e) {
-      ChatsLogger.warn("Could not load properties file: " + e.getMessage());
+    if (Files.exists(propertiesPath)) {
+      Properties properties = new Properties();
+      try (InputStream propertiesStream = new FileInputStream(propertiesPath.toString())) {
+        properties.load(propertiesStream);
+        mainConfig.or(new PropertiesAppConfig(properties));
+        ChatsLogger.info("Properties config loaded");
+      } catch (Exception e) {
+        ChatsLogger.warn("Could not load properties file: " + e.getMessage());
+      }
+    } else {
+      ChatsLogger.warn("Properties file not found");
     }
 
-    ConsulAppConfig consulAppConfig = new ConsulAppConfig(consulClient,
-      mainConfig.get(String.class, ConfigName.CONSUL_TOKEN).orElseThrow());
-    try {
-      consulAppConfig.loadConfigurations();
-      ChatsLogger.info("Consul config loaded");
-    } catch (RuntimeException ex) {
-      ChatsLogger.warn(String.format("Error while loading consul config: %s", ex.getMessage()));
-    }
-
-    mainConfig
-      .or(new PropertiesAppConfig(properties))
-      .or(consulAppConfig);
+    mainConfig.get(String.class, ConfigName.CONSUL_TOKEN).ifPresentOrElse(consulToken -> {
+        ConsulAppConfig consulAppConfig = new ConsulAppConfig(consulClient, consulToken);
+        try {
+          consulAppConfig.loadConfigurations();
+          mainConfig.or(consulAppConfig);
+          ChatsLogger.info("Consul config loaded");
+        } catch (RuntimeException ex) {
+          ChatsLogger.warn(String.format("Error while loading consul config: %s", ex.getMessage()));
+        }
+      }, () -> ChatsLogger.warn("Consul token not found")
+    );
 
     return mainConfig;
   }
