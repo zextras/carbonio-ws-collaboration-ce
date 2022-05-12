@@ -25,52 +25,52 @@ SPDX-License-Identifier: AGPL-3.0-only
     </encoder>
   </appender>
 
-  <logger name="com.zextras.carbonio.chats.core" level="DEBUG">
+  <logger name="com.zextras.carbonio.chats.core" level="DEBUG" additivity="false">
     <appender-ref ref="FILE_APPENDER"/>
     <appender-ref ref="CONSOLE_LOG"/>
   </logger>
-  <logger name="com.zextras.carbonio.chats" level="DEBUG">
+  <logger name="com.zextras.carbonio.chats" level="DEBUG" additivity="false">
     <appender-ref ref="FILE_APPENDER"/>
     <appender-ref ref="CONSOLE_LOG"/>
   </logger>
-  <logger name="io.ebean" level="INFO">
+  <logger name="io.ebean" level="INFO" additivity="false">
     <appender-ref ref="FILE_APPENDER"/>
     <appender-ref ref="CONSOLE_LOG"/>
   </logger>
-  <logger name="org.testcontainers" level="INFO">
+  <logger name="org.testcontainers" level="INFO" additivity="false">
     <appender-ref ref="FILE_APPENDER"/>
     <appender-ref ref="CONSOLE_LOG"/>
   </logger>
-  <logger name="com.github.dockerjava" level="WARN">
+  <logger name="com.github.dockerjava" level="WARN" additivity="false">
     <appender-ref ref="FILE_APPENDER"/>
     <appender-ref ref="CONSOLE_LOG"/>
   </logger>
-  <logger name="org.flywaydb" level="INFO">
+  <logger name="org.flywaydb" level="INFO" additivity="false">
     <appender-ref ref="FILE_APPENDER"/>
     <appender-ref ref="CONSOLE_LOG"/>
   </logger>
-  <logger name="com.zaxxer.hikari" level="INFO">
+  <logger name="com.zaxxer.hikari" level="INFO" additivity="false">
     <appender-ref ref="FILE_APPENDER"/>
     <appender-ref ref="CONSOLE_LOG"/>
   </logger>
-  <logger name="io.netty" level="INFO">
+  <logger name="io.netty" level="INFO" additivity="false">
     <appender-ref ref="FILE_APPENDER"/>
     <appender-ref ref="CONSOLE_LOG"/>
   </logger>
-  <logger name="io.swagger" level="INFO">
+  <logger name="io.swagger" level="INFO" additivity="false">
     <appender-ref ref="FILE_APPENDER"/>
     <appender-ref ref="CONSOLE_LOG"/>
   </logger>
-  <logger name="org.mockserver" level="WARN">
+  <logger name="org.mockserver" level="WARN" additivity="false">
     <appender-ref ref="FILE_APPENDER"/>
     <appender-ref ref="CONSOLE_LOG"/>
   </logger>
-  <logger name="org.jboss.resteasy" level="INFO">
+  <logger name="org.jboss.resteasy" level="INFO" additivity="false">
     <appender-ref ref="FILE_APPENDER"/>
     <appender-ref ref="CONSOLE_LOG"/>
   </logger>
 
-  <root level="INFO">
+  <root level="INFO" additivity="false">
     <appender-ref ref="FILE_APPENDER"/>
     <appender-ref ref="CONSOLE_LOG"/>
   </root>
