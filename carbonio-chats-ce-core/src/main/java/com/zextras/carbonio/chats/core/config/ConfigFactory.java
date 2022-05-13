@@ -50,7 +50,7 @@ class ConfigFactory {
       Properties properties = new Properties();
       try (InputStream propertiesStream = new FileInputStream(propertiesPath.toString())) {
         properties.load(propertiesStream);
-        mainConfig.or(new PropertiesAppConfig(properties));
+        mainConfig.addToChain(new PropertiesAppConfig(properties));
         ChatsLogger.info("Properties config loaded");
       } catch (Exception e) {
         ChatsLogger.warn("Could not load properties file: " + e.getMessage());
@@ -63,7 +63,7 @@ class ConfigFactory {
         ConsulAppConfig consulAppConfig = new ConsulAppConfig(consulClient, consulToken);
         try {
           consulAppConfig.loadConfigurations();
-          mainConfig.or(consulAppConfig);
+          mainConfig.addToChain(consulAppConfig);
           ChatsLogger.info("Consul config loaded");
         } catch (RuntimeException ex) {
           ChatsLogger.warn(String.format("Error while loading consul config: %s", ex.getMessage()));

@@ -62,9 +62,34 @@ public abstract class AppConfig {
    * @param nextConfigResolver the alternative {@link AppConfig} to use
    * @return the given {@link AppConfig} parameter to allow for method chaining
    */
-  public AppConfig or(AppConfig nextConfigResolver) {
-    this.next = nextConfigResolver;
-    return this.next;
+//  public AppConfig or(AppConfig nextConfigResolver) {
+//    this.next = nextConfigResolver;
+//    return this.next;
+//  }
+
+  /**
+   * Adds a new configuration resolver to the last position in the chain
+   *
+   * @param newConfigResolver the new configuration resolver {@link AppConfig}
+   * @return itself
+   */
+  public AppConfig addToChain(AppConfig newConfigResolver) {
+    addToChain(this, newConfigResolver);
+    return this;
+  }
+
+  /**
+   * Adds a new configuration resolver to the last position in the chain
+   *
+   * @param appConfig         chain current position {@link AppConfig}
+   * @param newConfigResolver the new configuration resolver {@link AppConfig}
+   */
+  private void addToChain(AppConfig appConfig, AppConfig newConfigResolver) {
+    if (appConfig.next == null) {
+      appConfig.next = newConfigResolver;
+    } else {
+      addToChain(appConfig.next, newConfigResolver);
+    }
   }
 
   protected <T> T castToGeneric(Class<T> clazz, String stringValue) {

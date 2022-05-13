@@ -26,7 +26,7 @@ class AppConfigTest {
       MockConfig config2 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value2");
       MockConfig config3 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value3");
 
-      config1.or(config2).or(config3);
+      config1.addToChain(config2).addToChain(config3);
 
       assertTrue(config1.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
       assertEquals("value1", config1.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
@@ -39,7 +39,7 @@ class AppConfigTest {
       MockConfig config2 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value2");
       MockConfig config3 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value3");
 
-      config1.or(config2).or(config3);
+      config1.addToChain(config2).addToChain(config3);
 
       assertTrue(config1.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
       assertEquals("value2", config1.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
@@ -52,7 +52,7 @@ class AppConfigTest {
       MockConfig config2 = new MockConfig();
       MockConfig config3 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value3");
 
-      config1.or(config2).or(config3);
+      config1.addToChain(config2).addToChain(config3);
 
       assertTrue(config1.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
       assertEquals("value3", config1.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
@@ -65,7 +65,7 @@ class AppConfigTest {
       MockConfig config2 = new MockConfig();
       MockConfig config3 = new MockConfig();
 
-      config1.or(config2).or(config3);
+      config1.addToChain(config2).addToChain(config3);
 
       assertFalse(config1.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
     }
@@ -83,7 +83,7 @@ class AppConfigTest {
       MockConfig config2 = new MockConfig().setEnv(EnvironmentType.TEST);
       MockConfig config3 = new MockConfig().setEnv(EnvironmentType.TEST);
 
-      config1.or(config2).or(config3);
+      config1.addToChain(config2).addToChain(config3);
 
       assertEquals(EnvironmentType.DEVELOPMENT, config1.getEnvType());
     }
@@ -95,7 +95,7 @@ class AppConfigTest {
       MockConfig config2 = new MockConfig().setEnv(EnvironmentType.DEVELOPMENT);
       MockConfig config3 = new MockConfig().setEnv(EnvironmentType.TEST);
 
-      config1.or(config2).or(config3);
+      config1.addToChain(config2).addToChain(config3);
 
       assertEquals(EnvironmentType.DEVELOPMENT, config1.getEnvType());
     }
@@ -107,18 +107,18 @@ class AppConfigTest {
       MockConfig config2 = new MockConfig();
       MockConfig config3 = new MockConfig().setEnv(EnvironmentType.TEST);
 
-      config1.or(config2).or(config3);
+      config1.addToChain(config2).addToChain(config3);
 
       assertEquals(EnvironmentType.TEST, config1.getEnvType());
     }
 
     @Test
     @DisplayName("Returns production env if no one solves the attribute")
-    public void getEnvType_returnsEmptyOptional() {
+    public void getEnvType_returnsDefaultEnv() {
       MockConfig config1 = new MockConfig();
       MockConfig config2 = new MockConfig();
 
-      config1.or(config2);
+      config1.addToChain(config2);
 
       assertEquals(EnvironmentType.PRODUCTION, config1.getEnvType());
     }
