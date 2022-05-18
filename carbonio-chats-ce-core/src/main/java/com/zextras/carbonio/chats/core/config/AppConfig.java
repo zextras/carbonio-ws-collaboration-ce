@@ -1,11 +1,25 @@
 package com.zextras.carbonio.chats.core.config;
 
+import com.zextras.carbonio.chats.core.config.impl.AppConfigType;
 import java.util.Optional;
+import javax.annotation.Nullable;
 
 @SuppressWarnings("unchecked")
 public abstract class AppConfig {
 
   private AppConfig next;
+
+  /**
+   * Loads all configurations and saves them in cache
+   */
+  public abstract AppConfig load();
+
+  /**
+   * Retrieve a boolean value which indicates if the configuration is loaded
+   *
+   * @return true if the configuration is loaded, false otherwise
+   */
+  public abstract boolean isLoaded();
 
   /**
    * Retrieves the specified config or returns an empty {@link  Optional}
@@ -26,18 +40,6 @@ public abstract class AppConfig {
   }
 
   /**
-   * Retrieves the environment type the application is running in. The default is {@link EnvironmentType#PRODUCTION}
-   *
-   * @return the current {@link EnvironmentType}
-   */
-  public EnvironmentType getEnvType() {
-    return getEnvTypeByImplementation().orElseGet(
-      () -> Optional.ofNullable(next).map(AppConfig::getEnvType)
-        .orElse(EnvironmentType.PRODUCTION)
-    );
-  }
-
-  /**
    * Returns the configured value type or an empty optional if it was not found
    *
    * @param clazz      the configuration parameter class (es. {@link Integer}, {@link Boolean} or {@link String})
@@ -48,12 +50,42 @@ public abstract class AppConfig {
   protected abstract <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigName configName);
 
   /**
-   * Returns the configured environment type or an empty optional if it was not found. N.B. The returned {@link
-   * Optional} should always be empty if the configuration was not found.
+   * Retrieves the environment type the application is running in. The default is {@link EnvironmentType#PRODUCTION}
    *
-   * @return an {@link  Optional} which contains the environment type if it was found
+   * @return the current {@link EnvironmentType}
    */
-  protected abstract Optional<EnvironmentType> getEnvTypeByImplementation();
+  public EnvironmentType getEnvType() {
+    return EnvironmentType.getByName(get(String.class, ConfigName.ENV).orElse(EnvironmentType.PRODUCTION.getName()));
+  }
+
+  /**
+   * Sets the configuration in the first chain node
+   *
+   * @param configName configuration key {@link ConfigName}
+   * @param value      configuration value
+   */
+  public AppConfig set(ConfigName configName, String value) {
+    if (!setConfigByImplementation(configName, value) && next != null) {
+      next.set(configName, value);
+    }
+    return this;
+  }
+
+  /**
+   * Sets the configuration and returns a boolean value which indicates if is set
+   *
+   * @param configName configuration key {@link ConfigName}
+   * @param value      configuration value
+   * @return true if the configuration is set, false otherwise
+   */
+  protected abstract boolean setConfigByImplementation(ConfigName configName, String value);
+
+  /**
+   * Return the configuration type {@link AppConfigType}
+   *
+   * @return configuration type {@link AppConfigType}
+   */
+  public abstract AppConfigType getType();
 
   /**
    * Adds a new configuration resolver to the last position in the chain
@@ -61,11 +93,13 @@ public abstract class AppConfig {
    * @param newConfigResolver the new configuration resolver {@link AppConfig}
    * @return itself
    */
-  public AppConfig addToChain(AppConfig newConfigResolver) {
-    if (next == null) {
-      next = newConfigResolver;
-    } else {
-      next.addToChain(newConfigResolver);
+  public AppConfig addToChain(@Nullable AppConfig newConfigResolver) {
+    if (newConfigResolver != null && newConfigResolver.isLoaded()) {
+      if (next == null) {
+        next = newConfigResolver;
+      } else {
+        next.addToChain(newConfigResolver);
+      }
     }
     return this;
   }
@@ -84,5 +118,19 @@ public abstract class AppConfig {
     }
   }
 
-
+  /**
+   * Gets the configuration resolver by type
+   *
+   * @param type configuration resolver type to search {@link AppConfigType}
+   * @return an {@link Optional} which contains the configuration resolver, if found
+   */
+  public Optional<AppConfig> getFromTypes(AppConfigType type) {
+    if (type.equals(getType())) {
+      return Optional.of(this);
+    }
+    if (next != null) {
+      return next.getFromTypes(type);
+    }
+    return Optional.empty();
+  }
 }

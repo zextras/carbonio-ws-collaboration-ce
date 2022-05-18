@@ -3,24 +3,64 @@ package com.zextras.carbonio.chats.core.config.impl;
 import com.ecwid.consul.v1.ConsulClient;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
-import com.zextras.carbonio.chats.core.config.EnvironmentType;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import javax.annotation.Nullable;
 
 public class ConsulAppConfig extends AppConfig {
 
+  private static final AppConfigType CONFIG_TYPE = AppConfigType.CONSUL;
+
   private final ConsulClient        consulClient;
-  private final String              authToken;
+  private final String              consulToken;
   private final Map<String, String> cache;
 
-  public ConsulAppConfig(ConsulClient consulClient, String authToken) {
+  private boolean loaded = false;
+
+  private ConsulAppConfig(ConsulClient consulClient, String consulToken) {
     super();
     this.consulClient = consulClient;
-    this.authToken = authToken;
+    this.consulToken = consulToken;
     this.cache = new HashMap<>();
+  }
+
+  public static AppConfig create(ConsulClient consulClient, @Nullable String consulToken) {
+    if (consulToken == null) {
+      ChatsLogger.warn("Consul token not found");
+      return null;
+    }
+    return new ConsulAppConfig(consulClient, consulToken);
+  }
+
+  public static AppConfig create(String consulHost, Integer consulPort, @Nullable String consulToken) {
+    return create(new ConsulClient(consulHost, consulPort), consulToken);
+  }
+
+  @Override
+  public AppConfig load() {
+    try {
+      Arrays.stream(ConfigName.values()).forEach(configName -> cache.put(configName.getConsulName(), null));
+      ConfigName.getConsulPrefixes().forEach(prefix ->
+        consulClient.getKVValues(prefix, consulToken).getValue().forEach(config -> {
+          if (cache.containsKey(config.getKey())) {
+            cache.put(config.getKey(), config.getDecodedValue());
+          }
+        }));
+      loaded = true;
+      ChatsLogger.info("Consul config loaded");
+    } catch (RuntimeException e) {
+      loaded = false;
+      ChatsLogger.warn("Error while loading consul config", e);
+    }
+    return this;
+  }
+
+  @Override
+  public boolean isLoaded() {
+    return loaded;
   }
 
   @Override
@@ -30,7 +70,7 @@ public class ConsulAppConfig extends AppConfig {
       if (cache.containsKey(configName.getConsulName())) {
         value = cache.get(configName.getConsulName());
       } else {
-        value = consulClient.getKVValue(configName.getConsulName(), authToken).getValue().getDecodedValue();
+        value = consulClient.getKVValue(configName.getConsulName(), consulToken).getValue().getDecodedValue();
         cache.put(configName.getConsulName(), value);
       }
       return Optional.ofNullable(castToGeneric(clazz, value));
@@ -42,28 +82,14 @@ public class ConsulAppConfig extends AppConfig {
   }
 
   @Override
-  protected Optional<EnvironmentType> getEnvTypeByImplementation() {
-    try {
-      return Optional.ofNullable(consulClient.getKVValue(ConfigName.ENV.getConsulName(), authToken)
-        .getValue().getDecodedValue()).map(EnvironmentType::getByName);
-    } catch (RuntimeException ex) {
-      ChatsLogger.debug(
-        String.format("Error while reading environment settings from consul config: %s", ex.getMessage()));
-      return Optional.empty();
-    }
+  protected boolean setConfigByImplementation(ConfigName configName, String value) {
+    cache.put(configName.getConsulName(), value);
+    return true;
   }
 
-
-  /**
-   * Loads all Consul configurations and saves them in cache
-   */
-  public void loadConfigurations() {
-    Arrays.stream(ConfigName.values()).forEach(configName -> cache.put(configName.getConsulName(), null));
-    ConfigName.getConsulPrefixes().forEach(prefix ->
-      consulClient.getKVValues(prefix, authToken).getValue().forEach(config -> {
-        if (cache.containsKey(config.getKey())) {
-          cache.put(config.getKey(), config.getDecodedValue());
-        }
-      }));
+  @Override
+  public AppConfigType getType() {
+    return CONFIG_TYPE;
   }
+
 }

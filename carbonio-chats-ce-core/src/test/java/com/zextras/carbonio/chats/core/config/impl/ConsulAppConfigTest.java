@@ -1,6 +1,7 @@
 package com.zextras.carbonio.chats.core.config.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -12,6 +13,7 @@ import com.ecwid.consul.v1.ConsulClient;
 import com.ecwid.consul.v1.Response;
 import com.ecwid.consul.v1.kv.model.GetValue;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.EnvironmentType;
 import java.util.List;
@@ -23,12 +25,12 @@ import org.junit.jupiter.api.Test;
 @UnitTest
 class ConsulAppConfigTest {
 
-  private ConsulAppConfig consulAppConfig;
-  private ConsulClient    consulClient;
+  private final AppConfig    appConfig;
+  private final ConsulClient consulClient;
 
   public ConsulAppConfigTest() {
     consulClient = mock(ConsulClient.class);
-    consulAppConfig = new ConsulAppConfig(consulClient, "TOKEN");
+    appConfig = ConsulAppConfig.create(consulClient, "TOKEN");
   }
 
   @Nested
@@ -44,20 +46,20 @@ class ConsulAppConfigTest {
       GetValue mockValue2 = mock(GetValue.class);
       when(mockValue2.getKey()).thenReturn("carbonio-chats/db-password");
       when(mockValue2.getDecodedValue()).thenReturn("dbPassword");
-      when(consulClient.getKVValues("carbonio-chats", "TOKEN"))
+      when(consulClient.getKVValues("carbonio-chats/", "TOKEN"))
         .thenReturn(new Response<>(List.of(mockValue1, mockValue2), 12L, true, 12L));
 
-      consulAppConfig.loadConfigurations();
+      appConfig.load();
 
       Optional<String> configValue;
-      configValue = consulAppConfig.getConfigByImplementation(String.class, ConfigName.DATABASE_USERNAME);
+      configValue = appConfig.get(String.class, ConfigName.DATABASE_USERNAME);
       assertTrue(configValue.isPresent());
       assertEquals("dbUsername", configValue.get());
-      configValue = consulAppConfig.getConfigByImplementation(String.class, ConfigName.DATABASE_PASSWORD);
+      configValue = appConfig.get(String.class, ConfigName.DATABASE_PASSWORD);
       assertTrue(configValue.isPresent());
       assertEquals("dbPassword", configValue.get());
 
-      verify(consulClient, times(1)).getKVValues("carbonio-chats", "TOKEN");
+      verify(consulClient, times(1)).getKVValues("carbonio-chats/", "TOKEN");
       verifyNoMoreInteractions(consulClient);
     }
 
@@ -76,13 +78,11 @@ class ConsulAppConfigTest {
       when(consulClient.getKVValue(ConfigName.DATABASE_PASSWORD.getConsulName(), "TOKEN"))
         .thenReturn(new Response<>(mockValue, 12L, true, 12L));
 
-      Optional<String> configValue = consulAppConfig.getConfigByImplementation(String.class,
-        ConfigName.DATABASE_PASSWORD);
+      Optional<String> configValue = appConfig.get(String.class, ConfigName.DATABASE_PASSWORD);
       assertTrue(configValue.isPresent());
       assertEquals("testpsw", configValue.get());
 
-      configValue = consulAppConfig.getConfigByImplementation(String.class,
-        ConfigName.DATABASE_PASSWORD);
+      configValue = appConfig.get(String.class, ConfigName.DATABASE_PASSWORD);
       assertTrue(configValue.isPresent());
       assertEquals("testpsw", configValue.get());
 
@@ -97,8 +97,7 @@ class ConsulAppConfigTest {
       when(consulClient.getKVValue(ConfigName.DATABASE_PASSWORD.getConsulName(), "TOKEN"))
         .thenReturn(new Response<>(mockValue, 12L, true, 12L));
 
-      Optional<String> configValue = consulAppConfig.getConfigByImplementation(String.class,
-        ConfigName.DATABASE_PASSWORD);
+      Optional<String> configValue = appConfig.get(String.class, ConfigName.DATABASE_PASSWORD);
 
       assertTrue(configValue.isEmpty());
     }
@@ -109,8 +108,7 @@ class ConsulAppConfigTest {
       when(consulClient.getKVValue(ConfigName.DATABASE_PASSWORD.getConsulName(), "TOKEN"))
         .thenThrow(new RuntimeException());
 
-      Optional<String> configValue = consulAppConfig.getConfigByImplementation(String.class,
-        ConfigName.DATABASE_PASSWORD);
+      Optional<String> configValue = appConfig.get(String.class, ConfigName.DATABASE_PASSWORD);
 
       assertTrue(configValue.isEmpty());
     }
@@ -129,23 +127,23 @@ class ConsulAppConfigTest {
       when(consulClient.getKVValue(ConfigName.ENV.getConsulName(), "TOKEN"))
         .thenReturn(new Response<>(mockValue, 12L, true, 12L));
 
-      Optional<EnvironmentType> envType = consulAppConfig.getEnvTypeByImplementation();
+      EnvironmentType envType = appConfig.getEnvType();
 
-      assertTrue(envType.isPresent());
-      assertEquals(EnvironmentType.DEVELOPMENT, envType.get());
+      assertNotNull(envType);
+      assertEquals(EnvironmentType.DEVELOPMENT, envType);
     }
 
     @Test
-    @DisplayName("Returns en empty optional if the env type was not retrieved")
+    @DisplayName("Returns default env type if it was not retrieved")
     public void getEnvType_testNotRetrieved() {
       GetValue mockValue = mock(GetValue.class);
       when(mockValue.getDecodedValue()).thenReturn(null);
       when(consulClient.getKVValue(ConfigName.ENV.getConsulName(), "TOKEN"))
         .thenReturn(new Response<>(mockValue, 12L, true, 12L));
 
-      Optional<EnvironmentType> envType = consulAppConfig.getEnvTypeByImplementation();
+      EnvironmentType envType = appConfig.getEnvType();
 
-      assertTrue(envType.isEmpty());
+      assertEquals(EnvironmentType.PRODUCTION, envType);
     }
 
     @Test
@@ -153,9 +151,9 @@ class ConsulAppConfigTest {
     public void getEnvType_testException() {
       when(consulClient.getKVValue(ConfigName.ENV.getConsulName(), "TOKEN")).thenThrow(new RuntimeException());
 
-      Optional<EnvironmentType> envType = consulAppConfig.getEnvTypeByImplementation();
+      EnvironmentType envType = appConfig.getEnvType();
 
-      assertTrue(envType.isEmpty());
+      assertEquals(EnvironmentType.PRODUCTION, envType);
     }
   }
 }

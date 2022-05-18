@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.config.impl.AppConfigType;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -22,54 +23,45 @@ class AppConfigTest {
     @Test
     @DisplayName("Retrieves attribute from the first chain block")
     public void get_valueFromFirstBlock() {
-      MockConfig config1 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value1");
-      MockConfig config2 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value2");
-      MockConfig config3 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value3");
+      AppConfig appConfig = MockConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value1")
+        .addToChain(MockConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value2"))
+        .addToChain(MockConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value3"));
 
-      config1.addToChain(config2).addToChain(config3);
-
-      assertTrue(config1.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
-      assertEquals("value1", config1.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
+      assertTrue(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
+      assertEquals("value1", appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
     }
 
     @Test
     @DisplayName("Retrieves attribute from the second chain block if the first is null")
     public void get_valueFromSecondBlock() {
-      MockConfig config1 = new MockConfig();
-      MockConfig config2 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value2");
-      MockConfig config3 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value3");
+      AppConfig appConfig = MockConfig.create()
+        .addToChain(MockConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value2"))
+        .addToChain(MockConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value3"));
 
-      config1.addToChain(config2).addToChain(config3);
-
-      assertTrue(config1.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
-      assertEquals("value2", config1.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
+      assertTrue(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
+      assertEquals("value2", appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
     }
 
     @Test
     @DisplayName("Retrieves attribute from the third chain block if the second is null")
     public void get_valueFromThirdBlock() {
-      MockConfig config1 = new MockConfig();
-      MockConfig config2 = new MockConfig();
-      MockConfig config3 = new MockConfig().setConfig(ConfigName.DATABASE_JDBC_URL, "value3");
+      AppConfig appConfig = MockConfig.create()
+        .addToChain(MockConfig.create())
+        .addToChain(MockConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value3"));
 
-      config1.addToChain(config2).addToChain(config3);
-
-      assertTrue(config1.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
-      assertEquals("value3", config1.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
+      assertTrue(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
+      assertEquals("value3", appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
     }
 
     @Test
     @DisplayName("Returns and empty optional if no one solves the attribute")
     public void get_returnsEmptyOptional() {
-      MockConfig config1 = new MockConfig();
-      MockConfig config2 = new MockConfig();
-      MockConfig config3 = new MockConfig();
+      AppConfig appConfig = MockConfig.create()
+        .addToChain(MockConfig.create())
+        .addToChain(MockConfig.create());
 
-      config1.addToChain(config2).addToChain(config3);
-
-      assertFalse(config1.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
+      assertFalse(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
     }
-
   }
 
   @Nested
@@ -79,60 +71,63 @@ class AppConfigTest {
     @Test
     @DisplayName("Retrieves env type from the first chain block")
     public void getEnvType_valueFromFirstBlock() {
-      MockConfig config1 = new MockConfig().setEnv(EnvironmentType.DEVELOPMENT);
-      MockConfig config2 = new MockConfig().setEnv(EnvironmentType.TEST);
-      MockConfig config3 = new MockConfig().setEnv(EnvironmentType.TEST);
+      AppConfig appConfig = MockConfig.create().set(ConfigName.ENV, EnvironmentType.DEVELOPMENT.getName())
+        .addToChain(MockConfig.create().set(ConfigName.ENV, EnvironmentType.TEST.getName()))
+        .addToChain(MockConfig.create().set(ConfigName.ENV, EnvironmentType.TEST.getName()));
 
-      config1.addToChain(config2).addToChain(config3);
-
-      assertEquals(EnvironmentType.DEVELOPMENT, config1.getEnvType());
+      assertEquals(EnvironmentType.DEVELOPMENT, appConfig.getEnvType());
     }
 
     @Test
     @DisplayName("Retrieves env type from the second chain block if the first is null")
     public void getEnvType_valueFromSecondBlock() {
-      MockConfig config1 = new MockConfig();
-      MockConfig config2 = new MockConfig().setEnv(EnvironmentType.DEVELOPMENT);
-      MockConfig config3 = new MockConfig().setEnv(EnvironmentType.TEST);
+      AppConfig appConfig = MockConfig.create()
+        .addToChain(MockConfig.create().set(ConfigName.ENV, EnvironmentType.DEVELOPMENT.getName()))
+        .addToChain(MockConfig.create().set(ConfigName.ENV, EnvironmentType.TEST.getName()));
 
-      config1.addToChain(config2).addToChain(config3);
-
-      assertEquals(EnvironmentType.DEVELOPMENT, config1.getEnvType());
+      assertEquals(EnvironmentType.DEVELOPMENT, appConfig.getEnvType());
     }
 
     @Test
     @DisplayName("Retrieves env type from the third chain block if the second is null")
     public void getEnvType_valueFromThirdBlock() {
-      MockConfig config1 = new MockConfig();
-      MockConfig config2 = new MockConfig();
-      MockConfig config3 = new MockConfig().setEnv(EnvironmentType.TEST);
+      AppConfig appConfig = MockConfig.create()
+        .addToChain(MockConfig.create())
+        .addToChain(MockConfig.create().set(ConfigName.ENV, EnvironmentType.TEST.getName()));
 
-      config1.addToChain(config2).addToChain(config3);
-
-      assertEquals(EnvironmentType.TEST, config1.getEnvType());
+      assertEquals(EnvironmentType.TEST, appConfig.getEnvType());
     }
 
     @Test
     @DisplayName("Returns production env if no one solves the attribute")
     public void getEnvType_returnsDefaultEnv() {
-      MockConfig config1 = new MockConfig();
-      MockConfig config2 = new MockConfig();
+      AppConfig appConfig = MockConfig.create()
+        .addToChain(MockConfig.create());
 
-      config1.addToChain(config2);
-
-      assertEquals(EnvironmentType.PRODUCTION, config1.getEnvType());
+      assertEquals(EnvironmentType.PRODUCTION, appConfig.getEnvType());
     }
-
   }
 
   private static class MockConfig extends AppConfig {
 
     private final Map<ConfigName, String> configMap;
-    private       EnvironmentType         environmentType;
 
-    public MockConfig() {
+    private MockConfig() {
       configMap = new HashMap<>();
-      environmentType = null;
+    }
+
+    public static AppConfig create() {
+      return new MockConfig();
+    }
+
+    @Override
+    public AppConfig load() {
+      return this;
+    }
+
+    @Override
+    public boolean isLoaded() {
+      return true;
     }
 
     @Override
@@ -141,19 +136,14 @@ class AppConfigTest {
     }
 
     @Override
-    protected Optional<EnvironmentType> getEnvTypeByImplementation() {
-      return Optional.ofNullable(environmentType);
+    public AppConfigType getType() {
+      return AppConfigType.IN_MEMORY;
     }
 
-    public MockConfig setConfig(ConfigName key, String value) {
+    @Override
+    public boolean setConfigByImplementation(ConfigName key, String value) {
       configMap.put(key, value);
-      return this;
-    }
-
-    public MockConfig setEnv(EnvironmentType environmentType) {
-      this.environmentType = environmentType;
-      return this;
+      return true;
     }
   }
-
 }

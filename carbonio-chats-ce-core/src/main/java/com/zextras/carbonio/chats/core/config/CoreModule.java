@@ -4,9 +4,7 @@
 
 package com.zextras.carbonio.chats.core.config;
 
-import com.ecwid.consul.v1.ConsulClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.zaxxer.hikari.HikariConfig;
@@ -15,11 +13,15 @@ import com.zextras.carbonio.chats.api.AttachmentsApi;
 import com.zextras.carbonio.chats.api.AttachmentsApiService;
 import com.zextras.carbonio.chats.api.HealthApi;
 import com.zextras.carbonio.chats.api.HealthApiService;
-import com.zextras.carbonio.chats.api.RFC3339DateFormat;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
+import com.zextras.carbonio.chats.api.WatchApi;
+import com.zextras.carbonio.chats.api.WatchApiService;
+import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
+import com.zextras.carbonio.chats.core.config.impl.DotenvAppConfig;
+import com.zextras.carbonio.chats.core.config.impl.PropertiesAppConfig;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
@@ -56,15 +58,18 @@ import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
+import com.zextras.carbonio.chats.core.service.WatchService;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.HealthcheckServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
+import com.zextras.carbonio.chats.core.service.impl.WatchServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.WatchApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
@@ -126,6 +131,10 @@ public class CoreModule extends AbstractModule {
     bind(SubscriptionRepository.class).to(EbeanSubscriptionRepository.class);
     bind(SubscriptionMapper.class).to(SubscriptionMapperImpl.class);
 
+    bind(WatchApi.class);
+    bind(WatchApiService.class).to(WatchApiServiceImpl.class);
+    bind(WatchService.class).to(WatchServiceImpl.class);
+
     bind(RoomUserSettingsRepository.class).to(EbeanRoomUserSettingsRepository.class);
     bind(RoomUserSettingsMapper.class);
 
@@ -152,14 +161,15 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private AppConfig getAppConfig(ConsulClient consulClient) {
-    return new ConfigFactory(Path.of("."), Path.of(ChatsConstant.CONFIG_PATH), consulClient).create();
-  }
-
-  @Singleton
-  @Provides
-  private ConsulClient getConsulClient() {
-    return new ConsulClient(ChatsConstant.CONSUL_HOST, ChatsConstant.CONSUL_PORT);
+  private AppConfig getAppConfig() {
+    AppConfig appConfig = DotenvAppConfig.create(Path.of(".")).load()
+      .addToChain(PropertiesAppConfig.create(Path.of(ChatsConstant.CONFIG_PATH)).load());
+    appConfig.addToChain(ConsulAppConfig.create(
+      appConfig.get(String.class, ConfigName.CONSUL_HOST).orElseThrow(),
+      appConfig.get(Integer.class, ConfigName.CONSUL_PORT).orElseThrow(),
+      appConfig.get(String.class, ConfigName.CONSUL_TOKEN).orElse(null))
+    );
+    return appConfig;
   }
 
   @Singleton

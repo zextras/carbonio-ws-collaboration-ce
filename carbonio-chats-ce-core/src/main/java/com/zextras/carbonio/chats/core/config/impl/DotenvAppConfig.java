@@ -6,17 +6,48 @@ package com.zextras.carbonio.chats.core.config.impl;
 
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
-import com.zextras.carbonio.chats.core.config.EnvironmentType;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import io.github.cdimascio.dotenv.Dotenv;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 
-@SuppressWarnings("unchecked")
 public class DotenvAppConfig extends AppConfig {
 
-  private final Dotenv dotenv;
+  private static final AppConfigType CONFIG_TYPE = AppConfigType.ENVIRONMENT;
 
-  public DotenvAppConfig(Dotenv dotenv) {
-    this.dotenv = dotenv;
+  private final Path envDirectory;
+
+  private Dotenv  dotenv;
+  private boolean loaded = false;
+
+  private DotenvAppConfig(Path envDirectory) {
+    this.envDirectory = envDirectory;
+  }
+
+  public static AppConfig create(Path envDirectory) {
+    if (envDirectory == null || !Files.exists(envDirectory)) {
+      ChatsLogger.warn("Environment not found");
+      return null;
+    }
+    return new DotenvAppConfig(envDirectory);
+  }
+
+  @Override
+  public AppConfig load() {
+    this.dotenv = Dotenv.configure()
+      .ignoreIfMissing()
+      .directory(envDirectory.toString())
+      .filename(".env")
+      .load();
+    loaded = true;
+    ChatsLogger.info("Env config loaded");
+    return this;
+  }
+
+  @Override
+  public boolean isLoaded() {
+    return loaded;
   }
 
   @Override
@@ -26,8 +57,12 @@ public class DotenvAppConfig extends AppConfig {
   }
 
   @Override
-  protected Optional<EnvironmentType> getEnvTypeByImplementation() {
-    return get(String.class, ConfigName.ENV).map(EnvironmentType::getByName);
+  protected boolean setConfigByImplementation(ConfigName configName, String value) {
+    return false;
   }
 
+  @Override
+  public AppConfigType getType() {
+    return CONFIG_TYPE;
+  }
 }

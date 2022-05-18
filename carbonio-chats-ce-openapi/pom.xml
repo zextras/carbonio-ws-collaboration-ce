@@ -88,13 +88,17 @@ SPDX-License-Identifier: AGPL-3.0-only
       <groupId>io.swagger</groupId>
       <artifactId>swagger-jaxrs</artifactId>
     </dependency>
+
+    <!-- Consul -->
+    <dependency>
+      <groupId>com.ecwid.consul</groupId>
+      <artifactId>consul-api</artifactId>
+    </dependency>
   </dependencies>
 
 
   <build>
     <plugins>
-
-
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
@@ -118,6 +122,38 @@ SPDX-License-Identifier: AGPL-3.0-only
               <modelNameSuffix>dto</modelNameSuffix>
             </configuration>
           </execution>
+
+
+
+
+          <execution>
+            <id>chats-internal-api</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <generatorName>jaxrs-resteasy</generatorName>
+              <engine>mustache</engine>
+              <!-- Openapi files -->
+              <inputSpec>${project.basedir}/src/main/resources/openapi/chats-internal-api.yaml</inputSpec>
+              <configurationFile>${project.basedir}/src/main/resources/openapi/chats-generator-config.json</configurationFile>
+              <templateDirectory>${project.basedir}/src/main/resources/openapi/chats-templates</templateDirectory>
+              <ignoreFileOverride>${project.basedir}/src/main/resources/openapi/chats-generator-ignore</ignoreFileOverride>
+              <!-- Generation options -->
+              <output>${project.build.directory}/generated-sources/chats</output>
+              <modelNameSuffix>dto</modelNameSuffix>
+              <importMappings>
+                <importMapping>ConsulProperty=com.ecwid.consul.v1.kv.model.GetValue</importMapping>
+              </importMappings>
+
+            </configuration>
+          </execution>
+
+
+
+
+
+
           <execution>
             <id>mongooseim-admin</id>
             <goals>

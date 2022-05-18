@@ -1,0 +1,44 @@
+openapi: 3.0.3
+info:
+  title: Zextras Carbonio Chats CE Api
+  description: Zextras Carbonio Chats CE HTTP APIs definition.
+  version: 0.1.1
+  contact:
+    email: smokybeans@zextras.com
+servers:
+  - url: http://localhost:10000
+tags:
+  - name: Watch
+paths:
+  /watch/consul/prefix:
+    post:
+      tags:
+        - Consul
+      summary: Sets the Consul properties changed by suffix
+      operationId: setConsulProperties
+      requestBody:
+        $ref: '#/components/requestBodies/SetConsulPropertiesRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204SetConsulProperties'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+components:
+  requestBodies:
+    SetConsulPropertiesRequest:
+      description: consul properties list
+      required: true
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ConsulProperty'
+  responses:
+    204SetConsulProperties:
+      description: All chenged properties are updated
+    404NotFoundResponse:
+      description: The requested resource was not found
+  schemas:
+    ConsulProperty:
+      type: object
