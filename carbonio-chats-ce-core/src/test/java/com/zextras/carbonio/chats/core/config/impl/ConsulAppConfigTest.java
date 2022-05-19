@@ -30,7 +30,7 @@ class ConsulAppConfigTest {
 
   public ConsulAppConfigTest() {
     consulClient = mock(ConsulClient.class);
-    appConfig = ConsulAppConfig.create(consulClient, "TOKEN");
+    appConfig = Optional.of(ConsulAppConfig.create(consulClient, "TOKEN")).orElseThrow();
   }
 
   @Nested

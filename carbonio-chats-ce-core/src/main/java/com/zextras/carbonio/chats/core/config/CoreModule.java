@@ -19,9 +19,11 @@ import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.api.WatchApi;
 import com.zextras.carbonio.chats.api.WatchApiService;
+import com.zextras.carbonio.chats.core.AppConfigBuilder;
 import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
 import com.zextras.carbonio.chats.core.config.impl.DotenvAppConfig;
 import com.zextras.carbonio.chats.core.config.impl.PropertiesAppConfig;
+import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
@@ -162,14 +164,18 @@ public class CoreModule extends AbstractModule {
   @Singleton
   @Provides
   private AppConfig getAppConfig() {
-    AppConfig appConfig = DotenvAppConfig.create(Path.of(".")).load()
-      .addToChain(PropertiesAppConfig.create(Path.of(ChatsConstant.CONFIG_PATH)).load());
-    appConfig.addToChain(ConsulAppConfig.create(
-      appConfig.get(String.class, ConfigName.CONSUL_HOST).orElseThrow(),
-      appConfig.get(Integer.class, ConfigName.CONSUL_PORT).orElseThrow(),
-      appConfig.get(String.class, ConfigName.CONSUL_TOKEN).orElse(null))
-    );
-    return appConfig;
+    AppConfigBuilder builder = AppConfigBuilder.create()
+      .add(DotenvAppConfig.create(Path.of(".")))
+      .add(PropertiesAppConfig.create(Path.of(ChatsConstant.CONFIG_PATH)));
+    if (!builder.hasConfig()) {
+      throw new InternalErrorException("No configurations found");
+    }
+    builder.add(ConsulAppConfig.create(
+      builder.getAppConfig().get(String.class, ConfigName.CONSUL_HOST).orElseThrow(),
+      builder.getAppConfig().get(Integer.class, ConfigName.CONSUL_PORT).orElseThrow(),
+      builder.getAppConfig().get(String.class, ConfigName.CONSUL_TOKEN).orElse(null)));
+
+    return builder.getAppConfig();
   }
 
   @Singleton

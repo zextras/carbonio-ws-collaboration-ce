@@ -6,7 +6,6 @@ package com.zextras.carbonio.chats.core.config.impl;
 
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
-import com.zextras.carbonio.chats.core.config.EnvironmentType;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -56,9 +55,11 @@ public class PropertiesAppConfig extends AppConfig {
     return loaded;
   }
 
+  @Override
   protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigName configName) {
-    return Optional.ofNullable(properties.get(configName.getPropertyName())).map(clazz::cast);
-  }
+    return Optional.ofNullable(properties.getProperty(configName.getPropertyName()))
+      .map((stringValue) -> castToGeneric(clazz, stringValue));
+    }
 
   @Override
   protected boolean setConfigByImplementation(ConfigName configName, String value) {
