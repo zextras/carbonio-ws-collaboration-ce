@@ -2,8 +2,10 @@ package com.zextras.carbonio.chats.core.config;
 
 import com.zextras.carbonio.chats.core.config.impl.AppConfigType;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public enum ConfigName {
@@ -52,10 +54,13 @@ public enum ConfigName {
   }
 
   public static Optional<ConfigName> getByName(String name, AppConfigType configType) {
+    Map<AppConfigType, Function<ConfigName, String>> typeMap = Map.of(
+      AppConfigType.ENVIRONMENT, configName -> configName.envName,
+      AppConfigType.PROPERTY, configName -> configName.propertyName,
+      AppConfigType.CONSUL, configName -> configName.consulName
+    );
     return Arrays.stream(ConfigName.values())
-      .filter(item -> (item.envName.equals(name) && configType.equals(AppConfigType.ENVIRONMENT))
-        || (item.propertyName.equals(name) && configType.equals(AppConfigType.PROPERTY))
-        || (item.consulName.equals(name) && configType.equals(AppConfigType.CONSUL))
+      .filter(item -> typeMap.get(configType).apply(item).equals(name)
       ).findAny();
   }
 
