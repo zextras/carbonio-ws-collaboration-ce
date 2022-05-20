@@ -26,10 +26,6 @@ public class DotenvAppConfig extends AppConfig {
   }
 
   public static AppConfig create(Path envDirectory) {
-    if (envDirectory == null || !Files.exists(envDirectory)) {
-      ChatsLogger.warn("Environment not found");
-      return null;
-    }
     return new DotenvAppConfig(envDirectory);
   }
 

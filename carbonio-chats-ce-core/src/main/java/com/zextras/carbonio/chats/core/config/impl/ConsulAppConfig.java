@@ -4,7 +4,9 @@ import com.ecwid.consul.v1.ConsulClient;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -43,12 +45,15 @@ public class ConsulAppConfig extends AppConfig {
   public AppConfig load() {
     try {
       Arrays.stream(ConfigName.values()).forEach(configName -> cache.put(configName.getConsulName(), null));
-      ConfigName.getConsulPrefixes().forEach(prefix ->
-        consulClient.getKVValues(prefix, consulToken).getValue().forEach(config -> {
-          if (cache.containsKey(config.getKey())) {
-            cache.put(config.getKey(), config.getDecodedValue());
-          }
-        }));
+      Arrays.stream(ConfigName.values())
+        .map(name -> name.getConsulName().substring(0, name.getConsulName().indexOf("/") + 1))
+        .distinct()
+        .forEach(prefix ->
+          consulClient.getKVValues(prefix, consulToken).getValue().forEach(config -> {
+            if (cache.containsKey(config.getKey())) {
+              cache.put(config.getKey(), config.getDecodedValue());
+            }
+          }));
       loaded = true;
       ChatsLogger.info("Consul config loaded");
     } catch (RuntimeException e) {

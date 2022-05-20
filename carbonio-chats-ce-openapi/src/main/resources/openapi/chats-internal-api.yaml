@@ -8,13 +8,13 @@ info:
 servers:
   - url: http://localhost:10000
 tags:
-  - name: Watch
+  - name: Consul
 paths:
-  /watch/consul/prefix:
+  /consul/kv-store:
     post:
       tags:
         - Consul
-      summary: Sets the Consul properties changed by suffix
+      summary: Webhook for consul properties watcher
       operationId: setConsulProperties
       requestBody:
         $ref: '#/components/requestBodies/SetConsulPropertiesRequest'
@@ -42,3 +42,23 @@ components:
   schemas:
     ConsulProperty:
       type: object
+      description: Consul property object
+      properties:
+        key:
+          type: string
+          description: property name
+          nullable: false
+        createIndex:
+          type: integer
+        modifyIndex:
+          type: integer
+        lockIndex:
+          type: integer
+        flags:
+          type: integer
+        value:
+          type: string
+          description: property value
+          nullable: false
+        session:
+          type: string

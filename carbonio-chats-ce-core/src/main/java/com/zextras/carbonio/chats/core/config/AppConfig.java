@@ -104,6 +104,17 @@ public abstract class AppConfig {
     return this;
   }
 
+  public void removeLast() {
+    if (next != null) {
+
+      if (next.next == null) {
+        next = null;
+      } else {
+        next.removeLast();
+      }
+    }
+  }
+
   protected <T> T castToGeneric(Class<T> clazz, String stringValue) {
     if (clazz.equals(String.class)) {
       return (T) stringValue;

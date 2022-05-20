@@ -408,12 +408,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         <artifactId>mockserver-netty</artifactId>
         <version>${org.mock-server.version}</version>
       </dependency>
-
-      <dependency>
-        <groupId>org.junit-pioneer</groupId>
-        <artifactId>junit-pioneer</artifactId>
-        <version>${org.junit-pioneer.version}</version>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 

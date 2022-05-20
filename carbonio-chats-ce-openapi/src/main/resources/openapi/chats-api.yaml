@@ -13,7 +13,6 @@ tags:
   - name: Users
   - name: Attachments
   - name: Health
-  - name: Consul
 paths:
   /health:
     get:
@@ -385,19 +384,6 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /watch/consul/prefix:
-    post:
-      tags:
-        - Consul
-      summary: Sets the Consul properties changed by suffix
-      operationId: setConsulProperties
-      requestBody:
-        $ref: '#/components/requestBodies/SetConsulPropertiesRequest'
-      responses:
-        204:
-          $ref: '#/components/responses/204SetConsulProperties'
-        404:
-          $ref: '#/components/responses/404NotFoundResponse'
 components:
   parameters:
     pathRoomId:
@@ -497,15 +483,6 @@ components:
           schema:
             type: string
             format: binary
-    SetConsulPropertiesRequest:
-      description: consul properties list
-      required: true
-      content:
-        application/json:
-          schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/ConsulProperty'
   responses:
     200HealthStatusResponse:
       description: General status of the service and its dependencies
@@ -600,8 +577,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Id'
-    204SetConsulProperties:
-      description: All chenged properties are updated
     200ListRoomAttachmentInfoResponse:
       description: Paged list of metadata of every attachment uploaded to the room
       content:
@@ -915,23 +890,3 @@ components:
           description: paged list of attachments metadata
           items:
             $ref: '#/components/schemas/Attachment'
-    ConsulProperty:
-      type: object
-      description: Consul property object
-      properties:
-        key:
-          type: string
-          description: property name
-        createIndex:
-          type: integer
-        modifyIndex":
-          type: integer
-        lockIndex:
-          type: integer
-        flags:
-          type: integer
-        value:
-          type: string
-          description: property value
-        session:
-          type: string
