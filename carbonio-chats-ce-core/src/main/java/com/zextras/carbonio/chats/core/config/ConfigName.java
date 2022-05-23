@@ -1,7 +1,11 @@
 package com.zextras.carbonio.chats.core.config;
 
+import com.zextras.carbonio.chats.core.config.impl.AppConfigType;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public enum ConfigName {
@@ -23,8 +27,9 @@ public enum ConfigName {
   USER_MANAGEMENT_PORT("carbonio.usermanagement.port", "USER_MANAGEMENT_PORT", "carbonio-chats/user-management-port"),
   PREVIEWER_HOST("carbonio.preview.host", "PREVIEWER_HOST", "carbonio-chats/previewer-host"),
   PREVIEWER_PORT("carbonio.preview.port", "PREVIEWER_PORT", "carbonio-chats/previewer-port"),
-  CONSUL_TOKEN("consul.agent.token", "CONSUL_HTTP_TOKEN", "carbonio-chats/consul-http-token");
-
+  CONSUL_TOKEN("consul.agent.token", "CONSUL_HTTP_TOKEN", "carbonio-chats/consul-http-token"),
+  CONSUL_HOST("consul.host", "CONSUL_HOST", "carbonio-chats/consul-host"),
+  CONSUL_PORT("consul.port", "CONSUL_PORT", "carbonio-chats/consul-port");
 
   private final String propertyName;
   private final String envName;
@@ -48,9 +53,22 @@ public enum ConfigName {
     return consulName;
   }
 
+  public static Optional<ConfigName> getByName(String name, AppConfigType configType) {
+    Map<AppConfigType, Function<ConfigName, String>> typeMap = Map.of(
+      AppConfigType.ENVIRONMENT, configName -> configName.envName,
+      AppConfigType.PROPERTY, configName -> configName.propertyName,
+      AppConfigType.CONSUL, configName -> configName.consulName
+    );
+    return Arrays.stream(ConfigName.values())
+      .filter(item -> typeMap.get(configType).apply(item).equals(name)
+      ).findAny();
+  }
+
   public static Set<String> getConsulPrefixes() {
     return Arrays.stream(ConfigName.values())
-      .map(name -> name.consulName.substring(0, name.consulName.indexOf("/")))
+      .map(name -> name.consulName.substring(0, name.consulName.indexOf("/") + 1))
       .collect(Collectors.toSet());
   }
+
 }
+

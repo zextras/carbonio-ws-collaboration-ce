@@ -8,8 +8,6 @@ public class ChatsConstant {
 
   public static final String SERVER_HOST                = "127.78.0.4";
   public static final int    SERVER_PORT                = 10000;
-  public static final String CONSUL_HOST                = "localhost";
-  public static final int    CONSUL_PORT                = 8500;
   public static final long   MAX_ROOM_IMAGE_SIZE_IN_KB  = 256L;
   public static final String PREVIEW_AREA               = "320x160";
   public static final String CONFIG_PATH                = "/etc/carbonio/chats/config.properties";

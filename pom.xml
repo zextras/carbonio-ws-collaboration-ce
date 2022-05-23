@@ -57,7 +57,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Carbonio User Management -->
     <carbonio-user-management-sdk.version>0.1.1</carbonio-user-management-sdk.version>
     <!-- Storages -->
-    <storages-sdk.version>0.0.5-SNAPSHOT</storages-sdk.version>
+    <storages-sdk.version>0.0.10-SNAPSHOT</storages-sdk.version>
     <!-- Previewer -->
     <preview-sdk.version>0.2.1</preview-sdk.version>
     <!-- Jetty -->
@@ -98,6 +98,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
     <org.junit.jupiter.version>5.8.2</org.junit.jupiter.version>
+    <org.junit-pioneer.version>1.7.0</org.junit-pioneer.version>
+
     <!-- Mockito -->
     <org.mockito.version>4.3.0</org.mockito.version>
 

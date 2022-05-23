@@ -4,18 +4,17 @@
 
 package com.zextras.carbonio.chats.core.config;
 
-import com.ecwid.consul.v1.ConsulClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.api.AttachmentsApi;
 import com.zextras.carbonio.chats.api.AttachmentsApiService;
+import com.zextras.carbonio.chats.api.ConsulApi;
+import com.zextras.carbonio.chats.api.ConsulApiService;
 import com.zextras.carbonio.chats.api.HealthApi;
 import com.zextras.carbonio.chats.api.HealthApiService;
-import com.zextras.carbonio.chats.api.RFC3339DateFormat;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
@@ -52,16 +51,19 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomUserSettingsRepo
 import com.zextras.carbonio.chats.core.repository.impl.EbeanSubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanUserRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
+import com.zextras.carbonio.chats.core.service.CosulService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentServiceImpl;
+import com.zextras.carbonio.chats.core.service.impl.CosulServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.HealthcheckServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.ConsulApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
@@ -82,7 +84,6 @@ import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.config.DatabaseConfig;
-import java.nio.file.Path;
 import java.time.Clock;
 import java.time.ZoneId;
 import javax.inject.Singleton;
@@ -97,6 +98,8 @@ public class CoreModule extends AbstractModule {
     //This is bound twice, once for RestEasy injection and one for everything else
     bind(JacksonConfig.class);
     bind(ObjectMapper.class).toProvider(JacksonConfig.class);
+
+    bind(AppConfig.class).toProvider(new AppConfigProvider(".", ChatsConstant.CONFIG_PATH)).in(Singleton.class);
 
     bind(EventDispatcher.class).to(MockEventDispatcherImpl.class);
     bind(AuthenticationFilter.class);
@@ -126,6 +129,10 @@ public class CoreModule extends AbstractModule {
     bind(SubscriptionRepository.class).to(EbeanSubscriptionRepository.class);
     bind(SubscriptionMapper.class).to(SubscriptionMapperImpl.class);
 
+    bind(ConsulApi.class);
+    bind(ConsulApiService.class).to(ConsulApiServiceImpl.class);
+    bind(CosulService.class).to(CosulServiceImpl.class);
+
     bind(RoomUserSettingsRepository.class).to(EbeanRoomUserSettingsRepository.class);
     bind(RoomUserSettingsMapper.class);
 
@@ -148,18 +155,6 @@ public class CoreModule extends AbstractModule {
     bind(JsonProcessingExceptionHandler.class);
     bind(DefaultExceptionHandler.class);
     bind(ValidationExceptionHandler.class);
-  }
-
-  @Singleton
-  @Provides
-  private AppConfig getAppConfig(ConsulClient consulClient) {
-    return new ConfigFactory(Path.of("."), Path.of(ChatsConstant.CONFIG_PATH), consulClient).create();
-  }
-
-  @Singleton
-  @Provides
-  private ConsulClient getConsulClient() {
-    return new ConsulClient(ChatsConstant.CONSUL_HOST, ChatsConstant.CONSUL_PORT);
   }
 
   @Singleton
