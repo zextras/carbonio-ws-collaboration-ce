@@ -3,7 +3,7 @@ package com.zextras.carbonio.chats.it.config;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.zextras.carbonio.chats.core.AppConfigBuilder;
+import com.zextras.carbonio.chats.core.config.AppConfigBuilder;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils;
 import java.time.Clock;

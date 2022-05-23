@@ -4,9 +4,7 @@ import com.ecwid.consul.v1.ConsulClient;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import java.nio.charset.Charset;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -56,7 +54,7 @@ public class ConsulAppConfig extends AppConfig {
           }));
       loaded = true;
       ChatsLogger.info("Consul config loaded");
-    } catch (RuntimeException e) {
+    } catch (Exception e) {
       loaded = false;
       ChatsLogger.warn("Error while loading consul config", e);
     }

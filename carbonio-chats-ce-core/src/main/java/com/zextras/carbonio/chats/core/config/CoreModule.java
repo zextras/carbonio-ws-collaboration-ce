@@ -19,11 +19,6 @@ import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
-import com.zextras.carbonio.chats.core.AppConfigBuilder;
-import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
-import com.zextras.carbonio.chats.core.config.impl.DotenvAppConfig;
-import com.zextras.carbonio.chats.core.config.impl.PropertiesAppConfig;
-import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
@@ -89,7 +84,6 @@ import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.config.DatabaseConfig;
-import java.nio.file.Path;
 import java.time.Clock;
 import java.time.ZoneId;
 import javax.inject.Singleton;
@@ -104,6 +98,8 @@ public class CoreModule extends AbstractModule {
     //This is bound twice, once for RestEasy injection and one for everything else
     bind(JacksonConfig.class);
     bind(ObjectMapper.class).toProvider(JacksonConfig.class);
+
+    bind(AppConfig.class).toProvider(new AppConfigProvider(".", ChatsConstant.CONFIG_PATH)).in(Singleton.class);
 
     bind(EventDispatcher.class).to(MockEventDispatcherImpl.class);
     bind(AuthenticationFilter.class);
@@ -159,23 +155,6 @@ public class CoreModule extends AbstractModule {
     bind(JsonProcessingExceptionHandler.class);
     bind(DefaultExceptionHandler.class);
     bind(ValidationExceptionHandler.class);
-  }
-
-  @Singleton
-  @Provides
-  private AppConfig getAppConfig() {
-    AppConfigBuilder builder = AppConfigBuilder.create()
-      .add(DotenvAppConfig.create(Path.of(".")))
-      .add(PropertiesAppConfig.create(Path.of(ChatsConstant.CONFIG_PATH)));
-    if (!builder.hasConfig()) {
-      throw new InternalErrorException("No configurations found");
-    }
-    builder.add(ConsulAppConfig.create(
-      builder.getAppConfig().get(String.class, ConfigName.CONSUL_HOST).orElseThrow(),
-      builder.getAppConfig().get(Integer.class, ConfigName.CONSUL_PORT).orElseThrow(),
-      builder.getAppConfig().get(String.class, ConfigName.CONSUL_TOKEN).orElse(null)));
-
-    return builder.getAppConfig();
   }
 
   @Singleton

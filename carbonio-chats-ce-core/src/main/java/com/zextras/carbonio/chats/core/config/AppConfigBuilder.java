@@ -1,7 +1,4 @@
-package com.zextras.carbonio.chats.core;
-
-import com.zextras.carbonio.chats.core.config.AppConfig;
-import com.zextras.carbonio.chats.core.exception.InternalErrorException;
+package com.zextras.carbonio.chats.core.config;
 
 public class AppConfigBuilder {
 
@@ -15,11 +12,13 @@ public class AppConfigBuilder {
   public AppConfigBuilder add(AppConfig appConfig) {
     if (appConfig != null) {
       appConfig.load();
-      if (this.appConfig == null) {
-        this.appConfig = appConfig;
-        this.hasConfig = true;
-      } else {
-        this.appConfig.addToChain(appConfig);
+      if (appConfig.isLoaded()) {
+        if (this.appConfig == null) {
+          this.appConfig = appConfig;
+          this.hasConfig = true;
+        } else {
+          this.appConfig.addToChain(appConfig);
+        }
       }
     }
     return this;
