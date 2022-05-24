@@ -58,22 +58,32 @@ public class MembersServiceImpl implements MembersService {
 
   @Override
   public void setOwner(UUID roomId, UUID userId, boolean isOwner, UserPrincipal currentUser) {
+    if (userId.equals(currentUser.getUUID())) {
+      throw new BadRequestException("Cannot set owner privileges for itself");
+    }
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
+    if(RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+      throw new BadRequestException("Cannot set owner privileges on one-to-one rooms");
+    }
     Subscription subscription = room.getSubscriptions().stream()
       .filter(roomMember -> roomMember.getUserId().equals(userId.toString()))
       .findAny()
       .orElseThrow(
         () -> new ForbiddenException(String.format("User '%s' is not a member of the room", userId.toString())));
+
     subscription.owner(isOwner);
     subscriptionRepository.update(subscription);
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
-      RoomOwnerChangedEvent.create(userId).memberId(userId).isOwner(false)
+      RoomOwnerChangedEvent.create(userId).memberId(userId).isOwner(isOwner)
     );
     messageService.setMemberRole(room.getId(), currentUser.getId(), userId.toString(), isOwner);
   }
 
   @Override
   public MemberDto insertRoomMember(UUID roomId, MemberDto memberDto, UserPrincipal currentUser) {
+    if(!userService.userExists(memberDto.getUserId(), currentUser)) {
+      throw new NotFoundException(String.format("User with id '%s' was not found", memberDto.getUserId()));
+    }
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
     if (room.getType().equals(RoomTypeDto.ONE_TO_ONE)) {
       throw new BadRequestException("Can't add members to a one to one conversation");
@@ -81,10 +91,6 @@ public class MembersServiceImpl implements MembersService {
     if (room.getSubscriptions().stream()
       .anyMatch(member -> memberDto.getUserId().toString().equals(member.getUserId()))) {
       throw new BadRequestException(String.format("User '%s' is already a room member", memberDto.getUserId()));
-    }
-
-    if(!userService.userExists(memberDto.getUserId(), currentUser)) {
-      throw new NotFoundException(String.format("User with id '%s' was not found", memberDto.getUserId()));
     }
     Subscription subscription = subscriptionRepository.insert(
       Subscription.create()
