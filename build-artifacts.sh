@@ -12,6 +12,8 @@ function build-all-artifacts() {
   deploy_on=$5
   debug_mode=$6
 
+  echo "params -> $1 $2 $3 $4 $5 $6"
+
   declare -a distros=(
     #   "DISTRO  | NAME PRE VERSION   | NAME POST VERSION"
     "rocky-8 | carbonio-chats-ce- | -1.el8.x86_64.rpm"
@@ -20,7 +22,7 @@ function build-all-artifacts() {
   distro_found=false
   for distros_index in "${!distros[@]}"; do
     IFS=' | ' read -r -a distros_item <<<"${distros[distros_index]}"
-    if [[ "$distro" == "${distros_item[0]}" || "$distro" == "" ]]; then
+    if [[ "$distro" == "${distros_item[0]}" || "$distro" == "*" ]]; then
       distro_found=true
       print-banner "Building ${distros_item[0]} package"
       cp package/carbonio-chats.service package/carbonio-chats.original
@@ -35,7 +37,7 @@ function build-all-artifacts() {
       eval "build-${distros_item[0]}-artifact"
       cp package/carbonio-chats.original package/carbonio-chats.service
       rm package/carbonio-chats.original
-      if [[ "$distro" != "" && "$deploy_on" != "" ]]; then
+      if [[ "$distro" != "*" && "$deploy_on" != "*" ]]; then
         file_name="${distros_item[1]}$version${distros_item[2]}"
         print-banner "Publishing to $deploy_on"
         # uploading to the server

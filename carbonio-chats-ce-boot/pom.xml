@@ -31,8 +31,8 @@ SPDX-License-Identifier: AGPL-3.0-only
       <id>artifacts</id>
       <properties>
         <noDocker>false</noDocker>
-        <distro></distro>
-        <deployOn></deployOn>
+        <distro>*</distro>
+        <deployOn>*</deployOn>
         <debugMode>false</debugMode>
       </properties>
       <build>
