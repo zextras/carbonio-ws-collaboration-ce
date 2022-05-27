@@ -239,24 +239,26 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  public Database getDatabase(AppConfig appConfig, Clock clock) {
+  public Database getDatabase(DataSource dataSource, Clock clock) {
     DatabaseConfig databaseConfig = new DatabaseConfig();
-    databaseConfig.setDataSource(getHikariDataSource(appConfig));
+    databaseConfig.setDataSource(dataSource);
     databaseConfig.setClock(clock);
     return DatabaseFactory.create(databaseConfig);
   }
 
   @Singleton
   @Provides
-  public Flyway getFlywayInstance(AppConfig appConfig) {
+  public Flyway getFlywayInstance(DataSource dataSource) {
     return Flyway.configure()
       .locations("classpath:migration")
       .schemas("chats")
-      .dataSource(getHikariDataSource(appConfig))
+      .dataSource(dataSource)
       .load();
   }
 
-  private DataSource getHikariDataSource(AppConfig appConfig) {
+  @Singleton
+  @Provides
+  public DataSource getHikariDataSource(AppConfig appConfig) {
     HikariConfig config = new HikariConfig();
     config.setJdbcUrl(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).orElseThrow());
     config.setUsername(appConfig.get(String.class, ConfigName.DATABASE_USERNAME).orElse("chats"));
