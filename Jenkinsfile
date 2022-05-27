@@ -19,12 +19,13 @@ pipeline {
         checkout scm
         withCredentials([file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')]) {
           sh 'cp $SETTINGS_PATH settings-jenkins.xml'
+          sh 'mvn -Dmaven.repo.local=$(pwd)/m2 -N wrapper:wrapper'
         }
       }
     }
     stage('Compiling') {
       steps {
-        sh 'mvn -T1C -B -q --settings settings-jenkins.xml compile'
+        sh './mvnw -Dmaven.repo.local=$(pwd)/m2 -T1C -B -q --settings settings-jenkins.xml compile'
       }
       post {
         failure {
@@ -39,7 +40,7 @@ pipeline {
     stage('Testing') {
       steps {
         sh '''
-        mvn -B --settings settings-jenkins.xml \
+        ./mvnw -Dmaven.repo.local=$(pwd)/m2 -B --settings settings-jenkins.xml \
             -Dlogback.configurationFile="$(pwd)"/carbonio-chats-ce-boot/src/main/resources/logback-test-silent.xml \
             verify
         '''
@@ -80,9 +81,8 @@ pipeline {
           steps {
             unstash 'project'
             sh '''
-              mkdir /tmp/chats
-              mv * /tmp/chats
-              sudo pacur build ubuntu-focal /tmp/chats
+              ./mvnw package -Dmaven.main.skip -Dmaven.repo.local=$(pwd)/m2 \
+                -Dmaven.test.skip -P artifacts -D distro=ubuntu -DnoDocker
             '''
             stash includes: 'artifacts/', name: 'artifacts-ubuntu-focal'
           }
@@ -108,9 +108,8 @@ pipeline {
           steps {
             unstash 'project'
             sh '''
-              mkdir /tmp/chats
-              mv * /tmp/chats
-              sudo pacur build rocky-8 /tmp/chats
+              ./mvnw package -Dmaven.main.skip -Dmaven.repo.local=$(pwd)/m2 \
+                -Dmaven.test.skip -P artifacts -D distro=rocky-8 -DnoDocker
             '''
             stash includes: 'artifacts/', name: 'artifacts-rocky-8'
           }

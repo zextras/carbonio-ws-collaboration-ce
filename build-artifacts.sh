@@ -12,8 +12,6 @@ function build-all-artifacts() {
   deploy_on=$5
   debug_mode=$6
 
-  echo "params -> $1 $2 $3 $4 $5 $6"
-
   declare -a distros=(
     #   "DISTRO  | NAME PRE VERSION   | NAME POST VERSION"
     "rocky-8 | carbonio-chats-ce- | -1.el8.x86_64.rpm"
@@ -88,9 +86,8 @@ EOF
 function build-ubuntu-artifact() {
   if [ "$no_docker" = true ]; then
     mkdir /tmp/chats
-    cp * /tmp/chats
-    cd /tmp/chats || exit
-    pacur build ubuntu
+    cp -r ./* /tmp/chats
+    pacur build ubuntu-focal /tmp/chats
   else
     docker run \
       --rm --entrypoint "" \
@@ -103,9 +100,8 @@ function build-ubuntu-artifact() {
 function build-rocky-8-artifact() {
   if [ "$no_docker" = true ]; then
     mkdir /tmp/chats
-    cp * /tmp/chats
-    cd /tmp/chats || exit
-    pacur build rocky-8
+    cp -r ./* /tmp/chats
+    pacur build rocky-8 /tmp/chats
   else
     docker run \
       --rm --entrypoint "" \
