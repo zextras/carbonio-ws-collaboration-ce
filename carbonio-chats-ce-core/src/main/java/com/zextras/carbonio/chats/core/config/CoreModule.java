@@ -17,6 +17,8 @@ import com.zextras.carbonio.chats.api.HealthApi;
 import com.zextras.carbonio.chats.api.HealthApiService;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.api.RoomsApiService;
+import com.zextras.carbonio.chats.api.SupportedApi;
+import com.zextras.carbonio.chats.api.SupportedApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
@@ -40,6 +42,8 @@ import com.zextras.carbonio.chats.core.mapper.RoomMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.RoomUserSettingsMapper;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapperImpl;
+import com.zextras.carbonio.chats.core.provider.AppInfoProvider;
+import com.zextras.carbonio.chats.core.provider.impl.AppInfoProviderImpl;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
@@ -66,6 +70,7 @@ import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.ConsulApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.SupportedApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandler;
@@ -132,6 +137,10 @@ public class CoreModule extends AbstractModule {
     bind(ConsulApi.class);
     bind(ConsulApiService.class).to(ConsulApiServiceImpl.class);
     bind(CosulService.class).to(CosulServiceImpl.class);
+
+    bind(SupportedApi.class);
+    bind(SupportedApiService.class).to(SupportedApiServiceImpl.class);
+    bind(AppInfoProvider.class).to(AppInfoProviderImpl.class);
 
     bind(RoomUserSettingsRepository.class).to(EbeanRoomUserSettingsRepository.class);
     bind(RoomUserSettingsMapper.class);

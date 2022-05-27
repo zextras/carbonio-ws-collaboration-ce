@@ -59,7 +59,7 @@ public class PropertiesAppConfig extends AppConfig {
   protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigName configName) {
     return Optional.ofNullable(properties.getProperty(configName.getPropertyName()))
       .map((stringValue) -> castToGeneric(clazz, stringValue));
-    }
+  }
 
   @Override
   protected boolean setConfigByImplementation(ConfigName configName, String value) {

@@ -61,3 +61,11 @@ With the generated fat-jar:
 ```shell
 java -jar ./boot/target/zextras-chats-ce-fatjar.jar
 ```
+
+## How to change project version
+To change the project versions is recommended to use the script;
+```shell
+version.sh set <1>
+```
+Where:
+1. is the desired version

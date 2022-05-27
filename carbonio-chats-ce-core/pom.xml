@@ -184,7 +184,42 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <build>
     <finalName>carbonio-chats-ce-core</finalName>
+
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
+
+    <testResources>
+      <testResource>
+        <directory>src/test/resource</directory>
+      </testResource>
+    </testResources>
+
     <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <phase>validate</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <workingDirectory>${project.parent.basedir}</workingDirectory>
+          <executable>version.sh</executable>
+          <arguments>
+            <argument>check</argument>
+            <argument>${project.version}</argument>
+          </arguments>
+        </configuration>
+      </plugin>
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

@@ -69,6 +69,4 @@ public enum ConfigName {
       .map(name -> name.consulName.substring(0, name.consulName.indexOf("/") + 1))
       .collect(Collectors.toSet());
   }
-
 }
-
