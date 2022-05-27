@@ -76,10 +76,11 @@ public class ConsulAppConfig extends AppConfig {
         value = consulClient.getKVValue(configName.getConsulName(), consulToken).getValue().getDecodedValue();
         cache.put(configName.getConsulName(), value);
       }
-      return Optional.ofNullable(castToGeneric(clazz, value));
+      return Optional.ofNullable(value).map(configValue -> castToGeneric(clazz, configValue));
     } catch (RuntimeException ex) {
       ChatsLogger.debug(
-        String.format("Error while reading %s from consul config: %s", configName.getConsulName(), ex.getMessage()));
+        String.format("Error while reading %s from consul config: %s: %s", configName.getConsulName(),
+          ex.getClass().getSimpleName(), ex.getMessage()));
       return Optional.empty();
     }
   }
