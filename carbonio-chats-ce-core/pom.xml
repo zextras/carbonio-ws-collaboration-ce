@@ -194,7 +194,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <testResources>
       <testResource>
-        <directory>src/test/resource</directory>
+        <directory>src/test/resources</directory>
       </testResource>
     </testResources>
 
