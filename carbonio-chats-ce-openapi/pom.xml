@@ -27,23 +27,18 @@ SPDX-License-Identifier: AGPL-3.0-only
   </properties>
 
   <dependencies>
-    <dependency>
-      <groupId>io.swagger</groupId>
-      <artifactId>swagger-annotations</artifactId>
-    </dependency>
     <!-- @Nullable annotation -->
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>jsr305</artifactId>
     </dependency>
-    <!-- HTTP client: jersey-client -->
     <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-client</artifactId>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.jboss.resteasy</groupId>
-      <artifactId>resteasy-multipart-provider</artifactId>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpmime</artifactId>
     </dependency>
     <!-- JSON processing: jackson -->
     <dependency>
@@ -79,14 +74,18 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- JavaEE api -->
     <dependency>
       <groupId>javax</groupId>
-      <artifactId>javaee-api</artifactId>
-      <scope>provided</scope>
+      <artifactId>javaee-web-api</artifactId>
     </dependency>
 
     <!-- Open API dependencies-->
     <dependency>
       <groupId>io.swagger</groupId>
       <artifactId>swagger-jaxrs</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.swagger</groupId>
+      <artifactId>swagger-annotations</artifactId>
     </dependency>
   </dependencies>
 

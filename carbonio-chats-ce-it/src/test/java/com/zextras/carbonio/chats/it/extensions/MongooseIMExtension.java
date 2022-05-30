@@ -114,6 +114,7 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
       response()
         .withHeader(header("Content-Type", "application/json"))
         .withStatusCode(200)
+        .withBody("\"" + roomId + "\"")
     );
   }
 
@@ -185,6 +186,7 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
       response()
         .withStatusCode(200)
         .withContentType(MediaType.APPLICATION_JSON)
+        .withBody(JsonBody.json("[]"))
     );
   }
 

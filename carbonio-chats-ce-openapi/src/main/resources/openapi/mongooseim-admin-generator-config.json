@@ -16,7 +16,7 @@
   "invokerPackage": "com.zextras.carbonio.chats.mongooseim.admin.invoker",
   "java8": true,
   "legacyDiscriminatorBehavior": true,
-  "library": "resteasy",
+  "library": "apache-httpclient",
   "modelPackage": "com.zextras.carbonio.chats.mongooseim.admin.model",
   "openApiNullable": true,
   "prependFormOrBodyParameters": false,
