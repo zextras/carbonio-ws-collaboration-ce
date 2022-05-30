@@ -6,19 +6,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.ecwid.consul.v1.Response;
-import com.ecwid.consul.v1.kv.model.GetValue;
+import com.orbitz.consul.Consul;
+import com.orbitz.consul.KeyValueClient;
+import com.orbitz.consul.model.kv.ImmutableValue;
+import com.orbitz.consul.model.kv.Value;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.config.impl.AppConfigType;
 import java.io.File;
 import java.io.FileWriter;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -42,11 +41,11 @@ public class AppConfigProviderTest {
       "carbonio.storages.port", "8081"
     ));
 
-    ConsulClient consulClient = mock(ConsulClient.class);
-    when(consulClient.getKVValues("carbonio-chats/", "TOKEN"))
-      .thenReturn(new Response<>(getConsulConfigValues(Map.of(
-        "carbonio-chats/db-username", Base64.getEncoder().encodeToString("username".getBytes(StandardCharsets.UTF_8)))
-      ), 0L, true, 0L));
+    KeyValueClient keyValueClient = mock(KeyValueClient.class);
+    Consul consulClient = mock(Consul.class);
+    when(keyValueClient.getValues("carbonio-chats/"))
+      .thenReturn(getConsulConfigValues(Map.of("carbonio-chats/db-username", "username")));
+    when(consulClient.keyValueClient()).thenReturn(keyValueClient);
 
     AppConfigProvider appConfigProvider = new AppConfigProvider(environmentFilePath, propertiesFilePath, consulClient);
 
@@ -69,11 +68,13 @@ public class AppConfigProviderTest {
       "CONSUL_PORT", "0",
       "CONSUL_HTTP_TOKEN", "TOKEN"
     ));
-    ConsulClient consulClient = mock(ConsulClient.class);
-    when(consulClient.getKVValues("carbonio-chats/", "TOKEN"))
-      .thenReturn(new Response<>(getConsulConfigValues(Map.of(
-        "carbonio-chats/db-username", Base64.getEncoder().encodeToString("username".getBytes(StandardCharsets.UTF_8)))
-      ), 0L, true, 0L));
+    KeyValueClient keyValueClient = mock(KeyValueClient.class);
+        Consul consulClient = mock(Consul.class);
+    when(keyValueClient.getValues("carbonio-chats/"))
+      .thenReturn(getConsulConfigValues(Map.of(
+        "carbonio-chats/db-username", "username"))
+      );
+    when(consulClient.keyValueClient()).thenReturn(keyValueClient);
 
     AppConfigProvider appConfigProvider = new AppConfigProvider(environmentFilePath, "/fake/config.properties",
       consulClient);
@@ -94,7 +95,7 @@ public class AppConfigProviderTest {
     String folder = Files.createTempDirectory("temp").toString();
     String environmentFilePath = createEnvironmentFile(folder + "/.env", Map.of(
       "CONSUL_HOST", "localhost",
-      "CONSUL_PORT", "0",
+      "CONSUL_PORT", "8080",
       "CONSUL_HTTP_TOKEN", "TOKEN"
     ));
 
@@ -128,14 +129,12 @@ public class AppConfigProviderTest {
     return createTempFile(path, sb.toString());
   }
 
-  private List<GetValue> getConsulConfigValues(Map<String, String> configs) {
-    List<GetValue> result = new ArrayList<>();
-    configs.forEach((k, v) -> {
-      GetValue value = new GetValue();
-      value.setKey(k);
-      value.setValue(v);
-      result.add(value);
-    });
+  private List<Value> getConsulConfigValues(Map<String, String> configs) {
+    List<Value> result = new ArrayList<>();
+    configs.forEach((k, v) ->
+      result.add(ImmutableValue.builder().key(k).value(v)
+        .createIndex(0L).modifyIndex(0L).lockIndex(0L).flags(0L).build())
+    );
     return result;
   }
 

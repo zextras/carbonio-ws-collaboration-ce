@@ -93,8 +93,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Dotenv file support -->
     <io.github.cdimascio.dotenv-java.version>2.2.0</io.github.cdimascio.dotenv-java.version>
     <!-- Consul -->
-    <com.ecwid.consul.consul-api.version>1.4.5</com.ecwid.consul.consul-api.version>
-
+    <com.orbitz.consul.consul-client.version>1.5.3</com.orbitz.consul.consul-client.version>
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
     <org.junit.jupiter.version>5.8.2</org.junit.jupiter.version>
@@ -351,9 +350,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <!-- Consul -->
       <dependency>
-        <groupId>com.ecwid.consul</groupId>
-        <artifactId>consul-api</artifactId>
-        <version>${com.ecwid.consul.consul-api.version}</version>
+        <groupId>com.orbitz.consul</groupId>
+        <artifactId>consul-client</artifactId>
+        <version>${com.orbitz.consul.consul-client.version}</version>
       </dependency>
 
       <!-- Tests dependency -->

@@ -88,12 +88,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <groupId>io.swagger</groupId>
       <artifactId>swagger-jaxrs</artifactId>
     </dependency>
-
-    <!-- Consul -->
-    <dependency>
-      <groupId>com.ecwid.consul</groupId>
-      <artifactId>consul-api</artifactId>
-    </dependency>
   </dependencies>
 
   <build>

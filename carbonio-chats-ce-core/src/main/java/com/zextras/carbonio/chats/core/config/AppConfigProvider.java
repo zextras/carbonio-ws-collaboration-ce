@@ -1,7 +1,7 @@
 package com.zextras.carbonio.chats.core.config;
 
-import com.ecwid.consul.v1.ConsulClient;
 import com.google.inject.Provider;
+import com.orbitz.consul.Consul;
 import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
 import com.zextras.carbonio.chats.core.config.impl.DotenvAppConfig;
 import com.zextras.carbonio.chats.core.config.impl.PropertiesAppConfig;
@@ -10,16 +10,16 @@ import java.nio.file.Path;
 
 public class AppConfigProvider implements Provider<AppConfig> {
 
-  private final String       environmentPath;
-  private final String       propertiesPath;
-  private       ConsulClient consulClient;
+  private final String environmentPath;
+  private final String propertiesPath;
+  private       Consul consulClient;
 
   public AppConfigProvider(String environmentPath, String propertiesPath) {
     this.environmentPath = environmentPath;
     this.propertiesPath = propertiesPath;
   }
 
-  public AppConfigProvider(String environmentPath, String propertiesPath, ConsulClient consulClient) {
+  public AppConfigProvider(String environmentPath, String propertiesPath, Consul consulClient) {
     this.environmentPath = environmentPath;
     this.propertiesPath = propertiesPath;
     this.consulClient = consulClient;

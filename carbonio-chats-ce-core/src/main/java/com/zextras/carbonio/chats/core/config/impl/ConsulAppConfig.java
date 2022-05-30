@@ -1,6 +1,9 @@
 package com.zextras.carbonio.chats.core.config.impl;
 
-import com.ecwid.consul.v1.ConsulClient;
+import com.google.common.net.HostAndPort;
+import com.orbitz.consul.Consul;
+import com.orbitz.consul.model.kv.Value;
+import com.orbitz.consul.option.ImmutableQueryOptions;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
@@ -14,20 +17,20 @@ public class ConsulAppConfig extends AppConfig {
 
   private static final AppConfigType CONFIG_TYPE = AppConfigType.CONSUL;
 
-  private final ConsulClient        consulClient;
+  private final Consul              consulClient;
   private final String              consulToken;
   private final Map<String, String> cache;
 
   private boolean loaded = false;
 
-  private ConsulAppConfig(ConsulClient consulClient, String consulToken) {
+  private ConsulAppConfig(Consul consulClient, String consulToken) {
     super();
     this.consulClient = consulClient;
     this.consulToken = consulToken;
     this.cache = new HashMap<>();
   }
 
-  public static AppConfig create(ConsulClient consulClient, @Nullable String consulToken) {
+  public static AppConfig create(Consul consulClient, @Nullable String consulToken) {
     if (consulToken == null) {
       ChatsLogger.warn("Consul token not found");
       return null;
@@ -36,7 +39,13 @@ public class ConsulAppConfig extends AppConfig {
   }
 
   public static AppConfig create(String consulHost, Integer consulPort, @Nullable String consulToken) {
-    return create(new ConsulClient(consulHost, consulPort), consulToken);
+    try {
+      return create(
+        Consul.builder().withHostAndPort(HostAndPort.fromParts(consulHost, consulPort)).build(), consulToken);
+    } catch (Exception e) {
+      ChatsLogger.warn("Unable to connect to Consul", e);
+      return null;
+    }
   }
 
   @Override
@@ -47,11 +56,12 @@ public class ConsulAppConfig extends AppConfig {
         .map(name -> name.getConsulName().substring(0, name.getConsulName().indexOf("/") + 1))
         .distinct()
         .forEach(prefix ->
-          consulClient.getKVValues(prefix, consulToken).getValue().forEach(config -> {
-            if (cache.containsKey(config.getKey())) {
-              cache.put(config.getKey(), config.getDecodedValue());
-            }
-          }));
+          consulClient.keyValueClient().getValues(prefix, ImmutableQueryOptions.builder().token(consulToken).build())
+            .forEach(config -> {
+              if (cache.containsKey(config.getKey()) && config.getValue().isPresent()) {
+                cache.put(config.getKey(), config.getValue().get());
+              }
+            }));
       loaded = true;
       ChatsLogger.info("Consul config loaded");
     } catch (Exception e) {
@@ -73,7 +83,9 @@ public class ConsulAppConfig extends AppConfig {
       if (cache.containsKey(configName.getConsulName())) {
         value = cache.get(configName.getConsulName());
       } else {
-        value = consulClient.getKVValue(configName.getConsulName(), consulToken).getValue().getDecodedValue();
+        Optional<Value> consulValue = consulClient.keyValueClient()
+          .getValue(configName.getConsulName(), ImmutableQueryOptions.builder().token(consulToken).build());
+        value = consulValue.flatMap(Value::getValueAsString).orElse(null);
         cache.put(configName.getConsulName(), value);
       }
       return Optional.ofNullable(value).map(configValue -> castToGeneric(clazz, configValue));
