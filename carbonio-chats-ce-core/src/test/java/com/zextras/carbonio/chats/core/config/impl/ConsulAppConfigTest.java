@@ -21,6 +21,8 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.EnvironmentType;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -50,10 +52,12 @@ class ConsulAppConfigTest {
     public void loadConfigurations_testOk() {
       Value mockValue1 = mock(ImmutableValue.class);
       when(mockValue1.getKey()).thenReturn("carbonio-chats/db-username");
-      when(mockValue1.getValue()).thenReturn(Optional.of("dbUsername"));
+      when(mockValue1.getValue()).thenReturn(Optional.of(Base64.getEncoder().encodeToString("dbUsername".getBytes(
+        StandardCharsets.UTF_8))));
       Value mockValue2 = mock(ImmutableValue.class);
       when(mockValue2.getKey()).thenReturn("carbonio-chats/db-password");
-      when(mockValue2.getValue()).thenReturn(Optional.of("dbPassword"));
+      when(mockValue2.getValue()).thenReturn(Optional.of(Base64.getEncoder().encodeToString("dbPassword".getBytes(
+        StandardCharsets.UTF_8))));
       when(keyValueClient.getValues(eq("carbonio-chats/"), any(QueryOptions.class)))
         .thenReturn(List.of(mockValue1, mockValue2));
 
@@ -82,7 +86,8 @@ class ConsulAppConfigTest {
     public void getAttribute_testOk() {
       Value mockValue = mock(ImmutableValue.class);
       when(mockValue.getKey()).thenReturn("carbonio-chats/db-password");
-      when(mockValue.getValueAsString()).thenReturn(Optional.of("testpsw"));
+      when(mockValue.getValueAsString()).thenReturn(Optional.of(Base64.getEncoder().encodeToString("testpsw".getBytes(
+        StandardCharsets.UTF_8))));
       when(keyValueClient.getValue(eq("carbonio-chats/db-password"), any(QueryOptions.class)))
         .thenReturn(Optional.of(mockValue));
 
@@ -139,7 +144,8 @@ class ConsulAppConfigTest {
     public void getEnvType_testOk() {
       Value mockValue = mock(ImmutableValue.class);
       when(mockValue.getKey()).thenReturn("carbonio-chats/chats-env");
-      when(mockValue.getValueAsString()).thenReturn(Optional.of("dev"));
+      when(mockValue.getValueAsString()).thenReturn(Optional.of(Base64.getEncoder().encodeToString("dev".getBytes(
+        StandardCharsets.UTF_8))));
       when(keyValueClient.getValue(eq("carbonio-chats/chats-env"), any(ImmutableQueryOptions.class)))
         .thenReturn(Optional.of(mockValue));
 

@@ -7,7 +7,10 @@ import com.orbitz.consul.option.ImmutableQueryOptions;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.Base64.Decoder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -51,6 +54,7 @@ public class ConsulAppConfig extends AppConfig {
   @Override
   public AppConfig load() {
     try {
+      Decoder b64Decoder = Base64.getDecoder();
       Arrays.stream(ConfigName.values()).forEach(configName -> cache.put(configName.getConsulName(), null));
       Arrays.stream(ConfigName.values())
         .map(name -> name.getConsulName().substring(0, name.getConsulName().indexOf("/") + 1))
@@ -59,7 +63,8 @@ public class ConsulAppConfig extends AppConfig {
           consulClient.keyValueClient().getValues(prefix, ImmutableQueryOptions.builder().token(consulToken).build())
             .forEach(config -> {
               if (cache.containsKey(config.getKey()) && config.getValue().isPresent()) {
-                cache.put(config.getKey(), config.getValue().get());
+                cache.put(config.getKey(),
+                  new String(b64Decoder.decode(config.getValue().get().getBytes(StandardCharsets.UTF_8))));
               }
             }));
       loaded = true;
@@ -85,7 +90,9 @@ public class ConsulAppConfig extends AppConfig {
       } else {
         Optional<Value> consulValue = consulClient.keyValueClient()
           .getValue(configName.getConsulName(), ImmutableQueryOptions.builder().token(consulToken).build());
-        value = consulValue.flatMap(Value::getValueAsString).orElse(null);
+        value = consulValue.flatMap(Value::getValueAsString)
+          .map(stringValue -> new String(Base64.getDecoder().decode(stringValue.getBytes(
+            StandardCharsets.UTF_8)))).orElse(null);
         cache.put(configName.getConsulName(), value);
       }
       return Optional.ofNullable(value).map(configValue -> castToGeneric(clazz, configValue));
