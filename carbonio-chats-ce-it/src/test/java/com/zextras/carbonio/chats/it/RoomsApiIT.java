@@ -900,6 +900,23 @@ public class RoomsApiIT {
     }
 
     @Test
+    @DisplayName("Given a room identifier and a picture file, if user is not a room owner returns status code 403")
+    public void updateRoomPicture_testErrorUserIsNotRoomOwner() throws Exception {
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+      UUID roomId = UUID.fromString(fileMock.getId());
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user3Id));
+
+      MockHttpResponse response = dispatcher.put(url(roomId), fileMock.getFileBytes(),
+        Map.of("Content-Type", "application/octet-stream",
+          "X-Content-Disposition",
+          String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
+        user3Token);
+      assertEquals(403, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
     @DisplayName("Given a room identifier and a picture file, if the room isn't a group returns status code 400")
     public void updateRoomPicture_testErrorRoomIsNotRoomGroup() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);

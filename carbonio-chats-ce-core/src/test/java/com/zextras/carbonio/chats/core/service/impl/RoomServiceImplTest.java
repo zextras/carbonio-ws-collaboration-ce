@@ -177,8 +177,8 @@ class RoomServiceImplTest {
       .name("")
       .description("")
       .subscriptions(List.of(
-        Subscription.create(room4, user1Id.toString()).owner(false),
-        Subscription.create(room4, user2Id.toString()).owner(false)));
+        Subscription.create(room4, user1Id.toString()).owner(true),
+        Subscription.create(room4, user2Id.toString()).owner(true)));
   }
 
   @AfterEach
@@ -1161,6 +1161,19 @@ class RoomServiceImplTest {
 
       assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
       assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, room3Id),
+        exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("If the user is not a room owner, it throws a ForbiddenException")
+    void setRoomPicture_failsIfUserIsNotOwner() {
+      when(roomRepository.getById(room3Id.toString())).thenReturn(Optional.of(room3));
+      File file = mock(File.class);
+      ForbiddenException exception = assertThrows(ForbiddenException.class,
+        () -> roomService.setRoomPicture(room3Id, file, "image/jpeg", "picture", UserPrincipal.create(user3Id)));
+
+      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user3Id, room3Id),
         exception.getMessage());
     }
 

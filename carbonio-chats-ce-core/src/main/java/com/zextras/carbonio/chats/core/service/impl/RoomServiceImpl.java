@@ -278,7 +278,7 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public void setRoomPicture(UUID roomId, File image, String mimeType, String fileName, UserPrincipal currentUser) {
-    Room room = getRoomAndCheckUser(roomId, currentUser, false);
+    Room room = getRoomAndCheckUser(roomId, currentUser, true);
     if (!RoomTypeDto.GROUP.equals(room.getType())) {
       throw new BadRequestException("The room picture can only be set to group type rooms");
     }
