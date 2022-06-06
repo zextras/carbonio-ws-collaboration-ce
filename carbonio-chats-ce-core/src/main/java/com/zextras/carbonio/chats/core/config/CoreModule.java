@@ -11,8 +11,6 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.api.AttachmentsApi;
 import com.zextras.carbonio.chats.api.AttachmentsApiService;
-import com.zextras.carbonio.chats.api.ConsulApi;
-import com.zextras.carbonio.chats.api.ConsulApiService;
 import com.zextras.carbonio.chats.api.HealthApi;
 import com.zextras.carbonio.chats.api.HealthApiService;
 import com.zextras.carbonio.chats.api.RoomsApi;
@@ -55,19 +53,16 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomUserSettingsRepo
 import com.zextras.carbonio.chats.core.repository.impl.EbeanSubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanUserRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
-import com.zextras.carbonio.chats.core.service.CosulService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentServiceImpl;
-import com.zextras.carbonio.chats.core.service.impl.CosulServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.HealthcheckServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
-import com.zextras.carbonio.chats.core.web.api.ConsulApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.SupportedApiServiceImpl;
@@ -136,10 +131,6 @@ public class CoreModule extends AbstractModule {
     bind(MembersService.class).to(MembersServiceImpl.class);
     bind(SubscriptionRepository.class).to(EbeanSubscriptionRepository.class);
     bind(SubscriptionMapper.class).to(SubscriptionMapperImpl.class);
-
-    bind(ConsulApi.class);
-    bind(ConsulApiService.class).to(ConsulApiServiceImpl.class);
-    bind(CosulService.class).to(CosulServiceImpl.class);
 
     bind(SupportedApi.class);
     bind(SupportedApiService.class).to(SupportedApiServiceImpl.class);

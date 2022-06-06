@@ -5,14 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.google.common.io.BaseEncoding;
 import com.orbitz.consul.Consul;
 import com.orbitz.consul.KeyValueClient;
+import com.orbitz.consul.cache.ConsulCache.Listener;
+import com.orbitz.consul.cache.KVCache;
 import com.orbitz.consul.model.kv.ImmutableValue;
 import com.orbitz.consul.model.kv.Value;
 import com.orbitz.consul.option.ImmutableQueryOptions;
@@ -23,11 +27,15 @@ import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.EnvironmentType;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
+import org.mockito.MockedStatic.Verification;
+import org.mockito.Mockito;
 
 @UnitTest
 class ConsulAppConfigTest {
@@ -37,8 +45,12 @@ class ConsulAppConfigTest {
   private final KeyValueClient keyValueClient;
 
   public ConsulAppConfigTest() {
+    Consul.NetworkTimeoutConfig networkTimeoutConfig = mock(Consul.NetworkTimeoutConfig.class);
+    when(networkTimeoutConfig.getClientReadTimeoutMillis()).thenReturn(20000);
+    keyValueClient = mock(KeyValueClient.class, RETURNS_DEEP_STUBS);
+
+    when(keyValueClient.getNetworkTimeoutConfig()).thenReturn(networkTimeoutConfig);
     consulClient = mock(Consul.class);
-    keyValueClient = mock(KeyValueClient.class);
     when(consulClient.keyValueClient()).thenReturn(keyValueClient);
     appConfig = Optional.of(ConsulAppConfig.create(consulClient, "TOKEN")).orElseThrow();
   }
@@ -50,30 +62,31 @@ class ConsulAppConfigTest {
     @Test
     @DisplayName("Correctly retrieves required configurations and cache them")
     public void loadConfigurations_testOk() {
-      Value mockValue1 = mock(ImmutableValue.class);
-      when(mockValue1.getKey()).thenReturn("carbonio-chats/db-username");
-      when(mockValue1.getValue()).thenReturn(Optional.of(Base64.getEncoder().encodeToString("dbUsername".getBytes(
-        StandardCharsets.UTF_8))));
-      Value mockValue2 = mock(ImmutableValue.class);
-      when(mockValue2.getKey()).thenReturn("carbonio-chats/db-password");
-      when(mockValue2.getValue()).thenReturn(Optional.of(Base64.getEncoder().encodeToString("dbPassword".getBytes(
-        StandardCharsets.UTF_8))));
-      when(keyValueClient.getValues(eq("carbonio-chats/"), any(QueryOptions.class)))
-        .thenReturn(List.of(mockValue1, mockValue2));
+      KVCache kvCache = mock(KVCache.class);
+      try (MockedStatic<KVCache> kvCacheMockedStatic = Mockito.mockStatic(KVCache.class)) {
+        kvCacheMockedStatic.when((Verification) KVCache.newCache(eq(keyValueClient), eq("carbonio-chats/"), eq(10),
+          any(ImmutableQueryOptions.class))).thenReturn(kvCache);
+        ArgumentCaptor<Listener> listenerArgumentCaptor = ArgumentCaptor.forClass(Listener.class);
 
-      appConfig.load();
-      Optional<String> configValue;
-      configValue = appConfig.get(String.class, ConfigName.DATABASE_USERNAME);
-      assertTrue(configValue.isPresent());
-      assertEquals("dbUsername", configValue.get());
-      configValue = appConfig.get(String.class, ConfigName.DATABASE_PASSWORD);
-      assertTrue(configValue.isPresent());
-      assertEquals("dbPassword", configValue.get());
+        appConfig.load();
 
-      verify(keyValueClient, times(1))
-        .getValues(eq("carbonio-chats/"), any(ImmutableQueryOptions.class));
-      verify(consulClient, times(1)).keyValueClient();
-      verifyNoMoreInteractions(keyValueClient, consulClient);
+        verify(kvCache).addListener(listenerArgumentCaptor.capture());
+        Listener<String, Value> listener = listenerArgumentCaptor.getValue();
+        assertNotNull(listener);
+        listener.notify(Map.of(
+          "db-username",
+          ImmutableValue.builder()
+            .key("carbonio-chats/db-username")
+            .value(Base64.getEncoder().encodeToString("username".getBytes(StandardCharsets.UTF_8)))
+            .createIndex(0L)
+            .modifyIndex(0L)
+            .lockIndex(0L)
+            .flags(0L).build()
+        ));
+        Optional<String> username = appConfig.get(String.class, ConfigName.DATABASE_USERNAME);
+        assertTrue(username.isPresent());
+        assertEquals("username", username.get());
+      }
     }
   }
 
@@ -84,14 +97,19 @@ class ConsulAppConfigTest {
     @Test
     @DisplayName("Correctly retrieves an attribute")
     public void getAttribute_testOk() {
-      Value mockValue = mock(ImmutableValue.class);
-      when(mockValue.getKey()).thenReturn("carbonio-chats/db-password");
-      when(mockValue.getValueAsString()).thenReturn(Optional.of(Base64.getEncoder().encodeToString("testpsw".getBytes(
-        StandardCharsets.UTF_8))));
+      Value mockValue = ImmutableValue.builder()
+        .key("carbonio-chats/db-password")
+        .value(BaseEncoding.base64().encode("testpsw".getBytes(StandardCharsets.UTF_8)))
+        .createIndex(0L)
+        .modifyIndex(0L)
+        .lockIndex(0L)
+        .flags(0L)
+        .build();
       when(keyValueClient.getValue(eq("carbonio-chats/db-password"), any(QueryOptions.class)))
         .thenReturn(Optional.of(mockValue));
-
-      Optional<String> configValue = appConfig.get(String.class, ConfigName.DATABASE_PASSWORD);
+      appConfig.load();
+      Optional<String> configValue;
+      configValue = appConfig.get(String.class, ConfigName.DATABASE_PASSWORD);
       assertTrue(configValue.isPresent());
       assertEquals("testpsw", configValue.get());
 
@@ -101,8 +119,7 @@ class ConsulAppConfigTest {
 
       verify(keyValueClient, times(1))
         .getValue(eq("carbonio-chats/db-password"), any(ImmutableQueryOptions.class));
-      verify(consulClient, times(1)).keyValueClient();
-      verifyNoMoreInteractions(keyValueClient, consulClient);
+      verify(consulClient, times(2)).keyValueClient();
     }
 
     @Test
@@ -142,10 +159,14 @@ class ConsulAppConfigTest {
     @Test
     @DisplayName("Correctly retrieves the environment type")
     public void getEnvType_testOk() {
-      Value mockValue = mock(ImmutableValue.class);
-      when(mockValue.getKey()).thenReturn("carbonio-chats/chats-env");
-      when(mockValue.getValueAsString()).thenReturn(Optional.of(Base64.getEncoder().encodeToString("dev".getBytes(
-        StandardCharsets.UTF_8))));
+      Value mockValue = ImmutableValue.builder()
+        .key("carbonio-chats/chats-env")
+        .value(Base64.getEncoder().encodeToString("dev".getBytes(StandardCharsets.UTF_8)))
+        .createIndex(0L)
+        .modifyIndex(0L)
+        .lockIndex(0L)
+        .flags(0L)
+        .build();
       when(keyValueClient.getValue(eq("carbonio-chats/chats-env"), any(ImmutableQueryOptions.class)))
         .thenReturn(Optional.of(mockValue));
 

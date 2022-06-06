@@ -3,6 +3,7 @@ package com.zextras.carbonio.chats.core.config;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -41,10 +42,13 @@ public class AppConfigProviderTest {
       "carbonio.storages.port", "8081"
     ));
 
-    KeyValueClient keyValueClient = mock(KeyValueClient.class);
-    Consul consulClient = mock(Consul.class);
+    Consul.NetworkTimeoutConfig networkTimeoutConfig = mock(Consul.NetworkTimeoutConfig.class);
+    when(networkTimeoutConfig.getClientReadTimeoutMillis()).thenReturn(20000);
+    KeyValueClient keyValueClient = mock(KeyValueClient.class, RETURNS_DEEP_STUBS);
     when(keyValueClient.getValues("carbonio-chats/"))
       .thenReturn(getConsulConfigValues(Map.of("carbonio-chats/db-username", "username")));
+    when(keyValueClient.getNetworkTimeoutConfig()).thenReturn(networkTimeoutConfig);
+    Consul consulClient = mock(Consul.class);
     when(consulClient.keyValueClient()).thenReturn(keyValueClient);
 
     AppConfigProvider appConfigProvider = new AppConfigProvider(environmentFilePath, propertiesFilePath, consulClient);
@@ -68,12 +72,14 @@ public class AppConfigProviderTest {
       "CONSUL_PORT", "0",
       "CONSUL_HTTP_TOKEN", "TOKEN"
     ));
-    KeyValueClient keyValueClient = mock(KeyValueClient.class);
-        Consul consulClient = mock(Consul.class);
+
+    Consul.NetworkTimeoutConfig networkTimeoutConfig = mock(Consul.NetworkTimeoutConfig.class);
+    when(networkTimeoutConfig.getClientReadTimeoutMillis()).thenReturn(20000);
+    KeyValueClient keyValueClient = mock(KeyValueClient.class, RETURNS_DEEP_STUBS);
     when(keyValueClient.getValues("carbonio-chats/"))
-      .thenReturn(getConsulConfigValues(Map.of(
-        "carbonio-chats/db-username", "username"))
-      );
+      .thenReturn(getConsulConfigValues(Map.of("carbonio-chats/db-username", "username")));
+    when(keyValueClient.getNetworkTimeoutConfig()).thenReturn(networkTimeoutConfig);
+    Consul consulClient = mock(Consul.class);
     when(consulClient.keyValueClient()).thenReturn(keyValueClient);
 
     AppConfigProvider appConfigProvider = new AppConfigProvider(environmentFilePath, "/fake/config.properties",

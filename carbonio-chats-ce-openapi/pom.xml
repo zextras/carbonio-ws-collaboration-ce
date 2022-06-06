@@ -118,27 +118,6 @@ SPDX-License-Identifier: AGPL-3.0-only
           </execution>
 
           <execution>
-            <id>chats-internal-api</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-            <configuration>
-              <generatorName>jaxrs-resteasy</generatorName>
-              <engine>mustache</engine>
-              <!-- Openapi files -->
-              <inputSpec>${project.basedir}/src/main/resources/openapi/chats-internal-api.yaml</inputSpec>
-              <configurationFile>${project.basedir}/src/main/resources/openapi/chats-generator-config.json
-              </configurationFile>
-              <templateDirectory>${project.basedir}/src/main/resources/openapi/chats-templates</templateDirectory>
-              <ignoreFileOverride>${project.basedir}/src/main/resources/openapi/chats-generator-ignore
-              </ignoreFileOverride>
-              <!-- Generation options -->
-              <output>${project.build.directory}/generated-sources/chats</output>
-              <modelNameSuffix>dto</modelNameSuffix>
-            </configuration>
-          </execution>
-
-          <execution>
             <id>mongooseim-admin</id>
             <goals>
               <goal>generate</goal>
