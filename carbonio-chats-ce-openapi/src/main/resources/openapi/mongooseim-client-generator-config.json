@@ -12,9 +12,11 @@
   "groupId": "com.zextras.carbonio.chats",
   "hideGenerationTimestamp": true,
   "ignoreAnyOfInEnum": false,
+
   "java8": true,
   "legacyDiscriminatorBehavior": true,
-  "library": "apache-httpclient",
+  "library": "resteasy",
+
   "openApiNullable": true,
   "prependFormOrBodyParameters": false,
   "scmConnection": "",

@@ -48,7 +48,6 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
         response()
           .withStatusCode(success ? 200 : 500)
           .withContentType(MediaType.APPLICATION_JSON)
-          .withBody(success ? JsonBody.json("[]") : JsonBody.json(""))
       );
   }
 

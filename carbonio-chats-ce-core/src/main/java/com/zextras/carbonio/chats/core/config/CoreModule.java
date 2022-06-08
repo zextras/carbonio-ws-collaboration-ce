@@ -78,7 +78,6 @@ import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.ContactsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.ApiClient;
-import com.zextras.carbonio.chats.mongooseim.admin.invoker.ServerConfiguration;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.storages.api.StoragesClient;
@@ -87,8 +86,6 @@ import io.ebean.DatabaseFactory;
 import io.ebean.config.DatabaseConfig;
 import java.time.Clock;
 import java.time.ZoneId;
-import java.util.List;
-import java.util.Map;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
@@ -170,10 +167,10 @@ public class CoreModule extends AbstractModule {
   @Provides
   private ApiClient getMongooseImAdminApiClient(AppConfig appConfig) {
     return new ApiClient()
-      .setServers(List.of(new ServerConfiguration(String.format("http://%s:%s/%s",
+      .setBasePath(String.format("http://%s:%s/%s",
         appConfig.get(String.class, ConfigName.XMPP_SERVER_HOST).orElseThrow(),
         appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow(),
-        ChatsConstant.MONGOOSEIM_ADMIN_ENDPOINT), "", Map.of())))
+        ChatsConstant.MONGOOSEIM_ADMIN_ENDPOINT))
       .addDefaultHeader("Accept", "*/*")
       .setDebugging(true);
   }
@@ -182,12 +179,10 @@ public class CoreModule extends AbstractModule {
   @Provides
   private com.zextras.carbonio.chats.mongooseim.client.api.ApiClient getMongooseImClientApiClient(AppConfig appConfig) {
     return new com.zextras.carbonio.chats.mongooseim.client.api.ApiClient()
-      .setServers(
-        List.of(
-          new com.zextras.carbonio.chats.mongooseim.client.api.ServerConfiguration(String.format("http://%s:%s/%s",
-            appConfig.get(String.class, ConfigName.XMPP_SERVER_HOST).orElseThrow(),
-            appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow(),
-            ChatsConstant.MONGOOSEIM_CLIENT_ENDPOINT), "", Map.of())))
+      .setBasePath(String.format("http://%s:%s/%s",
+        appConfig.get(String.class, ConfigName.XMPP_SERVER_HOST).orElseThrow(),
+        appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow(),
+        ChatsConstant.MONGOOSEIM_CLIENT_ENDPOINT))
       .addDefaultHeader("Accept", "*/*")
       .setDebugging(true);
   }

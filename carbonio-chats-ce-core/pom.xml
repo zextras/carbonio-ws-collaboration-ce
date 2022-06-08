@@ -31,12 +31,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <groupId>com.zextras.carbonio.chats</groupId>
       <artifactId>carbonio-chats-ce-openapi</artifactId>
       <version>${project.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>javax.ws.rs</groupId>
-          <artifactId>jsr311-api</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
     <!-- Carbonio User Management -->
@@ -87,7 +81,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- JavaEE api -->
     <dependency>
       <groupId>javax</groupId>
-      <artifactId>javaee-web-api</artifactId>
+      <artifactId>javaee-api</artifactId>
+      <scope>provided</scope>
     </dependency>
 
     <!-- Ebean dependencies -->

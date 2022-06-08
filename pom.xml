@@ -68,8 +68,6 @@ SPDX-License-Identifier: AGPL-3.0-only
     <org.jboss.resteasy.version>4.7.2.Final</org.jboss.resteasy.version>
     <org.jboss.resteasy.jaxrs-api.version>3.0.12.Final</org.jboss.resteasy.jaxrs-api.version>
     <javax.ws.rs.version>2.1.1</javax.ws.rs.version>
-    <!--Apache HttpComponents-->
-    <org.apache.httpcomponents.version>4.5.13</org.apache.httpcomponents.version>
     <!-- Ebean -->
     <io.ebean.version>12.12.3</io.ebean.version>
     <!-- JavaEE api -->
@@ -88,7 +86,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <org.mapstruct.version>1.4.2.Final</org.mapstruct.version>
     <org.apache.commons.version>3.12.0</org.apache.commons.version>
     <!-- Open api-->
-    <io.swagger.version>1.6.6</io.swagger.version>
+    <io.swagger.version>1.6.3</io.swagger.version>
     <org.hibernate.validator.version>5.2.4.Final</org.hibernate.validator.version>
     <!-- @Nullable annotation -->
     <com.google.code.findbugs.jsr305.version>3.0.2</com.google.code.findbugs.jsr305.version>
@@ -226,22 +224,10 @@ SPDX-License-Identifier: AGPL-3.0-only
         <version>${org.jboss.resteasy.version}</version>
       </dependency>
 
-      <!-- Apache HttpComponents -->
-      <dependency>
-        <groupId>org.apache.httpcomponents</groupId>
-        <artifactId>httpclient</artifactId>
-        <version>${org.apache.httpcomponents.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.httpcomponents</groupId>
-        <artifactId>httpmime</artifactId>
-        <version>${org.apache.httpcomponents.version}</version>
-      </dependency>
-
       <!-- JavaEE api -->
       <dependency>
         <groupId>javax</groupId>
-        <artifactId>javaee-web-api</artifactId>
+        <artifactId>javaee-api</artifactId>
         <version>${javax.javaee-api.version}</version>
       </dependency>
 
