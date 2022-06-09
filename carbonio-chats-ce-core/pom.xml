@@ -33,6 +33,12 @@ SPDX-License-Identifier: AGPL-3.0-only
       <version>${project.version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.igniterealtime.smack</groupId>
+      <artifactId>smack-core</artifactId>
+      <version>4.4.5</version>
+    </dependency>
+
     <!-- Carbonio User Management -->
     <dependency>
       <groupId>com.zextras.carbonio.user-management</groupId>

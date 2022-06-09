@@ -595,7 +595,7 @@ public class RoomsApiIT {
       Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
       Instant insertRoomInstant = executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
       clock.fixTimeAt(insertRoomInstant);
-      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom",
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom", "Test room",
         List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
         OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       clock.fixTimeAt(executionInstant);

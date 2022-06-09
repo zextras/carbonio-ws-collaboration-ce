@@ -86,6 +86,7 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
     mockRemoveRoomMember(client);
     mockDeleteRoom(client);
     mockSendMessageToRoom(client);
+    mockStanzasMessage(client);
     accounts.forEach(account -> {
       roomsIds.forEach(roomId -> mockCreateRoom(client, roomId, account.getUUID()));
       accounts.forEach(account2 -> {
@@ -199,5 +200,17 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
       response()
         .withStatusCode(200)
     );
+  }
+
+  private void mockStanzasMessage(MockServerClient client) {
+    client.when(
+      request()
+        .withMethod("POST")
+        .withPath("/admin/stanzas")
+    ).respond(
+      response()
+        .withStatusCode(201)
+    );
+
   }
 }

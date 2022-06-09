@@ -34,7 +34,6 @@ import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
-import com.zextras.carbonio.chats.core.utils.Messages;
 import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.HashDto;
@@ -169,7 +168,7 @@ public class RoomServiceImpl implements RoomService {
     room = roomRepository.insert(room);
     messageDispatcher.createRoom(room, currentUser.getId());
     if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
-      messageDispatcher.setUserToRoster(
+      messageDispatcher.addUsersToContacts(
         room.getSubscriptions().get(0).getUserId(),
         room.getSubscriptions().get(1).getUserId());
     }
@@ -186,12 +185,22 @@ public class RoomServiceImpl implements RoomService {
   @Transactional
   public RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser) {
     Room room = getRoomAndCheckUser(roomId, currentUser, true);
-    room
-      .name(updateRoomRequestDto.getName())
-      .description(updateRoomRequestDto.getDescription());
-    roomRepository.update(room);
-    eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
-      RoomUpdatedEvent.create(roomId).from(currentUser.getUUID()));
+    boolean changed = false;
+    if (!room.getName().equals(updateRoomRequestDto.getName())) {
+      changed = true;
+      room.name(updateRoomRequestDto.getName());
+      messageDispatcher.updateRoomName(room.getId(), currentUser.getId(), updateRoomRequestDto.getName());
+    }
+    if (!room.getDescription().equals(updateRoomRequestDto.getDescription())) {
+      changed = true;
+      room.description(updateRoomRequestDto.getDescription());
+      messageDispatcher.updateRoomDescription(room.getId(), currentUser.getId(), updateRoomRequestDto.getDescription());
+    }
+    if (changed) {
+      roomRepository.update(room);
+      eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
+        RoomUpdatedEvent.create(roomId).from(currentUser.getUUID()));
+    }
     return roomMapper.ent2roomDto(room, false);
   }
 
@@ -313,6 +322,6 @@ public class RoomServiceImpl implements RoomService {
     storagesService.saveFile(image, metadata, currentUser.getId());
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
       RoomPictureChangedEvent.create(UUID.fromString(room.getId())).from(currentUser.getUUID()));
-    messageDispatcher.sendMessageToRoom(room.getId(), currentUser.getId(), Messages.SET_PICTURE_FOR_ROOM_MESSAGE);
+    messageDispatcher.updateRoomPictures(room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
   }
 }

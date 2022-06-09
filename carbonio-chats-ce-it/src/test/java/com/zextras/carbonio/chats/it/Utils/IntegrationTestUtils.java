@@ -51,10 +51,18 @@ public class IntegrationTestUtils {
     UUID id, RoomTypeDto type, String name, List<UUID> usersIds, List<UUID> ownerIds, @Nullable List<UUID> mutedIds,
     @Nullable OffsetDateTime pictureUpdateTimestamp
   ) {
+    return generateAndSaveRoom(id, type, name, null, usersIds, ownerIds, mutedIds,pictureUpdateTimestamp);
+  }
+
+  public Room generateAndSaveRoom(
+    UUID id, RoomTypeDto type, String name, @Nullable String description, List<UUID> usersIds, List<UUID> ownerIds,
+    @Nullable List<UUID> mutedIds, @Nullable OffsetDateTime pictureUpdateTimestamp
+  ) {
     Room room = Room.create();
     room
       .id(id.toString())
       .name(name)
+      .description(description)
       .type(type)
       .hash(Utils.encodeUuidHash(id.toString()))
       .subscriptions(usersIds.stream().map(userId ->

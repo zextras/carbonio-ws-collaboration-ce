@@ -77,6 +77,7 @@ import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.ContactsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
+import com.zextras.carbonio.chats.mongooseim.admin.api.OneToOneMessagesApi;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.ApiClient;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
@@ -191,6 +192,12 @@ public class CoreModule extends AbstractModule {
   @Provides
   private MucLightManagementApi getMongooseImMucLight(ApiClient apiClient) {
     return new MucLightManagementApi(apiClient);
+  }
+
+  @Singleton
+  @Provides
+  private OneToOneMessagesApi getOneToOneMessageApi(ApiClient apiClient) {
+    return new OneToOneMessagesApi(apiClient);
   }
 
   @Singleton

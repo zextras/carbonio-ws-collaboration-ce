@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.infrastructure.messaging;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
+import java.util.List;
 
 public interface MessageDispatcher extends HealthIndicator {
 
@@ -26,6 +27,33 @@ public interface MessageDispatcher extends HealthIndicator {
   void deleteRoom(String roomId, String userId);
 
   /**
+   * Sends a message to communicate that the room name has changed
+   *
+   * @param roomId   room identifier
+   * @param senderId operation user
+   * @param name     new room name
+   */
+  void updateRoomName(String roomId, String senderId, String name);
+
+  /**
+   * Sends a message to communicate that the room description has changed
+   *
+   * @param roomId      room identifier
+   * @param senderId    operation user
+   * @param description new room description
+   */
+  void updateRoomDescription(String roomId, String senderId, String description);
+
+  /**
+   * Sends a message to communicate that the room description has changed
+   *  @param roomId       room identifier
+   * @param senderId     operation user
+   * @param pictureId   new pictures id
+   * @param pictureName new pictures name
+   */
+  void updateRoomPictures(String roomId, String senderId, String pictureId, String pictureName);
+
+  /**
    * Invites a member to join a room on XMPP server
    *
    * @param roomId      room identifier
@@ -44,12 +72,12 @@ public interface MessageDispatcher extends HealthIndicator {
   void removeRoomMember(String roomId, String senderId, String recipientId);
 
   /**
-   * Sets two users in their respective rosters so that they can both see each other's presence
+   * Sets two users in their respective contacts list so that they can both see each other's presence
    *
    * @param user1id first user identifier
    * @param user2id second user identifier
    */
-  void setUserToRoster(String user1id, String user2id);
+  void addUsersToContacts(String user1id, String user2id);
 
   /**
    * Sets the member role
