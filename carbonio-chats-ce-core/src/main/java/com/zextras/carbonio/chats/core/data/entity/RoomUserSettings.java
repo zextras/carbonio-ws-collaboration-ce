@@ -41,6 +41,9 @@ public class RoomUserSettings {
   @Temporal(TemporalType.TIMESTAMP)
   private OffsetDateTime clearedAt;
 
+  @Column(name = "RANK")
+  private Integer rank;
+
   @Column(name = "CREATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
   @WhenCreated
@@ -111,6 +114,15 @@ public class RoomUserSettings {
 
   public RoomUserSettings clearedAt(OffsetDateTime clearedAt) {
     this.clearedAt = clearedAt;
+    return this;
+  }
+
+  public Integer getRank() {
+    return rank;
+  }
+
+  public RoomUserSettings rank(Integer rank) {
+    this.rank = rank;
     return this;
   }
 

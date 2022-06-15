@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.repository.impl;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
@@ -86,4 +87,3 @@ public class EbeanRoomRepository implements RoomRepository {
     db.delete(Room.class, id);
   }
 }
-

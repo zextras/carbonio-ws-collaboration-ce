@@ -7,7 +7,7 @@
 		</encoder>
 	</appender>
 
-	<logger name="io.ebean" level="INFO"/>
+	<logger name="io.ebean" level="DEBUG"/>
 	<logger name="org.testcontainers" level="INFO"/>
 	<logger name="com.github.dockerjava" level="WARN"/>
 	<logger name="org.flywaydb" level="INFO"/>

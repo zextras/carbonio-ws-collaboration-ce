@@ -744,6 +744,7 @@ components:
       enum:
         - group
         - one_to_one
+        - workspace
     RoomEditableFields:
       type: object
       description: Room fields that can be updated
@@ -831,6 +832,10 @@ components:
         muted:
           type: boolean
           description: indicates whether the user has muted
+        rank:
+          type: integer
+          description: number that defines the sorting position for workspaces room
+          readOnly: true
       required: [ muted ]
     RoomExtraField:
       type: string

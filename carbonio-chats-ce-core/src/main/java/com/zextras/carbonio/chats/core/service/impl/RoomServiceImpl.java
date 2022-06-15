@@ -53,6 +53,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -128,49 +129,45 @@ public class RoomServiceImpl implements RoomService {
 
   @Override
   @Transactional
-  public RoomInfoDto createRoom(RoomCreationFieldsDto insertRoomRequestDto, UserPrincipal currentUser) {
-    HashSet<UUID> membersSet = new HashSet<>(insertRoomRequestDto.getMembersIds());
-    if (insertRoomRequestDto.getMembersIds().size() != membersSet.size()) {
-      throw new BadRequestException("Members cannot be duplicated");
-    }
-    if (insertRoomRequestDto.getMembersIds().stream()
-      .anyMatch(memberId -> memberId.toString().equals(currentUser.getId()))) {
-      throw new BadRequestException("Requester can't be invited to the room");
-    }
-    if (RoomTypeDto.ONE_TO_ONE.equals(insertRoomRequestDto.getType()) && membersSet.size() != 1) {
-      throw new BadRequestException("Only two users can participate to a one to one");
-    } else if (RoomTypeDto.GROUP.equals(insertRoomRequestDto.getType()) && membersSet.size() < 2) {
-      throw new BadRequestException("Too few members (required at least 3)");
-    }
-    if (RoomTypeDto.ONE_TO_ONE.equals(insertRoomRequestDto.getType()) &&
-      roomRepository.getOneToOneByAllUserIds(currentUser.getId(),
-        insertRoomRequestDto.getMembersIds().get(0).toString()).isPresent()) {
-      throw new ConflictException("The one to one room already exists for these users");
-    }
+  public RoomInfoDto createRoom(RoomCreationFieldsDto roomCreationFields, UserPrincipal currentUser) {
+    createRoomValidation(roomCreationFields, currentUser);
 
-    insertRoomRequestDto.getMembersIds().stream()
-      .filter(memberId -> !userService.userExists(memberId, currentUser))
-      .findFirst()
-      .ifPresent((uuid) -> {
-        throw new NotFoundException(String.format("User with identifier '%s' not found", uuid));
-      });
-    //Adding the requester as a member
-    membersSet.add(UUID.fromString(currentUser.getId()));
+    List<UUID> membersIds = new ArrayList<>(roomCreationFields.getMembersIds());
+    membersIds.add(UUID.fromString(currentUser.getId()));
+
     UUID newRoomId = UUID.randomUUID();
     Room room = Room.create()
       .id(newRoomId.toString())
-      .name(insertRoomRequestDto.getName())
-      .description(insertRoomRequestDto.getDescription())
+      .name(roomCreationFields.getName())
+      .description(roomCreationFields.getDescription())
       .hash(Utils.encodeUuidHash(newRoomId.toString()))
-      .type(insertRoomRequestDto.getType())
-      .password(generateRoomPassword());
-    room.subscriptions(membersService.initRoomSubscriptions(new ArrayList<>(membersSet), room, currentUser));
+      .type(roomCreationFields.getType());
+    room = room.subscriptions(
+      membersService.initRoomSubscriptions(membersIds, room, currentUser));
+
+    if (RoomTypeDto.WORKSPACE.equals(roomCreationFields.getType())) {
+      List<RoomUserSettings> roomUserSettings = new ArrayList<>();
+      Map<String, RoomUserSettings> maxRanksMapByUsers = roomUserSettingsRepository.getWorkspaceMaxRanksMapByUsers(
+        membersIds.stream().map(UUID::toString).collect(Collectors.toList())
+      );
+      for (UUID memberId : membersIds) {
+        RoomUserSettings maxRank = maxRanksMapByUsers.get(memberId.toString());
+        roomUserSettings.add(
+          RoomUserSettings.create(room, memberId.toString())
+            .rank((maxRank != null && maxRank.getRank() != null ? maxRank.getRank() : 0) +1));
+      }
+      room.userSettings(roomUserSettings);
+    }
+
     room = roomRepository.insert(room);
-    messageDispatcher.createRoom(room, currentUser.getId());
-    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
-      messageDispatcher.addUsersToContacts(
-        room.getSubscriptions().get(0).getUserId(),
-        room.getSubscriptions().get(1).getUserId());
+
+    if (!RoomTypeDto.WORKSPACE.equals(room.getType())) {
+      messageDispatcher.createRoom(room, currentUser.getId());
+      if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+        messageDispatcher.addUsersToContacts(
+          room.getSubscriptions().get(0).getUserId(),
+          room.getSubscriptions().get(1).getUserId());
+      }
     }
     UUID finalId = UUID.fromString(room.getId());
     room.getSubscriptions().forEach(member ->
@@ -178,7 +175,44 @@ public class RoomServiceImpl implements RoomService {
         RoomCreatedEvent.create(finalId).from(currentUser.getUUID())
       )
     );
-    return roomMapper.ent2roomInfoDto(room);
+
+    return roomMapper.ent2roomInfoDto(room, currentUser.getId());
+
+  }
+
+  private void createRoomValidation(RoomCreationFieldsDto roomCreationFields, UserPrincipal currentUser) {
+    Set<UUID> membersSet = new HashSet<>(roomCreationFields.getMembersIds());
+
+    if (roomCreationFields.getMembersIds().size() != membersSet.size()) {
+      throw new BadRequestException("Members cannot be duplicated");
+    }
+    if (roomCreationFields.getMembersIds().stream()
+      .anyMatch(memberId -> memberId.toString().equals(currentUser.getId()))) {
+      throw new BadRequestException("Requester can't be invited to the room");
+    }
+    switch (roomCreationFields.getType()) {
+      case ONE_TO_ONE:
+        if (membersSet.size() != 1) {
+          throw new BadRequestException("Only 2 users can participate to a one-to-one room");
+        }
+        if (roomRepository.getOneToOneByAllUserIds(currentUser.getId(),
+          roomCreationFields.getMembersIds().get(0).toString()).isPresent()) {
+          throw new ConflictException("The one to one room already exists for these users");
+        }
+        break;
+      case GROUP:
+      case WORKSPACE:
+        if (membersSet.size() < 2) {
+          throw new BadRequestException("Too few members (required at least 3)");
+        }
+    }
+
+    roomCreationFields.getMembersIds().stream()
+      .filter(memberId -> !userService.userExists(memberId, currentUser))
+      .findFirst()
+      .ifPresent((uuid) -> {
+        throw new NotFoundException(String.format("User with identifier '%s' not found", uuid));
+      });
   }
 
   @Override

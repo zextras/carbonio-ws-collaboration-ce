@@ -51,7 +51,7 @@ public class IntegrationTestUtils {
     UUID id, RoomTypeDto type, String name, List<UUID> usersIds, List<UUID> ownerIds, @Nullable List<UUID> mutedIds,
     @Nullable OffsetDateTime pictureUpdateTimestamp
   ) {
-    return generateAndSaveRoom(id, type, name, null, usersIds, ownerIds, mutedIds,pictureUpdateTimestamp);
+    return generateAndSaveRoom(id, type, name, null, usersIds, ownerIds, mutedIds, pictureUpdateTimestamp);
   }
 
   public Room generateAndSaveRoom(
@@ -87,6 +87,75 @@ public class IntegrationTestUtils {
     Optional.ofNullable(pictureUpdateTimestamp).ifPresent(room::pictureUpdatedAt);
 
     return roomRepository.insert(room);
+  }
+
+  public Room generateAndSaveRoom(Room room, List<RoomMemberField> members) {
+    room.subscriptions(new ArrayList<>());
+    room.userSettings(new ArrayList<>());
+    members.forEach(member -> {
+      room.getSubscriptions().add(
+        Subscription.create()
+          .id(new SubscriptionId(room.getId(), member.getId().toString()))
+          .userId(member.getId().toString())
+          .room(room)
+          .owner(member.isOwner())
+          .joinedAt(OffsetDateTime.now()));
+
+      if (member.isMuted() || member.getRank() != null) {
+        room.getUserSettings().add(RoomUserSettings.create(room, member.getId().toString())
+          .mutedUntil(member.isMuted() ? OffsetDateTime.parse("0001-01-01T00:00:00Z") : null)
+          .rank(member.getRank()));
+      }
+    });
+    return roomRepository.insert(room);
+  }
+
+  public static class RoomMemberField {
+
+    private UUID    id;
+    private boolean owner = false;
+    private boolean muted = false;
+    private Integer rank  = null;
+
+    public static RoomMemberField create() {
+      return new RoomMemberField();
+    }
+
+    public UUID getId() {
+      return id;
+    }
+
+    public RoomMemberField id(UUID id) {
+      this.id = id;
+      return this;
+    }
+
+    public boolean isOwner() {
+      return owner;
+    }
+
+    public RoomMemberField owner(boolean owner) {
+      this.owner = owner;
+      return this;
+    }
+
+    public boolean isMuted() {
+      return muted;
+    }
+
+    public RoomMemberField muted(boolean muted) {
+      this.muted = muted;
+      return this;
+    }
+
+    public Integer getRank() {
+      return rank;
+    }
+
+    public RoomMemberField rank(Integer rank) {
+      this.rank = rank;
+      return this;
+    }
   }
 
   public Optional<Room> getRoomById(UUID roomId) {

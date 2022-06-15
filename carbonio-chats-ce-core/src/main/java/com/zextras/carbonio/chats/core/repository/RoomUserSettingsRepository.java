@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface RoomUserSettingsRepository {
@@ -17,5 +18,7 @@ public interface RoomUserSettingsRepository {
   void deleteByRoomId(String roomId);
 
   RoomUserSettings save(RoomUserSettings roomUserSettings);
+
+  Map<String, RoomUserSettings> getWorkspaceMaxRanksMapByUsers(List<String> userIds);
 
 }

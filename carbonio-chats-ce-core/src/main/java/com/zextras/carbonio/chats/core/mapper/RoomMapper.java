@@ -20,7 +20,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
 
-@Mapper(componentModel = "jsr330", imports = {ArrayList.class, UUID.class, RoomUserSettingsDto.class})
+@Mapper(componentModel = "jsr330", imports = {ArrayList.class, UUID.class, RoomUserSettingsDto.class, Collectors.class})
 public abstract class RoomMapper {
 
   @Inject
@@ -54,5 +54,12 @@ public abstract class RoomMapper {
     @Mapping(target = "userSettings", expression = "java(roomUserSettingsMapper.ent2dto(room.getUserSettings()))")
   })
   public abstract RoomInfoDto ent2roomInfoDto(Room room);
+
+  @Mappings({
+    @Mapping(target = "id", expression = "java(UUID.fromString(room.getId()))"),
+    @Mapping(target = "members", expression = "java(subscriptionMapper.ent2memberDto(room.getSubscriptions()))"),
+    @Mapping(target = "userSettings", expression = "java(roomUserSettingsMapper.ent2dto(room.getUserSettings().stream().filter(us -> us.getUserId().equals(userId)).collect(Collectors.toList())))")
+  })
+  public abstract RoomInfoDto ent2roomInfoDto(Room room, String userId);
 
 }
