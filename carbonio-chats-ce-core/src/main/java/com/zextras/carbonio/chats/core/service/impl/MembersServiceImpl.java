@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.data.event.RoomMemberAddedEvent;
@@ -16,6 +17,7 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
+import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
@@ -23,6 +25,7 @@ import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import io.ebean.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -33,16 +36,18 @@ import javax.inject.Singleton;
 @Singleton
 public class MembersServiceImpl implements MembersService {
 
-  private final RoomService            roomService;
-  private final SubscriptionRepository subscriptionRepository;
-  private final EventDispatcher        eventDispatcher;
-  private final SubscriptionMapper     subscriptionMapper;
-  private final UserService            userService;
-  private final MessageDispatcher      messageService;
+  private final RoomService                roomService;
+  private final SubscriptionRepository     subscriptionRepository;
+  private final RoomUserSettingsRepository roomUserSettingsRepository;
+  private final EventDispatcher            eventDispatcher;
+  private final SubscriptionMapper         subscriptionMapper;
+  private final UserService                userService;
+  private final MessageDispatcher          messageService;
 
   @Inject
   public MembersServiceImpl(
     RoomService roomService, SubscriptionRepository subscriptionRepository,
+    RoomUserSettingsRepository roomUserSettingsRepository,
     EventDispatcher eventDispatcher,
     SubscriptionMapper subscriptionMapper,
     UserService userService,
@@ -50,6 +55,7 @@ public class MembersServiceImpl implements MembersService {
   ) {
     this.roomService = roomService;
     this.subscriptionRepository = subscriptionRepository;
+    this.roomUserSettingsRepository = roomUserSettingsRepository;
     this.eventDispatcher = eventDispatcher;
     this.subscriptionMapper = subscriptionMapper;
     this.userService = userService;
@@ -62,26 +68,27 @@ public class MembersServiceImpl implements MembersService {
       throw new BadRequestException("Cannot set owner privileges for itself");
     }
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
-    if(RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
       throw new BadRequestException("Cannot set owner privileges on one-to-one rooms");
     }
     Subscription subscription = room.getSubscriptions().stream()
       .filter(roomMember -> roomMember.getUserId().equals(userId.toString()))
       .findAny()
       .orElseThrow(
-        () -> new ForbiddenException(String.format("User '%s' is not a member of the room", userId.toString())));
+        () -> new ForbiddenException(String.format("User '%s' is not a member of the room", userId)));
 
     subscription.owner(isOwner);
     subscriptionRepository.update(subscription);
+    messageService.setMemberRole(room.getId(), currentUser.getId(), userId.toString(), isOwner);
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
       RoomOwnerChangedEvent.create(userId).memberId(userId).isOwner(isOwner)
     );
-    messageService.setMemberRole(room.getId(), currentUser.getId(), userId.toString(), isOwner);
   }
 
   @Override
+  @Transactional
   public MemberDto insertRoomMember(UUID roomId, MemberDto memberDto, UserPrincipal currentUser) {
-    if(!userService.userExists(memberDto.getUserId(), currentUser)) {
+    if (!userService.userExists(memberDto.getUserId(), currentUser)) {
       throw new NotFoundException(String.format("User with id '%s' was not found", memberDto.getUserId()));
     }
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
@@ -101,6 +108,15 @@ public class MembersServiceImpl implements MembersService {
         .external(false)
         .joinedAt(OffsetDateTime.now())
     );
+    if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
+      roomUserSettingsRepository.save(
+        RoomUserSettings.create(room, memberDto.getUserId().toString())
+          .rank(roomUserSettingsRepository.getWorkspaceMaxRank(memberDto.getUserId().toString()).orElse(0) + 1)
+      );
+    } else {
+      messageService.addRoomMember(room.getId(), currentUser.getId(), memberDto.getUserId().toString());
+    }
+
     eventDispatcher.sendToTopic(
       currentUser.getUUID(),
       room.getId(),
@@ -109,13 +125,13 @@ public class MembersServiceImpl implements MembersService {
         .memberId(memberDto.getUserId())
         .isOwner(memberDto.isOwner())
         .temporary(false)
-        .external(false)
-    );
-    messageService.addRoomMember(room.getId(), currentUser.getId(), memberDto.getUserId().toString());
+        .external(false));
+
     return subscriptionMapper.ent2memberDto(subscription);
   }
 
   @Override
+  @Transactional
   public void deleteRoomMember(UUID roomId, UUID userId, UserPrincipal currentUser) {
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
     if (room.getType().equals(RoomTypeDto.ONE_TO_ONE)) {
@@ -131,12 +147,17 @@ public class MembersServiceImpl implements MembersService {
 
     // TODO do we need to delete the room?
     subscriptionRepository.delete(room.getId(), userId.toString());
+    if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
+      roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), userId.toString())
+        .ifPresent(roomUserSettingsRepository::delete);
+    } else {
+      messageService.removeRoomMember(room.getId(), currentUser.getId(), userId.toString());
+    }
     eventDispatcher.sendToTopic(
       currentUser.getUUID(),
       room.getId(),
       RoomMemberRemovedEvent.create(UUID.fromString(room.getId())).memberId(userId)
     );
-    messageService.removeRoomMember(room.getId(), currentUser.getId(), userId.toString());
   }
 
   @Override

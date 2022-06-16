@@ -89,6 +89,16 @@ public class IntegrationTestUtils {
     return roomRepository.insert(room);
   }
 
+  public Room generateAndSaveRoom(UUID roomId, RoomTypeDto type, List<RoomMemberField> members) {
+    return generateAndSaveRoom(
+      Room.create()
+        .id(roomId.toString())
+        .name("name")
+        .description("description")
+        .type(type)
+        .hash(UUID.randomUUID().toString()), members);
+  }
+
   public Room generateAndSaveRoom(Room room, List<RoomMemberField> members) {
     room.subscriptions(new ArrayList<>());
     room.userSettings(new ArrayList<>());

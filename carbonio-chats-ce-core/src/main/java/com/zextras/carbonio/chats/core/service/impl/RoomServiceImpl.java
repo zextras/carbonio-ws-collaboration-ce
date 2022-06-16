@@ -154,7 +154,7 @@ public class RoomServiceImpl implements RoomService {
         RoomUserSettings maxRank = maxRanksMapByUsers.get(memberId.toString());
         roomUserSettings.add(
           RoomUserSettings.create(room, memberId.toString())
-            .rank((maxRank != null && maxRank.getRank() != null ? maxRank.getRank() : 0) +1));
+            .rank((maxRank != null && maxRank.getRank() != null ? maxRank.getRank() : 0) + 1));
       }
       room.userSettings(roomUserSettings);
     }
@@ -241,9 +241,11 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public void deleteRoom(UUID roomId, UserPrincipal currentUser) {
-    getRoomAndCheckUser(roomId, currentUser, true);
+    Room room = getRoomAndCheckUser(roomId, currentUser, true);
     roomRepository.delete(roomId.toString());
-    messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId());
+    if (!RoomTypeDto.WORKSPACE.equals(room.getType())) {
+      messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId());
+    }
     eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(), new RoomDeletedEvent(roomId));
   }
 
@@ -354,8 +356,8 @@ public class RoomServiceImpl implements RoomService {
       }
     }
     storagesService.saveFile(image, metadata, currentUser.getId());
+    messageDispatcher.updateRoomPictures(room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
       RoomPictureChangedEvent.create(UUID.fromString(room.getId())).from(currentUser.getUUID()));
-    messageDispatcher.updateRoomPictures(room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
   }
 }

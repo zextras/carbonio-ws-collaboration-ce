@@ -856,8 +856,8 @@ class RoomServiceImplTest {
   class DeleteRoomTests {
 
     @Test
-    @DisplayName("Deletes the required room")
-    public void deleteRoom_testOk() {
+    @DisplayName("Deletes the required group room")
+    public void deleteRoom_groupTestOk() {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
 
       roomService.deleteRoom(roomGroup1Id, UserPrincipal.create(user1Id));
@@ -867,6 +867,19 @@ class RoomServiceImplTest {
       verifyNoMoreInteractions(eventDispatcher);
       verify(messageDispatcher, times(1)).deleteRoom(roomGroup1Id.toString(), user1Id.toString());
       verifyNoMoreInteractions(messageDispatcher);
+    }
+
+    @Test
+    @DisplayName("Deletes the required workspace room")
+    public void deleteRoom_workspaceTestOk() {
+      when(roomRepository.getById(roomWorkspace1Id.toString())).thenReturn(Optional.of(roomWorkspace1));
+
+      roomService.deleteRoom(roomWorkspace1Id, UserPrincipal.create(user1Id));
+
+      verify(eventDispatcher, times(1)).sendToTopic(user1Id, roomWorkspace1Id.toString(),
+        RoomDeletedEvent.create(roomWorkspace1Id));
+      verifyNoMoreInteractions(eventDispatcher);
+      verifyNoInteractions(messageDispatcher);
     }
 
     @Test

@@ -15,10 +15,13 @@ public interface RoomUserSettingsRepository {
 
   List<RoomUserSettings> getByUserId(String userId);
 
-  void deleteByRoomId(String roomId);
+  List<RoomUserSettings> getByRoomId(String roomId);
+
+  void delete(RoomUserSettings userSettings);
 
   RoomUserSettings save(RoomUserSettings roomUserSettings);
 
-  Map<String, RoomUserSettings> getWorkspaceMaxRanksMapByUsers(List<String> userIds);
+  Optional<Integer> getWorkspaceMaxRank(String userId);
 
+  Map<String, RoomUserSettings> getWorkspaceMaxRanksMapByUsers(List<String> userIds);
 }

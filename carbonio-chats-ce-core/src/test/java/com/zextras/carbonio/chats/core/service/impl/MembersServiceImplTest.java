@@ -16,8 +16,8 @@ import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.data.event.RoomMemberAddedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomMemberRemovedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomOwnerChangedEvent;
@@ -28,6 +28,7 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
+import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
@@ -35,11 +36,10 @@ import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import javax.ws.rs.core.Response.Status;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -49,19 +49,21 @@ import org.junit.jupiter.api.Test;
 @UnitTest
 public class MembersServiceImplTest {
 
-  private final RoomService            roomService;
-  private final SubscriptionRepository subscriptionRepository;
-  private final EventDispatcher        eventDispatcher;
-  private final SubscriptionMapper     subscriptionMapper;
-  private final UserService            userService;
-  private final MessageDispatcher      messageService;
-  private final MembersService         membersService;
+  private final RoomService                roomService;
+  private final SubscriptionRepository     subscriptionRepository;
+  private final RoomUserSettingsRepository roomUserSettingsRepository;
+  private final EventDispatcher            eventDispatcher;
+  private final SubscriptionMapper         subscriptionMapper;
+  private final UserService                userService;
+  private final MessageDispatcher          messageService;
+  private final MembersService             membersService;
 
   public MembersServiceImplTest(
     SubscriptionMapper subscriptionMapper
   ) {
     this.roomService = mock(RoomService.class);
     this.subscriptionRepository = mock(SubscriptionRepository.class);
+    this.roomUserSettingsRepository = mock(RoomUserSettingsRepository.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.subscriptionMapper = subscriptionMapper;
     this.userService = mock(UserService.class);
@@ -69,7 +71,7 @@ public class MembersServiceImplTest {
     this.membersService = new MembersServiceImpl(
       roomService,
       subscriptionRepository,
-      eventDispatcher,
+      roomUserSettingsRepository, eventDispatcher,
       subscriptionMapper,
       userService,
       messageService
@@ -210,8 +212,8 @@ public class MembersServiceImplTest {
   public class InsertsRoomMemberTests {
 
     @Test
-    @DisplayName("Correctly adds a user as a room member ")
-    public void insertRoomMember_testOk() {
+    @DisplayName("Correctly adds a user as a member of group room")
+    public void insertGroupRoomMember_testOk() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(List.of(
         Subscription.create(room, user1Id.toString()).owner(true),
@@ -238,6 +240,64 @@ public class MembersServiceImplTest {
     }
 
     @Test
+    @DisplayName("if the room is a one-to-one room, it throws a 'bad request' exception")
+    public void insertOneToOneRoomMember_testNo() {
+      Room room = generateRoom(RoomTypeDto.ONE_TO_ONE);
+      room.subscriptions(List.of(
+        Subscription.create(room, user1Id.toString()).owner(true),
+        Subscription.create(room, user3Id.toString()).owner(false)
+      ));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+
+      when(userService.userExists(user2Id, principal)).thenReturn(true);
+      when(roomService.getRoomAndCheckUser(roomId, principal, true)).thenReturn(room);
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        membersService.insertRoomMember(roomId, MemberDto.create().userId(user2Id), principal));
+
+      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals("Bad Request - Can't add members to a one to one conversation", exception.getMessage());
+      verify(userService, times(1)).userExists(user2Id, principal);
+      verify(roomService, times(1)).getRoomAndCheckUser(roomId, principal, true);
+
+      verifyNoMoreInteractions(userService, roomService);
+      verifyNoInteractions(subscriptionRepository, eventDispatcher, messageService);
+    }
+
+    @Test
+    @DisplayName("Correctly adds a user as a member of workspace room")
+    public void insertWorkspaceRoomMember_testOk() {
+      Room room = generateRoom(RoomTypeDto.WORKSPACE);
+      room.subscriptions(List.of(
+        Subscription.create(room, user1Id.toString()).owner(true),
+        Subscription.create(room, user3Id.toString()).owner(false)
+      ));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+
+      when(userService.userExists(user2Id, principal)).thenReturn(true);
+      when(roomService.getRoomAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(subscriptionRepository.insert(any(Subscription.class))).thenReturn(
+        Subscription.create(room, user2Id.toString()));
+      when(roomUserSettingsRepository.getWorkspaceMaxRank(user2Id.toString())).thenReturn(Optional.of(5));
+      when(roomUserSettingsRepository.save(any(RoomUserSettings.class)))
+        .thenReturn(RoomUserSettings.create(room, user2Id.toString()).rank(6));
+
+      MemberDto member = membersService.insertRoomMember(roomId, MemberDto.create().userId(user2Id), principal);
+      assertNotNull(member);
+      assertEquals(user2Id, member.getUserId());
+
+      verify(userService, times(1)).userExists(user2Id, principal);
+      verify(roomService, times(1)).getRoomAndCheckUser(roomId, principal, true);
+      verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
+      verify(roomUserSettingsRepository, times(1)).getWorkspaceMaxRank(user2Id.toString());
+      verify(roomUserSettingsRepository, times(1)).save(any(RoomUserSettings.class));
+      verify(eventDispatcher, times(1)).sendToTopic(eq(user1Id), eq(roomId.toString()),
+        any(RoomMemberAddedEvent.class));
+      verifyNoMoreInteractions(userService, roomService, subscriptionRepository, roomUserSettingsRepository,
+        eventDispatcher, messageService);
+      verifyNoInteractions(messageService);
+    }
+
+    @Test
     @DisplayName("if user is already a room member, it throws a 'bad request' exception")
     public void insertRoomMember_userIsAlreadyARoomMember() {
       Room room = generateRoom(RoomTypeDto.GROUP);
@@ -255,30 +315,6 @@ public class MembersServiceImplTest {
       assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
       assertEquals(String.format("Bad Request - User '%s' is already a room member", user2Id.toString()),
         exception.getMessage());
-      verify(userService, times(1)).userExists(user2Id, principal);
-      verify(roomService, times(1)).getRoomAndCheckUser(roomId, principal, true);
-
-      verifyNoMoreInteractions(userService, roomService);
-      verifyNoInteractions(subscriptionRepository, eventDispatcher, messageService);
-    }
-
-    @Test
-    @DisplayName("if the room is a one-to-one room, it throws a 'bad request' exception")
-    public void insertRoomMember_roomIsAOneToOne() {
-      Room room = generateRoom(RoomTypeDto.ONE_TO_ONE);
-      room.subscriptions(List.of(
-        Subscription.create(room, user1Id.toString()).owner(true),
-        Subscription.create(room, user3Id.toString()).owner(false)
-      ));
-      UserPrincipal principal = UserPrincipal.create(user1Id);
-
-      when(userService.userExists(user2Id, principal)).thenReturn(true);
-      when(roomService.getRoomAndCheckUser(roomId, principal, true)).thenReturn(room);
-      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
-        membersService.insertRoomMember(roomId, MemberDto.create().userId(user2Id), principal));
-
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
-      assertEquals("Bad Request - Can't add members to a one to one conversation", exception.getMessage());
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(roomService, times(1)).getRoomAndCheckUser(roomId, principal, true);
 
@@ -315,8 +351,8 @@ public class MembersServiceImplTest {
   public class DeletesRoomMemberTests {
 
     @Test
-    @DisplayName("Correctly removes a room member")
-    public void deleteRoomMember_test() {
+    @DisplayName("Correctly removes a member of a group room")
+    public void deleteRoomMember_groupTestOk() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(List.of(
         Subscription.create(room, user1Id.toString()).owner(true),
@@ -334,6 +370,35 @@ public class MembersServiceImplTest {
         any(RoomMemberRemovedEvent.class));
       verify(messageService, times(1)).removeRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
       verifyNoMoreInteractions(roomService, subscriptionRepository, eventDispatcher, messageService);
+      verifyNoInteractions(roomUserSettingsRepository);
+    }
+
+    @Test
+    @DisplayName("Correctly removes a member of a workspace room")
+    public void deleteRoomMember_workspaceTestOk() {
+      Room room = generateRoom(RoomTypeDto.WORKSPACE);
+      room.subscriptions(List.of(
+        Subscription.create(room, user1Id.toString()).owner(true),
+        Subscription.create(room, user2Id.toString()).owner(false),
+        Subscription.create(room, user3Id.toString()).owner(false)
+      ));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+      RoomUserSettings userSettings = RoomUserSettings.create(room, user1Id.toString()).rank(5);
+      when(roomService.getRoomAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), user2Id.toString()))
+        .thenReturn(Optional.of(userSettings));
+
+      membersService.deleteRoomMember(roomId, user2Id, principal);
+
+      verify(roomService, times(1)).getRoomAndCheckUser(roomId, principal, true);
+      verify(subscriptionRepository, times(1)).delete(roomId.toString(), user2Id.toString());
+      verify(eventDispatcher, times(1)).sendToTopic(eq(user1Id), eq(roomId.toString()),
+        any(RoomMemberRemovedEvent.class));
+      verify(roomUserSettingsRepository, times(1)).delete(any(RoomUserSettings.class));
+      verify(roomUserSettingsRepository, times(1)).getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
+
+      verifyNoMoreInteractions(roomService, subscriptionRepository, roomUserSettingsRepository, eventDispatcher);
+      verifyNoInteractions(messageService);
     }
 
     @Test
@@ -416,7 +481,8 @@ public class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly initialize a group room subscriptions")
     public void initRoomSubscriptions_groupRoom() {
-      List<Subscription> subscriptions = membersService.initRoomSubscriptions(List.of(user1Id, user2Id, user3Id), generateRoom(RoomTypeDto.GROUP),
+      List<Subscription> subscriptions = membersService.initRoomSubscriptions(List.of(user1Id, user2Id, user3Id),
+        generateRoom(RoomTypeDto.GROUP),
         UserPrincipal.create(user2Id));
       assertNotNull(subscriptions);
       assertEquals(3, subscriptions.size());
@@ -437,7 +503,8 @@ public class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly initialize a one-to-one room subscriptions")
     public void initRoomSubscriptions_oneToOneRoom() {
-      List<Subscription> subscriptions = membersService.initRoomSubscriptions(List.of(user1Id, user2Id), generateRoom(RoomTypeDto.ONE_TO_ONE),
+      List<Subscription> subscriptions = membersService.initRoomSubscriptions(List.of(user1Id, user2Id),
+        generateRoom(RoomTypeDto.ONE_TO_ONE),
         UserPrincipal.create(user2Id));
       assertNotNull(subscriptions);
       assertEquals(2, subscriptions.size());

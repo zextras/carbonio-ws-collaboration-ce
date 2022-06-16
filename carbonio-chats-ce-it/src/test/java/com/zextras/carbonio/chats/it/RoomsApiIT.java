@@ -16,6 +16,7 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
+import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils.RoomMemberField;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
@@ -44,6 +45,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -61,13 +63,14 @@ import org.mockito.Mockito;
 @ApiIntegrationTest
 public class RoomsApiIT {
 
-  private final ResteasyRequestDispatcher dispatcher;
-  private final ObjectMapper              objectMapper;
-  private final IntegrationTestUtils      integrationTestUtils;
-  private final UserManagementMockServer  userManagementMockServer;
-  private final MongooseImMockServer      mongooseImMockServer;
-  private final StorageMockServer         storageMockServer;
-  private final RoomRepository            roomRepository;
+  private final ResteasyRequestDispatcher  dispatcher;
+  private final ObjectMapper               objectMapper;
+  private final IntegrationTestUtils       integrationTestUtils;
+  private final UserManagementMockServer   userManagementMockServer;
+  private final MongooseImMockServer       mongooseImMockServer;
+  private final StorageMockServer          storageMockServer;
+  private final RoomRepository             roomRepository;
+  private final RoomUserSettingsRepository roomUserSettingsRepository;
 
   private final AppClock clock;
 
@@ -76,7 +79,8 @@ public class RoomsApiIT {
     IntegrationTestUtils integrationTestUtils,
     UserManagementMockServer userManagementMockServer,
     MongooseImMockServer mongooseImMockServer, StorageMockServer storageMockServer, Clock clock,
-    RoomRepository roomRepository
+    RoomRepository roomRepository,
+    RoomUserSettingsRepository roomUserSettingsRepository
   ) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
@@ -85,6 +89,7 @@ public class RoomsApiIT {
     this.mongooseImMockServer = mongooseImMockServer;
     this.storageMockServer = storageMockServer;
     this.roomRepository = roomRepository;
+    this.roomUserSettingsRepository = roomUserSettingsRepository;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
     this.clock = (AppClock) clock;
   }
@@ -824,28 +829,54 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Deletes room tests")
-  public class DeletesRoomTests {
+  public class DeleteRoomTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s", roomId);
     }
 
     @Test
-    @DisplayName("Given a room identifier, correctly delete the room")
-    public void deleteRoom_testOk() throws Exception {
+    @DisplayName("Given a group room identifier, correctly delete the room")
+    public void deleteRoom_groupTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom",
-        List.of(user1Id, user2Id, user3Id));
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP,
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id).muted(true),
+          RoomMemberField.create().id(user3Id)));
+
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
       assertTrue(integrationTestUtils.getRoomById(roomId).isEmpty());
+      assertTrue(roomUserSettingsRepository.getByRoomId(roomId.toString()).isEmpty());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
 
       // TODO: 23/02/22 verify event dispatcher interactions
       mongooseImMockServer.verify("DELETE",
         String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", roomId, user1Id), 1);
+    }
+
+    @Test
+    @DisplayName("Given a workspace room identifier, correctly delete the room")
+    public void deleteRoom_workspaceTestOk() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.WORKSPACE,
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true).rank(10),
+          RoomMemberField.create().id(user2Id).muted(true).rank(9),
+          RoomMemberField.create().id(user3Id).rank(8)));
+
+      MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      assertTrue(integrationTestUtils.getRoomById(roomId).isEmpty());
+      assertTrue(roomUserSettingsRepository.getByRoomId(roomId.toString()).isEmpty());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+
+      // TODO: 23/02/22 verify event dispatcher interactions
     }
 
     @Test
@@ -1396,8 +1427,8 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier, correctly insert the new room member")
-    public void insertRoomMember_testOk() throws Exception {
+    @DisplayName("Given a group room identifier, correctly insert the new room member")
+    public void insertRoomMember_groupTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
         List.of(user1Id, user2Id));
@@ -1420,6 +1451,58 @@ public class RoomsApiIT {
         new InviteDto()
           .sender(String.format("%s@carbonio", user1Id.toString()))
           .recipient(String.format("%s@carbonio", user4Id.toString())), 1);
+
+      userManagementMockServer.verify("GET", String.format("/users/id/%s", user4Id), user1Token, 1);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a room identifier, if the room is one to one returns status code 400")
+    public void insertRoomMember_oneToOneTest() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.ONE_TO_ONE, "room",
+        List.of(user1Id, user2Id));
+      MockHttpResponse response = dispatcher.post(url(roomId),
+        getInsertRoomMemberRequestBody(user4Id), user1Token);
+
+      assertEquals(400, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a workspace room identifier, correctly insert the new room member")
+    public void insertRoomMember_workspaceTestOk() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create()
+          .id(UUID.randomUUID().toString())
+          .name("workspaceN")
+          .description("Nth workspace")
+          .type(RoomTypeDto.WORKSPACE)
+          .hash("workspaceNHash"),
+        List.of(RoomMemberField.create().id(user4Id).owner(true).rank(5))
+      );
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.WORKSPACE, "room",
+        List.of(user1Id, user2Id));
+
+      MemberDto requestMember = new MemberDto();
+      requestMember.setUserId(user4Id);
+      MockHttpResponse response = dispatcher.post(url(roomId),
+        getInsertRoomMemberRequestBody(requestMember), user1Token);
+
+      assertEquals(201, response.getStatus());
+      MemberDto member = objectMapper.readValue(response.getContentAsString(), MemberDto.class);
+      assertEquals(requestMember, member);
+
+      Optional<Room> room = integrationTestUtils.getRoomById(roomId);
+      assertTrue(room.isPresent());
+      assertTrue(room.get().getSubscriptions().stream().anyMatch(s -> user4Id.toString().equals(s.getUserId())));
+
+      Optional<RoomUserSettings> userSettings = roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(),
+        user4Id.toString());
+      assertTrue(userSettings.isPresent());
+      assertEquals(6, userSettings.get().getRank());
 
       userManagementMockServer.verify("GET", String.format("/users/id/%s", user4Id), user1Token, 1);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
@@ -1458,20 +1541,6 @@ public class RoomsApiIT {
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
-    }
-
-    @Test
-    @DisplayName("Given a room identifier, if the room is one to one returns status code 400")
-    public void insertRoomMember_testRoomOneToOne() throws Exception {
-      UUID roomId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.ONE_TO_ONE, "room",
-        List.of(user1Id, user2Id));
-      MockHttpResponse response = dispatcher.post(url(roomId),
-        getInsertRoomMemberRequestBody(user4Id), user1Token);
-
-      assertEquals(400, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
     @Test
@@ -1538,8 +1607,8 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier and a member identifier, correctly remove the user from room members")
-    public void deleteRoomMember_testOk() throws Exception {
+    @DisplayName("Given a group room identifier and a member identifier, correctly remove the user from room members")
+    public void deleteRoomMember_groupTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
@@ -1553,6 +1622,46 @@ public class RoomsApiIT {
 
       // TODO: 25/02/22 verify event dispatcher
       mongooseImMockServer.verify("DELETE", String.format("/api/rooms/%s/users/%s%%40carbonio", roomId, user2Id), 1);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a workspace room identifier and a member identifier, correctly remove the user from room members")
+    public void deleteRoomMember_workspaceTestOk() throws Exception {
+      List.of(1, 2, 4, 5).forEach(index ->
+        integrationTestUtils.generateAndSaveRoom(
+          Room.create()
+            .id(UUID.randomUUID().toString())
+            .name("workspace")
+            .description("Workspace")
+            .type(RoomTypeDto.WORKSPACE)
+            .hash("workspace" + index + "Hash"),
+          List.of(RoomMemberField.create().id(user2Id).owner(true).rank(index))));
+
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create()
+          .id(roomId.toString())
+          .name("workspace")
+          .description("Workspace")
+          .type(RoomTypeDto.WORKSPACE)
+          .hash("workspaceHash"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true).rank(1),
+          RoomMemberField.create().id(user2Id).owner(true).rank(3),
+          RoomMemberField.create().id(user3Id).owner(true).rank(5)));
+
+      MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      Optional<Room> room = integrationTestUtils.getRoomById(roomId);
+      assertTrue(room.isPresent());
+      assertTrue(room.get().getSubscriptions().stream().filter(s -> s.getUserId().equals(user2Id.toString())).findAny()
+        .isEmpty());
+      assertEquals(4, roomUserSettingsRepository.getByUserId(user2Id.toString()).size());
+
+      // TODO: 25/02/22 verify event dispatcher
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 

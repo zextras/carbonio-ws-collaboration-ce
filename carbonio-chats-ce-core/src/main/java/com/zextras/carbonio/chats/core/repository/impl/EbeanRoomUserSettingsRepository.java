@@ -44,14 +44,34 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
   }
 
   @Override
-  public void deleteByRoomId(String roomId) {
-    db.find(RoomUserSettings.class).where().eq("id.roomId", roomId).delete();
+  public List<RoomUserSettings> getByRoomId(String roomId) {
+    return db.find(RoomUserSettings.class)
+      .where().eq("id.roomId", roomId)
+      .findList();
+  }
+
+  @Override
+  public void delete(RoomUserSettings userSettings) {
+    db.delete(userSettings);
+
   }
 
   @Override
   public RoomUserSettings save(RoomUserSettings roomUserSettings) {
     db.save(roomUserSettings);
     return roomUserSettings;
+  }
+
+  @Override
+  public Optional<Integer> getWorkspaceMaxRank(String userId) {
+    return Optional.ofNullable(
+      db.createQuery(RoomUserSettings.class)
+        .select("max(rank)")
+        .where()
+        .eq("userId", userId)
+        .and()
+        .eq("room.type", RoomTypeDto.WORKSPACE)
+        .findSingleAttribute());
   }
 
   @Override
