@@ -14,13 +14,7 @@ import javax.inject.Singleton;
 public class RoomUserSettingsMapper {
 
   public RoomUserSettingsDto ent2dto(@Nullable RoomUserSettings roomUserSettings) {
-    if (roomUserSettings == null) {
-      return RoomUserSettingsDto.create().muted(false);
-    }else {
-      return RoomUserSettingsDto.create()
-        .muted(roomUserSettings.getMutedUntil() != null)
-        .rank(roomUserSettings.getRank());
-    }
+    return RoomUserSettingsDto.create().muted(roomUserSettings != null && roomUserSettings.getMutedUntil() != null);
   }
 
   public RoomUserSettingsDto ent2dto(List<RoomUserSettings> roomUserSettingsList) {

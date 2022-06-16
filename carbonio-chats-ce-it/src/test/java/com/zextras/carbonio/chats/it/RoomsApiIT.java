@@ -476,7 +476,7 @@ public class RoomsApiIT {
           room.getMembers().stream().filter(member -> user1Id.equals(member.getUserId())).findAny().get().isOwner());
         assertTrue(room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
         assertTrue(room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
-        assertEquals(1, room.getUserSettings().getRank());
+        assertEquals(1, room.getRank());
         assertEquals(executionInstant, room.getCreatedAt().toInstant());
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
@@ -525,7 +525,7 @@ public class RoomsApiIT {
           room.getMembers().stream().filter(member -> user1Id.equals(member.getUserId())).findAny().get().isOwner());
         assertTrue(room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
         assertTrue(room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
-        assertEquals(11, room.getUserSettings().getRank());
+        assertEquals(11, room.getRank());
         assertEquals(executionInstant, room.getCreatedAt().toInstant());
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());

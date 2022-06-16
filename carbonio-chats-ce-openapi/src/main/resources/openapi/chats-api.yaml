@@ -794,6 +794,10 @@ components:
               type: string
               readOnly: true
               description: an hash that can be used to compose the room's link
+            rank:
+              type: integer
+              description: number that defines the sorting position for workspaces room
+              readOnly: true
             createdAt:
               type: string
               format: date-time
@@ -832,10 +836,6 @@ components:
         muted:
           type: boolean
           description: indicates whether the user has muted
-        rank:
-          type: integer
-          description: number that defines the sorting position for workspaces room
-          readOnly: true
       required: [ muted ]
     RoomExtraField:
       type: string

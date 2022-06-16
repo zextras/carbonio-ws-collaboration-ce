@@ -176,7 +176,7 @@ public class RoomServiceImpl implements RoomService {
       )
     );
 
-    return roomMapper.ent2roomInfoDto(room, currentUser.getId());
+    return roomMapper.ent2roomInfoDto(room, currentUser.getUUID());
 
   }
 

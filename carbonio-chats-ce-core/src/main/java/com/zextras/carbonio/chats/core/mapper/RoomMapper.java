@@ -8,10 +8,12 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomInfoDto;
+import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.model.RoomUserSettingsDto;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -31,6 +33,7 @@ public abstract class RoomMapper {
 
   @Mappings({
     @Mapping(target = "id", expression = "java(UUID.fromString(room.getId()))"),
+    @Mapping(target = "rank", expression = "java(getRank(room, null))"),
     @Mapping(target = "members", expression = "java(includeMembers ? subscriptionMapper.ent2memberDto(room.getSubscriptions()) : null)"),
     @Mapping(target = "userSettings", ignore = true)
   })
@@ -50,6 +53,7 @@ public abstract class RoomMapper {
 
   @Mappings({
     @Mapping(target = "id", expression = "java(UUID.fromString(room.getId()))"),
+    @Mapping(target = "rank", expression = "java(getRank(room, null))"),
     @Mapping(target = "members", expression = "java(subscriptionMapper.ent2memberDto(room.getSubscriptions()))"),
     @Mapping(target = "userSettings", expression = "java(roomUserSettingsMapper.ent2dto(room.getUserSettings()))")
   })
@@ -57,9 +61,26 @@ public abstract class RoomMapper {
 
   @Mappings({
     @Mapping(target = "id", expression = "java(UUID.fromString(room.getId()))"),
+    @Mapping(target = "rank", expression = "java(getRank(room, userId))"),
     @Mapping(target = "members", expression = "java(subscriptionMapper.ent2memberDto(room.getSubscriptions()))"),
-    @Mapping(target = "userSettings", expression = "java(roomUserSettingsMapper.ent2dto(room.getUserSettings().stream().filter(us -> us.getUserId().equals(userId)).collect(Collectors.toList())))")
+    @Mapping(target = "userSettings", expression = "java(roomUserSettingsMapper.ent2dto(room.getUserSettings().stream().filter(us -> us.getUserId().equals(userId.toString())).collect(Collectors.toList())))"),
   })
-  public abstract RoomInfoDto ent2roomInfoDto(Room room, String userId);
+  public abstract RoomInfoDto ent2roomInfoDto(Room room, UUID userId);
 
+  @Nullable
+  protected Integer getRank(Room room, @Nullable UUID userId) {
+    if (RoomTypeDto.WORKSPACE.equals(room.getType()) && room.getUserSettings() != null
+      && room.getUserSettings().size() > 0) {
+      if (userId != null) {
+        Optional<RoomUserSettings> userSettings = room.getUserSettings().stream()
+          .filter(us -> us.getUserId().equals(userId.toString())).findAny();
+        if (userSettings.isPresent()) {
+          return userSettings.get().getRank();
+        }
+      } else {
+        return room.getUserSettings().get(0).getRank();
+      }
+    }
+    return null;
+  }
 }
