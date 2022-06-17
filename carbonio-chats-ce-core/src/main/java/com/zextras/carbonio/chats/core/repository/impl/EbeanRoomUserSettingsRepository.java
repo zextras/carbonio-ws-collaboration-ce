@@ -10,6 +10,7 @@ import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
 import io.ebean.annotation.Transactional;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -60,6 +61,11 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
   public RoomUserSettings save(RoomUserSettings roomUserSettings) {
     db.save(roomUserSettings);
     return roomUserSettings;
+  }
+
+  @Override
+  public void save(Collection<RoomUserSettings> roomUserSettingsList) {
+    db.saveAll(roomUserSettingsList);
   }
 
   @Override

@@ -2072,7 +2072,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a pair list of room id and rank, if there authenticated user workspaces are not compatible "
-      + "then return a status code 403")
+      + "then return a status code 400")
     public void updateWorkspacesRank_testWorkspaceNotCompatibleWithList() throws Exception {
       UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
@@ -2090,7 +2090,7 @@ public class RoomsApiIT {
         RoomRankDto.create().roomId(ws2Id).rank(2),
         RoomRankDto.create().roomId(ws1Id).rank(1))), user1Token);
 
-      assertEquals(403, response.getStatus());
+      assertEquals(400, response.getStatus());
       assertTrue(response.getContentAsString().isEmpty());
       Optional<RoomUserSettings> roomUserSettings = integrationTestUtils.getRoomUserSettings(ws1Id, user1Id);
       assertTrue(roomUserSettings.isPresent());
@@ -2105,7 +2105,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a pair list of room id and rank, if there authenticated user workspaces number is different "
-      + "then return a status code 403")
+      + "then return a status code 400")
     public void updateWorkspacesRank_testWorkspaceNumberDifferentThenList() throws Exception {
       UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
@@ -2121,7 +2121,7 @@ public class RoomsApiIT {
         RoomRankDto.create().roomId(ws2Id).rank(2),
         RoomRankDto.create().roomId(ws1Id).rank(1))), user1Token);
 
-      assertEquals(403, response.getStatus());
+      assertEquals(400, response.getStatus());
       assertTrue(response.getContentAsString().isEmpty());
       Optional<RoomUserSettings> roomUserSettings = integrationTestUtils.getRoomUserSettings(ws1Id, user1Id);
       assertTrue(roomUserSettings.isPresent());
@@ -2141,6 +2141,12 @@ public class RoomsApiIT {
       UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
       UUID ws3Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
+      integrationTestUtils.generateAndSaveRoom(ws1Id, RoomTypeDto.WORKSPACE,
+        List.of(RoomMemberField.create().id(user1Id).rank(5)));
+      integrationTestUtils.generateAndSaveRoom(ws2Id, RoomTypeDto.WORKSPACE,
+        List.of(RoomMemberField.create().id(user1Id).rank(8)));
+      integrationTestUtils.generateAndSaveRoom(ws3Id, RoomTypeDto.WORKSPACE,
+        List.of(RoomMemberField.create().id(user1Id).rank(13)));
 
       MockHttpResponse response = dispatcher.put(URL, objectMapper.writeValueAsString(List.of(
         RoomRankDto.create().roomId(ws1Id).rank(7),
@@ -2149,6 +2155,14 @@ public class RoomsApiIT {
 
       assertEquals(400, response.getStatus());
       assertTrue(response.getContentAsString().isEmpty());
+      Optional<RoomUserSettings> roomUserSettings = integrationTestUtils.getRoomUserSettings(ws1Id, user1Id);
+      assertEquals(5, roomUserSettings.get().getRank());
+      roomUserSettings = integrationTestUtils.getRoomUserSettings(ws2Id, user1Id);
+      assertTrue(roomUserSettings.isPresent());
+      assertEquals(8, roomUserSettings.get().getRank());
+      roomUserSettings = integrationTestUtils.getRoomUserSettings(ws3Id, user1Id);
+      assertTrue(roomUserSettings.isPresent());
+      assertEquals(13, roomUserSettings.get().getRank());
     }
 
     @Test
@@ -2157,6 +2171,10 @@ public class RoomsApiIT {
     public void updateWorkspacesRank_testRankListHasDuplicatedWorkspaceId() throws Exception {
       UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
+      integrationTestUtils.generateAndSaveRoom(ws1Id, RoomTypeDto.WORKSPACE,
+        List.of(RoomMemberField.create().id(user1Id).rank(5)));
+      integrationTestUtils.generateAndSaveRoom(ws2Id, RoomTypeDto.WORKSPACE,
+        List.of(RoomMemberField.create().id(user1Id).rank(8)));
 
       MockHttpResponse response = dispatcher.put(URL, objectMapper.writeValueAsString(List.of(
         RoomRankDto.create().roomId(ws2Id).rank(3),
@@ -2165,6 +2183,11 @@ public class RoomsApiIT {
 
       assertEquals(400, response.getStatus());
       assertTrue(response.getContentAsString().isEmpty());
+      Optional<RoomUserSettings> roomUserSettings = integrationTestUtils.getRoomUserSettings(ws1Id, user1Id);
+      assertEquals(5, roomUserSettings.get().getRank());
+      roomUserSettings = integrationTestUtils.getRoomUserSettings(ws2Id, user1Id);
+      assertTrue(roomUserSettings.isPresent());
+      assertEquals(8, roomUserSettings.get().getRank());
     }
   }
 }

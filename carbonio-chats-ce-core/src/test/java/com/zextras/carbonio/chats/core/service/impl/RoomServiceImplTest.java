@@ -1516,11 +1516,12 @@ class RoomServiceImplTest {
       RoomUserSettings userSettings2 = RoomUserSettings.create(roomWorkspace2, user2Id.toString()).rank(9);
       RoomUserSettings userSettings3 = RoomUserSettings.create(roomWorkspace3, user2Id.toString()).rank(5);
 
-      when(roomUserSettingsRepository.getWorkspaceMapByRoomId(user2Id.toString())).thenReturn(Map.of(
+      Map<String, RoomUserSettings> userSettingsMap = Map.of(
         roomWorkspace1Id.toString(), userSettings1,
         roomWorkspace2Id.toString(), userSettings2,
         roomWorkspace3Id.toString(), userSettings3
-      ));
+      );
+      when(roomUserSettingsRepository.getWorkspaceMapByRoomId(user2Id.toString())).thenReturn(userSettingsMap);
 
       roomService.updateWorkspacesRank(List.of(
         RoomRankDto.create().roomId(roomWorkspace1Id).rank(3),
@@ -1528,14 +1529,17 @@ class RoomServiceImplTest {
         RoomRankDto.create().roomId(roomWorkspace3Id).rank(1)), UserPrincipal.create(user2Id));
 
       verify(roomUserSettingsRepository, times(1)).getWorkspaceMapByRoomId(user2Id.toString());
-      verify(roomUserSettingsRepository, times(1)).save(userSettings3.rank(1));
-      verify(roomUserSettingsRepository, times(1)).save(userSettings2.rank(2));
-      verify(roomUserSettingsRepository, times(1)).save(userSettings1.rank(3));
+
+      userSettingsMap.get(roomWorkspace3Id.toString()).rank(1);
+      userSettingsMap.get(roomWorkspace2Id.toString()).rank(2);
+      userSettingsMap.get(roomWorkspace1Id.toString()).rank(3);
+      verify(roomUserSettingsRepository, times(1)).save(userSettingsMap.values());
+
       verifyNoMoreInteractions(roomUserSettingsRepository);
     }
 
     @Test
-    @DisplayName("If user workspaces are not compatible with the list, it thrown a 'forbidden' exception")
+    @DisplayName("If user workspaces are not compatible with the list, it throws a 'forbidden' exception")
     public void updateWorkspacesRank_testWorkspaceNotCompatibleWithList() {
       UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
@@ -1553,24 +1557,22 @@ class RoomServiceImplTest {
         ws3Id.toString(), us3
       ));
 
-      ForbiddenException exception = assertThrows(ForbiddenException.class, () ->
+      BadRequestException exception = assertThrows(BadRequestException.class, () ->
         roomService.updateWorkspacesRank(List.of(
           RoomRankDto.create().roomId(ws4Id).rank(3),
           RoomRankDto.create().roomId(ws2Id).rank(2),
           RoomRankDto.create().roomId(ws1Id).rank(1)), UserPrincipal.create(user2Id)));
-      assertEquals(403, exception.getHttpStatus().getStatusCode());
+      assertEquals(400, exception.getHttpStatus().getStatusCode());
       assertEquals(
-        String.format("Forbidden - There isn't a workspace with id '%s' for the user id '%s'", ws4Id, user2Id),
+        String.format("Bad Request - There isn't a workspace with id '%s' for the user id '%s'", ws4Id, user2Id),
         exception.getMessage());
 
       verify(roomUserSettingsRepository, times(1)).getWorkspaceMapByRoomId(user2Id.toString());
-      verify(roomUserSettingsRepository, times(1)).save(us1.rank(1));
-      verify(roomUserSettingsRepository, times(1)).save(us2.rank(2));
       verifyNoMoreInteractions(roomUserSettingsRepository);
     }
 
     @Test
-    @DisplayName("If user workspaces are more then the list, it throws a 'forbidden' exception")
+    @DisplayName("If user workspaces are more than the list, it throws a 'forbidden' exception")
     public void updateWorkspacesRank_testWorkspaceMoreThenList() {
       UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
@@ -1584,19 +1586,19 @@ class RoomServiceImplTest {
         ws2Id.toString(), us2
       ));
 
-      ForbiddenException exception = assertThrows(ForbiddenException.class, () ->
+      BadRequestException exception = assertThrows(BadRequestException.class, () ->
         roomService.updateWorkspacesRank(List.of(
           RoomRankDto.create().roomId(ws4Id).rank(3),
           RoomRankDto.create().roomId(ws2Id).rank(2),
           RoomRankDto.create().roomId(ws1Id).rank(1)), UserPrincipal.create(user2Id)));
-      assertEquals(403, exception.getHttpStatus().getStatusCode());
-      assertEquals("Forbidden - Too many elements compared to user workspaces", exception.getMessage());
+      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals("Bad Request - Too many elements compared to user workspaces", exception.getMessage());
       verify(roomUserSettingsRepository, times(1)).getWorkspaceMapByRoomId(user2Id.toString());
       verifyNoMoreInteractions(roomUserSettingsRepository);
     }
 
     @Test
-    @DisplayName("If user workspaces are more then the list, it throws a 'forbidden' exception")
+    @DisplayName("If user workspaces are less than the list, it throws a 'forbidden' exception")
     public void updateWorkspacesRank_testWorkspaceLessThenList() {
       UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
@@ -1613,12 +1615,12 @@ class RoomServiceImplTest {
         ws3Id.toString(), us3
       ));
 
-      ForbiddenException exception = assertThrows(ForbiddenException.class, () ->
+      BadRequestException exception = assertThrows(BadRequestException.class, () ->
         roomService.updateWorkspacesRank(List.of(
           RoomRankDto.create().roomId(ws2Id).rank(2),
           RoomRankDto.create().roomId(ws1Id).rank(1)), UserPrincipal.create(user2Id)));
-      assertEquals(403, exception.getHttpStatus().getStatusCode());
-      assertEquals("Forbidden - Too few elements compared to user workspaces", exception.getMessage());
+      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals("Bad Request - Too few elements compared to user workspaces", exception.getMessage());
 
       verify(roomUserSettingsRepository, times(1)).getWorkspaceMapByRoomId(user2Id.toString());
       verifyNoMoreInteractions(roomUserSettingsRepository);

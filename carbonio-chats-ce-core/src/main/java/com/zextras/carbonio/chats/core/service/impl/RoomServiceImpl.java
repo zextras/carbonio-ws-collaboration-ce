@@ -379,20 +379,20 @@ public class RoomServiceImpl implements RoomService {
     Map<String, RoomUserSettings> userWorkspaces = roomUserSettingsRepository.getWorkspaceMapByRoomId(
       currentUser.getId());
     if (roomRankList.size() != userWorkspaces.size()) {
-      throw new ForbiddenException(String.format("Too %s elements compared to user workspaces",
+      throw new BadRequestException(String.format("Too %s elements compared to user workspaces",
         roomRankList.size() < userWorkspaces.size() ? "few" : "many"));
     }
     roomRankList.forEach(roomRank ->
       Optional.ofNullable(userWorkspaces.get(roomRank.getRoomId().toString()))
         .ifPresentOrElse(userSettings -> {
-            if (!userSettings.getRank().equals(roomRank.getRank())) {
-              userSettings.rank(roomRank.getRank());
-              roomUserSettingsRepository.save(userSettings);
-            }
-          },
-          () -> {
-            throw new ForbiddenException(String.format(
-              "There isn't a workspace with id '%s' for the user id '%s'", roomRank.getRoomId(), currentUser.getId()));
-          }));
+          if (!userSettings.getRank().equals(roomRank.getRank())) {
+            userSettings.rank(roomRank.getRank());
+          }
+        }, () -> {
+          throw new BadRequestException(String.format(
+            "There isn't a workspace with id '%s' for the user id '%s'", roomRank.getRoomId(), currentUser.getId()));
+        }));
+    roomUserSettingsRepository.save(userWorkspaces.values());
+    ChatsLogger.info("pippo");
   }
 }

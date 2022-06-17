@@ -490,7 +490,7 @@ components:
             type: string
             format: binary
     UpdateWorkspacesRankRequest:
-      description: ranks list by room
+      description: rooms list with their rank
       required: true
       content:
         application/json:
@@ -574,7 +574,7 @@ components:
           schema:
             $ref: '#/components/schemas/Hash'
     204UpdateWorkspacesRankResponse:
-      description: Workspaces's order is updated
+      description: workspaces’s order is updated
     200ListRoomMemberResponse:
       description: The room members list
       content:
@@ -845,7 +845,7 @@ components:
       required: [ id, hash, createdAt, updatedAt ]
     RoomRank:
       type: object
-      description: room rank to define the order position
+      description: object which defines a room rank
       properties:
         roomId:
           type: string
