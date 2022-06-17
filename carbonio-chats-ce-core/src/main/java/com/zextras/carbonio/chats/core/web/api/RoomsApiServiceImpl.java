@@ -16,6 +16,7 @@ import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
+import com.zextras.carbonio.chats.model.RoomRankDto;
 import java.io.File;
 import java.util.List;
 import java.util.Optional;
@@ -174,6 +175,14 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     modifyOwner(roomId, userId, true, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
+  public Response updateWorkspacesRank(List<RoomRankDto> roomRankDto, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    roomService.updateWorkspacesRank(roomRankDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 

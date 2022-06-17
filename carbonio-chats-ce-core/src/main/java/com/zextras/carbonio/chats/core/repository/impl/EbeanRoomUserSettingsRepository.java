@@ -85,4 +85,13 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
       .setMapKey("userId")
       .findMap();
   }
+
+  @Override
+  public Map<String, RoomUserSettings> getWorkspaceMapByRoomId(String userId) {
+    return db.find(RoomUserSettings.class)
+      .where().eq("userId", userId)
+      .and().isNotNull("rank")
+      .setMapKey("id.roomId")
+      .findMap();
+  }
 }

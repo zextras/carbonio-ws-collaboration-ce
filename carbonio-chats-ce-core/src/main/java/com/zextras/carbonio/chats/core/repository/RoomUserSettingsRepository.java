@@ -24,4 +24,6 @@ public interface RoomUserSettingsRepository {
   Optional<Integer> getWorkspaceMaxRank(String userId);
 
   Map<String, RoomUserSettings> getWorkspaceMaxRanksMapByUsers(List<String> userIds);
+
+  Map<String, RoomUserSettings> getWorkspaceMapByRoomId(String userId);
 }
