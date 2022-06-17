@@ -393,6 +393,5 @@ public class RoomServiceImpl implements RoomService {
             "There isn't a workspace with id '%s' for the user id '%s'", roomRank.getRoomId(), currentUser.getId()));
         }));
     roomUserSettingsRepository.save(userWorkspaces.values());
-    ChatsLogger.info("pippo");
   }
 }
