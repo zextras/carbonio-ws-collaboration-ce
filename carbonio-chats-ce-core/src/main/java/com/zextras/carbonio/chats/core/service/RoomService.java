@@ -13,6 +13,7 @@ import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomInfoDto;
+import com.zextras.carbonio.chats.model.RoomRankDto;
 import java.io.File;
 import java.util.List;
 import java.util.UUID;
@@ -124,4 +125,11 @@ public interface RoomService {
    **/
   void setRoomPicture(UUID roomId, File image, String mimeType, String fileName, UserPrincipal currentUser);
 
+  /**
+   * Updates the workspaces order for the current user
+   *
+   * @param roomRankDto list of room identifier and room rank
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   */
+  void updateWorkspacesRank(List<RoomRankDto> roomRankDto, UserPrincipal currentUser);
 }

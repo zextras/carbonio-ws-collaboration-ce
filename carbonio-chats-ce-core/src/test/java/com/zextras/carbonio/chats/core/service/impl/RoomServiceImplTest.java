@@ -55,6 +55,7 @@ import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomInfoDto;
+import com.zextras.carbonio.chats.model.RoomRankDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.io.File;
 import java.time.Clock;
@@ -126,6 +127,7 @@ class RoomServiceImplTest {
   private UUID roomOneToOne2Id;
   private UUID roomWorkspace1Id;
   private UUID roomWorkspace2Id;
+  private UUID roomWorkspace3Id;
 
   private Room roomGroup1;
   private Room roomGroup2;
@@ -133,6 +135,7 @@ class RoomServiceImplTest {
   private Room roomOneToOne2;
   private Room roomWorkspace1;
   private Room roomWorkspace2;
+  private Room roomWorkspace3;
 
   @BeforeEach
   public void init() {
@@ -146,6 +149,7 @@ class RoomServiceImplTest {
     roomOneToOne2Id = UUID.fromString("19e5717e-652d-409e-b4fa-87e8dff790c1");
     roomWorkspace1Id = UUID.fromString("a4196800-ae80-48d9-a878-6d6cc2072282");
     roomWorkspace2Id = UUID.fromString("0fd274e6-34fd-4379-8908-5f9d9d6d537d");
+    roomWorkspace3Id = UUID.fromString("1d165280-46d4-47ce-84dd-8db9b054f20f");
 
     roomGroup1 = Room.create();
     roomGroup1
@@ -216,9 +220,25 @@ class RoomServiceImplTest {
         Subscription.create(roomWorkspace2, user2Id.toString()).owner(false),
         Subscription.create(roomWorkspace2, user3Id.toString()).owner(false)))
       .userSettings(List.of(
-        RoomUserSettings.create(roomWorkspace1, user1Id.toString()).rank(10),
-        RoomUserSettings.create(roomWorkspace1, user2Id.toString()).rank(9),
-        RoomUserSettings.create(roomWorkspace1, user3Id.toString()).rank(8)
+        RoomUserSettings.create(roomWorkspace2, user1Id.toString()).rank(10),
+        RoomUserSettings.create(roomWorkspace2, user2Id.toString()).rank(9),
+        RoomUserSettings.create(roomWorkspace2, user3Id.toString()).rank(8)
+      ));
+
+    roomWorkspace3 = Room.create();
+    roomWorkspace3
+      .id(roomWorkspace3Id.toString())
+      .type(RoomTypeDto.WORKSPACE)
+      .name("workspace3")
+      .description("Workspace three")
+      .subscriptions(List.of(
+        Subscription.create(roomWorkspace3, user1Id.toString()).owner(true),
+        Subscription.create(roomWorkspace3, user2Id.toString()).owner(false),
+        Subscription.create(roomWorkspace3, user3Id.toString()).owner(false)))
+      .userSettings(List.of(
+        RoomUserSettings.create(roomWorkspace3, user1Id.toString()).rank(3),
+        RoomUserSettings.create(roomWorkspace3, user2Id.toString()).rank(5),
+        RoomUserSettings.create(roomWorkspace3, user3Id.toString()).rank(8)
       ));
   }
 
@@ -1482,6 +1502,156 @@ class RoomServiceImplTest {
       assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
       assertEquals("Bad Request - The room picture must be an image",
         exception.getMessage());
+    }
+  }
+
+  @Nested
+  @DisplayName("Update workspaces rank tests")
+  class UpdateWorkspacesRankTests {
+
+    @Test
+    @DisplayName("Correctly update workspace rank ")
+    public void updateWorkspacesRank_testOk() {
+      RoomUserSettings userSettings1 = RoomUserSettings.create(roomWorkspace1, user2Id.toString()).rank(1);
+      RoomUserSettings userSettings2 = RoomUserSettings.create(roomWorkspace2, user2Id.toString()).rank(9);
+      RoomUserSettings userSettings3 = RoomUserSettings.create(roomWorkspace3, user2Id.toString()).rank(5);
+
+      Map<String, RoomUserSettings> userSettingsMap = Map.of(
+        roomWorkspace1Id.toString(), userSettings1,
+        roomWorkspace2Id.toString(), userSettings2,
+        roomWorkspace3Id.toString(), userSettings3
+      );
+      when(roomUserSettingsRepository.getWorkspaceMapByRoomId(user2Id.toString())).thenReturn(userSettingsMap);
+
+      roomService.updateWorkspacesRank(List.of(
+        RoomRankDto.create().roomId(roomWorkspace1Id).rank(3),
+        RoomRankDto.create().roomId(roomWorkspace2Id).rank(2),
+        RoomRankDto.create().roomId(roomWorkspace3Id).rank(1)), UserPrincipal.create(user2Id));
+
+      verify(roomUserSettingsRepository, times(1)).getWorkspaceMapByRoomId(user2Id.toString());
+
+      userSettingsMap.get(roomWorkspace3Id.toString()).rank(1);
+      userSettingsMap.get(roomWorkspace2Id.toString()).rank(2);
+      userSettingsMap.get(roomWorkspace1Id.toString()).rank(3);
+      verify(roomUserSettingsRepository, times(1)).save(userSettingsMap.values());
+
+      verifyNoMoreInteractions(roomUserSettingsRepository);
+    }
+
+    @Test
+    @DisplayName("If user workspaces are not compatible with the list, it throws a 'forbidden' exception")
+    public void updateWorkspacesRank_testWorkspaceNotCompatibleWithList() {
+      UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
+      UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
+      UUID ws3Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
+      UUID ws4Id = UUID.fromString("deb5b4be-e2cf-487e-b089-6b0bc4dd213a");
+      RoomUserSettings us1 = RoomUserSettings
+        .create(Room.create().id(ws1Id.toString()).type(RoomTypeDto.WORKSPACE), user2Id.toString()).rank(5);
+      RoomUserSettings us2 = RoomUserSettings
+        .create(Room.create().id(ws2Id.toString()).type(RoomTypeDto.WORKSPACE), user2Id.toString()).rank(8);
+      RoomUserSettings us3 = RoomUserSettings
+        .create(Room.create().id(ws3Id.toString()).type(RoomTypeDto.WORKSPACE), user2Id.toString()).rank(13);
+      when(roomUserSettingsRepository.getWorkspaceMapByRoomId(user2Id.toString())).thenReturn(Map.of(
+        ws1Id.toString(), us1,
+        ws2Id.toString(), us2,
+        ws3Id.toString(), us3
+      ));
+
+      BadRequestException exception = assertThrows(BadRequestException.class, () ->
+        roomService.updateWorkspacesRank(List.of(
+          RoomRankDto.create().roomId(ws4Id).rank(3),
+          RoomRankDto.create().roomId(ws2Id).rank(2),
+          RoomRankDto.create().roomId(ws1Id).rank(1)), UserPrincipal.create(user2Id)));
+      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals(
+        String.format("Bad Request - There isn't a workspace with id '%s' for the user id '%s'", ws4Id, user2Id),
+        exception.getMessage());
+
+      verify(roomUserSettingsRepository, times(1)).getWorkspaceMapByRoomId(user2Id.toString());
+      verifyNoMoreInteractions(roomUserSettingsRepository);
+    }
+
+    @Test
+    @DisplayName("If user workspaces are more than the list, it throws a 'forbidden' exception")
+    public void updateWorkspacesRank_testWorkspaceMoreThenList() {
+      UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
+      UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
+      UUID ws4Id = UUID.fromString("deb5b4be-e2cf-487e-b089-6b0bc4dd213a");
+      RoomUserSettings us1 = RoomUserSettings
+        .create(Room.create().id(ws1Id.toString()).type(RoomTypeDto.WORKSPACE), user2Id.toString()).rank(5);
+      RoomUserSettings us2 = RoomUserSettings
+        .create(Room.create().id(ws2Id.toString()).type(RoomTypeDto.WORKSPACE), user2Id.toString()).rank(8);
+      when(roomUserSettingsRepository.getWorkspaceMapByRoomId(user2Id.toString())).thenReturn(Map.of(
+        ws1Id.toString(), us1,
+        ws2Id.toString(), us2
+      ));
+
+      BadRequestException exception = assertThrows(BadRequestException.class, () ->
+        roomService.updateWorkspacesRank(List.of(
+          RoomRankDto.create().roomId(ws4Id).rank(3),
+          RoomRankDto.create().roomId(ws2Id).rank(2),
+          RoomRankDto.create().roomId(ws1Id).rank(1)), UserPrincipal.create(user2Id)));
+      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals("Bad Request - Too many elements compared to user workspaces", exception.getMessage());
+      verify(roomUserSettingsRepository, times(1)).getWorkspaceMapByRoomId(user2Id.toString());
+      verifyNoMoreInteractions(roomUserSettingsRepository);
+    }
+
+    @Test
+    @DisplayName("If user workspaces are less than the list, it throws a 'forbidden' exception")
+    public void updateWorkspacesRank_testWorkspaceLessThenList() {
+      UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
+      UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
+      UUID ws3Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
+      RoomUserSettings us1 = RoomUserSettings
+        .create(Room.create().id(ws1Id.toString()).type(RoomTypeDto.WORKSPACE), user2Id.toString()).rank(5);
+      RoomUserSettings us2 = RoomUserSettings
+        .create(Room.create().id(ws2Id.toString()).type(RoomTypeDto.WORKSPACE), user2Id.toString()).rank(8);
+      RoomUserSettings us3 = RoomUserSettings
+        .create(Room.create().id(ws3Id.toString()).type(RoomTypeDto.WORKSPACE), user2Id.toString()).rank(13);
+      when(roomUserSettingsRepository.getWorkspaceMapByRoomId(user2Id.toString())).thenReturn(Map.of(
+        ws1Id.toString(), us1,
+        ws2Id.toString(), us2,
+        ws3Id.toString(), us3
+      ));
+
+      BadRequestException exception = assertThrows(BadRequestException.class, () ->
+        roomService.updateWorkspacesRank(List.of(
+          RoomRankDto.create().roomId(ws2Id).rank(2),
+          RoomRankDto.create().roomId(ws1Id).rank(1)), UserPrincipal.create(user2Id)));
+      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals("Bad Request - Too few elements compared to user workspaces", exception.getMessage());
+
+      verify(roomUserSettingsRepository, times(1)).getWorkspaceMapByRoomId(user2Id.toString());
+      verifyNoMoreInteractions(roomUserSettingsRepository);
+    }
+
+    @Test
+    @DisplayName("If rank list is not progressive a progressive number sequence, it throws a 'bad request' exception")
+    public void updateWorkspacesRank_testRankListNotProgressiveNumberSequence() {
+      BadRequestException exception = assertThrows(BadRequestException.class, () ->
+        roomService.updateWorkspacesRank(List.of(
+          RoomRankDto.create().roomId(roomWorkspace1Id).rank(7),
+          RoomRankDto.create().roomId(roomWorkspace2Id).rank(9),
+          RoomRankDto.create().roomId(roomWorkspace3Id).rank(1)), UserPrincipal.create(user2Id)));
+      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals("Bad Request - Ranks must be progressive number that starts with 1", exception.getMessage());
+
+      verifyNoMoreInteractions(roomUserSettingsRepository);
+    }
+
+    @Test
+    @DisplayName("If rank list has duplicated room identifier, it throws a 'bad request' exception")
+    public void updateWorkspacesRank_testRankListHasDuplicatedWorkspaceId() {
+      BadRequestException exception = assertThrows(BadRequestException.class, () ->
+        roomService.updateWorkspacesRank(List.of(
+          RoomRankDto.create().roomId(roomWorkspace1Id).rank(7),
+          RoomRankDto.create().roomId(roomWorkspace1Id).rank(9),
+          RoomRankDto.create().roomId(roomWorkspace3Id).rank(1)), UserPrincipal.create(user2Id)));
+      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals("Bad Request - Rooms cannot be duplicated", exception.getMessage());
+
+      verifyNoMoreInteractions(roomUserSettingsRepository);
     }
   }
 }

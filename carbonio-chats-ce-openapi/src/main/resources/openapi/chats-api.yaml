@@ -195,6 +195,17 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/workspaces/rank:
+    put:
+      tags:
+        - Rooms
+      summary: Updates the workspaces order for the authenticated user
+      operationId: updateWorkspacesRank
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateWorkspacesRankRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204UpdateWorkspacesRankResponse'
   /rooms/{roomId}/members:
     get:
       tags:
@@ -478,6 +489,13 @@ components:
           schema:
             type: string
             format: binary
+    UpdateWorkspacesRankRequest:
+      description: rooms list with their rank
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RoomRanks'
     InsertRoomMemberRequest:
       description: member to add or invite
       required: true
@@ -555,6 +573,8 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Hash'
+    204UpdateWorkspacesRankResponse:
+      description: workspaces’s order is updated
     200ListRoomMemberResponse:
       description: The room members list
       content:
@@ -823,6 +843,25 @@ components:
             userSettings:
               $ref: '#/components/schemas/RoomUserSettings'
       required: [ id, hash, createdAt, updatedAt ]
+    RoomRank:
+      type: object
+      description: object which defines a room rank
+      properties:
+        roomId:
+          type: string
+          format: uuid
+          description: room identifier
+        rank:
+          type: integer
+          description: room position
+      required:
+        - roomId
+        - rank
+    RoomRanks:
+      type: array
+      description: rank room list
+      items:
+        $ref: '#/components/schemas/RoomRank'
     RoomInfo:
       description: Room data with members list and current user settings
       type: object

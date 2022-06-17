@@ -10,6 +10,7 @@ import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
 import io.ebean.annotation.Transactional;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -63,6 +64,11 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
   }
 
   @Override
+  public void save(Collection<RoomUserSettings> roomUserSettingsList) {
+    db.saveAll(roomUserSettingsList);
+  }
+
+  @Override
   public Optional<Integer> getWorkspaceMaxRank(String userId) {
     return Optional.ofNullable(
       db.createQuery(RoomUserSettings.class)
@@ -83,6 +89,15 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
       .and()
       .in("userId", usersIds)
       .setMapKey("userId")
+      .findMap();
+  }
+
+  @Override
+  public Map<String, RoomUserSettings> getWorkspaceMapByRoomId(String userId) {
+    return db.find(RoomUserSettings.class)
+      .where().eq("userId", userId)
+      .and().isNotNull("rank")
+      .setMapKey("id.roomId")
       .findMap();
   }
 }

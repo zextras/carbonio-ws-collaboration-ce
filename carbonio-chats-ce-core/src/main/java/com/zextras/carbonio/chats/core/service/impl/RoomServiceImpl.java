@@ -42,6 +42,7 @@ import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomInfoDto;
+import com.zextras.carbonio.chats.model.RoomRankDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
 import java.io.File;
@@ -49,6 +50,7 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -359,5 +361,37 @@ public class RoomServiceImpl implements RoomService {
     messageDispatcher.updateRoomPictures(room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
       RoomPictureChangedEvent.create(UUID.fromString(room.getId())).from(currentUser.getUUID()));
+  }
+
+  @Override
+  @Transactional
+  public void updateWorkspacesRank(List<RoomRankDto> roomRankDto, UserPrincipal currentUser) {
+    List<RoomRankDto> roomRankList = new ArrayList<>(roomRankDto);
+    if (roomRankList.size() > roomRankList.stream().map(RoomRankDto::getRoomId).collect(Collectors.toSet()).size()) {
+      throw new BadRequestException("Rooms cannot be duplicated");
+    }
+    roomRankList.sort(Comparator.comparing(RoomRankDto::getRank));
+    for (int i = 0; i < roomRankList.size(); i++) {
+      if (roomRankList.get(i).getRank() != i + 1) {
+        throw new BadRequestException("Ranks must be progressive number that starts with 1");
+      }
+    }
+    Map<String, RoomUserSettings> userWorkspaces = roomUserSettingsRepository.getWorkspaceMapByRoomId(
+      currentUser.getId());
+    if (roomRankList.size() != userWorkspaces.size()) {
+      throw new BadRequestException(String.format("Too %s elements compared to user workspaces",
+        roomRankList.size() < userWorkspaces.size() ? "few" : "many"));
+    }
+    roomRankList.forEach(roomRank ->
+      Optional.ofNullable(userWorkspaces.get(roomRank.getRoomId().toString()))
+        .ifPresentOrElse(userSettings -> {
+          if (!userSettings.getRank().equals(roomRank.getRank())) {
+            userSettings.rank(roomRank.getRank());
+          }
+        }, () -> {
+          throw new BadRequestException(String.format(
+            "There isn't a workspace with id '%s' for the user id '%s'", roomRank.getRoomId(), currentUser.getId()));
+        }));
+    roomUserSettingsRepository.save(userWorkspaces.values());
   }
 }
