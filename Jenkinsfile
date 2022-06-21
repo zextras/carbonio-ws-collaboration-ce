@@ -58,6 +58,7 @@ pipeline {
     stage("Publishing documentation") {
 /*       when {
         anyOf {
+          //only if main
           expression { hasOpenAPIDocumentChanged() }
         }
       } */
@@ -192,8 +193,8 @@ void sendFailureEmail(String step) {
 
 boolean hasOpenAPIDocumentChanged() {
   def isChanged = sh(
-    script: "git diff HEAD~1 --exit-code carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml",
+    script: "git --no-pager log -1 --name-only --pretty=format: --exit-code | grep -x carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml",
     returnStatus: true
   )
-  return isChanged==1 ? true : false
+  return isChanged==0 ? true : false
 }
