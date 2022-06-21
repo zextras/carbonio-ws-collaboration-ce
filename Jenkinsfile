@@ -192,7 +192,7 @@ void sendFailureEmail(String step) {
 
 boolean hasOpenAPIDocumentChanged() {
   def isChanged = sh(
-    script: "git diff HEAD~1 --exit-code carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml"
+    script: "git diff HEAD~1 --exit-code carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml",
     returnStatus: true
   )
   return isChanged==1 ? true : false
