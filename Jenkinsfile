@@ -56,14 +56,13 @@ pipeline {
       }
     } */
     stage("Publishing documentation") {
-/*       when {
+      when {
         anyOf {
           //only if main
           expression { hasOpenAPIDocumentChanged() }
         }
-      } */
+      }
       steps {
-        println hasOpenAPIDocumentChanged()
         echo "upload!"
       }
       post {
