@@ -188,7 +188,3 @@ void sendFailureEmail(String step) {
   subject: "[CHATS TRUNK FAILURE] Trunk ${step} step failure",
   to: FAILURE_EMAIL_RECIPIENTS
 }
-
-boolean hasApiDocumentChanged() {
-  git diff HEAD~1 --exit-code carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml
-}
