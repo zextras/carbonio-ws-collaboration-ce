@@ -58,11 +58,11 @@ pipeline {
     stage("Publishing documentation") {
       when {
         anyOf {
-          expression { hasOpenAPIDocumentChanged() }
+          //expression { hasOpenAPIDocumentChanged() }
         }
       }
       steps {
-        println currentBuild.changeSets
+        println hasOpenAPIDocumentChanged()
         echo "upload!"
       }
       post {
