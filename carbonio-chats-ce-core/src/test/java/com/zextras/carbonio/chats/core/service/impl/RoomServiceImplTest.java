@@ -128,6 +128,8 @@ class RoomServiceImplTest {
   private UUID roomWorkspace1Id;
   private UUID roomWorkspace2Id;
   private UUID roomWorkspace3Id;
+  private UUID roomChannel1Id;
+  private UUID roomChannel2Id;
 
   private Room roomGroup1;
   private Room roomGroup2;
@@ -136,6 +138,8 @@ class RoomServiceImplTest {
   private Room roomWorkspace1;
   private Room roomWorkspace2;
   private Room roomWorkspace3;
+  private Room roomChannel1;
+  private Room roomChannel2;
 
   @BeforeEach
   public void init() {
@@ -150,6 +154,8 @@ class RoomServiceImplTest {
     roomWorkspace1Id = UUID.fromString("a4196800-ae80-48d9-a878-6d6cc2072282");
     roomWorkspace2Id = UUID.fromString("0fd274e6-34fd-4379-8908-5f9d9d6d537d");
     roomWorkspace3Id = UUID.fromString("1d165280-46d4-47ce-84dd-8db9b054f20f");
+    roomChannel1Id = UUID.fromString("b1ce21cb-1fd5-4920-815a-de00885533c2");
+    roomChannel2Id = UUID.fromString("742069b7-18b8-45b7-8ae1-7cd8dbd9c22f");
 
     roomGroup1 = Room.create();
     roomGroup1
@@ -240,6 +246,24 @@ class RoomServiceImplTest {
         RoomUserSettings.create(roomWorkspace3, user2Id.toString()).rank(5),
         RoomUserSettings.create(roomWorkspace3, user3Id.toString()).rank(8)
       ));
+
+    roomChannel1 = Room.create()
+      .id(roomChannel1Id.toString())
+      .type(RoomTypeDto.CHANNEL)
+      .name("channel1")
+      .description("Channel one")
+      .parentId(roomWorkspace1Id.toString())
+      .rank(1)
+      .subscriptions(roomWorkspace1.getSubscriptions());
+
+    roomChannel2 = Room.create()
+      .id(roomChannel2Id.toString())
+      .type(RoomTypeDto.CHANNEL)
+      .name("channel2")
+      .description("Channel two")
+      .parentId(roomWorkspace1Id.toString())
+      .rank(8)
+      .subscriptions(roomWorkspace1.getSubscriptions());
   }
 
   @AfterEach
@@ -563,6 +587,21 @@ class RoomServiceImplTest {
         assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
         assertEquals("Bad Request - Too few members (required at least 3)", exception.getMessage());
       }
+
+      @Test
+      @DisplayName("When the request has the parent id on creating a group, it throws a 'bad request' exception")
+      public void createGroupRoom_errorWhenRequestHasParentId() {
+        RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
+          .name("room1")
+          .description("Room one")
+          .type(RoomTypeDto.GROUP)
+          .membersIds(List.of(user2Id, user3Id))
+          .parentId(UUID.randomUUID());
+        ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+          roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
+        assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+        assertEquals("Bad Request - Parent is allowed only for channel room", exception.getMessage());
+      }
     }
 
     @Nested
@@ -661,6 +700,21 @@ class RoomServiceImplTest {
         assertEquals(Status.CONFLICT, exception.getHttpStatus());
         assertEquals("Conflict - The one to one room already exists for these users", exception.getMessage());
       }
+
+      @Test
+      @DisplayName("When the request has the parent id on creating a group, it throws a 'bad request' exception")
+      public void createGroupRoom_errorWhenRequestHasParentId() {
+        RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
+          .name("room1")
+          .description("Room one")
+          .type(RoomTypeDto.ONE_TO_ONE)
+          .membersIds(List.of(user2Id))
+          .parentId(UUID.randomUUID());
+        ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+          roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
+        assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+        assertEquals("Bad Request - Parent is allowed only for channel room", exception.getMessage());
+      }
     }
 
     @Nested
@@ -722,7 +776,6 @@ class RoomServiceImplTest {
         verifyNoMoreInteractions(eventDispatcher);
         verifyNoInteractions(messageDispatcher);
       }
-
 
       @Test
       @DisplayName("It creates the nth workspace room and returns it")
@@ -797,6 +850,206 @@ class RoomServiceImplTest {
           roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
         assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
         assertEquals("Bad Request - Too few members (required at least 3)", exception.getMessage());
+      }
+
+      @Test
+      @DisplayName("When the request has the parent id on creating a group, it throws a 'bad request' exception")
+      public void createGroupRoom_errorWhenRequestHasParentId() {
+        RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
+          .name("room1")
+          .description("Room one")
+          .type(RoomTypeDto.WORKSPACE)
+          .membersIds(List.of(user2Id, user3Id))
+          .parentId(UUID.randomUUID());
+        ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+          roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
+        assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+        assertEquals("Bad Request - Parent is allowed only for channel room", exception.getMessage());
+      }
+    }
+
+    @Nested
+    @DisplayName("Create channel room tests")
+    class CreateChannelRoomTests {
+
+      @Test
+      @DisplayName("Given channel creation fields, inserts first channel room in a workspace and returns its data")
+      public void createChannelRoom_firstChannelTestOk() {
+        when(roomRepository.getById(roomWorkspace1Id.toString())).thenReturn(Optional.of(roomWorkspace1));
+        when(roomRepository.getChannelMaxRanksByWorkspace(roomWorkspace1Id.toString())).thenReturn(Optional.empty());
+        when(roomRepository.insert(any(Room.class))).thenReturn(roomChannel1);
+        RoomInfoDto room;
+        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+          uuid.when(UUID::randomUUID).thenReturn(roomChannel1Id);
+          uuid.when(() -> UUID.fromString(roomChannel1Id.toString())).thenReturn(roomChannel1Id);
+          uuid.when(() -> UUID.fromString(roomWorkspace1Id.toString())).thenReturn(roomWorkspace1Id);
+          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+          uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
+          uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
+          room = roomService.createRoom(RoomCreationFieldsDto.create()
+            .name("channel1")
+            .description("Channel one")
+            .type(RoomTypeDto.CHANNEL)
+            .parentId(roomWorkspace1Id), UserPrincipal.create(user1Id));
+        }
+        assertEquals(roomChannel1Id, room.getId());
+        assertEquals("channel1", room.getName());
+        assertEquals("Channel one", room.getDescription());
+        assertEquals(RoomTypeDto.CHANNEL, room.getType());
+        assertEquals(3, room.getMembers().size());
+        assertTrue(room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
+        assertTrue(
+          room.getMembers().stream().filter(member -> user1Id.equals(member.getUserId())).findAny().get().isOwner());
+        assertTrue(room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
+        assertTrue(room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
+        assertEquals(1, room.getRank());
+        assertEquals(roomWorkspace1Id, room.getParentId());
+        assertNull(room.getPictureUpdatedAt());
+        verify(roomRepository, times(2)).getById(roomWorkspace1Id.toString());
+        verify(roomRepository, times(1)).insert(any(Room.class));
+        verify(roomRepository, times(1)).getChannelMaxRanksByWorkspace(roomWorkspace1Id.toString());
+
+        verify(eventDispatcher, times(1)).sendToQueue(eq(user1Id), eq(user1Id.toString()),
+          eq(RoomCreatedEvent.create(roomChannel1Id).from(user1Id)));
+        verify(eventDispatcher, times(1)).sendToQueue(eq(user1Id), eq(user2Id.toString()),
+          eq(RoomCreatedEvent.create(roomChannel1Id).from(user1Id)));
+        verify(eventDispatcher, times(1)).sendToQueue(eq(user1Id), eq(user3Id.toString()),
+          eq(RoomCreatedEvent.create(roomChannel1Id).from(user1Id)));
+
+        verify(messageDispatcher, times(1)).createRoom(roomChannel1, user1Id.toString());
+        verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
+        verifyNoMoreInteractions(roomRepository, eventDispatcher, messageDispatcher);
+      }
+
+      @Test
+      @DisplayName("Given channel creation fields, inserts nth channel room in a workspace and returns its data")
+      public void createChannelRoom_nthChannelTestOk() {
+        when(roomRepository.getById(roomWorkspace1Id.toString())).thenReturn(Optional.of(roomWorkspace1));
+        when(roomRepository.getChannelMaxRanksByWorkspace(roomWorkspace1Id.toString())).thenReturn(Optional.of(7));
+        when(roomRepository.insert(any(Room.class))).thenReturn(roomChannel2);
+        RoomInfoDto room;
+        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+          uuid.when(UUID::randomUUID).thenReturn(roomChannel2Id);
+          uuid.when(() -> UUID.fromString(roomChannel2Id.toString())).thenReturn(roomChannel2Id);
+          uuid.when(() -> UUID.fromString(roomWorkspace1Id.toString())).thenReturn(roomWorkspace1Id);
+          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+          uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
+          uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
+          room = roomService.createRoom(RoomCreationFieldsDto.create()
+            .name("channel2")
+            .description("Channel two")
+            .type(RoomTypeDto.CHANNEL)
+            .parentId(roomWorkspace1Id), UserPrincipal.create(user1Id));
+        }
+        assertEquals(roomChannel2Id, room.getId());
+        assertEquals("channel2", room.getName());
+        assertEquals("Channel two", room.getDescription());
+        assertEquals(RoomTypeDto.CHANNEL, room.getType());
+        assertEquals(3, room.getMembers().size());
+        assertTrue(room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
+        assertTrue(
+          room.getMembers().stream().filter(member -> user1Id.equals(member.getUserId())).findAny().get().isOwner());
+        assertTrue(room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
+        assertTrue(room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
+        assertEquals(8, room.getRank());
+        assertEquals(roomWorkspace1Id, room.getParentId());
+        assertNull(room.getPictureUpdatedAt());
+        verify(roomRepository, times(2)).getById(roomWorkspace1Id.toString());
+        verify(roomRepository, times(1)).insert(any(Room.class));
+        verify(roomRepository, times(1)).getChannelMaxRanksByWorkspace(roomWorkspace1Id.toString());
+
+        verify(eventDispatcher, times(1)).sendToQueue(eq(user1Id), eq(user1Id.toString()),
+          eq(RoomCreatedEvent.create(roomChannel2Id).from(user1Id)));
+        verify(eventDispatcher, times(1)).sendToQueue(eq(user1Id), eq(user2Id.toString()),
+          eq(RoomCreatedEvent.create(roomChannel2Id).from(user1Id)));
+        verify(eventDispatcher, times(1)).sendToQueue(eq(user1Id), eq(user3Id.toString()),
+          eq(RoomCreatedEvent.create(roomChannel2Id).from(user1Id)));
+
+        verify(messageDispatcher, times(1)).createRoom(roomChannel2, user1Id.toString());
+        verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
+        verifyNoMoreInteractions(roomRepository, eventDispatcher, messageDispatcher);
+      }
+
+      @Test
+      @DisplayName("Given channel creation fields, if there is at least a member returns a 'bad request' exception")
+      public void createChannelRoom_testErrorRequestWithMembers() {
+        ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+          roomService.createRoom(RoomCreationFieldsDto.create()
+            .name("channel2")
+            .description("Channel two")
+            .type(RoomTypeDto.CHANNEL)
+            .parentId(roomWorkspace1Id)
+            .membersIds(List.of(user2Id, user3Id)), UserPrincipal.create(user1Id)));
+        assertEquals(400, exception.getHttpStatus().getStatusCode());
+        assertEquals("Bad Request - Channels don't admit members", exception.getMessage());
+      }
+
+      @Test
+      @DisplayName("Given channel creation fields, if there isn't the parent identifier returns a 'bad request' exception")
+      public void createChannelRoom_testErrorRequestWithoutParentId() {
+        ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+          roomService.createRoom(RoomCreationFieldsDto.create()
+            .name("channel2")
+            .description("Channel two")
+            .type(RoomTypeDto.CHANNEL), UserPrincipal.create(user1Id)));
+        assertEquals(400, exception.getHttpStatus().getStatusCode());
+        assertEquals("Bad Request - Channel must have an assigned workspace", exception.getMessage());
+      }
+
+      @Test
+      @DisplayName("Given channel creation fields, if there isn't the requested workspace room returns a 'bad request' exception")
+      public void createChannelRoom_testErrorRequestedWorkspaceNotExists() {
+        UUID roomId = UUID.randomUUID();
+        ChatsHttpException exception;
+        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+          uuid.when(UUID::randomUUID).thenReturn(roomId);
+          uuid.when(() -> UUID.fromString(roomWorkspace2.getId())).thenReturn(roomWorkspace2Id);
+          exception = assertThrows(NotFoundException.class, () ->
+            roomService.createRoom(RoomCreationFieldsDto.create()
+              .name("channel2")
+              .description("Channel two")
+              .type(RoomTypeDto.CHANNEL)
+              .parentId(UUID.randomUUID()), UserPrincipal.create(user1Id)));
+        }
+        assertEquals(404, exception.getHttpStatus().getStatusCode());
+        assertEquals(String.format("Not Found - Room '%s'", roomId), exception.getMessage());
+      }
+
+      @Test
+      @DisplayName("Given channel creation fields, if the authenticated user is not the workspace owner returns a 'forbidden' exception")
+      public void createChannelRoom_testErrorAuthenticatedUserIsNotWorkspaceOwner() {
+        when(roomRepository.getById(roomWorkspace1Id.toString())).thenReturn(Optional.of(roomWorkspace1));
+        ChatsHttpException exception;
+        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+          uuid.when(UUID::randomUUID).thenReturn(roomChannel2Id);
+          exception = assertThrows(ForbiddenException.class, () ->
+            roomService.createRoom(RoomCreationFieldsDto.create()
+              .name("channel2")
+              .description("Channel two")
+              .type(RoomTypeDto.CHANNEL)
+              .parentId(roomWorkspace1Id), UserPrincipal.create(user2Id)));
+        }
+        assertEquals(403, exception.getHttpStatus().getStatusCode());
+        assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, roomWorkspace1Id),
+          exception.getMessage());
+      }
+
+      @Test
+      @DisplayName("Given channel creation fields, if the parent isn't a workspace returns a 'bad request' exception")
+      public void insertChannelRoom_testErrorParentIsNotAWorkspace() throws Exception {
+        when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+        ChatsHttpException exception;
+        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+          uuid.when(UUID::randomUUID).thenReturn(roomChannel2Id);
+          exception = assertThrows(BadRequestException.class, () ->
+            roomService.createRoom(RoomCreationFieldsDto.create()
+              .name("channel2")
+              .description("Channel two")
+              .type(RoomTypeDto.CHANNEL)
+              .parentId(roomGroup1Id), UserPrincipal.create(user1Id)));
+        }
+        assertEquals(400, exception.getHttpStatus().getStatusCode());
+        assertEquals("Bad Request - Channel parent must be a workspace", exception.getMessage());
       }
     }
 

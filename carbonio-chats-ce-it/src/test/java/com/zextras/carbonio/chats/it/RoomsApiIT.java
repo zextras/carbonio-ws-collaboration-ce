@@ -33,6 +33,7 @@ import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.IdDto;
 import com.zextras.carbonio.chats.model.MemberDto;
+import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomRankDto;
@@ -545,6 +546,235 @@ public class RoomsApiIT {
         userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       }
 
+    }
+
+    @Nested
+    @DisplayName("Insert channel room tests")
+    public class InsertChannelRoomTests {
+
+      @Test
+      @DisplayName("Given channel creation fields, inserts first channel room in a workspace and returns its data")
+      public void insertChannelRoom_firstChannelTestOk() throws Exception {
+        UUID workspaceId = UUID.randomUUID();
+        integrationTestUtils.generateAndSaveRoom(workspaceId, RoomTypeDto.WORKSPACE, List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)
+        ));
+
+        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+        clock.fixTimeAt(executionInstant);
+        MockHttpResponse response;
+        UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+          uuid.when(UUID::randomUUID).thenReturn(roomId);
+          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+          uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
+          uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
+          uuid.when(() -> UUID.fromString(workspaceId.toString())).thenReturn(workspaceId);
+          uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+          response = dispatcher.post(URL,
+            objectMapper.writeValueAsString(RoomCreationFieldsDto.create()
+              .name("testRoom")
+              .description("Test room")
+              .type(RoomTypeDto.CHANNEL)
+              .parentId(workspaceId)),
+            user1Token);
+        }
+        clock.removeFixTime();
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        assertEquals(201, response.getStatus());
+        RoomInfoDto room = objectMapper.readValue(response.getContentAsString(), RoomInfoDto.class);
+        assertEquals("testRoom", room.getName());
+        assertEquals("Test room", room.getDescription());
+        assertEquals(RoomTypeDto.CHANNEL, room.getType());
+        assertEquals(3, room.getMembers().size());
+        assertTrue(room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
+        assertTrue(
+          room.getMembers().stream().filter(member -> user1Id.equals(member.getUserId())).findAny().get().isOwner());
+        assertTrue(room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
+        assertTrue(room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
+        assertEquals(1, room.getRank());
+        assertEquals(workspaceId, room.getParentId());
+        assertEquals(executionInstant, room.getCreatedAt().toInstant());
+        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+        assertNull(room.getPictureUpdatedAt());
+        mongooseImMockServer.verify("PUT", "/admin/muc-lights/carbonio",
+          new RoomDetailsDto()
+            .id(room.getId().toString())
+            .owner(String.format("%s@carbonio", user1Id))
+            .name(room.getId().toString())
+            .subject(room.getDescription()), 1);
+        mongooseImMockServer.verify("POST",
+          String.format("/admin/muc-lights/carbonio/%s/participants", room.getId()),
+          new InviteDto()
+            .sender(String.format("%s@carbonio", user1Id.toString()))
+            .recipient(String.format("%s@carbonio", user2Id.toString())), 1);
+        mongooseImMockServer.verify("POST",
+          String.format("/admin/muc-lights/carbonio/%s/participants", room.getId()),
+          new InviteDto()
+            .sender(String.format("%s@carbonio", user1Id.toString()))
+            .recipient(String.format("%s@carbonio", user3Id.toString())), 1);
+        // TODO: 23/02/22 verify event dispatcher interactions
+      }
+
+      @Test
+      @DisplayName("Given channel creation fields, inserts nth channel room in a workspace and returns its data")
+      public void insertChannelRoom_nthChannelTestOk() throws Exception {
+        UUID workspaceId = UUID.randomUUID();
+        integrationTestUtils.generateAndSaveRoom(workspaceId, RoomTypeDto.WORKSPACE, List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)
+        ));
+
+        integrationTestUtils.generateAndSaveRoom(Room.create()
+          .id(UUID.randomUUID().toString())
+          .name("channel7")
+          .description("Channel seven")
+          .type(RoomTypeDto.CHANNEL)
+          .hash(UUID.randomUUID().toString())
+          .rank(7)
+          .parentId(workspaceId.toString()), List.of());
+
+        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+        clock.fixTimeAt(executionInstant);
+        MockHttpResponse response;
+        UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+          uuid.when(UUID::randomUUID).thenReturn(roomId);
+          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+          uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
+          uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
+          uuid.when(() -> UUID.fromString(workspaceId.toString())).thenReturn(workspaceId);
+          uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+          response = dispatcher.post(URL,
+            objectMapper.writeValueAsString(RoomCreationFieldsDto.create()
+              .name("testRoom")
+              .description("Test room")
+              .type(RoomTypeDto.CHANNEL)
+              .parentId(workspaceId)),
+            user1Token);
+        }
+        clock.removeFixTime();
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        assertEquals(201, response.getStatus());
+        RoomInfoDto room = objectMapper.readValue(response.getContentAsString(), RoomInfoDto.class);
+        assertEquals("testRoom", room.getName());
+        assertEquals("Test room", room.getDescription());
+        assertEquals(RoomTypeDto.CHANNEL, room.getType());
+        assertEquals(3, room.getMembers().size());
+        assertTrue(room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
+        assertTrue(
+          room.getMembers().stream().filter(member -> user1Id.equals(member.getUserId())).findAny().get().isOwner());
+        assertTrue(room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
+        assertTrue(room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
+        assertEquals(8, room.getRank());
+        assertEquals(workspaceId, room.getParentId());
+        assertEquals(executionInstant, room.getCreatedAt().toInstant());
+        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+        assertNull(room.getPictureUpdatedAt());
+        mongooseImMockServer.verify("PUT", "/admin/muc-lights/carbonio",
+          new RoomDetailsDto()
+            .id(room.getId().toString())
+            .owner(String.format("%s@carbonio", user1Id))
+            .name(room.getId().toString())
+            .subject(room.getDescription()), 1);
+        mongooseImMockServer.verify("POST",
+          String.format("/admin/muc-lights/carbonio/%s/participants", room.getId()),
+          new InviteDto()
+            .sender(String.format("%s@carbonio", user1Id.toString()))
+            .recipient(String.format("%s@carbonio", user2Id.toString())), 1);
+        mongooseImMockServer.verify("POST",
+          String.format("/admin/muc-lights/carbonio/%s/participants", room.getId()),
+          new InviteDto()
+            .sender(String.format("%s@carbonio", user1Id.toString()))
+            .recipient(String.format("%s@carbonio", user3Id.toString())), 1);
+        // TODO: 23/02/22 verify event dispatcher interactions
+      }
+
+      @Test
+      @DisplayName("Given channel creation fields, if there is at least a member returns a status code 400")
+      public void insertChannelRoom_testErrorRequestWithMembers() throws Exception {
+        MockHttpResponse response = dispatcher.post(URL,
+          objectMapper.writeValueAsString(RoomCreationFieldsDto.create()
+            .name("testRoom")
+            .description("Test room")
+            .type(RoomTypeDto.CHANNEL)
+            .parentId(UUID.randomUUID())
+            .membersIds(List.of(user2Id, user3Id))), user1Token);
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        assertEquals(400, response.getStatus());
+        assertTrue(response.getContentAsString().isEmpty());
+      }
+
+      @Test
+      @DisplayName("Given channel creation fields, if there isn't the parent identifier returns a status code 400")
+      public void insertChannelRoom_testErrorRequestWithoutParentId() throws Exception {
+        MockHttpResponse response = dispatcher.post(URL,
+          objectMapper.writeValueAsString(RoomCreationFieldsDto.create()
+            .name("testRoom")
+            .description("Test room")
+            .type(RoomTypeDto.CHANNEL)), user1Token);
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        assertEquals(400, response.getStatus());
+        assertTrue(response.getContentAsString().isEmpty());
+      }
+
+      @Test
+      @DisplayName("Given channel creation fields, if there isn't the requested workspace room returns a status code 404")
+      public void insertChannelRoom_testErrorRequestedWorkspaceNotExists() throws Exception {
+        MockHttpResponse response = dispatcher.post(URL,
+          objectMapper.writeValueAsString(RoomCreationFieldsDto.create()
+            .name("testRoom")
+            .description("Test room")
+            .type(RoomTypeDto.CHANNEL)
+            .parentId(UUID.randomUUID())), user1Token);
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        assertEquals(404, response.getStatus());
+        assertTrue(response.getContentAsString().isEmpty());
+      }
+
+      @Test
+      @DisplayName("Given channel creation fields, if the authenticated user is not the workspace owner returns a status code 403")
+      public void insertChannelRoom_testErrorAuthenticatedUserIsNotWorkspaceOwner() throws Exception {
+        UUID workspaceId = UUID.randomUUID();
+        integrationTestUtils.generateAndSaveRoom(workspaceId, RoomTypeDto.WORKSPACE, List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)
+        ));
+        MockHttpResponse response = dispatcher.post(URL,
+          objectMapper.writeValueAsString(RoomCreationFieldsDto.create()
+            .name("testRoom")
+            .description("Test room")
+            .type(RoomTypeDto.CHANNEL)
+            .parentId(workspaceId)),
+          user3Token);
+        assertEquals(403, response.getStatus());
+        assertTrue(response.getContentAsString().isEmpty());
+      }
+
+      @Test
+      @DisplayName("Given channel creation fields, if the parent isn't a workspace returns a status code 400")
+      public void insertChannelRoom_testErrorParentIsNotAWorkspace() throws Exception {
+        UUID groupId = UUID.randomUUID();
+        integrationTestUtils.generateAndSaveRoom(groupId, RoomTypeDto.GROUP, List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)
+        ));
+        MockHttpResponse response = dispatcher.post(URL,
+          objectMapper.writeValueAsString(RoomCreationFieldsDto.create()
+            .name("testRoom")
+            .description("Test room")
+            .type(RoomTypeDto.CHANNEL)
+            .parentId(groupId)),
+          user1Token);
+        assertEquals(400, response.getStatus());
+        assertTrue(response.getContentAsString().isEmpty());
+      }
     }
 
     @Test

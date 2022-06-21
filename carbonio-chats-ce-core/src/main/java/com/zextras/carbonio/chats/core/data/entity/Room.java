@@ -16,6 +16,8 @@ import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
@@ -42,13 +44,23 @@ public class Room {
   @Enumerated(EnumType.STRING)
   private RoomTypeDto type;
 
-  @Column(name = "PASSWORD", length = 256)
-  private String password;
-
   //This is a redundancy which simplifies querying, allowing us to retrieve this without a join on the attachment table
   @Column(name = "PICTURE_UPDATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
   private OffsetDateTime pictureUpdatedAt;
+
+  @Column(name = "PARENT_ID", length = 64)
+  private String parentId;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "PARENT_ID", updatable = false, insertable = false)
+  private Room parent;
+
+  @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+  private List<Room> children;
+
+  @Column(name = "RANK")
+  private Integer rank;
 
   @Column(name = "CREATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
@@ -115,15 +127,6 @@ public class Room {
     return this;
   }
 
-  public String getPassword() {
-    return password;
-  }
-
-  public Room password(String password) {
-    this.password = password;
-    return this;
-  }
-
   public OffsetDateTime getCreatedAt() {
     return createdAt;
   }
@@ -138,6 +141,37 @@ public class Room {
 
   public Room pictureUpdatedAt(OffsetDateTime pictureUpdatedAt) {
     this.pictureUpdatedAt = pictureUpdatedAt;
+    return this;
+  }
+
+  public String getParentId() {
+    return parentId;
+  }
+
+  public Room parentId(String parentId) {
+    this.parentId = parentId;
+    return this;
+  }
+
+  public Room getParent() {
+    return parent;
+  }
+
+  public Room setParent(Room parent) {
+    this.parent = parent;
+    return this;
+  }
+
+  public List<Room> getChildren() {
+    return children;
+  }
+
+  public Integer getRank() {
+    return rank;
+  }
+
+  public Room rank(Integer rank) {
+    this.rank = rank;
     return this;
   }
 

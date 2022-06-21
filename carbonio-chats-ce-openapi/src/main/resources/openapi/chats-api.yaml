@@ -765,6 +765,7 @@ components:
         - group
         - one_to_one
         - workspace
+        - channel
     RoomEditableFields:
       type: object
       description: Room fields that can be updated
@@ -789,15 +790,18 @@ components:
           properties:
             type:
               $ref: '#/components/schemas/RoomType'
+            parentId:
+              type: string
+              format: uuid
+              description: identifier of the referenced workspace
       properties:
         membersIds:
           type: array
           items:
             type: string
             format: uuid
-          minItems: 1
           description: members identifiers list to be subscribed to the room
-      required: [ type, membersIds ]
+      required: [ type ]
     Room:
       type: object
       description: Room data

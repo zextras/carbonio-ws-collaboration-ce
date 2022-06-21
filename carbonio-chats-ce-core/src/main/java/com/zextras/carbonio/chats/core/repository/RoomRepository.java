@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,5 +23,7 @@ public interface RoomRepository {
   Room update(Room room);
 
   void delete(String id);
+
+  Optional<Integer> getChannelMaxRanksByWorkspace(String workspaceId);
 
 }

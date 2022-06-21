@@ -133,9 +133,10 @@ public class RoomServiceImpl implements RoomService {
   @Transactional
   public RoomInfoDto createRoom(RoomCreationFieldsDto roomCreationFields, UserPrincipal currentUser) {
     createRoomValidation(roomCreationFields, currentUser);
-
     List<UUID> membersIds = new ArrayList<>(roomCreationFields.getMembersIds());
-    membersIds.add(UUID.fromString(currentUser.getId()));
+    if (!RoomTypeDto.CHANNEL.equals(roomCreationFields.getType())) {
+      membersIds.add(UUID.fromString(currentUser.getId()));
+    }
 
     UUID newRoomId = UUID.randomUUID();
     Room room = Room.create()
@@ -143,7 +144,9 @@ public class RoomServiceImpl implements RoomService {
       .name(roomCreationFields.getName())
       .description(roomCreationFields.getDescription())
       .hash(Utils.encodeUuidHash(newRoomId.toString()))
-      .type(roomCreationFields.getType());
+      .type(roomCreationFields.getType())
+      .parentId(roomCreationFields.getParentId() == null ? null : roomCreationFields.getParentId().toString());
+
     room = room.subscriptions(
       membersService.initRoomSubscriptions(membersIds, room, currentUser));
 
@@ -159,10 +162,16 @@ public class RoomServiceImpl implements RoomService {
             .rank((maxRank != null && maxRank.getRank() != null ? maxRank.getRank() : 0) + 1));
       }
       room.userSettings(roomUserSettings);
+    } else if (RoomTypeDto.CHANNEL.equals(roomCreationFields.getType())) {
+      room.rank(
+        roomRepository.getChannelMaxRanksByWorkspace(roomCreationFields.getParentId().toString()).orElse(0) + 1);
     }
 
     room = roomRepository.insert(room);
 
+    if (RoomTypeDto.CHANNEL.equals(room.getType())) {
+      room.subscriptions(roomRepository.getById(room.getParentId()).orElseThrow().getSubscriptions());
+    }
     if (!RoomTypeDto.WORKSPACE.equals(room.getType())) {
       messageDispatcher.createRoom(room, currentUser.getId());
       if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
@@ -179,7 +188,6 @@ public class RoomServiceImpl implements RoomService {
     );
 
     return roomMapper.ent2roomInfoDto(room, currentUser.getUUID());
-
   }
 
   private void createRoomValidation(RoomCreationFieldsDto roomCreationFields, UserPrincipal currentUser) {
@@ -191,6 +199,9 @@ public class RoomServiceImpl implements RoomService {
     if (roomCreationFields.getMembersIds().stream()
       .anyMatch(memberId -> memberId.toString().equals(currentUser.getId()))) {
       throw new BadRequestException("Requester can't be invited to the room");
+    }
+    if (!RoomTypeDto.CHANNEL.equals(roomCreationFields.getType()) && roomCreationFields.getParentId() != null) {
+      throw new BadRequestException("Parent is allowed only for channel room");
     }
     switch (roomCreationFields.getType()) {
       case ONE_TO_ONE:
@@ -207,6 +218,19 @@ public class RoomServiceImpl implements RoomService {
         if (membersSet.size() < 2) {
           throw new BadRequestException("Too few members (required at least 3)");
         }
+        break;
+      case CHANNEL:
+        if (membersSet.size() > 0) {
+          throw new BadRequestException("Channels don't admit members");
+        }
+        if (roomCreationFields.getParentId() == null) {
+          throw new BadRequestException("Channel must have an assigned workspace");
+        }
+        Room room = getRoomAndCheckUser(roomCreationFields.getParentId(), currentUser, true);
+        if (!RoomTypeDto.WORKSPACE.equals(room.getType())) {
+          throw new BadRequestException("Channel parent must be a workspace");
+        }
+        break;
     }
 
     roomCreationFields.getMembersIds().stream()

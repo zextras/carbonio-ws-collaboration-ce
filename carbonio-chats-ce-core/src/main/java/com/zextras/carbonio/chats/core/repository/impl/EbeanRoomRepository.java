@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.core.repository.impl;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
-import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
@@ -85,5 +84,15 @@ public class EbeanRoomRepository implements RoomRepository {
   @Override
   public void delete(String id) {
     db.delete(Room.class, id);
+  }
+
+  @Override
+  public Optional<Integer> getChannelMaxRanksByWorkspace(String workspaceId) {
+    return Optional.ofNullable(
+      db.createQuery(Room.class)
+        .select("max(rank)")
+        .where()
+        .eq("parentId", workspaceId)
+        .findSingleAttribute());
   }
 }

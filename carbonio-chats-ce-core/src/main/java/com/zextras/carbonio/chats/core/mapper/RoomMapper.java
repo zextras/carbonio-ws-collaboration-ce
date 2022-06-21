@@ -34,6 +34,7 @@ public abstract class RoomMapper {
   @Mappings({
     @Mapping(target = "id", expression = "java(UUID.fromString(room.getId()))"),
     @Mapping(target = "rank", expression = "java(getRank(room, null))"),
+    @Mapping(target = "parentId", expression = "java(room.getParentId() == null ? null : UUID.fromString(room.getParentId()))"),
     @Mapping(target = "members", expression = "java(includeMembers ? subscriptionMapper.ent2memberDto(room.getSubscriptions()) : null)"),
     @Mapping(target = "userSettings", ignore = true)
   })
@@ -54,6 +55,7 @@ public abstract class RoomMapper {
   @Mappings({
     @Mapping(target = "id", expression = "java(UUID.fromString(room.getId()))"),
     @Mapping(target = "rank", expression = "java(getRank(room, null))"),
+    @Mapping(target = "parentId", expression = "java(room.getParentId() == null ? null : UUID.fromString(room.getParentId()))"),
     @Mapping(target = "members", expression = "java(subscriptionMapper.ent2memberDto(room.getSubscriptions()))"),
     @Mapping(target = "userSettings", expression = "java(roomUserSettingsMapper.ent2dto(room.getUserSettings()))")
   })
@@ -62,6 +64,7 @@ public abstract class RoomMapper {
   @Mappings({
     @Mapping(target = "id", expression = "java(UUID.fromString(room.getId()))"),
     @Mapping(target = "rank", expression = "java(getRank(room, userId))"),
+    @Mapping(target = "parentId", expression = "java(room.getParentId() == null ? null : UUID.fromString(room.getParentId()))"),
     @Mapping(target = "members", expression = "java(subscriptionMapper.ent2memberDto(room.getSubscriptions()))"),
     @Mapping(target = "userSettings", expression = "java(roomUserSettingsMapper.ent2dto(room.getUserSettings().stream().filter(us -> us.getUserId().equals(userId.toString())).collect(Collectors.toList())))"),
   })
@@ -69,18 +72,21 @@ public abstract class RoomMapper {
 
   @Nullable
   protected Integer getRank(Room room, @Nullable UUID userId) {
+    Integer rank = null;
     if (RoomTypeDto.WORKSPACE.equals(room.getType()) && room.getUserSettings() != null
       && room.getUserSettings().size() > 0) {
       if (userId != null) {
         Optional<RoomUserSettings> userSettings = room.getUserSettings().stream()
           .filter(us -> us.getUserId().equals(userId.toString())).findAny();
         if (userSettings.isPresent()) {
-          return userSettings.get().getRank();
+          rank = userSettings.get().getRank();
         }
       } else {
-        return room.getUserSettings().get(0).getRank();
+        rank = room.getUserSettings().get(0).getRank();
       }
+    } else {
+      rank = room.getRank();
     }
-    return null;
+    return rank;
   }
 }
