@@ -767,7 +767,7 @@ components:
         - workspace
         - channel
     RoomEditableFields:
-      type: object
+      type: objectfdf
       description: Room fields that can be updated
       properties:
         name:
