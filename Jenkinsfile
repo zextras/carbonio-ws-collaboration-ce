@@ -17,7 +17,6 @@ pipeline {
     stage('Build setup') {
       steps {
         checkout scm
-        println currentBuild.changeSets
         withCredentials([file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')]) {
           sh 'cp $SETTINGS_PATH settings-jenkins.xml'
           sh 'mvn -Dmaven.repo.local=$(pwd)/m2 -N wrapper:wrapper'
@@ -57,11 +56,11 @@ pipeline {
       }
     } */
     stage("Publishing documentation") {
-      /* when {
+      when {
         anyOf {
-          changeset "carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml"
+          hasOpenAPIDocumentChanged()
         }
-      } */
+      }
       steps {
         println currentBuild.changeSets
         echo "upload!"
@@ -189,4 +188,12 @@ void sendFailureEmail(String step) {
   """,
   subject: "[CHATS TRUNK FAILURE] Trunk ${step} step failure",
   to: FAILURE_EMAIL_RECIPIENTS
+}
+
+boolean hasOpenAPIDocumentChanged() {
+  def isChanged = sh(
+    script: "git diff HEAD~1 --exit-code carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml"
+    returnStatus: true
+  )
+  return isChanged==1 ? true : false
 }
