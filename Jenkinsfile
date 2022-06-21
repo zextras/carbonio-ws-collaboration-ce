@@ -23,7 +23,7 @@ pipeline {
         }
       }
     }
-    stage('Compiling') {
+    /* stage('Compiling') {
       steps {
         sh './mvnw -Dmaven.repo.local=$(pwd)/m2 -T1C -B -q --settings settings-jenkins.xml compile'
       }
@@ -54,15 +54,16 @@ pipeline {
           }
         }
       }
-    }
+    } */
     stage("Publishing documentation") {
-      when {
+      /* when {
         anyOf {
           changeset "carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml"
         }
-      }
+      } */
       steps {
-        sh "echo upload!"
+        println currentBuild.changeSets
+        echo "upload!"
       }
       post {
         failure {
