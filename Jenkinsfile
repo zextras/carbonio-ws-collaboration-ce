@@ -58,7 +58,7 @@ pipeline {
     stage("Publishing documentation") {
       when {
         anyOf {
-          hasOpenAPIDocumentChanged()
+          expression { hasOpenAPIDocumentChanged() }
         }
       }
       steps {
