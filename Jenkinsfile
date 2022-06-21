@@ -1,6 +1,5 @@
 pipeline {
   options {
-    skipDefaultCheckout()
     buildDiscarder(logRotator(numToKeepStr: '5'))
     timeout(time: 1, unit: 'HOURS')
   }
@@ -16,7 +15,6 @@ pipeline {
   stages {
     stage('Build setup') {
       steps {
-        checkout scm
         withCredentials([file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')]) {
           sh 'cp $SETTINGS_PATH settings-jenkins.xml'
           sh 'mvn -Dmaven.repo.local=$(pwd)/m2 -N wrapper:wrapper'
