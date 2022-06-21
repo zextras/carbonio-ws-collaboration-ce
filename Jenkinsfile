@@ -17,6 +17,7 @@ pipeline {
     stage('Build setup') {
       steps {
         checkout scm
+        println currentBuild.changeSets
         withCredentials([file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')]) {
           sh 'cp $SETTINGS_PATH settings-jenkins.xml'
           sh 'mvn -Dmaven.repo.local=$(pwd)/m2 -N wrapper:wrapper'
