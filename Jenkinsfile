@@ -55,6 +55,25 @@ pipeline {
         }
       }
     }
+    stage {
+      when {
+        anyOf {
+          changeset "carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml"
+        }
+      }
+      steps {
+        sh "echo upload!"
+      }
+      post {
+        failure {
+          script {
+            if ("main".equals(env.BRANCH_NAME)) {
+              sendFailureEmail(STAGE_NAME)
+            }
+          }
+        }
+      }
+    }
     stage('Stashing for packaging') {
       when {
         anyOf {
@@ -168,4 +187,8 @@ void sendFailureEmail(String step) {
   """,
   subject: "[CHATS TRUNK FAILURE] Trunk ${step} step failure",
   to: FAILURE_EMAIL_RECIPIENTS
+}
+
+boolean hasApiDocumentChanged() {
+  git diff HEAD~1 --exit-code carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml
 }
