@@ -25,20 +25,21 @@ import org.mapstruct.Mappings;
 @Mapper(componentModel = "jsr330", imports = {ArrayList.class, UUID.class, RoomUserSettingsDto.class, Collectors.class})
 public abstract class RoomMapper {
 
-  @Inject
-  protected SubscriptionMapper subscriptionMapper;
-
-  @Inject
-  protected RoomUserSettingsMapper roomUserSettingsMapper;
-
   @Mappings({
     @Mapping(target = "id", expression = "java(UUID.fromString(room.getId()))"),
     @Mapping(target = "rank", expression = "java(getRank(room, null))"),
     @Mapping(target = "parentId", expression = "java(room.getParentId() == null ? null : UUID.fromString(room.getParentId()))"),
     @Mapping(target = "members", expression = "java(includeMembers ? subscriptionMapper.ent2memberDto(room.getSubscriptions()) : null)"),
-    @Mapping(target = "userSettings", ignore = true)
+    @Mapping(target = "userSettings", ignore = true),
+    @Mapping(target = "children", expression = "java(ent2roomDto(room.getChildren(), false, null))")
   })
   public abstract RoomDto ent2roomDto(@Nullable Room room, boolean includeMembers);
+
+  @Inject
+  protected SubscriptionMapper subscriptionMapper;
+
+  @Inject
+  protected RoomUserSettingsMapper roomUserSettingsMapper;
 
   public List<RoomDto> ent2roomDto(
     @Nullable List<Room> rooms, boolean includeMembers, @Nullable Map<String, RoomUserSettings> settingsMap
@@ -57,7 +58,8 @@ public abstract class RoomMapper {
     @Mapping(target = "rank", expression = "java(getRank(room, null))"),
     @Mapping(target = "parentId", expression = "java(room.getParentId() == null ? null : UUID.fromString(room.getParentId()))"),
     @Mapping(target = "members", expression = "java(subscriptionMapper.ent2memberDto(room.getSubscriptions()))"),
-    @Mapping(target = "userSettings", expression = "java(roomUserSettingsMapper.ent2dto(room.getUserSettings()))")
+    @Mapping(target = "userSettings", expression = "java(roomUserSettingsMapper.ent2dto(room.getUserSettings()))"),
+    @Mapping(target = "children", expression = "java(ent2roomDto(room.getChildren(), false, null))")
   })
   public abstract RoomInfoDto ent2roomInfoDto(Room room);
 
@@ -67,6 +69,7 @@ public abstract class RoomMapper {
     @Mapping(target = "parentId", expression = "java(room.getParentId() == null ? null : UUID.fromString(room.getParentId()))"),
     @Mapping(target = "members", expression = "java(subscriptionMapper.ent2memberDto(room.getSubscriptions()))"),
     @Mapping(target = "userSettings", expression = "java(roomUserSettingsMapper.ent2dto(room.getUserSettings().stream().filter(us -> us.getUserId().equals(userId.toString())).collect(Collectors.toList())))"),
+    @Mapping(target = "children", expression = "java(ent2roomDto(room.getChildren(), false, null))")
   })
   public abstract RoomInfoDto ent2roomInfoDto(Room room, UUID userId);
 

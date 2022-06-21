@@ -130,12 +130,36 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Correctly gets the basic rooms of authenticated user")
     public void listRoom_testOkBasicRooms() throws Exception {
-      UUID room1Id = UUID.randomUUID();
-      UUID room2Id = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(room1Id, RoomTypeDto.GROUP, "room1",
+      UUID group1Id = UUID.randomUUID();
+      UUID group2Id = UUID.randomUUID();
+      UUID workspace1Id = UUID.randomUUID();
+      UUID channel1Id = UUID.randomUUID();
+      UUID channel2Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(group1Id, RoomTypeDto.GROUP, "room1",
         List.of(user1Id, user2Id, user3Id));
-      integrationTestUtils.generateAndSaveRoom(room2Id, RoomTypeDto.GROUP, "room2",
+      integrationTestUtils.generateAndSaveRoom(group2Id, RoomTypeDto.GROUP, "room2",
         List.of(user1Id, user2Id), List.of(user1Id), List.of(user1Id), OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+      integrationTestUtils.generateAndSaveRoom(workspace1Id, RoomTypeDto.WORKSPACE, List.of(
+        RoomMemberField.create().id(user1Id).owner(true).rank(5),
+        RoomMemberField.create().id(user2Id).owner(false).rank(2),
+        RoomMemberField.create().id(user3Id).owner(false).rank(2)
+      ));
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channel1Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel1")
+        .description("Channel one")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspace1Id.toString())
+        .rank(2), List.of());
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channel2Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel2")
+        .description("Channel two")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspace1Id.toString())
+        .rank(1), List.of());
 
       MockHttpResponse response = dispatcher.get(url(null), user1Token);
       assertEquals(200, response.getStatus());
@@ -143,16 +167,25 @@ public class RoomsApiIT {
       assertFalse(response.getContentAsString().contains("userSettings"));
       List<RoomDto> rooms = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
       });
-      assertEquals(2, rooms.size());
-      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room1Id)));
-      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room2Id)));
+      assertEquals(3, rooms.size());
+      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(group1Id)));
+      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(group2Id)));
+      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(workspace1Id)));
       assertEquals(0, rooms.get(0).getMembers().size());
       assertEquals(0, rooms.get(1).getMembers().size());
+      assertEquals(0, rooms.get(2).getMembers().size());
       assertNull(rooms.get(0).getUserSettings());
       assertNull(rooms.get(1).getUserSettings());
+      assertNull(rooms.get(2).getUserSettings());
       assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() != null && room.getPictureUpdatedAt()
         .equals(OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
       assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() == null));
+      RoomDto workspace = rooms.stream().filter(room -> RoomTypeDto.WORKSPACE.equals(room.getType())).findAny()
+        .orElseThrow();
+      assertEquals(5, workspace.getRank());
+      assertEquals(2, workspace.getChildren().size());
+      assertTrue(workspace.getChildren().stream().anyMatch(child -> RoomTypeDto.CHANNEL.equals(child.getType())));
+      assertTrue(workspace.getChildren().stream().anyMatch(child -> child.getMembers().isEmpty()));
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -162,26 +195,59 @@ public class RoomsApiIT {
     public void listRoom_testOkWithMembers() throws Exception {
       UUID room1Id = UUID.randomUUID();
       UUID room2Id = UUID.randomUUID();
+      UUID workspace1Id = UUID.randomUUID();
+      UUID channel1Id = UUID.randomUUID();
+      UUID channel2Id = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(room1Id, RoomTypeDto.GROUP, "room1",
         List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveRoom(room2Id, RoomTypeDto.GROUP, "room2",
         List.of(user1Id, user2Id), List.of(user1Id), List.of(user1Id), OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+      integrationTestUtils.generateAndSaveRoom(workspace1Id, RoomTypeDto.WORKSPACE, List.of(
+        RoomMemberField.create().id(user1Id).owner(true).rank(5),
+        RoomMemberField.create().id(user2Id).owner(false).rank(2),
+        RoomMemberField.create().id(user3Id).owner(false).rank(2)
+      ));
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channel1Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel1")
+        .description("Channel one")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspace1Id.toString())
+        .rank(2), List.of());
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channel2Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel2")
+        .description("Channel two")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspace1Id.toString())
+        .rank(1), List.of());
 
       MockHttpResponse response = dispatcher.get(url(Map.of("extraFields", List.of("members"))), user1Token);
       assertEquals(200, response.getStatus());
       assertFalse(response.getContentAsString().contains("userSettings"));
       List<RoomDto> rooms = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
       });
-      assertEquals(2, rooms.size());
+      assertEquals(3, rooms.size());
       assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room1Id)));
       assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room2Id)));
+      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(workspace1Id)));
       assertNotNull(rooms.get(0).getMembers());
       assertNotNull(rooms.get(1).getMembers());
+      assertNotNull(rooms.get(2).getMembers());
       assertNull(rooms.get(0).getUserSettings());
       assertNull(rooms.get(1).getUserSettings());
+      assertNull(rooms.get(2).getUserSettings());
       assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() != null && room.getPictureUpdatedAt()
         .equals(OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
       assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() == null));
+      RoomDto workspace = rooms.stream().filter(room -> RoomTypeDto.WORKSPACE.equals(room.getType())).findAny()
+        .orElseThrow();
+      assertEquals(5, workspace.getRank());
+      assertEquals(2, workspace.getChildren().size());
+      assertTrue(workspace.getChildren().stream().anyMatch(child -> RoomTypeDto.CHANNEL.equals(child.getType())));
+      assertTrue(workspace.getChildren().stream().anyMatch(child -> child.getMembers().isEmpty()));
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -191,26 +257,60 @@ public class RoomsApiIT {
     public void listRoom_testOkWithUserSettings() throws Exception {
       UUID room1Id = UUID.randomUUID();
       UUID room2Id = UUID.randomUUID();
+      UUID workspace1Id = UUID.randomUUID();
+      UUID channel1Id = UUID.randomUUID();
+      UUID channel2Id = UUID.randomUUID();
+
       integrationTestUtils.generateAndSaveRoom(room1Id, RoomTypeDto.GROUP, "room1",
         List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveRoom(room2Id, RoomTypeDto.GROUP, "room2",
         List.of(user1Id, user2Id), List.of(user1Id), List.of(user1Id), OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+      integrationTestUtils.generateAndSaveRoom(workspace1Id, RoomTypeDto.WORKSPACE, List.of(
+        RoomMemberField.create().id(user1Id).owner(true).rank(5),
+        RoomMemberField.create().id(user2Id).owner(false).rank(2),
+        RoomMemberField.create().id(user3Id).owner(false).rank(2)
+      ));
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channel1Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel1")
+        .description("Channel one")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspace1Id.toString())
+        .rank(2), List.of());
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channel2Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel2")
+        .description("Channel two")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspace1Id.toString())
+        .rank(1), List.of());
 
       MockHttpResponse response = dispatcher.get(url(Map.of("extraFields", List.of("settings"))), user1Token);
       assertEquals(200, response.getStatus());
       assertFalse(response.getContentAsString().contains("members"));
       List<RoomDto> rooms = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
       });
-      assertEquals(2, rooms.size());
+      assertEquals(3, rooms.size());
       assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room1Id)));
       assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room2Id)));
+      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(workspace1Id)));
       assertEquals(0, rooms.get(0).getMembers().size());
       assertEquals(0, rooms.get(1).getMembers().size());
+      assertEquals(0, rooms.get(2).getMembers().size());
       assertNotNull(rooms.get(0).getUserSettings());
       assertNotNull(rooms.get(1).getUserSettings());
+      assertNotNull(rooms.get(2).getUserSettings());
       assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() != null && room.getPictureUpdatedAt()
         .equals(OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
       assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() == null));
+      RoomDto workspace = rooms.stream().filter(room -> RoomTypeDto.WORKSPACE.equals(room.getType())).findAny()
+        .orElseThrow();
+      assertEquals(5, workspace.getRank());
+      assertEquals(2, workspace.getChildren().size());
+      assertTrue(workspace.getChildren().stream().anyMatch(child -> RoomTypeDto.CHANNEL.equals(child.getType())));
+      assertTrue(workspace.getChildren().stream().anyMatch(child -> child.getMembers().isEmpty()));
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -220,17 +320,41 @@ public class RoomsApiIT {
     public void listRoom_testOkCompleteRooms() throws Exception {
       UUID room1Id = UUID.randomUUID();
       UUID room2Id = UUID.randomUUID();
+      UUID workspace1Id = UUID.randomUUID();
+      UUID channel1Id = UUID.randomUUID();
+      UUID channel2Id = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(room1Id, RoomTypeDto.GROUP, "room1",
         List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveRoom(room2Id, RoomTypeDto.GROUP, "room2",
         List.of(user1Id, user2Id), List.of(user1Id), List.of(user1Id), OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+      integrationTestUtils.generateAndSaveRoom(workspace1Id, RoomTypeDto.WORKSPACE, List.of(
+        RoomMemberField.create().id(user1Id).owner(true).rank(5),
+        RoomMemberField.create().id(user2Id).owner(false).rank(2),
+        RoomMemberField.create().id(user3Id).owner(false).rank(2)
+      ));
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channel1Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel1")
+        .description("Channel one")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspace1Id.toString())
+        .rank(2), List.of());
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channel2Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel2")
+        .description("Channel two")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspace1Id.toString())
+        .rank(1), List.of());
 
       MockHttpResponse response = dispatcher.get(url(Map.of("extraFields", List.of("members", "settings"))),
         user1Token);
       assertEquals(200, response.getStatus());
       List<RoomDto> rooms = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
       });
-      assertEquals(2, rooms.size());
+      assertEquals(3, rooms.size());
       assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room1Id)));
       assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room2Id)));
       assertNotNull(rooms.get(0).getMembers());
@@ -240,6 +364,12 @@ public class RoomsApiIT {
       assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() != null && room.getPictureUpdatedAt()
         .equals(OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
       assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() == null));
+      RoomDto workspace = rooms.stream().filter(room -> RoomTypeDto.WORKSPACE.equals(room.getType())).findAny()
+        .orElseThrow();
+      assertEquals(5, workspace.getRank());
+      assertEquals(2, workspace.getChildren().size());
+      assertTrue(workspace.getChildren().stream().anyMatch(child -> RoomTypeDto.CHANNEL.equals(child.getType())));
+      assertTrue(workspace.getChildren().stream().anyMatch(child -> child.getMembers().isEmpty()));
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -867,8 +997,8 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier, correctly returns the room information with members and user settings")
-    public void getRoom_testOk() throws Exception {
+    @DisplayName("Given a group room identifier, correctly returns the room information with members and user settings")
+    public void getGroupRoom_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom",
         List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
@@ -887,6 +1017,71 @@ public class RoomsApiIT {
       assertNotNull(room.getUserSettings());
       assertTrue(room.getUserSettings().isMuted());
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a workspace room identifier, correctly returns the room information with members, user settings and channels")
+    public void getWorkspaceRoom_testOk() throws Exception {
+      UUID workspaceId = UUID.randomUUID();
+      UUID channel1Id = UUID.randomUUID();
+      UUID channel2Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(workspaceId, RoomTypeDto.WORKSPACE, List.of(
+        RoomMemberField.create().id(user1Id).owner(true).rank(5).muted(true),
+        RoomMemberField.create().id(user2Id).owner(false).rank(2),
+        RoomMemberField.create().id(user3Id).owner(false).rank(2)
+      ));
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channel1Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel1")
+        .description("Channel one")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspaceId.toString())
+        .rank(2), List.of());
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channel2Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel2")
+        .description("Channel two")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspaceId.toString())
+        .rank(1), List.of());
+
+      MockHttpResponse response = dispatcher.get(url(workspaceId), user1Token);
+      assertEquals(200, response.getStatus());
+      RoomInfoDto workspace = objectMapper.readValue(response.getContentAsString(), RoomInfoDto.class);
+
+      assertEquals(workspaceId, workspace.getId());
+      assertEquals(RoomTypeDto.WORKSPACE, workspace.getType());
+      assertEquals(5, workspace.getRank());
+
+      assertNotNull(workspace.getMembers());
+      assertEquals(3, workspace.getMembers().size());
+      assertTrue(workspace.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
+      assertTrue(workspace.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
+      assertTrue(workspace.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
+
+      assertNotNull(workspace.getUserSettings());
+      assertTrue(workspace.getUserSettings().isMuted());
+
+      assertNotNull(workspace.getChildren());
+      assertTrue(workspace.getChildren().stream().anyMatch(child -> RoomTypeDto.CHANNEL.equals(child.getType())));
+      assertTrue(workspace.getChildren().stream().anyMatch(child -> workspaceId.equals(child.getParentId())));
+      Optional<RoomDto> channel1 = workspace.getChildren().stream()
+        .filter(child -> channel1Id.equals(child.getId())).findAny();
+      assertTrue(channel1.isPresent());
+      assertEquals(channel1Id, channel1.get().getId());
+      assertEquals("channel1", channel1.get().getName());
+      assertEquals(2, channel1.get().getRank());
+
+      Optional<RoomDto> channel2 = workspace.getChildren().stream()
+        .filter(child -> channel2Id.equals(child.getId())).findAny();
+      assertTrue(channel2.isPresent());
+      assertEquals(channel2Id, channel2.get().getId());
+      assertEquals("channel2", channel2.get().getName());
+      assertEquals(1, channel2.get().getRank());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }

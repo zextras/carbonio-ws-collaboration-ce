@@ -839,6 +839,10 @@ components:
               description: |
                 room profile picture update timestamp,
                 returned only if the room picture was set at least once
+            children:
+              type: array
+              items:
+                $ref: '#/components/schemas/Room'
             members:
               type: array
               items:

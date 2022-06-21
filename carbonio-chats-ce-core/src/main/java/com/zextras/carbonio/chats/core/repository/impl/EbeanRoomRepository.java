@@ -28,11 +28,14 @@ public class EbeanRoomRepository implements RoomRepository {
 
   @Override
   public List<Room> getByUserId(String userId, boolean addSubscriptions) {
-    Query<Room> roomQuery = db.find(Room.class);
+    Query<Room> roomQuery = db.find(Room.class)
+      .fetch("children");
     if (addSubscriptions) {
       roomQuery = roomQuery.fetch("subscriptions");
     }
-    return roomQuery.where().eq("subscriptions.userId", userId)
+    return roomQuery.where()
+      .ne("type", RoomTypeDto.CHANNEL).and()
+      .eq("subscriptions.userId", userId)
       .findList();
   }
 
@@ -40,6 +43,7 @@ public class EbeanRoomRepository implements RoomRepository {
   public Optional<Room> getById(String roomId) {
     return db.find(Room.class)
       .fetch("subscriptions")
+      .fetch("children")
       .where()
       .eq("id", roomId)
       .findOneOrEmpty();
