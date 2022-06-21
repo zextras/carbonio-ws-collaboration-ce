@@ -55,7 +55,7 @@ pipeline {
         }
       }
     }
-    stage {
+    stage("Publishing documentation") {
       when {
         anyOf {
           changeset "carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml"
