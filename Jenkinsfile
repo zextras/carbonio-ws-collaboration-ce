@@ -16,10 +16,10 @@ pipeline {
   stages {
     stage('Build setup') {
       steps {
-        println scm
-        checkout([
+        println scm.extensions
+        println checkout([
           $class: 'GitSCM',
-          branches: [[name: env.BRANCH_NAME]],
+          branches: scm.branches,
           extensions: [[
             $class: 'CloneOption',
             shallow: true,
