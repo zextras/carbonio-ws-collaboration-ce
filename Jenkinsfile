@@ -73,12 +73,14 @@ pipeline {
         }
       }
       steps {
-        sh """
-          git clone -b testPush git@bitbucket.org:zextras/dev-guide.git
-          cp carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml dev-guide/static/chats/openapi/chats-api.yaml
-          cd dev-guide
-          git add . && git commit -m "[CHATS-CE PIPELINE] Updated OpenAPI document" && git push
-        """
+        withCredentials([file(credentialsId: 'tarsier_bot-ssh-key')]) {
+          sh """
+            git clone -b testPush git@bitbucket.org:zextras/dev-guide.git
+            cp carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml dev-guide/static/chats/openapi/chats-api.yaml
+            cd dev-guide
+            git add . && git commit -m "[CHATS-CE PIPELINE] Updated OpenAPI document" && git push
+          """
+        }
       }
       post {
         failure {
