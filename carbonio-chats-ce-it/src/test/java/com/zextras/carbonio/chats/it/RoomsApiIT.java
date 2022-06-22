@@ -1284,8 +1284,8 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a workspace room identifier, correctly delete the room")
-    public void deleteRoom_workspaceTestOk() throws Exception {
+    @DisplayName("Given a workspace identifier, correctly delete the workspace without channel")
+    public void deleteRoom_workspaceWithoutChannelTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.WORKSPACE,
         List.of(
@@ -1301,6 +1301,81 @@ public class RoomsApiIT {
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
 
+      // TODO: 23/02/22 verify event dispatcher interactions
+    }
+
+    @Test
+    @DisplayName("Given a workspace room identifier, correctly delete the workspace with channel")
+    public void deleteRoom_workspaceWithChannelTestOk() throws Exception {
+      UUID workspaceId = UUID.randomUUID();
+      UUID channel1Id = UUID.randomUUID();
+      UUID channel2Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(workspaceId, RoomTypeDto.WORKSPACE,
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true).rank(10),
+          RoomMemberField.create().id(user2Id).muted(true).rank(9),
+          RoomMemberField.create().id(user3Id).rank(8)));
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channel1Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel1")
+        .description("Channel one")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspaceId.toString())
+        .rank(1), List.of());
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channel2Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel2")
+        .description("Channel two")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspaceId.toString())
+        .rank(2), List.of());
+
+      MockHttpResponse response = dispatcher.delete(url(workspaceId), user1Token);
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      assertTrue(integrationTestUtils.getRoomById(workspaceId).isEmpty());
+      assertTrue(roomUserSettingsRepository.getByRoomId(workspaceId.toString()).isEmpty());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      mongooseImMockServer.verify("DELETE",
+        String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", channel1Id, user1Id), 1);
+      mongooseImMockServer.verify("DELETE",
+        String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", channel2Id, user1Id), 1);
+      // TODO: 23/02/22 verify event dispatcher interactions
+    }
+
+    @Test
+    @DisplayName("Given a channel room identifier, correctly delete the room")
+    public void deleteRoom_ChannelTestOk() throws Exception {
+      UUID workspaceId = UUID.randomUUID();
+      UUID channelId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(workspaceId, RoomTypeDto.WORKSPACE,
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true).rank(10),
+          RoomMemberField.create().id(user2Id).muted(true).rank(9),
+          RoomMemberField.create().id(user3Id).rank(8)));
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channelId.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("testChannel")
+        .description("Channel test")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspaceId.toString())
+        .rank(1), List.of());
+
+      MockHttpResponse response = dispatcher.delete(url(channelId), user1Token);
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      assertTrue(integrationTestUtils.getRoomById(channelId).isEmpty());
+      assertTrue(roomUserSettingsRepository.getByRoomId(channelId.toString()).isEmpty());
+
+      assertTrue(integrationTestUtils.getRoomById(workspaceId).orElseThrow().getChildren().isEmpty());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      mongooseImMockServer.verify("DELETE",
+        String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", channelId, user1Id), 1);
       // TODO: 23/02/22 verify event dispatcher interactions
     }
 

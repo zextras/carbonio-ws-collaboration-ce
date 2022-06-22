@@ -199,6 +199,22 @@ class RoomServiceImplTest {
         Subscription.create(roomOneToOne2, user1Id.toString()).owner(true),
         Subscription.create(roomOneToOne2, user2Id.toString()).owner(true)));
 
+    roomChannel1 = Room.create()
+      .id(roomChannel1Id.toString())
+      .type(RoomTypeDto.CHANNEL)
+      .name("channel1")
+      .description("Channel one")
+      .parentId(roomWorkspace1Id.toString())
+      .rank(1);
+
+    roomChannel2 = Room.create()
+      .id(roomChannel2Id.toString())
+      .type(RoomTypeDto.CHANNEL)
+      .name("channel2")
+      .description("Channel two")
+      .parentId(roomWorkspace1Id.toString())
+      .rank(8);
+
     roomWorkspace1 = Room.create();
     roomWorkspace1
       .id(roomWorkspace1Id.toString())
@@ -212,8 +228,8 @@ class RoomServiceImplTest {
       .userSettings(List.of(
         RoomUserSettings.create(roomWorkspace1, user1Id.toString()).rank(1),
         RoomUserSettings.create(roomWorkspace1, user2Id.toString()).rank(1),
-        RoomUserSettings.create(roomWorkspace1, user3Id.toString()).rank(1)
-      ));
+        RoomUserSettings.create(roomWorkspace1, user3Id.toString()).rank(1)))
+      .children(List.of(roomChannel1, roomChannel2));
 
     roomWorkspace2 = Room.create();
     roomWorkspace2
@@ -228,8 +244,7 @@ class RoomServiceImplTest {
       .userSettings(List.of(
         RoomUserSettings.create(roomWorkspace2, user1Id.toString()).rank(10),
         RoomUserSettings.create(roomWorkspace2, user2Id.toString()).rank(9),
-        RoomUserSettings.create(roomWorkspace2, user3Id.toString()).rank(8)
-      ));
+        RoomUserSettings.create(roomWorkspace2, user3Id.toString()).rank(8)));
 
     roomWorkspace3 = Room.create();
     roomWorkspace3
@@ -244,26 +259,7 @@ class RoomServiceImplTest {
       .userSettings(List.of(
         RoomUserSettings.create(roomWorkspace3, user1Id.toString()).rank(3),
         RoomUserSettings.create(roomWorkspace3, user2Id.toString()).rank(5),
-        RoomUserSettings.create(roomWorkspace3, user3Id.toString()).rank(8)
-      ));
-
-    roomChannel1 = Room.create()
-      .id(roomChannel1Id.toString())
-      .type(RoomTypeDto.CHANNEL)
-      .name("channel1")
-      .description("Channel one")
-      .parentId(roomWorkspace1Id.toString())
-      .rank(1)
-      .subscriptions(roomWorkspace1.getSubscriptions());
-
-    roomChannel2 = Room.create()
-      .id(roomChannel2Id.toString())
-      .type(RoomTypeDto.CHANNEL)
-      .name("channel2")
-      .description("Channel two")
-      .parentId(roomWorkspace1Id.toString())
-      .rank(8)
-      .subscriptions(roomWorkspace1.getSubscriptions());
+        RoomUserSettings.create(roomWorkspace3, user3Id.toString()).rank(8)));
   }
 
   @AfterEach
@@ -1196,16 +1192,30 @@ class RoomServiceImplTest {
     }
 
     @Test
-    @DisplayName("Deletes the required workspace room")
-    public void deleteRoom_workspaceTestOk() {
+    @DisplayName("Deletes the required workspace without channel")
+    public void deleteRoom_workspaceWithoutChannelTestOk() {
+      when(roomRepository.getById(roomWorkspace2Id.toString())).thenReturn(Optional.of(roomWorkspace2));
+
+      roomService.deleteRoom(roomWorkspace2Id, UserPrincipal.create(user1Id));
+
+      verify(eventDispatcher, times(1)).sendToTopic(user1Id, roomWorkspace2Id.toString(),
+        RoomDeletedEvent.create(roomWorkspace2Id));
+      verifyNoMoreInteractions(eventDispatcher);
+      verifyNoInteractions(messageDispatcher);
+    }
+
+    @Test
+    @DisplayName("Deletes the required workspace with channel")
+    public void deleteRoom_workspaceWithChannelTestOk() {
       when(roomRepository.getById(roomWorkspace1Id.toString())).thenReturn(Optional.of(roomWorkspace1));
 
       roomService.deleteRoom(roomWorkspace1Id, UserPrincipal.create(user1Id));
 
       verify(eventDispatcher, times(1)).sendToTopic(user1Id, roomWorkspace1Id.toString(),
         RoomDeletedEvent.create(roomWorkspace1Id));
-      verifyNoMoreInteractions(eventDispatcher);
-      verifyNoInteractions(messageDispatcher);
+      verify(messageDispatcher, times(1)).deleteRoom(roomChannel1Id.toString(), user1Id.toString());
+      verify(messageDispatcher, times(1)).deleteRoom(roomChannel2Id.toString(), user1Id.toString());
+      verifyNoMoreInteractions(eventDispatcher, messageDispatcher);
     }
 
     @Test

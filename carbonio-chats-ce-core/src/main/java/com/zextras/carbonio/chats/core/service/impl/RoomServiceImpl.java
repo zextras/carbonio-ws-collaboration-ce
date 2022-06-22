@@ -22,6 +22,7 @@ import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
+import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
@@ -269,7 +270,17 @@ public class RoomServiceImpl implements RoomService {
   public void deleteRoom(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomAndCheckUser(roomId, currentUser, true);
     roomRepository.delete(roomId.toString());
-    if (!RoomTypeDto.WORKSPACE.equals(room.getType())) {
+    if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
+      room.getChildren().forEach(child -> {
+        try {
+          messageDispatcher.deleteRoom(child.getId(), currentUser.getId());
+        } catch (Exception e) {
+          ChatsLogger.warn(String.format(
+            "An error occurred while sending room deletion to the message dispatcher. Room identifier: '%s'",
+            child.getId()));
+        }
+      });
+    } else {
       messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId());
     }
     eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(), new RoomDeletedEvent(roomId));
@@ -313,17 +324,20 @@ public class RoomServiceImpl implements RoomService {
       });
   }
 
-  private String generateRoomPassword() {
-    // TODO: 22/11/21
-    return null;
-  }
-
   @Override
   public Room getRoomAndCheckUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner) {
     Room room = roomRepository.getById(roomId.toString()).orElseThrow(() ->
       new NotFoundException(String.format("Room '%s'", roomId)));
+    List<Subscription> subscriptions;
+    if (RoomTypeDto.CHANNEL.equals(room.getType())) {
+      subscriptions = roomRepository.getById(room.getParentId()).orElseThrow(() ->
+        new InternalErrorException(String.format("Room '%s'", roomId))).getSubscriptions();
+    } else {
+      subscriptions = room.getSubscriptions();
+    }
+
     if (!currentUser.isSystemUser()) {
-      Subscription member = room.getSubscriptions().stream()
+      Subscription member = subscriptions.stream()
         .filter(subscription -> subscription.getUserId().equals(currentUser.getId()))
         .findAny()
         .orElseThrow(() -> new ForbiddenException(

@@ -166,6 +166,11 @@ public class Room {
     return children;
   }
 
+  public Room children(List<Room> children) {
+    this.children = children;
+    return this;
+  }
+
   public Integer getRank() {
     return rank;
   }
