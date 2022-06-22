@@ -73,7 +73,7 @@ pipeline {
         }
       }
       steps {
-        withCredentials([file(credentialsId: 'tarsier_bot-ssh-key')]) {
+        withCredentials([sshUserPrivateKey(credentialsId: 'tarsier_bot-ssh-key')]) {
           sh """
             git clone -b testPush git@bitbucket.org:zextras/dev-guide.git
             cp carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml dev-guide/static/chats/openapi/chats-api.yaml
