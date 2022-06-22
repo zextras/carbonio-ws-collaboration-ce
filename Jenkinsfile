@@ -16,8 +16,7 @@ pipeline {
   stages {
     stage('Build setup') {
       steps {
-        println scm.extensions
-        println checkout([
+        checkout([
           $class: 'GitSCM',
           branches: scm.branches,
           extensions: [[

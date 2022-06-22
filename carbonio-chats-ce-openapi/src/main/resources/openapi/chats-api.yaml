@@ -768,6 +768,7 @@ components:
         - channel
     RoomEditableFields:
       type: object
+
       description: Room fields that can be updated
       properties:
         name:
