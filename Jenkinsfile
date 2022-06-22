@@ -16,9 +16,14 @@ pipeline {
   stages {
     stage('Build setup') {
       steps {
+        //checkout scm
         checkout([
           $class: 'GitSCM',
-          depth: 2
+          extensions: [[
+            $class: 'CloneOption',
+            shallow: true,
+            depth:   2
+          ]]
         ])
         withCredentials([file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')]) {
           sh 'cp $SETTINGS_PATH settings-jenkins.xml'
