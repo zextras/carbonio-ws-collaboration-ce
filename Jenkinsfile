@@ -16,8 +16,18 @@ pipeline {
   stages {
     stage('Build setup') {
       steps {
-        scm.extensions << [$class: 'CloneOption', shallow: true, depth: 2]
-        checkout scm
+        checkout([
+          $class: 'GitSCM',
+          extensions: [[
+            $class: 'CloneOption',
+            shallow: true,
+            depth:   2,
+            timeout: 30
+          ]],
+          userRemoteConfigs: [[
+            credentialsId: 'tarsier_bot-ssh-key'
+          ]]
+        ])
         withCredentials([file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')]) {
           sh 'cp $SETTINGS_PATH settings-jenkins.xml'
           sh 'mvn -Dmaven.repo.local=$(pwd)/m2 -N wrapper:wrapper'
