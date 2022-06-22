@@ -16,6 +16,7 @@ pipeline {
   stages {
     stage('Build setup') {
       steps {
+        println scm
         checkout([
           $class: 'GitSCM',
           branches: [[name: env.BRANCH_NAME]],
@@ -25,9 +26,7 @@ pipeline {
             depth:   2,
             timeout: 30
           ]],
-          userRemoteConfigs: [[
-            credentialsId: 'tarsier_bot-ssh-key'
-          ]]
+          userRemoteConfigs: scm.userRemoteConfigs
         ])
         withCredentials([file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')]) {
           sh 'cp $SETTINGS_PATH settings-jenkins.xml'
