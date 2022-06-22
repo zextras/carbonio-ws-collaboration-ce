@@ -301,6 +301,9 @@ public class RoomServiceImpl implements RoomService {
   @Transactional
   public void muteRoom(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomAndCheckUser(roomId, currentUser, false);
+    if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
+      throw new BadRequestException("Cannot mute a workspace");
+    }
     RoomUserSettings settings = roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
       .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
     if (settings.getMutedUntil() == null) {
@@ -313,7 +316,10 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public void unmuteRoom(UUID roomId, UserPrincipal currentUser) {
-    getRoomAndCheckUser(roomId, currentUser, false);
+    Room room = getRoomAndCheckUser(roomId, currentUser, false);
+    if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
+      throw new BadRequestException("Cannot unmute a workspace");
+    }
     roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId()).ifPresent(
       settings -> {
         if (settings.getMutedUntil() != null) {

@@ -1377,6 +1377,20 @@ class RoomServiceImplTest {
     }
 
     @Test
+    @DisplayName("If the room is a workspace, it throws a 'bad request' exception")
+    void muteRoom_errorRoomIsWorkspace() {
+      when(roomRepository.getById(roomWorkspace2Id.toString())).thenReturn(Optional.of(roomWorkspace2));
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        roomService.muteRoom(roomWorkspace2Id, UserPrincipal.create(user1Id)));
+      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals("Bad Request - Cannot mute a workspace", exception.getMessage());
+
+      verify(roomRepository, times(1)).getById(roomWorkspace2Id.toString());
+      verifyNoMoreInteractions(roomRepository);
+      verifyNoInteractions(eventDispatcher, roomUserSettingsRepository);
+    }
+
+    @Test
     @DisplayName("If the authenticated user isn't a room member, it throws a 'forbidden' exception")
     void muteRoom_testAuthenticatedUserIsNotARoomMember() {
       when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
@@ -1459,6 +1473,20 @@ class RoomServiceImplTest {
         .getByRoomIdAndUserId(roomGroup1Id.toString(), user1Id.toString());
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository);
       verifyNoInteractions(eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the room is a workspace, it throws a 'bad request' exception")
+    void unmuteRoom_errorRoomIsWorkspace() {
+      when(roomRepository.getById(roomWorkspace2Id.toString())).thenReturn(Optional.of(roomWorkspace2));
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        roomService.unmuteRoom(roomWorkspace2Id, UserPrincipal.create(user1Id)));
+      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals("Bad Request - Cannot unmute a workspace", exception.getMessage());
+
+      verify(roomRepository, times(1)).getById(roomWorkspace2Id.toString());
+      verifyNoMoreInteractions(roomRepository);
+      verifyNoInteractions(eventDispatcher, roomUserSettingsRepository);
     }
 
     @Test

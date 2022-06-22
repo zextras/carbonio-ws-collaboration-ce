@@ -1698,6 +1698,51 @@ public class RoomsApiIT {
     }
 
     @Test
+    @DisplayName("Correctly mute a channel")
+    public void muteRoom_testOkChannel() throws Exception {
+      UUID workspaceId = UUID.randomUUID();
+      UUID channelId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(workspaceId, RoomTypeDto.WORKSPACE, List.of(
+        RoomMemberField.create().id(user1Id).owner(true).rank(1),
+        RoomMemberField.create().id(user2Id).rank(2),
+        RoomMemberField.create().id(user3Id).rank(3)
+      ));
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channelId.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel")
+        .description("Channel test")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspaceId.toString())
+        .rank(1),List.of());
+
+      MockHttpResponse response = dispatcher.put(url(channelId), null, user1Token);
+      assertEquals(204, response.getStatus());
+      Optional<RoomUserSettings> roomUserSettings = integrationTestUtils.getRoomUserSettings(channelId, user1Id);
+      assertTrue(roomUserSettings.isPresent());
+      assertNotNull(roomUserSettings.get().getMutedUntil());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("If the room is a workspace, it responds with status code 400")
+    public void muteRoom_errorRoomIsWorkspace() throws Exception {
+      UUID workspaceId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(workspaceId, RoomTypeDto.WORKSPACE, List.of(
+        RoomMemberField.create().id(user1Id).owner(true).rank(1),
+        RoomMemberField.create().id(user2Id).rank(2),
+        RoomMemberField.create().id(user3Id).muted(true).rank(3)
+      ));
+
+      MockHttpResponse response = dispatcher.put(url(workspaceId), null, user1Token);
+
+      assertEquals(400, response.getStatus());
+      assertTrue(response.getContentAsString().isEmpty());
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
     @DisplayName("If the authenticated user isn't a room member, it throws a 'forbidden' exception")
     public void muteRoom_testAuthenticatedUserIsNotARoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
@@ -1777,6 +1822,51 @@ public class RoomsApiIT {
       assertNull(roomUserSettings.get().getMutedUntil());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("Correctly unmute a channel")
+    public void unmuteRoom_testOkChannel() throws Exception {
+      UUID workspaceId = UUID.randomUUID();
+      UUID channelId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(workspaceId, RoomTypeDto.WORKSPACE, List.of(
+        RoomMemberField.create().id(user1Id).owner(true).muted(true).rank(1),
+        RoomMemberField.create().id(user2Id).rank(2),
+        RoomMemberField.create().id(user3Id).muted(true).rank(3)
+      ));
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channelId.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel")
+        .description("Channel test")
+        .hash(UUID.randomUUID().toString())
+        .parentId(workspaceId.toString())
+        .rank(1),List.of(RoomMemberField.create().id(user1Id).muted(true)));
+
+      MockHttpResponse response = dispatcher.delete(url(channelId), user1Token);
+      assertEquals(204, response.getStatus());
+      Optional<RoomUserSettings> roomUserSettings = integrationTestUtils.getRoomUserSettings(channelId, user1Id);
+      assertTrue(roomUserSettings.isPresent());
+      assertNull(roomUserSettings.get().getMutedUntil());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("If the room is a workspace, it responds with status code 400")
+    public void unmuteRoom_errorRoomIsWorkspace() throws Exception {
+      UUID workspaceId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(workspaceId, RoomTypeDto.WORKSPACE, List.of(
+        RoomMemberField.create().id(user1Id).owner(true).muted(true).rank(1),
+        RoomMemberField.create().id(user2Id).rank(2),
+        RoomMemberField.create().id(user3Id).muted(true).rank(3)
+      ));
+
+      MockHttpResponse response = dispatcher.delete(url(workspaceId) , user1Token);
+
+      assertEquals(400, response.getStatus());
+      assertTrue(response.getContentAsString().isEmpty());
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
     @Test
