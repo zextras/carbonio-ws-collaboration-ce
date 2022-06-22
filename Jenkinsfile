@@ -16,7 +16,17 @@ pipeline {
   stages {
     stage('Build setup') {
       steps {
-        checkout scm
+        checkout([
+          $class: 'GitSCM',
+          branches: scm.branches,
+          extensions: [[
+            $class: 'CloneOption',
+            shallow: true,
+            depth:   2,
+            timeout: 30
+          ]],
+          userRemoteConfigs: scm.userRemoteConfigs
+        ])
         withCredentials([file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')]) {
           sh 'cp $SETTINGS_PATH settings-jenkins.xml'
           sh 'mvn -Dmaven.repo.local=$(pwd)/m2 -N wrapper:wrapper'
@@ -44,6 +54,42 @@ pipeline {
             -Dlogback.configurationFile="$(pwd)"/carbonio-chats-ce-boot/src/main/resources/logback-test-silent.xml \
             verify
         '''
+      }
+      post {
+        failure {
+          script {
+            if ("main".equals(env.BRANCH_NAME)) {
+              sendFailureEmail(STAGE_NAME)
+            }
+          }
+        }
+      }
+    }
+    stage("Publishing documentation") {
+      when {
+        allOf {
+          branch "main"
+          expression { hasOpenAPIDocumentChanged() }
+        }
+      }
+      steps {
+        dir("dev-guide") {
+          checkout([
+            $class: 'GitSCM',
+            branches: [[name: 'master']],
+            userRemoteConfigs: [[
+              credentialsId: 'tarsier_bot-ssh-key',
+              url: 'git@bitbucket.org:zextras/dev-guide.git'
+            ]]
+          ])
+          sh """
+            git checkout master
+            cp ../carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml ./static/chats/openapi/chats-api.yaml
+            git config user.name chats-bot
+            git config user.email bot@zextras.com
+            git add . && git commit -m "[CHATS-CE PIPELINE] Updated OpenAPI document" && git push
+          """
+        }
       }
       post {
         failure {
@@ -168,4 +214,12 @@ void sendFailureEmail(String step) {
   """,
   subject: "[CHATS TRUNK FAILURE] Trunk ${step} step failure",
   to: FAILURE_EMAIL_RECIPIENTS
+}
+
+boolean hasOpenAPIDocumentChanged() {
+  def isChanged = sh(
+    script: "git --no-pager show --name-only --pretty=format: | grep -x carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml",
+    returnStatus: true
+  )
+  return isChanged==0 ? true : false
 }
