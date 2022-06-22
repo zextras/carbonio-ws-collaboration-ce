@@ -73,7 +73,12 @@ pipeline {
         }
       }
       steps {
-        echo "upload!"
+        sh """
+          git clone -b testPush git@bitbucket.org:zextras/dev-guide.git
+          cp carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml dev-guide/static/chats/openapi/chats-api.yaml
+          cd dev-guide
+          git add . && git commit -m "[CHATS-CE PIPELINE] Updated OpenAPI document" && git push
+        """
       }
       post {
         failure {
@@ -201,8 +206,6 @@ void sendFailureEmail(String step) {
 }
 
 boolean hasOpenAPIDocumentChanged() {
-  println sh(script: "git --version", returnStdout: true)
-  println sh(script: "git --no-pager show --name-only --pretty=format:", returnStdout: true)
   def isChanged = sh(
     script: "git --no-pager show --name-only --pretty=format: | grep -x carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml",
     returnStatus: true
