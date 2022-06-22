@@ -16,16 +16,18 @@ pipeline {
   stages {
     stage('Build setup') {
       steps {
-        println sh(script: "env", returnStdout: true)
         checkout([
           $class: 'GitSCM',
+          branches: [[name: env.BRANCH_NAME]],
           extensions: [[
             $class: 'CloneOption',
             shallow: true,
             depth:   2,
             timeout: 30
           ]],
-          userRemoteConfigs: scm.userRemoteConfigs
+          userRemoteConfigs: [[
+            credentialsId: 'tarsier_bot-ssh-key'
+          ]]
         ])
         withCredentials([file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')]) {
           sh 'cp $SETTINGS_PATH settings-jenkins.xml'
