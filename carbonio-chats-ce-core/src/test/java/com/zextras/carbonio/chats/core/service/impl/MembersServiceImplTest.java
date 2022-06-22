@@ -183,7 +183,7 @@ public class MembersServiceImplTest {
         membersService.setOwner(roomId, user2Id, true, principal));
 
       assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
-      assertEquals("Bad Request - Cannot set owner privileges on one-to-one rooms", exception.getMessage());
+      assertEquals("Bad Request - Cannot set owner privileges on one_to_one rooms", exception.getMessage());
       verifyNoInteractions(subscriptionRepository, eventDispatcher, messageService);
     }
 
@@ -205,6 +205,22 @@ public class MembersServiceImplTest {
       assertEquals("Bad Request - Cannot set owner privileges for itself", exception.getMessage());
       verifyNoInteractions(subscriptionRepository, eventDispatcher, messageService);
     }
+
+    @Test
+    @DisplayName("If the room is a channel room, it throws a 'bad request' exception")
+    public void setRemoveOwner_roomIsChannel() {
+      Room room = generateRoom(RoomTypeDto.CHANNEL);
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndCheckUser(roomId, principal, true)).thenReturn(room);
+
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        membersService.setOwner(roomId, user2Id, true, principal));
+
+      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals("Bad Request - Cannot set owner privileges on channel rooms", exception.getMessage());
+      verifyNoInteractions(subscriptionRepository, eventDispatcher, messageService);
+    }
+
   }
 
   @Nested

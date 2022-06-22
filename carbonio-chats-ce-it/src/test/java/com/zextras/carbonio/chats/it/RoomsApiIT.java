@@ -1714,7 +1714,7 @@ public class RoomsApiIT {
         .description("Channel test")
         .hash(UUID.randomUUID().toString())
         .parentId(workspaceId.toString())
-        .rank(1),List.of());
+        .rank(1), List.of());
 
       MockHttpResponse response = dispatcher.put(url(channelId), null, user1Token);
       assertEquals(204, response.getStatus());
@@ -1841,7 +1841,7 @@ public class RoomsApiIT {
         .description("Channel test")
         .hash(UUID.randomUUID().toString())
         .parentId(workspaceId.toString())
-        .rank(1),List.of(RoomMemberField.create().id(user1Id).muted(true)));
+        .rank(1), List.of(RoomMemberField.create().id(user1Id).muted(true)));
 
       MockHttpResponse response = dispatcher.delete(url(channelId), user1Token);
       assertEquals(204, response.getStatus());
@@ -1862,7 +1862,7 @@ public class RoomsApiIT {
         RoomMemberField.create().id(user3Id).muted(true).rank(3)
       ));
 
-      MockHttpResponse response = dispatcher.delete(url(workspaceId) , user1Token);
+      MockHttpResponse response = dispatcher.delete(url(workspaceId), user1Token);
 
       assertEquals(400, response.getStatus());
       assertTrue(response.getContentAsString().isEmpty());
@@ -2365,6 +2365,45 @@ public class RoomsApiIT {
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
+
+    @Test
+    @DisplayName("Given a room identifier and a member identifier, if the room is a one-to-one then it returns status code 400")
+    public void updateToOwner_testErrorRoomIsOneToOne() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.ONE_TO_ONE, List.of(
+        RoomMemberField.create().id(user1Id).owner(true),
+        RoomMemberField.create().id(user2Id).owner(true)
+      ));
+      MockHttpResponse response = dispatcher.put(url(roomId, user2Id), null, user1Token);
+      assertEquals(400, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a room identifier and a member identifier, if the room is a channel then it returns status code 400")
+    public void updateToOwner_testErrorRoomIsChannel() throws Exception {
+      UUID workspaceId = UUID.randomUUID();
+      UUID channelId = UUID.randomUUID();
+
+      integrationTestUtils.generateAndSaveRoom(workspaceId, RoomTypeDto.WORKSPACE, List.of(
+        RoomMemberField.create().id(user1Id).owner(true).rank(1),
+        RoomMemberField.create().id(user2Id).owner(false).rank(2),
+        RoomMemberField.create().id(user3Id).owner(false).rank(3)
+      ));
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channelId.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel")
+        .description("Channel test")
+        .hash(UUID.randomUUID().toString())
+        .rank(1)
+        .parentId(workspaceId.toString()), List.of());
+      MockHttpResponse response = dispatcher.put(url(channelId, user2Id), null, user1Token);
+      assertEquals(400, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
   }
 
   @Nested
@@ -2423,6 +2462,45 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user3Id));
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
       assertEquals(403, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a room identifier and a member identifier, if the room is a one-to-one then it returns status code 400")
+    public void deleteOwner_testErrorRoomIsOneToOne() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.ONE_TO_ONE, List.of(
+        RoomMemberField.create().id(user1Id).owner(true),
+        RoomMemberField.create().id(user2Id).owner(true)
+      ));
+      MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
+      assertEquals(400, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a room identifier and a member identifier, if the room is a channel then it returns status code 400")
+    public void deleteOwner_testErrorRoomIsChannel() throws Exception {
+      UUID workspaceId = UUID.randomUUID();
+      UUID channelId = UUID.randomUUID();
+
+      integrationTestUtils.generateAndSaveRoom(workspaceId, RoomTypeDto.WORKSPACE, List.of(
+        RoomMemberField.create().id(user1Id).owner(true).rank(1),
+        RoomMemberField.create().id(user2Id).owner(false).rank(2),
+        RoomMemberField.create().id(user3Id).owner(false).rank(3)
+      ));
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+        .id(channelId.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .name("channel")
+        .description("Channel test")
+        .hash(UUID.randomUUID().toString())
+        .rank(1)
+        .parentId(workspaceId.toString()), List.of());
+      MockHttpResponse response = dispatcher.delete(url(channelId, user2Id), user1Token);
+      assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }

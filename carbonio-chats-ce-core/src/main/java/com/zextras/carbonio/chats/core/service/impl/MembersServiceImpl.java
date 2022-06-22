@@ -68,8 +68,8 @@ public class MembersServiceImpl implements MembersService {
       throw new BadRequestException("Cannot set owner privileges for itself");
     }
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
-    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
-      throw new BadRequestException("Cannot set owner privileges on one-to-one rooms");
+    if (List.of(RoomTypeDto.ONE_TO_ONE, RoomTypeDto.CHANNEL).contains(room.getType())) {
+      throw new BadRequestException(String.format("Cannot set owner privileges on %s rooms", room.getType()));
     }
     Subscription subscription = room.getSubscriptions().stream()
       .filter(roomMember -> roomMember.getUserId().equals(userId.toString()))
