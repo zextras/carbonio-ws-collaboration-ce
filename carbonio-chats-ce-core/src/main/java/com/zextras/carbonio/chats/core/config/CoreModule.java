@@ -26,7 +26,7 @@ import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabas
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.MockEventDispatcherImpl;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherImpl;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.MessageDispatcherMongooseIm;
 import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
 import com.zextras.carbonio.chats.core.infrastructure.previewer.impl.PreviewerServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
@@ -140,7 +140,7 @@ public class CoreModule extends AbstractModule {
     bind(UserService.class).to(UserServiceImpl.class);
     bind(UserRepository.class).to(EbeanUserRepository.class);
 
-    bind(MessageDispatcher.class).to(MessageDispatcherImpl.class);
+    bind(MessageDispatcher.class).to(MessageDispatcherMongooseIm.class);
     bind(StoragesService.class).to(StoragesServiceImpl.class);
     bind(PreviewerService.class).to(PreviewerServiceImpl.class);
     bind(ProfilingService.class).to(UserManagementProfilingService.class);
@@ -178,18 +178,6 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private com.zextras.carbonio.chats.mongooseim.client.api.ApiClient getMongooseImClientApiClient(AppConfig appConfig) {
-    return new com.zextras.carbonio.chats.mongooseim.client.api.ApiClient()
-      .setBasePath(String.format("http://%s:%s/%s",
-        appConfig.get(String.class, ConfigName.XMPP_SERVER_HOST).orElseThrow(),
-        appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow(),
-        ChatsConstant.MONGOOSEIM_CLIENT_ENDPOINT))
-      .addDefaultHeader("Accept", "*/*")
-      .setDebugging(true);
-  }
-
-  @Singleton
-  @Provides
   private MucLightManagementApi getMongooseImMucLight(ApiClient apiClient) {
     return new MucLightManagementApi(apiClient);
   }
@@ -204,14 +192,6 @@ public class CoreModule extends AbstractModule {
   @Provides
   private ContactsApi getMongooseImContacts(ApiClient apiClient) {
     return new ContactsApi(apiClient);
-  }
-
-  @Singleton
-  @Provides
-  private com.zextras.carbonio.chats.mongooseim.client.api.RoomsApi getMongooseImRoomsApi(
-    com.zextras.carbonio.chats.mongooseim.client.api.ApiClient apiClient
-  ) {
-    return new com.zextras.carbonio.chats.mongooseim.client.api.RoomsApi(apiClient);
   }
 
   @Singleton

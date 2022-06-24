@@ -2,12 +2,14 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.infrastructure.messaging.impl;
+package com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.stanzas.MUCLightAffiliationChangeIQ;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.stanzas.MUCLightAffiliationType;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.ContactsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
@@ -17,8 +19,6 @@ import com.zextras.carbonio.chats.mongooseim.admin.model.ChatMessageDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.Message1Dto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
-import com.zextras.carbonio.chats.mongooseim.client.api.RoomsApi;
-import java.util.Base64;
 import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -26,31 +26,29 @@ import org.jivesoftware.smack.packet.Message.Type;
 import org.jivesoftware.smack.packet.StandardExtensionElement;
 import org.jivesoftware.smack.packet.StandardExtensionElement.Builder;
 import org.jivesoftware.smack.packet.StanzaBuilder;
+import org.jxmpp.jid.impl.JidCreate;
 import org.jxmpp.stringprep.XmppStringprepException;
 
 @Singleton
-public class MessageDispatcherImpl implements MessageDispatcher {
+public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   private static final String XMPP_HOST      = "carbonio";
   private static final String ROOM_XMPP_HOST = "muclight.carbonio";
 
   private final MucLightManagementApi mucLightManagementApi;
   private final CommandsApi           commandsApi;
-  private final RoomsApi              roomsApi;
   private final ContactsApi           contactsApi;
   private final OneToOneMessagesApi   oneToOneMessagesApi;
 
   @Inject
-  public MessageDispatcherImpl(
+  public MessageDispatcherMongooseIm(
     MucLightManagementApi mucLightManagementApi,
     CommandsApi commandsApi,
-    RoomsApi roomsApi,
     ContactsApi contactsApi,
     OneToOneMessagesApi oneToOneMessagesApi
   ) {
     this.mucLightManagementApi = mucLightManagementApi;
     this.commandsApi = commandsApi;
-    this.roomsApi = roomsApi;
     this.contactsApi = contactsApi;
     this.oneToOneMessagesApi = oneToOneMessagesApi;
   }
@@ -85,10 +83,20 @@ public class MessageDispatcherImpl implements MessageDispatcher {
   }
 
   @Override
-  public void removeRoomMember(String roomId, String senderId, String recipientId) {
-    // TODO: 22/12/21 add request to MongooseIM administrative tools
-    RoomsApi roomsApi = getRoomsApi(senderId);
-    roomsApi.roomsIdUsersUserDelete(roomId, userId2userDomain(recipientId));
+  public void removeRoomMember(String roomId, String senderId, String idToRemove) {
+    try {
+      oneToOneMessagesApi.stanzasPost(new Message1Dto().stanza(
+        new MUCLightAffiliationChangeIQ()
+          .from(JidCreate.from(userId2userDomain(senderId)))
+          .to(JidCreate.from(roomId2roomDomain(roomId)))
+          .id("remove-member")
+          .addAffiliationChange(JidCreate.from(userId2userDomain(idToRemove)), MUCLightAffiliationType.NONE)
+          .toXML().toString()
+      ));
+    } catch (XmppStringprepException e) {
+      throw new InternalErrorException(
+        String.format("An error occurred while removing %s from room %s", idToRemove, roomId), e);
+    }
   }
 
   @Override
@@ -192,14 +200,5 @@ public class MessageDispatcherImpl implements MessageDispatcher {
 
   private String userId2userDomain(String userId) {
     return String.join("@", userId, XMPP_HOST);
-  }
-
-  private RoomsApi getRoomsApi(String userId) {
-    // TODO: 22/12/21 set authorizations by cookies
-    roomsApi.getApiClient().addDefaultHeader("Authorization",
-      String.format("Basic %s",
-        Base64.getEncoder().encodeToString(
-          String.join(":", userId2userDomain(userId), "password").getBytes())));
-    return roomsApi;
   }
 }

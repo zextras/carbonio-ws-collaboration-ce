@@ -67,9 +67,9 @@ public interface MessageDispatcher extends HealthIndicator {
    *
    * @param roomId      room identifier
    * @param senderId    operation user identifier
-   * @param recipientId identifier of the user to remove
+   * @param idToRemove identifier of the user to remove
    */
-  void removeRoomMember(String roomId, String senderId, String recipientId);
+  void removeRoomMember(String roomId, String senderId, String idToRemove);
 
   /**
    * Sets two users in their respective contacts list so that they can both see each other's presence

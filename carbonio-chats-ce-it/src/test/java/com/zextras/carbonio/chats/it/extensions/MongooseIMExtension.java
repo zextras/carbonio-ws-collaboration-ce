@@ -5,6 +5,8 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 import com.zextras.carbonio.chats.core.config.ConfigName;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.stanzas.MUCLightAffiliationChangeIQ;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.stanzas.MUCLightAffiliationType;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockUserProfile;
@@ -12,6 +14,7 @@ import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
 import com.zextras.carbonio.chats.mongooseim.admin.model.AddcontactDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
+import com.zextras.carbonio.chats.mongooseim.admin.model.Message1Dto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +26,8 @@ import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
+import org.jxmpp.jid.impl.JidCreate;
+import org.jxmpp.stringprep.XmppStringprepException;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.JsonBody;
@@ -83,22 +88,20 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
       "c9f83f1c-9b96-4731-9404-79e45a5d6d3c");
     List<MockUserProfile> accounts = MockedAccount.getAccounts();
     mockIsAlive(client);
-    mockRemoveRoomMember(client);
     mockDeleteRoom(client);
     mockSendMessageToRoom(client);
     mockStanzasMessage(client);
     accounts.forEach(account -> {
-      roomsIds.forEach(roomId -> mockCreateRoom(client, roomId, account.getUUID()));
-      accounts.forEach(account2 -> {
-        mockAddRoomMember(client, account.getUUID(), account2.getUUID());
+      roomsIds.forEach(roomId -> {
+        mockCreateRoom(client, roomId, account.getUUID());
+        accounts.forEach(account2 -> mockRemoveRoomMember(client, account.getId(), account2.getId(), roomId));
       });
+      accounts.forEach(account2 -> mockAddRoomMember(client, account.getUUID(), account2.getUUID()));
     });
     List<String> userIds = List.of("332a9527-3388-4207-be77-6d7e2978a723", "82735f6d-4c6c-471e-99d9-4eef91b1ec45");
     userIds.forEach(user1id ->
       userIds.forEach(user2id -> mockUserToRoster(client, user1id, user2id))
     );
-
-
   }
 
   private void mockCreateRoom(MockServerClient client, String roomId, UUID senderId) {
@@ -152,17 +155,26 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
     );
   }
 
-  private void mockRemoveRoomMember(MockServerClient client) {
-    client.when(
-      request()
-        .withMethod("DELETE")
-        .withPath("/api/rooms/{roomId}/users/{userId}")
-        .withPathParameter(Parameter.param("roomId", ".*"))
-        .withPathParameter(Parameter.param("userId", ".*"))
-    ).respond(
-      response()
-        .withStatusCode(200)
-    );
+  private void mockRemoveRoomMember(MockServerClient client, String sender, String roomId, String memberId) {
+    try {
+      client.when(
+        request()
+          .withMethod("POST")
+          .withPath("/admin/stanzas")
+          .withBody(JsonBody.json(new Message1Dto().stanza(new MUCLightAffiliationChangeIQ()
+            .from(JidCreate.from(String.format("%s@carbonio", sender)))
+            .to(JidCreate.from(String.format("%s@muclight.carbonio", roomId)))
+            .id("remove-member")
+            .addAffiliationChange(JidCreate.from(String.format("%s@carbonio", memberId)), MUCLightAffiliationType.NONE)
+            .toXML().toString()))
+          )
+          .withPathParameter(Parameter.param("roomId", ".*"))
+          .withPathParameter(Parameter.param("userId", ".*"))
+      ).respond(
+        response()
+          .withStatusCode(204)
+      );
+    } catch (XmppStringprepException ignored) {}
   }
 
   private void mockSendMessageToRoom(MockServerClient client) {

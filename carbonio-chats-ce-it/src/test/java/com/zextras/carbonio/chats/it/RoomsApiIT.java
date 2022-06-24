@@ -2262,7 +2262,7 @@ public class RoomsApiIT {
         .isEmpty());
 
       // TODO: 25/02/22 verify event dispatcher
-      mongooseImMockServer.verify("DELETE", String.format("/api/rooms/%s/users/%s%%40carbonio", roomId, user2Id), 1);
+      mongooseImMockServer.verify("POST", "/admin/stanzas", 1);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
@@ -2338,7 +2338,7 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier and a member identifier, if the room is ont to one returns status code 403")
+    @DisplayName("Given a room identifier and a member identifier, if the room is a one to one returns status code 403")
     public void deleteRoomMember_testErrorRoomOneToOne() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.ONE_TO_ONE, "room",
