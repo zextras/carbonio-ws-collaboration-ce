@@ -6,6 +6,9 @@ import java.util.Objects;
 import org.jivesoftware.smack.packet.IQ;
 import org.jxmpp.jid.Jid;
 
+/**
+ * This is not used anymore. It serves as an example on how to create a custom stanza using Smack
+ */
 public class MUCLightAffiliationChangeIQ extends IQ {
 
   private static final String childElement          = "query";

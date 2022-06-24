@@ -13,6 +13,8 @@ import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockUserProfile;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
 import com.zextras.carbonio.chats.mongooseim.admin.model.AddcontactDto;
+import com.zextras.carbonio.chats.mongooseim.admin.model.AffiliationDetailsDto;
+import com.zextras.carbonio.chats.mongooseim.admin.model.AffiliationDetailsDto.AffiliationEnum;
 import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.Message1Dto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
@@ -94,9 +96,11 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
     accounts.forEach(account -> {
       roomsIds.forEach(roomId -> {
         mockCreateRoom(client, roomId, account.getUUID());
-        accounts.forEach(account2 -> mockRemoveRoomMember(client, account.getId(), account2.getId(), roomId));
       });
-      accounts.forEach(account2 -> mockAddRoomMember(client, account.getUUID(), account2.getUUID()));
+      accounts.forEach(account2 -> {
+        mockAddRoomMember(client, account.getUUID(), account2.getUUID());
+      });
+      mockRemoveRoomMember(client, account.getId());
     });
     List<String> userIds = List.of("332a9527-3388-4207-be77-6d7e2978a723", "82735f6d-4c6c-471e-99d9-4eef91b1ec45");
     userIds.forEach(user1id ->
@@ -155,26 +159,20 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
     );
   }
 
-  private void mockRemoveRoomMember(MockServerClient client, String sender, String roomId, String memberId) {
-    try {
-      client.when(
-        request()
-          .withMethod("POST")
-          .withPath("/admin/stanzas")
-          .withBody(JsonBody.json(new Message1Dto().stanza(new MUCLightAffiliationChangeIQ()
-            .from(JidCreate.from(String.format("%s@carbonio", sender)))
-            .to(JidCreate.from(String.format("%s@muclight.carbonio", roomId)))
-            .id("remove-member")
-            .addAffiliationChange(JidCreate.from(String.format("%s@carbonio", memberId)), MUCLightAffiliationType.NONE)
-            .toXML().toString()))
-          )
-          .withPathParameter(Parameter.param("roomId", ".*"))
-          .withPathParameter(Parameter.param("userId", ".*"))
-      ).respond(
-        response()
-          .withStatusCode(204)
-      );
-    } catch (XmppStringprepException ignored) {}
+  private void mockRemoveRoomMember(MockServerClient client, String memberToRemove) {
+    client.when(
+      request()
+        .withMethod("PUT")
+        .withPath("/admin/muc-lights/carbonio/{roomId}/{userId}/affiliation")
+        .withBody(
+          JsonBody.json(new AffiliationDetailsDto().target(String.format("%s@carbonio", memberToRemove)).affiliation(
+            AffiliationEnum.NONE)))
+        .withPathParameter(Parameter.param("roomId", ".*"))
+        .withPathParameter(Parameter.param("userId", ".*"))
+    ).respond(
+      response()
+        .withStatusCode(204)
+    );
   }
 
   private void mockSendMessageToRoom(MockServerClient client) {

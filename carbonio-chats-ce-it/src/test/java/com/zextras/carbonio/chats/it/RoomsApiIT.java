@@ -2262,7 +2262,9 @@ public class RoomsApiIT {
         .isEmpty());
 
       // TODO: 25/02/22 verify event dispatcher
-      mongooseImMockServer.verify("POST", "/admin/stanzas", 1);
+      mongooseImMockServer.verify("PUT",
+        String.format("/admin/muc-lights/carbonio/%s/%s/affiliation", roomId, String.format("%s%%40carbonio", user1Id)),
+        1);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
