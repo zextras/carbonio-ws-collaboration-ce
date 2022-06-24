@@ -42,7 +42,6 @@ public interface MembersService {
    **/
   void deleteRoomMember(UUID roomId, UUID userId, UserPrincipal currentUser);
 
-
   /**
    * Retrieves every member to the given room
    *

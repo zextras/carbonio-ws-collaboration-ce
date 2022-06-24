@@ -271,7 +271,7 @@ public class MembersServiceImplTest {
         membersService.insertRoomMember(roomId, MemberDto.create().userId(user2Id), principal));
 
       assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
-      assertEquals("Bad Request - Can't add members to a one to one conversation", exception.getMessage());
+      assertEquals("Bad Request - Cannot add members to a one_to_one conversation", exception.getMessage());
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(roomService, times(1)).getRoomAndCheckUser(roomId, principal, true);
 
@@ -282,7 +282,58 @@ public class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly adds a user as a member of workspace room")
     public void insertWorkspaceRoomMember_testOk() {
-      Room room = generateRoom(RoomTypeDto.WORKSPACE);
+      UUID workspaceId = UUID.randomUUID();
+      UUID channel1Id = UUID.randomUUID();
+      UUID channel2Id = UUID.randomUUID();
+      Room channel1 = Room.create()
+        .id(channel1Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .parentId(workspaceId.toString())
+        .rank(1);
+      Room channel2 = Room.create()
+        .id(channel2Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .parentId(workspaceId.toString())
+        .rank(2);
+      Room workspace = Room.create();
+      workspace
+        .id(workspaceId.toString())
+        .type(RoomTypeDto.WORKSPACE)
+        .subscriptions(List.of(
+          Subscription.create(workspace, user1Id.toString()).owner(true),
+          Subscription.create(workspace, user3Id.toString())))
+        .children(List.of(channel1, channel2));
+
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+      when(userService.userExists(user2Id, principal)).thenReturn(true);
+      when(roomService.getRoomAndCheckUser(workspaceId, principal, true)).thenReturn(workspace);
+      when(subscriptionRepository.insert(any(Subscription.class))).thenReturn(
+        Subscription.create(workspace, user2Id.toString()));
+      when(roomUserSettingsRepository.getWorkspaceMaxRank(user2Id.toString())).thenReturn(Optional.of(5));
+      when(roomUserSettingsRepository.save(any(RoomUserSettings.class)))
+        .thenReturn(RoomUserSettings.create(workspace, user2Id.toString()).rank(6));
+
+      MemberDto member = membersService.insertRoomMember(workspaceId, MemberDto.create().userId(user2Id), principal);
+      assertNotNull(member);
+      assertEquals(user2Id, member.getUserId());
+
+      verify(userService, times(1)).userExists(user2Id, principal);
+      verify(roomService, times(1)).getRoomAndCheckUser(workspaceId, principal, true);
+      verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
+      verify(roomUserSettingsRepository, times(1)).getWorkspaceMaxRank(user2Id.toString());
+      verify(roomUserSettingsRepository, times(1)).save(any(RoomUserSettings.class));
+      verify(eventDispatcher, times(1)).sendToTopic(eq(user1Id), eq(workspaceId.toString()),
+        any(RoomMemberAddedEvent.class));
+      verify(messageService, times(1)).addRoomMember(channel1Id.toString(), user1Id.toString(), user2Id.toString());
+      verify(messageService, times(1)).addRoomMember(channel2Id.toString(), user1Id.toString(), user2Id.toString());
+      verifyNoMoreInteractions(userService, roomService, subscriptionRepository, roomUserSettingsRepository,
+        eventDispatcher, messageService, messageService);
+    }
+
+    @Test
+    @DisplayName("if the room is a channel room, it throws a 'bad request' exception")
+    public void insertChannelRoomMember_testNo() {
+      Room room = generateRoom(RoomTypeDto.CHANNEL);
       room.subscriptions(List.of(
         Subscription.create(room, user1Id.toString()).owner(true),
         Subscription.create(room, user3Id.toString()).owner(false)
@@ -291,26 +342,16 @@ public class MembersServiceImplTest {
 
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(roomService.getRoomAndCheckUser(roomId, principal, true)).thenReturn(room);
-      when(subscriptionRepository.insert(any(Subscription.class))).thenReturn(
-        Subscription.create(room, user2Id.toString()));
-      when(roomUserSettingsRepository.getWorkspaceMaxRank(user2Id.toString())).thenReturn(Optional.of(5));
-      when(roomUserSettingsRepository.save(any(RoomUserSettings.class)))
-        .thenReturn(RoomUserSettings.create(room, user2Id.toString()).rank(6));
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        membersService.insertRoomMember(roomId, MemberDto.create().userId(user2Id), principal));
 
-      MemberDto member = membersService.insertRoomMember(roomId, MemberDto.create().userId(user2Id), principal);
-      assertNotNull(member);
-      assertEquals(user2Id, member.getUserId());
-
+      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals("Bad Request - Cannot add members to a channel conversation", exception.getMessage());
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(roomService, times(1)).getRoomAndCheckUser(roomId, principal, true);
-      verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
-      verify(roomUserSettingsRepository, times(1)).getWorkspaceMaxRank(user2Id.toString());
-      verify(roomUserSettingsRepository, times(1)).save(any(RoomUserSettings.class));
-      verify(eventDispatcher, times(1)).sendToTopic(eq(user1Id), eq(roomId.toString()),
-        any(RoomMemberAddedEvent.class));
-      verifyNoMoreInteractions(userService, roomService, subscriptionRepository, roomUserSettingsRepository,
-        eventDispatcher, messageService);
-      verifyNoInteractions(messageService);
+
+      verifyNoMoreInteractions(userService, roomService);
+      verifyNoInteractions(subscriptionRepository, eventDispatcher, messageService);
     }
 
     @Test
@@ -392,29 +433,53 @@ public class MembersServiceImplTest {
     @Test
     @DisplayName("Correctly removes a member of a workspace room")
     public void deleteRoomMember_workspaceTestOk() {
-      Room room = generateRoom(RoomTypeDto.WORKSPACE);
-      room.subscriptions(List.of(
-        Subscription.create(room, user1Id.toString()).owner(true),
-        Subscription.create(room, user2Id.toString()).owner(false),
-        Subscription.create(room, user3Id.toString()).owner(false)
-      ));
+      UUID workspaceId = UUID.randomUUID();
+      UUID channel1Id = UUID.randomUUID();
+      UUID channel2Id = UUID.randomUUID();
+
+      Room channel1 = Room.create()
+        .id(channel1Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .parentId(workspaceId.toString())
+        .rank(1);
+      Room channel2 = Room.create()
+        .id(channel2Id.toString())
+        .type(RoomTypeDto.CHANNEL)
+        .parentId(workspaceId.toString())
+        .rank(2);
+      Room workspace = Room.create();
+      workspace
+        .id(workspaceId.toString())
+        .type(RoomTypeDto.WORKSPACE)
+        .subscriptions(List.of(
+          Subscription.create(workspace, user1Id.toString()).owner(true),
+          Subscription.create(workspace, user2Id.toString()),
+          Subscription.create(workspace, user3Id.toString())))
+        .children(List.of(channel1, channel2));
+
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      RoomUserSettings userSettings = RoomUserSettings.create(room, user1Id.toString()).rank(5);
-      when(roomService.getRoomAndCheckUser(roomId, principal, true)).thenReturn(room);
-      when(roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), user2Id.toString()))
+      RoomUserSettings userSettings = RoomUserSettings.create(workspace, user1Id.toString()).rank(5);
+      when(roomService.getRoomAndCheckUser(workspaceId, principal, true)).thenReturn(workspace);
+      when(roomUserSettingsRepository.getByRoomIdAndUserId(workspaceId.toString(), user2Id.toString()))
         .thenReturn(Optional.of(userSettings));
 
-      membersService.deleteRoomMember(roomId, user2Id, principal);
+      membersService.deleteRoomMember(workspaceId, user2Id, principal);
 
-      verify(roomService, times(1)).getRoomAndCheckUser(roomId, principal, true);
-      verify(subscriptionRepository, times(1)).delete(roomId.toString(), user2Id.toString());
-      verify(eventDispatcher, times(1)).sendToTopic(eq(user1Id), eq(roomId.toString()),
+      verify(roomService, times(1)).getRoomAndCheckUser(workspaceId, principal, true);
+      verify(subscriptionRepository, times(1)).delete(workspaceId.toString(), user2Id.toString());
+      verify(eventDispatcher, times(1)).sendToTopic(eq(user1Id), eq(workspaceId.toString()),
         any(RoomMemberRemovedEvent.class));
       verify(roomUserSettingsRepository, times(1)).delete(any(RoomUserSettings.class));
-      verify(roomUserSettingsRepository, times(1)).getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
+      verify(roomUserSettingsRepository, times(1))
+        .getByRoomIdAndUserId(workspaceId.toString(), user2Id.toString());
 
-      verifyNoMoreInteractions(roomService, subscriptionRepository, roomUserSettingsRepository, eventDispatcher);
-      verifyNoInteractions(messageService);
+      verify(messageService, times(1))
+        .removeRoomMember(channel1Id.toString(), user1Id.toString(), user2Id.toString());
+      verify(messageService, times(1))
+        .removeRoomMember(channel2Id.toString(), user1Id.toString(), user2Id.toString());
+
+      verifyNoMoreInteractions(roomService, subscriptionRepository, roomUserSettingsRepository, eventDispatcher,
+        messageService);
     }
 
     @Test
@@ -440,7 +505,7 @@ public class MembersServiceImplTest {
     }
 
     @Test
-    @DisplayName("If room is a one-yo-one room, it throws a 'forbidden' exception")
+    @DisplayName("If room is a one-to-one room, it throws a 'bad request' exception")
     public void deleteRoomMember_roomIsAOneToOne() {
       Room room = generateRoom(RoomTypeDto.ONE_TO_ONE);
       room.subscriptions(List.of(
@@ -451,11 +516,30 @@ public class MembersServiceImplTest {
       UserPrincipal principal = UserPrincipal.create(user1Id);
       when(roomService.getRoomAndCheckUser(roomId, principal, true)).thenReturn(room);
 
-      ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         membersService.deleteRoomMember(roomId, user2Id, principal));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
-      assertEquals("Forbidden - Can't remove members from a one to one conversation", exception.getMessage());
+      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals("Bad Request - Cannot remove a member from a one_to_one conversation", exception.getMessage());
+
+      verify(roomService, times(1)).getRoomAndCheckUser(roomId, principal, true);
+      verifyNoMoreInteractions(roomService);
+      verifyNoInteractions(subscriptionRepository, eventDispatcher, messageService);
+    }
+
+    @Test
+    @DisplayName("If room is a channel, it throws a 'bad request' exception")
+    public void deleteRoomMember_roomIsChannel() {
+      Room room = generateRoom(RoomTypeDto.CHANNEL);
+
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndCheckUser(roomId, principal, true)).thenReturn(room);
+
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        membersService.deleteRoomMember(roomId, user2Id, principal));
+
+      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals("Bad Request - Cannot remove a member from a channel conversation", exception.getMessage());
 
       verify(roomService, times(1)).getRoomAndCheckUser(roomId, principal, true);
       verifyNoMoreInteractions(roomService);

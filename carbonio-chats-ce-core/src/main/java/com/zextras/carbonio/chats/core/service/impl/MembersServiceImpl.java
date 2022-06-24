@@ -16,6 +16,7 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
@@ -92,8 +93,8 @@ public class MembersServiceImpl implements MembersService {
       throw new NotFoundException(String.format("User with id '%s' was not found", memberDto.getUserId()));
     }
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
-    if (room.getType().equals(RoomTypeDto.ONE_TO_ONE)) {
-      throw new BadRequestException("Can't add members to a one to one conversation");
+    if (List.of(RoomTypeDto.ONE_TO_ONE, RoomTypeDto.CHANNEL).contains(room.getType())) {
+      throw new BadRequestException(String.format("Cannot add members to a %s conversation", room.getType()));
     }
     if (room.getSubscriptions().stream()
       .anyMatch(member -> memberDto.getUserId().toString().equals(member.getUserId()))) {
@@ -111,8 +112,16 @@ public class MembersServiceImpl implements MembersService {
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
       roomUserSettingsRepository.save(
         RoomUserSettings.create(room, memberDto.getUserId().toString())
-          .rank(roomUserSettingsRepository.getWorkspaceMaxRank(memberDto.getUserId().toString()).orElse(0) + 1)
-      );
+          .rank(roomUserSettingsRepository.getWorkspaceMaxRank(memberDto.getUserId().toString()).orElse(0) + 1));
+      room.getChildren().forEach(child -> {
+        try {
+          messageService.addRoomMember(child.getId(), currentUser.getId(), memberDto.getUserId().toString());
+        } catch (Exception e) {
+          ChatsLogger.warn(String.format(
+            "An error occurred during a room user addition notification to message dispatcher. RoomId: '%s', UserId: '%s'",
+            child.getId(), memberDto.getUserId()));
+        }
+      });
     } else {
       messageService.addRoomMember(room.getId(), currentUser.getId(), memberDto.getUserId().toString());
     }
@@ -134,8 +143,8 @@ public class MembersServiceImpl implements MembersService {
   @Transactional
   public void deleteRoomMember(UUID roomId, UUID userId, UserPrincipal currentUser) {
     Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
-    if (room.getType().equals(RoomTypeDto.ONE_TO_ONE)) {
-      throw new ForbiddenException("Can't remove members from a one to one conversation");
+    if (List.of(RoomTypeDto.ONE_TO_ONE, RoomTypeDto.CHANNEL).contains(room.getType())) {
+      throw new BadRequestException(String.format("Cannot remove a member from a %s conversation", room.getType()));
     }
     List<String> owners = room.getSubscriptions().stream()
       .filter(Subscription::isOwner)
@@ -150,6 +159,15 @@ public class MembersServiceImpl implements MembersService {
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
       roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), userId.toString())
         .ifPresent(roomUserSettingsRepository::delete);
+      room.getChildren().forEach(child -> {
+        try {
+          messageService.removeRoomMember(child.getId(), currentUser.getId(), userId.toString());
+        } catch (Exception e) {
+          ChatsLogger.warn(String.format(
+            "An error occurred during a room user removal notification to message dispatcher. RoomId: '%s', UserId: '%s'",
+            child.getId(), userId));
+        }
+      });
     } else {
       messageService.removeRoomMember(room.getId(), currentUser.getId(), userId.toString());
     }
