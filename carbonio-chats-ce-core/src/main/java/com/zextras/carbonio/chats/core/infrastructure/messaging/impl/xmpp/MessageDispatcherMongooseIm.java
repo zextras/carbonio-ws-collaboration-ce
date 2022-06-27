@@ -101,7 +101,9 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void setMemberRole(String roomId, String senderId, String recipientId, boolean isOwner) {
-    // TODO: 22/12/21 method non-existent in the MongooseIM
+    mucLightManagementApi.mucLightsXMPPMUCHostRoomNameUserAffiliationPut(XMPP_HOST, roomId, userId2userDomain(senderId),
+      new AffiliationDetailsDto().target(userId2userDomain(recipientId))
+        .affiliation(isOwner ? AffiliationEnum.OWNER : AffiliationEnum.MEMBER));
   }
 
   @Override

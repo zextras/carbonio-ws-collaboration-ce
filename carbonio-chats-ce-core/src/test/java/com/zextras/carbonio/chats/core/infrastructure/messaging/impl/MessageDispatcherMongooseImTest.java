@@ -1,9 +1,11 @@
 package com.zextras.carbonio.chats.core.infrastructure.messaging.impl;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.MessageDispatcherMongooseIm;
@@ -60,7 +62,52 @@ class MessageDispatcherMongooseImTest {
       doThrow(new ApiException()).when(mucLightManagementApi)
         .mucLightsXMPPMUCHostRoomNameUserAffiliationPut("carbonio", "roomtest", "testuser@carbonio",
           new AffiliationDetailsDto().target("otheruser@carbonio").affiliation(AffiliationEnum.NONE));
-      Assertions.assertThrows(ApiException.class, () -> messageDispatcher.removeRoomMember("roomtest", "testuser", "otheruser"));
+      assertThrows(ApiException.class,
+        () -> messageDispatcher.removeRoomMember("roomtest", "testuser", "otheruser"));
+    }
+
+  }
+
+  @Nested
+  @DisplayName("Set member role tests")
+  class SetMemberRoleTests {
+
+    @Test
+    @DisplayName("Correctly sets a member as owner")
+    public void setMemberRole_testAddOwnerOk() {
+      messageDispatcher.setMemberRole("testRoom", "user", "testTarget", true);
+      verify(mucLightManagementApi, times(1))
+        .mucLightsXMPPMUCHostRoomNameUserAffiliationPut("carbonio", "testRoom", "user@carbonio",
+          new AffiliationDetailsDto().target("testTarget@carbonio").affiliation(AffiliationEnum.OWNER));
+    }
+
+    @Test
+    @DisplayName("Re-throws and exception if something went wrong")
+    public void setMemberRole_testAddOwnerException() {
+      doThrow(RuntimeException.class).when(mucLightManagementApi)
+        .mucLightsXMPPMUCHostRoomNameUserAffiliationPut("carbonio", "testRoom", "user@carbonio",
+          new AffiliationDetailsDto().target("testTarget@carbonio").affiliation(AffiliationEnum.OWNER));
+      assertThrows(RuntimeException.class,
+        () -> messageDispatcher.setMemberRole("testRoom", "user", "testTarget", true));
+    }
+
+    @Test
+    @DisplayName("Correctly demotes an owner to member")
+    public void setMemberRole_TestRemoveOwnerOk() {
+      messageDispatcher.setMemberRole("testRoom", "user", "testTarget", false);
+      verify(mucLightManagementApi, times(1))
+        .mucLightsXMPPMUCHostRoomNameUserAffiliationPut("carbonio", "testRoom", "user@carbonio",
+          new AffiliationDetailsDto().target("testTarget@carbonio").affiliation(AffiliationEnum.MEMBER));
+    }
+
+    @Test
+    @DisplayName("Re-throws and exception if something went wrong")
+    public void setMemberRole_testRemoveOwnerException() {
+      doThrow(RuntimeException.class).when(mucLightManagementApi)
+        .mucLightsXMPPMUCHostRoomNameUserAffiliationPut("carbonio", "testRoom", "user@carbonio",
+          new AffiliationDetailsDto().target("testTarget@carbonio").affiliation(AffiliationEnum.MEMBER));
+      assertThrows(RuntimeException.class,
+        () -> messageDispatcher.setMemberRole("testRoom", "user", "testTarget", false));
     }
 
   }
