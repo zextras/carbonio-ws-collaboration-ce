@@ -36,8 +36,7 @@ import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServi
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
-import com.zextras.carbonio.chats.core.mapper.RoomMapperImpl;
-import com.zextras.carbonio.chats.core.mapper.RoomUserSettingsMapper;
+
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapperImpl;
 import com.zextras.carbonio.chats.core.provider.AppInfoProvider;
@@ -108,7 +107,7 @@ public class CoreModule extends AbstractModule {
     bind(RoomsApi.class);
     bind(RoomsApiService.class).to(RoomsApiServiceImpl.class);
     bind(RoomRepository.class).to(EbeanRoomRepository.class);
-    bind(RoomMapper.class).to(RoomMapperImpl.class);
+    bind(RoomMapper.class);
     bind(RoomService.class).to(RoomServiceImpl.class);
 
     bind(AttachmentsApi.class);
@@ -135,7 +134,6 @@ public class CoreModule extends AbstractModule {
     bind(AppInfoProvider.class).to(AppInfoProviderImpl.class);
 
     bind(RoomUserSettingsRepository.class).to(EbeanRoomUserSettingsRepository.class);
-    bind(RoomUserSettingsMapper.class);
 
     bind(UserService.class).to(UserServiceImpl.class);
     bind(UserRepository.class).to(EbeanUserRepository.class);

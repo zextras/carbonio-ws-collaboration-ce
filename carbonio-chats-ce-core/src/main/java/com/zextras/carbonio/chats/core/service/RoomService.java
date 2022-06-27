@@ -12,7 +12,6 @@ import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
-import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomRankDto;
 import java.io.File;
 import java.util.List;
@@ -37,9 +36,9 @@ public interface RoomService {
    *
    * @param insertRoomRequestDto room to create {@link RoomCreationFieldsDto }
    * @param currentUser          current authenticated user {@link UserPrincipal}
-   * @return The newly created room {@link RoomInfoDto }
+   * @return The newly created room {@link RoomDto }
    **/
-  RoomInfoDto createRoom(RoomCreationFieldsDto insertRoomRequestDto, UserPrincipal currentUser);
+  RoomDto createRoom(RoomCreationFieldsDto insertRoomRequestDto, UserPrincipal currentUser);
 
   /**
    * Deletes the specified room
@@ -55,9 +54,9 @@ public interface RoomService {
    *
    * @param roomId      room identifier {@link UUID }
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return Requested room {@link RoomInfoDto }
+   * @return Requested room {@link RoomDto }
    **/
-  RoomInfoDto getRoomById(UUID roomId, UserPrincipal currentUser);
+  RoomDto getRoomById(UUID roomId, UserPrincipal currentUser);
 
   /**
    * Retrieves a list of every room the user has access to

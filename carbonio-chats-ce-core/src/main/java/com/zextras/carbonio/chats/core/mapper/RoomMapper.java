@@ -7,89 +7,113 @@ package com.zextras.carbonio.chats.core.mapper;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.model.RoomDto;
-import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.model.RoomUserSettingsDto;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.Mappings;
+import javax.inject.Singleton;
 
-@Mapper(componentModel = "jsr330", imports = {ArrayList.class, UUID.class, RoomUserSettingsDto.class, Collectors.class})
-public abstract class RoomMapper {
 
-  @Mappings({
-    @Mapping(target = "id", expression = "java(UUID.fromString(room.getId()))"),
-    @Mapping(target = "rank", expression = "java(getRank(room, null))"),
-    @Mapping(target = "parentId", expression = "java(room.getParentId() == null ? null : UUID.fromString(room.getParentId()))"),
-    @Mapping(target = "members", expression = "java(includeMembers ? subscriptionMapper.ent2memberDto(room.getSubscriptions()) : null)"),
-    @Mapping(target = "userSettings", ignore = true),
-    @Mapping(target = "children", expression = "java(ent2roomDto(room.getChildren(), false, null))")
-  })
-  public abstract RoomDto ent2roomDto(@Nullable Room room, boolean includeMembers);
+@Singleton
+public class RoomMapper {
+
+  private final SubscriptionMapper subscriptionMapper;
 
   @Inject
-  protected SubscriptionMapper subscriptionMapper;
+  public RoomMapper(SubscriptionMapper subscriptionMapper) {
+    this.subscriptionMapper = subscriptionMapper;
+  }
 
-  @Inject
-  protected RoomUserSettingsMapper roomUserSettingsMapper;
+  private RoomDto ent2dto(Room room, boolean includeMembers) {
+    return RoomDto.create()
+      .id(UUID.fromString(room.getId()))
+      .name(room.getName())
+      .description(room.getDescription())
+      .type(room.getType())
+      .hash(room.getHash())
+      .pictureUpdatedAt(room.getPictureUpdatedAt())
+      .createdAt(room.getCreatedAt())
+      .updatedAt(room.getUpdatedAt())
+      .parentId(room.getParentId() == null ? null : UUID.fromString(room.getParentId()))
+      .members(includeMembers ? subscriptionMapper.ent2memberDto(room.getSubscriptions()) : null);
+  }
 
-  public List<RoomDto> ent2roomDto(
-    @Nullable List<Room> rooms, boolean includeMembers, @Nullable Map<String, RoomUserSettings> settingsMap
-  ) {
-    if (rooms == null) {
+  @Nullable
+  public RoomDto ent2dto(Room room, RoomUserSettings userSettings, boolean includeMembers, boolean includeSettings) {
+    if (room == null) {
       return null;
     }
+    return ent2dto(room, includeMembers)
+      .rank(getRank(room, userSettings))
+      .children(RoomTypeDto.WORKSPACE.equals(room.getType()) ?
+        ent2dto(room.getChildren(), (RoomUserSettings) null, false, includeSettings) :
+        null)
+      .userSettings(includeSettings ? getRoomUserSettingsDto(room, userSettings) : null);
+  }
+
+  @Nullable
+  public RoomDto ent2dto(
+    Room room, Map<String, RoomUserSettings> settingsMapByRoomId, boolean includeMembers, boolean includeSettings
+  ) {
+    if (room == null) {
+      return null;
+    }
+    return ent2dto(room, includeMembers)
+      .rank(getRank(room, settingsMapByRoomId == null ? null : settingsMapByRoomId.get(room.getId())))
+      .children(RoomTypeDto.WORKSPACE.equals(room.getType()) ?
+        ent2dto(room.getChildren(), settingsMapByRoomId, false,
+          includeSettings) : null)
+      .userSettings(
+        includeSettings ?
+          getRoomUserSettingsDto(room, settingsMapByRoomId == null ? null : settingsMapByRoomId.get(room.getId())) :
+          null);
+  }
+
+  public List<RoomDto> ent2dto(
+    List<Room> rooms, @Nullable RoomUserSettings userSettings, boolean includeMembers, boolean includeSettings
+  ) {
     return rooms.stream()
-      .map(room -> ent2roomDto(room, includeMembers)
-        .userSettings(settingsMap == null ? null : roomUserSettingsMapper.ent2dto(settingsMap.get(room.getId())))
+      .map(room -> ent2dto(room, userSettings, includeMembers, includeSettings))
+      .collect(Collectors.toList());
+  }
+
+  public List<RoomDto> ent2dto(
+    List<Room> rooms, @Nullable Map<String, RoomUserSettings> settingsMapByRoomId, boolean includeMembers,
+    boolean includeSettings
+  ) {
+    return rooms.stream()
+      .map(room -> ent2dto(room, settingsMapByRoomId, includeMembers, includeSettings)
       ).collect(Collectors.toList());
   }
 
-  @Mappings({
-    @Mapping(target = "id", expression = "java(UUID.fromString(room.getId()))"),
-    @Mapping(target = "rank", expression = "java(getRank(room, null))"),
-    @Mapping(target = "parentId", expression = "java(room.getParentId() == null ? null : UUID.fromString(room.getParentId()))"),
-    @Mapping(target = "members", expression = "java(subscriptionMapper.ent2memberDto(room.getSubscriptions()))"),
-    @Mapping(target = "userSettings", expression = "java(roomUserSettingsMapper.ent2dto(room.getUserSettings()))"),
-    @Mapping(target = "children", expression = "java(ent2roomDto(room.getChildren(), false, null))")
-  })
-  public abstract RoomInfoDto ent2roomInfoDto(Room room);
-
-  @Mappings({
-    @Mapping(target = "id", expression = "java(UUID.fromString(room.getId()))"),
-    @Mapping(target = "rank", expression = "java(getRank(room, userId))"),
-    @Mapping(target = "parentId", expression = "java(room.getParentId() == null ? null : UUID.fromString(room.getParentId()))"),
-    @Mapping(target = "members", expression = "java(subscriptionMapper.ent2memberDto(room.getSubscriptions()))"),
-    @Mapping(target = "userSettings", expression = "java(roomUserSettingsMapper.ent2dto(room.getUserSettings().stream().filter(us -> us.getUserId().equals(userId.toString())).collect(Collectors.toList())))"),
-    @Mapping(target = "children", expression = "java(ent2roomDto(room.getChildren(), false, null))")
-  })
-  public abstract RoomInfoDto ent2roomInfoDto(Room room, UUID userId);
+  @Nullable
+  private RoomUserSettingsDto getRoomUserSettingsDto(
+    Room room, @Nullable RoomUserSettings userSettings
+  ) {
+    if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
+      return null;
+    } else {
+      RoomUserSettingsDto userSettingsDto = RoomUserSettingsDto.create();
+      if (userSettings == null) {
+        userSettingsDto.muted(false);
+      } else {
+        userSettingsDto.muted(userSettings.getMutedUntil() != null);
+      }
+      return userSettingsDto;
+    }
+  }
 
   @Nullable
-  protected Integer getRank(Room room, @Nullable UUID userId) {
-    Integer rank = null;
-    if (RoomTypeDto.WORKSPACE.equals(room.getType()) && room.getUserSettings() != null
-      && room.getUserSettings().size() > 0) {
-      if (userId != null) {
-        Optional<RoomUserSettings> userSettings = room.getUserSettings().stream()
-          .filter(us -> us.getUserId().equals(userId.toString())).findAny();
-        if (userSettings.isPresent()) {
-          rank = userSettings.get().getRank();
-        }
-      } else {
-        rank = room.getUserSettings().get(0).getRank();
-      }
+  private Integer getRank(Room room, @Nullable RoomUserSettings userSettings) {
+    if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
+      return userSettings == null ? null : userSettings.getRank();
     } else {
-      rank = room.getRank();
+      return room.getRank();
     }
-    return rank;
   }
 }
+

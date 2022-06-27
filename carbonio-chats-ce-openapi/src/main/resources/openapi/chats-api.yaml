@@ -539,13 +539,13 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RoomInfo'
+            $ref: '#/components/schemas/Room'
     200GetRoomResponse:
       description: Requested room
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RoomInfo'
+            $ref: '#/components/schemas/Room'
     200UpdateRoomResponse:
       description: Updated room
       content:
@@ -870,12 +870,6 @@ components:
       description: rank room list
       items:
         $ref: '#/components/schemas/RoomRank'
-    RoomInfo:
-      description: Room data with members list and current user settings
-      type: object
-      allOf:
-        - $ref: '#/components/schemas/Room'
-      required: [ members, userSettings ]
     RoomUserSettings:
       type: object
       description: Preferences that an user has set for a room

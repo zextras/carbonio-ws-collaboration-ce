@@ -7,8 +7,6 @@ import com.google.inject.TypeLiteral;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
-import com.zextras.carbonio.chats.core.mapper.RoomMapperImpl;
-import com.zextras.carbonio.chats.core.mapper.RoomUserSettingsMapper;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapperImpl;
 import java.util.Optional;
@@ -31,9 +29,8 @@ public class GuiceMappersExtension implements ParameterResolver, BeforeAllCallba
         Guice.createInjector(new AbstractModule() {
           @Override
           protected void configure() {
-            bind(RoomMapper.class).to(RoomMapperImpl.class);
+            bind(RoomMapper.class);
             bind(SubscriptionMapper.class).to(SubscriptionMapperImpl.class);
-            bind(RoomUserSettingsMapper.class);
             bind(AttachmentMapper.class).to(AttachmentMapperImpl.class);
           }
         })

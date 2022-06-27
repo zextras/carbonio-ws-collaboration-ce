@@ -42,7 +42,6 @@ import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
-import com.zextras.carbonio.chats.model.RoomInfoDto;
 import com.zextras.carbonio.chats.model.RoomRankDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
@@ -50,7 +49,6 @@ import java.io.File;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -58,7 +56,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -115,24 +112,35 @@ public class RoomServiceImpl implements RoomService {
     List<Room> rooms = roomRepository.getByUserId(currentUser.getId(), includeMembers);
     Map<String, RoomUserSettings> settingsMap = null;
     if (includeSettings) {
-      settingsMap = roomUserSettingsRepository.getByUserId(currentUser.getId()).stream()
-        .collect(Collectors.toMap(s -> s.getId().getRoomId(), Function.identity()));
+      settingsMap = roomUserSettingsRepository.getMapGroupedByUserId(currentUser.getId());
+    } else {
+      List<String> ids = rooms.stream()
+        .filter(room -> List.of(RoomTypeDto.WORKSPACE).contains(room.getType()))
+        .map(Room::getId).collect(Collectors.toList());
+      settingsMap = roomUserSettingsRepository.getMapByRoomsIdsAndUserIdGroupedByRoomsIds(ids, currentUser.getId());
     }
-    return roomMapper.ent2roomDto(rooms, includeMembers, settingsMap);
+    return roomMapper.ent2dto(rooms, settingsMap, includeMembers, includeSettings);
   }
 
   @Override
   @Transactional
-  public RoomInfoDto getRoomById(UUID roomId, UserPrincipal currentUser) {
+  public RoomDto getRoomById(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomAndCheckUser(roomId, currentUser, false);
-    roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
-      .ifPresent(settings -> room.userSettings(Collections.singletonList(settings)));
-    return roomMapper.ent2roomInfoDto(room);
+    if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
+      List<String> ids = room.getChildren().stream().map(Room::getId).collect(Collectors.toList());
+      ids.add(roomId.toString());
+      return roomMapper.ent2dto(room, roomUserSettingsRepository.getMapByRoomsIdsAndUserIdGroupedByRoomsIds(ids,
+        currentUser.getId()), true, true);
+    } else {
+      return roomMapper.ent2dto(room,
+        roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId()).orElse(null),
+        true, true);
+    }
   }
 
   @Override
   @Transactional
-  public RoomInfoDto createRoom(RoomCreationFieldsDto roomCreationFields, UserPrincipal currentUser) {
+  public RoomDto createRoom(RoomCreationFieldsDto roomCreationFields, UserPrincipal currentUser) {
     createRoomValidation(roomCreationFields, currentUser);
     List<UUID> membersIds = new ArrayList<>(roomCreationFields.getMembersIds());
     if (!RoomTypeDto.CHANNEL.equals(roomCreationFields.getType())) {
@@ -153,7 +161,7 @@ public class RoomServiceImpl implements RoomService {
 
     if (RoomTypeDto.WORKSPACE.equals(roomCreationFields.getType())) {
       List<RoomUserSettings> roomUserSettings = new ArrayList<>();
-      Map<String, RoomUserSettings> maxRanksMapByUsers = roomUserSettingsRepository.getWorkspaceMaxRanksMapByUsers(
+      Map<String, RoomUserSettings> maxRanksMapByUsers = roomUserSettingsRepository.getWorkspaceMaxRanksMapGroupedByUsers(
         membersIds.stream().map(UUID::toString).collect(Collectors.toList())
       );
       for (UUID memberId : membersIds) {
@@ -187,8 +195,9 @@ public class RoomServiceImpl implements RoomService {
         RoomCreatedEvent.create(finalId).from(currentUser.getUUID())
       )
     );
-
-    return roomMapper.ent2roomInfoDto(room, currentUser.getUUID());
+    return roomMapper.ent2dto(room,
+      room.getUserSettings().stream().filter(userSettings -> userSettings.getUserId().equals(currentUser.getId()))
+        .findAny().orElse(null), true, true);
   }
 
   private void createRoomValidation(RoomCreationFieldsDto roomCreationFields, UserPrincipal currentUser) {
@@ -262,7 +271,9 @@ public class RoomServiceImpl implements RoomService {
       eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
         RoomUpdatedEvent.create(roomId).from(currentUser.getUUID()));
     }
-    return roomMapper.ent2roomDto(room, false);
+    return roomMapper.ent2dto(room,
+      room.getUserSettings().stream().filter(userSettings -> userSettings.getUserId().equals(currentUser.getId()))
+        .findAny().orElse(null), false, false);
   }
 
   @Override
@@ -420,7 +431,7 @@ public class RoomServiceImpl implements RoomService {
         throw new BadRequestException("Ranks must be progressive number that starts with 1");
       }
     }
-    Map<String, RoomUserSettings> userWorkspaces = roomUserSettingsRepository.getWorkspaceMapByRoomId(
+    Map<String, RoomUserSettings> userWorkspaces = roomUserSettingsRepository.getWorkspaceMapGroupedByRoomId(
       currentUser.getId());
     if (roomRankList.size() != userWorkspaces.size()) {
       throw new BadRequestException(String.format("Too %s elements compared to user workspaces",

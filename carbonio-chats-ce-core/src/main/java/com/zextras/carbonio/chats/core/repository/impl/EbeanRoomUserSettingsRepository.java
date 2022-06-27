@@ -38,10 +38,28 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
   }
 
   @Override
+  public Map<String, RoomUserSettings> getMapByRoomsIdsAndUserIdGroupedByRoomsIds(List<String> roomsIds, String userId) {
+    return db.find(RoomUserSettings.class)
+      .where().eq("userId", userId)
+      .and().in("id.roomId", roomsIds)
+      .setMapKey("id.roomId")
+      .findMap();
+  }
+
+  @Override
   public List<RoomUserSettings> getByUserId(String userId) {
     return db.find(RoomUserSettings.class)
       .where().eq("userId", userId)
       .findList();
+  }
+
+  @Override
+  public Map<String, RoomUserSettings> getMapGroupedByUserId(String userId) {
+    return db.find(RoomUserSettings.class)
+      .where().eq("userId", userId)
+      .setMapKey("id.roomId")
+      .findMap();
+
   }
 
   @Override
@@ -81,7 +99,7 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
   }
 
   @Override
-  public Map<String, RoomUserSettings> getWorkspaceMaxRanksMapByUsers(List<String> usersIds) {
+  public Map<String, RoomUserSettings> getWorkspaceMaxRanksMapGroupedByUsers(List<String> usersIds) {
     return db.createQuery(RoomUserSettings.class)
       .select("userId, max(rank)")
       .where()
@@ -93,7 +111,7 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
   }
 
   @Override
-  public Map<String, RoomUserSettings> getWorkspaceMapByRoomId(String userId) {
+  public Map<String, RoomUserSettings> getWorkspaceMapGroupedByRoomId(String userId) {
     return db.find(RoomUserSettings.class)
       .where().eq("userId", userId)
       .and().isNotNull("rank")
