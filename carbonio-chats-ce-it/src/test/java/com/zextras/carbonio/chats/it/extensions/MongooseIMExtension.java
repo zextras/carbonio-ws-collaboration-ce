@@ -94,13 +94,10 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
     mockSendMessageToRoom(client);
     mockStanzasMessage(client);
     accounts.forEach(account -> {
-      roomsIds.forEach(roomId -> {
-        mockCreateRoom(client, roomId, account.getUUID());
-      });
-      accounts.forEach(account2 -> {
-        mockAddRoomMember(client, account.getUUID(), account2.getUUID());
-      });
+      roomsIds.forEach(roomId -> mockCreateRoom(client, roomId, account.getUUID()));
+      accounts.forEach(account2 -> mockAddRoomMember(client, account.getUUID(), account2.getUUID()));
       mockRemoveRoomMember(client, account.getId());
+      mockPromoteAndDemoteMember(client, account.getId());
     });
     List<String> userIds = List.of("332a9527-3388-4207-be77-6d7e2978a723", "82735f6d-4c6c-471e-99d9-4eef91b1ec45");
     userIds.forEach(user1id ->
@@ -164,9 +161,35 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
       request()
         .withMethod("PUT")
         .withPath("/admin/muc-lights/carbonio/{roomId}/{userId}/affiliation")
-        .withBody(
-          JsonBody.json(new AffiliationDetailsDto().target(String.format("%s@carbonio", memberToRemove)).affiliation(
-            AffiliationEnum.NONE)))
+        .withBody(JsonBody.json(new AffiliationDetailsDto().target(String.format("%s@carbonio", memberToRemove))
+          .affiliation(AffiliationEnum.NONE)))
+        .withPathParameter(Parameter.param("roomId", ".*"))
+        .withPathParameter(Parameter.param("userId", ".*"))
+    ).respond(
+      response()
+        .withStatusCode(204)
+    );
+  }
+
+  private void mockPromoteAndDemoteMember(MockServerClient client, String memberToUpdate) {
+    client.when(
+      request()
+        .withMethod("PUT")
+        .withPath("/admin/muc-lights/carbonio/{roomId}/{userId}/affiliation")
+        .withBody(JsonBody.json(new AffiliationDetailsDto().target(String.format("%s@carbonio", memberToUpdate))
+          .affiliation(AffiliationEnum.OWNER)))
+        .withPathParameter(Parameter.param("roomId", ".*"))
+        .withPathParameter(Parameter.param("userId", ".*"))
+    ).respond(
+      response()
+        .withStatusCode(204)
+    );
+    client.when(
+      request()
+        .withMethod("PUT")
+        .withPath("/admin/muc-lights/carbonio/{roomId}/{userId}/affiliation")
+        .withBody(JsonBody.json(new AffiliationDetailsDto().target(String.format("%s@carbonio", memberToUpdate))
+          .affiliation(AffiliationEnum.MEMBER)))
         .withPathParameter(Parameter.param("roomId", ".*"))
         .withPathParameter(Parameter.param("userId", ".*"))
     ).respond(

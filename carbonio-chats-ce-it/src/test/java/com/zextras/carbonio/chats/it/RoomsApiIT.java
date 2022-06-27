@@ -2376,7 +2376,9 @@ public class RoomsApiIT {
           .isOwner());
 
       // TODO: 25/02/22 verify event dispatcher interactions
-      // TODO: 25/02/22 verify mongoose
+      mongooseImMockServer.verify("PUT",
+        String.format("/admin/muc-lights/carbonio/%s/%s/affiliation", roomId, String.format("%s%%40carbonio", user1Id)),
+        1);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
@@ -2485,7 +2487,9 @@ public class RoomsApiIT {
 
       // TODO: 28/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      // TODO: 28/02/22 verify mongooseIm interactions
+      mongooseImMockServer.verify("PUT",
+        String.format("/admin/muc-lights/carbonio/%s/%s/affiliation", roomId, String.format("%s%%40carbonio", user1Id)),
+        1);
     }
 
     @Test
