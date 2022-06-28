@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.web.api;
 
 import com.zextras.carbonio.chats.api.RoomsApiService;
+import com.zextras.carbonio.chats.core.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
@@ -45,6 +46,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response listRoom(List<RoomExtraFieldDto> extraFields, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -55,6 +57,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response getRoom(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -64,6 +67,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response insertRoom(RoomCreationFieldsDto insertRoomRequestDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -74,6 +78,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response deleteRoom(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -82,6 +87,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -91,6 +97,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response getRoomPicture(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -105,6 +112,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response updateRoomPicture(
     UUID roomId, String xContentDisposition, File body, SecurityContext securityContext
   ) {
@@ -120,6 +128,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response resetRoomHash(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -130,6 +139,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response muteRoom(UUID roomId, SecurityContext securityContext) {
     roomService.muteRoom(roomId, Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new));
@@ -137,6 +147,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response unmuteRoom(UUID roomId, SecurityContext securityContext) {
     roomService.unmuteRoom(roomId, Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new));
@@ -144,6 +155,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response listRoomMember(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -153,6 +165,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response insertRoomMember(UUID roomId, MemberDto memberDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -163,6 +176,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response deleteRoomMember(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -171,6 +185,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response updateToOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -179,6 +194,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response updateWorkspacesRank(List<RoomRankDto> roomRankDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -187,6 +203,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response deleteOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -199,6 +216,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response listRoomAttachmentInfo(
     UUID roomId, Integer itemsNumber, String filter, SecurityContext securityContext
   ) {
@@ -209,6 +227,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall
   public Response insertAttachment(
     UUID roomId, String xContentDisposition, File body, SecurityContext securityContext
   ) {

@@ -1,6 +1,7 @@
 package com.zextras.carbonio.chats.core.web.api;
 
 import com.zextras.carbonio.chats.api.SupportedApiService;
+import com.zextras.carbonio.chats.core.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.provider.AppInfoProvider;
 import java.util.List;
@@ -22,6 +23,7 @@ public class SupportedApiServiceImpl implements SupportedApiService {
   }
 
   @Override
+  @TimedCall
   public Response getSupportedVersions(SecurityContext securityContext) {
     Optional<String> version = appInfoProvider.getVersion();
     if (version.isPresent()) {

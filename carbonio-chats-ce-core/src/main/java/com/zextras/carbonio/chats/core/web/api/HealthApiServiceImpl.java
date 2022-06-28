@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.web.api;
 
 import com.zextras.carbonio.chats.api.HealthApiService;
+import com.zextras.carbonio.chats.core.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.model.HealthStatusTypeDto;
 import javax.inject.Inject;
@@ -23,6 +24,7 @@ public class HealthApiServiceImpl implements HealthApiService {
   }
 
   @Override
+  @TimedCall
   public Response getHealthStatus(SecurityContext securityContext) {
     return Response.ok()
       .entity(healthcheckService.getServiceHealth())
@@ -30,11 +32,13 @@ public class HealthApiServiceImpl implements HealthApiService {
   }
 
   @Override
+  @TimedCall
   public Response isLive(SecurityContext securityContext) {
     return Response.noContent().build();
   }
 
   @Override
+  @TimedCall
   public Response isReady(SecurityContext securityContext) {
     Status status;
     switch (healthcheckService.getServiceStatus()) {
