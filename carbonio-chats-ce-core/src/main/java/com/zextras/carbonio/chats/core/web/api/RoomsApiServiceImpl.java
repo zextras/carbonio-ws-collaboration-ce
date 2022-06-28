@@ -5,7 +5,7 @@
 package com.zextras.carbonio.chats.core.web.api;
 
 import com.zextras.carbonio.chats.api.RoomsApiService;
-import com.zextras.carbonio.chats.core.annotation.TimedCall;
+import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;

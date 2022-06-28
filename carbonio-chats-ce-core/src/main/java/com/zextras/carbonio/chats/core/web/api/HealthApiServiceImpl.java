@@ -5,12 +5,11 @@
 package com.zextras.carbonio.chats.core.web.api;
 
 import com.zextras.carbonio.chats.api.HealthApiService;
-import com.zextras.carbonio.chats.core.annotation.TimedCall;
+import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
+import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
-import com.zextras.carbonio.chats.model.HealthStatusTypeDto;
 import javax.inject.Inject;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 
@@ -24,7 +23,7 @@ public class HealthApiServiceImpl implements HealthApiService {
   }
 
   @Override
-  @TimedCall
+  @TimedCall(logLevel = ChatsLoggerLevel.TRACE)
   public Response getHealthStatus(SecurityContext securityContext) {
     return Response.ok()
       .entity(healthcheckService.getServiceHealth())
@@ -32,13 +31,13 @@ public class HealthApiServiceImpl implements HealthApiService {
   }
 
   @Override
-  @TimedCall
+  @TimedCall(logLevel = ChatsLoggerLevel.TRACE)
   public Response isLive(SecurityContext securityContext) {
     return Response.noContent().build();
   }
 
   @Override
-  @TimedCall
+  @TimedCall(logLevel = ChatsLoggerLevel.TRACE)
   public Response isReady(SecurityContext securityContext) {
     Status status;
     switch (healthcheckService.getServiceStatus()) {

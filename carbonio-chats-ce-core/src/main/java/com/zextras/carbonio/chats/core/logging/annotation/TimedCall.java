@@ -1,5 +1,6 @@
-package com.zextras.carbonio.chats.core.annotation;
+package com.zextras.carbonio.chats.core.logging.annotation;
 
+import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
@@ -10,5 +11,6 @@ import java.lang.annotation.Target;
 @Inherited
 @Target(ElementType.METHOD)
 public @interface TimedCall {
-  public String name() default "";
+  String name() default "";
+  ChatsLoggerLevel logLevel() default ChatsLoggerLevel.DEBUG;
 }
