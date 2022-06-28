@@ -136,8 +136,17 @@ public interface RoomService {
   /**
    * Updates the workspaces order for the current user
    *
-   * @param roomRankDto list of room identifier and room rank
+   * @param roomRankDto {@link List} of room identifier and room rank {@link RoomRankDto}
    * @param currentUser current authenticated user {@link UserPrincipal}
    */
   void updateWorkspacesRank(List<RoomRankDto> roomRankDto, UserPrincipal currentUser);
+
+  /**
+   * Updates the channels order for the workspace
+   *
+   * @param workspaceId workspace identifier
+   * @param roomRankDto {@link List} of channel identifier and rank {@link RoomRankDto}
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   */
+  void updateChannelsRank(UUID workspaceId, List<RoomRankDto> roomRankDto, UserPrincipal currentUser);
 }
