@@ -469,6 +469,26 @@ class RoomServiceImplTest {
     }
 
     @Test
+    @DisplayName("Returns the required channel room with all members and room user settings")
+    public void getRoomById_channelTestOk() {
+      when(roomRepository.getById(roomChannel2Id.toString())).thenReturn(Optional.of(roomChannel2));
+      when(roomRepository.getById(roomWorkspace1Id.toString())).thenReturn(Optional.of(roomWorkspace1));
+
+      RoomDto room = roomService.getRoomById(roomChannel2Id, UserPrincipal.create(user2Id));
+
+      assertEquals(roomChannel2Id, room.getId());
+      assertEquals(8, room.getRank());
+      assertEquals(3, room.getMembers().size());
+      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user1Id)));
+      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user2Id)));
+      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user3Id)));
+
+      verify(roomRepository, times(1)).getById(roomChannel2Id.toString());
+      verify(roomRepository, times(2)).getById(roomWorkspace1Id.toString());
+      verifyNoMoreInteractions(roomRepository);
+    }
+
+    @Test
     @DisplayName("Returns the required room with no profile picture with all members and room user settings")
     public void getRoomById_testOkWithoutPicture() {
       when(roomRepository.getById(roomOneToOne1Id.toString())).thenReturn(Optional.of(roomOneToOne1));
@@ -1566,7 +1586,7 @@ class RoomServiceImplTest {
     @DisplayName("It returns the requested room")
     public void getRoomAndCheckUser_testOk() {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-      Room room = roomService.getRoomAndCheckUser(roomGroup1Id, UserPrincipal.create(user1Id), false);
+      Room room = roomService.getRoomEntityAndCheckUser(roomGroup1Id, UserPrincipal.create(user1Id), false);
 
       assertEquals(roomGroup1, room);
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
@@ -1577,7 +1597,7 @@ class RoomServiceImplTest {
     @DisplayName("If the user is a system user, it returns the requested room")
     public void getRoomAndCheckUser_testOkSystemUserAndNotARoomMember() {
       when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-      Room room = roomService.getRoomAndCheckUser(roomGroup2Id, UserPrincipal.create(user1Id).systemUser(true), false);
+      Room room = roomService.getRoomEntityAndCheckUser(roomGroup2Id, UserPrincipal.create(user1Id).systemUser(true), false);
 
       assertEquals(roomGroup2.getId(), room.getId());
       assertEquals(roomGroup2.getName(), room.getName());
@@ -1592,7 +1612,7 @@ class RoomServiceImplTest {
       when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
 
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
-        roomService.getRoomAndCheckUser(roomGroup2Id, UserPrincipal.create(user1Id), false));
+        roomService.getRoomEntityAndCheckUser(roomGroup2Id, UserPrincipal.create(user1Id), false));
 
       assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
       assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
@@ -1605,7 +1625,7 @@ class RoomServiceImplTest {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
 
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
-        roomService.getRoomAndCheckUser(roomGroup1Id, UserPrincipal.create(user2Id), true));
+        roomService.getRoomEntityAndCheckUser(roomGroup1Id, UserPrincipal.create(user2Id), true));
 
       assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
       assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, roomGroup1Id),

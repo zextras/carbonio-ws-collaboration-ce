@@ -68,7 +68,7 @@ public class MembersServiceImpl implements MembersService {
     if (userId.equals(currentUser.getUUID())) {
       throw new BadRequestException("Cannot set owner privileges for itself");
     }
-    Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
+    Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (List.of(RoomTypeDto.ONE_TO_ONE, RoomTypeDto.CHANNEL).contains(room.getType())) {
       throw new BadRequestException(String.format("Cannot set owner privileges on %s rooms", room.getType()));
     }
@@ -92,7 +92,7 @@ public class MembersServiceImpl implements MembersService {
     if (!userService.userExists(memberDto.getUserId(), currentUser)) {
       throw new NotFoundException(String.format("User with id '%s' was not found", memberDto.getUserId()));
     }
-    Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
+    Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (List.of(RoomTypeDto.ONE_TO_ONE, RoomTypeDto.CHANNEL).contains(room.getType())) {
       throw new BadRequestException(String.format("Cannot add members to a %s conversation", room.getType()));
     }
@@ -142,7 +142,7 @@ public class MembersServiceImpl implements MembersService {
   @Override
   @Transactional
   public void deleteRoomMember(UUID roomId, UUID userId, UserPrincipal currentUser) {
-    Room room = roomService.getRoomAndCheckUser(roomId, currentUser, true);
+    Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (List.of(RoomTypeDto.ONE_TO_ONE, RoomTypeDto.CHANNEL).contains(room.getType())) {
       throw new BadRequestException(String.format("Cannot remove a member from a %s conversation", room.getType()));
     }
@@ -179,8 +179,12 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
+  @Transactional
   public List<MemberDto> getRoomMembers(UUID roomId, UserPrincipal currentUser) {
-    Room room = roomService.getRoomAndCheckUser(roomId, currentUser, false);
+    Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
+    if (RoomTypeDto.CHANNEL.equals(room.getType())) {
+      room = roomService.getRoomEntityWithoutChecks(UUID.fromString(room.getParentId())).orElseThrow();
+    }
     return subscriptionMapper.ent2memberDto(room.getSubscriptions());
   }
 

@@ -70,7 +70,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   public FileContentAndMetadata getAttachmentById(UUID fileId, UserPrincipal currentUser) {
     FileMetadata metadata = fileMetadataRepository.getById(fileId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
-    roomService.getRoomAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
+    roomService.getRoomEntityAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
     File file = storagesService.getFileById(metadata.getId(), metadata.getUserId());
     return new FileContentAndMetadata(file, metadata);
   }
@@ -79,7 +79,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   public File getAttachmentPreviewById(UUID fileId, UserPrincipal currentUser) {
     FileMetadata originMetadata = fileMetadataRepository.getById(fileId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
-    roomService.getRoomAndCheckUser(UUID.fromString(originMetadata.getRoomId()), currentUser, false);
+    roomService.getRoomEntityAndCheckUser(UUID.fromString(originMetadata.getRoomId()), currentUser, false);
     return storagesService.getPreview(originMetadata, originMetadata.getUserId());
   }
 
@@ -88,7 +88,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   public AttachmentsPaginationDto getAttachmentInfoByRoomId(
     UUID roomId, Integer itemsNumber, @Nullable String filter, UserPrincipal currentUser
   ) {
-    roomService.getRoomAndCheckUser(roomId, currentUser, false);
+    roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
     PaginationFilter paginationFilter = null;
     if (filter != null) {
       try {
@@ -124,14 +124,14 @@ public class AttachmentServiceImpl implements AttachmentService {
   public AttachmentDto getAttachmentInfoById(UUID fileId, UserPrincipal currentUser) {
     FileMetadata metadata = fileMetadataRepository.getById(fileId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
-    roomService.getRoomAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
+    roomService.getRoomEntityAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
     return attachmentMapper.ent2dto(metadata);
   }
 
   @Override
   @Transactional
   public IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, UserPrincipal currentUser) {
-    roomService.getRoomAndCheckUser(roomId, currentUser, false);
+    roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
     UUID id = UUID.randomUUID();
     FileMetadata metadata = FileMetadata.create()
       .id(id.toString())
@@ -155,7 +155,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   public void deleteAttachment(UUID fileId, UserPrincipal currentUser) {
     FileMetadata metadata = fileMetadataRepository.getById(fileId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
-    Room room = roomService.getRoomAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
+    Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
     room.getSubscriptions().stream()
       .filter(subscription -> subscription.getUserId().equals(currentUser.getId()) && (
         subscription.getUserId().equals(metadata.getUserId()) || subscription.isOwner()

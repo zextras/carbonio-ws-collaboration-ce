@@ -15,6 +15,7 @@ import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomRankDto;
 import java.io.File;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
@@ -29,7 +30,15 @@ public interface RoomService {
    * @param mustBeOwner if true, the user must be a room owner
    * @return The requested room {@link Room}
    */
-  Room getRoomAndCheckUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner);
+  Room getRoomEntityAndCheckUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner);
+
+  /**
+   * Gets the room entity for internal usage
+   *
+   * @param roomId room identifier
+   * @return {@link Room} entity
+   */
+  Optional<Room> getRoomEntityWithoutChecks(UUID roomId);
 
   /**
    * Creates a room of the specified type

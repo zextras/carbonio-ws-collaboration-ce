@@ -348,7 +348,7 @@ public class RoomsApiIT {
         .hash(UUID.randomUUID().toString())
         .parentId(workspace1Id.toString())
         .rank(2), List.of(
-          RoomMemberField.create().id(user1Id).muted(true)));
+        RoomMemberField.create().id(user1Id).muted(true)));
       integrationTestUtils.generateAndSaveRoom(Room.create()
         .id(channel2Id.toString())
         .type(RoomTypeDto.CHANNEL)
@@ -357,7 +357,7 @@ public class RoomsApiIT {
         .hash(UUID.randomUUID().toString())
         .parentId(workspace1Id.toString())
         .rank(1), List.of(
-          RoomMemberField.create().id(user1Id).muted(true)));
+        RoomMemberField.create().id(user1Id).muted(true)));
 
       MockHttpResponse response = dispatcher.get(url(Map.of("extraFields", List.of("members", "settings"))),
         user1Token);
@@ -387,7 +387,6 @@ public class RoomsApiIT {
       assertTrue(workspace.getChildren().stream().anyMatch(child -> RoomTypeDto.CHANNEL.equals(child.getType())));
       assertTrue(workspace.getChildren().stream().anyMatch(child -> child.getMembers().isEmpty()));
       assertTrue(workspace.getChildren().stream().anyMatch(child -> child.getUserSettings().isMuted()));
-      
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -1110,6 +1109,41 @@ public class RoomsApiIT {
       assertEquals(1, channel2.get().getRank());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Returns the required channel room with all members and room user settings")
+    public void getRoomById_channelTestOk() throws Exception {
+      UUID workspaceId = UUID.randomUUID();
+      UUID channelId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(workspaceId, RoomTypeDto.WORKSPACE, List.of(
+        RoomMemberField.create().id(user1Id).owner(true).rank(5),
+        RoomMemberField.create().id(user2Id).owner(false).rank(2),
+        RoomMemberField.create().id(user3Id).owner(false).rank(2)
+      ));
+      integrationTestUtils.generateAndSaveRoom(Room.create()
+          .id(channelId.toString())
+          .type(RoomTypeDto.CHANNEL)
+          .name("channel1")
+          .description("Channel one")
+          .hash(UUID.randomUUID().toString())
+          .parentId(workspaceId.toString())
+          .rank(8),
+        List.of(
+          RoomMemberField.create().id(user1Id).muted(true),
+          RoomMemberField.create().id(user3Id).muted(true)));
+
+      MockHttpResponse response = dispatcher.get(url(channelId), user1Token);
+      assertEquals(200, response.getStatus());
+
+      RoomDto channel = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
+      assertEquals(channelId, channel.getId());
+      assertEquals(8, channel.getRank());
+      assertEquals(3, channel.getMembers().size());
+      assertTrue(channel.getMembers().stream().anyMatch(member -> member.getUserId().equals(user1Id)));
+      assertTrue(channel.getMembers().stream().anyMatch(member -> member.getUserId().equals(user2Id)));
+      assertTrue(channel.getMembers().stream().anyMatch(member -> member.getUserId().equals(user3Id)));
+      assertTrue(channel.getUserSettings().isMuted());
     }
 
     @Test
