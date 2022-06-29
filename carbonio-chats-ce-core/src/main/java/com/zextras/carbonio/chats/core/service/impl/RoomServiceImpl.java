@@ -477,9 +477,14 @@ public class RoomServiceImpl implements RoomService {
       throw new BadRequestException(String.format("Too %s elements compared to workspace channels",
         roomRankDto.size() < workspace.getChildren().size() ? "few" : "many"));
     }
+
     workspace.getChildren().forEach(child ->
-      child.rank(Optional.ofNullable(roomRankMap.get(child.getId())).orElseThrow(() ->
-        new BadRequestException(String.format("There isn't channel '%s' in the list", child.getId())))));
+      Optional.ofNullable(roomRankMap.get(child.getId())).ifPresentOrElse(
+        child::rank,
+        () -> {
+          throw new BadRequestException(String.format("Channel '%s' is not a child of workspace '%s'", child.getId(), workspaceId));
+        }));
+
     roomRepository.update(workspace);
   }
 }

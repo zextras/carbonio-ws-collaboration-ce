@@ -2068,7 +2068,8 @@ class RoomServiceImplTest {
         ), UserPrincipal.create(user1Id)));
 
       assertEquals(400, exception.getHttpStatus().getStatusCode());
-      assertEquals(String.format("Bad Request - There isn't channel '%s' in the list", channel3Id),
+      assertEquals(
+        String.format("Bad Request - Channel '%s' is not a child of workspace '%s'", channel3Id, workspaceId),
         exception.getMessage());
       verify(roomRepository, times(1)).getById(workspaceId.toString());
       verifyNoMoreInteractions(roomRepository);
