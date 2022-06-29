@@ -455,4 +455,36 @@ public class RoomServiceImpl implements RoomService {
         }));
     roomUserSettingsRepository.save(userWorkspaces.values());
   }
+
+  @Override
+  public void updateChannelsRank(UUID workspaceId, List<RoomRankDto> roomRankDto, UserPrincipal currentUser) {
+    List<RoomRankDto> roomRankList = new ArrayList<>(roomRankDto);
+    roomRankList.sort(Comparator.comparing(RoomRankDto::getRank));
+    for (int i = 0; i < roomRankList.size(); i++) {
+      if (roomRankList.get(i).getRank() != i + 1) {
+        throw new BadRequestException("Ranks must be progressive number that starts with 1");
+      }
+    }
+
+    Map<String, Integer> roomRankMap = roomRankDto.stream().collect(
+      Collectors.toMap(roomRank -> roomRank.getRoomId().toString(), RoomRankDto::getRank,
+        (existing, replacement) -> existing));
+    if (roomRankMap.size() != roomRankDto.size()) {
+      throw new BadRequestException("Channels cannot be duplicated");
+    }
+    Room workspace = getRoomEntityAndCheckUser(workspaceId, currentUser, true);
+    if (roomRankDto.size() != workspace.getChildren().size()) {
+      throw new BadRequestException(String.format("Too %s elements compared to workspace channels",
+        roomRankDto.size() < workspace.getChildren().size() ? "few" : "many"));
+    }
+
+    workspace.getChildren().forEach(child ->
+      Optional.ofNullable(roomRankMap.get(child.getId())).ifPresentOrElse(
+        child::rank,
+        () -> {
+          throw new BadRequestException(String.format("Channel '%s' is not a child of workspace '%s'", child.getId(), workspaceId));
+        }));
+
+    roomRepository.update(workspace);
+  }
 }

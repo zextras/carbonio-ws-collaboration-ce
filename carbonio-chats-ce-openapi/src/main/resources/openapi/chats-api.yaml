@@ -206,6 +206,19 @@ paths:
       responses:
         204:
           $ref: '#/components/responses/204UpdateWorkspacesRankResponse'
+  /rooms/workspaces/{workspaceId}/channels/rank:
+    put:
+      tags:
+        - Rooms
+      summary: Updates the channels order in the workspace
+      operationId: updateChannelsRank
+      parameters:
+        - $ref: '#/components/parameters/pathWorkspaceId'
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateChannelsRankRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204UpdateChannelsRankResponse'
   /rooms/{roomId}/members:
     get:
       tags:
@@ -434,6 +447,15 @@ components:
         format: uuid
       required: true
       allowEmptyValue: false
+    pathWorkspaceId:
+      in: path
+      name: workspaceId
+      description: workspace identifier
+      schema:
+        type: string
+        format: uuid
+      required: true
+      allowEmptyValue: false
     headerXContentDisposition:
       in: header
       name: X-Content-Disposition
@@ -490,7 +512,14 @@ components:
             type: string
             format: binary
     UpdateWorkspacesRankRequest:
-      description: rooms list with their rank
+      description: workspaces list with their rank
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RoomRanks'
+    UpdateChannelsRankRequest:
+      description: channels list with their rank
       required: true
       content:
         application/json:
@@ -575,6 +604,8 @@ components:
             $ref: '#/components/schemas/Hash'
     204UpdateWorkspacesRankResponse:
       description: workspaces’s order is updated
+    204UpdateChannelsRankResponse:
+      description: channels’s order is updated
     200ListRoomMemberResponse:
       description: The room members list
       content:

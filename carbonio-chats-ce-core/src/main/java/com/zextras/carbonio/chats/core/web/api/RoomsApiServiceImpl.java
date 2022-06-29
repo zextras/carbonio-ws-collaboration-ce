@@ -144,6 +144,14 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  public Response updateChannelsRank(UUID workspaceId, List<RoomRankDto> roomRankDto, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    roomService.updateChannelsRank(workspaceId, roomRankDto, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
   public Response listRoomMember(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
