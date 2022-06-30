@@ -14,6 +14,6 @@ public interface EventDispatcher extends HealthIndicator {
   // TODO: 24/11/21 versioning
 
   void sendToTopic(UUID sender, String topic, DomainEvent domainEvent);
-  void sendToQueue(UUID sender, String queueName, DomainEvent domainEvent);
-  void sendToQueue(UUID sender, List<String> queues, DomainEvent domainEvent);
+  void sendToUserQueue(UUID sender, String user, DomainEvent domainEvent);
+  void sendToUserQueue(UUID sender, List<String> users, DomainEvent domainEvent);
 }

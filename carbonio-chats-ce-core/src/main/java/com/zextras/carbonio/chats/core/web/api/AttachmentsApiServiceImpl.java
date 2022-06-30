@@ -6,6 +6,8 @@ package com.zextras.carbonio.chats.core.web.api;
 
 
 import com.zextras.carbonio.chats.api.AttachmentsApiService;
+import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
+import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
@@ -31,6 +33,7 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
   }
 
   @Override
+  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response getAttachment(UUID fileId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -45,6 +48,7 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
   }
 
   @Override
+  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response getAttachmentPreview(UUID fileId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -58,6 +62,7 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
   }
 
   @Override
+  @TimedCall
   public Response getAttachmentInfo(UUID fileId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -65,6 +70,7 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
   }
 
   @Override
+  @TimedCall
   public Response deleteAttachment(UUID fileId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);

@@ -192,7 +192,7 @@ public class RoomServiceImpl implements RoomService {
     }
     UUID finalId = UUID.fromString(room.getId());
     room.getSubscriptions().forEach(member ->
-      eventDispatcher.sendToQueue(currentUser.getUUID(), member.getUserId(),
+      eventDispatcher.sendToUserQueue(currentUser.getUUID(), member.getUserId(),
         RoomCreatedEvent.create().roomId(finalId).from(currentUser.getUUID())
       )
     );

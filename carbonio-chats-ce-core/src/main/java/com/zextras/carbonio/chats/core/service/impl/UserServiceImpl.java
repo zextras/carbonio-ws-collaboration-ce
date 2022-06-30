@@ -10,6 +10,7 @@ import com.zextras.carbonio.chats.core.data.event.UserPictureChangedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
@@ -80,12 +81,15 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public void setUserPicture(UUID userId, File image, String mimeType, String fileName, UserPrincipal currentUser) {
+    if (!currentUser.getUUID().equals(userId)) {
+      throw new ForbiddenException("The picture can be change only from its owner");
+    }
     if (image.length() > ChatsConstant.MAX_USER_IMAGE_SIZE_IN_KB * 1024) {
       throw new BadRequestException(
         String.format("The user picture cannot be greater than %d KB", ChatsConstant.MAX_USER_IMAGE_SIZE_IN_KB));
     }
     if (!mimeType.startsWith("image/")) {
-      throw new BadRequestException("The room picture must be an image");
+      throw new BadRequestException("The user picture must be an image");
     }
     Optional<FileMetadata> oldMetadata = fileMetadataRepository.getById(userId.toString());
     FileMetadata metadata = oldMetadata.orElseGet(() -> FileMetadata.create()
@@ -98,7 +102,7 @@ public class UserServiceImpl implements UserService {
       .userId(currentUser.getId());
     fileMetadataRepository.save(metadata);
     storagesService.saveFile(image, metadata, currentUser.getId());
-    eventDispatcher.sendToQueue(currentUser.getUUID(), subscriptionRepository.getContacts(userId.toString()),
+    eventDispatcher.sendToUserQueue(currentUser.getUUID(), subscriptionRepository.getContacts(userId.toString()),
       UserPictureChangedEvent.create().from(currentUser.getUUID()));
   }
 }

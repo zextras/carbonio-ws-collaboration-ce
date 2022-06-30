@@ -45,23 +45,23 @@ public class MockEventDispatcherImpl implements EventDispatcher {
   }
 
   @Override
-  public void sendToQueue(UUID sender, String queueName, DomainEvent domainEvent) {
+  public void sendToUserQueue(UUID sender, String user, DomainEvent domainEvent) {
     Map<String, Object> map = new HashMap<>();
     map.put("sender", sender);
-    map.put("queueName", queueName);
+    map.put("user", user);
     map.put("event", domainEvent);
     try {
       ChatsLogger.info(MockEventDispatcherImpl.class,
-        String.format("sentToQueue - json: %s", objectMapper.writeValueAsString(map)));
+        String.format("sendToUserQueue - json: %s", objectMapper.writeValueAsString(map)));
     } catch (JsonProcessingException e) {
       ChatsLogger.error(MockEventDispatcherImpl.class,
-        "sentToQueue - unable to parse the event", e);
+        "sendToUserQueue - unable to parse the event", e);
     }
   }
 
   @Override
-  public void sendToQueue(UUID sender, List<String> queues, DomainEvent domainEvent) {
-    queues.forEach(queue -> sendToQueue(sender, queue, domainEvent));
+  public void sendToUserQueue(UUID sender, List<String> users, DomainEvent domainEvent) {
+    users.forEach(user -> sendToUserQueue(sender, user, domainEvent));
   }
 
   @Override

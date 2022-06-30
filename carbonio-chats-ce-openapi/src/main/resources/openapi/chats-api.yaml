@@ -327,19 +327,29 @@ paths:
       responses:
         200:
           $ref: '#/components/responses/200GetUserPictureResponse'
-  /users/picture:
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
     put:
       tags:
         - Users
       summary: Uploads and sets a new user picture
       operationId: updateUserPicture
       parameters:
+        - $ref: '#/components/parameters/pathUserId'
         - $ref: '#/components/parameters/headerXContentDisposition'
       requestBody:
         $ref: '#/components/requestBodies/UpdateUserPictureRequest'
       responses:
         204:
           $ref: '#/components/responses/204UpdateUserPictureResponse'
+        400:
+          $ref: '#/components/responses/400BadRequestResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
   /rooms/{roomId}/attachments:
     get:
       tags:

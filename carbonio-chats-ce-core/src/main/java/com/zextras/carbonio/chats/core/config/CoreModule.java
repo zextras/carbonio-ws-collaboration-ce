@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.google.inject.matcher.Matchers;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.api.AttachmentsApi;
@@ -19,6 +20,8 @@ import com.zextras.carbonio.chats.api.SupportedApi;
 import com.zextras.carbonio.chats.api.SupportedApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
+import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
+import com.zextras.carbonio.chats.core.logging.aop.TimedCallInterceptor;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
@@ -143,6 +146,8 @@ public class CoreModule extends AbstractModule {
     bind(PreviewerService.class).to(PreviewerServiceImpl.class);
     bind(ProfilingService.class).to(UserManagementProfilingService.class);
     bind(AuthenticationService.class).to(UserManagementAuthenticationService.class);
+
+    bindInterceptor(Matchers.any(), Matchers.annotatedWith(TimedCall.class), new TimedCallInterceptor());
 
     bindExceptionMapper();
   }

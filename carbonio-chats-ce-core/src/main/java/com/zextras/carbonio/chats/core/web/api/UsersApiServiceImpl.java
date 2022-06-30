@@ -9,6 +9,7 @@ import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
+import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -31,6 +32,8 @@ public class UsersApiServiceImpl implements UsersApiService {
     this.userService = userService;
   }
 
+  @Override
+  @TimedCall
   public Response getUser(UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -55,10 +58,12 @@ public class UsersApiServiceImpl implements UsersApiService {
   }
 
   @Override
-  public Response updateUserPicture(String xContentDisposition, File body, SecurityContext securityContext) {
+  public Response updateUserPicture(
+    UUID userId, String xContentDisposition, File body, SecurityContext securityContext
+  ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    userService.setUserPicture(currentUser.getUUID(), body,
+    userService.setUserPicture(userId, body,
       Utils.getFilePropertyFromContentDisposition(xContentDisposition, "mimeType")
         .orElseThrow(() -> new BadRequestException("Mime type not found in X-Content-Disposition header")),
       Utils.getFilePropertyFromContentDisposition(xContentDisposition, "fileName")
@@ -66,5 +71,4 @@ public class UsersApiServiceImpl implements UsersApiService {
       currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
-
 }

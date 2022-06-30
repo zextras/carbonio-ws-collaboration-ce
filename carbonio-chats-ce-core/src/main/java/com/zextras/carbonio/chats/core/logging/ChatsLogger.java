@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.logging;
 
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,13 +14,6 @@ import org.slf4j.LoggerFactory;
 public class ChatsLogger {
 
   /**
-   * Enumerator to define del logging states
-   */
-  private enum ChatsLoggerLevel {
-    ERROR, WARN, INFO, DEBUG, TRACE
-  }
-
-  /**
    * Unique method to wrap slf4j logger
    *
    * @param state     log state {@link ChatsLoggerLevel}
@@ -27,7 +21,7 @@ public class ChatsLogger {
    * @param message   message to log
    * @param throwable exception to log
    */
-  private static void log(ChatsLoggerLevel state, Class<?> clazz, String message, Throwable throwable) {
+  public static void log(ChatsLoggerLevel state, @Nullable Class<?> clazz, String message, @Nullable Throwable throwable) {
     Logger logger = LoggerFactory.getLogger(clazz == null ? ChatsLogger.class : clazz); //TODO check class
     switch (state) {
       case ERROR:
