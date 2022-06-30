@@ -293,7 +293,8 @@ class RoomServiceImplTest {
     public void getRooms_testOkBasicRooms() {
       when(roomRepository.getByUserId(user1Id.toString(), false))
         .thenReturn(Arrays.asList(roomGroup2, roomOneToOne1, roomWorkspace2));
-      when(roomUserSettingsRepository.getMapByRoomsIdsAndUserIdGroupedByRoomsIds(List.of(roomWorkspace2Id.toString()), user1Id.toString()))
+      when(roomUserSettingsRepository.getMapByRoomsIdsAndUserIdGroupedByRoomsIds(List.of(roomWorkspace2Id.toString()),
+        user1Id.toString()))
         .thenReturn(Map.of(
           roomWorkspace2Id.toString(), RoomUserSettings.create(roomWorkspace2, user1Id.toString()).rank(10)));
 
@@ -325,7 +326,8 @@ class RoomServiceImplTest {
     public void getRooms_testOkWithMembers() {
       when(roomRepository.getByUserId(user1Id.toString(), true))
         .thenReturn(Arrays.asList(roomGroup1, roomOneToOne1, roomWorkspace1));
-      when(roomUserSettingsRepository.getMapByRoomsIdsAndUserIdGroupedByRoomsIds(List.of(roomWorkspace1Id.toString()), user1Id.toString()))
+      when(roomUserSettingsRepository.getMapByRoomsIdsAndUserIdGroupedByRoomsIds(List.of(roomWorkspace1Id.toString()),
+        user1Id.toString()))
         .thenReturn(Map.of(
           roomWorkspace1Id.toString(), RoomUserSettings.create(roomWorkspace1, user1Id.toString()).rank(1)));
 
@@ -466,6 +468,26 @@ class RoomServiceImplTest {
       assertNotNull(channel2.get().getUserSettings());
       assertFalse(channel2.get().getUserSettings().isMuted());
       assertNull(channel2.get().getMembers());
+    }
+
+    @Test
+    @DisplayName("Returns the required channel room with all members and room user settings")
+    public void getRoomById_channelTestOk() {
+      when(roomRepository.getById(roomChannel2Id.toString())).thenReturn(Optional.of(roomChannel2));
+      when(roomRepository.getById(roomWorkspace1Id.toString())).thenReturn(Optional.of(roomWorkspace1));
+
+      RoomDto room = roomService.getRoomById(roomChannel2Id, UserPrincipal.create(user2Id));
+
+      assertEquals(roomChannel2Id, room.getId());
+      assertEquals(8, room.getRank());
+      assertEquals(3, room.getMembers().size());
+      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user1Id)));
+      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user2Id)));
+      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user3Id)));
+
+      verify(roomRepository, times(1)).getById(roomChannel2Id.toString());
+      verify(roomRepository, times(2)).getById(roomWorkspace1Id.toString());
+      verifyNoMoreInteractions(roomRepository);
     }
 
     @Test
@@ -1566,7 +1588,7 @@ class RoomServiceImplTest {
     @DisplayName("It returns the requested room")
     public void getRoomAndCheckUser_testOk() {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-      Room room = roomService.getRoomAndCheckUser(roomGroup1Id, UserPrincipal.create(user1Id), false);
+      Room room = roomService.getRoomEntityAndCheckUser(roomGroup1Id, UserPrincipal.create(user1Id), false);
 
       assertEquals(roomGroup1, room);
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
@@ -1577,7 +1599,8 @@ class RoomServiceImplTest {
     @DisplayName("If the user is a system user, it returns the requested room")
     public void getRoomAndCheckUser_testOkSystemUserAndNotARoomMember() {
       when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-      Room room = roomService.getRoomAndCheckUser(roomGroup2Id, UserPrincipal.create(user1Id).systemUser(true), false);
+      Room room = roomService.getRoomEntityAndCheckUser(roomGroup2Id, UserPrincipal.create(user1Id).systemUser(true),
+        false);
 
       assertEquals(roomGroup2.getId(), room.getId());
       assertEquals(roomGroup2.getName(), room.getName());
@@ -1592,7 +1615,7 @@ class RoomServiceImplTest {
       when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
 
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
-        roomService.getRoomAndCheckUser(roomGroup2Id, UserPrincipal.create(user1Id), false));
+        roomService.getRoomEntityAndCheckUser(roomGroup2Id, UserPrincipal.create(user1Id), false));
 
       assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
       assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
@@ -1605,7 +1628,7 @@ class RoomServiceImplTest {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
 
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
-        roomService.getRoomAndCheckUser(roomGroup1Id, UserPrincipal.create(user2Id), true));
+        roomService.getRoomEntityAndCheckUser(roomGroup1Id, UserPrincipal.create(user2Id), true));
 
       assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
       assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, roomGroup1Id),
@@ -1982,6 +2005,156 @@ class RoomServiceImplTest {
       assertEquals("Bad Request - Rooms cannot be duplicated", exception.getMessage());
 
       verifyNoMoreInteractions(roomUserSettingsRepository);
+    }
+  }
+
+  @Nested
+  @DisplayName("Updates channels rank tests")
+  public class UpdateChannelsRankTests {
+
+    @Test
+    @DisplayName("Correctly update workspace channels rank")
+    public void updateChannelsRank_testOk() {
+      UUID workspaceId = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
+      UUID channel1Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
+      UUID channel2Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
+      UUID channel3Id = UUID.fromString("85184f58-a5a7-4fc5-a631-d2929e524a0f");
+
+      Room workspace = Room.create().id(workspaceId.toString()).type(RoomTypeDto.WORKSPACE);
+      workspace.subscriptions(List.of(Subscription.create(workspace, user1Id.toString()).owner(true)))
+        .children(List.of(
+          Room.create().id(channel1Id.toString()).type(RoomTypeDto.CHANNEL).parentId(workspaceId.toString()).rank(11),
+          Room.create().id(channel2Id.toString()).type(RoomTypeDto.CHANNEL).parentId(workspaceId.toString()).rank(7),
+          Room.create().id(channel3Id.toString()).type(RoomTypeDto.CHANNEL).parentId(workspaceId.toString()).rank(9)));
+      when(roomRepository.getById(workspaceId.toString())).thenReturn(Optional.of(workspace));
+
+      roomService.updateChannelsRank(workspaceId, List.of(
+        RoomRankDto.create().roomId(channel1Id).rank(1),
+        RoomRankDto.create().roomId(channel2Id).rank(2),
+        RoomRankDto.create().roomId(channel3Id).rank(3)
+      ), UserPrincipal.create(user1Id));
+
+      workspace.getChildren().stream().filter(child -> child.getId().equals(channel1Id.toString())).findAny()
+        .orElseThrow().rank(1);
+      workspace.getChildren().stream().filter(child -> child.getId().equals(channel2Id.toString())).findAny()
+        .orElseThrow().rank(2);
+      workspace.getChildren().stream().filter(child -> child.getId().equals(channel3Id.toString())).findAny()
+        .orElseThrow().rank(3);
+      verify(roomRepository, times(1)).getById(workspaceId.toString());
+      verify(roomRepository, times(1)).update(workspace);
+      verifyNoMoreInteractions(roomRepository);
+    }
+
+    @Test
+    @DisplayName("If workspace channels are not compatible with the list, it throws a 'bad request' exception")
+    public void updateChannelsRank_testChannelNotCompatibleWithList() {
+      UUID workspaceId = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
+      UUID channel1Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
+      UUID channel2Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
+      UUID channel3Id = UUID.fromString("85184f58-a5a7-4fc5-a631-d2929e524a0f");
+
+      Room workspace = Room.create().id(workspaceId.toString()).type(RoomTypeDto.WORKSPACE);
+      workspace.subscriptions(List.of(Subscription.create(workspace, user1Id.toString()).owner(true)))
+        .children(List.of(
+          Room.create().id(channel1Id.toString()).type(RoomTypeDto.CHANNEL).parentId(workspaceId.toString()).rank(11),
+          Room.create().id(channel2Id.toString()).type(RoomTypeDto.CHANNEL).parentId(workspaceId.toString()).rank(7),
+          Room.create().id(channel3Id.toString()).type(RoomTypeDto.CHANNEL).parentId(workspaceId.toString()).rank(9)));
+      when(roomRepository.getById(workspaceId.toString())).thenReturn(Optional.of(workspace));
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        roomService.updateChannelsRank(workspaceId, List.of(
+          RoomRankDto.create().roomId(channel1Id).rank(1),
+          RoomRankDto.create().roomId(channel2Id).rank(2),
+          RoomRankDto.create().roomId(UUID.randomUUID()).rank(3)
+        ), UserPrincipal.create(user1Id)));
+
+      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals(
+        String.format("Bad Request - Channel '%s' is not a child of workspace '%s'", channel3Id, workspaceId),
+        exception.getMessage());
+      verify(roomRepository, times(1)).getById(workspaceId.toString());
+      verifyNoMoreInteractions(roomRepository);
+    }
+
+    @Test
+    @DisplayName("If list rooms are less then the workspace channels, it throws a 'bad request' exception")
+    public void updateChannelsRank_testWorkspaceChannelsLessThenList() {
+      UUID workspaceId = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
+      UUID channel1Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
+      UUID channel2Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
+      UUID channel3Id = UUID.fromString("85184f58-a5a7-4fc5-a631-d2929e524a0f");
+
+      Room workspace = Room.create().id(workspaceId.toString()).type(RoomTypeDto.WORKSPACE);
+      workspace.subscriptions(List.of(Subscription.create(workspace, user1Id.toString()).owner(true)))
+        .children(List.of(
+          Room.create().id(channel1Id.toString()).type(RoomTypeDto.CHANNEL).parentId(workspaceId.toString()).rank(11),
+          Room.create().id(channel2Id.toString()).type(RoomTypeDto.CHANNEL).parentId(workspaceId.toString()).rank(7),
+          Room.create().id(channel3Id.toString()).type(RoomTypeDto.CHANNEL).parentId(workspaceId.toString()).rank(9)));
+      when(roomRepository.getById(workspaceId.toString())).thenReturn(Optional.of(workspace));
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        roomService.updateChannelsRank(workspaceId, List.of(
+          RoomRankDto.create().roomId(channel1Id).rank(1),
+          RoomRankDto.create().roomId(channel2Id).rank(2)
+        ), UserPrincipal.create(user1Id)));
+
+      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals("Bad Request - Too few elements compared to workspace channels", exception.getMessage());
+      verify(roomRepository, times(1)).getById(workspaceId.toString());
+      verifyNoMoreInteractions(roomRepository);
+    }
+
+    @Test
+    @DisplayName("If the list rooms are more then the workspace channels, it throws a 'bad request' exception")
+    public void updateChannelsRank_testWorkspaceChannelsMoreThenList() {
+      UUID workspaceId = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
+      UUID channel1Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
+      UUID channel2Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
+
+      Room workspace = Room.create().id(workspaceId.toString()).type(RoomTypeDto.WORKSPACE);
+      workspace.subscriptions(List.of(Subscription.create(workspace, user1Id.toString()).owner(true)))
+        .children(List.of(
+          Room.create().id(channel1Id.toString()).type(RoomTypeDto.CHANNEL).parentId(workspaceId.toString()).rank(11),
+          Room.create().id(channel2Id.toString()).type(RoomTypeDto.CHANNEL).parentId(workspaceId.toString()).rank(7)));
+      when(roomRepository.getById(workspaceId.toString())).thenReturn(Optional.of(workspace));
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        roomService.updateChannelsRank(workspaceId, List.of(
+          RoomRankDto.create().roomId(channel1Id).rank(1),
+          RoomRankDto.create().roomId(channel2Id).rank(2),
+          RoomRankDto.create().roomId(UUID.randomUUID()).rank(3)
+        ), UserPrincipal.create(user1Id)));
+
+      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals("Bad Request - Too many elements compared to workspace channels", exception.getMessage());
+      verify(roomRepository, times(1)).getById(workspaceId.toString());
+      verifyNoMoreInteractions(roomRepository);
+    }
+
+    @Test
+    @DisplayName("If rank list has duplicated room identifier, it throws a 'bad request' exception")
+    public void updateChannelsRank_testRankListHasDuplicatedWorkspaceId() {
+      UUID channel1Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        roomService.updateChannelsRank(UUID.randomUUID(), List.of(
+          RoomRankDto.create().roomId(channel1Id).rank(1),
+          RoomRankDto.create().roomId(channel1Id).rank(2),
+          RoomRankDto.create().roomId(UUID.randomUUID()).rank(3)
+        ), UserPrincipal.create(user1Id)));
+      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals("Bad Request - Channels cannot be duplicated", exception.getMessage());
+      verifyNoInteractions(roomRepository);
+    }
+
+    @Test
+    @DisplayName("If rank list is not a progressive number sequence, it throws a 'bad request' exception")
+    public void updateChannelsRank_testRankListNotProgressiveNumberSequence() {
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        roomService.updateChannelsRank(UUID.randomUUID(), List.of(
+          RoomRankDto.create().roomId(UUID.randomUUID()).rank(1),
+          RoomRankDto.create().roomId(UUID.randomUUID()).rank(3),
+          RoomRankDto.create().roomId(UUID.randomUUID()).rank(5)
+        ), UserPrincipal.create(user1Id)));
+      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals("Bad Request - Ranks must be progressive number that starts with 1", exception.getMessage());
+      verifyNoInteractions(roomRepository);
     }
   }
 }

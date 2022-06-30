@@ -140,7 +140,7 @@ public class AttachmentServiceImplTest {
       assertEquals(file1Id, attachmentsPagination.getAttachments().get(0).getId());
       assertEquals(file2Id, attachmentsPagination.getAttachments().get(1).getId());
       assertNull(attachmentsPagination.getFilter());
-      verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
 
@@ -177,7 +177,7 @@ public class AttachmentServiceImplTest {
       String expectedFilter = Base64.getEncoder().encodeToString(objectMapper.writeValueAsBytes(
         PaginationFilter.create(file2Id.toString(), attachmentTimestamp.plusHours(1))));
       assertEquals(expectedFilter, attachmentsPagination.getFilter());
-      verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
 
@@ -205,7 +205,7 @@ public class AttachmentServiceImplTest {
       assertEquals(1, attachmentsPagination.getAttachments().size());
       assertEquals(file2Id, attachmentsPagination.getAttachments().get(0).getId());
       assertNull(attachmentsPagination.getFilter());
-      verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
 
@@ -213,7 +213,7 @@ public class AttachmentServiceImplTest {
     @DisplayName("Given a room identifier, if authenticated user isn't a room member then throws a 'forbidden' exception")
     public void getAttachmentInfoByRoomId_testAuthenticatedUserIsNotARoomMember() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false))
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false))
         .thenThrow(new ForbiddenException(
           String.format("User '%s' is not a member of room '%s'", currentUser.getId(), roomId)));
 
@@ -225,7 +225,7 @@ public class AttachmentServiceImplTest {
     @DisplayName("Re throws the exception if the room was not found")
     public void getAttachmentInfoByRoomId_testRoomNotFound() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false))
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false))
         .thenThrow(new NotFoundException());
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class, () ->
@@ -247,7 +247,7 @@ public class AttachmentServiceImplTest {
       assertNotNull(attachmentsPagination);
       assertEquals(0, attachmentsPagination.getAttachments().size());
       assertNull(attachmentsPagination.getFilter());
-      verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
   }
@@ -277,7 +277,7 @@ public class AttachmentServiceImplTest {
       assertNotNull(attachmentById.getMetadata());
       assertEquals(attachmentUuid.toString(), attachmentById.getMetadata().getId());
       assertEquals("temp.txt", attachmentById.getFile().getName());
-      verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
 
@@ -305,7 +305,7 @@ public class AttachmentServiceImplTest {
           .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
           .updatedAt(OffsetDateTime.now()))
       );
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenThrow(new ForbiddenException());
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new ForbiddenException());
 
       assertThrows(ForbiddenException.class, () -> attachmentService.getAttachmentById(attachmentUuid, currentUser));
     }
@@ -321,7 +321,7 @@ public class AttachmentServiceImplTest {
           .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
           .updatedAt(OffsetDateTime.now()))
       );
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenThrow(new NotFoundException());
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new NotFoundException());
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class,
         () -> attachmentService.getAttachmentById(attachmentUuid, currentUser));
@@ -343,7 +343,7 @@ public class AttachmentServiceImplTest {
         .thenThrow(new InternalErrorException());
       assertThrows(InternalErrorException.class,
         () -> attachmentService.getAttachmentById(attachmentUuid, currentUser));
-      verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
 
@@ -373,7 +373,7 @@ public class AttachmentServiceImplTest {
       assertNotNull(attachment);
       assertEquals("temp.txt", attachment.getName());
 
-      verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
 
@@ -400,7 +400,7 @@ public class AttachmentServiceImplTest {
         .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
         .updatedAt(OffsetDateTime.now());
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(metadata));
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenThrow(new ForbiddenException());
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new ForbiddenException());
 
       assertThrows(ForbiddenException.class,
         () -> attachmentService.getAttachmentPreviewById(attachmentUuid, currentUser));
@@ -417,7 +417,7 @@ public class AttachmentServiceImplTest {
         .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
         .updatedAt(OffsetDateTime.now());
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(metadata));
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenThrow(new NotFoundException());
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new NotFoundException());
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class,
         () -> attachmentService.getAttachmentPreviewById(attachmentUuid, currentUser));
@@ -439,7 +439,7 @@ public class AttachmentServiceImplTest {
 
       assertThrows(InternalErrorException.class,
         () -> attachmentService.getAttachmentPreviewById(attachmentUuid, currentUser));
-      verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
 
@@ -465,7 +465,7 @@ public class AttachmentServiceImplTest {
 
       assertNotNull(attachmentInfo);
       assertEquals(attachmentUuid, attachmentInfo.getId());
-      verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
 
@@ -493,7 +493,7 @@ public class AttachmentServiceImplTest {
         .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
         .updatedAt(OffsetDateTime.now());
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(metadata));
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenThrow(new ForbiddenException());
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new ForbiddenException());
 
       assertThrows(ForbiddenException.class,
         () -> attachmentService.getAttachmentInfoById(attachmentUuid, currentUser));
@@ -510,7 +510,7 @@ public class AttachmentServiceImplTest {
         .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
         .updatedAt(OffsetDateTime.now());
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(metadata));
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenThrow(new NotFoundException());
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new NotFoundException());
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class,
         () -> attachmentService.getAttachmentInfoById(attachmentUuid, currentUser));
@@ -543,7 +543,7 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(storagesService);
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verifyNoMoreInteractions(fileMetadataRepository);
-      verify(roomService, times(1)).getRoomAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
       verify(eventDispatcher, times(1))
         .sendToTopic(user1Id, roomId.toString(), AttachmentAddedEvent.create(roomId).from(user1Id));
@@ -557,7 +557,7 @@ public class AttachmentServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       File attachmentFile = tempDir.resolve("temp.pdf").toFile();
       Files.writeString(attachmentFile.toPath(), "test!");
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenThrow(new NotFoundException());
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new NotFoundException());
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
@@ -574,7 +574,7 @@ public class AttachmentServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       File attachmentFile = tempDir.resolve("temp.pdf").toFile();
       Files.writeString(attachmentFile.toPath(), "test!");
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenThrow(new ForbiddenException());
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new ForbiddenException());
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
@@ -618,7 +618,7 @@ public class AttachmentServiceImplTest {
         .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user2Id.toString()).roomId(roomId.toString());
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenReturn(room);
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       attachmentService.deleteAttachment(attachmentUuid, currentUser);
 
@@ -640,7 +640,7 @@ public class AttachmentServiceImplTest {
         .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user2Id.toString()).roomId(roomId.toString());
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenReturn(room);
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       attachmentService.deleteAttachment(attachmentUuid, currentUser);
 
@@ -675,7 +675,7 @@ public class AttachmentServiceImplTest {
         .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user2Id.toString()).roomId(roomId.toString());
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenThrow(new NotFoundException());
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new NotFoundException());
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class,
         () -> attachmentService.deleteAttachment(attachmentUuid, currentUser));
@@ -691,7 +691,7 @@ public class AttachmentServiceImplTest {
         .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user2Id.toString()).roomId(roomId.toString());
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenReturn(room);
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
       doThrow(new InternalErrorException()).when(storagesService)
         .deleteFile(attachmentUuid.toString(), user2Id.toString());
 
@@ -707,7 +707,7 @@ public class AttachmentServiceImplTest {
         .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user2Id.toString()).roomId(roomId.toString());
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomAndCheckUser(roomId, currentUser, false)).thenReturn(room);
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       assertThrows(ForbiddenException.class, () -> attachmentService.deleteAttachment(attachmentUuid, currentUser));
     }

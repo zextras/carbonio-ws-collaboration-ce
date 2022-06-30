@@ -125,17 +125,18 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public RoomDto getRoomById(UUID roomId, UserPrincipal currentUser) {
-    Room room = getRoomAndCheckUser(roomId, currentUser, false);
+    Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
       List<String> ids = room.getChildren().stream().map(Room::getId).collect(Collectors.toList());
       ids.add(roomId.toString());
       return roomMapper.ent2dto(room, roomUserSettingsRepository.getMapByRoomsIdsAndUserIdGroupedByRoomsIds(ids,
         currentUser.getId()), true, true);
-    } else {
-      return roomMapper.ent2dto(room,
-        roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId()).orElse(null),
-        true, true);
+    } else if (RoomTypeDto.CHANNEL.equals(room.getType())) {
+      room.subscriptions(roomRepository.getById(room.getParentId()).orElseThrow().getSubscriptions());
     }
+    return roomMapper.ent2dto(room,
+      roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId()).orElse(null),
+      true, true);
   }
 
   @Override
@@ -236,7 +237,7 @@ public class RoomServiceImpl implements RoomService {
         if (roomCreationFields.getParentId() == null) {
           throw new BadRequestException("Channel must have an assigned workspace");
         }
-        Room room = getRoomAndCheckUser(roomCreationFields.getParentId(), currentUser, true);
+        Room room = getRoomEntityAndCheckUser(roomCreationFields.getParentId(), currentUser, true);
         if (!RoomTypeDto.WORKSPACE.equals(room.getType())) {
           throw new BadRequestException("Channel parent must be a workspace");
         }
@@ -254,7 +255,7 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser) {
-    Room room = getRoomAndCheckUser(roomId, currentUser, true);
+    Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     boolean changed = false;
     if (!room.getName().equals(updateRoomRequestDto.getName())) {
       changed = true;
@@ -279,7 +280,7 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public void deleteRoom(UUID roomId, UserPrincipal currentUser) {
-    Room room = getRoomAndCheckUser(roomId, currentUser, true);
+    Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     roomRepository.delete(roomId.toString());
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
       room.getChildren().forEach(child -> {
@@ -299,7 +300,7 @@ public class RoomServiceImpl implements RoomService {
 
   @Override
   public HashDto resetRoomHash(UUID roomId, UserPrincipal currentUser) {
-    Room room = getRoomAndCheckUser(roomId, currentUser, true);
+    Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     String hash = Utils.encodeUuidHash(roomId.toString());
     room.hash(hash);
     roomRepository.update(room);
@@ -311,7 +312,7 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public void muteRoom(UUID roomId, UserPrincipal currentUser) {
-    Room room = getRoomAndCheckUser(roomId, currentUser, false);
+    Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
       throw new BadRequestException("Cannot mute a workspace");
     }
@@ -327,7 +328,7 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public void unmuteRoom(UUID roomId, UserPrincipal currentUser) {
-    Room room = getRoomAndCheckUser(roomId, currentUser, false);
+    Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
       throw new BadRequestException("Cannot unmute a workspace");
     }
@@ -342,7 +343,7 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  public Room getRoomAndCheckUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner) {
+  public Room getRoomEntityAndCheckUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner) {
     Room room = roomRepository.getById(roomId.toString()).orElseThrow(() ->
       new NotFoundException(String.format("Room '%s'", roomId)));
     List<Subscription> subscriptions;
@@ -368,9 +369,14 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
+  public Optional<Room> getRoomEntityWithoutChecks(UUID roomId) {
+    return roomRepository.getById(roomId.toString());
+  }
+
+  @Override
   @Transactional
   public FileContentAndMetadata getRoomPicture(UUID roomId, UserPrincipal currentUser) {
-    getRoomAndCheckUser(roomId, currentUser, false);
+    getRoomEntityAndCheckUser(roomId, currentUser, false);
     FileMetadata metadata = fileMetadataRepository.getById(roomId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
     File file = storagesService.getFileById(metadata.getId(), metadata.getUserId());
@@ -380,7 +386,7 @@ public class RoomServiceImpl implements RoomService {
   @Override
   @Transactional
   public void setRoomPicture(UUID roomId, File image, String mimeType, String fileName, UserPrincipal currentUser) {
-    Room room = getRoomAndCheckUser(roomId, currentUser, true);
+    Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (!RoomTypeDto.GROUP.equals(room.getType())) {
       throw new BadRequestException("The room picture can only be set to group type rooms");
     }
@@ -448,5 +454,37 @@ public class RoomServiceImpl implements RoomService {
             "There isn't a workspace with id '%s' for the user id '%s'", roomRank.getRoomId(), currentUser.getId()));
         }));
     roomUserSettingsRepository.save(userWorkspaces.values());
+  }
+
+  @Override
+  public void updateChannelsRank(UUID workspaceId, List<RoomRankDto> roomRankDto, UserPrincipal currentUser) {
+    List<RoomRankDto> roomRankList = new ArrayList<>(roomRankDto);
+    roomRankList.sort(Comparator.comparing(RoomRankDto::getRank));
+    for (int i = 0; i < roomRankList.size(); i++) {
+      if (roomRankList.get(i).getRank() != i + 1) {
+        throw new BadRequestException("Ranks must be progressive number that starts with 1");
+      }
+    }
+
+    Map<String, Integer> roomRankMap = roomRankDto.stream().collect(
+      Collectors.toMap(roomRank -> roomRank.getRoomId().toString(), RoomRankDto::getRank,
+        (existing, replacement) -> existing));
+    if (roomRankMap.size() != roomRankDto.size()) {
+      throw new BadRequestException("Channels cannot be duplicated");
+    }
+    Room workspace = getRoomEntityAndCheckUser(workspaceId, currentUser, true);
+    if (roomRankDto.size() != workspace.getChildren().size()) {
+      throw new BadRequestException(String.format("Too %s elements compared to workspace channels",
+        roomRankDto.size() < workspace.getChildren().size() ? "few" : "many"));
+    }
+
+    workspace.getChildren().forEach(child ->
+      Optional.ofNullable(roomRankMap.get(child.getId())).ifPresentOrElse(
+        child::rank,
+        () -> {
+          throw new BadRequestException(String.format("Channel '%s' is not a child of workspace '%s'", child.getId(), workspaceId));
+        }));
+
+    roomRepository.update(workspace);
   }
 }

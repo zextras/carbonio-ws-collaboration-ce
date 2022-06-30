@@ -15,6 +15,7 @@ import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomRankDto;
 import java.io.File;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
@@ -29,7 +30,15 @@ public interface RoomService {
    * @param mustBeOwner if true, the user must be a room owner
    * @return The requested room {@link Room}
    */
-  Room getRoomAndCheckUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner);
+  Room getRoomEntityAndCheckUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner);
+
+  /**
+   * Gets the room entity for internal usage
+   *
+   * @param roomId room identifier
+   * @return {@link Room} entity
+   */
+  Optional<Room> getRoomEntityWithoutChecks(UUID roomId);
 
   /**
    * Creates a room of the specified type
@@ -127,8 +136,17 @@ public interface RoomService {
   /**
    * Updates the workspaces order for the current user
    *
-   * @param roomRankDto list of room identifier and room rank
+   * @param roomRankDto {@link List} of room identifier and room rank {@link RoomRankDto}
    * @param currentUser current authenticated user {@link UserPrincipal}
    */
   void updateWorkspacesRank(List<RoomRankDto> roomRankDto, UserPrincipal currentUser);
+
+  /**
+   * Updates the channels order for the workspace
+   *
+   * @param workspaceId workspace identifier
+   * @param roomRankDto {@link List} of channel identifier and rank {@link RoomRankDto}
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   */
+  void updateChannelsRank(UUID workspaceId, List<RoomRankDto> roomRankDto, UserPrincipal currentUser);
 }
