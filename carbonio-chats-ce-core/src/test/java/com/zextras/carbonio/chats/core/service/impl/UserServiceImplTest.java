@@ -170,7 +170,7 @@ class UserServiceImplTest {
     void getUserPicture_testOk() {
       UUID userId = UUID.randomUUID();
       FileMetadata pfpMetadata = FileMetadata.create()
-        .type(FileMetadataType.ROOM_AVATAR)
+        .type(FileMetadataType.USER_AVATAR)
         .userId(userId.toString())
         .mimeType("mime/type")
         .id(userId.toString())
@@ -179,10 +179,10 @@ class UserServiceImplTest {
       File file = new File("test");
       when(storagesService.getFileById(userId.toString(), userId.toString())).thenReturn(file);
 
-      FileContentAndMetadata roomPicture = userService.getUserPicture(userId, UserPrincipal.create(userId));
+      FileContentAndMetadata picture = userService.getUserPicture(userId, UserPrincipal.create(userId));
 
-      assertEquals(file, roomPicture.getFile());
-      assertEquals(pfpMetadata.getId(), roomPicture.getMetadata().getId());
+      assertEquals(file, picture.getFile());
+      assertEquals(pfpMetadata.getId(), picture.getMetadata().getId());
       verify(fileMetadataRepository, times(1)).getById(userId.toString());
       verify(storagesService, times(1)).getFileById(userId.toString(), userId.toString());
 
@@ -191,7 +191,7 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("If the user hasn't its picture, it throws a BadRequestException")
-    void getRoomPicture_fileNotFound() {
+    void getUserPicture_fileNotFound() {
       UUID userId = UUID.randomUUID();
       when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.empty());
 
@@ -260,7 +260,7 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("If the picture is not an image, It throws a BadRequestException")
-    void setRoomPicture_failsIfPictureIsNotAnImage() {
+    void setUserPicture_failsIfPictureIsNotAnImage() {
       UUID userId = UUID.randomUUID();
       File file = mock(File.class);
       ChatsHttpException exception = assertThrows(BadRequestException.class,
@@ -285,8 +285,8 @@ class UserServiceImplTest {
     }
 
     @Test
-    @DisplayName("If the user is not a room member, It throws a ForbiddenException")
-    void setRoomPicture_failsIfUserIsNotPartOfTheRoom() {
+    @DisplayName("If the specified user is not the authenticated user, it throws a ForbiddenException")
+    void setUserPicture_failsIfUserIsNotAuthenticatedUser() {
       UUID user1Id = UUID.randomUUID();
       UUID user2Id = UUID.randomUUID();
       File file = mock(File.class);

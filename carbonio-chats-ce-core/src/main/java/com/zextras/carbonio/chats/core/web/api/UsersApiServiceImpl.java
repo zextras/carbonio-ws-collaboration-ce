@@ -47,13 +47,13 @@ public class UsersApiServiceImpl implements UsersApiService {
   public Response getUserPicture(UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    FileContentAndMetadata roomPicture = userService.getUserPicture(userId, currentUser);
+    FileContentAndMetadata picture = userService.getUserPicture(userId, currentUser);
     return Response
       .status(Status.OK)
-      .entity(roomPicture.getFile())
-      .header("Content-Type", roomPicture.getMetadata().getMimeType())
-      .header("Content-Length", roomPicture.getMetadata().getOriginalSize())
-      .header("Content-Disposition", String.format("inline; filename=\"%s\"", roomPicture.getMetadata().getName()))
+      .entity(picture.getFile())
+      .header("Content-Type", picture.getMetadata().getMimeType())
+      .header("Content-Length", picture.getMetadata().getOriginalSize())
+      .header("Content-Disposition", String.format("inline; filename=\"%s\"", picture.getMetadata().getName()))
       .build();
   }
 

@@ -44,10 +44,10 @@ public interface SubscriptionRepository {
   void delete(String roomId, String userId);
 
   /**
-   * Gets all user contacts for each room he is a member of
+   * Gets all users who share a room with specified user
    *
    * @param userId user identifier
-   * @return {@link List} of all contacts identifier {@link String}
+   * @return {@link List} of users identifier {@link String}
    */
   List<String> getContacts(String userId);
 }
