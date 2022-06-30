@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.web.api;
 
 
 import com.zextras.carbonio.chats.api.UsersApiService;
+import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -27,6 +28,8 @@ public class UsersApiServiceImpl implements UsersApiService {
     this.userService = userService;
   }
 
+  @Override
+  @TimedCall
   public Response getUser(UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
