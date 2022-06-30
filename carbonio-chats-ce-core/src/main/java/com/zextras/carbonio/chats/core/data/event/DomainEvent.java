@@ -11,23 +11,17 @@ import java.util.UUID;
 public class DomainEvent {
 
   private UUID           id;
-  private UUID           roomId;
   private EventType      type;
   private OffsetDateTime sentDate;
 
-  public DomainEvent(UUID roomId, EventType type) {
+  public DomainEvent(EventType type) {
     this.id = UUID.randomUUID();
-    this.roomId = roomId;
     this.type = type;
     this.sentDate = OffsetDateTime.now();
   }
 
   public UUID getId() {
     return id;
-  }
-
-  public UUID getRoomId() {
-    return roomId;
   }
 
   public EventType getType() {

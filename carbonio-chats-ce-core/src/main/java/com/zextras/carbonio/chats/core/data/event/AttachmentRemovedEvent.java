@@ -11,14 +11,24 @@ public class AttachmentRemovedEvent extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ATTACHMENT_REMOVED;
 
+  private UUID roomId;
   private UUID from;
 
-  public AttachmentRemovedEvent(UUID roomId) {
-    super(roomId, EVENT_TYPE);
+  public AttachmentRemovedEvent() {
+    super(EVENT_TYPE);
   }
 
-  public static AttachmentRemovedEvent create(UUID roomId) {
-    return new AttachmentRemovedEvent(roomId);
+  public static AttachmentRemovedEvent create() {
+    return new AttachmentRemovedEvent();
+  }
+
+  public UUID getRoomId() {
+    return roomId;
+  }
+
+  public AttachmentRemovedEvent roomId(UUID roomId) {
+    this.roomId = roomId;
+    return this;
   }
 
   public UUID getFrom() {

@@ -10,15 +10,25 @@ public class RoomOwnerChangedEvent extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_OWNER_CHANGED;
 
+  private UUID    roomId;
   private UUID    memberId;
   private boolean isOwner;
 
-  public RoomOwnerChangedEvent(UUID roomId) {
-    super(roomId, EVENT_TYPE);
+  public RoomOwnerChangedEvent() {
+    super(EVENT_TYPE);
   }
 
-  public static RoomOwnerChangedEvent create(UUID roomId) {
-    return new RoomOwnerChangedEvent(roomId);
+  public static RoomOwnerChangedEvent create() {
+    return new RoomOwnerChangedEvent();
+  }
+
+  public UUID getRoomId() {
+    return roomId;
+  }
+
+  public RoomOwnerChangedEvent roomId(UUID roomId) {
+    this.roomId = roomId;
+    return this;
   }
 
   public UUID getMemberId() {

@@ -11,14 +11,24 @@ public class RoomPictureChangedEvent extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_PICTURE_CHANGED;
 
+  private UUID roomId;
   private UUID from;
 
-  public RoomPictureChangedEvent(UUID roomId) {
-    super(roomId, EVENT_TYPE);
+  public RoomPictureChangedEvent() {
+    super(EVENT_TYPE);
   }
 
-  public static RoomPictureChangedEvent create(UUID roomId) {
-    return new RoomPictureChangedEvent(roomId);
+  public static RoomPictureChangedEvent create() {
+    return new RoomPictureChangedEvent();
+  }
+
+  public UUID getRoomId() {
+    return roomId;
+  }
+
+  public RoomPictureChangedEvent roomId(UUID roomId) {
+    this.roomId = roomId;
+    return this;
   }
 
   public UUID getFrom() {

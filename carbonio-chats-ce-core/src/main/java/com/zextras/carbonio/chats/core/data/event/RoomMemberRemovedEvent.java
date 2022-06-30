@@ -10,14 +10,24 @@ public class RoomMemberRemovedEvent extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_MEMBER_REMOVED;
 
+  private UUID roomId;
   private UUID memberId;
 
-  public RoomMemberRemovedEvent(UUID roomId) {
-    super(roomId, EVENT_TYPE);
+  public RoomMemberRemovedEvent() {
+    super(EVENT_TYPE);
   }
 
-  public static RoomMemberRemovedEvent create(UUID roomId) {
-    return new RoomMemberRemovedEvent(roomId);
+  public static RoomMemberRemovedEvent create() {
+    return new RoomMemberRemovedEvent();
+  }
+
+  public UUID getRoomId() {
+    return roomId;
+  }
+
+  public RoomMemberRemovedEvent roomId(UUID roomId) {
+    this.roomId = roomId;
+    return this;
   }
 
   public UUID getMemberId() {

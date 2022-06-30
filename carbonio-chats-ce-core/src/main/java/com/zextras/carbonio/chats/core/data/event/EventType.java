@@ -17,7 +17,9 @@ public enum EventType {
   ATTACHMENT_ADDED("attachmentAdded"),
   ATTACHMENT_REMOVED("attachmentRemoved"),
   USER_MUTED("userMuted"),
-  USER_UNMUTED("userUnmuted");
+  USER_UNMUTED("userUnmuted"),
+  USER_PICTURE_CHANGED("userPictureChanged");
+
 
   private final String name;
 

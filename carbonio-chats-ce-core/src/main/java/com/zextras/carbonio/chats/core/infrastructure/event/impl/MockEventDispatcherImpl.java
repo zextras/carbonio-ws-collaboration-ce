@@ -10,6 +10,7 @@ import com.zextras.carbonio.chats.core.data.event.DomainEvent;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -28,9 +29,9 @@ public class MockEventDispatcherImpl implements EventDispatcher {
   /**
    * Send an event to a topic
    *
-   * @param sender identifier of the user who sent the message  {@link UUID }
-   * @param topic  topic identifier (hypothesis the room identifier)
-   * @param domainEvent  event to send
+   * @param sender      identifier of the user who sent the message  {@link UUID }
+   * @param topic       topic identifier (hypothesis the room identifier)
+   * @param domainEvent event to send
    */
   @Override
   public void sendToTopic(UUID sender, String topic, DomainEvent domainEvent) {
@@ -56,6 +57,11 @@ public class MockEventDispatcherImpl implements EventDispatcher {
       ChatsLogger.error(MockEventDispatcherImpl.class,
         "sentToQueue - unable to parse the event", e);
     }
+  }
+
+  @Override
+  public void sendToQueue(UUID sender, List<String> queues, DomainEvent domainEvent) {
+    queues.forEach(queue -> sendToQueue(sender, queue, domainEvent));
   }
 
   @Override

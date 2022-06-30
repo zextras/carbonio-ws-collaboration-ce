@@ -316,6 +316,30 @@ paths:
           $ref: '#/components/responses/200GetUserResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /users/{userId}/picture:
+    get:
+      tags:
+        - Users
+      summary: Retrieves the user picture
+      operationId: getUserPicture
+      parameters:
+        - $ref: '#/components/parameters/pathUserId'
+      responses:
+        200:
+          $ref: '#/components/responses/200GetUserPictureResponse'
+  /users/picture:
+    put:
+      tags:
+        - Users
+      summary: Uploads and sets a new user picture
+      operationId: updateUserPicture
+      parameters:
+        - $ref: '#/components/parameters/headerXContentDisposition'
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateUserPictureRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204UpdateUserPictureResponse'
   /rooms/{roomId}/attachments:
     get:
       tags:
@@ -540,6 +564,14 @@ components:
           schema:
             type: string
             format: binary
+    UpdateUserPictureRequest:
+      description: image to set
+      required: true
+      content:
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
   responses:
     200HealthStatusResponse:
       description: General status of the service and its dependencies
@@ -632,6 +664,15 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/User'
+    200GetUserPictureResponse:
+      description: The requested picture
+      content:
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
+    204UpdateUserPictureResponse:
+      description: User picture was changed correctly
     201InsertAttachmentResponse:
       description: File identifier
       content:

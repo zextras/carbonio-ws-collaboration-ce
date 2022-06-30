@@ -6,10 +6,8 @@ package com.zextras.carbonio.chats.core.web.api;
 
 import com.zextras.carbonio.chats.api.HealthApiService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
-import com.zextras.carbonio.chats.model.HealthStatusTypeDto;
 import javax.inject.Inject;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 

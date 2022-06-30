@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import java.util.List;
 import java.util.Optional;
 
 public interface SubscriptionRepository {
@@ -17,4 +18,5 @@ public interface SubscriptionRepository {
 
   void delete(String roomId, String userId);
 
+  List<String> getContacts(String userId);
 }

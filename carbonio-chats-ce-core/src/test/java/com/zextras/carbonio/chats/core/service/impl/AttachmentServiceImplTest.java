@@ -75,8 +75,7 @@ public class AttachmentServiceImplTest {
     this.eventDispatcher = mock(EventDispatcher.class);
     this.objectMapper = new ObjectMapper()
       .registerModule(new JavaTimeModule())
-      .setDateFormat(new RFC3339DateFormat());
-    ;
+      .setDateFormat(new RFC3339DateFormat());;
     this.attachmentService = new AttachmentServiceImpl(
       this.fileMetadataRepository,
       attachmentMapper,
@@ -546,7 +545,7 @@ public class AttachmentServiceImplTest {
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
       verify(eventDispatcher, times(1))
-        .sendToTopic(user1Id, roomId.toString(), AttachmentAddedEvent.create(roomId).from(user1Id));
+        .sendToTopic(user1Id, roomId.toString(), AttachmentAddedEvent.create().roomId(roomId).from(user1Id));
       verifyNoMoreInteractions(eventDispatcher);
     }
 
@@ -628,7 +627,7 @@ public class AttachmentServiceImplTest {
       verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
       verifyNoMoreInteractions(storagesService);
       verify(eventDispatcher, times(1)).sendToTopic(user2Id, roomId.toString(),
-        AttachmentRemovedEvent.create(roomId).from(user2Id));
+        AttachmentRemovedEvent.create().roomId(roomId).from(user2Id));
     }
 
     @Test
@@ -650,7 +649,7 @@ public class AttachmentServiceImplTest {
       verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
       verifyNoMoreInteractions(storagesService);
       verify(eventDispatcher, times(1)).sendToTopic(user1Id, roomId.toString(),
-        AttachmentRemovedEvent.create(roomId).from(user1Id));
+        AttachmentRemovedEvent.create().roomId(roomId).from(user1Id));
     }
 
     @Test

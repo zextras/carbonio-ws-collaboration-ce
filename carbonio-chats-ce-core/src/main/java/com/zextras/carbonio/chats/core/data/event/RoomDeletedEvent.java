@@ -11,12 +11,23 @@ public class RoomDeletedEvent extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_DELETED;
 
-  public RoomDeletedEvent(UUID roomId) {
-    super(roomId, EVENT_TYPE);
+  private UUID roomId;
+
+  public RoomDeletedEvent() {
+    super(EVENT_TYPE);
   }
 
-  public static RoomDeletedEvent create(UUID roomId) {
-    return new RoomDeletedEvent(roomId);
+  public static RoomDeletedEvent create() {
+    return new RoomDeletedEvent();
+  }
+
+  public UUID getRoomId() {
+    return roomId;
+  }
+
+  public RoomDeletedEvent roomId(UUID roomId) {
+    this.roomId = roomId;
+    return this;
   }
 
   @Override

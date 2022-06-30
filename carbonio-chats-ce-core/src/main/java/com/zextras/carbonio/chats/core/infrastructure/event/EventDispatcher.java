@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.infrastructure.event;
 
 import com.zextras.carbonio.chats.core.data.event.DomainEvent;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
+import java.util.List;
 import java.util.UUID;
 
 public interface EventDispatcher extends HealthIndicator {
@@ -14,4 +15,5 @@ public interface EventDispatcher extends HealthIndicator {
 
   void sendToTopic(UUID sender, String topic, DomainEvent domainEvent);
   void sendToQueue(UUID sender, String queueName, DomainEvent domainEvent);
+  void sendToQueue(UUID sender, List<String> queues, DomainEvent domainEvent);
 }

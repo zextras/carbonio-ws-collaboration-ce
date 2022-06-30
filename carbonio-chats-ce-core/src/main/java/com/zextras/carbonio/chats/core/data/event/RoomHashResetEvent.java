@@ -11,14 +11,24 @@ public class RoomHashResetEvent extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_HASH_RESET_EVENT;
 
-  public String hash;
+  private UUID   roomId;
+  private String hash;
 
-  public RoomHashResetEvent(UUID roomId) {
-    super(roomId, EVENT_TYPE);
+  public RoomHashResetEvent() {
+    super(EVENT_TYPE);
   }
 
-  public static RoomHashResetEvent create(UUID roomId) {
-    return new RoomHashResetEvent(roomId);
+  public static RoomHashResetEvent create() {
+    return new RoomHashResetEvent();
+  }
+
+  public UUID getRoomId() {
+    return roomId;
+  }
+
+  public RoomHashResetEvent roomId(UUID roomId) {
+    this.roomId = roomId;
+    return this;
   }
 
   public String getHash() {

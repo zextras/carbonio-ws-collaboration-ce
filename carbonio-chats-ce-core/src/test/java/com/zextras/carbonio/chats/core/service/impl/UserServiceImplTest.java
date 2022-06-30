@@ -13,7 +13,11 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.User;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
+import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
+import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
+import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
+import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
@@ -28,17 +32,29 @@ import org.junit.jupiter.api.Test;
 @UnitTest
 class UserServiceImplTest {
 
-  private final ProfilingService profilingService;
-  private final UserRepository   userRepository;
-  private final UserServiceImpl  userService;
+  private final ProfilingService       profilingService;
+  private final UserRepository         userRepository;
+  private final FileMetadataRepository fileMetadataRepository;
+  private final StoragesService        storagesService;
+  private final SubscriptionRepository subscriptionRepository;
+  private final EventDispatcher        eventDispatcher;
+  private final UserServiceImpl        userService;
+
 
   public UserServiceImplTest() {
     this.profilingService = mock(ProfilingService.class);
     this.userRepository = mock(UserRepository.class);
+    this.fileMetadataRepository = mock(FileMetadataRepository.class);
+    this.storagesService = mock(StoragesService.class);
+    this.subscriptionRepository = mock(SubscriptionRepository.class);
+    this.eventDispatcher = mock(EventDispatcher.class);
     this.userService = new UserServiceImpl(
       profilingService,
-      userRepository
-    );
+      userRepository,
+      fileMetadataRepository,
+      storagesService,
+      subscriptionRepository,
+      eventDispatcher);
   }
 
   @Nested
