@@ -5,18 +5,16 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 import com.zextras.carbonio.chats.core.config.ConfigName;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.stanzas.MUCLightAffiliationChangeIQ;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.stanzas.MUCLightAffiliationType;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockUserProfile;
+import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
 import com.zextras.carbonio.chats.mongooseim.admin.model.AddcontactDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.AffiliationDetailsDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.AffiliationDetailsDto.AffiliationEnum;
 import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
-import com.zextras.carbonio.chats.mongooseim.admin.model.Message1Dto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
 import java.util.List;
 import java.util.Optional;
@@ -28,8 +26,6 @@ import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
-import org.jxmpp.jid.impl.JidCreate;
-import org.jxmpp.stringprep.XmppStringprepException;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.JsonBody;
@@ -99,7 +95,9 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
       mockRemoveRoomMember(client, account.getId());
       mockPromoteAndDemoteMember(client, account.getId());
     });
-    List<String> userIds = List.of("332a9527-3388-4207-be77-6d7e2978a723", "82735f6d-4c6c-471e-99d9-4eef91b1ec45");
+    List<String> userIds = List.of(
+      MockedAccount.getAccount(MockedAccountType.SNOOPY).getId(),
+      MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN).getId());
     userIds.forEach(user1id ->
       userIds.forEach(user2id -> mockUserToRoster(client, user1id, user2id))
     );

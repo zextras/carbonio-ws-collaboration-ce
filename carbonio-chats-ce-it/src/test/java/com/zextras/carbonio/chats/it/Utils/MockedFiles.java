@@ -1,5 +1,6 @@
 package com.zextras.carbonio.chats.it.Utils;
 
+import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockedAccountType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,16 +10,24 @@ import java.util.UUID;
 
 public class MockedFiles {
 
-  private static final UUID                          snoopyId          = UUID.randomUUID();
-  private static final Map<MockedFileType, FileMock> mapMockedFile     = Map.of(
+  private static final UUID snoopyId       = MockedAccount.getAccount(MockedAccountType.SNOOPY).getUUID();
+  private static final UUID charlieBrownId = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN).getUUID();
+  private static final UUID lucyVanPeltId = MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT).getUUID();
+
+  private static final Map<MockedFileType, FileMock> mapMockedFile = Map.of(
     MockedFileType.PEANUTS_IMAGE,
     FileMock.create().id(UUID.randomUUID()).size(33786L).mimeType("image/jpg").name("peanuts.jpg"),
     MockedFileType.PEANUTS_LARGE_IMAGE,
     FileMock.create().id(UUID.randomUUID()).size(2664054L).mimeType("image/bmp").name("peanuts.bmp"),
     MockedFileType.PEANUTS_PDF,
     FileMock.create().id(UUID.randomUUID()).size(81694L).mimeType("application/pdf").name("peanuts.pdf"),
-    MockedFileType.SNOOPY_IMAGE, FileMock.create().id(snoopyId).size(13705).mimeType("image/jpg").name("snoopy.jpg")
+    MockedFileType.SNOOPY_IMAGE, FileMock.create().id(snoopyId).size(13705).mimeType("image/jpg").name("snoopy.jpg"),
+    MockedFileType.CHARLIE_BROWN_LARGE_IMAGE,
+    FileMock.create().id(charlieBrownId).size(1920054L).mimeType("image/bmp").name("charlie-brown.bmp"),
+    MockedFileType.LUCY_VAN_PELT_PDF,
+    FileMock.create().id(lucyVanPeltId).size(143845L).mimeType("application/pdf").name("lucy-van-pelt.pdf")
   );
+
   private static final Map<MockedFileType, FileMock> mapMockedPreviews = Map.of(
     MockedFileType.SNOOPY_PREVIEW,
     FileMock.create().id(snoopyId).size(4408).mimeType("image/jpg").name("snoopy-preview.jpg")
@@ -45,7 +54,9 @@ public class MockedFiles {
     PEANUTS_LARGE_IMAGE,
     PEANUTS_PDF,
     SNOOPY_IMAGE,
-    SNOOPY_PREVIEW
+    SNOOPY_PREVIEW,
+    CHARLIE_BROWN_LARGE_IMAGE,
+    LUCY_VAN_PELT_PDF
   }
 
   public static class FileMock {
