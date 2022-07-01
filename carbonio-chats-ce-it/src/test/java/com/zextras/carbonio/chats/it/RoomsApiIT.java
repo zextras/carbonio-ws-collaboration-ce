@@ -20,6 +20,7 @@ import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils.RoomMemberField;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
+import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.MockedFileType;
@@ -103,12 +104,12 @@ public class RoomsApiIT {
 
   @BeforeAll
   public static void initAll() {
-    user1Id = MockedAccount.getAccounts().get(0).getUUID();
-    user1Token = MockedAccount.getAccounts().get(0).getToken();
-    user2Id = MockedAccount.getAccounts().get(1).getUUID();
-    user3Id = MockedAccount.getAccounts().get(2).getUUID();
-    user3Token = MockedAccount.getAccounts().get(2).getToken();
-    user4Id = MockedAccount.getAccounts().get(3).getUUID();
+    user1Id = MockedAccount.getAccount(MockedAccountType.SNOOPY).getUUID();
+    user1Token = MockedAccount.getAccount(MockedAccountType.SNOOPY).getToken();
+    user2Id = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN).getUUID();
+    user3Id = MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT).getUUID();
+    user3Token = MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT).getToken();
+    user4Id = MockedAccount.getAccount(MockedAccountType.PEPERITA_PATTY).getUUID();
   }
 
   @Nested

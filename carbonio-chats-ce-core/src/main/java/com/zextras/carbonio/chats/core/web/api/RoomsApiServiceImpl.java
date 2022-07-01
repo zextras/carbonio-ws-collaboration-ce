@@ -13,6 +13,7 @@ import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
@@ -120,9 +121,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     roomService.setRoomPicture(roomId, body,
-      getFilePropertyFromContentDisposition(xContentDisposition, "mimeType")
+      Utils.getFilePropertyFromContentDisposition(xContentDisposition, "mimeType")
         .orElseThrow(() -> new BadRequestException("Mime type not found in X-Content-Disposition header")),
-      getFilePropertyFromContentDisposition(xContentDisposition, "fileName")
+      Utils.getFilePropertyFromContentDisposition(xContentDisposition, "fileName")
         .orElseThrow(() -> new BadRequestException("File name not found in X-Content-Disposition header")),
       currentUser);
     return Response.status(Status.NO_CONTENT).build();
@@ -248,24 +249,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .entity(attachmentService.addAttachment(
         roomId,
         body,
-        getFilePropertyFromContentDisposition(xContentDisposition, "mimeType")
+        Utils.getFilePropertyFromContentDisposition(xContentDisposition, "mimeType")
           .orElseThrow(() -> new BadRequestException("Mime type not found in X-Content-Disposition header")),
-        getFilePropertyFromContentDisposition(xContentDisposition, "fileName")
+        Utils.getFilePropertyFromContentDisposition(xContentDisposition, "fileName")
           .orElseThrow(() -> new BadRequestException("File name not found in X-Content-Disposition header")),
         currentUser))
       .build();
   }
 
-  private Optional<String> getFilePropertyFromContentDisposition(String xContentDisposition, String property) {
-    if (xContentDisposition.contains(property)) {
-      String value = xContentDisposition.substring(xContentDisposition.indexOf(property) + property.length() + 1);
-      if (value.contains(";")) {
-        value = value.substring(0, value.indexOf(";"));
-      }
-      return Optional.of(value.trim());
-    } else {
-      return Optional.empty();
-    }
-  }
 
 }

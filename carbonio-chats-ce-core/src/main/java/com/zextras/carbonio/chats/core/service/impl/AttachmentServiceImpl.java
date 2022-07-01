@@ -51,7 +51,6 @@ public class AttachmentServiceImpl implements AttachmentService {
   private final EventDispatcher        eventDispatcher;
   private final ObjectMapper           objectMapper;
 
-
   @Inject
   public AttachmentServiceImpl(
     FileMetadataRepository fileMetadataRepository, AttachmentMapper attachmentMapper, StoragesService storagesService,
@@ -143,10 +142,8 @@ public class AttachmentServiceImpl implements AttachmentService {
       .roomId(roomId.toString());
     fileMetadataRepository.save(metadata);
     storagesService.saveFile(file, metadata, currentUser.getId());
-    eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(), AttachmentAddedEvent
-      .create(roomId)
-      .from(currentUser.getUUID()));
-
+    eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
+      AttachmentAddedEvent.create().roomId(roomId).from(currentUser.getUUID()));
     return IdDtoBuilder.create().id(id).build();
   }
 
@@ -164,7 +161,6 @@ public class AttachmentServiceImpl implements AttachmentService {
     fileMetadataRepository.delete(metadata);
     storagesService.deleteFile(fileId.toString(), metadata.getUserId());
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(), AttachmentRemovedEvent
-      .create(UUID.fromString(room.getId()))
-      .from(currentUser.getUUID()));
+      .create().roomId(UUID.fromString(room.getId())).from(currentUser.getUUID()));
   }
 }

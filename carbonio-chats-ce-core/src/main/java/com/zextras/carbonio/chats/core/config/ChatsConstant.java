@@ -14,4 +14,5 @@ public class ChatsConstant {
   public static final String LOGGER_CONFIG_PATH         = "/etc/carbonio/chats/logback.xml";
   public static final String MONGOOSEIM_ADMIN_ENDPOINT  = "admin";
   public static final String MONGOOSEIM_CLIENT_ENDPOINT = "api";
+  public static final long   MAX_USER_IMAGE_SIZE_IN_KB  = 256L;
 }

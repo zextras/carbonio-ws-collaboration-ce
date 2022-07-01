@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.utils;
 
 import java.util.Date;
+import java.util.Optional;
 import org.apache.commons.codec.binary.Base32;
 
 public class Utils {
@@ -34,5 +35,17 @@ public class Utils {
     }
 
     return encodedHash.toString();
+  }
+
+  public static Optional<String> getFilePropertyFromContentDisposition(String xContentDisposition, String property) {
+    if (xContentDisposition.contains(property)) {
+      String value = xContentDisposition.substring(xContentDisposition.indexOf(property) + property.length() + 1);
+      if (value.contains(";")) {
+        value = value.substring(0, value.indexOf(";"));
+      }
+      return Optional.of(value.trim());
+    } else {
+      return Optional.empty();
+    }
   }
 }

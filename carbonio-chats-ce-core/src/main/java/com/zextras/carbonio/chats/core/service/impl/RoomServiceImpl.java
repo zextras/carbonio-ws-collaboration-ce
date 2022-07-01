@@ -110,7 +110,7 @@ public class RoomServiceImpl implements RoomService {
       includeSettings = extraFields.contains(RoomExtraFieldDto.SETTINGS);
     }
     List<Room> rooms = roomRepository.getByUserId(currentUser.getId(), includeMembers);
-    Map<String, RoomUserSettings> settingsMap = null;
+    Map<String, RoomUserSettings> settingsMap;
     if (includeSettings) {
       settingsMap = roomUserSettingsRepository.getMapGroupedByUserId(currentUser.getId());
     } else {
@@ -192,8 +192,8 @@ public class RoomServiceImpl implements RoomService {
     }
     UUID finalId = UUID.fromString(room.getId());
     room.getSubscriptions().forEach(member ->
-      eventDispatcher.sendToQueue(currentUser.getUUID(), member.getUserId(),
-        RoomCreatedEvent.create(finalId).from(currentUser.getUUID())
+      eventDispatcher.sendToUserQueue(currentUser.getUUID(), member.getUserId(),
+        RoomCreatedEvent.create().roomId(finalId).from(currentUser.getUUID())
       )
     );
     return roomMapper.ent2dto(room,
@@ -270,7 +270,7 @@ public class RoomServiceImpl implements RoomService {
     if (changed) {
       roomRepository.update(room);
       eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
-        RoomUpdatedEvent.create(roomId).from(currentUser.getUUID()));
+        RoomUpdatedEvent.create().roomId(roomId).from(currentUser.getUUID()));
     }
     return roomMapper.ent2dto(room,
       room.getUserSettings().stream().filter(userSettings -> userSettings.getUserId().equals(currentUser.getId()))
@@ -295,7 +295,7 @@ public class RoomServiceImpl implements RoomService {
     } else {
       messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId());
     }
-    eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(), new RoomDeletedEvent(roomId));
+    eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(), RoomDeletedEvent.create().roomId(roomId));
   }
 
   @Override
@@ -305,7 +305,7 @@ public class RoomServiceImpl implements RoomService {
     room.hash(hash);
     roomRepository.update(room);
     eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
-      RoomHashResetEvent.create(roomId).hash(hash));
+      RoomHashResetEvent.create().roomId(roomId).hash(hash));
     return HashDtoBuilder.create().hash(hash).build();
   }
 
@@ -321,7 +321,7 @@ public class RoomServiceImpl implements RoomService {
     if (settings.getMutedUntil() == null) {
       roomUserSettingsRepository.save(settings.mutedUntil(MUTED_TO_INFINITY));
       eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
-        UserMutedEvent.create(roomId).memberId(currentUser.getUUID()));
+        UserMutedEvent.create().roomId(roomId).memberId(currentUser.getUUID()));
     }
   }
 
@@ -337,7 +337,7 @@ public class RoomServiceImpl implements RoomService {
         if (settings.getMutedUntil() != null) {
           roomUserSettingsRepository.save(settings.mutedUntil(null));
           eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
-            UserUnmutedEvent.create(roomId).memberId(currentUser.getUUID()));
+            UserUnmutedEvent.create().roomId(roomId).memberId(currentUser.getUUID()));
         }
       });
   }
@@ -421,7 +421,7 @@ public class RoomServiceImpl implements RoomService {
     storagesService.saveFile(image, metadata, currentUser.getId());
     messageDispatcher.updateRoomPictures(room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
-      RoomPictureChangedEvent.create(UUID.fromString(room.getId())).from(currentUser.getUUID()));
+      RoomPictureChangedEvent.create().roomId(UUID.fromString(room.getId())).from(currentUser.getUUID()));
   }
 
   @Override
@@ -482,7 +482,8 @@ public class RoomServiceImpl implements RoomService {
       Optional.ofNullable(roomRankMap.get(child.getId())).ifPresentOrElse(
         child::rank,
         () -> {
-          throw new BadRequestException(String.format("Channel '%s' is not a child of workspace '%s'", child.getId(), workspaceId));
+          throw new BadRequestException(
+            String.format("Channel '%s' is not a child of workspace '%s'", child.getId(), workspaceId));
         }));
 
     roomRepository.update(workspace);

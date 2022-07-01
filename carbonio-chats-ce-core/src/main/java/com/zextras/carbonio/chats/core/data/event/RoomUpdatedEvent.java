@@ -11,14 +11,24 @@ public class RoomUpdatedEvent extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_UPDATED;
 
+  private UUID roomId;
   private UUID from;
 
-  public RoomUpdatedEvent(UUID roomId) {
-    super(roomId, EVENT_TYPE);
+  public RoomUpdatedEvent() {
+    super(EVENT_TYPE);
   }
 
-  public static RoomUpdatedEvent create(UUID roomId) {
-    return new RoomUpdatedEvent(roomId);
+  public static RoomUpdatedEvent create() {
+    return new RoomUpdatedEvent();
+  }
+
+  public UUID getRoomId() {
+    return roomId;
+  }
+
+  public RoomUpdatedEvent roomId(UUID roomId) {
+    this.roomId = roomId;
+    return this;
   }
 
   public UUID getFrom() {

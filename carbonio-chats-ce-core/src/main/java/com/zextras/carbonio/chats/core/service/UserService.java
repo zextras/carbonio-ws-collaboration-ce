@@ -5,9 +5,14 @@
 package com.zextras.carbonio.chats.core.service;
 
 
+import com.zextras.carbonio.chats.api.NotFoundException;
+import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
+import java.io.File;
 import java.util.UUID;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 
 public interface UserService {
   /**
@@ -29,4 +34,23 @@ public interface UserService {
    */
   boolean userExists(UUID userId, UserPrincipal currentUser);
 
+  /**
+   * Gets the user picture
+   *
+   * @param userId      user identifier
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   * @return The user picture
+   */
+  FileContentAndMetadata getUserPicture(UUID userId, UserPrincipal currentUser);
+
+  /**
+   * Sets a new room picture
+   *
+   * @param userId      room identifier {@link UUID }
+   * @param image       image to set {@link File}
+   * @param mimeType    image mime type
+   * @param fileName    image file name
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   **/
+  void setUserPicture(UUID userId, File image, String mimeType, String fileName, UserPrincipal currentUser);
 }

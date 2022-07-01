@@ -8,7 +8,6 @@ import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
 import java.time.OffsetDateTime;
-import java.util.Objects;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -42,7 +41,7 @@ public class FileMetadata {
   @Column(name = "USER_ID", length = 64, nullable = false)
   private String userId;
 
-  @Column(name = "ROOM_ID", length = 64, nullable = false)
+  @Column(name = "ROOM_ID", length = 64)
   private String roomId;
 
   @Column(name = "CREATED_AT")

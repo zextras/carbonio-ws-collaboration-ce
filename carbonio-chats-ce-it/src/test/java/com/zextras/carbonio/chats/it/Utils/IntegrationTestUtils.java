@@ -172,7 +172,7 @@ public class IntegrationTestUtils {
     return this.roomRepository.getById(roomId.toString());
   }
 
-  public FileMetadata generateAndSaveFileMetadata(UUID fileId, FileMetadataType fileType, UUID userId, UUID roomId) {
+  public FileMetadata generateAndSaveFileMetadata(UUID fileId, FileMetadataType fileType, UUID userId, @Nullable UUID roomId) {
     return fileMetadataRepository.save(
       FileMetadata.create()
         .id(fileId.toString())
@@ -181,11 +181,11 @@ public class IntegrationTestUtils {
         .mimeType("mimetype")
         .type(fileType)
         .userId(userId.toString())
-        .roomId(roomId.toString()));
+        .roomId(roomId == null ? null : roomId.toString()));
   }
 
   public FileMetadata generateAndSaveFileMetadata(
-    FileMock fileMock, FileMetadataType fileType, UUID userId, UUID roomId
+    FileMock fileMock, FileMetadataType fileType, UUID userId, @Nullable UUID roomId
   ) {
     return fileMetadataRepository.save(
       FileMetadata.create()
@@ -195,7 +195,7 @@ public class IntegrationTestUtils {
         .mimeType(fileMock.getMimeType())
         .type(fileType)
         .userId(userId.toString())
-        .roomId(roomId.toString()));
+        .roomId(roomId == null ? null : roomId.toString()));
   }
 
   public List<FileMetadata> getFileMetadataByRoomIdAndType(UUID roomId, FileMetadataType type) {

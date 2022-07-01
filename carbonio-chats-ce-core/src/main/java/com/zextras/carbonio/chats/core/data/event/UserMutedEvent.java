@@ -7,14 +7,24 @@ public class UserMutedEvent extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.USER_MUTED;
 
+  private UUID roomId;
   private UUID memberId;
 
-  public UserMutedEvent(UUID roomId) {
-    super(roomId, EVENT_TYPE);
+  public UserMutedEvent() {
+    super(EVENT_TYPE);
   }
 
-  public static UserMutedEvent create(UUID roomId) {
-    return new UserMutedEvent(roomId);
+  public static UserMutedEvent create() {
+    return new UserMutedEvent();
+  }
+
+  public UUID getRoomId() {
+    return roomId;
+  }
+
+  public UserMutedEvent roomId(UUID roomId) {
+    this.roomId = roomId;
+    return this;
   }
 
   public UUID getMemberId() {

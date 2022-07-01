@@ -11,14 +11,24 @@ public class AttachmentAddedEvent extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ATTACHMENT_ADDED;
 
+  private UUID roomId;
   private UUID from;
 
-  public AttachmentAddedEvent(UUID roomId) {
-    super(roomId, EVENT_TYPE);
+  public AttachmentAddedEvent() {
+    super(EVENT_TYPE);
   }
 
-  public static AttachmentAddedEvent create(UUID roomId) {
-    return new AttachmentAddedEvent(roomId);
+  public static AttachmentAddedEvent create() {
+    return new AttachmentAddedEvent();
+  }
+
+  public UUID getRoomId() {
+    return roomId;
+  }
+
+  public AttachmentAddedEvent roomId(UUID roomId) {
+    this.roomId = roomId;
+    return this;
   }
 
   public UUID getFrom() {

@@ -82,7 +82,7 @@ public class MembersServiceImpl implements MembersService {
     subscriptionRepository.update(subscription);
     messageService.setMemberRole(room.getId(), currentUser.getId(), userId.toString(), isOwner);
     eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
-      RoomOwnerChangedEvent.create(userId).memberId(userId).isOwner(isOwner)
+      RoomOwnerChangedEvent.create().roomId(userId).memberId(userId).isOwner(isOwner)
     );
   }
 
@@ -130,7 +130,7 @@ public class MembersServiceImpl implements MembersService {
       currentUser.getUUID(),
       room.getId(),
       RoomMemberAddedEvent
-        .create(UUID.fromString(room.getId()))
+        .create().roomId(UUID.fromString(room.getId()))
         .memberId(memberDto.getUserId())
         .isOwner(memberDto.isOwner())
         .temporary(false)
@@ -174,7 +174,7 @@ public class MembersServiceImpl implements MembersService {
     eventDispatcher.sendToTopic(
       currentUser.getUUID(),
       room.getId(),
-      RoomMemberRemovedEvent.create(UUID.fromString(room.getId())).memberId(userId)
+      RoomMemberRemovedEvent.create().roomId(UUID.fromString(room.getId())).memberId(userId)
     );
   }
 
