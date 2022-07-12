@@ -101,6 +101,19 @@ pipeline {
         }
       }
     }
+    stage("Publishing code coverage") {
+      when {
+        allOf {
+          branch "main"
+        }
+      }
+      steps {
+        sh './jenkins_build.sh'
+        junit '*/target/site/jacoco-all-tests/*.xml'
+        step( [ $class: 'JacocoPublisher' ] )
+      }
+    }
+
     stage('Stashing for packaging') {
       when {
         anyOf {

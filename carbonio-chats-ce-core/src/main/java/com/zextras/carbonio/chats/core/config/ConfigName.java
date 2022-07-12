@@ -29,7 +29,9 @@ public enum ConfigName {
   PREVIEWER_PORT("carbonio.preview.port", "PREVIEWER_PORT", "carbonio-chats/previewer-port"),
   CONSUL_TOKEN("consul.agent.token", "CONSUL_HTTP_TOKEN", "carbonio-chats/consul-http-token"),
   CONSUL_HOST("consul.host", "CONSUL_HOST", "carbonio-chats/consul-host"),
-  CONSUL_PORT("consul.port", "CONSUL_PORT", "carbonio-chats/consul-port");
+  CONSUL_PORT("consul.port", "CONSUL_PORT", "carbonio-chats/consul-port"),
+  EVENT_DISPATCHER_HOST("event.dispatcher.host", "EVENT_DISPATCHER_HOST", "carbonio-chats/event-dispatcher-host"),
+  EVENT_DISPATCHER_PORT("event.dispatcher.port", "EVENT_DISPATCHER_PORT", "carbonio-chats/event-dispatcher-port");
 
   private final String propertyName;
   private final String envName;

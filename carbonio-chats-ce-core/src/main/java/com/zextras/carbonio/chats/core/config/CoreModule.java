@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.matcher.Matchers;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.api.AttachmentsApi;
@@ -20,8 +22,7 @@ import com.zextras.carbonio.chats.api.SupportedApi;
 import com.zextras.carbonio.chats.api.SupportedApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
-import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
-import com.zextras.carbonio.chats.core.logging.aop.TimedCallInterceptor;
+import com.zextras.carbonio.chats.core.config.ChatsConstant.RABBIT_MQ;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
@@ -36,10 +37,11 @@ import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService
 import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagementProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
+import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
+import com.zextras.carbonio.chats.core.logging.aop.TimedCallInterceptor;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
-
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapperImpl;
 import com.zextras.carbonio.chats.core.provider.AppInfoProvider;
@@ -87,8 +89,10 @@ import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.config.DatabaseConfig;
+import java.io.IOException;
 import java.time.Clock;
 import java.time.ZoneId;
+import java.util.concurrent.TimeoutException;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
@@ -271,4 +275,23 @@ public class CoreModule extends AbstractModule {
   private CommandsApi getMongooseImCommands(ApiClient apiClient) {
     return new CommandsApi(apiClient);
   }
+
+  @Singleton
+  @Provides
+  private Connection getRabbitMqConnection(AppConfig appConfig) throws IOException, TimeoutException {
+    ConnectionFactory factory = new ConnectionFactory();
+    factory.setUsername(RABBIT_MQ.USERNAME);
+    factory.setPassword(RABBIT_MQ.PASSWORD);
+    factory.setVirtualHost(RABBIT_MQ.VIRTUAL_HOST);
+    factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
+    factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
+
+    factory.setRequestedHeartbeat(RABBIT_MQ.REQUESTED_HEARTBEAT_IN_SEC);
+    factory.setConnectionTimeout(RABBIT_MQ.CONNECTION_TIMEOUT_IN_MILLI);
+    factory.setAutomaticRecoveryEnabled(true);
+    factory.setTopologyRecoveryEnabled(true);
+
+    return factory.newConnection();
+  }
+
 }

@@ -127,7 +127,7 @@
               <goal>prepare-agent</goal>
             </goals>
             <configuration>
-              <destFile>${project.parent.build.directory}/coverage-reports/jacoco-it.exec</destFile>
+              <destFile>${project.parent.build.directory}/coverage-reports/jacoco-integration-tests.exec</destFile>
               <propertyName>failsafeArgLine</propertyName>
             </configuration>
           </execution>
@@ -139,9 +139,43 @@
               <goal>report</goal>
             </goals>
             <configuration>
-              <dataFile>${project.parent.build.directory}/coverage-reports/jacoco-it.exec</dataFile>
-              <outputDirectory>${project.parent.reporting.outputDirectory}/jacoco-it</outputDirectory>
+              <dataFile>${project.parent.build.directory}/coverage-reports/jacoco-integration-tests.exec</dataFile>
+              <outputDirectory>${project.parent.reporting.outputDirectory}/jacoco-integration-tests</outputDirectory>
+              <title>Integration tests coverage</title>
             </configuration>
+          </execution>
+
+          <execution>
+            <id>pre-merge-tests-results-execution</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>merge</goal>
+            </goals>
+            <configuration>
+              <fileSets>
+                <fileSet>
+                  <directory>${project.parent.build.directory}/coverage-reports</directory>
+                  <includes>
+                    <include>*.exec</include>
+                  </includes>
+                </fileSet>
+              </fileSets>
+              <destFile>${project.parent.build.directory}/coverage-reports/jacoco-all-tests.exec</destFile>
+            </configuration>
+          </execution>
+
+          <execution>
+            <id>post-merge-tests-results-execution</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <configuration>
+              <dataFile>${project.parent.build.directory}/coverage-reports/jacoco-all-tests.exec</dataFile>
+              <outputDirectory>${project.parent.reporting.outputDirectory}/jacoco-all-tests</outputDirectory>
+              <title>All tests coverage</title>
+            </configuration>
+
           </execution>
         </executions>
       </plugin>

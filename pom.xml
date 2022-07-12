@@ -94,6 +94,9 @@ SPDX-License-Identifier: AGPL-3.0-only
     <io.github.cdimascio.dotenv-java.version>2.2.0</io.github.cdimascio.dotenv-java.version>
     <!-- Consul -->
     <com.orbitz.consul.consul-client.version>1.5.3</com.orbitz.consul.consul-client.version>
+    <!-- Rabbit MQ -->
+    <com.rabbitmq.amqp-client.version>5.15.0</com.rabbitmq.amqp-client.version>
+
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
     <org.junit.jupiter.version>5.8.2</org.junit.jupiter.version>
@@ -353,6 +356,13 @@ SPDX-License-Identifier: AGPL-3.0-only
         <groupId>com.orbitz.consul</groupId>
         <artifactId>consul-client</artifactId>
         <version>${com.orbitz.consul.consul-client.version}</version>
+      </dependency>
+
+      <!-- Rabbit MQ -->
+      <dependency>
+        <groupId>com.rabbitmq</groupId>
+        <artifactId>amqp-client</artifactId>
+        <version>${com.rabbitmq.amqp-client.version}</version>
       </dependency>
 
       <!-- Tests dependency -->

@@ -159,6 +159,12 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>consul-client</artifactId>
     </dependency>
 
+    <!-- Rabbit MQ -->
+    <dependency>
+      <groupId>com.rabbitmq</groupId>
+      <artifactId>amqp-client</artifactId>
+    </dependency>
+
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
     <dependency>
@@ -246,7 +252,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               <goal>prepare-agent</goal>
             </goals>
             <configuration>
-              <destFile>${project.parent.build.directory}/coverage-reports/jacoco-ut.exec</destFile>
+              <destFile>${project.parent.build.directory}/coverage-reports/jacoco-unit-tests.exec</destFile>
             </configuration>
           </execution>
 
@@ -257,8 +263,9 @@ SPDX-License-Identifier: AGPL-3.0-only
               <goal>report</goal>
             </goals>
             <configuration>
-              <dataFile>${project.parent.build.directory}/coverage-reports/jacoco-ut.exec</dataFile>
-              <outputDirectory>${project.parent.reporting.outputDirectory}/jacoco-ut</outputDirectory>
+              <dataFile>${project.parent.build.directory}/coverage-reports/jacoco-unit-tests.exec</dataFile>
+              <outputDirectory>${project.parent.reporting.outputDirectory}/jacoco-unit-tests</outputDirectory>
+              <title>Unit tests coverage</title>
             </configuration>
           </execution>
         </executions>
