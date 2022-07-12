@@ -54,6 +54,7 @@ pipeline {
             -Dlogback.configurationFile="$(pwd)"/carbonio-chats-ce-boot/src/main/resources/logback-test-silent.xml \
             verify
         '''
+        publishCoverage adapters: [jacocoAdapter('target/site/jacoco-all-tests/jacoco.xml')]
       }
       post {
         failure {
@@ -101,18 +102,7 @@ pipeline {
         }
       }
     }
-    stage("Publishing code coverage") {
-      when {
-        allOf {
-          branch "main"
-        }
-      }
-      steps {
-        junit '*/target/site/jacoco-all-tests/*.xml'
-        step( [ $class: 'JacocoPublisher' ] )
-      }
-    }
-
+  
     stage('Stashing for packaging') {
       when {
         anyOf {
