@@ -108,7 +108,6 @@ pipeline {
         }
       }
       steps {
-        sh './jenkins_build.sh'
         junit '*/target/site/jacoco-all-tests/*.xml'
         step( [ $class: 'JacocoPublisher' ] )
       }
