@@ -17,8 +17,6 @@ public class ChatsConstant {
 
   public static class RABBIT_MQ {
 
-    public static final String USERNAME                    = "carbonio-chats";
-    public static final String PASSWORD                    = "assext";
     public static final String VIRTUAL_HOST                = "/";
     public static final int    REQUESTED_HEARTBEAT_IN_SEC  = 5;
     public static final int    CONNECTION_TIMEOUT_IN_MILLI = 10000;

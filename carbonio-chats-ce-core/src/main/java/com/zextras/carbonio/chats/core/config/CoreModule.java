@@ -280,8 +280,8 @@ public class CoreModule extends AbstractModule {
   @Provides
   private Connection getRabbitMqConnection(AppConfig appConfig) throws IOException, TimeoutException {
     ConnectionFactory factory = new ConnectionFactory();
-    factory.setUsername(RABBIT_MQ.USERNAME);
-    factory.setPassword(RABBIT_MQ.PASSWORD);
+    factory.setUsername(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USERNAME).orElseThrow());
+    factory.setPassword(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_PASSWORD).orElseThrow());
     factory.setVirtualHost(RABBIT_MQ.VIRTUAL_HOST);
     factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
     factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());

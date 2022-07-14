@@ -22,7 +22,9 @@ public class RabbitMqExtension implements AfterEachCallback, BeforeAllCallback, 
   private final static Namespace EXTENSION_NAMESPACE = Namespace.create(RabbitMqExtension.class);
   private final static String    CLIENT_STORE_ENTRY  = "rabbitmq_client";
   private final static int       PORT                = 12346;
-  private static final String    HOST                = "localhost";
+  private final static String    HOST                = "localhost";
+  private final static String    USERNAME            = "username";
+  private final static String    PASSWORD            = "password";
 
   @Override
   public void beforeAll(ExtensionContext context) {
@@ -32,6 +34,8 @@ public class RabbitMqExtension implements AfterEachCallback, BeforeAllCallback, 
       mockResponses(client);
       InMemoryConfigStore.set(ConfigName.EVENT_DISPATCHER_HOST, HOST);
       InMemoryConfigStore.set(ConfigName.EVENT_DISPATCHER_PORT, Integer.toString(PORT));
+      InMemoryConfigStore.set(ConfigName.EVENT_DISPATCHER_USERNAME, USERNAME);
+      InMemoryConfigStore.set(ConfigName.EVENT_DISPATCHER_PASSWORD, PASSWORD);
       return client;
     }, RabbitMqMockServer.class);
   }

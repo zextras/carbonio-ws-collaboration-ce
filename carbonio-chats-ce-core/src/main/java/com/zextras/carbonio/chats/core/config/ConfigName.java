@@ -31,7 +31,10 @@ public enum ConfigName {
   CONSUL_HOST("consul.host", "CONSUL_HOST", "carbonio-chats/consul-host"),
   CONSUL_PORT("consul.port", "CONSUL_PORT", "carbonio-chats/consul-port"),
   EVENT_DISPATCHER_HOST("event.dispatcher.host", "EVENT_DISPATCHER_HOST", "carbonio-chats/event-dispatcher-host"),
-  EVENT_DISPATCHER_PORT("event.dispatcher.port", "EVENT_DISPATCHER_PORT", "carbonio-chats/event-dispatcher-port");
+  EVENT_DISPATCHER_PORT("event.dispatcher.port", "EVENT_DISPATCHER_PORT", "carbonio-chats/event-dispatcher-port"),
+  EVENT_DISPATCHER_USERNAME("event.dispatcher.username", "EVENT_DISPATCHER_USERNAME", "carbonio-chats/event-dispatcher-username"),
+  EVENT_DISPATCHER_PASSWORD("event.dispatcher.password", "EVENT_DISPATCHER_PASSWORD", "carbonio-chats/event-dispatcher-password");
+
 
   private final String propertyName;
   private final String envName;
