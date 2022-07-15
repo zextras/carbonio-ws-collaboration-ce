@@ -154,6 +154,14 @@ public class MembersServiceImpl implements MembersService {
       throw new BadRequestException("Last owner can't leave the room");
     }
 
+    String ownerId = owners
+      .stream()
+      .filter(id -> !id.equals(userId.toString()))
+      .findFirst().orElseThrow();
+
+    messageService.setMemberRole(roomId.toString(), currentUser.getId(), userId.toString(), false);
+    messageService.setMemberRole(roomId.toString(), currentUser.getId(), ownerId, true);
+
     // TODO do we need to delete the room?
     subscriptionRepository.delete(room.getId(), userId.toString());
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
