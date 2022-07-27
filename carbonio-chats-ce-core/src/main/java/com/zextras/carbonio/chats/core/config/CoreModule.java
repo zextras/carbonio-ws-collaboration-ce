@@ -28,7 +28,7 @@ import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserMa
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.MockEventDispatcherImpl;
+import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.MessageDispatcherMongooseIm;
 import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
@@ -108,7 +108,7 @@ public class CoreModule extends AbstractModule {
 
     bind(AppConfig.class).toProvider(new AppConfigProvider(".", ChatsConstant.CONFIG_PATH)).in(Singleton.class);
 
-    bind(EventDispatcher.class).to(MockEventDispatcherImpl.class);
+    bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
     bind(AuthenticationFilter.class);
 
     bind(RoomsApi.class);

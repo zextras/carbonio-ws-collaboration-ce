@@ -75,7 +75,7 @@ public class AttachmentServiceImplTest {
     this.eventDispatcher = mock(EventDispatcher.class);
     this.objectMapper = new ObjectMapper()
       .registerModule(new JavaTimeModule())
-      .setDateFormat(new RFC3339DateFormat());;
+      .setDateFormat(new RFC3339DateFormat());
     this.attachmentService = new AttachmentServiceImpl(
       this.fileMetadataRepository,
       attachmentMapper,
@@ -229,7 +229,7 @@ public class AttachmentServiceImplTest {
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class, () ->
         attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, currentUser));
-      assertEquals(String.format("Not Found - Not Found"), notFoundException.getMessage());
+      assertEquals("Not Found - Not Found", notFoundException.getMessage());
     }
 
     @Test
@@ -324,7 +324,7 @@ public class AttachmentServiceImplTest {
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class,
         () -> attachmentService.getAttachmentById(attachmentUuid, currentUser));
-      assertEquals(String.format("Not Found - Not Found"), notFoundException.getMessage());
+      assertEquals("Not Found - Not Found", notFoundException.getMessage());
     }
 
     @Test
@@ -420,7 +420,7 @@ public class AttachmentServiceImplTest {
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class,
         () -> attachmentService.getAttachmentPreviewById(attachmentUuid, currentUser));
-      assertEquals(String.format("Not Found - Not Found"), notFoundException.getMessage());
+      assertEquals("Not Found - Not Found", notFoundException.getMessage());
     }
 
     @Test
@@ -513,7 +513,7 @@ public class AttachmentServiceImplTest {
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class,
         () -> attachmentService.getAttachmentInfoById(attachmentUuid, currentUser));
-      assertEquals(String.format("Not Found - Not Found"), notFoundException.getMessage());
+      assertEquals("Not Found - Not Found", notFoundException.getMessage());
     }
 
   }
@@ -527,6 +527,7 @@ public class AttachmentServiceImplTest {
     public void addAttachment_testOk() throws Exception {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      when(roomService.getRoomEntityAndCheckUser(roomId,currentUser,false)).thenReturn(room);
       File attachmentFile = tempDir.resolve("temp.pdf").toFile();
       Files.writeString(attachmentFile.toPath(), "test!");
       FileMetadataBuilder expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
@@ -544,8 +545,9 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(fileMetadataRepository);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
-      verify(eventDispatcher, times(1))
-        .sendToTopic(user1Id, roomId.toString(), AttachmentAddedEvent.create().roomId(roomId).from(user1Id));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+        AttachmentAddedEvent.create(user1Id).roomId(roomId));
       verifyNoMoreInteractions(eventDispatcher);
     }
 
@@ -562,7 +564,7 @@ public class AttachmentServiceImplTest {
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         NotFoundException notFoundException = assertThrows(NotFoundException.class,
           () -> attachmentService.addAttachment(roomId, attachmentFile, "application/pdf", "temp.pdf", currentUser));
-        assertEquals(String.format("Not Found - Not Found"), notFoundException.getMessage());
+        assertEquals("Not Found - Not Found", notFoundException.getMessage());
       }
     }
 
@@ -626,8 +628,9 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(fileMetadataRepository);
       verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
       verifyNoMoreInteractions(storagesService);
-      verify(eventDispatcher, times(1)).sendToTopic(user2Id, roomId.toString(),
-        AttachmentRemovedEvent.create().roomId(roomId).from(user2Id));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+        AttachmentRemovedEvent.create(user2Id).roomId(roomId));
     }
 
     @Test
@@ -648,8 +651,9 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(fileMetadataRepository);
       verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
       verifyNoMoreInteractions(storagesService);
-      verify(eventDispatcher, times(1)).sendToTopic(user1Id, roomId.toString(),
-        AttachmentRemovedEvent.create().roomId(roomId).from(user1Id));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+        AttachmentRemovedEvent.create(user1Id).roomId(roomId));
     }
 
     @Test
@@ -678,7 +682,7 @@ public class AttachmentServiceImplTest {
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class,
         () -> attachmentService.deleteAttachment(attachmentUuid, currentUser));
-      assertEquals(String.format("Not Found - Not Found"), notFoundException.getMessage());
+      assertEquals("Not Found - Not Found", notFoundException.getMessage());
     }
 
     @Test

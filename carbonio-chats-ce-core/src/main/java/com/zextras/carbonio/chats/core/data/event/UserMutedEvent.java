@@ -10,12 +10,12 @@ public class UserMutedEvent extends DomainEvent {
   private UUID roomId;
   private UUID memberId;
 
-  public UserMutedEvent() {
-    super(EVENT_TYPE);
+  public UserMutedEvent(UUID from) {
+    super(EVENT_TYPE, from);
   }
 
-  public static UserMutedEvent create() {
-    return new UserMutedEvent();
+  public static UserMutedEvent create(UUID from) {
+    return new UserMutedEvent(from);
   }
 
   public UUID getRoomId() {
@@ -44,12 +44,16 @@ public class UserMutedEvent extends DomainEvent {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+    if (!super.equals(o)) {
+      return false;
+    }
     UserMutedEvent that = (UserMutedEvent) o;
-    return Objects.equals(getRoomId(), that.getRoomId()) && Objects.equals(memberId, that.memberId);
+    return Objects.equals(getRoomId(), that.getRoomId()) &&
+      Objects.equals(getMemberId(), that.getMemberId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getRoomId(), memberId);
+    return Objects.hash(super.hashCode(), getRoomId(), getMemberId());
   }
 }

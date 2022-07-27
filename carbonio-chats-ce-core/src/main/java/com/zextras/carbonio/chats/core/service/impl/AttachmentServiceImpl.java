@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.data.builder.IdDtoBuilder;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.AttachmentAddedEvent;
 import com.zextras.carbonio.chats.core.data.event.AttachmentRemovedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
@@ -37,6 +38,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -130,7 +132,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   @Override
   @Transactional
   public IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, UserPrincipal currentUser) {
-    roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
+    Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
     UUID id = UUID.randomUUID();
     FileMetadata metadata = FileMetadata.create()
       .id(id.toString())
@@ -142,8 +144,9 @@ public class AttachmentServiceImpl implements AttachmentService {
       .roomId(roomId.toString());
     fileMetadataRepository.save(metadata);
     storagesService.saveFile(file, metadata, currentUser.getId());
-    eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
-      AttachmentAddedEvent.create().roomId(roomId).from(currentUser.getUUID()));
+    eventDispatcher.sendToUserQueue(
+      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+      AttachmentAddedEvent.create(currentUser.getUUID()).roomId(roomId));
     return IdDtoBuilder.create().id(id).build();
   }
 
@@ -160,7 +163,8 @@ public class AttachmentServiceImpl implements AttachmentService {
         String.format("User '%s' can not delete attachment '%s'", currentUser.getId(), fileId)));
     fileMetadataRepository.delete(metadata);
     storagesService.deleteFile(fileId.toString(), metadata.getUserId());
-    eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(), AttachmentRemovedEvent
-      .create().roomId(UUID.fromString(room.getId())).from(currentUser.getUUID()));
+    eventDispatcher.sendToUserQueue(
+      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+      AttachmentRemovedEvent.create(currentUser.getUUID()).roomId(UUID.fromString(room.getId())));
   }
 }
