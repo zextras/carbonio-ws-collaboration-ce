@@ -37,6 +37,7 @@ import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService
 import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagementProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.logging.aop.TimedCallInterceptor;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
@@ -291,7 +292,13 @@ public class CoreModule extends AbstractModule {
     factory.setAutomaticRecoveryEnabled(true);
     factory.setTopologyRecoveryEnabled(true);
 
-    return factory.newConnection();
+    Connection connection = null;
+    try {
+      connection = factory.newConnection();
+    } catch (Exception e) {
+      ChatsLogger.error("getRabbitMqConnection", e);
+    }
+    return connection;
   }
 
 }

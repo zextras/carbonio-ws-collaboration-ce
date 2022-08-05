@@ -16,7 +16,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   <parent>
     <groupId>com.zextras.carbonio.chats</groupId>
     <artifactId>carbonio-chats-ce</artifactId>
-    <version>0.1.1</version>
+    <version>0.1.2</version>
   </parent>
 
   <artifactId>carbonio-chats-ce-core</artifactId>
