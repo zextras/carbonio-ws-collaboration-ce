@@ -130,6 +130,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               <inputSpec>${project.basedir}/src/main/resources/openapi/mongooseim-admin-api.yaml</inputSpec>
               <configurationFile>${project.basedir}/src/main/resources/openapi/mongooseim-admin-generator-config.json
               </configurationFile>
+              <templateDirectory>${project.basedir}/src/main/resources/openapi/mongooseim-templates</templateDirectory>
               <ignoreFileOverride>${project.basedir}/src/main/resources/openapi/mongooseim-admin-generator-ignore
               </ignoreFileOverride>
               <!-- Generation options -->
