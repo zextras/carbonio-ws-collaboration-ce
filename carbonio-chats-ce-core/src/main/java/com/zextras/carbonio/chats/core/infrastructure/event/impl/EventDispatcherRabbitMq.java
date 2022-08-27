@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -22,14 +23,14 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   private final ObjectMapper objectMapper;
 
   @Inject
-  public EventDispatcherRabbitMq(Connection connection, ObjectMapper objectMapper) {
-    this.connection = connection;
+  public EventDispatcherRabbitMq(Optional<Connection> connection, ObjectMapper objectMapper) {
+    this.connection = connection.orElse(null);
     this.objectMapper = objectMapper;
   }
 
   @Override
   public boolean isAlive() {
-    return connection.isOpen();
+    return connection != null && connection.isOpen();
   }
 
   @Override
@@ -52,10 +53,12 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
 
   private void send(String userId, String message) {
     try {
+      if (Optional.ofNullable(connection).isEmpty()) {
+        return;
+      }
       Channel channel = connection.createChannel();
-      String queueName = userId;
-      channel.queueDeclare(queueName, false, true, true, Map.of());
-      channel.basicPublish("", queueName, null, message.getBytes(StandardCharsets.UTF_8));
+      channel.queueDeclare(userId, true, false, false, Map.of());
+      channel.basicPublish("", userId, null, message.getBytes(StandardCharsets.UTF_8));
       channel.close();
     } catch (IOException | TimeoutException e) {
       ChatsLogger.warn(String.format("Unable to send message to %s", userId), e);

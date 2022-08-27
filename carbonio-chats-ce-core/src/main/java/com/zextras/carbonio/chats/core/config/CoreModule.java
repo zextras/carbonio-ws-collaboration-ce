@@ -93,6 +93,7 @@ import io.ebean.config.DatabaseConfig;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.ZoneId;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
@@ -279,26 +280,23 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private Connection getRabbitMqConnection(AppConfig appConfig) throws IOException, TimeoutException {
-    ConnectionFactory factory = new ConnectionFactory();
-    factory.setUsername(RABBIT_MQ.USERNAME);
-    factory.setPassword(RABBIT_MQ.PASSWORD);
-    factory.setVirtualHost(RABBIT_MQ.VIRTUAL_HOST);
-    factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
-    factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
-
-    factory.setRequestedHeartbeat(RABBIT_MQ.REQUESTED_HEARTBEAT_IN_SEC);
-    factory.setConnectionTimeout(RABBIT_MQ.CONNECTION_TIMEOUT_IN_MILLI);
-    factory.setAutomaticRecoveryEnabled(true);
-    factory.setTopologyRecoveryEnabled(true);
-
-    Connection connection = null;
+  private Optional<Connection> getRabbitMqConnection(AppConfig appConfig) throws IOException, TimeoutException {
     try {
-      connection = factory.newConnection();
+      ConnectionFactory factory = new ConnectionFactory();
+      factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
+      factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
+      factory.setUsername(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_USERNAME).orElseThrow());
+      factory.setPassword(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_PASSWORD).orElseThrow());
+      factory.setVirtualHost(RABBIT_MQ.VIRTUAL_HOST);
+      factory.setRequestedHeartbeat(RABBIT_MQ.REQUESTED_HEARTBEAT_IN_SEC);
+      factory.setConnectionTimeout(RABBIT_MQ.CONNECTION_TIMEOUT_IN_MILLI);
+      factory.setAutomaticRecoveryEnabled(true);
+      factory.setTopologyRecoveryEnabled(true);
+      return Optional.of(factory.newConnection());
     } catch (Exception e) {
       ChatsLogger.error("getRabbitMqConnection", e);
+      return Optional.empty();
     }
-    return connection;
   }
 
 }

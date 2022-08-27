@@ -10,6 +10,7 @@ import com.zextras.carbonio.chats.core.config.AppConfigBuilder;
 import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils;
 import java.time.Clock;
 import java.time.ZoneId;
+import java.util.Optional;
 
 public class TestModule extends AbstractModule {
 
@@ -33,7 +34,7 @@ public class TestModule extends AbstractModule {
 
   @Provides
   @Singleton
-  public Connection getRabbitMqConnection() {
-    return new MockConnectionFactory().newConnection();
+  public Optional<Connection> getRabbitMqConnection() {
+    return Optional.of(new MockConnectionFactory().newConnection());
   }
 }
