@@ -35,13 +35,70 @@ paths:
               title: commandDescription
               type: object
               properties:
+                path:
+                  type: string
                 name:
+                  type: string
+                method:
+                  type: string
+                desc:
                   type: string
                 category:
                   type: string
+                args:
+                  type: object
+                  properties:
+                    jids:
+                      type: string
+                    jid:
+                      type: string
+                    caller:
+                      type: string
+                    action:
+                      type: string
+                    with:
+                      type: string
+                    subject:
+                      type: string
+                    owner:
+                      type: string
+                    name:
+                      type: string
+                    domain:
+                      type: string
+                    id:
+                      type: string
+                    target:
+                      type: string
+                    affiliation:
+                      type: string
+                    from:
+                      type: string
+                    body:
+                      type: string
+                    sender:
+                      type: string
+                    recipient:
+                      type: string
+                    user:
+                      type: string
+                    nick:
+                      type: string
+                    reason:
+                      type: string
+                    host:
+                      type: string
+                    res:
+                      type: string
+                    stanza:
+                      type: string
+                    username:
+                      type: string
+                    password:
+                      type: string
+                    newpass:
+                      type: string
                 action:
-                  type: string
-                desc:
                   type: string
   /users/{XMPPHost}:
     parameters:
