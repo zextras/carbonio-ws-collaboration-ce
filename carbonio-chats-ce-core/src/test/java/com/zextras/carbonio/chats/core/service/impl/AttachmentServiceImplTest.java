@@ -25,6 +25,7 @@ import com.zextras.carbonio.chats.core.data.event.AttachmentRemovedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -75,7 +76,7 @@ public class AttachmentServiceImplTest {
     this.eventDispatcher = mock(EventDispatcher.class);
     this.objectMapper = new ObjectMapper()
       .registerModule(new JavaTimeModule())
-      .setDateFormat(new RFC3339DateFormat());;
+      .setDateFormat(new RFC3339DateFormat());
     this.attachmentService = new AttachmentServiceImpl(
       this.fileMetadataRepository,
       attachmentMapper,
@@ -89,7 +90,9 @@ public class AttachmentServiceImplTest {
   private static UUID user2Id;
   private static UUID user3Id;
   private static UUID roomId;
-  private static Room room;
+  private static Room room1;
+  private static Room room2;
+  private static Room room3;
 
 
   @BeforeAll
@@ -98,16 +101,36 @@ public class AttachmentServiceImplTest {
     user2Id = UUID.randomUUID();
     user3Id = UUID.randomUUID();
     roomId = UUID.randomUUID();
-    room = Room.create();
-    room
+    room1 = Room.create();
+    room1
       .id(roomId.toString())
       .type(RoomTypeDto.GROUP)
       .name("room1")
       .description("Room one")
       .subscriptions(List.of(
-        Subscription.create(room, user1Id.toString()).owner(true),
-        Subscription.create(room, user2Id.toString()).owner(false),
-        Subscription.create(room, user3Id.toString()).owner(false)));
+        Subscription.create(room1, user1Id.toString()).owner(true),
+        Subscription.create(room1, user2Id.toString()).owner(false),
+        Subscription.create(room1, user3Id.toString()).owner(false)));
+    room2 = Room.create();
+    room2
+      .id(roomId.toString())
+      .type(RoomTypeDto.CHANNEL)
+      .name("room2")
+      .description("Room two")
+      .subscriptions(List.of(
+        Subscription.create(room1, user1Id.toString()).owner(true),
+        Subscription.create(room1, user2Id.toString()).owner(false),
+        Subscription.create(room1, user3Id.toString()).owner(false)));
+    room3 = Room.create();
+    room3
+      .id(roomId.toString())
+      .type(RoomTypeDto.WORKSPACE)
+      .name("room3")
+      .description("Room three")
+      .subscriptions(List.of(
+        Subscription.create(room1, user1Id.toString()).owner(true),
+        Subscription.create(room1, user2Id.toString()).owner(false),
+        Subscription.create(room1, user3Id.toString()).owner(false)));
   }
 
   @Nested
@@ -229,7 +252,7 @@ public class AttachmentServiceImplTest {
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class, () ->
         attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, currentUser));
-      assertEquals(String.format("Not Found - Not Found"), notFoundException.getMessage());
+      assertEquals("Not Found - Not Found", notFoundException.getMessage());
     }
 
     @Test
@@ -324,7 +347,7 @@ public class AttachmentServiceImplTest {
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class,
         () -> attachmentService.getAttachmentById(attachmentUuid, currentUser));
-      assertEquals(String.format("Not Found - Not Found"), notFoundException.getMessage());
+      assertEquals("Not Found - Not Found", notFoundException.getMessage());
     }
 
     @Test
@@ -420,7 +443,7 @@ public class AttachmentServiceImplTest {
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class,
         () -> attachmentService.getAttachmentPreviewById(attachmentUuid, currentUser));
-      assertEquals(String.format("Not Found - Not Found"), notFoundException.getMessage());
+      assertEquals("Not Found - Not Found", notFoundException.getMessage());
     }
 
     @Test
@@ -513,7 +536,7 @@ public class AttachmentServiceImplTest {
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class,
         () -> attachmentService.getAttachmentInfoById(attachmentUuid, currentUser));
-      assertEquals(String.format("Not Found - Not Found"), notFoundException.getMessage());
+      assertEquals("Not Found - Not Found", notFoundException.getMessage());
     }
 
   }
@@ -532,6 +555,7 @@ public class AttachmentServiceImplTest {
       FileMetadataBuilder expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("temp.pdf").originalSize(attachmentFile.length()).mimeType("application/pdf")
         .type(FileMetadataType.ATTACHMENT).userId(user1Id.toString()).roomId(roomId.toString());
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
@@ -562,7 +586,7 @@ public class AttachmentServiceImplTest {
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         NotFoundException notFoundException = assertThrows(NotFoundException.class,
           () -> attachmentService.addAttachment(roomId, attachmentFile, "application/pdf", "temp.pdf", currentUser));
-        assertEquals(String.format("Not Found - Not Found"), notFoundException.getMessage());
+        assertEquals("Not Found - Not Found", notFoundException.getMessage());
       }
     }
 
@@ -583,6 +607,28 @@ public class AttachmentServiceImplTest {
     }
 
     @Test
+    @DisplayName("Throws the exception if you can't add attachments on a channel")
+    public void addAttachment_testFailsRoomIsAChannel() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room2);
+      assertThrows(BadRequestException.class,
+        () -> attachmentService.addAttachment(roomId, mock(File.class), "application/pdf", "temp.pdf", currentUser));
+
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
+    }
+
+    @Test
+    @DisplayName("Throws the exception if you can't add attachments on a workspace")
+    public void addAttachment_testFailsRoomIsAWorkspace() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room3);
+      assertThrows(BadRequestException.class,
+        () -> attachmentService.addAttachment(roomId, mock(File.class), "application/pdf", "temp.pdf", currentUser));
+
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
+    }
+
+    @Test
     @DisplayName("Re throws an exception if storages throws an exception")
     public void addAttachment_testInternalException() throws Exception {
       UUID attachmentUuid = UUID.randomUUID();
@@ -592,6 +638,7 @@ public class AttachmentServiceImplTest {
       FileMetadataBuilder expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("temp.pdf").originalSize(attachmentFile.length()).mimeType("application/pdf")
         .type(FileMetadataType.ATTACHMENT).userId(user1Id.toString()).roomId(roomId.toString());
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
       doThrow(new InternalErrorException()).when(storagesService)
         .saveFile(attachmentFile, expectedMetadata, user1Id.toString());
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -617,7 +664,7 @@ public class AttachmentServiceImplTest {
         .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user2Id.toString()).roomId(roomId.toString());
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
 
       attachmentService.deleteAttachment(attachmentUuid, currentUser);
 
@@ -639,7 +686,7 @@ public class AttachmentServiceImplTest {
         .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user2Id.toString()).roomId(roomId.toString());
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
 
       attachmentService.deleteAttachment(attachmentUuid, currentUser);
 
@@ -678,7 +725,7 @@ public class AttachmentServiceImplTest {
 
       NotFoundException notFoundException = assertThrows(NotFoundException.class,
         () -> attachmentService.deleteAttachment(attachmentUuid, currentUser));
-      assertEquals(String.format("Not Found - Not Found"), notFoundException.getMessage());
+      assertEquals("Not Found - Not Found", notFoundException.getMessage());
     }
 
     @Test
@@ -690,7 +737,7 @@ public class AttachmentServiceImplTest {
         .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user2Id.toString()).roomId(roomId.toString());
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
       doThrow(new InternalErrorException()).when(storagesService)
         .deleteFile(attachmentUuid.toString(), user2Id.toString());
 
@@ -706,7 +753,7 @@ public class AttachmentServiceImplTest {
         .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user2Id.toString()).roomId(roomId.toString());
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
 
       assertThrows(ForbiddenException.class, () -> attachmentService.deleteAttachment(attachmentUuid, currentUser));
     }
