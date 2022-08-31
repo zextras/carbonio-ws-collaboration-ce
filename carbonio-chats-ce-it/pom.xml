@@ -9,7 +9,7 @@
   <parent>
     <groupId>com.zextras.carbonio.chats</groupId>
     <artifactId>carbonio-chats-ce</artifactId>
-    <version>0.1.1</version>
+    <version>0.1.2</version>
   </parent>
 
   <artifactId>carbonio-chats-ce-it</artifactId>
@@ -69,6 +69,15 @@
       <artifactId>mockito-inline</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <!-- https://mvnrepository.com/artifact/com.github.fridujo/rabbitmq-mock -->
+    <dependency>
+      <groupId>com.github.fridujo</groupId>
+      <artifactId>rabbitmq-mock</artifactId>
+      <version>1.1.1</version>
+      <scope>test</scope>
+    </dependency>
+
 
   </dependencies>
 

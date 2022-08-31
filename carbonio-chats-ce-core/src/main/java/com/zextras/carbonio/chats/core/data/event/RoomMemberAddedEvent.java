@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class RoomMemberAddedEvent extends DomainEvent {
@@ -12,16 +13,16 @@ public class RoomMemberAddedEvent extends DomainEvent {
 
   private UUID    roomId;
   private UUID    memberId;
-  private boolean isOwner;
-  private boolean isTemporary;
-  private boolean isExternal;
+  private boolean isOwner     = false;
+  private boolean isTemporary = false;
+  private boolean isExternal  = false;
 
-  public RoomMemberAddedEvent() {
-    super(EVENT_TYPE);
+  public RoomMemberAddedEvent(UUID from) {
+    super(EVENT_TYPE, from);
   }
 
-  public static RoomMemberAddedEvent create() {
-    return new RoomMemberAddedEvent();
+  public static RoomMemberAddedEvent create(UUID from) {
+    return new RoomMemberAddedEvent(from);
   }
 
   public UUID getRoomId() {
@@ -67,5 +68,29 @@ public class RoomMemberAddedEvent extends DomainEvent {
   public RoomMemberAddedEvent external(boolean external) {
     isExternal = external;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+    RoomMemberAddedEvent that = (RoomMemberAddedEvent) o;
+    return Objects.equals(getRoomId(), that.getRoomId()) &&
+      Objects.equals(getMemberId(), that.getMemberId()) &&
+      isOwner() == that.isOwner() &&
+      isTemporary() == that.isTemporary() &&
+      isExternal() == that.isExternal();
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), getRoomId(), getMemberId(), isOwner(), isTemporary(), isExternal());
   }
 }

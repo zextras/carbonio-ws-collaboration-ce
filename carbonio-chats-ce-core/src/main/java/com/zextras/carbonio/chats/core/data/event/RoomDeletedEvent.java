@@ -13,12 +13,12 @@ public class RoomDeletedEvent extends DomainEvent {
 
   private UUID roomId;
 
-  public RoomDeletedEvent() {
-    super(EVENT_TYPE);
+  public RoomDeletedEvent(UUID from) {
+    super(EVENT_TYPE, from);
   }
 
-  public static RoomDeletedEvent create() {
-    return new RoomDeletedEvent();
+  public static RoomDeletedEvent create(UUID from) {
+    return new RoomDeletedEvent(from);
   }
 
   public UUID getRoomId() {
@@ -29,23 +29,4 @@ public class RoomDeletedEvent extends DomainEvent {
     this.roomId = roomId;
     return this;
   }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    RoomDeletedEvent that = (RoomDeletedEvent) o;
-    return Objects.equals(getType(), that.getType()) &&
-      Objects.equals(getRoomId(), that.getRoomId());
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(getType(), getRoomId());
-  }
-
 }

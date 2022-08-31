@@ -28,7 +28,7 @@ import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserMa
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.event.impl.MockEventDispatcherImpl;
+import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.MessageDispatcherMongooseIm;
 import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
@@ -37,6 +37,7 @@ import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService
 import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagementProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.logging.aop.TimedCallInterceptor;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
@@ -92,6 +93,7 @@ import io.ebean.config.DatabaseConfig;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.ZoneId;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
@@ -108,7 +110,7 @@ public class CoreModule extends AbstractModule {
 
     bind(AppConfig.class).toProvider(new AppConfigProvider(".", ChatsConstant.CONFIG_PATH)).in(Singleton.class);
 
-    bind(EventDispatcher.class).to(MockEventDispatcherImpl.class);
+    bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
     bind(AuthenticationFilter.class);
 
     bind(RoomsApi.class);
@@ -278,20 +280,23 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private Connection getRabbitMqConnection(AppConfig appConfig) throws IOException, TimeoutException {
-    ConnectionFactory factory = new ConnectionFactory();
-    factory.setUsername(RABBIT_MQ.USERNAME);
-    factory.setPassword(RABBIT_MQ.PASSWORD);
-    factory.setVirtualHost(RABBIT_MQ.VIRTUAL_HOST);
-    factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
-    factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
-
-    factory.setRequestedHeartbeat(RABBIT_MQ.REQUESTED_HEARTBEAT_IN_SEC);
-    factory.setConnectionTimeout(RABBIT_MQ.CONNECTION_TIMEOUT_IN_MILLI);
-    factory.setAutomaticRecoveryEnabled(true);
-    factory.setTopologyRecoveryEnabled(true);
-
-    return factory.newConnection();
+  private Optional<Connection> getRabbitMqConnection(AppConfig appConfig) throws IOException, TimeoutException {
+    try {
+      ConnectionFactory factory = new ConnectionFactory();
+      factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
+      factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
+      factory.setUsername(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_USERNAME).orElseThrow());
+      factory.setPassword(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_PASSWORD).orElseThrow());
+      factory.setVirtualHost(RABBIT_MQ.VIRTUAL_HOST);
+      factory.setRequestedHeartbeat(RABBIT_MQ.REQUESTED_HEARTBEAT_IN_SEC);
+      factory.setConnectionTimeout(RABBIT_MQ.CONNECTION_TIMEOUT_IN_MILLI);
+      factory.setAutomaticRecoveryEnabled(true);
+      factory.setTopologyRecoveryEnabled(true);
+      return Optional.of(factory.newConnection());
+    } catch (Exception e) {
+      ChatsLogger.error("getRabbitMqConnection", e);
+      return Optional.empty();
+    }
   }
 
 }

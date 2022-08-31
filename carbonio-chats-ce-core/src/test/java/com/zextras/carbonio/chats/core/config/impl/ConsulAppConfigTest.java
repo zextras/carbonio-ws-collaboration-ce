@@ -119,7 +119,7 @@ class ConsulAppConfigTest {
 
       verify(keyValueClient, times(1))
         .getValue(eq("carbonio-chats/db-password"), any(ImmutableQueryOptions.class));
-      verify(consulClient, times(2)).keyValueClient();
+      verify(consulClient, times(3)).keyValueClient();
     }
 
     @Test

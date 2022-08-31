@@ -226,8 +226,7 @@ class UserServiceImplTest {
       verify(fileMetadataRepository, times(1)).getById(userId.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(userId, contactsIds,
-        UserPictureChangedEvent.create().from(userId));
+      verify(eventDispatcher, times(1)).sendToUserQueue(contactsIds, UserPictureChangedEvent.create(userId));
       verifyNoMoreInteractions(fileMetadataRepository, storagesService, eventDispatcher);
     }
 
@@ -253,8 +252,8 @@ class UserServiceImplTest {
       verify(fileMetadataRepository, times(1)).getById(userId.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(userId, contactsIds,
-        UserPictureChangedEvent.create().from(userId));
+      verify(eventDispatcher, times(1)).sendToUserQueue(contactsIds,
+        UserPictureChangedEvent.create(userId));
       verifyNoMoreInteractions(fileMetadataRepository, storagesService, eventDispatcher);
     }
 

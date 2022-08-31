@@ -12,14 +12,13 @@ public class RoomPictureChangedEvent extends DomainEvent {
   private static final EventType EVENT_TYPE = EventType.ROOM_PICTURE_CHANGED;
 
   private UUID roomId;
-  private UUID from;
 
-  public RoomPictureChangedEvent() {
-    super(EVENT_TYPE);
+  public RoomPictureChangedEvent(UUID from) {
+    super(EVENT_TYPE, from);
   }
 
-  public static RoomPictureChangedEvent create() {
-    return new RoomPictureChangedEvent();
+  public static RoomPictureChangedEvent create(UUID from) {
+    return new RoomPictureChangedEvent(from);
   }
 
   public UUID getRoomId() {
@@ -31,15 +30,6 @@ public class RoomPictureChangedEvent extends DomainEvent {
     return this;
   }
 
-  public UUID getFrom() {
-    return from;
-  }
-
-  public RoomPictureChangedEvent from(UUID from) {
-    this.from = from;
-    return this;
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -48,14 +38,15 @@ public class RoomPictureChangedEvent extends DomainEvent {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+    if (!super.equals(o)) {
+      return false;
+    }
     RoomPictureChangedEvent that = (RoomPictureChangedEvent) o;
-    return Objects.equals(getType(), that.getType()) &&
-      Objects.equals(getRoomId(), that.getRoomId()) &&
-      Objects.equals(from, that.from);
+    return Objects.equals(getRoomId(), that.getRoomId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getType(), getRoomId(), from);
+    return Objects.hash(super.hashCode(), getRoomId());
   }
 }

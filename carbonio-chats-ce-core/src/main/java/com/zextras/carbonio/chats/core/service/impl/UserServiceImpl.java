@@ -102,7 +102,8 @@ public class UserServiceImpl implements UserService {
       .userId(currentUser.getId());
     fileMetadataRepository.save(metadata);
     storagesService.saveFile(image, metadata, currentUser.getId());
-    eventDispatcher.sendToUserQueue(currentUser.getUUID(), subscriptionRepository.getContacts(userId.toString()),
-      UserPictureChangedEvent.create().from(currentUser.getUUID()));
+    eventDispatcher.sendToUserQueue(
+      subscriptionRepository.getContacts(userId.toString()),
+      UserPictureChangedEvent.create(currentUser.getUUID()));
   }
 }

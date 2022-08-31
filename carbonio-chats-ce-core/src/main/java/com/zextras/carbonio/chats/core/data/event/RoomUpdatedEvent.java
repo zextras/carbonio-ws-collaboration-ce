@@ -12,14 +12,13 @@ public class RoomUpdatedEvent extends DomainEvent {
   private static final EventType EVENT_TYPE = EventType.ROOM_UPDATED;
 
   private UUID roomId;
-  private UUID from;
 
-  public RoomUpdatedEvent() {
-    super(EVENT_TYPE);
+  public RoomUpdatedEvent(UUID from) {
+    super(EVENT_TYPE, from);
   }
 
-  public static RoomUpdatedEvent create() {
-    return new RoomUpdatedEvent();
+  public static RoomUpdatedEvent create(UUID from) {
+    return new RoomUpdatedEvent(from);
   }
 
   public UUID getRoomId() {
@@ -29,33 +28,5 @@ public class RoomUpdatedEvent extends DomainEvent {
   public RoomUpdatedEvent roomId(UUID roomId) {
     this.roomId = roomId;
     return this;
-  }
-
-  public UUID getFrom() {
-    return from;
-  }
-
-  public RoomUpdatedEvent from(UUID from) {
-    this.from = from;
-    return this;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    RoomUpdatedEvent that = (RoomUpdatedEvent) o;
-    return Objects.equals(getType(), that.getType()) &&
-      Objects.equals(getRoomId(), that.getRoomId()) &&
-      Objects.equals(from, that.from);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(getType(), getRoomId(), from);
   }
 }

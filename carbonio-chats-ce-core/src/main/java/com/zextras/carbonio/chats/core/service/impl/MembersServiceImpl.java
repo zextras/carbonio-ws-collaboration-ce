@@ -81,8 +81,9 @@ public class MembersServiceImpl implements MembersService {
     subscription.owner(isOwner);
     subscriptionRepository.update(subscription);
     messageService.setMemberRole(room.getId(), currentUser.getId(), userId.toString(), isOwner);
-    eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
-      RoomOwnerChangedEvent.create().roomId(userId).memberId(userId).isOwner(isOwner)
+    eventDispatcher.sendToUserQueue(
+      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+      RoomOwnerChangedEvent.create(currentUser.getUUID()).roomId(roomId).memberId(userId).isOwner(isOwner)
     );
   }
 
@@ -126,15 +127,12 @@ public class MembersServiceImpl implements MembersService {
       messageService.addRoomMember(room.getId(), currentUser.getId(), memberDto.getUserId().toString());
     }
 
-    eventDispatcher.sendToTopic(
-      currentUser.getUUID(),
-      room.getId(),
+    eventDispatcher.sendToUserQueue(
+      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomMemberAddedEvent
-        .create().roomId(UUID.fromString(room.getId()))
+        .create(currentUser.getUUID()).roomId(UUID.fromString(room.getId()))
         .memberId(memberDto.getUserId())
-        .isOwner(memberDto.isOwner())
-        .temporary(false)
-        .external(false));
+        .isOwner(memberDto.isOwner()));
 
     return subscriptionMapper.ent2memberDto(subscription);
   }
@@ -171,10 +169,9 @@ public class MembersServiceImpl implements MembersService {
     } else {
       messageService.removeRoomMember(room.getId(), currentUser.getId(), userId.toString());
     }
-    eventDispatcher.sendToTopic(
-      currentUser.getUUID(),
-      room.getId(),
-      RoomMemberRemovedEvent.create().roomId(UUID.fromString(room.getId())).memberId(userId)
+    eventDispatcher.sendToUserQueue(
+      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+      RoomMemberRemovedEvent.create(currentUser.getUUID()).roomId(UUID.fromString(room.getId())).memberId(userId)
     );
   }
 

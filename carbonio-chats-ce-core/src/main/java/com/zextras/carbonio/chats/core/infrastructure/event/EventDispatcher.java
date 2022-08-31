@@ -11,9 +11,8 @@ import java.util.UUID;
 
 public interface EventDispatcher extends HealthIndicator {
 
-  // TODO: 24/11/21 versioning
+  void sendToUserQueue(String userId, DomainEvent event);
 
-  void sendToTopic(UUID sender, String topic, DomainEvent domainEvent);
-  void sendToUserQueue(UUID sender, String user, DomainEvent domainEvent);
-  void sendToUserQueue(UUID sender, List<String> users, DomainEvent domainEvent);
+  void sendToUserQueue(List<String> usersIds, DomainEvent event);
+
 }

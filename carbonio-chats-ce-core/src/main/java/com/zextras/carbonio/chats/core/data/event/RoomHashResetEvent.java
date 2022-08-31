@@ -14,12 +14,12 @@ public class RoomHashResetEvent extends DomainEvent {
   private UUID   roomId;
   private String hash;
 
-  public RoomHashResetEvent() {
-    super(EVENT_TYPE);
+  public RoomHashResetEvent(UUID from) {
+    super(EVENT_TYPE, from);
   }
 
-  public static RoomHashResetEvent create() {
-    return new RoomHashResetEvent();
+  public static RoomHashResetEvent create(UUID from) {
+    return new RoomHashResetEvent(from);
   }
 
   public UUID getRoomId() {
@@ -38,24 +38,5 @@ public class RoomHashResetEvent extends DomainEvent {
   public RoomHashResetEvent hash(String hash) {
     this.hash = hash;
     return this;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    RoomHashResetEvent that = (RoomHashResetEvent) o;
-    return Objects.equals(getType(), that.getType()) &&
-      Objects.equals(getRoomId(), that.getRoomId()) &&
-      Objects.equals(hash, that.hash);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(getType(), getRoomId(), hash);
   }
 }

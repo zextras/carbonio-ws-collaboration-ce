@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class RoomOwnerChangedEvent extends DomainEvent {
@@ -14,12 +15,12 @@ public class RoomOwnerChangedEvent extends DomainEvent {
   private UUID    memberId;
   private boolean isOwner;
 
-  public RoomOwnerChangedEvent() {
-    super(EVENT_TYPE);
+  public RoomOwnerChangedEvent(UUID from) {
+    super(EVENT_TYPE, from);
   }
 
-  public static RoomOwnerChangedEvent create() {
-    return new RoomOwnerChangedEvent();
+  public static RoomOwnerChangedEvent create(UUID from) {
+    return new RoomOwnerChangedEvent(from);
   }
 
   public UUID getRoomId() {
@@ -47,5 +48,27 @@ public class RoomOwnerChangedEvent extends DomainEvent {
   public RoomOwnerChangedEvent isOwner(boolean owner) {
     isOwner = owner;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+    RoomOwnerChangedEvent that = (RoomOwnerChangedEvent) o;
+    return Objects.equals(getRoomId(), that.getRoomId()) &&
+      Objects.equals(getMemberId(), that.getMemberId()) &&
+      isOwner() == that.isOwner();
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), getRoomId(), getMemberId(), isOwner());
   }
 }

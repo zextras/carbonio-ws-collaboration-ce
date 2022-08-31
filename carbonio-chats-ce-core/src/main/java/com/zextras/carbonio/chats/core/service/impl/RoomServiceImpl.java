@@ -115,7 +115,7 @@ public class RoomServiceImpl implements RoomService {
       settingsMap = roomUserSettingsRepository.getMapGroupedByUserId(currentUser.getId());
     } else {
       List<String> ids = rooms.stream()
-        .filter(room -> List.of(RoomTypeDto.WORKSPACE).contains(room.getType()))
+        .filter(room -> RoomTypeDto.WORKSPACE.equals(room.getType()))
         .map(Room::getId).collect(Collectors.toList());
       settingsMap = roomUserSettingsRepository.getMapByRoomsIdsAndUserIdGroupedByRoomsIds(ids, currentUser.getId());
     }
@@ -191,11 +191,9 @@ public class RoomServiceImpl implements RoomService {
       }
     }
     UUID finalId = UUID.fromString(room.getId());
-    room.getSubscriptions().forEach(member ->
-      eventDispatcher.sendToUserQueue(currentUser.getUUID(), member.getUserId(),
-        RoomCreatedEvent.create().roomId(finalId).from(currentUser.getUUID())
-      )
-    );
+    eventDispatcher.sendToUserQueue(
+      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+      RoomCreatedEvent.create(currentUser.getUUID()).roomId(finalId));
     return roomMapper.ent2dto(room,
       room.getUserSettings().stream().filter(userSettings -> userSettings.getUserId().equals(currentUser.getId()))
         .findAny().orElse(null), true, true);
@@ -269,8 +267,9 @@ public class RoomServiceImpl implements RoomService {
     }
     if (changed) {
       roomRepository.update(room);
-      eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
-        RoomUpdatedEvent.create().roomId(roomId).from(currentUser.getUUID()));
+      eventDispatcher.sendToUserQueue(
+        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        RoomUpdatedEvent.create(currentUser.getUUID()).roomId(roomId));
     }
     return roomMapper.ent2dto(room,
       room.getUserSettings().stream().filter(userSettings -> userSettings.getUserId().equals(currentUser.getId()))
@@ -295,7 +294,9 @@ public class RoomServiceImpl implements RoomService {
     } else {
       messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId());
     }
-    eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(), RoomDeletedEvent.create().roomId(roomId));
+    eventDispatcher.sendToUserQueue(
+      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+      RoomDeletedEvent.create(currentUser.getUUID()).roomId(roomId));
   }
 
   @Override
@@ -304,8 +305,9 @@ public class RoomServiceImpl implements RoomService {
     String hash = Utils.encodeUuidHash(roomId.toString());
     room.hash(hash);
     roomRepository.update(room);
-    eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
-      RoomHashResetEvent.create().roomId(roomId).hash(hash));
+    eventDispatcher.sendToUserQueue(
+      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+      RoomHashResetEvent.create(currentUser.getUUID()).roomId(roomId).hash(hash));
     return HashDtoBuilder.create().hash(hash).build();
   }
 
@@ -320,8 +322,9 @@ public class RoomServiceImpl implements RoomService {
       .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
     if (settings.getMutedUntil() == null) {
       roomUserSettingsRepository.save(settings.mutedUntil(MUTED_TO_INFINITY));
-      eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
-        UserMutedEvent.create().roomId(roomId).memberId(currentUser.getUUID()));
+      eventDispatcher.sendToUserQueue(
+        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        UserMutedEvent.create(currentUser.getUUID()).roomId(roomId).memberId(currentUser.getUUID()));
     }
   }
 
@@ -336,8 +339,9 @@ public class RoomServiceImpl implements RoomService {
       settings -> {
         if (settings.getMutedUntil() != null) {
           roomUserSettingsRepository.save(settings.mutedUntil(null));
-          eventDispatcher.sendToTopic(currentUser.getUUID(), roomId.toString(),
-            UserUnmutedEvent.create().roomId(roomId).memberId(currentUser.getUUID()));
+          eventDispatcher.sendToUserQueue(
+            room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+            UserUnmutedEvent.create(currentUser.getUUID()).roomId(roomId).memberId(currentUser.getUUID()));
         }
       });
   }
@@ -420,8 +424,9 @@ public class RoomServiceImpl implements RoomService {
     }
     storagesService.saveFile(image, metadata, currentUser.getId());
     messageDispatcher.updateRoomPictures(room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
-    eventDispatcher.sendToTopic(currentUser.getUUID(), room.getId(),
-      RoomPictureChangedEvent.create().roomId(UUID.fromString(room.getId())).from(currentUser.getUUID()));
+    eventDispatcher.sendToUserQueue(
+      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+      RoomPictureChangedEvent.create(currentUser.getUUID()).roomId(UUID.fromString(room.getId())));
   }
 
   @Override

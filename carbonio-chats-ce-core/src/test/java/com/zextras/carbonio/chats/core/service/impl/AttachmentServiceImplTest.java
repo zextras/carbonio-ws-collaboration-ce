@@ -550,6 +550,7 @@ public class AttachmentServiceImplTest {
     public void addAttachment_testOk() throws Exception {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
       File attachmentFile = tempDir.resolve("temp.pdf").toFile();
       Files.writeString(attachmentFile.toPath(), "test!");
       FileMetadataBuilder expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
@@ -568,8 +569,9 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(fileMetadataRepository);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
-      verify(eventDispatcher, times(1))
-        .sendToTopic(user1Id, roomId.toString(), AttachmentAddedEvent.create().roomId(roomId).from(user1Id));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+        AttachmentAddedEvent.create(user1Id).roomId(roomId));
       verifyNoMoreInteractions(eventDispatcher);
     }
 
@@ -673,8 +675,9 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(fileMetadataRepository);
       verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
       verifyNoMoreInteractions(storagesService);
-      verify(eventDispatcher, times(1)).sendToTopic(user2Id, roomId.toString(),
-        AttachmentRemovedEvent.create().roomId(roomId).from(user2Id));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+        AttachmentRemovedEvent.create(user2Id).roomId(roomId));
     }
 
     @Test
@@ -695,8 +698,9 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(fileMetadataRepository);
       verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
       verifyNoMoreInteractions(storagesService);
-      verify(eventDispatcher, times(1)).sendToTopic(user1Id, roomId.toString(),
-        AttachmentRemovedEvent.create().roomId(roomId).from(user1Id));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+        AttachmentRemovedEvent.create(user1Id).roomId(roomId));
     }
 
     @Test

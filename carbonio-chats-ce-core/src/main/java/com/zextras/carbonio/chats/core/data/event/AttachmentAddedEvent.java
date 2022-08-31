@@ -12,14 +12,13 @@ public class AttachmentAddedEvent extends DomainEvent {
   private static final EventType EVENT_TYPE = EventType.ATTACHMENT_ADDED;
 
   private UUID roomId;
-  private UUID from;
 
-  public AttachmentAddedEvent() {
-    super(EVENT_TYPE);
+  public AttachmentAddedEvent(UUID from) {
+    super(EVENT_TYPE, from);
   }
 
-  public static AttachmentAddedEvent create() {
-    return new AttachmentAddedEvent();
+  public static AttachmentAddedEvent create(UUID from) {
+    return new AttachmentAddedEvent(from);
   }
 
   public UUID getRoomId() {
@@ -31,15 +30,6 @@ public class AttachmentAddedEvent extends DomainEvent {
     return this;
   }
 
-  public UUID getFrom() {
-    return from;
-  }
-
-  public AttachmentAddedEvent from(UUID from) {
-    this.from = from;
-    return this;
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -48,14 +38,15 @@ public class AttachmentAddedEvent extends DomainEvent {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
+    if (!super.equals(o)) {
+      return false;
+    }
     AttachmentAddedEvent that = (AttachmentAddedEvent) o;
-    return Objects.equals(getType(), that.getType()) &&
-      Objects.equals(getRoomId(), that.getRoomId()) &&
-      Objects.equals(from, that.from);
+    return Objects.equals(getRoomId(), that.getRoomId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(from);
+    return Objects.hash(super.hashCode(), getRoomId());
   }
 }
