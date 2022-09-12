@@ -16,6 +16,7 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
+import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
@@ -177,12 +178,12 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   @TimedCall
-  public Response insertRoomMember(UUID roomId, MemberDto memberDto, SecurityContext securityContext) {
+  public Response insertRoomMember(UUID roomId, MemberToInsertDto memberToInsertDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response
       .status(Status.CREATED)
-      .entity(membersService.insertRoomMember(roomId, memberDto, currentUser))
+      .entity(membersService.insertRoomMember(roomId, memberToInsertDto, currentUser))
       .build();
   }
 

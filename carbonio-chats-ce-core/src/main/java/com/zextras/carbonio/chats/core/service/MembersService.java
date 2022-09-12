@@ -8,6 +8,8 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
+import com.zextras.carbonio.chats.model.MemberInsertedDto;
+import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,11 +29,11 @@ public interface MembersService {
    * Adds the specified user to the room. This can only be performed by an of the given room
    *
    * @param roomId      room identifier {@link UUID }
-   * @param memberDto   member to add or invite {@link MemberDto }
+   * @param memberToInsertDto member to add or invite {@link MemberDto }
    * @param currentUser current authenticated user {@link UserPrincipal}
    * @return The member added or invited {@link MemberDto }
    **/
-  MemberDto insertRoomMember(UUID roomId, MemberDto memberDto, UserPrincipal currentUser);
+  MemberInsertedDto insertRoomMember(UUID roomId, MemberToInsertDto memberToInsertDto, UserPrincipal currentUser);
 
   /**
    * Removes a member from the specified room. If the specified user is different from the requester, this action is considered as a kick

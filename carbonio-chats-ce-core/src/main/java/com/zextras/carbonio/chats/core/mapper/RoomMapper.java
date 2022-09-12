@@ -102,6 +102,7 @@ public class RoomMapper {
         userSettingsDto.muted(false);
       } else {
         userSettingsDto.muted(userSettings.getMutedUntil() != null);
+        userSettingsDto.clearedAt(userSettings.getClearedAt());
       }
       return userSettingsDto;
     }
