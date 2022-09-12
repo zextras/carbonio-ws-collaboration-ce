@@ -16,6 +16,8 @@ import com.zextras.carbonio.chats.mongooseim.admin.model.AffiliationDetailsDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.AffiliationDetailsDto.AffiliationEnum;
 import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
+import com.zextras.carbonio.chats.mongooseim.admin.model.SubscriptionActionDto;
+import com.zextras.carbonio.chats.mongooseim.admin.model.SubscriptionActionDto.ActionEnum;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -99,7 +101,7 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
       MockedAccount.getAccount(MockedAccountType.SNOOPY).getId(),
       MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN).getId());
     userIds.forEach(user1id ->
-      userIds.forEach(user2id -> mockUserToRoster(client, user1id, user2id))
+      userIds.forEach(user2id -> mockContactSubscription(client, user1id, user2id))
     );
   }
 
@@ -138,19 +140,20 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
     );
   }
 
-  private void mockUserToRoster(MockServerClient client, String user1id, String user2id) {
+  private void mockContactSubscription(MockServerClient client, String user1id, String user2id) {
     if (user1id.equals(user2id)) {
       return;
     }
     client.when(
       request()
-        .withMethod("POST")
-        .withPath("/admin/contacts/{user}")
+        .withMethod("PUT")
+        .withPath("/admin/contacts/{user}/{contact}/manage")
         .withPathParameter(Parameter.param("user", String.format("%s%scarbonio", user1id, "%40")))
-        .withBody(JsonBody.json(new AddcontactDto().jid(String.format("%s@carbonio", user2id))))
+        .withPathParameter(Parameter.param("contact", String.format("%s%scarbonio", user2id, "%40")))
+        .withBody(JsonBody.json(new SubscriptionActionDto().action(ActionEnum.CONNECT)))
     ).respond(
       response()
-        .withStatusCode(200)
+        .withStatusCode(204)
     );
   }
 
