@@ -436,6 +436,30 @@ public class MembersServiceImplTest {
     }
 
     @Test
+    @DisplayName("Correctly user removes itself of a group room")
+    public void deleteRoomMember_userRemoveItselfTestOk() {
+      Room room = generateRoom(RoomTypeDto.GROUP);
+      room.subscriptions(List.of(
+        Subscription.create(room, user1Id.toString()).owner(false),
+        Subscription.create(room, user2Id.toString()).owner(false),
+        Subscription.create(room, user3Id.toString()).owner(false)
+      ));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+      when(roomService.getRoomEntityAndCheckUser(roomId, principal, false)).thenReturn(room);
+
+      membersService.deleteRoomMember(roomId, user1Id, principal);
+
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, false);
+      verify(subscriptionRepository, times(1)).delete(roomId.toString(), user1Id.toString());
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+        RoomMemberRemovedEvent.create(user1Id).roomId(roomId).memberId(user1Id));
+      verify(messageDispatcher, times(1)).removeRoomMember(roomId.toString(), user1Id.toString(), user1Id.toString());
+      verifyNoMoreInteractions(roomService, subscriptionRepository, eventDispatcher, messageDispatcher);
+      verifyNoInteractions(roomUserSettingsRepository);
+    }
+
+    @Test
     @DisplayName("Correctly removes a member of a workspace room")
     public void deleteRoomMember_workspaceTestOk() {
       UUID workspaceId = UUID.randomUUID();
@@ -498,14 +522,14 @@ public class MembersServiceImplTest {
         Subscription.create(room, user3Id.toString()).owner(false)
       ));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomService.getRoomEntityAndCheckUser(roomId, principal, false)).thenReturn(room);
 
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         membersService.deleteRoomMember(roomId, user1Id, principal));
       assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
       assertEquals("Bad Request - Last owner can't leave the room", exception.getMessage());
 
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, false);
       verifyNoMoreInteractions(roomService);
       verifyNoInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);
     }

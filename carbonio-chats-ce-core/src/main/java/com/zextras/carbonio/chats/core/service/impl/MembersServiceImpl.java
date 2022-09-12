@@ -140,9 +140,13 @@ public class MembersServiceImpl implements MembersService {
   @Override
   @Transactional
   public void deleteRoomMember(UUID roomId, UUID userId, UserPrincipal currentUser) {
-    Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, true);
+    Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, !currentUser.getUUID().equals(userId));
     if (List.of(RoomTypeDto.ONE_TO_ONE, RoomTypeDto.CHANNEL).contains(room.getType())) {
       throw new BadRequestException(String.format("Cannot remove a member from a %s conversation", room.getType()));
+    }
+    if (!currentUser.getUUID().equals(userId) &&
+      room.getSubscriptions().stream().noneMatch(s -> s.getUserId().equals(userId.toString()))) {
+      throw new NotFoundException("The user is not a room member");
     }
     List<String> owners = room.getSubscriptions().stream()
       .filter(Subscription::isOwner)

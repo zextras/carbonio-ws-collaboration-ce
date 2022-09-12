@@ -2412,6 +2412,30 @@ public class RoomsApiIT {
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
+
+    @Test
+    @DisplayName("Given a group room identifier and a member identifier equals to authenticated user, correctly user remove itself")
+    public void deleteRoomMember_userRemoveItselfTestOk() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
+      MockHttpResponse response = dispatcher.delete(url(roomId, user3Id), user3Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      Optional<Room> room = integrationTestUtils.getRoomById(roomId);
+      assertTrue(room.isPresent());
+      assertTrue(room.get().getSubscriptions().stream().filter(s -> s.getUserId().equals(user3Id.toString())).findAny()
+        .isEmpty());
+
+      // TODO: 25/02/22 verify event dispatcher
+      mongooseImMockServer.verify("PUT",
+        String.format("/admin/muc-lights/carbonio/%s/%s/affiliation", roomId, String.format("%s%%40carbonio", user3Id)),
+        1);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+
+
   }
 
   @Nested
