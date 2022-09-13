@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.service.impl;
 import com.zextras.carbonio.chats.core.config.ChatsConstant;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.event.UserPictureChangedEvent;
+import com.zextras.carbonio.chats.core.data.event.UserPictureDeletedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -21,6 +22,7 @@ import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
+import io.ebean.annotation.Transactional;
 import java.io.File;
 import java.util.Optional;
 import java.util.UUID;
@@ -80,6 +82,7 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
+  @Transactional
   public void setUserPicture(UUID userId, File image, String mimeType, String fileName, UserPrincipal currentUser) {
     if (!currentUser.getUUID().equals(userId)) {
       throw new ForbiddenException("The picture can be change only from its owner");
@@ -104,6 +107,21 @@ public class UserServiceImpl implements UserService {
     storagesService.saveFile(image, metadata, currentUser.getId());
     eventDispatcher.sendToUserQueue(
       subscriptionRepository.getContacts(userId.toString()),
-      UserPictureChangedEvent.create(currentUser.getUUID()));
+      UserPictureChangedEvent.create(currentUser.getUUID()).userId(userId));
+  }
+
+  @Override
+  @Transactional
+  public void deleteUserPicture(UUID userId, UserPrincipal currentUser) {
+    if (!currentUser.getUUID().equals(userId) && !currentUser.isSystemUser()) {
+      throw new ForbiddenException("The picture can be removed only from its owner");
+    }
+    FileMetadata metadata = fileMetadataRepository.getById(userId.toString())
+      .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", userId)));
+    fileMetadataRepository.delete(metadata);
+    storagesService.deleteFile(metadata.getId(), metadata.getUserId());
+    eventDispatcher.sendToUserQueue(
+      subscriptionRepository.getContacts(userId.toString()),
+      UserPictureDeletedEvent.create(currentUser.getUUID()).userId(userId));
   }
 }

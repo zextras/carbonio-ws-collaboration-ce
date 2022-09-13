@@ -6,24 +6,24 @@ package com.zextras.carbonio.chats.core.data.event;
 
 import java.util.UUID;
 
-public class UserPictureChangedEvent extends DomainEvent {
+public class UserPictureDeletedEvent extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.USER_PICTURE_CHANGED;
+  private static final EventType EVENT_TYPE = EventType.USER_PICTURE_DELETED;
   private              UUID      userId;
 
-  public UserPictureChangedEvent(UUID from) {
+  public UserPictureDeletedEvent(UUID from) {
     super(EVENT_TYPE, from);
   }
 
-  public static UserPictureChangedEvent create(UUID from) {
-    return new UserPictureChangedEvent(from);
+  public static UserPictureDeletedEvent create(UUID from) {
+    return new UserPictureDeletedEvent(from);
   }
 
   public UUID getUserId() {
     return userId;
   }
 
-  public UserPictureChangedEvent userId(UUID userId) {
+  public UserPictureDeletedEvent userId(UUID userId) {
     this.userId = userId;
     return this;
   }

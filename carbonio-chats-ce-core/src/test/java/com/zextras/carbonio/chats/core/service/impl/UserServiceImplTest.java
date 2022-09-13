@@ -6,9 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -17,6 +20,7 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.User;
 import com.zextras.carbonio.chats.core.data.event.UserPictureChangedEvent;
+import com.zextras.carbonio.chats.core.data.event.UserPictureDeletedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
@@ -188,7 +192,6 @@ class UserServiceImplTest {
 
     }
 
-
     @Test
     @DisplayName("If the user hasn't its picture, it throws a BadRequestException")
     void getUserPicture_fileNotFound() {
@@ -294,6 +297,79 @@ class UserServiceImplTest {
 
       assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
       assertEquals("Forbidden - The picture can be change only from its owner", exception.getMessage());
+    }
+  }
+
+  @Nested
+  @DisplayName("Delete user picture tests")
+  class DeleteUserPictureTests {
+
+    @Test
+    @DisplayName("Correctly deletes the user picture")
+    public void deleteUserPicture_testOk() {
+      UUID userId = UUID.randomUUID();
+      FileMetadata metadata = FileMetadata.create().id(userId.toString()).userId(userId.toString());
+      when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.of(metadata));
+      List<String> contacts = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
+      when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contacts);
+
+      userService.deleteUserPicture(userId, UserPrincipal.create(userId));
+
+      verify(fileMetadataRepository, times(1)).getById(userId.toString());
+      verify(fileMetadataRepository, times(1)).delete(metadata);
+      verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
+      verify(eventDispatcher, times(1))
+        .sendToUserQueue(eq(contacts), any(UserPictureDeletedEvent.class));
+      verify(subscriptionRepository, times(1)).getContacts(userId.toString());
+      verifyNoMoreInteractions(fileMetadataRepository, storagesService, eventDispatcher, subscriptionRepository);
+    }
+
+    @Test
+    @DisplayName("Correctly deletes the user picture by a system user")
+    public void deleteUserPicture_bySystemUser() {
+      UUID userId = UUID.randomUUID();
+      FileMetadata metadata = FileMetadata.create().id(userId.toString()).userId(userId.toString());
+      when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.of(metadata));
+      List<String> contacts = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
+      when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contacts);
+
+      userService.deleteUserPicture(userId, UserPrincipal.create(UUID.randomUUID()).systemUser(true));
+
+      verify(fileMetadataRepository, times(1)).getById(userId.toString());
+      verify(fileMetadataRepository, times(1)).delete(metadata);
+      verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
+      verify(eventDispatcher, times(1))
+        .sendToUserQueue(eq(contacts), any(UserPictureDeletedEvent.class));
+      verify(subscriptionRepository, times(1)).getContacts(userId.toString());
+      verifyNoMoreInteractions(fileMetadataRepository, storagesService, eventDispatcher, subscriptionRepository);
+    }
+
+    @Test
+    @DisplayName("If user is not the picture owner, it throws a ForbiddenException")
+    public void deleteUserPicture_userNotPictureOwner() {
+      ChatsHttpException exception = assertThrows(ForbiddenException.class,
+        () -> userService.deleteUserPicture(UUID.randomUUID(), UserPrincipal.create(UUID.randomUUID())));
+
+      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals("Forbidden - The picture can be removed only from its owner", exception.getMessage());
+      verifyNoInteractions(fileMetadataRepository, storagesService, eventDispatcher, subscriptionRepository);
+    }
+
+    @Test
+    @DisplayName("If the user hasn't its picture, it throws a BadRequestException")
+    public void deleteUserPicture_fileNotFound() {
+      UUID userId = UUID.randomUUID();
+      when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.empty());
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class,
+        () -> userService.getUserPicture(userId, UserPrincipal.create(userId)));
+
+      assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
+      assertEquals(String.format("Not Found - File with id '%s' not found", userId),
+        exception.getMessage());
+      verify(fileMetadataRepository, times(1)).getById(userId.toString());
+      verifyNoMoreInteractions(fileMetadataRepository);
+      verifyNoInteractions(storagesService, eventDispatcher, subscriptionRepository);
     }
   }
 }
