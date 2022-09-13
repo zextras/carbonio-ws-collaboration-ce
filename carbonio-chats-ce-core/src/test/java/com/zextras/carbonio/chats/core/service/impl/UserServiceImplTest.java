@@ -351,7 +351,7 @@ class UserServiceImplTest {
         () -> userService.deleteUserPicture(UUID.randomUUID(), UserPrincipal.create(UUID.randomUUID())));
 
       assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
-      assertEquals("Forbidden - The picture can be remove only from its owner", exception.getMessage());
+      assertEquals("Forbidden - The picture can be removed only from its owner", exception.getMessage());
       verifyNoInteractions(fileMetadataRepository, storagesService, eventDispatcher, subscriptionRepository);
     }
 
