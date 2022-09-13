@@ -162,6 +162,8 @@ paths:
           description: The new password for the user
           required: true
           schema:
+            title: newPassword
+            type: object
             properties:
               newpass:
                 type: string
@@ -403,8 +405,13 @@ paths:
           name: action
           required: true
           schema:
-            type: string
-            enum: ["invite", "accept"]
+            type: object
+            title: subscriptionRequest
+            properties:
+              action:
+                type: string
+                enum: [ "invite", "accept" ]
+                description: Manage subscription contact
       responses:
         204:
           description: "A subscription request was sent to the contact
@@ -443,8 +450,13 @@ paths:
           name: action
           required: true
           schema:
-            type: string
-            enum: ["connect", "disconnect"]
+            type: object
+            title: subscriptionAction
+            properties:
+              action:
+                type: string
+                enum: [ "connect", "disconnect" ]
+                description: Add or remove subscriptions for two contacts in both ways
       responses:
         204:
           description: "The operation was successful."

@@ -12,13 +12,14 @@ import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.ContactsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.OneToOneMessagesApi;
-import com.zextras.carbonio.chats.mongooseim.admin.model.AddcontactDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.AffiliationDetailsDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.AffiliationDetailsDto.AffiliationEnum;
 import com.zextras.carbonio.chats.mongooseim.admin.model.ChatMessageDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.Message1Dto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
+import com.zextras.carbonio.chats.mongooseim.admin.model.SubscriptionActionDto;
+import com.zextras.carbonio.chats.mongooseim.admin.model.SubscriptionActionDto.ActionEnum;
 import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -95,8 +96,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     }
     String user1jid = userId2userDomain(user1id);
     String user2jid = userId2userDomain(user2id);
-    contactsApi.contactsUserPost(user1jid, new AddcontactDto().jid(user2jid));
-    contactsApi.contactsUserPost(user2jid, new AddcontactDto().jid(user1jid));
+    contactsApi.contactsUserContactManagePut(user1jid, user2jid, new SubscriptionActionDto().action(ActionEnum.CONNECT));
   }
 
   @Override

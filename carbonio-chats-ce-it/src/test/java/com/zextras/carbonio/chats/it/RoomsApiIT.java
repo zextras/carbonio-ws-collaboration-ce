@@ -38,9 +38,10 @@ import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomRankDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import com.zextras.carbonio.chats.mongooseim.admin.model.AddcontactDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
+import com.zextras.carbonio.chats.mongooseim.admin.model.SubscriptionActionDto;
+import com.zextras.carbonio.chats.mongooseim.admin.model.SubscriptionActionDto.ActionEnum;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -544,14 +545,9 @@ public class RoomsApiIT {
           new InviteDto()
             .sender(String.format("%s@carbonio", user1Id.toString()))
             .recipient(String.format("%s@carbonio", user2Id.toString())), 1);
-        mongooseImMockServer.verify("POST",
-          String.format("/admin/contacts/%s%%40carbonio", user1Id.toString()),
-          new AddcontactDto()
-            .jid(String.join("@", user2Id.toString(), "carbonio")), 1);
-        mongooseImMockServer.verify("POST",
-          String.format("/admin/contacts/%s%%40carbonio", user2Id.toString()),
-          new AddcontactDto()
-            .jid(String.join("@", user1Id.toString(), "carbonio")), 1);
+        mongooseImMockServer.verify("PUT",
+          String.format("/admin/contacts/%s%%40carbonio/%s%%40carbonio/manage", user2Id.toString(), user1Id.toString()),
+          new SubscriptionActionDto().action(ActionEnum.CONNECT), 1);
 
         // TODO: 23/02/22 verify event dispatcher interactions
       }
