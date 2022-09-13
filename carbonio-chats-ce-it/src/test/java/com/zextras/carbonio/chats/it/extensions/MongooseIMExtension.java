@@ -11,7 +11,6 @@ import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockUserProfile;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
-import com.zextras.carbonio.chats.mongooseim.admin.model.AddcontactDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.AffiliationDetailsDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.AffiliationDetailsDto.AffiliationEnum;
 import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
@@ -101,7 +100,7 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
       MockedAccount.getAccount(MockedAccountType.SNOOPY).getId(),
       MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN).getId());
     userIds.forEach(user1id ->
-      userIds.forEach(user2id -> mockContactSubscription(client, user1id, user2id))
+      userIds.forEach(user2id -> mockUsersToContacts(client, user1id, user2id))
     );
   }
 
@@ -140,7 +139,7 @@ public class MongooseIMExtension implements AfterEachCallback, BeforeAllCallback
     );
   }
 
-  private void mockContactSubscription(MockServerClient client, String user1id, String user2id) {
+  private void mockUsersToContacts(MockServerClient client, String user1id, String user2id) {
     if (user1id.equals(user2id)) {
       return;
     }

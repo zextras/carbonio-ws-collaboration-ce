@@ -123,7 +123,7 @@ paths:
       tags:
         - "User management"
       parameters:
-        - name: Credentials
+        - name: credentials
           in: body
           description: User's name and password
           required: true
@@ -348,8 +348,8 @@ paths:
       tags:
         - "Contacts"
       parameters:
-        - in: path
-          name: user
+        - name: user
+          in: path
           description: User's JID (f.e. alice@wonderland.lit)
           required: true
           type: string
@@ -370,16 +370,16 @@ paths:
           name: contact
           required: true
           schema:
-            type: object
             title: addcontact
+            type: object
             properties:
               jid:
                 type: string
                 format: JID
                 description: Contact's jid
                 example: "alice@wonderlant.lit"
-        - in: path
-          name: user
+        - name: user
+          in: path
           description: User's JID (f.e. alice@wonderland.lit)
           required: true
           type: string
@@ -638,7 +638,7 @@ paths:
               affiliation:
                 type: string
                 description: The new target affiliation
-                enum: [ "none", "member", "owner" ]
+                enum: ["none", "member", "owner"]
                 example: "none"
       responses:
         204:
@@ -828,7 +828,7 @@ definitions:
           * to - I receive updates about the contact's presence
           * from - the contact receives updates about my presence
           * both
-        enum: [ "none", "to", "from", "both" ]
+        enum: ["none", "to", "from", "both"]
       ask:
         type: string
         description: |
@@ -838,4 +838,4 @@ definitions:
           * out - I asked the contact and am waiting for his approval
           * in - my contact asked me, it is up to me to decide
           * both
-        enum: [ "none", "in", "out", "both" ]
+        enum: ["none", "in", "out", "both"]
