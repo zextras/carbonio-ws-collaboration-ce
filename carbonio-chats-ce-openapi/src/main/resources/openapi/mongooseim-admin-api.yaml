@@ -123,12 +123,12 @@ paths:
       tags:
         - "User management"
       parameters:
-        - name: credentials
+        - name: Credentials
           in: body
           description: User's name and password
           required: true
           schema:
-            title: credentials
+            title: Credentials
             type: object
             properties:
               username:
