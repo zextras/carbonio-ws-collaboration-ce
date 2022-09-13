@@ -3,7 +3,6 @@ package com.zextras.carbonio.chats.it;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,7 +27,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import javax.ws.rs.core.Response.Status;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -310,7 +308,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("If the user hasn't its picture, it throws a BadRequestException")
-    public void deleteUserPicture_fileNotFound() throws Exception{
+    public void deleteUserPicture_fileNotFound() throws Exception {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SCHROEDER);
       MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
       assertEquals(404, response.getStatus());

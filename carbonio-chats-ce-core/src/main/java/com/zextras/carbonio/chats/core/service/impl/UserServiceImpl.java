@@ -114,7 +114,7 @@ public class UserServiceImpl implements UserService {
   @Transactional
   public void deleteUserPicture(UUID userId, UserPrincipal currentUser) {
     if (!currentUser.getUUID().equals(userId) && !currentUser.isSystemUser()) {
-      throw new ForbiddenException("The picture can be remove only from its owner");
+      throw new ForbiddenException("The picture can be removed only from its owner");
     }
     FileMetadata metadata = fileMetadataRepository.getById(userId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", userId)));

@@ -19,7 +19,7 @@ public enum EventType {
   USER_MUTED("userMuted"),
   USER_UNMUTED("userUnmuted"),
   USER_PICTURE_CHANGED("userPictureChanged"),
-  USER_PICTURE_DELETED("userPictureDeleted");;
+  USER_PICTURE_DELETED("userPictureDeleted");
 
 
   private final String name;
