@@ -2,9 +2,12 @@ package com.zextras.carbonio.chats.it;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
@@ -23,7 +26,9 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import javax.ws.rs.core.Response.Status;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -256,6 +261,61 @@ public class UsersApiIT {
         account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
+    }
+  }
+
+  @Nested
+  @DisplayName("Delete user picture tests")
+  public class DeleteUserPictureTests {
+
+    private String url(UUID userId) {
+      return String.format("/users/%s/picture", userId);
+    }
+
+    @Test
+    @DisplayName("Correctly deletes the user picture")
+    public void deleteUserPicture_testOk() throws Exception {
+      MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
+      FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
+      integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.USER_AVATAR, account.getUUID(), null);
+
+      MockHttpResponse response = dispatcher.delete(url(account.getUUID()), account.getToken());
+      assertEquals(204, response.getStatus());
+      Optional<FileMetadata> metadata = integrationTestUtils.getFileMetadataById(fileMock.getUUID());
+      assertTrue(metadata.isEmpty());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
+      storageMockServer.verify("DELETE", "/delete", fileMock.getId(), 1);
+    }
+
+    @Test
+    @DisplayName("If the user is not authenticated, it returns status code 401")
+    public void deleteUserPicture_unauthenticatedUser() throws Exception {
+      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID()), null);
+      assertEquals(401, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("If user is not the picture owner, it throws a ForbiddenException")
+    public void deleteUserPicture_userNotPictureOwner() throws Exception {
+      MockUserProfile snoopy = MockedAccount.getAccount(MockedAccountType.SNOOPY);
+      MockUserProfile charlie = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN);
+
+      MockHttpResponse response = dispatcher.delete(url(charlie.getUUID()), snoopy.getToken());
+      assertEquals(403, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("If the user hasn't its picture, it throws a BadRequestException")
+    public void deleteUserPicture_fileNotFound() throws Exception{
+      MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SCHROEDER);
+      MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
+      assertEquals(404, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
     }
   }

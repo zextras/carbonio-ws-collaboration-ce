@@ -5,16 +5,14 @@
 package com.zextras.carbonio.chats.core.service;
 
 
-import com.zextras.carbonio.chats.api.NotFoundException;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
 import java.io.File;
 import java.util.UUID;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
 
 public interface UserService {
+
   /**
    * Retrieves info about a user
    *
@@ -28,7 +26,7 @@ public interface UserService {
    * Checks if a user exists. Current implementations checks the {@link com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService}
    * to check if the user exists.
    *
-   * @param userId the user whose existance we need to check
+   * @param userId      the user whose existance we need to check
    * @param currentUser the current authenticated user
    * @return a {@link Boolean} which indicates if the user exists or not
    */
@@ -44,7 +42,7 @@ public interface UserService {
   FileContentAndMetadata getUserPicture(UUID userId, UserPrincipal currentUser);
 
   /**
-   * Sets a new room picture
+   * Sets a new user picture
    *
    * @param userId      room identifier {@link UUID }
    * @param image       image to set {@link File}
@@ -53,4 +51,12 @@ public interface UserService {
    * @param currentUser current authenticated user {@link UserPrincipal}
    **/
   void setUserPicture(UUID userId, File image, String mimeType, String fileName, UserPrincipal currentUser);
+
+  /**
+   * Deletes the user picture
+   *
+   * @param userId      room identifier {@link UUID }
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   */
+  void deleteUserPicture(UUID userId, UserPrincipal currentUser);
 }

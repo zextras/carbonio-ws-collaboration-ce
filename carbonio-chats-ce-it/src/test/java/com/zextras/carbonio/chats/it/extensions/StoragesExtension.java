@@ -113,6 +113,7 @@ public class StoragesExtension implements AfterEachCallback, BeforeAllCallback, 
     client.when(
       request()
         .withMethod("DELETE")
+        .withPath("/delete")
         .withQueryStringParameter(param("node", fileId))
         .withQueryStringParameter(param("type", "chats"))
     ).respond(

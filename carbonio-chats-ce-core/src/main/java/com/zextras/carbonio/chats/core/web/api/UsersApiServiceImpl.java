@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.web.api;
 
 
+import com.zextras.carbonio.chats.api.NotFoundException;
 import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -71,4 +72,13 @@ public class UsersApiServiceImpl implements UsersApiService {
       currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
+
+  @Override
+  public Response deleteUserPicture(UUID userId, SecurityContext securityContext) throws NotFoundException {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    userService.deleteUserPicture(userId, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
 }

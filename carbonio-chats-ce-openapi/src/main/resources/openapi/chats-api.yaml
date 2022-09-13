@@ -350,6 +350,20 @@ paths:
           $ref: '#/components/responses/401UnauthorizedResponse'
         403:
           $ref: '#/components/responses/403ForbiddenResponse'
+    delete:
+      tags:
+        - Users
+      summary: Delete the user picture
+      operationId: deleteUserPicture
+      parameters:
+        - $ref: '#/components/parameters/pathUserId'
+      responses:
+        204:
+          $ref: '#/components/responses/204DeleteUserPictureResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /rooms/{roomId}/attachments:
     get:
       tags:
@@ -683,6 +697,8 @@ components:
             format: binary
     204UpdateUserPictureResponse:
       description: User picture was changed correctly
+    204DeleteUserPictureResponse:
+      description: User picture was deleted correctly
     201InsertAttachmentResponse:
       description: File identifier
       content:
