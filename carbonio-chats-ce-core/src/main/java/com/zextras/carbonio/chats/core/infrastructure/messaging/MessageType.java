@@ -8,7 +8,8 @@ public enum MessageType {
 
   CHANGED_ROOM_NAME("changedRoomName"),
   CHANGED_ROOM_DESCRIPTION("changedRoomDescription"),
-  UPDATED_ROOM_PICTURES("updatedRoomPictures");
+  UPDATED_ROOM_PICTURE("updatedRoomPicture"),
+  DELETED_ROOM_PICTURE("deletedRoomPicture");
 
   private final String name;
 

@@ -134,6 +134,14 @@ public interface RoomService {
   void setRoomPicture(UUID roomId, File image, String mimeType, String fileName, UserPrincipal currentUser);
 
   /**
+   * Deletes the room pictures
+   *
+   * @param roomId      room identifier {@link UUID }
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   */
+  void deleteRoomPicture(UUID roomId, UserPrincipal currentUser);
+
+  /**
    * Updates the workspaces order for the current user
    *
    * @param roomRankDto {@link List} of room identifier and room rank {@link RoomRankDto}

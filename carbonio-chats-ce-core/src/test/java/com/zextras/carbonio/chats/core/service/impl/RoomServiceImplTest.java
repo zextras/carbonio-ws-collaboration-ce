@@ -28,6 +28,7 @@ import com.zextras.carbonio.chats.core.data.event.RoomCreatedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomDeletedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomHashResetEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomPictureChangedEvent;
+import com.zextras.carbonio.chats.core.data.event.RoomPictureDeletedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomUpdatedEvent;
 import com.zextras.carbonio.chats.core.data.event.UserMutedEvent;
 import com.zextras.carbonio.chats.core.data.event.UserUnmutedEvent;
@@ -1716,7 +1717,7 @@ class RoomServiceImplTest {
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         RoomPictureChangedEvent.create(user1Id).roomId(roomGroup1Id));
-      verify(messageDispatcher, times(1)).updateRoomPictures(roomGroup1Id.toString(), user1Id.toString(),
+      verify(messageDispatcher, times(1)).updateRoomPicture(roomGroup1Id.toString(), user1Id.toString(),
         roomGroup1Id.toString(), "picture");
     }
 
@@ -1749,7 +1750,7 @@ class RoomServiceImplTest {
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         RoomPictureChangedEvent.create(user1Id).roomId(roomGroup1Id));
-      verify(messageDispatcher, times(1)).updateRoomPictures(roomGroup1Id.toString(), user1Id.toString(),
+      verify(messageDispatcher, times(1)).updateRoomPicture(roomGroup1Id.toString(), user1Id.toString(),
         "123", "picture");
     }
 
@@ -1782,7 +1783,7 @@ class RoomServiceImplTest {
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user2Id.toString(), user3Id.toString()),
         RoomPictureChangedEvent.create(user1Id).roomId(roomGroup2Id));
-      verify(messageDispatcher, times(1)).updateRoomPictures(roomGroup2Id.toString(), user1Id.toString(),
+      verify(messageDispatcher, times(1)).updateRoomPicture(roomGroup2Id.toString(), user1Id.toString(),
         "123", "picture");
     }
 
@@ -1848,6 +1849,91 @@ class RoomServiceImplTest {
       assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
       assertEquals("Bad Request - The room picture must be an image",
         exception.getMessage());
+    }
+  }
+
+  @Nested
+  @DisplayName("Delete room picture tests")
+  class DeleteRoomPictureTests {
+
+    @Test
+    @DisplayName("Correctly deletes the room picture")
+    public void deleteRoomPicture_testOk() {
+      FileMetadata metadata = FileMetadata.create().type(FileMetadataType.ROOM_AVATAR)
+        .roomId(roomGroup1Id.toString())
+        .userId(user2Id.toString()).mimeType("mime/type").id(roomGroup1Id.toString()).name("pfp").originalSize(123L);
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      when(fileMetadataRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(metadata));
+
+      roomService.deleteRoomPicture(roomGroup1Id, UserPrincipal.create(user1Id));
+
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(fileMetadataRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(fileMetadataRepository, times(1)).delete(metadata);
+      verify(storagesService, times(1)).deleteFile(roomGroup1Id.toString(), user2Id.toString());
+      verify(messageDispatcher, times(1))
+        .deleteRoomPicture(roomGroup1Id.toString(), user1Id.toString());
+      verify(eventDispatcher, times(1))
+        .sendToUserQueue(eq(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString())),
+          any(RoomPictureDeletedEvent.class));
+      verifyNoMoreInteractions(roomRepository, fileMetadataRepository, storagesService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("Correctly deletes the room picture by a system user")
+    public void deleteRoomPicture_bySystemUser() {
+      FileMetadata metadata = FileMetadata.create().type(FileMetadataType.ROOM_AVATAR)
+        .roomId(roomGroup2Id.toString())
+        .userId(user2Id.toString()).mimeType("mime/type").id(roomGroup2Id.toString()).name("pfp").originalSize(123L);
+      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
+      when(fileMetadataRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(metadata));
+
+      roomService.deleteRoomPicture(roomGroup2Id, UserPrincipal.create(user1Id).systemUser(true));
+
+      verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
+      verify(fileMetadataRepository, times(1)).getById(roomGroup2Id.toString());
+      verify(fileMetadataRepository, times(1)).delete(metadata);
+      verify(storagesService, times(1)).deleteFile(roomGroup2Id.toString(), user2Id.toString());
+      verify(messageDispatcher, times(1))
+        .deleteRoomPicture(roomGroup2Id.toString(), user1Id.toString());
+      verify(eventDispatcher, times(1))
+        .sendToUserQueue(eq(List.of(user2Id.toString(), user3Id.toString())),
+          any(RoomPictureDeletedEvent.class));
+      verifyNoMoreInteractions(roomRepository, fileMetadataRepository, storagesService, messageDispatcher,
+        eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If user is not the room owner, it throws a ForbiddenException")
+    public void deleteRoomPicture_userNotRoomOwner() {
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      ChatsHttpException exception = assertThrows(ForbiddenException.class,
+        () -> roomService.deleteRoomPicture(roomGroup1Id, UserPrincipal.create(user2Id)));
+
+      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals("Forbidden - User '82735f6d-4c6c-471e-99d9-4eef91b1ec45' " +
+        "is not an owner of room 'cdc44826-23b0-4e99-bec2-7fb2f00b6b13'", exception.getMessage());
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verifyNoMoreInteractions(roomRepository);
+      verifyNoInteractions(fileMetadataRepository, storagesService, messageDispatcher, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the room hasn't its picture, it throws a BadRequestException")
+    public void deleteRoomPicture_fileNotFound() {
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      when(fileMetadataRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.empty());
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class,
+        () -> roomService.deleteRoomPicture(roomGroup1Id, UserPrincipal.create(user1Id)));
+
+      assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
+      assertEquals(String.format("Not Found - File with id '%s' not found", roomGroup1Id),
+        exception.getMessage());
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(fileMetadataRepository, times(1)).getById(roomGroup1Id.toString());
+      verifyNoMoreInteractions(roomRepository, fileMetadataRepository);
+      verifyNoInteractions(storagesService, messageDispatcher, eventDispatcher);
     }
   }
 

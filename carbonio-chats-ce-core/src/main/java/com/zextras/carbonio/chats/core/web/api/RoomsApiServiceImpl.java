@@ -130,6 +130,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
+  public Response deleteRoomPicture(UUID roomId, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    roomService.deleteRoomPicture(roomId, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
   @TimedCall
   public Response resetRoomHash(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())

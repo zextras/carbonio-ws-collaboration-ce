@@ -12,6 +12,7 @@ public enum EventType {
   ROOM_HASH_RESET_EVENT("roomHashResetEvent"),
   ROOM_OWNER_CHANGED("roomOwnerChanged"),
   ROOM_PICTURE_CHANGED("roomPictureChanged"),
+  ROOM_PICTURE_DELETED("roomPictureDeleted"),
   ROOM_MEMBER_ADDED("roomMemberAdded"),
   ROOM_MEMBER_REMOVED("roomMemberRemoved"),
   ATTACHMENT_ADDED("attachmentAdded"),
