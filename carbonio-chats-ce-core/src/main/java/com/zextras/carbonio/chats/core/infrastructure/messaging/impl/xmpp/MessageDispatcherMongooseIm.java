@@ -21,6 +21,7 @@ import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.SubscriptionActionDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.SubscriptionActionDto.ActionEnum;
 import java.util.Map;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import org.jivesoftware.smack.packet.Message.Type;
@@ -96,7 +97,8 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     }
     String user1jid = userId2userDomain(user1id);
     String user2jid = userId2userDomain(user2id);
-    contactsApi.contactsUserContactManagePut(user1jid, user2jid, new SubscriptionActionDto().action(ActionEnum.CONNECT));
+    contactsApi.contactsUserContactManagePut(user1jid, user2jid,
+      new SubscriptionActionDto().action(ActionEnum.CONNECT));
   }
 
   @Override
@@ -131,10 +133,12 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
       userId2userDomain(userId));
   }
 
-  private StandardExtensionElement getStanzasElementX(MessageType type, Map<String, String> elementsMap) {
+  private StandardExtensionElement getStanzasElementX(MessageType type, @Nullable Map<String, String> elementsMap) {
     Builder x = StandardExtensionElement.builder("x", "urn:xmpp:muclight:0#configuration")
       .addElement("operation", type.getName());
-    elementsMap.keySet().forEach(k -> x.addElement(k, elementsMap.get(k)));
+    if (elementsMap != null) {
+      elementsMap.keySet().forEach(k -> x.addElement(k, elementsMap.get(k)));
+    }
     return x.build();
   }
 
@@ -174,11 +178,22 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   }
 
   @Override
-  public void updateRoomPictures(String roomId, String senderId, String pictureId, String pictureName) {
+  public void updateRoomPicture(String roomId, String senderId, String pictureId, String pictureName) {
     try {
       oneToOneMessagesApi.stanzasPost(new Message1Dto().stanza(
-        getStanzaMessage(roomId, senderId, MessageType.UPDATED_ROOM_PICTURES,
+        getStanzaMessage(roomId, senderId, MessageType.UPDATED_ROOM_PICTURE,
           Map.of("picture-id", pictureId, "picture-name", pictureName))));
+    } catch (XmppStringprepException e) {
+      throw new InternalErrorException(
+        "An error occurred when sending a message for room picture updated to a MongooseIm room", e);
+    }
+  }
+
+  @Override
+  public void deleteRoomPicture(String roomId, String senderId) {
+    try {
+      oneToOneMessagesApi.stanzasPost(new Message1Dto().stanza(
+        getStanzaMessage(roomId, senderId, MessageType.DELETED_ROOM_PICTURE, null)));
     } catch (XmppStringprepException e) {
       throw new InternalErrorException(
         "An error occurred when sending a message for room picture updated to a MongooseIm room", e);

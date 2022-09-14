@@ -290,13 +290,13 @@ public class UsersApiIT {
     @Test
     @DisplayName("If the user is not authenticated, it returns status code 401")
     public void deleteUserPicture_unauthenticatedUser() throws Exception {
-      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID()), null);
+      MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID()), null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }
 
     @Test
-    @DisplayName("If user is not the picture owner, it throws a ForbiddenException")
+    @DisplayName("If user is not the picture owner, it return a status code 403")
     public void deleteUserPicture_userNotPictureOwner() throws Exception {
       MockUserProfile snoopy = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       MockUserProfile charlie = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN);
@@ -307,10 +307,10 @@ public class UsersApiIT {
     }
 
     @Test
-    @DisplayName("If the user hasn't its picture, it throws a BadRequestException")
+    @DisplayName("If the user hasn't its picture, it returns a status code 404")
     public void deleteUserPicture_fileNotFound() throws Exception {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SCHROEDER);
-      MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
+      MockHttpResponse response = dispatcher.delete(url(account.getUUID()), account.getToken());
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
 

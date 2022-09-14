@@ -151,6 +151,23 @@ paths:
       responses:
         204:
           $ref: '#/components/responses/204UpdateRoomPictureResponse'
+    delete:
+      tags:
+        - Rooms
+      summary: Delete the room picture
+      operationId: deleteRoomPicture
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+      responses:
+        204:
+          $ref: '#/components/responses/204DeleteRoomPictureResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+
   /rooms/{roomId}/mute:
     put:
       tags:
@@ -362,6 +379,8 @@ paths:
           $ref: '#/components/responses/204DeleteUserPictureResponse'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
   /rooms/{roomId}/attachments:
@@ -648,6 +667,8 @@ components:
             format: binary
     204UpdateRoomPictureResponse:
       description: Room picture was changed correctly
+    204DeleteRoomPictureResponse:
+      description: Room picture was deleted correctly
     204MuteRoomResponse:
       description: Room was muted correctly
     204UnmuteRoomResponse:

@@ -14,6 +14,7 @@ import com.zextras.carbonio.chats.core.data.event.RoomCreatedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomDeletedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomHashResetEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomPictureChangedEvent;
+import com.zextras.carbonio.chats.core.data.event.RoomPictureDeletedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomUpdatedEvent;
 import com.zextras.carbonio.chats.core.data.event.UserMutedEvent;
 import com.zextras.carbonio.chats.core.data.event.UserUnmutedEvent;
@@ -423,10 +424,24 @@ public class RoomServiceImpl implements RoomService {
       }
     }
     storagesService.saveFile(image, metadata, currentUser.getId());
-    messageDispatcher.updateRoomPictures(room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
+    messageDispatcher.updateRoomPicture(room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomPictureChangedEvent.create(currentUser.getUUID()).roomId(UUID.fromString(room.getId())));
+  }
+
+  @Override
+  @Transactional
+  public void deleteRoomPicture(UUID roomId, UserPrincipal currentUser) {
+    Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
+    FileMetadata metadata = fileMetadataRepository.getById(roomId.toString())
+      .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
+    fileMetadataRepository.delete(metadata);
+    storagesService.deleteFile(metadata.getId(), metadata.getUserId());
+    messageDispatcher.deleteRoomPicture(room.getId(), currentUser.getId());
+    eventDispatcher.sendToUserQueue(
+      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+      RoomPictureDeletedEvent.create(currentUser.getUUID()).roomId(UUID.fromString(room.getId())));
   }
 
   @Override

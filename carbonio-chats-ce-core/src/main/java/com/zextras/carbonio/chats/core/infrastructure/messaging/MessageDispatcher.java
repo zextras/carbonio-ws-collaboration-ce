@@ -6,7 +6,6 @@ package com.zextras.carbonio.chats.core.infrastructure.messaging;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
-import java.util.List;
 
 public interface MessageDispatcher extends HealthIndicator {
 
@@ -45,13 +44,22 @@ public interface MessageDispatcher extends HealthIndicator {
   void updateRoomDescription(String roomId, String senderId, String description);
 
   /**
-   * Sends a message to communicate that the room description has changed
-   *  @param roomId       room identifier
-   * @param senderId     operation user
+   * Sends a message to communicate that the room picture has changed
+   *
+   * @param roomId      room identifier
+   * @param senderId    operation user
    * @param pictureId   new pictures id
    * @param pictureName new pictures name
    */
-  void updateRoomPictures(String roomId, String senderId, String pictureId, String pictureName);
+  void updateRoomPicture(String roomId, String senderId, String pictureId, String pictureName);
+
+  /**
+   * Sends a message to communicate that the room picture is deleted
+   *
+   * @param roomId   room identifier
+   * @param senderId operation user
+   */
+  void deleteRoomPicture(String roomId, String senderId);
 
   /**
    * Invites a member to join a room on XMPP server
@@ -65,8 +73,8 @@ public interface MessageDispatcher extends HealthIndicator {
   /**
    * Removes a member from a room on XMPP server
    *
-   * @param roomId      room identifier
-   * @param senderId    operation user identifier
+   * @param roomId     room identifier
+   * @param senderId   operation user identifier
    * @param idToRemove identifier of the user to remove
    */
   void removeRoomMember(String roomId, String senderId, String idToRemove);

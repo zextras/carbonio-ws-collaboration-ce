@@ -5,11 +5,11 @@
 package com.zextras.carbonio.chats.core.web.api;
 
 import com.zextras.carbonio.chats.api.RoomsApiService;
-import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
-import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
+import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
+import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
@@ -126,6 +126,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       Utils.getFilePropertyFromContentDisposition(xContentDisposition, "fileName")
         .orElseThrow(() -> new BadRequestException("File name not found in X-Content-Disposition header")),
       currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
+  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
+  public Response deleteRoomPicture(UUID roomId, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    roomService.deleteRoomPicture(roomId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 

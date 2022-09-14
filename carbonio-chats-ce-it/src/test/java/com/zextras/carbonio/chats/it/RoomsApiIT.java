@@ -1690,6 +1690,65 @@ public class RoomsApiIT {
   }
 
   @Nested
+  @DisplayName("Delete room picture tests")
+  public class DeleteRoomPictureTests {
+
+    private String url(UUID roomId) {
+      return String.format("/rooms/%s/picture", roomId);
+    }
+
+    @Test
+    @DisplayName("Correctly deletes the room picture")
+    public void deleteRoomPicture_testOk() throws Exception {
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+      UUID roomId = UUID.fromString(fileMock.getId());
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+      integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
+
+      MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
+      assertEquals(204, response.getStatus());
+      assertTrue(integrationTestUtils.getFileMetadataById(fileMock.getUUID()).isEmpty());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      storageMockServer.verify("DELETE", "/delete", fileMock.getId(), 1);
+    }
+
+    @Test
+    @DisplayName("If the user is not authenticated, it returns status code 401")
+    public void deleteRoomPicture_unauthenticatedUser() throws Exception {
+      MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID()), null);
+      assertEquals(401, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("If user is not a room owner, it returns status code 403")
+    public void deleteRoomPicture_userNotRoomOwner() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1",
+        List.of(user1Id, user2Id, user3Id));
+
+      MockHttpResponse response = dispatcher.delete(url(roomId), user3Token);
+      assertEquals(403, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("If the room hasn't a picture, it returns a status code 404")
+    public void deleteRoomPicture_fileNotFound() throws Exception {
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+      UUID roomId = UUID.fromString(fileMock.getId());
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+
+      MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
+      assertEquals(404, response.getStatus());
+      assertTrue(integrationTestUtils.getFileMetadataById(fileMock.getUUID()).isEmpty());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+  }
+
+  @Nested
   @DisplayName("Mutes room for authenticated user tests")
   public class MutesRoomForAuthenticatedUserTests {
 
@@ -2429,7 +2488,6 @@ public class RoomsApiIT {
         1);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
     }
-
 
 
   }
