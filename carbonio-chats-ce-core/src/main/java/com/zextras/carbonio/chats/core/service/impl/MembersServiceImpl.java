@@ -25,6 +25,8 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
+import com.zextras.carbonio.chats.model.MemberInsertedDto;
+import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
 import java.time.OffsetDateTime;
@@ -89,52 +91,64 @@ public class MembersServiceImpl implements MembersService {
 
   @Override
   @Transactional
-  public MemberDto insertRoomMember(UUID roomId, MemberDto memberDto, UserPrincipal currentUser) {
-    if (!userService.userExists(memberDto.getUserId(), currentUser)) {
-      throw new NotFoundException(String.format("User with id '%s' was not found", memberDto.getUserId()));
+  public MemberInsertedDto insertRoomMember(UUID roomId, MemberToInsertDto memberToInsertDto,
+    UserPrincipal currentUser) {
+    if (!userService.userExists(memberToInsertDto.getUserId(), currentUser)) {
+      throw new NotFoundException(String.format("User with id '%s' was not found", memberToInsertDto.getUserId()));
     }
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (List.of(RoomTypeDto.ONE_TO_ONE, RoomTypeDto.CHANNEL).contains(room.getType())) {
       throw new BadRequestException(String.format("Cannot add members to a %s conversation", room.getType()));
     }
     if (room.getSubscriptions().stream()
-      .anyMatch(member -> memberDto.getUserId().toString().equals(member.getUserId()))) {
-      throw new BadRequestException(String.format("User '%s' is already a room member", memberDto.getUserId()));
+      .anyMatch(member -> memberToInsertDto.getUserId().toString().equals(member.getUserId()))) {
+      throw new BadRequestException(String.format("User '%s' is already a room member", memberToInsertDto.getUserId()));
     }
     Subscription subscription = subscriptionRepository.insert(
       Subscription.create()
         .room(room)
-        .userId(memberDto.getUserId().toString())
-        .owner(memberDto.isOwner())
+        .userId(memberToInsertDto.getUserId().toString())
+        .owner(memberToInsertDto.isOwner())
         .temporary(false)
         .external(false)
         .joinedAt(OffsetDateTime.now())
     );
+    RoomUserSettings settings = null;
+    if (memberToInsertDto.isHistoryCleared() || RoomTypeDto.WORKSPACE.equals(room.getType())) {
+      settings = roomUserSettingsRepository
+        .getByRoomIdAndUserId(roomId.toString(), memberToInsertDto.getUserId().toString())
+        .orElseGet(() -> RoomUserSettings.create(room, memberToInsertDto.getUserId().toString()));
+      if (memberToInsertDto.isHistoryCleared()) {
+        roomUserSettingsRepository.save(settings.clearedAt(OffsetDateTime.now()));
+      }
+      if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
+        roomUserSettingsRepository.save(
+          settings.rank(
+            roomUserSettingsRepository.getWorkspaceMaxRank(memberToInsertDto.getUserId().toString()).orElse(0) + 1));
+      }
+    }
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
-      roomUserSettingsRepository.save(
-        RoomUserSettings.create(room, memberDto.getUserId().toString())
-          .rank(roomUserSettingsRepository.getWorkspaceMaxRank(memberDto.getUserId().toString()).orElse(0) + 1));
       room.getChildren().forEach(child -> {
         try {
-          messageService.addRoomMember(child.getId(), currentUser.getId(), memberDto.getUserId().toString());
+          messageService.addRoomMember(child.getId(), currentUser.getId(), memberToInsertDto.getUserId().toString());
         } catch (Exception e) {
           ChatsLogger.warn(String.format(
             "An error occurred during a room user addition notification to message dispatcher. RoomId: '%s', UserId: '%s'",
-            child.getId(), memberDto.getUserId()));
+            child.getId(), memberToInsertDto.getUserId()));
         }
       });
     } else {
-      messageService.addRoomMember(room.getId(), currentUser.getId(), memberDto.getUserId().toString());
+      messageService.addRoomMember(room.getId(), currentUser.getId(), memberToInsertDto.getUserId().toString());
     }
 
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomMemberAddedEvent
         .create(currentUser.getUUID()).roomId(UUID.fromString(room.getId()))
-        .memberId(memberDto.getUserId())
-        .isOwner(memberDto.isOwner()));
+        .memberId(memberToInsertDto.getUserId())
+        .isOwner(memberToInsertDto.isOwner()));
 
-    return subscriptionMapper.ent2memberDto(subscription);
+    return subscriptionMapper.ent2memberInsertedDto(subscription, settings);
   }
 
   @Override

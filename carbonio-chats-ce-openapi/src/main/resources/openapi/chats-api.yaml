@@ -241,7 +241,7 @@ paths:
         - Members
       summary: Adds or invites the specified user to the room
       description: |
-        Adds the specified user to the room. This can only be performed by an of the given room
+        Adds the specified user to the room. This can only be performed by an owner of the given room
       operationId: insertRoomMember
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
@@ -579,7 +579,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Member'
+            $ref: '#/components/schemas/MemberToInsert'
     InsertAttachmentRequest:
       description: file stream
       required: true
@@ -675,7 +675,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Member'
+            $ref: '#/components/schemas/MemberInserted'
     204DeleteRoomMemberResponse:
       description: The member was deleted correctly or it never existed
     204UpdateToOwnerResponse:
@@ -735,7 +735,7 @@ components:
             format: binary
     200GetSupportedVersionsResponse:
       description: |
-        The supported verrsions list.
+        The supported versions list.
         Each element indicates the highest revision for that supported major version.
       content:
         application/json:
@@ -975,7 +975,13 @@ components:
         muted:
           type: boolean
           description: indicates whether the user has muted
-      required: [ muted ]
+        clearedAt:
+          type: string
+          format: date-time
+          description: |
+            room clear history timestamp,
+            returned only if the room clear history has been cleared at least once
+      required: [ muted, clearedAt ]
     RoomExtraField:
       type: string
       description: Room extra fields
@@ -1003,8 +1009,35 @@ components:
           type: boolean
           default: false
           readOnly: true
-          description: indicates whether it is enternal user
+          description: indicates whether it is external user
       required: [ userId, owner, temporary, external ]
+    MemberToInsert:
+      type: object
+      description: Information about the member to insert in the room
+      allOf:
+        - $ref: '#/components/schemas/Member'
+        - type: object
+          properties:
+            historyCleared:
+              type: boolean
+              description: |
+                indicates whether it can see previous messages,
+                after it has been added to the room
+          required: [ userId, owner, temporary, external, historyCleared ]
+    MemberInserted:
+      type: object
+      description: Information about the member to inserted in the room
+      allOf:
+        - $ref: '#/components/schemas/Member'
+        - type: object
+          properties:
+            clearedAt:
+              type: string
+              format: date-time
+              description: |
+                room clear history timestamp,
+                returned only if the room history has been cleared at least once
+          required: [ userId, owner, temporary, external, clearedAt ]
     Attachment:
       type: object
       description: Attachment of a message

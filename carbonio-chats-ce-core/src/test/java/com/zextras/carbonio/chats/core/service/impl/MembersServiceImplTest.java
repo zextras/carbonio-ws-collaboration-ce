@@ -34,7 +34,10 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
+import com.zextras.carbonio.chats.model.MemberInsertedDto;
+import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -244,7 +247,9 @@ public class MembersServiceImplTest {
       when(subscriptionRepository.insert(any(Subscription.class))).thenReturn(
         Subscription.create(room, user2Id.toString()));
 
-      MemberDto member = membersService.insertRoomMember(roomId, MemberDto.create().userId(user2Id), principal);
+      MemberInsertedDto member = membersService.insertRoomMember(roomId,
+        MemberToInsertDto.create().userId(user2Id).historyCleared(false),
+        principal);
       assertNotNull(member);
       assertEquals(user2Id, member.getUserId());
 
@@ -256,6 +261,7 @@ public class MembersServiceImplTest {
         RoomMemberAddedEvent.create(user1Id).roomId(UUID.fromString(room.getId())).memberId(user2Id).isOwner(false));
       verify(messageDispatcher, times(1)).addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
       verifyNoMoreInteractions(userService, roomService, subscriptionRepository, eventDispatcher, messageDispatcher);
+      verifyNoInteractions(roomUserSettingsRepository);
     }
 
     @Test
@@ -271,14 +277,14 @@ public class MembersServiceImplTest {
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
-        membersService.insertRoomMember(roomId, MemberDto.create().userId(user2Id), principal));
+        membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal));
 
       assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
       assertEquals("Bad Request - Cannot add members to a one_to_one conversation", exception.getMessage());
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
 
-      verifyNoMoreInteractions(userService, roomService);
+      verifyNoMoreInteractions(userService, roomService, roomUserSettingsRepository);
       verifyNoInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);
     }
 
@@ -316,13 +322,15 @@ public class MembersServiceImplTest {
       when(roomUserSettingsRepository.save(any(RoomUserSettings.class)))
         .thenReturn(RoomUserSettings.create(workspace, user2Id.toString()).rank(6));
 
-      MemberDto member = membersService.insertRoomMember(workspaceId, MemberDto.create().userId(user2Id), principal);
+      MemberInsertedDto member = membersService.insertRoomMember(workspaceId,
+        MemberToInsertDto.create().userId(user2Id).historyCleared(false), principal);
       assertNotNull(member);
       assertEquals(user2Id, member.getUserId());
 
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(workspaceId, principal, true);
       verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
+      verify(roomUserSettingsRepository, times(1)).getByRoomIdAndUserId(workspaceId.toString(), user2Id.toString());
       verify(roomUserSettingsRepository, times(1)).getWorkspaceMaxRank(user2Id.toString());
       verify(roomUserSettingsRepository, times(1)).save(any(RoomUserSettings.class));
       verify(eventDispatcher, times(1)).sendToUserQueue(
@@ -347,7 +355,7 @@ public class MembersServiceImplTest {
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
-        membersService.insertRoomMember(roomId, MemberDto.create().userId(user2Id), principal));
+        membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal));
 
       assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
       assertEquals("Bad Request - Cannot add members to a channel conversation", exception.getMessage());
@@ -372,7 +380,7 @@ public class MembersServiceImplTest {
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
-        membersService.insertRoomMember(roomId, MemberDto.create().userId(user2Id), principal));
+        membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal));
       assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
       assertEquals(String.format("Bad Request - User '%s' is already a room member", user2Id.toString()),
         exception.getMessage());
@@ -380,7 +388,7 @@ public class MembersServiceImplTest {
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
 
       verifyNoMoreInteractions(userService, roomService);
-      verifyNoInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);
+      verifyNoInteractions(subscriptionRepository, eventDispatcher, messageDispatcher, roomUserSettingsRepository);
     }
 
     @Test
@@ -395,14 +403,50 @@ public class MembersServiceImplTest {
 
       when(userService.userExists(user2Id, principal)).thenReturn(false);
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        membersService.insertRoomMember(roomId, MemberDto.create().userId(user2Id), principal));
+        membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal));
 
       assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
       assertEquals(String.format("Not Found - User with id '%s' was not found", user2Id), exception.getMessage());
       verify(userService, times(1)).userExists(user2Id, principal);
 
       verifyNoMoreInteractions(userService);
-      verifyNoInteractions(roomService, subscriptionRepository, eventDispatcher, messageDispatcher);
+      verifyNoInteractions(roomService, subscriptionRepository, eventDispatcher, messageDispatcher,
+        roomUserSettingsRepository);
+    }
+
+    @Test
+    @DisplayName("Correctly adds a user as a member of group room clearing history")
+    public void insertRoomMember_historyCleared() {
+      Room room = generateRoom(RoomTypeDto.GROUP);
+      room.subscriptions(List.of(
+        Subscription.create(room, user1Id.toString()).owner(true),
+        Subscription.create(room, user3Id.toString()).owner(false)
+      ));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+
+      when(userService.userExists(user2Id, principal)).thenReturn(true);
+      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(subscriptionRepository.insert(any(Subscription.class))).thenReturn(
+        Subscription.create(room, user2Id.toString()));
+      when(roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), user2Id.toString()))
+        .thenReturn(Optional.of(RoomUserSettings.create().clearedAt(OffsetDateTime.now())));
+
+      MemberInsertedDto member = membersService.insertRoomMember(roomId,
+        MemberToInsertDto.create().userId(user2Id).historyCleared(true), principal);
+      assertNotNull(member);
+      assertEquals(user2Id, member.getUserId());
+
+      verify(userService, times(1)).userExists(user2Id, principal);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
+      verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
+      verify(roomUserSettingsRepository, times(1)).getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
+      verify(roomUserSettingsRepository, times(1)).save(any(RoomUserSettings.class));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user3Id.toString()),
+        RoomMemberAddedEvent.create(user1Id).roomId(UUID.fromString(room.getId())).memberId(user2Id).isOwner(false));
+      verify(messageDispatcher, times(1)).addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
+      verifyNoMoreInteractions(userService, roomService, subscriptionRepository, eventDispatcher, messageDispatcher,
+        roomUserSettingsRepository);
     }
 
   }

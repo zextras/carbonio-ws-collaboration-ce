@@ -5,17 +5,17 @@
 package com.zextras.carbonio.chats.core.web.api;
 
 import com.zextras.carbonio.chats.api.RoomsApiService;
-import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
-import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
+import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
+import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.model.MemberDto;
+import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
@@ -177,12 +177,12 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   @TimedCall
-  public Response insertRoomMember(UUID roomId, MemberDto memberDto, SecurityContext securityContext) {
+  public Response insertRoomMember(UUID roomId, MemberToInsertDto memberToInsertDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response
       .status(Status.CREATED)
-      .entity(membersService.insertRoomMember(roomId, memberDto, currentUser))
+      .entity(membersService.insertRoomMember(roomId, memberToInsertDto, currentUser))
       .build();
   }
 
