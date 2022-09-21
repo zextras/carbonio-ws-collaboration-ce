@@ -17,7 +17,7 @@ public class ClientErrorExceptionHandler extends ExceptionHandler<ClientErrorExc
 
   @Override
   public Response toResponse(ClientErrorException exception) {
-    return handleException(exception, exception.getMessage(),
-      Status.fromStatusCode(exception.getResponse().getStatus()), false);
+    return handleException(exception, exception.getMessage(), exception.getResponse().getStatus(),
+      Status.fromStatusCode(exception.getResponse().getStatus()).getReasonPhrase(), false);
   }
 }

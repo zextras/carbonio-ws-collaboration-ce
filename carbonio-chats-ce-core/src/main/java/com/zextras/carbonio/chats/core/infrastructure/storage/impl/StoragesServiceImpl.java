@@ -8,6 +8,7 @@ import com.zextras.carbonio.chats.core.config.ChatsConstant;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
+import com.zextras.carbonio.chats.core.exception.PreviewerException;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.preview.queries.BlobResponse;
@@ -63,7 +64,7 @@ public class StoragesServiceImpl implements StoragesService {
     } else if (metadata.getMimeType().startsWith("application/pdf")) {
       response = previewClient.getThumbnailOfPdf(query);
     } else {
-      throw new BadRequestException("MimeType not supported by previewer");
+      throw new PreviewerException("MimeType not supported by previewer");
     }
     File file;
     try {
@@ -71,7 +72,7 @@ public class StoragesServiceImpl implements StoragesService {
       FileUtils.copyInputStreamToFile(response.getOrElseThrow(
         (Supplier<IOException>) IOException::new).getContent(), file);
     } catch (IOException e) {
-      throw new InternalErrorException("An error occurred getting preview", e);
+      throw new PreviewerException("An error occurred getting preview", e);
     }
     return file;
   }

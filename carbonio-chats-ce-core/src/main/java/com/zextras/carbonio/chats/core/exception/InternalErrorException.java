@@ -15,34 +15,34 @@ public class InternalErrorException extends ChatsHttpException implements Serial
   private static final boolean IS_TO_LOG        = true;
 
   public InternalErrorException() {
-    super(HTTP_STATUS);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase());
   }
 
   public InternalErrorException(Throwable cause) {
-    super(HTTP_STATUS, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), cause);
   }
 
   public InternalErrorException(String debugInfo) {
-    super(HTTP_STATUS, debugInfo);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), debugInfo);
   }
 
   public InternalErrorException(String debugInfo, Throwable cause) {
-    super(HTTP_STATUS, debugInfo, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), debugInfo, cause);
   }
 
   public InternalErrorException(String error, String debugInfo) {
-    super(HTTP_STATUS, error, debugInfo);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo);
   }
 
   public InternalErrorException(String error, String debugInfo, Throwable cause) {
-    super(HTTP_STATUS, error, debugInfo, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo, cause);
   }
 
   protected InternalErrorException(
-    String error, String debugInfo, Throwable cause, boolean enableSuppression,
-    boolean writableStackTrace
+    String error, String debugInfo, Throwable cause, boolean enableSuppression, boolean writableStackTrace
   ) {
-    super(HTTP_STATUS, error, debugInfo, cause, enableSuppression, writableStackTrace);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo, cause, enableSuppression,
+      writableStackTrace);
   }
 
   @Override

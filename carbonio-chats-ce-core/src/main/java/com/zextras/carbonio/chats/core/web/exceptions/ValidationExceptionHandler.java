@@ -17,6 +17,7 @@ public class ValidationExceptionHandler extends ExceptionHandler<ValidationExcep
 
   @Override
   public Response toResponse(ValidationException exception) {
-    return handleException(exception, exception.toString(), Status.BAD_REQUEST, false);
+    return handleException(exception, exception.toString(), Status.BAD_REQUEST.getStatusCode(),
+      Status.BAD_REQUEST.getReasonPhrase(), false);
   }
 }

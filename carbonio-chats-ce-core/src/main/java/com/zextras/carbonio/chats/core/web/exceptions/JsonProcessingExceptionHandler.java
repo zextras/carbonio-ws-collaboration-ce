@@ -17,6 +17,7 @@ public class JsonProcessingExceptionHandler extends ExceptionHandler<JsonProcess
 
   @Override
   public Response toResponse(JsonProcessingException exception) {
-    return handleException(exception, exception.getMessage(), Status.BAD_REQUEST, false);
+    return handleException(exception, exception.getMessage(), Status.BAD_REQUEST.getStatusCode(),
+      Status.BAD_REQUEST.getReasonPhrase(), false);
   }
 }

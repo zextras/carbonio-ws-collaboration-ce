@@ -548,7 +548,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
         roomService.getRoomById(roomGroup2Id, UserPrincipal.create(user2Id)));
 
-      assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Not Found - Room '%s'", roomGroup2Id), exception.getMessage());
     }
 
@@ -560,7 +561,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
         roomService.getRoomById(roomGroup2Id, UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
         exception.getMessage());
     }
@@ -634,7 +636,8 @@ class RoomServiceImplTest {
           .membersIds(List.of(user2Id));
         ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
           roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
-        assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals("Bad Request - Too few members (required at least 3)", exception.getMessage());
       }
 
@@ -649,7 +652,8 @@ class RoomServiceImplTest {
           .parentId(UUID.randomUUID());
         ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
           roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
-        assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals("Bad Request - Parent is allowed only for channel room", exception.getMessage());
       }
     }
@@ -714,7 +718,8 @@ class RoomServiceImplTest {
           .membersIds(List.of());
         ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
           roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
-        assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals("Bad Request - Only 2 users can participate to a one-to-one room", exception.getMessage());
       }
 
@@ -728,7 +733,8 @@ class RoomServiceImplTest {
           .membersIds(List.of(user2Id, user3Id));
         ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
           roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
-        assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals("Bad Request - Only 2 users can participate to a one-to-one room", exception.getMessage());
       }
 
@@ -747,7 +753,8 @@ class RoomServiceImplTest {
           .membersIds(List.of(user2Id));
         ChatsHttpException exception = assertThrows(ConflictException.class, () ->
           roomService.createRoom(creationFields, mockUserPrincipal));
-        assertEquals(Status.CONFLICT, exception.getHttpStatus());
+        assertEquals(Status.CONFLICT.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.CONFLICT.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals("Conflict - The one to one room already exists for these users", exception.getMessage());
       }
 
@@ -762,7 +769,8 @@ class RoomServiceImplTest {
           .parentId(UUID.randomUUID());
         ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
           roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
-        assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals("Bad Request - Parent is allowed only for channel room", exception.getMessage());
       }
     }
@@ -894,7 +902,8 @@ class RoomServiceImplTest {
           .membersIds(List.of(user2Id));
         ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
           roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
-        assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals("Bad Request - Too few members (required at least 3)", exception.getMessage());
       }
 
@@ -909,7 +918,8 @@ class RoomServiceImplTest {
           .parentId(UUID.randomUUID());
         ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
           roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
-        assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals("Bad Request - Parent is allowed only for channel room", exception.getMessage());
       }
     }
@@ -1020,7 +1030,8 @@ class RoomServiceImplTest {
             .type(RoomTypeDto.CHANNEL)
             .parentId(roomWorkspace1Id)
             .membersIds(List.of(user2Id, user3Id)), UserPrincipal.create(user1Id)));
-        assertEquals(400, exception.getHttpStatus().getStatusCode());
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals("Bad Request - Channels don't admit members", exception.getMessage());
       }
 
@@ -1032,7 +1043,8 @@ class RoomServiceImplTest {
             .name("channel2")
             .description("Channel two")
             .type(RoomTypeDto.CHANNEL), UserPrincipal.create(user1Id)));
-        assertEquals(400, exception.getHttpStatus().getStatusCode());
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals("Bad Request - Channel must have an assigned workspace", exception.getMessage());
       }
 
@@ -1051,7 +1063,8 @@ class RoomServiceImplTest {
               .type(RoomTypeDto.CHANNEL)
               .parentId(UUID.randomUUID()), UserPrincipal.create(user1Id)));
         }
-        assertEquals(404, exception.getHttpStatus().getStatusCode());
+        assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals(String.format("Not Found - Room '%s'", roomId), exception.getMessage());
       }
 
@@ -1069,7 +1082,8 @@ class RoomServiceImplTest {
               .type(RoomTypeDto.CHANNEL)
               .parentId(roomWorkspace1Id), UserPrincipal.create(user2Id)));
         }
-        assertEquals(403, exception.getHttpStatus().getStatusCode());
+        assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, roomWorkspace1Id),
           exception.getMessage());
       }
@@ -1088,7 +1102,8 @@ class RoomServiceImplTest {
               .type(RoomTypeDto.CHANNEL)
               .parentId(roomGroup1Id), UserPrincipal.create(user1Id)));
         }
-        assertEquals(400, exception.getHttpStatus().getStatusCode());
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals("Bad Request - Channel parent must be a workspace", exception.getMessage());
       }
     }
@@ -1103,7 +1118,8 @@ class RoomServiceImplTest {
         .membersIds(List.of(user2Id, user2Id));
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Members cannot be duplicated", exception.getMessage());
     }
 
@@ -1117,7 +1133,8 @@ class RoomServiceImplTest {
         .membersIds(List.of(user1Id, user2Id));
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Requester can't be invited to the room", exception.getMessage());
     }
 
@@ -1135,7 +1152,8 @@ class RoomServiceImplTest {
         .membersIds(List.of(user2Id, user3Id));
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
         roomService.createRoom(creationFields, mockUserPrincipal));
-      assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Not Found - User with identifier '%s' not found", user2Id), exception.getMessage());
     }
 
@@ -1182,7 +1200,8 @@ class RoomServiceImplTest {
           RoomEditableFieldsDto.create().name("room1-changed").description("Room one changed"),
           UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Not Found - Room '%s'", roomGroup1Id), exception.getMessage());
     }
 
@@ -1196,7 +1215,8 @@ class RoomServiceImplTest {
           RoomEditableFieldsDto.create().name("room1-changed").description("Room one changed"),
           UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
         exception.getMessage());
     }
@@ -1212,7 +1232,8 @@ class RoomServiceImplTest {
           RoomEditableFieldsDto.create().name("room1-changed").description("Room one changed"),
           UserPrincipal.create(user2Id)));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, roomGroup1Id),
         exception.getMessage());
     }
@@ -1272,7 +1293,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
         roomService.deleteRoom(roomGroup1Id, UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Not Found - Room '%s'", roomGroup1Id), exception.getMessage());
     }
 
@@ -1284,7 +1306,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
         roomService.deleteRoom(roomGroup2Id, UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
         exception.getMessage());
     }
@@ -1297,7 +1320,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
         roomService.deleteRoom(roomGroup1Id, UserPrincipal.create(user2Id)));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, roomGroup1Id),
         exception.getMessage());
     }
@@ -1333,7 +1357,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
         roomService.resetRoomHash(roomGroup2Id, UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
         exception.getMessage());
     }
@@ -1346,7 +1371,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
         roomService.resetRoomHash(roomGroup1Id, UserPrincipal.create(user2Id)));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, roomGroup1Id),
         exception.getMessage());
     }
@@ -1357,7 +1383,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
         roomService.resetRoomHash(roomGroup1Id, UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Not Found - Room '%s'", roomGroup1Id), exception.getMessage());
     }
   }
@@ -1433,7 +1460,8 @@ class RoomServiceImplTest {
       when(roomRepository.getById(roomWorkspace2Id.toString())).thenReturn(Optional.of(roomWorkspace2));
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         roomService.muteRoom(roomWorkspace2Id, UserPrincipal.create(user1Id)));
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Cannot mute a workspace", exception.getMessage());
 
       verify(roomRepository, times(1)).getById(roomWorkspace2Id.toString());
@@ -1451,7 +1479,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
         roomService.muteRoom(roomGroup2Id, UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
         exception.getMessage());
 
@@ -1466,7 +1495,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
         roomService.muteRoom(roomGroup1Id, UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Not Found - Room '%s'", roomGroup1Id), exception.getMessage());
     }
   }
@@ -1533,7 +1563,8 @@ class RoomServiceImplTest {
       when(roomRepository.getById(roomWorkspace2Id.toString())).thenReturn(Optional.of(roomWorkspace2));
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         roomService.unmuteRoom(roomWorkspace2Id, UserPrincipal.create(user1Id)));
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Cannot unmute a workspace", exception.getMessage());
 
       verify(roomRepository, times(1)).getById(roomWorkspace2Id.toString());
@@ -1551,7 +1582,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
         roomService.unmuteRoom(roomGroup2Id, UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
         exception.getMessage());
 
@@ -1566,7 +1598,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
         roomService.muteRoom(roomGroup1Id, UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Not Found - Room '%s'", roomGroup1Id), exception.getMessage());
     }
   }
@@ -1608,7 +1641,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
         roomService.getRoomEntityAndCheckUser(roomGroup2Id, UserPrincipal.create(user1Id), false));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
         exception.getMessage());
     }
@@ -1621,7 +1655,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
         roomService.getRoomEntityAndCheckUser(roomGroup1Id, UserPrincipal.create(user2Id), true));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, roomGroup1Id),
         exception.getMessage());
     }
@@ -1680,7 +1715,8 @@ class RoomServiceImplTest {
       ForbiddenException exception = assertThrows(ForbiddenException.class,
         () -> roomService.getRoomPicture(roomGroup2Id, UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
         exception.getMessage());
     }
@@ -1795,7 +1831,8 @@ class RoomServiceImplTest {
       ForbiddenException exception = assertThrows(ForbiddenException.class,
         () -> roomService.setRoomPicture(roomGroup2Id, file, "image/jpeg", "picture", UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
         exception.getMessage());
     }
@@ -1808,7 +1845,8 @@ class RoomServiceImplTest {
       ForbiddenException exception = assertThrows(ForbiddenException.class,
         () -> roomService.setRoomPicture(roomGroup2Id, file, "image/jpeg", "picture", UserPrincipal.create(user3Id)));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user3Id, roomGroup2Id),
         exception.getMessage());
     }
@@ -1821,7 +1859,8 @@ class RoomServiceImplTest {
       when(file.length()).thenReturn(257L * 1024);
       BadRequestException exception = assertThrows(BadRequestException.class,
         () -> roomService.setRoomPicture(roomGroup1Id, file, "image/jpeg", "picture", UserPrincipal.create(user1Id)));
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Bad Request - The room picture cannot be greater than %d KB", 256),
         exception.getMessage());
     }
@@ -1834,7 +1873,8 @@ class RoomServiceImplTest {
       BadRequestException exception = assertThrows(BadRequestException.class,
         () -> roomService.setRoomPicture(roomOneToOne2Id, file, "image/jpeg", "picture",
           UserPrincipal.create(user1Id)));
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - The room picture can only be set to group type rooms",
         exception.getMessage());
     }
@@ -1846,7 +1886,8 @@ class RoomServiceImplTest {
       File file = mock(File.class);
       BadRequestException exception = assertThrows(BadRequestException.class,
         () -> roomService.setRoomPicture(roomGroup1Id, file, "text/html", "picture", UserPrincipal.create(user1Id)));
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - The room picture must be an image",
         exception.getMessage());
     }
@@ -1910,7 +1951,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(ForbiddenException.class,
         () -> roomService.deleteRoomPicture(roomGroup1Id, UserPrincipal.create(user2Id)));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Forbidden - User '82735f6d-4c6c-471e-99d9-4eef91b1ec45' " +
         "is not an owner of room 'cdc44826-23b0-4e99-bec2-7fb2f00b6b13'", exception.getMessage());
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
@@ -1927,7 +1969,8 @@ class RoomServiceImplTest {
       ChatsHttpException exception = assertThrows(NotFoundException.class,
         () -> roomService.deleteRoomPicture(roomGroup1Id, UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Not Found - File with id '%s' not found", roomGroup1Id),
         exception.getMessage());
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
@@ -1994,7 +2037,8 @@ class RoomServiceImplTest {
           RoomRankDto.create().roomId(ws4Id).rank(3),
           RoomRankDto.create().roomId(ws2Id).rank(2),
           RoomRankDto.create().roomId(ws1Id).rank(1)), UserPrincipal.create(user2Id)));
-      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
         String.format("Bad Request - There isn't a workspace with id '%s' for the user id '%s'", ws4Id, user2Id),
         exception.getMessage());
@@ -2023,7 +2067,8 @@ class RoomServiceImplTest {
           RoomRankDto.create().roomId(ws4Id).rank(3),
           RoomRankDto.create().roomId(ws2Id).rank(2),
           RoomRankDto.create().roomId(ws1Id).rank(1)), UserPrincipal.create(user2Id)));
-      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Too many elements compared to user workspaces", exception.getMessage());
       verify(roomUserSettingsRepository, times(1)).getWorkspaceMapGroupedByRoomId(user2Id.toString());
       verifyNoMoreInteractions(roomUserSettingsRepository);
@@ -2051,7 +2096,8 @@ class RoomServiceImplTest {
         roomService.updateWorkspacesRank(List.of(
           RoomRankDto.create().roomId(ws2Id).rank(2),
           RoomRankDto.create().roomId(ws1Id).rank(1)), UserPrincipal.create(user2Id)));
-      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Too few elements compared to user workspaces", exception.getMessage());
 
       verify(roomUserSettingsRepository, times(1)).getWorkspaceMapGroupedByRoomId(user2Id.toString());
@@ -2066,7 +2112,8 @@ class RoomServiceImplTest {
           RoomRankDto.create().roomId(roomWorkspace1Id).rank(7),
           RoomRankDto.create().roomId(roomWorkspace2Id).rank(9),
           RoomRankDto.create().roomId(roomWorkspace3Id).rank(1)), UserPrincipal.create(user2Id)));
-      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Ranks must be progressive number that starts with 1", exception.getMessage());
 
       verifyNoMoreInteractions(roomUserSettingsRepository);
@@ -2080,7 +2127,8 @@ class RoomServiceImplTest {
           RoomRankDto.create().roomId(roomWorkspace1Id).rank(7),
           RoomRankDto.create().roomId(roomWorkspace1Id).rank(9),
           RoomRankDto.create().roomId(roomWorkspace3Id).rank(1)), UserPrincipal.create(user2Id)));
-      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Rooms cannot be duplicated", exception.getMessage());
 
       verifyNoMoreInteractions(roomUserSettingsRepository);
@@ -2146,7 +2194,8 @@ class RoomServiceImplTest {
           RoomRankDto.create().roomId(UUID.randomUUID()).rank(3)
         ), UserPrincipal.create(user1Id)));
 
-      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
         String.format("Bad Request - Channel '%s' is not a child of workspace '%s'", channel3Id, workspaceId),
         exception.getMessage());
@@ -2175,7 +2224,8 @@ class RoomServiceImplTest {
           RoomRankDto.create().roomId(channel2Id).rank(2)
         ), UserPrincipal.create(user1Id)));
 
-      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Too few elements compared to workspace channels", exception.getMessage());
       verify(roomRepository, times(1)).getById(workspaceId.toString());
       verifyNoMoreInteractions(roomRepository);
@@ -2201,7 +2251,8 @@ class RoomServiceImplTest {
           RoomRankDto.create().roomId(UUID.randomUUID()).rank(3)
         ), UserPrincipal.create(user1Id)));
 
-      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Too many elements compared to workspace channels", exception.getMessage());
       verify(roomRepository, times(1)).getById(workspaceId.toString());
       verifyNoMoreInteractions(roomRepository);
@@ -2217,7 +2268,8 @@ class RoomServiceImplTest {
           RoomRankDto.create().roomId(channel1Id).rank(2),
           RoomRankDto.create().roomId(UUID.randomUUID()).rank(3)
         ), UserPrincipal.create(user1Id)));
-      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Channels cannot be duplicated", exception.getMessage());
       verifyNoInteractions(roomRepository);
     }
@@ -2231,7 +2283,8 @@ class RoomServiceImplTest {
           RoomRankDto.create().roomId(UUID.randomUUID()).rank(3),
           RoomRankDto.create().roomId(UUID.randomUUID()).rank(5)
         ), UserPrincipal.create(user1Id)));
-      assertEquals(400, exception.getHttpStatus().getStatusCode());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Ranks must be progressive number that starts with 1", exception.getMessage());
       verifyNoInteractions(roomRepository);
     }

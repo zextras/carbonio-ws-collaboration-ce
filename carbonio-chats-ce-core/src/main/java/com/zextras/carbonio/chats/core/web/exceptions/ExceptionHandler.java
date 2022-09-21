@@ -29,14 +29,15 @@ public abstract class ExceptionHandler<E extends Throwable> implements Exception
   @Context
   private UriInfo uriInfo;
 
-  public Response handleException(Exception exception, String msg, Status status, boolean isToLog) {
+  public Response handleException(Exception exception, String msg, int httpStatusCode, String httpStatusPhrase,
+    boolean isToLog) {
     if (isToLog) {
       ChatsLogger.error(
         String.format("An error occurred on %s at %s", getRequestUri(), getExceptionPosition(exception)),
         exception
       );
     }
-    ResponseBuilder responseBuilder = Response.status(status);
+    ResponseBuilder responseBuilder = Response.status(httpStatusCode, httpStatusPhrase);
     if (EnvironmentType.DEVELOPMENT.equals(appConfig.getEnvType())) {
       ErrorDto error = new ErrorDto();
       error.setTraceId(RandomStringUtils.randomAlphabetic(16));

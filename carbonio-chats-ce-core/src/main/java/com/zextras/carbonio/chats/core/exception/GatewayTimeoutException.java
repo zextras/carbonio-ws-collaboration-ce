@@ -15,34 +15,34 @@ public class GatewayTimeoutException extends ChatsHttpException implements Seria
 
 
   public GatewayTimeoutException() {
-    super(HTTP_STATUS);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase());
   }
 
   public GatewayTimeoutException(Throwable cause) {
-    super(HTTP_STATUS, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), cause);
   }
 
   public GatewayTimeoutException(String debugInfo) {
-    super(HTTP_STATUS, debugInfo);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), debugInfo);
   }
 
   public GatewayTimeoutException(String debugInfo, Throwable cause) {
-    super(HTTP_STATUS, debugInfo, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), debugInfo, cause);
   }
 
   public GatewayTimeoutException(String error, String debugInfo) {
-    super(HTTP_STATUS, error, debugInfo);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo);
   }
 
   public GatewayTimeoutException(String error, String debugInfo, Throwable cause) {
-    super(HTTP_STATUS, error, debugInfo, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo, cause);
   }
 
   protected GatewayTimeoutException(
-    String error, String debugInfo, Throwable cause, boolean enableSuppression,
-    boolean writableStackTrace
+    String error, String debugInfo, Throwable cause, boolean enableSuppression, boolean writableStackTrace
   ) {
-    super(HTTP_STATUS, error, debugInfo, cause, enableSuppression, writableStackTrace);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo, cause, enableSuppression,
+      writableStackTrace);
   }
 
   @Override

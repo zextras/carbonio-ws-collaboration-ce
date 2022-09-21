@@ -8,37 +8,37 @@ package com.zextras.carbonio.chats.core.exception;
 import java.io.Serializable;
 import javax.ws.rs.core.Response.Status;
 
-public class NotFoundException extends ChatsHttpException implements Serializable {
+public class PreviewerException extends ChatsHttpException implements Serializable {
 
-  private static final long    serialVersionUID = -7586350573263929718L;
-  private static final Status  HTTP_STATUS      = Status.NOT_FOUND;
+  private static final long serialVersionUID = 5335428065127434966L;
+  private static final Status  HTTP_STATUS      = Status.TOO_MANY_REQUESTS;
   private static final boolean IS_TO_LOG        = false;
 
-  public NotFoundException() {
+  public PreviewerException() {
     super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase());
   }
 
-  public NotFoundException(Throwable cause) {
+  public PreviewerException(Throwable cause) {
     super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), cause);
   }
 
-  public NotFoundException(String debugInfo) {
+  public PreviewerException(String debugInfo) {
     super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), debugInfo);
   }
 
-  public NotFoundException(String debugInfo, Throwable cause) {
+  public PreviewerException(String debugInfo, Throwable cause) {
     super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), debugInfo, cause);
   }
 
-  public NotFoundException(String error, String debugInfo) {
+  public PreviewerException(String error, String debugInfo) {
     super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo);
   }
 
-  public NotFoundException(String error, String debugInfo, Throwable cause) {
+  public PreviewerException(String error, String debugInfo, Throwable cause) {
     super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo, cause);
   }
 
-  protected NotFoundException(
+  protected PreviewerException(
     String error, String debugInfo, Throwable cause, boolean enableSuppression, boolean writableStackTrace
   ) {
     super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo, cause, enableSuppression,

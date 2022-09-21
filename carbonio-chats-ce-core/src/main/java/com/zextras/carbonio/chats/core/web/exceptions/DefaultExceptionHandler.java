@@ -20,6 +20,7 @@ public class DefaultExceptionHandler extends ExceptionHandler<Exception> {
 
   @Override
   public Response toResponse(Exception exception) {
-    return handleException(exception, exception.getMessage(), Status.INTERNAL_SERVER_ERROR, true);
+    return handleException(exception, exception.getMessage(), Status.INTERNAL_SERVER_ERROR.getStatusCode(),
+      Status.INTERNAL_SERVER_ERROR.getReasonPhrase(), true);
   }
 }
