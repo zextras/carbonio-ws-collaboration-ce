@@ -165,6 +165,13 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>amqp-client</artifactId>
     </dependency>
 
+    <!-- Web Socket -->
+    <dependency>
+      <groupId>javax.websocket</groupId>
+      <artifactId>javax.websocket-api</artifactId>
+    </dependency>
+
+
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
     <dependency>
