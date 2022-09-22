@@ -23,7 +23,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
+   <maven.compiler.target>11</maven.compiler.target>
   </properties>
 
   <profiles>
@@ -68,7 +68,6 @@ SPDX-License-Identifier: AGPL-3.0-only
   </profiles>
 
   <dependencies>
-
     <dependency>
       <groupId>com.zextras.carbonio.chats</groupId>
       <artifactId>carbonio-chats-ce-core</artifactId>
@@ -90,6 +89,21 @@ SPDX-License-Identifier: AGPL-3.0-only
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-servlet</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>jakarta.websocket</groupId>
+      <artifactId>jakarta.websocket-api</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.eclipse.jetty.websocket</groupId>
+      <artifactId>websocket-javax-server</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.eclipse.jetty.websocket</groupId>
+      <artifactId>websocket-javax-client</artifactId>
     </dependency>
 
     <!-- Guice dependencies -->
@@ -124,6 +138,8 @@ SPDX-License-Identifier: AGPL-3.0-only
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
     </dependency>
+
+
   </dependencies>
 
   <build>

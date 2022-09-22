@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
+import com.zextras.carbonio.chats.core.infrastructure.DependencyType;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
@@ -38,13 +39,13 @@ public class HealthcheckServiceImpl implements HealthcheckService {
     ProfilingService profilingService
   ) {
     dependencies = List.of(
-      HealthDependency.create(databaseInfoService, DependencyHealthTypeDto.DATABASE, true),
-      HealthDependency.create(authenticationService, DependencyHealthTypeDto.AUTHENTICATION_SERVICE, true),
-      HealthDependency.create(profilingService, DependencyHealthTypeDto.PROFILING_SERVICE, true),
-      HealthDependency.create(messageDispatcher, DependencyHealthTypeDto.XMPP_SERVER, true),
-      HealthDependency.create(eventDispatcher, DependencyHealthTypeDto.EVENT_DISPATCHER, false),
-      HealthDependency.create(storagesService, DependencyHealthTypeDto.STORAGE_SERVICE, false),
-      HealthDependency.create(previewerService, DependencyHealthTypeDto.PREVIEWER_SERVICE, false)
+      HealthDependency.create(databaseInfoService, DependencyType.DATABASE),
+      HealthDependency.create(authenticationService, DependencyType.AUTHENTICATION_SERVICE),
+      HealthDependency.create(profilingService, DependencyType.PROFILING_SERVICE),
+      HealthDependency.create(messageDispatcher, DependencyType.XMPP_SERVER),
+      HealthDependency.create(eventDispatcher, DependencyType.EVENT_DISPATCHER),
+      HealthDependency.create(storagesService, DependencyType.STORAGE_SERVICE),
+      HealthDependency.create(previewerService, DependencyType.PREVIEWER_SERVICE)
     );
   }
 
@@ -59,16 +60,16 @@ public class HealthcheckServiceImpl implements HealthcheckService {
       .isLive(true)
       .status(checkServiceStatus())
       .dependencies(dependencies.stream()
-        .map(dependency -> DependencyHealthDto.create().name(dependency.getType()).isHealthy(dependency.isAlive()))
+        .map(dependency -> DependencyHealthDto.create().name(dependency.getDependencyHealthType()).isHealthy(dependency.isAlive()))
         .collect(Collectors.toList()));
   }
 
   private HealthStatusTypeDto checkServiceStatus() {
     if (dependencies.stream()
-      .anyMatch(dependency -> dependency.isFundamental() && !dependency.isAlive())) {
+      .anyMatch(dependency -> dependency.getType().isRequired() && !dependency.isAlive())) {
       return HealthStatusTypeDto.ERROR;
     } else if (dependencies.stream()
-      .anyMatch(dependency -> !dependency.isFundamental() && !dependency.isAlive())) {
+      .anyMatch(dependency -> !dependency.getType().isRequired() && !dependency.isAlive())) {
       return HealthStatusTypeDto.WARN;
     }
     return HealthStatusTypeDto.OK;
@@ -76,35 +77,28 @@ public class HealthcheckServiceImpl implements HealthcheckService {
 
   private static class HealthDependency {
 
-    private final HealthIndicator         service;
-    private final DependencyHealthTypeDto type;
-    private final boolean                 fundamental;
+    private final HealthIndicator service;
+    private final DependencyType  type;
 
-    public HealthDependency(
-      HealthIndicator dependency, DependencyHealthTypeDto type, boolean fundamental
-    ) {
+    public HealthDependency(HealthIndicator dependency, DependencyType type) {
       this.service = dependency;
       this.type = type;
-      this.fundamental = fundamental;
     }
 
-    public static HealthDependency create(
-      HealthIndicator dependency, DependencyHealthTypeDto type, boolean fundamental
-    ) {
-      return new HealthDependency(dependency, type, fundamental);
+    public static HealthDependency create(HealthIndicator dependency, DependencyType type) {
+      return new HealthDependency(dependency, type);
     }
 
     public boolean isAlive() {
       return service.isAlive();
     }
 
-    public DependencyHealthTypeDto getType() {
+    public DependencyType getType() {
       return type;
     }
 
-    public boolean isFundamental() {
-      return fundamental;
+    public DependencyHealthTypeDto getDependencyHealthType() {
+      return DependencyHealthTypeDto.fromString(type.getName());
     }
   }
-
 }
