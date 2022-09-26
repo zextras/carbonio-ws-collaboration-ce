@@ -5,11 +5,9 @@
 package com.zextras.carbonio.chats.core.exception;
 
 
-import javax.ws.rs.core.Response.Status;
-
 /**
- * This is an abstract class implemented by Chats exceptions that wrap an http error response. Each class that extends
- * this represents a specific http status.
+ * This is an abstract class implemented by Chats exceptions that wrap an HTTP error response. Each class that extends
+ * this represents a specific HTTP status.
  */
 public abstract class ChatsHttpException extends RuntimeException {
 
