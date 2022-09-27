@@ -11,10 +11,14 @@ import com.zextras.carbonio.chats.core.config.ChatsConstant;
 import com.zextras.carbonio.chats.core.config.EnvironmentType;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.core.web.websocket.ChatsEndpoint;
+import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
+import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
+import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import java.net.InetSocketAddress;
+import java.util.EnumSet;
 import java.util.Optional;
 import javax.inject.Inject;
+import javax.servlet.DispatcherType;
 import javax.websocket.server.ServerEndpointConfig;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
@@ -60,43 +64,26 @@ public class Boot {
     Server server = new Server(new InetSocketAddress(ChatsConstant.SERVER_HOST, ChatsConstant.SERVER_PORT));
     ContextHandlerCollection handlers = new ContextHandlerCollection();
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+
     if (eventDispatcherConnection != null) {
       JavaxWebSocketServletContainerInitializer.configure(context, (servletContext, wsContainer) -> {
         wsContainer.setDefaultMaxTextMessageBufferSize(65535);
         wsContainer.setAsyncSendTimeout(-1);
         wsContainer.addEndpoint(ServerEndpointConfig.Builder
-          .create(ChatsEndpoint.class, "/events")
-          .configurator(new EventWebSocketEndpointConfigurator(eventDispatcherConnection, authenticationService,
-            objectMapper))
+          .create(EventsWebSocketEndpoint.class, "/events")
+          .configurator(new EventsWebSocketEndpointConfigurator(eventDispatcherConnection, objectMapper))
           .build());
+        servletContext.addFilter("eventsWebSocketAuthenticationFilter",
+            EventsWebSocketAuthenticationFilter.create(authenticationService))
+          .addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, "/events");
       });
     }
     context.addEventListener(resteasyListener);
     context.addServlet(new ServletHolder(HttpServletDispatcher.class), "/*");
+
     handlers.addHandler(context);
     server.setHandler(handlers);
     server.start();
     server.join();
-  }
-
-  public static class EventWebSocketEndpointConfigurator extends ServerEndpointConfig.Configurator {
-
-    private final Connection            connection;
-    private final AuthenticationService authenticationService;
-    private final ObjectMapper          objectMapper;
-
-    public EventWebSocketEndpointConfigurator(
-      Connection connection,
-      AuthenticationService authenticationService,
-      ObjectMapper objectMapper
-    ) {
-      this.connection = connection;
-      this.authenticationService = authenticationService;
-      this.objectMapper = objectMapper;
-    }
-
-    public <T> T getEndpointInstance(Class<T> clazz) {
-      return (T) new ChatsEndpoint(connection, authenticationService, objectMapper);
-    }
   }
 }

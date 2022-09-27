@@ -1,4 +1,4 @@
-package com.zextras.carbonio.chats.core.web.websocket;
+package com.zextras.carbonio.chats.core.web.socket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
@@ -6,68 +6,44 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DeliverCallback;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
-import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
+import javax.servlet.http.HttpSession;
 import javax.websocket.EncodeException;
+import javax.websocket.EndpointConfig;
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
-import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
 @ServerEndpoint(value = "/events")
-public class ChatsEndpoint {
+public class EventsWebSocketEndpoint {
 
-  private final Connection            connection;
-  private final AuthenticationService authenticationService;
-  private final ObjectMapper          objectMapper;
-  private final Map<String, Channel>  sessionsMap = new HashMap<>();
+  private final Connection           connection;
+  private final ObjectMapper         objectMapper;
+  private final Map<String, Channel> sessionsMap = new HashMap<>();
 
-  public ChatsEndpoint(
-    Connection connection,
-    AuthenticationService authenticationService,
-    ObjectMapper objectMapper
-  ) {
+  public EventsWebSocketEndpoint(Connection connection, ObjectMapper objectMapper) {
     this.connection = connection;
-    this.authenticationService = authenticationService;
     this.objectMapper = objectMapper;
   }
 
   @OnOpen
-  public void onOpen(Session session) throws IOException, EncodeException {
-    session.getBasicRemote().sendObject("connected");
+  public void onOpen(Session session, EndpointConfig config) throws IOException, EncodeException {
+    String userId = Optional.ofNullable((String)
+        ((HttpSession) config.getUserProperties()
+          .get(HttpSession.class.getName()))
+          .getAttribute("userId"))
+      .orElseThrow(UnauthorizedException::new);
+    session.getBasicRemote().sendObject(objectMapper.writeValueAsString(SessionOut.create(session.getId())));
+    sessionsMap.put(session.getId(), startBridge(session, userId));
     session.setMaxIdleTimeout(-1);
-  }
-
-  @OnMessage
-  public void onMessage(Session session, String message) throws IOException, TimeoutException, EncodeException {
-    if (message.contains("=")) {
-      Optional<AuthenticationMethod> methodOpt = Arrays.stream(AuthenticationMethod.values())
-        .filter(method -> method.name().equals(message.substring(0, message.indexOf("=")))).findAny();
-      if (methodOpt.isPresent()) {
-        if (sessionsMap.containsKey(session.getId())) {
-          sessionsMap.get(session.getId()).close();
-        }
-        Optional<String> userIdOpt = authenticationService.validateCredentials(
-            Map.of(methodOpt.get(), message.substring(message.indexOf("=") + 1)));
-        if (userIdOpt.isPresent()) {
-          session.getBasicRemote().sendObject(objectMapper.writeValueAsString(SessionOut.create(session.getId())));
-          sessionsMap.put(session.getId(), startBridge(session, userIdOpt.get()));
-        } else {
-          session.getBasicRemote().sendObject("Unauthorized");
-          throw new UnauthorizedException();
-        }
-      }
-    }
   }
 
   private Channel startBridge(Session session, String userId) {
@@ -107,7 +83,7 @@ public class ChatsEndpoint {
       sessionsMap.get(session.getId()).close();
       sessionsMap.remove(session.getId());
     }
-    ChatsLogger.error(ChatsEndpoint.class, "Error on Chats websocket", throwable);
+    ChatsLogger.error(EventsWebSocketEndpoint.class, "Error on Chats websocket", throwable);
   }
 
   private static class SessionOut {

@@ -20,7 +20,6 @@
   </properties>
 
   <dependencies>
-
     <dependency>
       <groupId>com.zextras.carbonio.chats</groupId>
       <artifactId>carbonio-chats-ce-core</artifactId>
@@ -70,15 +69,12 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- https://mvnrepository.com/artifact/com.github.fridujo/rabbitmq-mock -->
     <dependency>
       <groupId>com.github.fridujo</groupId>
       <artifactId>rabbitmq-mock</artifactId>
       <version>1.1.1</version>
       <scope>test</scope>
     </dependency>
-
-
   </dependencies>
 
   <build>

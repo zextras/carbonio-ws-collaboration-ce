@@ -57,6 +57,12 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>carbonio-preview-ce-sdk</artifactId>
     </dependency>
 
+    <!-- Jetty dependencies -->
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-server</artifactId>
+    </dependency>
+
     <!-- Guice dependencies -->
     <dependency>
       <groupId>com.google.inject</groupId>
@@ -199,6 +205,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>ebean-test</artifactId>
       <scope>test</scope>
     </dependency>
+
   </dependencies>
 
   <build>
