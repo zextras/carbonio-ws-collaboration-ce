@@ -146,13 +146,13 @@ public class UsersApiIT {
     }
 
     @Test
-    @DisplayName("Given a user identifier, if the storage hasn't the picture file returns status code 500")
+    @DisplayName("Given a user identifier, if the storage hasn't the picture file returns status code 424")
     public void getUserPicture_testErrorStorageHasNoPictureFile() throws Exception {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.LINUS_VAN_PELT);
       integrationTestUtils.generateAndSaveFileMetadata(account.getUUID(), FileMetadataType.USER_AVATAR,
         account.getUUID(), null);
       MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
-      assertEquals(500, response.getStatus());
+      assertEquals(424, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);

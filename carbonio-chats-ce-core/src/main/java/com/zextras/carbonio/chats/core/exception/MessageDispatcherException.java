@@ -11,59 +11,40 @@ import java.io.Serializable;
 public class MessageDispatcherException extends DependencyException implements Serializable {
 
   private static final long serialVersionUID = 2549718943520474692L;
+
   private static final boolean isRequired = DependencyType.XMPP_SERVER.isRequired();
-  private static final boolean IS_TO_LOG  = false;
 
-  public MessageDispatcherException() {
-    super(isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE,
-      isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE);
+  public MessageDispatcherException(DependencyType service) {
+    super(service);
   }
 
-  public MessageDispatcherException(Throwable cause) {
-    super(isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE,
-      isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE, cause);
+  public MessageDispatcherException(DependencyType service, Throwable cause) {
+    super(service, cause);
   }
 
-  public MessageDispatcherException(String debugInfo) {
-    super(isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE,
-      isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE, debugInfo);
+  public MessageDispatcherException(DependencyType service, String debugInfo) {
+    super(service, debugInfo);
   }
 
-  public MessageDispatcherException(String debugInfo, Throwable cause) {
-    super(isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE,
-      isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE, debugInfo, cause);
+  public MessageDispatcherException(DependencyType service, String debugInfo, Throwable cause) {
+    super(service, debugInfo, cause);
   }
 
-  public MessageDispatcherException(String error, String debugInfo) {
-    super(isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE,
-      isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE, error, debugInfo);
+  public MessageDispatcherException(DependencyType service, String error, String debugInfo) {
+    super(service, error, debugInfo);
   }
 
-  public MessageDispatcherException(String error, String debugInfo, Throwable cause) {
-    super(isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE,
-      isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE, error, debugInfo, cause);
+  public MessageDispatcherException(DependencyType service, String error, String debugInfo, Throwable cause) {
+    super(service, error, debugInfo, cause);
   }
 
-  protected MessageDispatcherException(
-    String error, String debugInfo, Throwable cause, boolean enableSuppression, boolean writableStackTrace
-  ) {
-    super(isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE,
-      isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE, error, debugInfo, cause,
-      enableSuppression, writableStackTrace);
+  protected MessageDispatcherException(DependencyType service, String error, String debugInfo, Throwable cause,
+    boolean enableSuppression, boolean writableStackTrace) {
+    super(service, error, debugInfo, cause, enableSuppression, writableStackTrace);
   }
 
   @Override
   public boolean isToLog() {
-    return IS_TO_LOG;
-  }
-
-  @Override
-  public int getStatusCode() {
-    return isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE;
-  }
-
-  @Override
-  public String getReasonPhrase() {
-    return isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE;
+    return isRequired;
   }
 }

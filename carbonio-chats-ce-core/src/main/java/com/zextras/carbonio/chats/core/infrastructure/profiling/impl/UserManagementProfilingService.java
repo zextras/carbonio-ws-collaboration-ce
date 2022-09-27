@@ -3,6 +3,7 @@ package com.zextras.carbonio.chats.core.infrastructure.profiling.impl;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.ProfilingException;
+import com.zextras.carbonio.chats.core.infrastructure.DependencyType;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -36,7 +37,7 @@ public class UserManagementProfilingService implements ProfilingService {
           .email(userInfo.getEmail())
           .domain(userInfo.getDomain())
       ).recover(UserNotFound.class, e -> null)
-        .getOrElseThrow((fail) -> new ProfilingException(fail)));
+        .getOrElseThrow((fail) -> new ProfilingException(DependencyType.PROFILING_SERVICE)));
   }
 
   @Override

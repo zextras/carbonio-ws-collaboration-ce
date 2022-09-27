@@ -10,60 +10,40 @@ import java.io.Serializable;
 
 public class StorageException extends DependencyException implements Serializable {
 
-  private static final long serialVersionUID = -1921616994011018008L;
-  private static final boolean isRequired = DependencyType.STORAGE_SERVICE.isRequired();
-  private static final boolean IS_TO_LOG        = false;
+  private static final long           serialVersionUID = -1921616994011018008L;
+  private static final boolean        isRequired       = DependencyType.STORAGE_SERVICE.isRequired();
 
-  public StorageException() {
-    super(isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE,
-      isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE);
+  public StorageException(DependencyType service) {
+    super(service);
   }
 
-  public StorageException(Throwable cause) {
-    super(isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE,
-      isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE, cause);
+  public StorageException(DependencyType service, Throwable cause) {
+    super(service, cause);
   }
 
-  public StorageException(String debugInfo) {
-    super(isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE,
-      isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE, debugInfo);
+  public StorageException(DependencyType service, String debugInfo) {
+    super(service, debugInfo);
   }
 
-  public StorageException(String debugInfo, Throwable cause) {
-    super(isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE,
-      isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE, debugInfo, cause);
+  public StorageException(DependencyType service, String debugInfo, Throwable cause) {
+    super(service, debugInfo, cause);
   }
 
-  public StorageException(String error, String debugInfo) {
-    super(isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE,
-      isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE, error, debugInfo);
+  public StorageException(DependencyType service, String error, String debugInfo) {
+    super(service, error, debugInfo);
   }
 
-  public StorageException(String error, String debugInfo, Throwable cause) {
-    super(isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE,
-      isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE, error, debugInfo, cause);
+  public StorageException(DependencyType service, String error, String debugInfo, Throwable cause) {
+    super(service, error, debugInfo, cause);
   }
 
-  protected StorageException(
-    String error, String debugInfo, Throwable cause, boolean enableSuppression, boolean writableStackTrace
-  ) {
-    super(isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE,
-      isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE, error, debugInfo, cause,
-      enableSuppression, writableStackTrace);
+  protected StorageException(DependencyType service, String error, String debugInfo, Throwable cause,
+    boolean enableSuppression, boolean writableStackTrace) {
+    super(service, error, debugInfo, cause, enableSuppression, writableStackTrace);
   }
 
   @Override
   public boolean isToLog() {
-    return IS_TO_LOG;
-  }
-
-  @Override
-  public int getStatusCode() {
-    return isRequired ? MANDATORY_HTTP_STATUS_CODE : OPTIONAL_HTTP_STATUS_CODE;
-  }
-
-  @Override
-  public String getReasonPhrase() {
-    return isRequired ? MANDATORY_HTTP_REASON_PHRASE : OPTIONAL_HTTP_REASON_PHRASE;
+    return isRequired;
   }
 }
