@@ -7,7 +7,7 @@ package com.zextras.carbonio.chats.core.infrastructure.storage.impl;
 import com.zextras.carbonio.chats.core.config.ChatsConstant;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
-import com.zextras.carbonio.chats.core.exception.InternalErrorException;
+import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.preview.queries.BlobResponse;
@@ -47,7 +47,7 @@ public class StoragesServiceImpl implements StoragesService {
         file);
       return file;
     } catch (Exception e) {
-      throw new InternalErrorException(String.format("Cannot retrieve the file '%s'", fileId), e);
+      throw new StorageException(String.format("Cannot retrieve the file '%s'", fileId), e);
     }
   }
 
@@ -71,7 +71,7 @@ public class StoragesServiceImpl implements StoragesService {
       FileUtils.copyInputStreamToFile(response.getOrElseThrow(
         (Supplier<IOException>) IOException::new).getContent(), file);
     } catch (IOException e) {
-      throw new InternalErrorException("An error occurred getting preview", e);
+      throw new StorageException("An error occurred getting preview", e);
     }
     return file;
   }
@@ -83,7 +83,7 @@ public class StoragesServiceImpl implements StoragesService {
         ChatsIdentifier.of(metadata.getId(), currentUserId),
         FileUtils.openInputStream(file));
     } catch (Exception e) {
-      throw new InternalErrorException("An error occurred while uploading the file", e);
+      throw new StorageException("An error occurred while uploading the file", e);
     }
   }
 
@@ -92,7 +92,7 @@ public class StoragesServiceImpl implements StoragesService {
     try {
       storagesClient.delete(ChatsIdentifier.of(fileId, ownerId));
     } catch (Exception e) {
-      throw new InternalErrorException("An error occurred while deleting the file", e);
+      throw new StorageException("An error occurred while deleting the file", e);
     }
   }
 
