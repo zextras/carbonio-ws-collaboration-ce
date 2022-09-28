@@ -20,7 +20,8 @@ public class ChatsHttpExceptionHandler extends ExceptionHandler<ChatsHttpExcepti
 
   @Override
   public Response toResponse(ChatsHttpException exception) {
-    return handleException(exception, exception.getDebugInfo(), exception.getHttpStatus(), exception.isToLog());
+    return handleException(exception, exception.getDebugInfo(), exception.getHttpStatusCode(),
+      exception.getHttpStatusPhrase(), exception.isToLog());
   }
 
 

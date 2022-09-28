@@ -10,39 +10,39 @@ import javax.ws.rs.core.Response.Status;
 
 public class ConflictException extends ChatsHttpException implements Serializable {
 
-  private static final Status  HTTP_STATUS = Status.CONFLICT;
-  private static final boolean IS_TO_LOG   = false;
-  private static final long serialVersionUID = -755505103440233196L;
+  private static final Status  HTTP_STATUS      = Status.CONFLICT;
+  private static final boolean IS_TO_LOG        = false;
+  private static final long    serialVersionUID = -755505103440233196L;
 
   public ConflictException() {
-    super(HTTP_STATUS);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase());
   }
 
   public ConflictException(Throwable cause) {
-    super(HTTP_STATUS, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), cause);
   }
 
   public ConflictException(String debugInfo) {
-    super(HTTP_STATUS, debugInfo);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), debugInfo);
   }
 
   public ConflictException(String debugInfo, Throwable cause) {
-    super(HTTP_STATUS, debugInfo, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), debugInfo, cause);
   }
 
   public ConflictException(String error, String debugInfo) {
-    super(HTTP_STATUS, error, debugInfo);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo);
   }
 
   public ConflictException(String error, String debugInfo, Throwable cause) {
-    super(HTTP_STATUS, error, debugInfo, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo, cause);
   }
 
   protected ConflictException(
-    String error, String debugInfo, Throwable cause, boolean enableSuppression,
-    boolean writableStackTrace
+    String error, String debugInfo, Throwable cause, boolean enableSuppression, boolean writableStackTrace
   ) {
-    super(HTTP_STATUS, error, debugInfo, cause, enableSuppression, writableStackTrace);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo, cause, enableSuppression,
+      writableStackTrace);
   }
 
   @Override

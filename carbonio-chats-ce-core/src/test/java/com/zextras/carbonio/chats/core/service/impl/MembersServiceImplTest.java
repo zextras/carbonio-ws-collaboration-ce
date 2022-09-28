@@ -167,7 +167,8 @@ public class MembersServiceImplTest {
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
         membersService.setOwner(roomId, user2Id, true, principal));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not a member of the room", user2Id.toString()),
         exception.getMessage());
       verifyNoInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);
@@ -187,7 +188,8 @@ public class MembersServiceImplTest {
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         membersService.setOwner(roomId, user2Id, true, principal));
 
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Cannot set owner privileges on one_to_one rooms", exception.getMessage());
       verifyNoInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);
     }
@@ -206,7 +208,8 @@ public class MembersServiceImplTest {
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         membersService.setOwner(roomId, user2Id, true, principal));
 
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Cannot set owner privileges for itself", exception.getMessage());
       verifyNoInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);
     }
@@ -221,7 +224,8 @@ public class MembersServiceImplTest {
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         membersService.setOwner(roomId, user2Id, true, principal));
 
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Cannot set owner privileges on channel rooms", exception.getMessage());
       verifyNoInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);
     }
@@ -279,7 +283,8 @@ public class MembersServiceImplTest {
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal));
 
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Cannot add members to a one_to_one conversation", exception.getMessage());
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
@@ -357,7 +362,8 @@ public class MembersServiceImplTest {
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal));
 
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Cannot add members to a channel conversation", exception.getMessage());
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
@@ -381,7 +387,8 @@ public class MembersServiceImplTest {
       when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal));
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Bad Request - User '%s' is already a room member", user2Id.toString()),
         exception.getMessage());
       verify(userService, times(1)).userExists(user2Id, principal);
@@ -405,7 +412,8 @@ public class MembersServiceImplTest {
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
         membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal));
 
-      assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Not Found - User with id '%s' was not found", user2Id), exception.getMessage());
       verify(userService, times(1)).userExists(user2Id, principal);
 
@@ -570,7 +578,8 @@ public class MembersServiceImplTest {
 
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         membersService.deleteRoomMember(roomId, user1Id, principal));
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Last owner can't leave the room", exception.getMessage());
 
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, false);
@@ -593,7 +602,8 @@ public class MembersServiceImplTest {
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         membersService.deleteRoomMember(roomId, user2Id, principal));
 
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Cannot remove a member from a one_to_one conversation", exception.getMessage());
 
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
@@ -612,7 +622,8 @@ public class MembersServiceImplTest {
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         membersService.deleteRoomMember(roomId, user2Id, principal));
 
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Cannot remove a member from a channel conversation", exception.getMessage());
 
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);

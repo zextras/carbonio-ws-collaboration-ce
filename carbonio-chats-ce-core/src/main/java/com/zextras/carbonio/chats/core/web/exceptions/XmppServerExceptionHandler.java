@@ -21,6 +21,7 @@ public class XmppServerExceptionHandler extends ExceptionHandler<ApiException> {
 
   @Override
   public Response toResponse(ApiException exception) {
-    return handleException(exception, exception.getMessage(), Status.fromStatusCode(exception.getCode()), true);
+    return handleException(exception, exception.getMessage(), exception.getCode(),
+      Status.fromStatusCode(exception.getCode()).getReasonPhrase(), true);
   }
 }

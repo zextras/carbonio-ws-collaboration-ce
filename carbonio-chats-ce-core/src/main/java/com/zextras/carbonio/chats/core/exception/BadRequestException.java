@@ -15,34 +15,35 @@ public class BadRequestException extends ChatsHttpException implements Serializa
   private static final boolean IS_TO_LOG        = false;
 
   public BadRequestException() {
-    super(HTTP_STATUS);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase());
   }
 
   public BadRequestException(Throwable cause) {
-    super(HTTP_STATUS, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), cause);
   }
 
   public BadRequestException(String debugInfo) {
-    super(HTTP_STATUS, debugInfo);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), debugInfo);
   }
 
   public BadRequestException(String debugInfo, Throwable cause) {
-    super(HTTP_STATUS, debugInfo, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), debugInfo, cause);
   }
 
   public BadRequestException(String error, String debugInfo) {
-    super(HTTP_STATUS, error, debugInfo);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo);
   }
 
   public BadRequestException(String error, String debugInfo, Throwable cause) {
-    super(HTTP_STATUS, error, debugInfo, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo, cause);
   }
 
   protected BadRequestException(
     String error, String debugInfo, Throwable cause, boolean enableSuppression,
     boolean writableStackTrace
   ) {
-    super(HTTP_STATUS, error, debugInfo, cause, enableSuppression, writableStackTrace);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo, cause, enableSuppression,
+      writableStackTrace);
   }
 
   @Override

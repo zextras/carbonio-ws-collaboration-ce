@@ -201,7 +201,8 @@ class UserServiceImplTest {
       ChatsHttpException exception = assertThrows(NotFoundException.class,
         () -> userService.getUserPicture(userId, UserPrincipal.create(userId)));
 
-      assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Not Found - File with id '%s' not found", userId),
         exception.getMessage());
     }
@@ -268,7 +269,8 @@ class UserServiceImplTest {
       ChatsHttpException exception = assertThrows(BadRequestException.class,
         () -> userService.setUserPicture(userId, file, "text/html", "picture", UserPrincipal.create(userId)));
 
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - The user picture must be an image",
         exception.getMessage());
     }
@@ -281,7 +283,8 @@ class UserServiceImplTest {
       when(file.length()).thenReturn(257L * 1024);
       ChatsHttpException exception = assertThrows(BadRequestException.class,
         () -> userService.setUserPicture(userId, file, "image/jpeg", "picture", UserPrincipal.create(userId)));
-      assertEquals(Status.BAD_REQUEST, exception.getHttpStatus());
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Bad Request - The user picture cannot be greater than %d KB", 256),
         exception.getMessage());
     }
@@ -295,7 +298,8 @@ class UserServiceImplTest {
       ForbiddenException exception = assertThrows(ForbiddenException.class,
         () -> userService.setUserPicture(user2Id, file, "image/jpeg", "picture", UserPrincipal.create(user1Id)));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Forbidden - The picture can be change only from its owner", exception.getMessage());
     }
   }
@@ -350,7 +354,8 @@ class UserServiceImplTest {
       ChatsHttpException exception = assertThrows(ForbiddenException.class,
         () -> userService.deleteUserPicture(UUID.randomUUID(), UserPrincipal.create(UUID.randomUUID())));
 
-      assertEquals(Status.FORBIDDEN, exception.getHttpStatus());
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Forbidden - The picture can be removed only from its owner", exception.getMessage());
       verifyNoInteractions(fileMetadataRepository, storagesService, eventDispatcher, subscriptionRepository);
     }
@@ -364,7 +369,8 @@ class UserServiceImplTest {
       ChatsHttpException exception = assertThrows(NotFoundException.class,
         () -> userService.getUserPicture(userId, UserPrincipal.create(userId)));
 
-      assertEquals(Status.NOT_FOUND, exception.getHttpStatus());
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Not Found - File with id '%s' not found", userId),
         exception.getMessage());
       verify(fileMetadataRepository, times(1)).getById(userId.toString());

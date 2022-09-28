@@ -15,34 +15,34 @@ public class NotFoundException extends ChatsHttpException implements Serializabl
   private static final boolean IS_TO_LOG        = false;
 
   public NotFoundException() {
-    super(HTTP_STATUS);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase());
   }
 
   public NotFoundException(Throwable cause) {
-    super(HTTP_STATUS, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), cause);
   }
 
   public NotFoundException(String debugInfo) {
-    super(HTTP_STATUS, debugInfo);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), debugInfo);
   }
 
   public NotFoundException(String debugInfo, Throwable cause) {
-    super(HTTP_STATUS, debugInfo, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), debugInfo, cause);
   }
 
   public NotFoundException(String error, String debugInfo) {
-    super(HTTP_STATUS, error, debugInfo);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo);
   }
 
   public NotFoundException(String error, String debugInfo, Throwable cause) {
-    super(HTTP_STATUS, error, debugInfo, cause);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo, cause);
   }
 
   protected NotFoundException(
-    String error, String debugInfo, Throwable cause, boolean enableSuppression,
-    boolean writableStackTrace
+    String error, String debugInfo, Throwable cause, boolean enableSuppression, boolean writableStackTrace
   ) {
-    super(HTTP_STATUS, error, debugInfo, cause, enableSuppression, writableStackTrace);
+    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo, cause, enableSuppression,
+      writableStackTrace);
   }
 
   @Override

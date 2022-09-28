@@ -10,11 +10,11 @@ public class GenericHttpException extends ChatsHttpException {
 
   private boolean toLog = false;
 
-  public GenericHttpException(int httpStatus, String debugInfo) {
-    super(Status.fromStatusCode(httpStatus), debugInfo);
+  public GenericHttpException(int httpStatusCode, String httpStatusPhrase, String debugInfo) {
+    super(httpStatusCode, httpStatusPhrase, debugInfo);
   }
-  public GenericHttpException(int httpStatus, String debugInfo, Throwable cause) {
-    super(Status.fromStatusCode(httpStatus), debugInfo, cause);
+  public GenericHttpException(int httpStatusCode, String httpStatusPhrase, String debugInfo, Throwable cause) {
+    super(httpStatusCode, httpStatusPhrase, debugInfo, cause);
   }
 
   @Override
