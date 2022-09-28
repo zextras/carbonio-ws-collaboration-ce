@@ -10,40 +10,35 @@ import java.io.Serializable;
 
 public class ProfilingException extends DependencyException implements Serializable {
 
-  private static final long    serialVersionUID = 6285897188507170501L;
-  private static final boolean isRequired       = DependencyType.PROFILING_SERVICE.isRequired();
+  private static final long           serialVersionUID = 6285897188507170501L;
+  private static final DependencyType type             = DependencyType.PROFILING_SERVICE;
 
-  public ProfilingException(DependencyType service) {
-    super(service);
+  public ProfilingException() {
+    super(type);
   }
 
-  public ProfilingException(DependencyType service, Throwable cause) {
-    super(service, cause);
+  public ProfilingException(Throwable cause) {
+    super(type, cause);
   }
 
-  public ProfilingException(DependencyType service, String debugInfo) {
-    super(service, debugInfo);
+  public ProfilingException(String debugInfo) {
+    super(type, debugInfo);
   }
 
-  public ProfilingException(DependencyType service, String debugInfo, Throwable cause) {
-    super(service, debugInfo, cause);
+  public ProfilingException(String debugInfo, Throwable cause) {
+    super(type, debugInfo, cause);
   }
 
-  public ProfilingException(DependencyType service, String error, String debugInfo) {
-    super(service, error, debugInfo);
+  public ProfilingException(String error, String debugInfo) {
+    super(type, error, debugInfo);
   }
 
-  public ProfilingException(DependencyType service, String error, String debugInfo, Throwable cause) {
-    super(service, error, debugInfo, cause);
+  public ProfilingException(String error, String debugInfo, Throwable cause) {
+    super(type, error, debugInfo, cause);
   }
 
-  protected ProfilingException(DependencyType service, String error, String debugInfo, Throwable cause,
-    boolean enableSuppression, boolean writableStackTrace) {
-    super(service, error, debugInfo, cause, enableSuppression, writableStackTrace);
-  }
-
-  @Override
-  public boolean isToLog() {
-    return isRequired;
+  protected ProfilingException(String error, String debugInfo, Throwable cause, boolean enableSuppression,
+    boolean writableStackTrace) {
+    super(type, error, debugInfo, cause, enableSuppression, writableStackTrace);
   }
 }

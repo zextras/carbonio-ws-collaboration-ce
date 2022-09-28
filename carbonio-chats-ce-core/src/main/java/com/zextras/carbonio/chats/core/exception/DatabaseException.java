@@ -10,40 +10,35 @@ import java.io.Serializable;
 
 public class DatabaseException extends DependencyException implements Serializable {
 
-  private static final long serialVersionUID = 6018988481675399724L;
-  private static final boolean isRequired = DependencyType.DATABASE.isRequired();
+  private static final long           serialVersionUID = 6018988481675399724L;
+  private static final DependencyType type             = DependencyType.DATABASE;
 
-  public DatabaseException(DependencyType service) {
-    super(service);
+  public DatabaseException() {
+    super(type);
   }
 
-  public DatabaseException(DependencyType service, Throwable cause) {
-    super(service, cause);
+  public DatabaseException(Throwable cause) {
+    super(type, cause);
   }
 
-  public DatabaseException(DependencyType service, String debugInfo) {
-    super(service, debugInfo);
+  public DatabaseException(String debugInfo) {
+    super(type, debugInfo);
   }
 
-  public DatabaseException(DependencyType service, String debugInfo, Throwable cause) {
-    super(service, debugInfo, cause);
+  public DatabaseException(String debugInfo, Throwable cause) {
+    super(type, debugInfo, cause);
   }
 
-  public DatabaseException(DependencyType service, String error, String debugInfo) {
-    super(service, error, debugInfo);
+  public DatabaseException(String error, String debugInfo) {
+    super(type, error, debugInfo);
   }
 
-  public DatabaseException(DependencyType service, String error, String debugInfo, Throwable cause) {
-    super(service, error, debugInfo, cause);
+  public DatabaseException(String error, String debugInfo, Throwable cause) {
+    super(type, error, debugInfo, cause);
   }
 
-  protected DatabaseException(DependencyType service, String error, String debugInfo, Throwable cause,
-    boolean enableSuppression, boolean writableStackTrace) {
-    super(service, error, debugInfo, cause, enableSuppression, writableStackTrace);
-  }
-
-  @Override
-  public boolean isToLog() {
-    return isRequired;
+  protected DatabaseException(String error, String debugInfo, Throwable cause, boolean enableSuppression,
+    boolean writableStackTrace) {
+    super(type, error, debugInfo, cause, enableSuppression, writableStackTrace);
   }
 }

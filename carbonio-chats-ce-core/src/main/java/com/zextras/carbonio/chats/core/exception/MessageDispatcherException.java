@@ -12,39 +12,34 @@ public class MessageDispatcherException extends DependencyException implements S
 
   private static final long serialVersionUID = 2549718943520474692L;
 
-  private static final boolean isRequired = DependencyType.XMPP_SERVER.isRequired();
+  private static final DependencyType type = DependencyType.XMPP_SERVER;
 
-  public MessageDispatcherException(DependencyType service) {
-    super(service);
+  public MessageDispatcherException() {
+    super(type);
   }
 
-  public MessageDispatcherException(DependencyType service, Throwable cause) {
-    super(service, cause);
+  public MessageDispatcherException(Throwable cause) {
+    super(type, cause);
   }
 
-  public MessageDispatcherException(DependencyType service, String debugInfo) {
-    super(service, debugInfo);
+  public MessageDispatcherException(String debugInfo) {
+    super(type, debugInfo);
   }
 
-  public MessageDispatcherException(DependencyType service, String debugInfo, Throwable cause) {
-    super(service, debugInfo, cause);
+  public MessageDispatcherException(String debugInfo, Throwable cause) {
+    super(type, debugInfo, cause);
   }
 
-  public MessageDispatcherException(DependencyType service, String error, String debugInfo) {
-    super(service, error, debugInfo);
+  public MessageDispatcherException(String error, String debugInfo) {
+    super(type, error, debugInfo);
   }
 
-  public MessageDispatcherException(DependencyType service, String error, String debugInfo, Throwable cause) {
-    super(service, error, debugInfo, cause);
+  public MessageDispatcherException(String error, String debugInfo, Throwable cause) {
+    super(type, error, debugInfo, cause);
   }
 
-  protected MessageDispatcherException(DependencyType service, String error, String debugInfo, Throwable cause,
-    boolean enableSuppression, boolean writableStackTrace) {
-    super(service, error, debugInfo, cause, enableSuppression, writableStackTrace);
-  }
-
-  @Override
-  public boolean isToLog() {
-    return isRequired;
+  protected MessageDispatcherException(String error, String debugInfo, Throwable cause, boolean enableSuppression,
+    boolean writableStackTrace) {
+    super(type, error, debugInfo, cause, enableSuppression, writableStackTrace);
   }
 }

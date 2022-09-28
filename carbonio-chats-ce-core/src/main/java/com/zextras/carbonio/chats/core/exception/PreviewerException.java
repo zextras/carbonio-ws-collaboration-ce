@@ -10,40 +10,35 @@ import java.io.Serializable;
 
 public class PreviewerException extends DependencyException implements Serializable {
 
-  private static final long    serialVersionUID = 5335428065127434966L;
-  private static final boolean isRequired       = DependencyType.PREVIEWER_SERVICE.isRequired();
+  private static final long           serialVersionUID = 5335428065127434966L;
+  private static final DependencyType type             = DependencyType.PREVIEWER_SERVICE;
 
-  public PreviewerException(DependencyType service) {
-    super(service);
+  public PreviewerException() {
+    super(type);
   }
 
-  public PreviewerException(DependencyType service, Throwable cause) {
-    super(service, cause);
+  public PreviewerException(Throwable cause) {
+    super(type, cause);
   }
 
-  public PreviewerException(DependencyType service, String debugInfo) {
-    super(service, debugInfo);
+  public PreviewerException(String debugInfo) {
+    super(type, debugInfo);
   }
 
-  public PreviewerException(DependencyType service, String debugInfo, Throwable cause) {
-    super(service, debugInfo, cause);
+  public PreviewerException(String debugInfo, Throwable cause) {
+    super(type, debugInfo, cause);
   }
 
-  public PreviewerException(DependencyType service, String error, String debugInfo) {
-    super(service, error, debugInfo);
+  public PreviewerException(String error, String debugInfo) {
+    super(type, error, debugInfo);
   }
 
-  public PreviewerException(DependencyType service, String error, String debugInfo, Throwable cause) {
-    super(service, error, debugInfo, cause);
+  public PreviewerException(String error, String debugInfo, Throwable cause) {
+    super(type, error, debugInfo, cause);
   }
 
-  protected PreviewerException(DependencyType service, String error, String debugInfo, Throwable cause,
-    boolean enableSuppression, boolean writableStackTrace) {
-    super(service, error, debugInfo, cause, enableSuppression, writableStackTrace);
-  }
-
-  @Override
-  public boolean isToLog() {
-    return isRequired;
+  protected PreviewerException(String error, String debugInfo, Throwable cause, boolean enableSuppression,
+    boolean writableStackTrace) {
+    super(type, error, debugInfo, cause, enableSuppression, writableStackTrace);
   }
 }

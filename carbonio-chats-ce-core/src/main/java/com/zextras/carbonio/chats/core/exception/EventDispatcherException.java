@@ -10,40 +10,35 @@ import java.io.Serializable;
 
 public class EventDispatcherException extends DependencyException implements Serializable {
 
-  private static final long serialVersionUID = 8760142311571089095L;
-  private static final boolean isRequired = DependencyType.EVENT_DISPATCHER.isRequired();
+  private static final long           serialVersionUID = 8760142311571089095L;
+  private static final DependencyType type             = DependencyType.EVENT_DISPATCHER;
 
-  public EventDispatcherException(DependencyType service) {
-    super(service);
+  public EventDispatcherException() {
+    super(type);
   }
 
-  public EventDispatcherException(DependencyType service, Throwable cause) {
-    super(service, cause);
+  public EventDispatcherException(Throwable cause) {
+    super(type, cause);
   }
 
-  public EventDispatcherException(DependencyType service, String debugInfo) {
-    super(service, debugInfo);
+  public EventDispatcherException(String debugInfo) {
+    super(type, debugInfo);
   }
 
-  public EventDispatcherException(DependencyType service, String debugInfo, Throwable cause) {
-    super(service, debugInfo, cause);
+  public EventDispatcherException(String debugInfo, Throwable cause) {
+    super(type, debugInfo, cause);
   }
 
-  public EventDispatcherException(DependencyType service, String error, String debugInfo) {
-    super(service, error, debugInfo);
+  public EventDispatcherException(String error, String debugInfo) {
+    super(type, error, debugInfo);
   }
 
-  public EventDispatcherException(DependencyType service, String error, String debugInfo, Throwable cause) {
-    super(service, error, debugInfo, cause);
+  public EventDispatcherException(String error, String debugInfo, Throwable cause) {
+    super(type, error, debugInfo, cause);
   }
 
-  protected EventDispatcherException(DependencyType service, String error, String debugInfo, Throwable cause,
-    boolean enableSuppression, boolean writableStackTrace) {
-    super(service, error, debugInfo, cause, enableSuppression, writableStackTrace);
-  }
-
-  @Override
-  public boolean isToLog() {
-    return isRequired;
+  protected EventDispatcherException(String error, String debugInfo, Throwable cause, boolean enableSuppression,
+    boolean writableStackTrace) {
+    super(type, error, debugInfo, cause, enableSuppression, writableStackTrace);
   }
 }
