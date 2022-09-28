@@ -1534,13 +1534,13 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier, if the storage hasn't the picture file returns status code 424")
+    @DisplayName("Given a room identifier, if the storage hasn't the picture file returns status code 500")
     public void getRoomPicture_testErrorStorageHasNoPictureFile() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveFileMetadata(roomId, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
       MockHttpResponse response = dispatcher.get(url(roomId), user1Token);
-      assertEquals(424, response.getStatus());
+      assertEquals(500, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
