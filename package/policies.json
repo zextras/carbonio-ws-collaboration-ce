@@ -3,6 +3,9 @@
     {
       "carbonio-chats/": {
         "policy": "read"
+      },
+      "carbonio-message-broker/": {
+        "policy": "read"
       }
     }
   ],

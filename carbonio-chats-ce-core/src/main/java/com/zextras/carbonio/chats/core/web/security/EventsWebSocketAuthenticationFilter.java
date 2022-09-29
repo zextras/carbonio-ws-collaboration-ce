@@ -1,11 +1,10 @@
 package com.zextras.carbonio.chats.core.web.security;
 
-import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -13,8 +12,9 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
-import org.eclipse.jetty.server.Request;
+import javax.servlet.http.HttpServletResponse;
 
 public class EventsWebSocketAuthenticationFilter implements Filter {
 
@@ -37,18 +37,24 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
     ServletRequest request, ServletResponse response, FilterChain chain
   ) throws IOException, ServletException {
     HttpServletRequest httpRequest = (HttpServletRequest) request;
-    Map<AuthenticationMethod, String> credentials = Collections.list(((Request) request).getHeaderNames()).stream()
-      .filter(header ->
-        Arrays.stream(AuthenticationMethod.values()).map(AuthenticationMethod::name)
-          .collect(Collectors.toList()).contains(header))
-      .collect(Collectors.toMap(AuthenticationMethod::valueOf, ((Request) request)::getHeader));
+    Map<AuthenticationMethod, String> credentials =
+      Arrays.stream(Optional.ofNullable(httpRequest.getCookies()).orElse(new Cookie[]{}))
+        .filter(cookie ->
+          Arrays.stream(AuthenticationMethod.values()).map(AuthenticationMethod::name).collect(Collectors.toList())
+            .contains(cookie.getName()))
+        .collect(Collectors.toMap(c -> AuthenticationMethod.valueOf(c.getName()), Cookie::getValue));
     if (credentials.isEmpty()) {
-      throw new UnauthorizedException();
-    } else {
-      httpRequest.getSession().setAttribute("userId",
-        authenticationService.validateCredentials(credentials)
-          .orElseThrow(UnauthorizedException::new));
+      HttpServletResponse httpServletResponse = (HttpServletResponse) response;
+      httpServletResponse.setStatus(401);
+      return;
     }
+    Optional<String> userIdOpt = authenticationService.validateCredentials(credentials);
+    if (userIdOpt.isEmpty()) {
+      HttpServletResponse httpServletResponse = (HttpServletResponse) response;
+      httpServletResponse.setStatus(401);
+      return;
+    }
+    httpRequest.getSession().setAttribute("userId", userIdOpt.get());
     chain.doFilter(request, response);
   }
 
