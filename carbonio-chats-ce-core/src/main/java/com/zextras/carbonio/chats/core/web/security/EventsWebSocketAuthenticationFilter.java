@@ -48,13 +48,13 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
       httpServletResponse.setStatus(401);
       return;
     }
-    Optional<String> userIdOpt = authenticationService.validateCredentials(credentials);
-    if (userIdOpt.isEmpty()) {
+    Optional<String> userId = authenticationService.validateCredentials(credentials);
+    if (userId.isEmpty()) {
       HttpServletResponse httpServletResponse = (HttpServletResponse) response;
       httpServletResponse.setStatus(401);
       return;
     }
-    httpRequest.getSession().setAttribute("userId", userIdOpt.get());
+    httpRequest.getSession().setAttribute("userId", userId.get());
     chain.doFilter(request, response);
   }
 
