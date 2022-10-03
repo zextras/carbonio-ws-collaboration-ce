@@ -6,10 +6,14 @@ package com.zextras.carbonio.chats.core.web.api;
 
 
 import com.zextras.carbonio.chats.api.AttachmentsApiService;
+import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.exception.PreviewerException;
+import com.zextras.carbonio.chats.core.exception.StorageException;
+import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
+import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
+import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
-import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
-import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import java.io.File;
@@ -24,17 +28,24 @@ import javax.ws.rs.core.SecurityContext;
 @Singleton
 public class AttachmentsApiServiceImpl implements AttachmentsApiService {
 
+  private final PreviewerService  previewService;
+  private final StoragesService   storagesService;
   private final AttachmentService attachmentService;
 
-
   @Inject
-  public AttachmentsApiServiceImpl(AttachmentService attachmentService) {
+  public AttachmentsApiServiceImpl(AttachmentService attachmentService, PreviewerService previewService,
+    StoragesService storagesService) {
     this.attachmentService = attachmentService;
+    this.previewService = previewService;
+    this.storagesService = storagesService;
   }
 
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response getAttachment(UUID fileId, SecurityContext securityContext) {
+    if (!storagesService.isAlive()) {
+      throw new StorageException("Storage service is not alive");
+    }
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     FileContentAndMetadata attachment = attachmentService.getAttachmentById(fileId, currentUser);
@@ -50,6 +61,9 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response getAttachmentPreview(UUID fileId, SecurityContext securityContext) {
+    if (!previewService.isAlive()) {
+      throw new PreviewerException("Previewer service is not alive");
+    }
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     File attachment = attachmentService.getAttachmentPreviewById(fileId, currentUser);

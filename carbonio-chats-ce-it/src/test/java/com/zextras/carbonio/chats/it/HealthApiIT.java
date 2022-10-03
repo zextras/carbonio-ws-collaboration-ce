@@ -15,7 +15,7 @@ import com.zextras.carbonio.chats.model.HealthStatusTypeDto;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.jboss.resteasy.mock.MockHttpResponse;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,8 +40,8 @@ public class HealthApiIT {
     this.objectMapper = objectMapper;
   }
 
-  @BeforeEach
-  public void beforeEach() {
+  @AfterEach
+  public void afterEach() {
     mongooseImMockServer.setIsAliveResponse(true);
     previewerMockServer.setIsAliveResponse(true);
   }
@@ -127,7 +127,7 @@ public class HealthApiIT {
     public void isReady_testWarn() throws Exception {
       previewerMockServer.setIsAliveResponse(false);
       MockHttpResponse response = dispatcher.get("/health/ready");
-      assertEquals(429, response.getStatus());
+      assertEquals(424, response.getStatus());
     }
 
     @Test
