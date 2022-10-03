@@ -68,7 +68,6 @@ public class Boot {
     if (eventDispatcherConnection != null) {
       JavaxWebSocketServletContainerInitializer.configure(context, (servletContext, wsContainer) -> {
         wsContainer.setDefaultMaxTextMessageBufferSize(65535);
-        wsContainer.setAsyncSendTimeout(-1);
         wsContainer.addEndpoint(ServerEndpointConfig.Builder
           .create(EventsWebSocketEndpoint.class, "/events")
           .configurator(new EventsWebSocketEndpointConfigurator(eventDispatcherConnection, objectMapper))

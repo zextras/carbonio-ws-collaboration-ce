@@ -1,5 +1,6 @@
 package com.zextras.carbonio.chats.core.web.socket;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -18,12 +19,15 @@ import javax.websocket.EncodeException;
 import javax.websocket.EndpointConfig;
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
+import javax.websocket.OnMessage;
 import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
 @ServerEndpoint(value = "/events")
 public class EventsWebSocketEndpoint {
+
+  private static final int MAX_IDLE_TIMEOUT = 90000;
 
   private final Connection           connection;
   private final ObjectMapper         objectMapper;
@@ -41,9 +45,38 @@ public class EventsWebSocketEndpoint {
           .get(HttpSession.class.getName()))
           .getAttribute("userId"))
       .orElseThrow(UnauthorizedException::new);
-    session.getBasicRemote().sendObject(objectMapper.writeValueAsString(SessionOut.create(session.getId())));
+    session.setMaxIdleTimeout(MAX_IDLE_TIMEOUT);
+    session.getBasicRemote().sendObject(objectMapper.writeValueAsString(SessionOutEvent.create(session.getId())));
     sessionsMap.put(session.getId(), startBridge(session, userId));
-    session.setMaxIdleTimeout(-1);
+  }
+
+  @OnMessage
+  public void onMessage(Session session, String message) throws EncodeException, IOException {
+    try {
+      if (objectMapper.readValue(message, PingPongDtoEvent.class).getType().equals("ping")) {
+        session.getBasicRemote().sendObject(objectMapper.writeValueAsString(PingPongDtoEvent.create("pong")));
+      }
+    } catch (JsonProcessingException e) {
+      // intentionally left blank
+    }
+  }
+
+  @OnClose
+  public void onClose(Session session) throws IOException, EncodeException, TimeoutException {
+    if (sessionsMap.containsKey(session.getId())) {
+      sessionsMap.get(session.getId()).close();
+      sessionsMap.remove(session.getId());
+    }
+    session.getBasicRemote().sendObject("Disconnected");
+  }
+
+  @OnError
+  public void onError(Session session, Throwable throwable) throws IOException, TimeoutException {
+    if (sessionsMap.containsKey(session.getId())) {
+      sessionsMap.get(session.getId()).close();
+      sessionsMap.remove(session.getId());
+    }
+    ChatsLogger.error(EventsWebSocketEndpoint.class, "Error on Chats websocket", throwable);
   }
 
   private Channel startBridge(Session session, String userId) {
@@ -68,38 +101,38 @@ public class EventsWebSocketEndpoint {
     }
   }
 
-  @OnClose
-  public void onClose(Session session) throws IOException, EncodeException, TimeoutException {
-    if (sessionsMap.containsKey(session.getId())) {
-      sessionsMap.get(session.getId()).close();
-      sessionsMap.remove(session.getId());
-    }
-    session.getBasicRemote().sendObject("Disconnected");
-  }
-
-  @OnError
-  public void onError(Session session, Throwable throwable) throws IOException, TimeoutException {
-    if (sessionsMap.containsKey(session.getId())) {
-      sessionsMap.get(session.getId()).close();
-      sessionsMap.remove(session.getId());
-    }
-    ChatsLogger.error(EventsWebSocketEndpoint.class, "Error on Chats websocket", throwable);
-  }
-
-  private static class SessionOut {
+  private static class SessionOutEvent {
 
     private final String sessionId;
 
-    public SessionOut(String sessionId) {
+    public SessionOutEvent(String sessionId) {
       this.sessionId = sessionId;
     }
 
-    public static SessionOut create(String sessionId) {
-      return new SessionOut(sessionId);
+    public static SessionOutEvent create(String sessionId) {
+      return new SessionOutEvent(sessionId);
     }
 
     public String getSessionId() {
       return sessionId;
+    }
+  }
+
+  private static class PingPongDtoEvent {
+
+    private String type;
+
+    private static PingPongDtoEvent create(String type) {
+      return new PingPongDtoEvent().type(type);
+    }
+
+    public String getType() {
+      return type;
+    }
+
+    public PingPongDtoEvent type(String type) {
+      this.type = type;
+      return this;
     }
   }
 }
