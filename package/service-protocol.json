@@ -1,5 +1,6 @@
 {
   "Kind": "service-defaults",
   "Name": "carbonio-chats",
-  "Protocol": "http"
+  "Protocol": "http",
+  "Websocket": true
 }
