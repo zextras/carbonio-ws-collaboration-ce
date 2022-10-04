@@ -10,13 +10,13 @@ import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import javax.inject.Inject;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.SecurityContext;
 
 public class HealthApiServiceImpl implements HealthApiService {
 
-  private final int INTERNAL_SERVER_ERROR_STATUS_CODE = 500;
-  private final int DEPENDENCY_EXCEPTION_STATUS_CODE = 424;
-  private final int NO_CONTENT_STATUS_CODE = 204;
+  private final int                MANDATARY_SERVICE_ERROR_CODE = 500;
+  private final int                OPTIONAL_SERVICE_ERROR_CODE  = 424;
   private final HealthcheckService healthcheckService;
 
   @Inject
@@ -44,13 +44,13 @@ public class HealthApiServiceImpl implements HealthApiService {
     int status;
     switch (healthcheckService.getServiceStatus()) {
       case ERROR:
-        status = INTERNAL_SERVER_ERROR_STATUS_CODE;
+        status = MANDATARY_SERVICE_ERROR_CODE;
         break;
       case WARN:
-        status = DEPENDENCY_EXCEPTION_STATUS_CODE;
+        status = OPTIONAL_SERVICE_ERROR_CODE;
         break;
       default:
-        status = NO_CONTENT_STATUS_CODE;
+        status = Status.NO_CONTENT.getStatusCode();
     }
     return Response.status(status).build();
   }
