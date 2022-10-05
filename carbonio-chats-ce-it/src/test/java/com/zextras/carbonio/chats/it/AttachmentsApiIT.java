@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.UUID;
 import javax.ws.rs.core.Response.Status;
 import org.jboss.resteasy.mock.MockHttpResponse;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -82,6 +83,12 @@ public class AttachmentsApiIT {
   @BeforeEach
   public void init() {
     integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
+  }
+
+  @AfterEach
+  public void afterEach() {
+    previewerMockServer.setIsAliveResponse(true);
+    storageMockServer.setIsAliveResponse(true);
   }
 
   @Nested
@@ -166,6 +173,16 @@ public class AttachmentsApiIT {
     }
 
     @Test
+    @DisplayName("Returns 424 if the Storage server is down")
+    public void getAttachment_testExceptionStorageServerKO() throws Exception {
+      storageMockServer.setIsAliveResponse(false);
+
+      MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/download", UUID.randomUUID()), null);
+
+      assertEquals(424, response.getStatus());
+    }
+
+    @Test
     @DisplayName("Given an attachment identifier, if the user is not authenticated return a status code 401")
     public void getAttachment_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/download", UUID.randomUUID()), null);
@@ -213,6 +230,16 @@ public class AttachmentsApiIT {
       previewerMockServer.verify("GET",
         String.format("/preview/image/%s/1/320x160/", fileMock.getId()),
         Map.of("service_type", "chats"), 1);
+    }
+
+    @Test
+    @DisplayName("Returns 424 if the Previewer server is down")
+    public void getAttachment_testExceptionPreviewerKO() throws Exception {
+      previewerMockServer.setIsAliveResponse(false);
+
+      MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/preview", UUID.randomUUID()), null);
+
+      assertEquals(424, response.getStatus());
     }
 
     @Test

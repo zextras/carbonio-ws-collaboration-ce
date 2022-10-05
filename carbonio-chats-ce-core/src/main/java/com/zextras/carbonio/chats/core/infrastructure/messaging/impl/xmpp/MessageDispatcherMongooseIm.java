@@ -5,7 +5,7 @@
 package com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
-import com.zextras.carbonio.chats.core.exception.InternalErrorException;
+import com.zextras.carbonio.chats.core.exception.MessageDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
@@ -63,7 +63,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
         .name(room.getId())
         .subject(room.getDescription()));
     } catch (Exception e) {
-      throw new InternalErrorException("An error occurred when adding a room to MongooseIm", e);
+      throw new MessageDispatcherException("An error occurred when adding a room to MongooseIm", e);
     }
     room.getSubscriptions().stream()
       .filter(member -> !member.getUserId().equals(senderId))
@@ -79,7 +79,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
           .recipient(userId2userDomain(recipientId))
       );
     } catch (Exception e) {
-      throw new InternalErrorException("An error occurred when adding a member to a MongooseIm room", e);
+      throw new MessageDispatcherException("An error occurred when adding a member to a MongooseIm room", e);
     }
   }
 
@@ -161,7 +161,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
       oneToOneMessagesApi.stanzasPost(new Message1Dto().stanza(
         getStanzaMessage(roomId, senderId, MessageType.CHANGED_ROOM_NAME, Map.of("value", name))));
     } catch (XmppStringprepException e) {
-      throw new InternalErrorException(
+      throw new MessageDispatcherException(
         "An error occurred when sending a message for room name changed to a MongooseIm room", e);
     }
   }
@@ -172,7 +172,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
       oneToOneMessagesApi.stanzasPost(new Message1Dto().stanza(
         getStanzaMessage(roomId, senderId, MessageType.CHANGED_ROOM_DESCRIPTION, Map.of("value", description))));
     } catch (XmppStringprepException e) {
-      throw new InternalErrorException(
+      throw new MessageDispatcherException(
         "An error occurred when sending a message for room description changed to a MongooseIm room", e);
     }
   }
@@ -184,7 +184,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
         getStanzaMessage(roomId, senderId, MessageType.UPDATED_ROOM_PICTURE,
           Map.of("picture-id", pictureId, "picture-name", pictureName))));
     } catch (XmppStringprepException e) {
-      throw new InternalErrorException(
+      throw new MessageDispatcherException(
         "An error occurred when sending a message for room picture updated to a MongooseIm room", e);
     }
   }
@@ -195,7 +195,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
       oneToOneMessagesApi.stanzasPost(new Message1Dto().stanza(
         getStanzaMessage(roomId, senderId, MessageType.DELETED_ROOM_PICTURE, null)));
     } catch (XmppStringprepException e) {
-      throw new InternalErrorException(
+      throw new MessageDispatcherException(
         "An error occurred when sending a message for room picture updated to a MongooseIm room", e);
     }
   }

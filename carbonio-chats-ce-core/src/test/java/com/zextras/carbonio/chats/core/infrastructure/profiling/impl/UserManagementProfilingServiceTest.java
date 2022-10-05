@@ -10,7 +10,7 @@ import static org.mockito.Mockito.when;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
-import com.zextras.carbonio.chats.core.exception.InternalErrorException;
+import com.zextras.carbonio.chats.core.exception.ProfilingException;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
@@ -100,7 +100,7 @@ class UserManagementProfilingServiceTest {
           Try.failure(new Exception())
         );
       Map<AuthenticationMethod, String> credentials = Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "cookie");
-      assertThrows(InternalErrorException.class, () -> profilingService.getById(
+      assertThrows(ProfilingException.class, () -> profilingService.getById(
         UserPrincipal.create(randomUUID).authCredentials(credentials), randomUUID
       ));
     }

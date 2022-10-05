@@ -15,6 +15,8 @@ import javax.ws.rs.core.SecurityContext;
 
 public class HealthApiServiceImpl implements HealthApiService {
 
+  private final int                MANDATARY_SERVICE_ERROR_CODE = 500;
+  private final int                OPTIONAL_SERVICE_ERROR_CODE  = 424;
   private final HealthcheckService healthcheckService;
 
   @Inject
@@ -39,16 +41,16 @@ public class HealthApiServiceImpl implements HealthApiService {
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.TRACE)
   public Response isReady(SecurityContext securityContext) {
-    Status status;
+    int status;
     switch (healthcheckService.getServiceStatus()) {
       case ERROR:
-        status = Status.INTERNAL_SERVER_ERROR;
+        status = MANDATARY_SERVICE_ERROR_CODE;
         break;
       case WARN:
-        status = Status.TOO_MANY_REQUESTS;
+        status = OPTIONAL_SERVICE_ERROR_CODE;
         break;
       default:
-        status = Status.NO_CONTENT;
+        status = Status.NO_CONTENT.getStatusCode();
     }
     return Response.status(status).build();
   }

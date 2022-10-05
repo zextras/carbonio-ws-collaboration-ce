@@ -1,11 +1,10 @@
 package com.zextras.carbonio.chats.it.tools;
 
 import static org.mockserver.model.HttpRequest.request;
+import static org.mockserver.model.HttpResponse.response;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
-import org.mockserver.client.MockServerClient;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
@@ -32,9 +31,19 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
     clear(request, ClearType.LOG);
   }
 
+  public void setIsAliveResponse(boolean success) {
+    HttpRequest request = request().withMethod("GET").withPath("/health/live");
+    clear(request);
+    when(request)
+      .respond(
+        response()
+          .withStatusCode(success ? 204 : 500)
+      );
+  }
+
   @Override
   public void close() {
-    ChatsLogger.debug("Stopping Storages mock...");
+    ChatsLogger.debug("Stopping storages mock...");
     super.close();
   }
 }
