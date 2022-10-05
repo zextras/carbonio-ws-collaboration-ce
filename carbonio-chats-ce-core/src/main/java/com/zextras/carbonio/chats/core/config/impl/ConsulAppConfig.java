@@ -112,10 +112,6 @@ public class ConsulAppConfig extends AppConfig {
     }
   }
 
-  private String pluto(String k) {
-    return k;
-  }
-
   @Override
   protected boolean setConfigByImplementation(ConfigName configName, String value) {
     consulClient.keyValueClient().putValue(configName.getConsulName(), value);

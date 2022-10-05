@@ -14,6 +14,7 @@ import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomRankDto;
 import java.io.File;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -84,6 +85,14 @@ public interface RoomService {
    **/
   void muteRoom(UUID roomId, UserPrincipal currentUser);
 
+  /**
+   * Clears all messages for the specified room
+   *
+   * @param roomId      room identifier {@link UUID }
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   * @return date since messages were cleared
+   */
+  OffsetDateTime clearRoom(UUID roomId, UserPrincipal currentUser);
 
   /**
    * Resets the specified room hash
@@ -93,7 +102,6 @@ public interface RoomService {
    * @return Room's hash {@link HashDto }
    **/
   HashDto resetRoomHash(UUID roomId, UserPrincipal currentUser);
-
 
   /**
    * Unmutes notification for the specified room
