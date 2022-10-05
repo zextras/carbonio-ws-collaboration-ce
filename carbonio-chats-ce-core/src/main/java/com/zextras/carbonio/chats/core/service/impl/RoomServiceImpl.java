@@ -331,7 +331,7 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  public OffsetDateTime clearRoom(UUID roomId, UserPrincipal currentUser) {
+  public OffsetDateTime clearRoomHistory(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
     RoomUserSettings settings = roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
       .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));

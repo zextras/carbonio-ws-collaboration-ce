@@ -92,7 +92,7 @@ public interface RoomService {
    * @param currentUser current authenticated user {@link UserPrincipal}
    * @return date since messages were cleared
    */
-  OffsetDateTime clearRoom(UUID roomId, UserPrincipal currentUser);
+  OffsetDateTime clearRoomHistory(UUID roomId, UserPrincipal currentUser);
 
   /**
    * Resets the specified room hash

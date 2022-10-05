@@ -168,11 +168,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response clearRoom(UUID roomId, SecurityContext securityContext) throws NotFoundException {
+  public Response clearRoomHistory(UUID roomId, SecurityContext securityContext) throws NotFoundException {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response.status(Status.OK)
-      .entity(ClearedDateDto.create().clearedAt(roomService.clearRoom(roomId, currentUser)))
+      .entity(ClearedDateDto.create().clearedAt(roomService.clearRoomHistory(roomId, currentUser)))
       .build();
   }
 

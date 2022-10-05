@@ -2021,7 +2021,7 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Sets the clear date to now where user settings doesn't exist")
+    @DisplayName("Sets the clear date to now when user settings doesn't exist")
     public void clearRoom_testOkUserSettingNotExists() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
@@ -2035,7 +2035,7 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Sets the clear date to now where user settings exists")
+    @DisplayName("Sets the clear date to now when user settings exists")
     public void clearRoom_testOkUserSettingExists() throws Exception {
       UUID roomId = UUID.randomUUID();
       Room room = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",

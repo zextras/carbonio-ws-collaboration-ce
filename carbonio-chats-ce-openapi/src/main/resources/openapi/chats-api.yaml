@@ -202,7 +202,7 @@ paths:
       tags:
         - Rooms
       summary: Clears all messages for the specified room
-      operationId: clearRoom
+      operationId: clearRoomHistory
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
       responses:

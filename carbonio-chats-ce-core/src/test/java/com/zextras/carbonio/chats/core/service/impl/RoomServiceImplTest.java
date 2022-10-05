@@ -1610,7 +1610,7 @@ class RoomServiceImplTest {
   class ClearRoomTests {
 
     @Test
-    @DisplayName("Correctly sets the clear date to now where user settings doesn't exist")
+    @DisplayName("Correctly sets the clear date to now when user settings doesn't exist")
     void clearRoom_testOkUserSettingNotExists() {
       Instant desiredInstant = Instant.parse("2022-01-01T00:00:00Z");
       OffsetDateTime desiredDate = OffsetDateTime.ofInstant(desiredInstant, ZoneId.systemDefault());
@@ -1623,7 +1623,7 @@ class RoomServiceImplTest {
         Optional.empty());
       when(roomUserSettingsRepository.save(userSettings)).thenReturn(userSettings);
 
-      OffsetDateTime clearedAt = roomService.clearRoom(roomGroup1Id, UserPrincipal.create(user1Id));
+      OffsetDateTime clearedAt = roomService.clearRoomHistory(roomGroup1Id, UserPrincipal.create(user1Id));
       assertEquals(desiredDate, clearedAt);
 
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
@@ -1637,7 +1637,7 @@ class RoomServiceImplTest {
     }
 
     @Test
-    @DisplayName("Correctly sets the clear date to now where user settings exists")
+    @DisplayName("Correctly sets the clear date to now when user settings exists")
     void clearRoom_testOkUserSettingExists() {
       Instant desiredInstant = Instant.parse("2022-01-01T00:00:00Z");
       OffsetDateTime desiredDate = OffsetDateTime.ofInstant(desiredInstant, ZoneId.systemDefault());
@@ -1652,7 +1652,7 @@ class RoomServiceImplTest {
         )));
       when(roomUserSettingsRepository.save(userSettings)).thenReturn(userSettings);
 
-      OffsetDateTime clearedAt = roomService.clearRoom(roomGroup1Id, UserPrincipal.create(user1Id));
+      OffsetDateTime clearedAt = roomService.clearRoomHistory(roomGroup1Id, UserPrincipal.create(user1Id));
       assertEquals(desiredDate, clearedAt);
 
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
@@ -1673,7 +1673,7 @@ class RoomServiceImplTest {
         Optional.empty());
 
       ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
-        roomService.clearRoom(roomGroup2Id, UserPrincipal.create(user1Id)));
+        roomService.clearRoomHistory(roomGroup2Id, UserPrincipal.create(user1Id)));
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -1689,7 +1689,7 @@ class RoomServiceImplTest {
     @DisplayName("If the room doesn't exist, it throws a 'not found' exception")
     void clearRoom_testRoomNotExists() {
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        roomService.clearRoom(roomGroup1Id, UserPrincipal.create(user1Id)));
+        roomService.clearRoomHistory(roomGroup1Id, UserPrincipal.create(user1Id)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
