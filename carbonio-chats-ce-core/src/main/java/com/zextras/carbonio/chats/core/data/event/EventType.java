@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public enum EventType {
 
   ROOM_CREATED("roomCreated"),
@@ -20,21 +22,23 @@ public enum EventType {
   USER_MUTED("userMuted"),
   USER_UNMUTED("userUnmuted"),
   USER_PICTURE_CHANGED("userPictureChanged"),
-  USER_PICTURE_DELETED("userPictureDeleted");
+  USER_PICTURE_DELETED("userPictureDeleted"),
+  CLEARED_ROOM_EVENT("clearedRoomEvent");
 
 
-  private final String name;
+  private final String description;
 
-  EventType(String name) {
-    this.name = name;
+  EventType(String description) {
+    this.description = description;
   }
 
-  public String getName() {
-    return name;
+  @JsonValue
+  public String getDescription() {
+    return description;
   }
 
   @Override
   public String toString() {
-    return this.name;
+    return this.description;
   }
 }

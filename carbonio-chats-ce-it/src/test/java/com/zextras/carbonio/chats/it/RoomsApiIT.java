@@ -31,6 +31,7 @@ import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
+import com.zextras.carbonio.chats.model.ClearedDateDto;
 import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.IdDto;
 import com.zextras.carbonio.chats.model.MemberDto;
@@ -2004,6 +2005,68 @@ public class RoomsApiIT {
     @DisplayName("If the room doesn't exist, it throws a 'not found' exception")
     public void unmuteRoom_testRoomNotExists() throws Exception {
       MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID()), user3Token);
+      assertEquals(404, response.getStatus());
+      assertEquals(0, response.getContentAsString().length());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+  }
+
+  @Nested
+  @DisplayName("Clear room for authenticated user tests")
+  public class ClearRoomForAuthenticatedUserTests {
+
+    private String url(UUID roomId) {
+      return String.format("/rooms/%s/clear", roomId);
+    }
+
+    @Test
+    @DisplayName("Sets the clear date to now when user settings doesn't exist")
+    public void clearRoom_testOkUserSettingNotExists() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
+        List.of(user1Id, user2Id, user3Id));
+      MockHttpResponse response = dispatcher.put(url(roomId), null, user3Token);
+      assertEquals(200, response.getStatus());
+      assertNotNull(objectMapper.readValue(response.getContentAsString(), ClearedDateDto.class).getClearedAt());
+
+      // TODO: 23/02/22 verify event dispatcher interactions
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("Sets the clear date to now when user settings exists")
+    public void clearRoom_testOkUserSettingExists() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      Room room = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
+        List.of(user1Id, user2Id, user3Id));
+      OffsetDateTime prevDate = OffsetDateTime.parse("2022-01-01T00:00:00Z");
+      integrationTestUtils.setRoomUserSettings(RoomUserSettings.create(room, user3Id.toString()).clearedAt(prevDate));
+      MockHttpResponse response = dispatcher.put(url(roomId), null, user3Token);
+      assertEquals(200, response.getStatus());
+      assertTrue(
+        prevDate.isBefore(objectMapper.readValue(response.getContentAsString(), ClearedDateDto.class).getClearedAt()));
+      // TODO: 23/02/22 verify event dispatcher interactions
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("If the authenticated user isn't a room member, it throws a 'forbidden' exception")
+    public void clearRoom_testAuthenticatedUserIsNotARoomMember() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
+
+      MockHttpResponse response = dispatcher.put(url(roomId), null, user3Token);
+      assertEquals(403, response.getStatus());
+      assertEquals(0, response.getContentAsString().length());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("If the room doesn't exist, it throws a 'not found' exception")
+    public void clearRoom_testRoomNotExists() throws Exception {
+      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()), null, user3Token);
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getContentAsString().length());
 

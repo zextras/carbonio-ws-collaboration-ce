@@ -24,6 +24,7 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.event.ClearedRoomEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomCreatedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomDeletedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomHashResetEvent;
@@ -1597,6 +1598,98 @@ class RoomServiceImplTest {
     void unmuteRoom_testRoomNotExists() {
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
         roomService.muteRoom(roomGroup1Id, UserPrincipal.create(user1Id)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(String.format("Not Found - Room '%s'", roomGroup1Id), exception.getMessage());
+    }
+  }
+
+  @Nested
+  @DisplayName("Clear room tests")
+  class ClearRoomTests {
+
+    @Test
+    @DisplayName("Correctly sets the clear date to now when user settings doesn't exist")
+    void clearRoom_testOkUserSettingNotExists() {
+      Instant desiredInstant = Instant.parse("2022-01-01T00:00:00Z");
+      OffsetDateTime desiredDate = OffsetDateTime.ofInstant(desiredInstant, ZoneId.systemDefault());
+      RoomUserSettings userSettings = RoomUserSettings.create(roomGroup1, user1Id.toString()).clearedAt(desiredDate);
+
+      when(clock.instant()).thenReturn(desiredInstant);
+      when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      when(roomUserSettingsRepository.getByRoomIdAndUserId(roomGroup1Id.toString(), user1Id.toString())).thenReturn(
+        Optional.empty());
+      when(roomUserSettingsRepository.save(userSettings)).thenReturn(userSettings);
+
+      OffsetDateTime clearedAt = roomService.clearRoomHistory(roomGroup1Id, UserPrincipal.create(user1Id));
+      assertEquals(desiredDate, clearedAt);
+
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(roomUserSettingsRepository, times(1))
+        .getByRoomIdAndUserId(roomGroup1Id.toString(), user1Id.toString());
+      verify(roomUserSettingsRepository, times(1)).save(userSettings);
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        user1Id.toString(),
+        ClearedRoomEvent.create(user1Id).roomId(roomGroup1Id));
+      verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("Correctly sets the clear date to now when user settings exists")
+    void clearRoom_testOkUserSettingExists() {
+      Instant desiredInstant = Instant.parse("2022-01-01T00:00:00Z");
+      OffsetDateTime desiredDate = OffsetDateTime.ofInstant(desiredInstant, ZoneId.systemDefault());
+      RoomUserSettings userSettings = RoomUserSettings.create(roomGroup1, user1Id.toString()).clearedAt(desiredDate);
+
+      when(clock.instant()).thenReturn(desiredInstant);
+      when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      when(roomUserSettingsRepository.getByRoomIdAndUserId(roomGroup1Id.toString(), user1Id.toString())).thenReturn(
+        Optional.of(RoomUserSettings.create(roomGroup1, user1Id.toString()).clearedAt(
+          OffsetDateTime.ofInstant(Instant.parse("2021-12-31T00:00:00Z"), ZoneId.systemDefault())
+        )));
+      when(roomUserSettingsRepository.save(userSettings)).thenReturn(userSettings);
+
+      OffsetDateTime clearedAt = roomService.clearRoomHistory(roomGroup1Id, UserPrincipal.create(user1Id));
+      assertEquals(desiredDate, clearedAt);
+
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(roomUserSettingsRepository, times(1))
+        .getByRoomIdAndUserId(roomGroup1Id.toString(), user1Id.toString());
+      verify(roomUserSettingsRepository, times(1)).save(userSettings);
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        user1Id.toString(),
+        ClearedRoomEvent.create(user1Id).roomId(roomGroup1Id));
+      verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the authenticated user isn't a room member, it throws a 'forbidden' exception")
+    void clearRoom_testAuthenticatedUserIsNotARoomMember() {
+      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
+      when(roomUserSettingsRepository.getByRoomIdAndUserId(roomGroup2Id.toString(), user1Id.toString())).thenReturn(
+        Optional.empty());
+
+      ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
+        roomService.clearRoomHistory(roomGroup2Id, UserPrincipal.create(user1Id)));
+
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
+        exception.getMessage());
+
+      verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
+      verifyNoMoreInteractions(roomRepository);
+      verifyNoInteractions(eventDispatcher, roomUserSettingsRepository);
+    }
+
+    @Test
+    @DisplayName("If the room doesn't exist, it throws a 'not found' exception")
+    void clearRoom_testRoomNotExists() {
+      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
+        roomService.clearRoomHistory(roomGroup1Id, UserPrincipal.create(user1Id)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());

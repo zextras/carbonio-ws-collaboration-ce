@@ -10,6 +10,7 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.event.ClearedRoomEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomCreatedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomDeletedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomHashResetEvent;
@@ -327,6 +328,16 @@ public class RoomServiceImpl implements RoomService {
         room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
         UserMutedEvent.create(currentUser.getUUID()).roomId(roomId).memberId(currentUser.getUUID()));
     }
+  }
+
+  @Override
+  public OffsetDateTime clearRoomHistory(UUID roomId, UserPrincipal currentUser) {
+    Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
+    RoomUserSettings settings = roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
+      .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
+    settings = roomUserSettingsRepository.save(settings.clearedAt(OffsetDateTime.now()));
+    eventDispatcher.sendToUserQueue(currentUser.getId(), ClearedRoomEvent.create(currentUser.getUUID()).roomId(roomId));
+    return settings.getClearedAt();
   }
 
   @Override

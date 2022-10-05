@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.web.api;
 
+import com.zextras.carbonio.chats.api.NotFoundException;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -15,6 +16,7 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.ClearedDateDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
@@ -163,6 +165,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     roomService.unmuteRoom(roomId, Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new));
     return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
+  public Response clearRoomHistory(UUID roomId, SecurityContext securityContext) throws NotFoundException {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    return Response.status(Status.OK)
+      .entity(ClearedDateDto.create().clearedAt(roomService.clearRoomHistory(roomId, currentUser)))
+      .build();
   }
 
   @Override

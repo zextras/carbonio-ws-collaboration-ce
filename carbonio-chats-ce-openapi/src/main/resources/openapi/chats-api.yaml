@@ -197,6 +197,21 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /rooms/{roomId}/clear:
+    put:
+      tags:
+        - Rooms
+      summary: Clears all messages for the specified room
+      operationId: clearRoomHistory
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+      responses:
+        200:
+          $ref: '#/components/responses/200ClearRoomResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /rooms/{roomId}/hash:
     put:
       tags:
@@ -673,6 +688,12 @@ components:
       description: Room was muted correctly
     204UnmuteRoomResponse:
       description: Room was unmuted correctly
+    200ClearRoomResponse:
+      description: Cleaning date of messages
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ClearedDate'
     200ResetRoomHashResponse:
       description: Room's hash
       content:
@@ -842,6 +863,15 @@ components:
           readOnly: true
           description: identifier
       required: [ id ]
+    ClearedDate:
+      type: object
+      properties:
+        clearedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: date since messages were cleared
+      required: [ clearedAt ]
     Hash:
       type: object
       description: Hash object
@@ -1000,7 +1030,7 @@ components:
           type: string
           format: date-time
           description: |
-            room clear history timestamp,
+            room clear history date,
             returned only if the room clear history has been cleared at least once
       required: [ muted, clearedAt ]
     RoomExtraField:
