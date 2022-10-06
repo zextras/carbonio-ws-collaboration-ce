@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.zextras.carbonio.chats.api.RFC3339DateFormat;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
@@ -150,11 +151,11 @@ public class AttachmentServiceImplTest {
           FileMetadataBuilder.create().id(file1Id.toString()).name("image1.jpg")
             .originalSize(0L).mimeType("image/jpg").type(FileMetadataType.ATTACHMENT)
             .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(attachmentTimestamp)
-            .updatedAt(attachmentTimestamp),
+            .updatedAt(attachmentTimestamp).build(),
           FileMetadataBuilder.create().id(file2Id.toString()).name("pdf1.pdf")
             .originalSize(0L).mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
             .userId(user2Id.toString()).roomId(roomId.toString()).createdAt(attachmentTimestamp.plusHours(1))
-            .updatedAt(attachmentTimestamp.plusHours(1))));
+            .updatedAt(attachmentTimestamp.plusHours(1)).build()));
       AttachmentsPaginationDto attachmentsPagination = attachmentService.getAttachmentInfoByRoomId(roomId, 10, null,
         currentUser);
 
@@ -180,15 +181,15 @@ public class AttachmentServiceImplTest {
           FileMetadataBuilder.create().id(file1Id.toString()).name("image1.jpg")
             .originalSize(0L).mimeType("image/jpg").type(FileMetadataType.ATTACHMENT)
             .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(attachmentTimestamp.plusHours(2))
-            .updatedAt(attachmentTimestamp.plusHours(2)),
+            .updatedAt(attachmentTimestamp.plusHours(2)).build(),
           FileMetadataBuilder.create().id(file2Id.toString()).name("image2.jpg")
             .originalSize(0L).mimeType("image/jpg").type(FileMetadataType.ATTACHMENT)
             .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(attachmentTimestamp.plusHours(1))
-            .updatedAt(attachmentTimestamp.plusHours(1)),
+            .updatedAt(attachmentTimestamp.plusHours(1)).build(),
           FileMetadataBuilder.create().id(file3Id.toString()).name("pdf1.pdf")
             .originalSize(0L).mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
             .userId(user2Id.toString()).roomId(roomId.toString()).createdAt(attachmentTimestamp)
-            .updatedAt(attachmentTimestamp)));
+            .updatedAt(attachmentTimestamp).build()));
       AttachmentsPaginationDto attachmentsPagination = attachmentService.getAttachmentInfoByRoomId(roomId, 2, null,
         currentUser);
 
@@ -219,7 +220,7 @@ public class AttachmentServiceImplTest {
           FileMetadataBuilder.create().id(file2Id.toString()).name("pdf1.pdf")
             .originalSize(0L).mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
             .userId(user2Id.toString()).roomId(roomId.toString()).createdAt(attachmentTimestamp)
-            .updatedAt(attachmentTimestamp)));
+            .updatedAt(attachmentTimestamp).build()));
 
       AttachmentsPaginationDto attachmentsPagination = attachmentService.getAttachmentInfoByRoomId(roomId, 2,
         filter, currentUser);
@@ -288,7 +289,7 @@ public class AttachmentServiceImplTest {
         FileMetadataBuilder.create().id(attachmentUuid.toString()).name("image1.jpg")
           .originalSize(0L).mimeType("image/jpg").type(FileMetadataType.ATTACHMENT)
           .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
-          .updatedAt(OffsetDateTime.now()))
+          .updatedAt(OffsetDateTime.now()).build())
       );
       when(storagesService.getFileById(attachmentUuid.toString(), user1Id.toString()))
         .thenReturn(Files.createFile(tempDir.resolve("temp.txt")).toFile());
@@ -325,7 +326,7 @@ public class AttachmentServiceImplTest {
         FileMetadataBuilder.create().id(attachmentUuid.toString()).name("image1.jpg")
           .originalSize(0L).mimeType("image/jpg").type(FileMetadataType.ATTACHMENT)
           .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
-          .updatedAt(OffsetDateTime.now()))
+          .updatedAt(OffsetDateTime.now()).build())
       );
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new ForbiddenException());
 
@@ -341,7 +342,7 @@ public class AttachmentServiceImplTest {
         FileMetadataBuilder.create().id(attachmentUuid.toString()).name("image1.jpg")
           .originalSize(0L).mimeType("image/jpg").type(FileMetadataType.ATTACHMENT)
           .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
-          .updatedAt(OffsetDateTime.now()))
+          .updatedAt(OffsetDateTime.now()).build())
       );
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new NotFoundException());
 
@@ -359,7 +360,7 @@ public class AttachmentServiceImplTest {
         FileMetadataBuilder.create().id(attachmentUuid.toString()).name("image1.jpg")
           .originalSize(0L).mimeType("image/jpg").type(FileMetadataType.ATTACHMENT)
           .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
-          .updatedAt(OffsetDateTime.now()))
+          .updatedAt(OffsetDateTime.now()).build())
       );
       when(storagesService.getFileById(attachmentUuid.toString(), user1Id.toString()))
         .thenThrow(new InternalErrorException());
@@ -381,11 +382,11 @@ public class AttachmentServiceImplTest {
     public void getAttachmentPreviewById_testOk() throws Exception {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      FileMetadataBuilder metadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+      FileMetadata metadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("test.pdf")
         .originalSize(0L).mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
-        .updatedAt(OffsetDateTime.now());
+        .updatedAt(OffsetDateTime.now()).build();
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(metadata));
       when(storagesService.getPreview(metadata, user1Id.toString()))
         .thenReturn(Files.createFile(tempDir.resolve("temp.txt")).toFile());
@@ -416,11 +417,11 @@ public class AttachmentServiceImplTest {
     public void getAttachmentPreviewById_testForbidden() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      FileMetadataBuilder metadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+      FileMetadata metadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("test.pdf")
         .originalSize(0L).mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
-        .updatedAt(OffsetDateTime.now());
+        .updatedAt(OffsetDateTime.now()).build();
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(metadata));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new ForbiddenException());
 
@@ -433,11 +434,11 @@ public class AttachmentServiceImplTest {
     public void getAttachmentPreviewById_testRoomNotFound() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      FileMetadataBuilder metadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+      FileMetadata metadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("test.pdf")
         .originalSize(0L).mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
-        .updatedAt(OffsetDateTime.now());
+        .updatedAt(OffsetDateTime.now()).build();
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(metadata));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new NotFoundException());
 
@@ -451,11 +452,11 @@ public class AttachmentServiceImplTest {
     public void getAttachmentPreviewById_testStorageError() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      FileMetadataBuilder metadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+      FileMetadata metadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("test.pdf")
         .originalSize(0L).mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
-        .updatedAt(OffsetDateTime.now());
+        .updatedAt(OffsetDateTime.now()).build();
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(metadata));
       when(storagesService.getPreview(metadata, user1Id.toString())).thenThrow(new InternalErrorException());
 
@@ -476,11 +477,11 @@ public class AttachmentServiceImplTest {
     public void getAttachmentInfoById_testOk() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      FileMetadataBuilder metadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+      FileMetadata metadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("test.pdf")
         .originalSize(0L).mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
-        .updatedAt(OffsetDateTime.now());
+        .updatedAt(OffsetDateTime.now()).build();
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(metadata));
 
       AttachmentDto attachmentInfo = attachmentService.getAttachmentInfoById(attachmentUuid, currentUser);
@@ -509,11 +510,11 @@ public class AttachmentServiceImplTest {
     public void getAttachmentInfoById_testForbidden() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      FileMetadataBuilder metadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+      FileMetadata metadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("test.pdf")
         .originalSize(0L).mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
-        .updatedAt(OffsetDateTime.now());
+        .updatedAt(OffsetDateTime.now()).build();
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(metadata));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new ForbiddenException());
 
@@ -526,11 +527,11 @@ public class AttachmentServiceImplTest {
     public void getAttachmentInfoById_testRoomNotFound() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      FileMetadataBuilder metadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+      FileMetadata metadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("test.pdf")
         .originalSize(0L).mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
         .userId(user1Id.toString()).roomId(roomId.toString()).createdAt(OffsetDateTime.now())
-        .updatedAt(OffsetDateTime.now());
+        .updatedAt(OffsetDateTime.now()).build();
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(metadata));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new NotFoundException());
 
@@ -549,21 +550,27 @@ public class AttachmentServiceImplTest {
     @DisplayName("Creates the attachment and returns it")
     public void addAttachment_testOk() throws Exception {
       UUID attachmentUuid = UUID.randomUUID();
+      OffsetDateTime attachmentDate = OffsetDateTime.parse("2022-01-01T00:00:00Z");
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
       File attachmentFile = tempDir.resolve("temp.pdf").toFile();
       Files.writeString(attachmentFile.toPath(), "test!");
-      FileMetadataBuilder expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+      FileMetadataBuilder metadataBulder = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("temp.pdf").originalSize(attachmentFile.length()).mimeType("application/pdf")
         .type(FileMetadataType.ATTACHMENT).userId(user1Id.toString()).roomId(roomId.toString());
+      FileMetadata expectedMetadata = metadataBulder.build();
+      FileMetadata savedMetadata = metadataBulder.clone().createdAt(attachmentDate).build();
+      when(fileMetadataRepository.save(expectedMetadata)).thenReturn(savedMetadata);
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        uuid.when(() -> UUID.fromString(attachmentUuid.toString())).thenReturn(attachmentUuid);
         attachmentService.addAttachment(roomId, attachmentFile, "application/pdf", "temp.pdf", currentUser);
       }
 
-      verify(storagesService, times(1)).saveFile(attachmentFile, expectedMetadata, currentUser.toString());
+      verify(storagesService, times(1)).saveFile(attachmentFile, savedMetadata, currentUser.toString());
       verifyNoMoreInteractions(storagesService);
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verifyNoMoreInteractions(fileMetadataRepository);
@@ -571,7 +578,16 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(roomService);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        AttachmentAddedEvent.create(user1Id).roomId(roomId));
+        AttachmentAddedEvent.create(user1Id).roomId(roomId).attachment(
+          AttachmentDto.create()
+            .id(attachmentUuid)
+            .name("temp.pdf")
+            .size(attachmentFile.length())
+            .mimeType("application/pdf")
+            .userId(user1Id)
+            .roomId(roomId)
+            .createdAt(attachmentDate)
+        ));
       verifyNoMoreInteractions(eventDispatcher);
     }
 
@@ -637,10 +653,11 @@ public class AttachmentServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       File attachmentFile = tempDir.resolve("temp.pdf").toFile();
       Files.writeString(attachmentFile.toPath(), "test!");
-      FileMetadataBuilder expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+      FileMetadata expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("temp.pdf").originalSize(attachmentFile.length()).mimeType("application/pdf")
-        .type(FileMetadataType.ATTACHMENT).userId(user1Id.toString()).roomId(roomId.toString());
+        .type(FileMetadataType.ATTACHMENT).userId(user1Id.toString()).roomId(roomId.toString()).build();
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
+      when(fileMetadataRepository.save(expectedMetadata)).thenReturn(expectedMetadata);
       doThrow(new InternalErrorException()).when(storagesService)
         .saveFile(attachmentFile, expectedMetadata, user1Id.toString());
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -662,9 +679,9 @@ public class AttachmentServiceImplTest {
     public void deleteAttachment_testOkByAttachmentOwner() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user2Id);
-      FileMetadataBuilder expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+      FileMetadata expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
-        .userId(user2Id.toString()).roomId(roomId.toString());
+        .userId(user2Id.toString()).roomId(roomId.toString()).build();
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
 
@@ -685,9 +702,9 @@ public class AttachmentServiceImplTest {
     public void deleteAttachment_testOkByRoomOwner() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      FileMetadataBuilder expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+      FileMetadata expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
-        .userId(user2Id.toString()).roomId(roomId.toString());
+        .userId(user2Id.toString()).roomId(roomId.toString()).build();
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
 
@@ -721,9 +738,9 @@ public class AttachmentServiceImplTest {
     public void deleteAttachment_testRoomNotFound() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      FileMetadataBuilder expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+      FileMetadata expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
-        .userId(user2Id.toString()).roomId(roomId.toString());
+        .userId(user2Id.toString()).roomId(roomId.toString()).build();
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenThrow(new NotFoundException());
 
@@ -737,9 +754,9 @@ public class AttachmentServiceImplTest {
     public void deleteAttachment_testStoragesThrowsError() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      FileMetadataBuilder expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+      FileMetadata expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
-        .userId(user2Id.toString()).roomId(roomId.toString());
+        .userId(user2Id.toString()).roomId(roomId.toString()).build();
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
       doThrow(new InternalErrorException()).when(storagesService)
@@ -753,9 +770,9 @@ public class AttachmentServiceImplTest {
     public void deleteAttachment_testAuthenticatedUserIsNotAttachmentOwnerOrRoomOwner() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user3Id);
-      FileMetadataBuilder expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
+      FileMetadata expectedMetadata = FileMetadataBuilder.create().id(attachmentUuid.toString())
         .name("temp.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
-        .userId(user2Id.toString()).roomId(roomId.toString());
+        .userId(user2Id.toString()).roomId(roomId.toString()).build();
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.of(expectedMetadata));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
 

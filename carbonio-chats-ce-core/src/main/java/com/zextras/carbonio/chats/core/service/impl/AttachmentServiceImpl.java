@@ -146,11 +146,12 @@ public class AttachmentServiceImpl implements AttachmentService {
       .type(FileMetadataType.ATTACHMENT)
       .userId(currentUser.getId())
       .roomId(roomId.toString());
-    fileMetadataRepository.save(metadata);
+    metadata = fileMetadataRepository.save(metadata);
     storagesService.saveFile(file, metadata, currentUser.getId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      AttachmentAddedEvent.create(currentUser.getUUID()).roomId(roomId));
+      AttachmentAddedEvent.create(currentUser.getUUID())
+        .roomId(roomId).attachment(attachmentMapper.ent2dto(metadata)));
     return IdDtoBuilder.create().id(id).build();
   }
 

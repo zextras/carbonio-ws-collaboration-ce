@@ -12,7 +12,7 @@ public class RoomMemberRemovedEvent extends DomainEvent {
   private static final EventType EVENT_TYPE = EventType.ROOM_MEMBER_REMOVED;
 
   private UUID roomId;
-  private UUID memberId;
+  private UUID userId;
 
   public RoomMemberRemovedEvent(UUID from) {
     super(EVENT_TYPE, from);
@@ -31,12 +31,12 @@ public class RoomMemberRemovedEvent extends DomainEvent {
     return this;
   }
 
-  public UUID getMemberId() {
-    return memberId;
+  public UUID getUserId() {
+    return userId;
   }
 
-  public RoomMemberRemovedEvent memberId(UUID memberModifiedId) {
-    this.memberId = memberModifiedId;
+  public RoomMemberRemovedEvent userId(UUID userId) {
+    this.userId = userId;
     return this;
   }
 
@@ -53,11 +53,11 @@ public class RoomMemberRemovedEvent extends DomainEvent {
     }
     RoomMemberRemovedEvent that = (RoomMemberRemovedEvent) o;
     return Objects.equals(getRoomId(), that.getRoomId()) &&
-      Objects.equals(getMemberId(), that.getMemberId());
+      Objects.equals(getUserId(), that.getUserId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getRoomId(), getMemberId());
+    return Objects.hash(super.hashCode(), getRoomId(), getUserId());
   }
 }

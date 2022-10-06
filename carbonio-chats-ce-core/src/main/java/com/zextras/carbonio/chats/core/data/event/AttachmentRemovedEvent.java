@@ -12,6 +12,7 @@ public class AttachmentRemovedEvent extends DomainEvent {
   private static final EventType EVENT_TYPE = EventType.ATTACHMENT_REMOVED;
 
   private UUID roomId;
+  private UUID fileId;
 
   public AttachmentRemovedEvent(UUID from) {
     super(EVENT_TYPE, from);
@@ -30,6 +31,15 @@ public class AttachmentRemovedEvent extends DomainEvent {
     return this;
   }
 
+  public UUID getFileId() {
+    return fileId;
+  }
+
+  public AttachmentRemovedEvent fileId(UUID fileId) {
+    this.fileId = fileId;
+    return this;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -42,11 +52,11 @@ public class AttachmentRemovedEvent extends DomainEvent {
       return false;
     }
     AttachmentRemovedEvent that = (AttachmentRemovedEvent) o;
-    return Objects.equals(getRoomId(), that.getRoomId());
+    return Objects.equals(getRoomId(), that.getRoomId()) && Objects.equals(getFrom(), that.getFrom());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getRoomId());
+    return Objects.hash(super.hashCode(), getRoomId(),getFileId());
   }
 }

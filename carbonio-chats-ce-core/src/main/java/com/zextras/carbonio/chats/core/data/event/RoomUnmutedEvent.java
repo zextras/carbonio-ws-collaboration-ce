@@ -1,31 +1,27 @@
-// SPDX-FileCopyrightText: 2022 2021 Zextras <https://www.zextras.com>
-//
-// SPDX-License-Identifier: AGPL-3.0-only
-
 package com.zextras.carbonio.chats.core.data.event;
 
 import java.util.Objects;
 import java.util.UUID;
 
-public class RoomDeletedEvent extends DomainEvent {
+public class RoomUnmutedEvent extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.ROOM_DELETED;
+  private static final EventType EVENT_TYPE = EventType.ROOM_UNMUTED;
 
   private UUID roomId;
 
-  public RoomDeletedEvent(UUID from) {
+  public RoomUnmutedEvent(UUID from) {
     super(EVENT_TYPE, from);
   }
 
-  public static RoomDeletedEvent create(UUID from) {
-    return new RoomDeletedEvent(from);
+  public static RoomUnmutedEvent create(UUID from) {
+    return new RoomUnmutedEvent(from);
   }
 
   public UUID getRoomId() {
     return roomId;
   }
 
-  public RoomDeletedEvent roomId(UUID roomId) {
+  public RoomUnmutedEvent roomId(UUID roomId) {
     this.roomId = roomId;
     return this;
   }
@@ -41,7 +37,7 @@ public class RoomDeletedEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    return Objects.equals(roomId, ((RoomDeletedEvent) o).getRoomId());
+    return Objects.equals(getRoomId(), ((RoomUnmutedEvent) o).getRoomId());
   }
 
   @Override

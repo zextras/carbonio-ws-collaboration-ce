@@ -85,7 +85,8 @@ public class MembersServiceImpl implements MembersService {
     messageService.setMemberRole(room.getId(), currentUser.getId(), userId.toString(), isOwner);
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomOwnerChangedEvent.create(currentUser.getUUID()).roomId(roomId).memberId(userId).isOwner(isOwner)
+      RoomOwnerChangedEvent.create(currentUser.getUUID())
+        .roomId(roomId).userId(userId).isOwner(isOwner)
     );
   }
 
@@ -145,9 +146,7 @@ public class MembersServiceImpl implements MembersService {
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomMemberAddedEvent
         .create(currentUser.getUUID()).roomId(UUID.fromString(room.getId()))
-        .memberId(memberToInsertDto.getUserId())
-        .isOwner(memberToInsertDto.isOwner()));
-
+        .member(subscriptionMapper.ent2memberDto(subscription)));
     return subscriptionMapper.ent2memberInsertedDto(subscription, settings);
   }
 
@@ -189,7 +188,7 @@ public class MembersServiceImpl implements MembersService {
     }
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomMemberRemovedEvent.create(currentUser.getUUID()).roomId(UUID.fromString(room.getId())).memberId(userId)
+      RoomMemberRemovedEvent.create(currentUser.getUUID()).roomId(UUID.fromString(room.getId())).userId(userId)
     );
   }
 
