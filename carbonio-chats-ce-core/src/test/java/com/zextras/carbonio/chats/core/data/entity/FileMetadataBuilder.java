@@ -3,53 +3,65 @@ package com.zextras.carbonio.chats.core.data.entity;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
-import java.util.Objects;
 
-public class FileMetadataBuilder extends FileMetadata {
+public class FileMetadataBuilder {
+
+  private final FileMetadata fileMetadata;
+
+  public FileMetadataBuilder() {
+    this.fileMetadata = FileMetadata.create();
+  }
 
   public static FileMetadataBuilder create() {
     return new FileMetadataBuilder();
   }
 
   @Override
+  public FileMetadataBuilder clone() {
+    return FileMetadataBuilder.create()
+      .id(fileMetadata.getId())
+      .name(fileMetadata.getName())
+      .originalSize(fileMetadata.getOriginalSize())
+      .mimeType(fileMetadata.getMimeType())
+      .type(fileMetadata.getType())
+      .userId(fileMetadata.getUserId())
+      .roomId(fileMetadata.getRoomId())
+      .createdAt(fileMetadata.getCreatedAt())
+      .updatedAt(fileMetadata.getUpdatedAt());
+  }
+
   public FileMetadataBuilder id(String id) {
-    super.id(id);
+    fileMetadata.id(id);
     return this;
   }
 
-  @Override
   public FileMetadataBuilder name(String name) {
-    super.name(name);
+    fileMetadata.name(name);
     return this;
   }
 
-  @Override
   public FileMetadataBuilder originalSize(Long originalSize) {
-    super.originalSize(originalSize);
+    fileMetadata.originalSize(originalSize);
     return this;
   }
 
-  @Override
   public FileMetadataBuilder mimeType(String mimeType) {
-    super.mimeType(mimeType);
+    fileMetadata.mimeType(mimeType);
     return this;
   }
 
-  @Override
   public FileMetadataBuilder type(FileMetadataType type) {
-    super.type(type);
+    fileMetadata.type(type);
     return this;
   }
 
-  @Override
   public FileMetadataBuilder userId(String userId) {
-    super.userId(userId);
+    fileMetadata.userId(userId);
     return this;
   }
 
-  @Override
   public FileMetadataBuilder roomId(String roomId) {
-    super.roomId(roomId);
+    fileMetadata.roomId(roomId);
     return this;
   }
 
@@ -57,7 +69,7 @@ public class FileMetadataBuilder extends FileMetadata {
     try {
       Field createdAtField = FileMetadata.class.getDeclaredField("createdAt");
       createdAtField.setAccessible(true);
-      createdAtField.set(this, createdAt);
+      createdAtField.set(fileMetadata, createdAt);
     } catch (NoSuchFieldException | IllegalAccessException e) {
       throw new RuntimeException(e);
     }
@@ -68,32 +80,14 @@ public class FileMetadataBuilder extends FileMetadata {
     try {
       Field updatedAtField = FileMetadata.class.getDeclaredField("updatedAt");
       updatedAtField.setAccessible(true);
-      updatedAtField.set(this, updatedAt);
+      updatedAtField.set(fileMetadata, updatedAt);
     } catch (NoSuchFieldException | IllegalAccessException e) {
       throw new RuntimeException(e);
     }
     return this;
   }
 
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || (o.getClass() != FileMetadata.class && o.getClass() != FileMetadataBuilder.class)) {
-      return false;
-    }
-    FileMetadata that = (FileMetadata) o;
-    return Objects.equals(getId(), that.getId()) && Objects.equals(getName(), that.getName()) && Objects.equals(
-      getOriginalSize(), that.getOriginalSize()) && Objects.equals(getMimeType(), that.getMimeType())
-      && getType() == that.getType()
-      && Objects.equals(getUserId(), that.getUserId()) && Objects.equals(getRoomId(), that.getRoomId())
-      && Objects.equals(getCreatedAt(), that.getCreatedAt()) && Objects.equals(getUpdatedAt(), that.getUpdatedAt());
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(getId(), getName(), getOriginalSize(), getMimeType(), getType(), getUserId(), getRoomId(),
-      getCreatedAt(), getUpdatedAt());
+  public FileMetadata build() {
+    return fileMetadata;
   }
 }

@@ -10,15 +10,14 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.ClearedRoomEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomCreatedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomDeletedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomHashResetEvent;
+import com.zextras.carbonio.chats.core.data.event.RoomHistoryClearedEvent;
+import com.zextras.carbonio.chats.core.data.event.RoomMutedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomPictureChangedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomPictureDeletedEvent;
+import com.zextras.carbonio.chats.core.data.event.RoomUnmutedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomUpdatedEvent;
-import com.zextras.carbonio.chats.core.data.event.UserMutedEvent;
-import com.zextras.carbonio.chats.core.data.event.UserUnmutedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -271,7 +270,8 @@ public class RoomServiceImpl implements RoomService {
       roomRepository.update(room);
       eventDispatcher.sendToUserQueue(
         room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-        RoomUpdatedEvent.create(currentUser.getUUID()).roomId(roomId));
+        RoomUpdatedEvent.create(currentUser.getUUID())
+          .roomId(roomId).name(room.getName()).description(room.getDescription()));
     }
     return roomMapper.ent2dto(room,
       room.getUserSettings().stream().filter(userSettings -> userSettings.getUserId().equals(currentUser.getId()))
@@ -307,9 +307,6 @@ public class RoomServiceImpl implements RoomService {
     String hash = Utils.encodeUuidHash(roomId.toString());
     room.hash(hash);
     roomRepository.update(room);
-    eventDispatcher.sendToUserQueue(
-      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomHashResetEvent.create(currentUser.getUUID()).roomId(roomId).hash(hash));
     return HashDtoBuilder.create().hash(hash).build();
   }
 
@@ -325,8 +322,7 @@ public class RoomServiceImpl implements RoomService {
     if (settings.getMutedUntil() == null) {
       roomUserSettingsRepository.save(settings.mutedUntil(MUTED_TO_INFINITY));
       eventDispatcher.sendToUserQueue(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-        UserMutedEvent.create(currentUser.getUUID()).roomId(roomId).memberId(currentUser.getUUID()));
+        currentUser.getId(), RoomMutedEvent.create(currentUser.getUUID()).roomId(roomId));
     }
   }
 
@@ -336,7 +332,8 @@ public class RoomServiceImpl implements RoomService {
     RoomUserSettings settings = roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
       .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
     settings = roomUserSettingsRepository.save(settings.clearedAt(OffsetDateTime.now()));
-    eventDispatcher.sendToUserQueue(currentUser.getId(), ClearedRoomEvent.create(currentUser.getUUID()).roomId(roomId));
+    eventDispatcher.sendToUserQueue(currentUser.getId(),
+      RoomHistoryClearedEvent.create(currentUser.getUUID()).roomId(roomId).clearedAt(settings.getClearedAt()));
     return settings.getClearedAt();
   }
 
@@ -352,8 +349,7 @@ public class RoomServiceImpl implements RoomService {
         if (settings.getMutedUntil() != null) {
           roomUserSettingsRepository.save(settings.mutedUntil(null));
           eventDispatcher.sendToUserQueue(
-            room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-            UserUnmutedEvent.create(currentUser.getUUID()).roomId(roomId).memberId(currentUser.getUUID()));
+            currentUser.getId(), RoomUnmutedEvent.create(currentUser.getUUID()).roomId(roomId));
         }
       });
   }

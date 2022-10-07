@@ -226,11 +226,12 @@ class UserServiceImplTest {
 
       FileMetadata expectedMetadata = FileMetadataBuilder.create().id(userId.toString())
         .mimeType("image/jpeg").type(FileMetadataType.USER_AVATAR).name("picture").originalSize(123L)
-        .userId(userId.toString());
+        .userId(userId.toString()).build();
       verify(fileMetadataRepository, times(1)).getById(userId.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(contactsIds, UserPictureChangedEvent.create(userId));
+      verify(eventDispatcher, times(1)).sendToUserQueue(contactsIds,
+        UserPictureChangedEvent.create(userId).userId(userId));
       verifyNoMoreInteractions(fileMetadataRepository, storagesService, eventDispatcher);
     }
 
@@ -252,12 +253,12 @@ class UserServiceImplTest {
 
       FileMetadata expectedMetadata = FileMetadataBuilder.create().id(userId.toString())
         .mimeType("image/jpeg").type(FileMetadataType.USER_AVATAR).name("picture").originalSize(123L)
-        .userId(userId.toString());
+        .userId(userId.toString()).build();
       verify(fileMetadataRepository, times(1)).getById(userId.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(contactsIds,
-        UserPictureChangedEvent.create(userId));
+        UserPictureChangedEvent.create(userId).userId(userId));
       verifyNoMoreInteractions(fileMetadataRepository, storagesService, eventDispatcher);
     }
 

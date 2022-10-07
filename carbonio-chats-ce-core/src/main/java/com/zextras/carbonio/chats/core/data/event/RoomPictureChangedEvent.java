@@ -41,8 +41,7 @@ public class RoomPictureChangedEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    RoomPictureChangedEvent that = (RoomPictureChangedEvent) o;
-    return Objects.equals(getRoomId(), that.getRoomId());
+    return Objects.equals(getRoomId(), ((RoomPictureChangedEvent) o).getRoomId());
   }
 
   @Override

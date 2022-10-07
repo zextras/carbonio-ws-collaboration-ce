@@ -41,8 +41,7 @@ public class RoomPictureDeletedEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    RoomPictureDeletedEvent that = (RoomPictureDeletedEvent) o;
-    return Objects.equals(getRoomId(), that.getRoomId());
+    return Objects.equals(getRoomId(), ((RoomPictureDeletedEvent) o).getRoomId());
   }
 
   @Override

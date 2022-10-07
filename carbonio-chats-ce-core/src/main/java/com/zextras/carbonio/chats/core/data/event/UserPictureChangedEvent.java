@@ -4,12 +4,14 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public class UserPictureChangedEvent extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.USER_PICTURE_CHANGED;
-  private              UUID      userId;
+
+  private UUID userId;
 
   public UserPictureChangedEvent(UUID from) {
     super(EVENT_TYPE, from);
@@ -26,5 +28,24 @@ public class UserPictureChangedEvent extends DomainEvent {
   public UserPictureChangedEvent userId(UUID userId) {
     this.userId = userId;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    if (!super.equals(o)) {
+      return false;
+    }
+    return Objects.equals(getUserId(), ((UserPictureChangedEvent) o).getUserId());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), getUserId());
   }
 }

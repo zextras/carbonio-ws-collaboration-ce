@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
+import com.zextras.carbonio.chats.model.MemberDto;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -11,11 +12,8 @@ public class RoomMemberAddedEvent extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_MEMBER_ADDED;
 
-  private UUID    roomId;
-  private UUID    memberId;
-  private boolean isOwner     = false;
-  private boolean isTemporary = false;
-  private boolean isExternal  = false;
+  private UUID      roomId;
+  private MemberDto member;
 
   public RoomMemberAddedEvent(UUID from) {
     super(EVENT_TYPE, from);
@@ -34,39 +32,12 @@ public class RoomMemberAddedEvent extends DomainEvent {
     return this;
   }
 
-  public UUID getMemberId() {
-    return memberId;
+  public MemberDto getMember() {
+    return member;
   }
 
-  public RoomMemberAddedEvent memberId(UUID memberModifiedId) {
-    this.memberId = memberModifiedId;
-    return this;
-  }
-
-  public boolean isOwner() {
-    return isOwner;
-  }
-
-  public RoomMemberAddedEvent isOwner(boolean owner) {
-    isOwner = owner;
-    return this;
-  }
-
-  public boolean isTemporary() {
-    return isTemporary;
-  }
-
-  public RoomMemberAddedEvent temporary(boolean temporary) {
-    isTemporary = temporary;
-    return this;
-  }
-
-  public boolean isExternal() {
-    return isExternal;
-  }
-
-  public RoomMemberAddedEvent external(boolean external) {
-    isExternal = external;
+  public RoomMemberAddedEvent member(MemberDto member) {
+    this.member = member;
     return this;
   }
 
@@ -82,15 +53,11 @@ public class RoomMemberAddedEvent extends DomainEvent {
       return false;
     }
     RoomMemberAddedEvent that = (RoomMemberAddedEvent) o;
-    return Objects.equals(getRoomId(), that.getRoomId()) &&
-      Objects.equals(getMemberId(), that.getMemberId()) &&
-      isOwner() == that.isOwner() &&
-      isTemporary() == that.isTemporary() &&
-      isExternal() == that.isExternal();
+    return Objects.equals(getRoomId(), that.getRoomId()) && Objects.equals(getMember(), that.getMember());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getRoomId(), getMemberId(), isOwner(), isTemporary(), isExternal());
+    return Objects.hash(super.hashCode(), getRoomId(), getMember());
   }
 }

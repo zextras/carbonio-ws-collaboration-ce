@@ -24,15 +24,14 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.ClearedRoomEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomCreatedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomDeletedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomHashResetEvent;
+import com.zextras.carbonio.chats.core.data.event.RoomHistoryClearedEvent;
+import com.zextras.carbonio.chats.core.data.event.RoomMutedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomPictureChangedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomPictureDeletedEvent;
+import com.zextras.carbonio.chats.core.data.event.RoomUnmutedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomUpdatedEvent;
-import com.zextras.carbonio.chats.core.data.event.UserMutedEvent;
-import com.zextras.carbonio.chats.core.data.event.UserUnmutedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -1183,7 +1182,7 @@ class RoomServiceImplTest {
 
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        RoomUpdatedEvent.create(user1Id).roomId(roomGroup1Id));
+        RoomUpdatedEvent.create(user1Id).roomId(roomGroup1Id).name("room1-changed").description("Room one changed"));
       verify(messageDispatcher, times(1)).updateRoomName(roomGroup1Id.toString(), user1Id.toString(), "room1-changed");
       verify(messageDispatcher, times(1)).updateRoomDescription(roomGroup1Id.toString(), user1Id.toString(),
         "Room one changed");
@@ -1343,9 +1342,6 @@ class RoomServiceImplTest {
 
       assertNotNull(hashDto);
       assertNotEquals(oldHash, hashDto.getHash());
-      verify(eventDispatcher, times(1)).sendToUserQueue(
-        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        RoomHashResetEvent.create(user1Id).roomId(roomGroup1Id).hash(hashDto.getHash()));
       verifyNoMoreInteractions(eventDispatcher);
       verifyNoInteractions(messageDispatcher);
     }
@@ -1411,8 +1407,7 @@ class RoomServiceImplTest {
         .save(RoomUserSettings.create(roomGroup1, user1Id.toString())
           .mutedUntil(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
       verify(eventDispatcher, times(1)).sendToUserQueue(
-        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        UserMutedEvent.create(user1Id).roomId(roomGroup1Id).memberId(user1Id));
+        user1Id.toString(), RoomMutedEvent.create(user1Id).roomId(roomGroup1Id));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 
@@ -1434,8 +1429,7 @@ class RoomServiceImplTest {
         .save(roomUserSettings
           .mutedUntil(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
       verify(eventDispatcher, times(1)).sendToUserQueue(
-        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        UserMutedEvent.create(user1Id).roomId(roomGroup1Id).memberId(user1Id));
+        user1Id.toString(), RoomMutedEvent.create(user1Id).roomId(roomGroup1Id));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 
@@ -1538,8 +1532,7 @@ class RoomServiceImplTest {
       verify(roomUserSettingsRepository, times(1))
         .save(roomUserSettings.mutedUntil(null));
       verify(eventDispatcher, times(1)).sendToUserQueue(
-        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        UserUnmutedEvent.create(user1Id).roomId(roomGroup1Id).memberId(user1Id));
+        user1Id.toString(), RoomUnmutedEvent.create(user1Id).roomId(roomGroup1Id));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 
@@ -1632,7 +1625,7 @@ class RoomServiceImplTest {
       verify(roomUserSettingsRepository, times(1)).save(userSettings);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         user1Id.toString(),
-        ClearedRoomEvent.create(user1Id).roomId(roomGroup1Id));
+        RoomHistoryClearedEvent.create(user1Id).roomId(roomGroup1Id).clearedAt(clearedAt));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 
@@ -1661,7 +1654,7 @@ class RoomServiceImplTest {
       verify(roomUserSettingsRepository, times(1)).save(userSettings);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         user1Id.toString(),
-        ClearedRoomEvent.create(user1Id).roomId(roomGroup1Id));
+        RoomHistoryClearedEvent.create(user1Id).roomId(roomGroup1Id).clearedAt(clearedAt));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 
@@ -1836,7 +1829,7 @@ class RoomServiceImplTest {
         OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()));
       FileMetadata expectedMetadata = FileMetadataBuilder.create().id(roomGroup1.getId()).roomId(roomGroup1.getId())
         .mimeType("image/jpeg").type(FileMetadataType.ROOM_AVATAR).name("picture").originalSize(123L)
-        .userId(user1Id.toString());
+        .userId(user1Id.toString()).build();
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
       verify(roomRepository, times(1)).update(roomGroup1);
       verify(fileMetadataRepository, times(1)).getById(roomGroup1Id.toString());
@@ -1869,7 +1862,7 @@ class RoomServiceImplTest {
         OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()));
       FileMetadata expectedMetadata = FileMetadataBuilder.create().id("123").roomId(roomGroup1.getId())
         .mimeType("image/jpeg").type(FileMetadataType.ROOM_AVATAR).name("picture").originalSize(123L)
-        .userId(user1Id.toString());
+        .userId(user1Id.toString()).build();
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
       verify(roomRepository, times(1)).update(roomGroup1);
       verify(fileMetadataRepository, times(1)).getById(roomGroup1Id.toString());
@@ -1903,7 +1896,7 @@ class RoomServiceImplTest {
         OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()));
       FileMetadata expectedMetadata = FileMetadataBuilder.create().id("123").roomId(roomGroup2.getId())
         .mimeType("image/jpeg").type(FileMetadataType.ROOM_AVATAR).name("picture").originalSize(123L)
-        .userId(user1Id.toString());
+        .userId(user1Id.toString()).build();
       verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
       verify(roomRepository, times(1)).update(roomGroup2);
       verify(fileMetadataRepository, times(1)).getById(roomGroup2Id.toString());

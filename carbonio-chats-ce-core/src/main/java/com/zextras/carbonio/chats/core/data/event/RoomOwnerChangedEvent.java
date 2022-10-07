@@ -12,7 +12,7 @@ public class RoomOwnerChangedEvent extends DomainEvent {
   private static final EventType EVENT_TYPE = EventType.ROOM_OWNER_CHANGED;
 
   private UUID    roomId;
-  private UUID    memberId;
+  private UUID    userId;
   private boolean isOwner;
 
   public RoomOwnerChangedEvent(UUID from) {
@@ -32,12 +32,12 @@ public class RoomOwnerChangedEvent extends DomainEvent {
     return this;
   }
 
-  public UUID getMemberId() {
-    return memberId;
+  public UUID getUserId() {
+    return userId;
   }
 
-  public RoomOwnerChangedEvent memberId(UUID memberModifiedId) {
-    this.memberId = memberModifiedId;
+  public RoomOwnerChangedEvent userId(UUID userId) {
+    this.userId = userId;
     return this;
   }
 
@@ -63,12 +63,12 @@ public class RoomOwnerChangedEvent extends DomainEvent {
     }
     RoomOwnerChangedEvent that = (RoomOwnerChangedEvent) o;
     return Objects.equals(getRoomId(), that.getRoomId()) &&
-      Objects.equals(getMemberId(), that.getMemberId()) &&
+      Objects.equals(getUserId(), that.getUserId()) &&
       isOwner() == that.isOwner();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getRoomId(), getMemberId(), isOwner());
+    return Objects.hash(super.hashCode(), getRoomId(), getUserId(), isOwner());
   }
 }

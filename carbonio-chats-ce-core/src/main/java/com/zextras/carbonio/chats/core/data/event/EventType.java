@@ -11,7 +11,6 @@ public enum EventType {
   ROOM_CREATED("roomCreated"),
   ROOM_UPDATED("roomUpdated"),
   ROOM_DELETED("roomDeleted"),
-  ROOM_HASH_RESET_EVENT("roomHashResetEvent"),
   ROOM_OWNER_CHANGED("roomOwnerChanged"),
   ROOM_PICTURE_CHANGED("roomPictureChanged"),
   ROOM_PICTURE_DELETED("roomPictureDeleted"),
@@ -19,12 +18,11 @@ public enum EventType {
   ROOM_MEMBER_REMOVED("roomMemberRemoved"),
   ATTACHMENT_ADDED("attachmentAdded"),
   ATTACHMENT_REMOVED("attachmentRemoved"),
-  USER_MUTED("userMuted"),
-  USER_UNMUTED("userUnmuted"),
+  ROOM_MUTED("roomMuted"),
+  ROOM_UNMUTED("roomUnmuted"),
   USER_PICTURE_CHANGED("userPictureChanged"),
   USER_PICTURE_DELETED("userPictureDeleted"),
-  CLEARED_ROOM_EVENT("clearedRoomEvent");
-
+  ROOM_HISTORY_CLEARED("roomHistoryCleared");
 
   private final String description;
 
