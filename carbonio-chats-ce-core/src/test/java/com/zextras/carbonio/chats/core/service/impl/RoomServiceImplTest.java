@@ -26,7 +26,7 @@ import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.RoomCreatedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomDeletedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomHistoryClearEvent;
+import com.zextras.carbonio.chats.core.data.event.RoomHistoryClearedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomMutedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomPictureChangedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomPictureDeletedEvent;
@@ -1625,7 +1625,7 @@ class RoomServiceImplTest {
       verify(roomUserSettingsRepository, times(1)).save(userSettings);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         user1Id.toString(),
-        RoomHistoryClearEvent.create(user1Id).roomId(roomGroup1Id).clearedAt(clearedAt));
+        RoomHistoryClearedEvent.create(user1Id).roomId(roomGroup1Id).clearedAt(clearedAt));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 
@@ -1654,7 +1654,7 @@ class RoomServiceImplTest {
       verify(roomUserSettingsRepository, times(1)).save(userSettings);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         user1Id.toString(),
-        RoomHistoryClearEvent.create(user1Id).roomId(roomGroup1Id).clearedAt(clearedAt));
+        RoomHistoryClearedEvent.create(user1Id).roomId(roomGroup1Id).clearedAt(clearedAt));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 

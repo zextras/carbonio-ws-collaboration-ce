@@ -4,26 +4,26 @@ import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
-public class RoomHistoryClearEvent extends DomainEvent {
+public class RoomHistoryClearedEvent extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.ROOM_HISTORY_CLEAR_EVENT;
+  private static final EventType EVENT_TYPE = EventType.ROOM_HISTORY_CLEARED;
 
   private UUID roomId;
   private OffsetDateTime clearedAt;
 
-  public RoomHistoryClearEvent(UUID from) {
+  public RoomHistoryClearedEvent(UUID from) {
     super(EVENT_TYPE, from);
   }
 
-  public static RoomHistoryClearEvent create(UUID from) {
-    return new RoomHistoryClearEvent(from);
+  public static RoomHistoryClearedEvent create(UUID from) {
+    return new RoomHistoryClearedEvent(from);
   }
 
   public UUID getRoomId() {
     return roomId;
   }
 
-  public RoomHistoryClearEvent roomId(UUID roomId) {
+  public RoomHistoryClearedEvent roomId(UUID roomId) {
     this.roomId = roomId;
     return this;
   }
@@ -32,7 +32,7 @@ public class RoomHistoryClearEvent extends DomainEvent {
     return clearedAt;
   }
 
-  public RoomHistoryClearEvent clearedAt(OffsetDateTime clearedAt) {
+  public RoomHistoryClearedEvent clearedAt(OffsetDateTime clearedAt) {
     this.clearedAt = clearedAt;
     return this;
   }
@@ -48,7 +48,7 @@ public class RoomHistoryClearEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    RoomHistoryClearEvent that = (RoomHistoryClearEvent) o;
+    RoomHistoryClearedEvent that = (RoomHistoryClearedEvent) o;
     return Objects.equals(getRoomId(), that.getRoomId()) && Objects.equals(getClearedAt(), that.getClearedAt());
   }
 

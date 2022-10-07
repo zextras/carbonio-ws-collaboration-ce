@@ -12,7 +12,7 @@ import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.RoomCreatedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomDeletedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomHistoryClearEvent;
+import com.zextras.carbonio.chats.core.data.event.RoomHistoryClearedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomMutedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomPictureChangedEvent;
 import com.zextras.carbonio.chats.core.data.event.RoomPictureDeletedEvent;
@@ -333,7 +333,7 @@ public class RoomServiceImpl implements RoomService {
       .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
     settings = roomUserSettingsRepository.save(settings.clearedAt(OffsetDateTime.now()));
     eventDispatcher.sendToUserQueue(currentUser.getId(),
-      RoomHistoryClearEvent.create(currentUser.getUUID()).roomId(roomId).clearedAt(settings.getClearedAt()));
+      RoomHistoryClearedEvent.create(currentUser.getUUID()).roomId(roomId).clearedAt(settings.getClearedAt()));
     return settings.getClearedAt();
   }
 

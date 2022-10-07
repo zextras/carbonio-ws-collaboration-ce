@@ -16,6 +16,7 @@ public class FileMetadataBuilder {
     return new FileMetadataBuilder();
   }
 
+  @Override
   public FileMetadataBuilder clone() {
     return FileMetadataBuilder.create()
       .id(fileMetadata.getId())

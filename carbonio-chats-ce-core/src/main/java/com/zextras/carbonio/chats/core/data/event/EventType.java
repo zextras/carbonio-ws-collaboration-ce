@@ -22,7 +22,7 @@ public enum EventType {
   ROOM_UNMUTED("roomUnmuted"),
   USER_PICTURE_CHANGED("userPictureChanged"),
   USER_PICTURE_DELETED("userPictureDeleted"),
-  ROOM_HISTORY_CLEAR_EVENT("roomHistoryClearEvent");
+  ROOM_HISTORY_CLEARED("roomHistoryCleared");
 
   private final String description;
 
