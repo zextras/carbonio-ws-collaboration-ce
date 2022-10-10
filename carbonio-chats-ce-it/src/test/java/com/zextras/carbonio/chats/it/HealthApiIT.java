@@ -127,7 +127,7 @@ public class HealthApiIT {
     public void isReady_testWarn() throws Exception {
       previewerMockServer.setIsAliveResponse(false);
       MockHttpResponse response = dispatcher.get("/health/ready");
-      assertEquals(424, response.getStatus());
+      assertEquals(204, response.getStatus());
     }
 
     @Test
@@ -137,7 +137,5 @@ public class HealthApiIT {
       MockHttpResponse response = dispatcher.get("/health/ready");
       assertEquals(500, response.getStatus());
     }
-
   }
-
 }
