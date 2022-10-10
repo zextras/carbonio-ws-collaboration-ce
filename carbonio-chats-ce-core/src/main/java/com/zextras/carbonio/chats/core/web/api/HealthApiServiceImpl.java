@@ -15,8 +15,9 @@ import javax.ws.rs.core.SecurityContext;
 
 public class HealthApiServiceImpl implements HealthApiService {
 
-  private final int                MANDATARY_SERVICE_ERROR_CODE = 500;
-  private final int                OPTIONAL_SERVICE_ERROR_CODE  = 424;
+  private static final int MANDATARY_SERVICE_ERROR_CODE = 500;
+  private static final int OPTIONAL_SERVICE_ERROR_CODE  = 204;
+
   private final HealthcheckService healthcheckService;
 
   @Inject
