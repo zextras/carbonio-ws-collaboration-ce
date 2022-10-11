@@ -238,10 +238,9 @@ public class MembersServiceImplTest {
     @DisplayName("Correctly adds a user as a member of group room")
     public void insertGroupRoomMember_testOk() {
       Room room = generateRoom(RoomTypeDto.GROUP);
-      room.subscriptions(List.of(
+      room.subscriptions(new ArrayList<>(List.of(
         Subscription.create(room, user1Id.toString()).owner(true),
-        Subscription.create(room, user3Id.toString()).owner(false)
-      ));
+        Subscription.create(room, user3Id.toString()).owner(false))));
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
       when(userService.userExists(user2Id, principal)).thenReturn(true);
@@ -259,7 +258,7 @@ public class MembersServiceImplTest {
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
       verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
       verify(eventDispatcher, times(1)).sendToUserQueue(
-        List.of(user1Id.toString(), user3Id.toString()),
+        List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
         RoomMemberAddedEvent.create(user1Id).roomId(UUID.fromString(room.getId()))
           .member(MemberDto.create().userId(user2Id)));
       verify(messageDispatcher, times(1)).addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
@@ -312,9 +311,9 @@ public class MembersServiceImplTest {
       workspace
         .id(workspaceId.toString())
         .type(RoomTypeDto.WORKSPACE)
-        .subscriptions(List.of(
+        .subscriptions(new ArrayList<>(List.of(
           Subscription.create(workspace, user1Id.toString()).owner(true),
-          Subscription.create(workspace, user3Id.toString())))
+          Subscription.create(workspace, user3Id.toString()))))
         .children(List.of(channel1, channel2));
 
       UserPrincipal principal = UserPrincipal.create(user1Id);
@@ -338,7 +337,7 @@ public class MembersServiceImplTest {
       verify(roomUserSettingsRepository, times(1)).getWorkspaceMaxRank(user2Id.toString());
       verify(roomUserSettingsRepository, times(1)).save(any(RoomUserSettings.class));
       verify(eventDispatcher, times(1)).sendToUserQueue(
-        List.of(user1Id.toString(), user3Id.toString()),
+        List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
         RoomMemberAddedEvent.create(user1Id).roomId(workspaceId).member(MemberDto.create().userId(user2Id)));
       verify(messageDispatcher, times(1)).addRoomMember(channel1Id.toString(), user1Id.toString(), user2Id.toString());
       verify(messageDispatcher, times(1)).addRoomMember(channel2Id.toString(), user1Id.toString(), user2Id.toString());
@@ -425,10 +424,9 @@ public class MembersServiceImplTest {
     @DisplayName("Correctly adds a user as a member of group room clearing history")
     public void insertRoomMember_historyCleared() {
       Room room = generateRoom(RoomTypeDto.GROUP);
-      room.subscriptions(List.of(
+      room.subscriptions(new ArrayList<>(List.of(
         Subscription.create(room, user1Id.toString()).owner(true),
-        Subscription.create(room, user3Id.toString()).owner(false)
-      ));
+        Subscription.create(room, user3Id.toString()).owner(false))));
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
       when(userService.userExists(user2Id, principal)).thenReturn(true);
@@ -449,7 +447,7 @@ public class MembersServiceImplTest {
       verify(roomUserSettingsRepository, times(1)).getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
       verify(roomUserSettingsRepository, times(1)).save(any(RoomUserSettings.class));
       verify(eventDispatcher, times(1)).sendToUserQueue(
-        List.of(user1Id.toString(), user3Id.toString()),
+        List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
         RoomMemberAddedEvent.create(user1Id).roomId(UUID.fromString(room.getId()))
           .member(MemberDto.create().userId(user2Id)));
       verify(messageDispatcher, times(1)).addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());

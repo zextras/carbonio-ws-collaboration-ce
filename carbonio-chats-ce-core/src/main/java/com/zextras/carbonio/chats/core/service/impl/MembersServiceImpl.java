@@ -114,6 +114,7 @@ public class MembersServiceImpl implements MembersService {
         .external(false)
         .joinedAt(OffsetDateTime.now())
     );
+    room.getSubscriptions().add(subscription);
     RoomUserSettings settings = null;
     if (memberToInsertDto.isHistoryCleared() || RoomTypeDto.WORKSPACE.equals(room.getType())) {
       settings = roomUserSettingsRepository
