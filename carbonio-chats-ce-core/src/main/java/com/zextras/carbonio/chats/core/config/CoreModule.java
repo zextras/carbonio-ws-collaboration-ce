@@ -14,6 +14,8 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.api.AttachmentsApi;
 import com.zextras.carbonio.chats.api.AttachmentsApiService;
+import com.zextras.carbonio.chats.api.AuthApi;
+import com.zextras.carbonio.chats.api.AuthApiService;
 import com.zextras.carbonio.chats.api.HealthApi;
 import com.zextras.carbonio.chats.api.HealthApiService;
 import com.zextras.carbonio.chats.api.RoomsApi;
@@ -68,6 +70,7 @@ import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.AuthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.SupportedApiServiceImpl;
@@ -141,6 +144,9 @@ public class CoreModule extends AbstractModule {
     bind(SupportedApi.class);
     bind(SupportedApiService.class).to(SupportedApiServiceImpl.class);
     bind(AppInfoProvider.class).to(AppInfoProviderImpl.class);
+
+    bind(AuthApi.class);
+    bind(AuthApiService.class).to(AuthApiServiceImpl.class);
 
     bind(RoomUserSettingsRepository.class).to(EbeanRoomUserSettingsRepository.class);
 
