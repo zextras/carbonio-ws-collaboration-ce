@@ -12,12 +12,12 @@ import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.model.TokenDto;
 import javax.ws.rs.core.Response.Status;
 import org.jboss.resteasy.mock.MockHttpResponse;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @ApiIntegrationTest
 public class AuthApiIT {
 
-  private final AuthApi                   authApi;
   private final UserManagementMockServer  userManagementMockServer;
   private final ResteasyRequestDispatcher dispatcher;
   private final ObjectMapper              objectMapper;
@@ -27,7 +27,6 @@ public class AuthApiIT {
     ResteasyRequestDispatcher dispatcher,
     ObjectMapper objectMapper
   ) {
-    this.authApi = authApi;
     this.userManagementMockServer = userManagementMockServer;
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
@@ -35,6 +34,7 @@ public class AuthApiIT {
   }
 
   @Test
+  @DisplayName("Correctly gets the authenticated token")
   public void getToken_testOk() throws Exception {
     String url = "/auth/token";
     MockUserProfile account = MockedAccount.getAccounts().get(0);
@@ -46,9 +46,9 @@ public class AuthApiIT {
   }
 
   @Test
+  @DisplayName("If there isn't an authenticated token return a status code 401")
   public void getToken_testErrorUnauthenticatedUser() throws Exception {
     String url = "/auth/token";
-    MockUserProfile account = MockedAccount.getAccounts().get(0);
     MockHttpResponse response = dispatcher.get(url, null);
     assertEquals(Status.UNAUTHORIZED.getStatusCode(), response.getStatus());
   }
