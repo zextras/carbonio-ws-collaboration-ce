@@ -14,6 +14,7 @@ tags:
   - name: Attachments
   - name: Health
   - name: Miscellaneous
+  - name: Authentication
 paths:
   /health:
     get:
@@ -500,6 +501,19 @@ paths:
       responses:
         200:
           $ref: '#/components/responses/200GetSupportedVersionsResponse'
+  /auth/token:
+    get:
+      tags:
+        - Authentication
+      summary: Retrives the authenticated tokens
+      operationId: getTokens
+      responses:
+        200:
+          $ref: '#/components/responses/200GetTokensResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
 components:
   parameters:
     pathRoomId:
@@ -785,6 +799,12 @@ components:
             type: array
             items:
               type: string
+    200GetTokensResponse:
+      description: The authenticated tokens.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Token'
     400BadRequestResponse:
       description: The request had wrong or missing parameters
     401UnauthorizedResponse:
@@ -1138,3 +1158,10 @@ components:
           description: paged list of attachments metadata
           items:
             $ref: '#/components/schemas/Attachment'
+    Token:
+      type: object
+      description: authenticated tokens
+      properties:
+        zmToken:
+          type: string
+          description: ZM token
