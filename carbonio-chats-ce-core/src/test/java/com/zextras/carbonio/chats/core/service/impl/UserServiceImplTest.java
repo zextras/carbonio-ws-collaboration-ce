@@ -35,6 +35,7 @@ import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
+import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
 import java.io.File;
@@ -51,13 +52,13 @@ import org.junit.jupiter.api.Test;
 @UnitTest
 class UserServiceImplTest {
 
+  private final UserService            userService;
   private final ProfilingService       profilingService;
   private final UserRepository         userRepository;
   private final FileMetadataRepository fileMetadataRepository;
   private final StoragesService        storagesService;
   private final SubscriptionRepository subscriptionRepository;
   private final EventDispatcher        eventDispatcher;
-  private final UserServiceImpl        userService;
   private final AppConfig              appConfig;
 
   public UserServiceImplTest() {
