@@ -5,12 +5,12 @@
 package com.zextras.carbonio.chats.core.web.api;
 
 
-import com.zextras.carbonio.chats.api.NotFoundException;
 import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
+import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -26,11 +26,15 @@ import javax.ws.rs.core.SecurityContext;
 @Singleton
 public class UsersApiServiceImpl implements UsersApiService {
 
-  private final UserService userService;
+  private final UserService       userService;
+  private final CapabilityService capabilityService;
 
   @Inject
-  public UsersApiServiceImpl(UserService userService) {
+  public UsersApiServiceImpl(
+    UserService userService, CapabilityService capabilityService
+  ) {
     this.userService = userService;
+    this.capabilityService = capabilityService;
   }
 
   @Override
@@ -74,11 +78,18 @@ public class UsersApiServiceImpl implements UsersApiService {
   }
 
   @Override
-  public Response deleteUserPicture(UUID userId, SecurityContext securityContext) throws NotFoundException {
+  public Response deleteUserPicture(UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     userService.deleteUserPicture(userId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
+  public Response getCapabilities(SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    return Response.status(Status.OK).entity(capabilityService.getCapabilities(currentUser)).build();
   }
 
 }

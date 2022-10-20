@@ -4,7 +4,9 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
-import com.zextras.carbonio.chats.core.config.ChatsConstant;
+import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES;
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.event.UserPictureChangedEvent;
 import com.zextras.carbonio.chats.core.data.event.UserPictureDeletedEvent;
@@ -38,6 +40,7 @@ public class UserServiceImpl implements UserService {
   private final StoragesService        storagesService;
   private final SubscriptionRepository subscriptionRepository;
   private final EventDispatcher        eventDispatcher;
+  private final AppConfig              appConfig;
 
   @Inject
   public UserServiceImpl(
@@ -45,7 +48,8 @@ public class UserServiceImpl implements UserService {
     FileMetadataRepository fileMetadataRepository,
     StoragesService storagesService,
     SubscriptionRepository subscriptionRepository,
-    EventDispatcher eventDispatcher
+    EventDispatcher eventDispatcher,
+    AppConfig appConfig
   ) {
     this.profilingService = profilingService;
     this.userRepository = userRepository;
@@ -53,6 +57,7 @@ public class UserServiceImpl implements UserService {
     this.storagesService = storagesService;
     this.eventDispatcher = eventDispatcher;
     this.subscriptionRepository = subscriptionRepository;
+    this.appConfig = appConfig;
   }
 
   @Override
@@ -87,9 +92,11 @@ public class UserServiceImpl implements UserService {
     if (!currentUser.getUUID().equals(userId)) {
       throw new ForbiddenException("The picture can be change only from its owner");
     }
-    if (image.length() > ChatsConstant.MAX_USER_IMAGE_SIZE_IN_KB * 1024) {
+    Integer maxImageSizeKb = appConfig.get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB)
+      .orElse(CONFIGURATIONS_DEFAULT_VALUES.MAX_USER_IMAGE_SIZE_IN_KB);
+    if (image.length() > maxImageSizeKb * 1024) {
       throw new BadRequestException(
-        String.format("The user picture cannot be greater than %d KB", ChatsConstant.MAX_USER_IMAGE_SIZE_IN_KB));
+        String.format("The user picture cannot be greater than %d KB", maxImageSizeKb));
     }
     if (!mimeType.startsWith("image/")) {
       throw new BadRequestException("The user picture must be an image");

@@ -4,7 +4,9 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
-import com.zextras.carbonio.chats.core.config.ChatsConstant;
+import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES;
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.builder.HashDtoBuilder;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -77,6 +79,7 @@ public class RoomServiceImpl implements RoomService {
   private final FileMetadataRepository     fileMetadataRepository;
   private final StoragesService            storagesService;
   private final Clock                      clock;
+  private final AppConfig                  appConfig;
 
   @Inject
   public RoomServiceImpl(
@@ -87,7 +90,8 @@ public class RoomServiceImpl implements RoomService {
     MembersService membersService,
     FileMetadataRepository fileMetadataRepository,
     StoragesService storagesService,
-    Clock clock
+    Clock clock,
+    AppConfig appConfig
   ) {
     this.roomRepository = roomRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
@@ -99,6 +103,7 @@ public class RoomServiceImpl implements RoomService {
     this.fileMetadataRepository = fileMetadataRepository;
     this.storagesService = storagesService;
     this.clock = clock;
+    this.appConfig = appConfig;
   }
 
   @Override
@@ -402,9 +407,11 @@ public class RoomServiceImpl implements RoomService {
     if (!RoomTypeDto.GROUP.equals(room.getType())) {
       throw new BadRequestException("The room picture can only be set to group type rooms");
     }
-    if (image.length() > ChatsConstant.MAX_ROOM_IMAGE_SIZE_IN_KB * 1024) {
+    Integer maxImageSizeKb = appConfig.get(Integer.class, ConfigName.MAX_ROOM_IMAGE_SIZE_IN_KB)
+      .orElse(CONFIGURATIONS_DEFAULT_VALUES.MAX_ROOM_IMAGE_SIZE_IN_KB);
+    if (image.length() > maxImageSizeKb * 1024) {
       throw new BadRequestException(
-        String.format("The room picture cannot be greater than %d KB", ChatsConstant.MAX_ROOM_IMAGE_SIZE_IN_KB));
+        String.format("The room picture cannot be greater than %d KB", maxImageSizeKb));
     }
     if (!mimeType.startsWith("image/")) {
       throw new BadRequestException("The room picture must be an image");

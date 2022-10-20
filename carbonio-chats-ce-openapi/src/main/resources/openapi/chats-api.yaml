@@ -336,6 +336,17 @@ paths:
           $ref: '#/components/responses/404NotFoundResponse'
         403:
           $ref: '#/components/responses/403ForbiddenResponse'
+  /users/capabilities:
+    get:
+      tags:
+        - Users
+      summary: Retrieve current user capabilities
+      operationId: getCapabilities
+      responses:
+        200:
+          $ref: '#/components/responses/200GetCapabilities'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
   /users/{userId}:
     get:
       tags:
@@ -738,6 +749,12 @@ components:
       description: The member was promoted
     204DeleteOwnerResponse:
       description: The member was demoted
+    200GetCapabilities:
+      description: User capabilities
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Capabilities'
     200GetUserResponse:
       description: Requested user
       content:
@@ -900,6 +917,50 @@ components:
           type: string
           description: hash
       required: [ hash ]
+    Capabilities:
+      type: object
+      properties:
+        canSeeMessageReads:
+          type: boolean
+          description: indicates whether it can see if the messages have been read
+        canSeeUsersPresence:
+          type: boolean
+          description: indicates whether it can see the presence of the other users
+        canVideoCall:
+          type: boolean
+          description: indicates whether it can access video calls
+        canVideoCallRecord:
+          type: boolean
+          description: indicates whether it can record video calls
+        canUseVirtualBackground:
+          type: boolean
+          description: indicates whether it can use a virtual background
+        editMessageTimeLimitInMinutes:
+          type: integer
+          description: limit of minutes within which a message can be edited
+        deleteMessageTimeLimitInMinutes:
+          type: integer
+          description: limit of minutes within which a message can be deleted
+        maxGroupMembers:
+          type: integer
+          description: maximum number of users who can be members of a group
+        maxRoomImageSizeInKb:
+          type: integer
+          description: maximum size for a room image in kB
+        maxUserImageSizeInKb:
+          type: integer
+          description: maximum size for a user image in kB
+      required:
+        - canSeeMessageReads
+        - canSeeUsersPresence
+        - canVideoCall
+        - canVideoCallRecord
+        - canUseVirtualBackground
+        - editMessageTimeLimitInMinutes
+        - deleteMessageTimeLimitInMinutes
+        - maxGroupMembers
+        - maxRoomImageSizeInKb
+        - maxUserImageSizeInKb
     User:
       type: object
       description: User data

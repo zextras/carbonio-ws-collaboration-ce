@@ -19,6 +19,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -93,6 +94,7 @@ class RoomServiceImplTest {
   private final FileMetadataRepository     fileMetadataRepository;
   private final StoragesService            storagesService;
   private final Clock                      clock;
+  private final AppConfig                  appConfig;
 
   public RoomServiceImplTest(RoomMapper roomMapper) {
     this.roomRepository = mock(RoomRepository.class);
@@ -104,6 +106,7 @@ class RoomServiceImplTest {
     this.fileMetadataRepository = mock(FileMetadataRepository.class);
     this.storagesService = mock(StoragesService.class);
     this.clock = mock(Clock.class);
+    this.appConfig = mock(AppConfig.class);
     this.roomService = new RoomServiceImpl(
       this.roomRepository,
       this.roomUserSettingsRepository,
@@ -114,7 +117,8 @@ class RoomServiceImplTest {
       this.membersService,
       this.fileMetadataRepository,
       this.storagesService,
-      this.clock
+      this.clock,
+      this.appConfig
     );
   }
 

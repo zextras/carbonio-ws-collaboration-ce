@@ -60,11 +60,13 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomUserSettingsRepo
 import com.zextras.carbonio.chats.core.repository.impl.EbeanSubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanUserRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
+import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentServiceImpl;
+import com.zextras.carbonio.chats.core.service.impl.CapabilityServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.HealthcheckServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
@@ -152,6 +154,8 @@ public class CoreModule extends AbstractModule {
 
     bind(UserService.class).to(UserServiceImpl.class);
     bind(UserRepository.class).to(EbeanUserRepository.class);
+
+    bind(CapabilityService.class).to(CapabilityServiceImpl.class);
 
     bind(MessageDispatcher.class).to(MessageDispatcherMongooseIm.class);
     bind(StoragesService.class).to(StoragesServiceImpl.class);
