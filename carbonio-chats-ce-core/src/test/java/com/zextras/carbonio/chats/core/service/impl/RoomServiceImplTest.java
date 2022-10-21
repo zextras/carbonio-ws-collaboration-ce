@@ -1951,7 +1951,7 @@ class RoomServiceImplTest {
         () -> roomService.setRoomPicture(roomGroup1Id, file, "image/jpeg", "picture", UserPrincipal.create(user1Id)));
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(String.format("Bad Request - The room picture cannot be greater than %d KB", 256),
+      assertEquals(String.format("Bad Request - The size of room picture exceeds the maximum value of %d kB", 256),
         exception.getMessage());
     }
 
