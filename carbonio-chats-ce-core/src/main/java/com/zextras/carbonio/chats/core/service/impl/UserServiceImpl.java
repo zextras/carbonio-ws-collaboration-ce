@@ -96,7 +96,7 @@ public class UserServiceImpl implements UserService {
       .orElse(CONFIGURATIONS_DEFAULT_VALUES.MAX_USER_IMAGE_SIZE_IN_KB);
     if (image.length() > maxImageSizeKb * 1024) {
       throw new BadRequestException(
-        String.format("The user picture cannot be greater than %d KB", maxImageSizeKb));
+        String.format("The user picture cannot be greater than %d kB", maxImageSizeKb));
     }
     if (!mimeType.startsWith("image/")) {
       throw new BadRequestException("The user picture must be an image");

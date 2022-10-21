@@ -31,7 +31,7 @@ public class CapabilityServiceImplTest {
   }
 
   @Test
-  @DisplayName("Returns default user capability")
+  @DisplayName("Returns default user capabilities")
   public void getCapabilities_defaultValuesTestOk() {
     CapabilitiesDto capabilities = capabilityService.getCapabilities(UserPrincipal.create(UUID.randomUUID()));
 
@@ -58,7 +58,7 @@ public class CapabilityServiceImplTest {
   }
 
   @Test
-  @DisplayName("Returns configured user capability")
+  @DisplayName("Returns configured user capabilities")
   public void getCapabilities_configuredValuesTestOk() {
     when(appConfig.get(Boolean.class, ConfigName.CAN_SEE_MESSAGE_READS)).thenReturn(Optional.of(false));
     when(appConfig.get(Boolean.class, ConfigName.CAN_SEE_USERS_PRESENCE)).thenReturn(Optional.of(false));

@@ -9,6 +9,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public enum ConfigName {
+
+  // infrastructure configurations
   ENV("chats.env", "CHATS_ENV", "carbonio-chats/chats-env"),
   JDBC_DRIVER("database.jdbc.driver", "DATABASE_JDBC_DRIVER", "carbonio-chats/jdbc-driver"),
   DATABASE_JDBC_URL("database.jdbc.url", "DATABASE_JDBC_URL", "carbonio-chats/jdbc-url"),
@@ -36,6 +38,8 @@ public enum ConfigName {
     "carbonio-message-broker/username"),
   EVENT_DISPATCHER_USER_PASSWORD("event.dispatcher.user.password", "EVENT_DISPATCHER_USER_PASSWORD",
     "carbonio-message-broker/password"),
+
+  // behavioral configurations
   CAN_SEE_MESSAGE_READS("can.see.message.reads", "CAN_SEE_MESSAGE_READS",
     "carbonio-chats/configs/can-see-message-reads"),
   CAN_SEE_USERS_PRESENCE("can.see.users.presence", "CAN_SEE_USERS_PRESENCE",

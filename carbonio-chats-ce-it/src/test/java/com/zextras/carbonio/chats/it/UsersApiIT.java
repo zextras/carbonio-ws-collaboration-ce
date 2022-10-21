@@ -330,7 +330,7 @@ public class UsersApiIT {
     private static final String URL = "/users/capabilities";
 
     @Test
-    @DisplayName("Returns default user capability")
+    @DisplayName("Returns default user capabilities")
     public void getCapabilities_defaultValuesTestOk() throws Exception {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       MockHttpResponse response = dispatcher.get(URL, account.getToken());
@@ -350,7 +350,7 @@ public class UsersApiIT {
     }
 
     @Test
-    @DisplayName("Returns configured user capability")
+    @DisplayName("Returns configured user capabilities")
     public void getCapabilities_configuredValuesTestOk() throws Exception {
       appConfig.set(ConfigName.CAN_SEE_MESSAGE_READS, "false");
       appConfig.set(ConfigName.CAN_SEE_USERS_PRESENCE, "false");

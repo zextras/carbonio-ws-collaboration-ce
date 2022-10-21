@@ -411,7 +411,7 @@ public class RoomServiceImpl implements RoomService {
       .orElse(CONFIGURATIONS_DEFAULT_VALUES.MAX_ROOM_IMAGE_SIZE_IN_KB);
     if (image.length() > maxImageSizeKb * 1024) {
       throw new BadRequestException(
-        String.format("The room picture cannot be greater than %d KB", maxImageSizeKb));
+        String.format("The size of room picture exceeds the maximum value of %d kB", maxImageSizeKb));
     }
     if (!mimeType.startsWith("image/")) {
       throw new BadRequestException("The room picture must be an image");
