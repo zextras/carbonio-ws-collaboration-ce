@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils;
@@ -20,6 +22,7 @@ import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
+import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.UserDto;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -41,13 +44,15 @@ public class UsersApiIT {
   private final ObjectMapper              objectMapper;
   private final IntegrationTestUtils      integrationTestUtils;
   private final AppClock                  clock;
+  private final AppConfig                 appConfig;
 
   public UsersApiIT(
     ResteasyRequestDispatcher dispatcher,
     UserManagementMockServer userManagementMockServer,
     StorageMockServer storageMockServer, ObjectMapper objectMapper,
     IntegrationTestUtils integrationTestUtils,
-    Clock clock
+    Clock clock,
+    AppConfig appConfig
   ) {
     this.dispatcher = dispatcher;
     this.userManagementMockServer = userManagementMockServer;
@@ -55,6 +60,7 @@ public class UsersApiIT {
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
     this.clock = (AppClock) clock;
+    this.appConfig = appConfig;
   }
 
   @Nested
@@ -93,7 +99,6 @@ public class UsersApiIT {
       MockHttpResponse mockHttpResponse = dispatcher.get(url(userId), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
       assertEquals(404, mockHttpResponse.getStatus());
     }
-
   }
 
   @Nested
@@ -315,6 +320,77 @@ public class UsersApiIT {
       assertEquals(0, response.getOutput().length);
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
+    }
+  }
+
+  @Nested
+  @DisplayName("Gets user capabilities")
+  public class GetsUserCapabilities {
+
+    private static final String URL = "/users/capabilities";
+
+    @Test
+    @DisplayName("Returns default user capabilities")
+    public void getCapabilities_defaultValuesTestOk() throws Exception {
+      MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
+      MockHttpResponse response = dispatcher.get(URL, account.getToken());
+      assertEquals(200, response.getStatus());
+
+      CapabilitiesDto capabilities = objectMapper.readValue(response.getContentAsString(), CapabilitiesDto.class);
+      assertEquals(false, capabilities.isCanVideoCall());
+      assertEquals(false, capabilities.isCanVideoCallRecord());
+      assertEquals(false, capabilities.isCanUseVirtualBackground());
+      assertEquals(true, capabilities.isCanSeeMessageReads());
+      assertEquals(true, capabilities.isCanSeeUsersPresence());
+      assertEquals(10, capabilities.getEditMessageTimeLimitInMinutes());
+      assertEquals(10, capabilities.getDeleteMessageTimeLimitInMinutes());
+      assertEquals(128, capabilities.getMaxGroupMembers());
+      assertEquals(256, capabilities.getMaxRoomImageSizeInKb());
+      assertEquals(256, capabilities.getMaxUserImageSizeInKb());
+    }
+
+    @Test
+    @DisplayName("Returns configured user capabilities")
+    public void getCapabilities_configuredValuesTestOk() throws Exception {
+      appConfig.set(ConfigName.CAN_SEE_MESSAGE_READS, "false");
+      appConfig.set(ConfigName.CAN_SEE_USERS_PRESENCE, "false");
+      appConfig.set(ConfigName.MAX_USER_IMAGE_SIZE_IN_KB, "512");
+      appConfig.set(ConfigName.MAX_ROOM_IMAGE_SIZE_IN_KB, "512");
+      appConfig.set(ConfigName.EDIT_MESSAGE_TIME_LIMIT_IN_MINUTES, "15");
+      appConfig.set(ConfigName.DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES, "15");
+      appConfig.set(ConfigName.MAX_GROUP_MEMBERS, "20");
+
+      MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
+      MockHttpResponse response = dispatcher.get(URL, account.getToken());
+      assertEquals(200, response.getStatus());
+
+      CapabilitiesDto capabilities = objectMapper.readValue(response.getContentAsString(), CapabilitiesDto.class);
+      assertEquals(false, capabilities.isCanVideoCall());
+      assertEquals(false, capabilities.isCanVideoCallRecord());
+      assertEquals(false, capabilities.isCanUseVirtualBackground());
+      assertEquals(false, capabilities.isCanSeeMessageReads());
+      assertEquals(false, capabilities.isCanSeeUsersPresence());
+      assertEquals(15, capabilities.getEditMessageTimeLimitInMinutes());
+      assertEquals(15, capabilities.getDeleteMessageTimeLimitInMinutes());
+      assertEquals(20, capabilities.getMaxGroupMembers());
+      assertEquals(512, capabilities.getMaxRoomImageSizeInKb());
+      assertEquals(512, capabilities.getMaxUserImageSizeInKb());
+
+      appConfig.set(ConfigName.CAN_SEE_MESSAGE_READS, null);
+      appConfig.set(ConfigName.CAN_SEE_USERS_PRESENCE, null);
+      appConfig.set(ConfigName.MAX_USER_IMAGE_SIZE_IN_KB, null);
+      appConfig.set(ConfigName.MAX_ROOM_IMAGE_SIZE_IN_KB, null);
+      appConfig.set(ConfigName.EDIT_MESSAGE_TIME_LIMIT_IN_MINUTES, null);
+      appConfig.set(ConfigName.DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES, null);
+      appConfig.set(ConfigName.MAX_GROUP_MEMBERS, null);
+    }
+
+    @Test
+    @DisplayName("If the user is not authenticated, it returns status code 401")
+    public void getCapabilities_unauthenticatedUser() throws Exception {
+      MockHttpResponse response = dispatcher.get(URL, null);
+      assertEquals(401, response.getStatus());
+      assertEquals(0, response.getOutput().length);
     }
   }
 }

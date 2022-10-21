@@ -16,6 +16,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.User;
@@ -34,6 +35,7 @@ import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
+import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
 import java.io.File;
@@ -50,13 +52,14 @@ import org.junit.jupiter.api.Test;
 @UnitTest
 class UserServiceImplTest {
 
+  private final UserService            userService;
   private final ProfilingService       profilingService;
   private final UserRepository         userRepository;
   private final FileMetadataRepository fileMetadataRepository;
   private final StoragesService        storagesService;
   private final SubscriptionRepository subscriptionRepository;
   private final EventDispatcher        eventDispatcher;
-  private final UserServiceImpl        userService;
+  private final AppConfig              appConfig;
 
   public UserServiceImplTest() {
     this.profilingService = mock(ProfilingService.class);
@@ -65,13 +68,16 @@ class UserServiceImplTest {
     this.storagesService = mock(StoragesService.class);
     this.subscriptionRepository = mock(SubscriptionRepository.class);
     this.eventDispatcher = mock(EventDispatcher.class);
+    this.appConfig = mock(AppConfig.class);
     this.userService = new UserServiceImpl(
       profilingService,
       userRepository,
       fileMetadataRepository,
       storagesService,
       subscriptionRepository,
-      eventDispatcher);
+      eventDispatcher,
+      appConfig
+    );
   }
 
   @Nested
@@ -149,7 +155,6 @@ class UserServiceImplTest {
       UserPrincipal currentPrincipal = UserPrincipal.create(UUID.randomUUID());
       when(profilingService.getById(currentPrincipal, requestedUserId)).thenReturn(
         Optional.of(UserProfile.create(requestedUserId)));
-
       assertTrue(userService.userExists(requestedUserId, currentPrincipal));
     }
 
@@ -286,7 +291,7 @@ class UserServiceImplTest {
         () -> userService.setUserPicture(userId, file, "image/jpeg", "picture", UserPrincipal.create(userId)));
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(String.format("Bad Request - The user picture cannot be greater than %d KB", 256),
+      assertEquals(String.format("Bad Request - The user picture cannot be greater than %d kB", 256),
         exception.getMessage());
     }
 

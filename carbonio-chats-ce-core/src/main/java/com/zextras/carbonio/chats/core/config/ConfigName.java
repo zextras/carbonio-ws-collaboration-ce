@@ -9,6 +9,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public enum ConfigName {
+
+  // infrastructure configurations
   ENV("chats.env", "CHATS_ENV", "carbonio-chats/chats-env"),
   JDBC_DRIVER("database.jdbc.driver", "DATABASE_JDBC_DRIVER", "carbonio-chats/jdbc-driver"),
   DATABASE_JDBC_URL("database.jdbc.url", "DATABASE_JDBC_URL", "carbonio-chats/jdbc-url"),
@@ -32,8 +34,25 @@ public enum ConfigName {
   CONSUL_PORT("consul.port", "CONSUL_PORT", "carbonio-chats/consul-port"),
   EVENT_DISPATCHER_HOST("event.dispatcher.host", "EVENT_DISPATCHER_HOST", "carbonio-chats/event-dispatcher-host"),
   EVENT_DISPATCHER_PORT("event.dispatcher.port", "EVENT_DISPATCHER_PORT", "carbonio-chats/event-dispatcher-port"),
-  EVENT_DISPATCHER_USER_USERNAME("event.dispatcher.user.username", "EVENT_DISPATCHER_USER_USERNAME", "carbonio-message-broker/username"),
-  EVENT_DISPATCHER_USER_PASSWORD("event.dispatcher.user.password", "EVENT_DISPATCHER_USER_PASSWORD", "carbonio-message-broker/password");
+  EVENT_DISPATCHER_USER_USERNAME("event.dispatcher.user.username", "EVENT_DISPATCHER_USER_USERNAME",
+    "carbonio-message-broker/username"),
+  EVENT_DISPATCHER_USER_PASSWORD("event.dispatcher.user.password", "EVENT_DISPATCHER_USER_PASSWORD",
+    "carbonio-message-broker/password"),
+
+  // behavioral configurations
+  CAN_SEE_MESSAGE_READS("can.see.message.reads", "CAN_SEE_MESSAGE_READS",
+    "carbonio-chats/configs/can-see-message-reads"),
+  CAN_SEE_USERS_PRESENCE("can.see.users.presence", "CAN_SEE_USERS_PRESENCE",
+    "carbonio-chats/configs/can-see-users-presence"),
+  MAX_USER_IMAGE_SIZE_IN_KB("max.user.image.size.in.kb", "MAX_USER_IMAGE_SIZE_IN_KB",
+    "carbonio-chats/configs/max-user-image-size-in-kb"),
+  MAX_ROOM_IMAGE_SIZE_IN_KB("max.room.image.size.in.kb", "MAX_ROOM_IMAGE_SIZE_IN_KB",
+    "carbonio-chats/configs/max-room-image-size-in-kb"),
+  EDIT_MESSAGE_TIME_LIMIT_IN_MINUTES("edit.message.time.limit.in.minutes", "EDIT_MESSAGE_TIME_LIMIT_IN_MINUTES",
+    "carbonio-chats/configs/edit-message-time-limit-in-minutes"),
+  DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES("delete.message.time.limit.in.minutes", "DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES",
+    "carbonio-chats/configs/delete-message-time-limit-in-minutes"),
+  MAX_GROUP_MEMBERS("max.group.members", "MAX_GROUP_MEMBERS", "carbonio-chats/configs/max-group-members");
 
 
   private final String propertyName;
