@@ -58,7 +58,7 @@ public class CapabilityServiceImplTest {
   }
 
   @Test
-  @DisplayName("Returns configured user capability ")
+  @DisplayName("Returns configured user capability")
   public void getCapabilities_configuredValuesTestOk() {
     when(appConfig.get(Boolean.class, ConfigName.CAN_SEE_MESSAGE_READS)).thenReturn(Optional.of(false));
     when(appConfig.get(Boolean.class, ConfigName.CAN_SEE_USERS_PRESENCE)).thenReturn(Optional.of(false));
