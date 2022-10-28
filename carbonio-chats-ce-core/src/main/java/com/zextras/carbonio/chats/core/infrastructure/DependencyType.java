@@ -6,7 +6,7 @@ public enum DependencyType {
   DATABASE(DependencyHealthTypeDto.DATABASE.toString(), true),
   AUTHENTICATION_SERVICE(DependencyHealthTypeDto.AUTHENTICATION_SERVICE.toString(), true),
   PROFILING_SERVICE(DependencyHealthTypeDto.PROFILING_SERVICE.toString(), true),
-  XMPP_SERVER(DependencyHealthTypeDto.XMPP_SERVER.toString(), true),
+  XMPP_SERVER(DependencyHealthTypeDto.XMPP_SERVER.toString(), false),
   EVENT_DISPATCHER(DependencyHealthTypeDto.EVENT_DISPATCHER.toString(), false),
   STORAGE_SERVICE(DependencyHealthTypeDto.STORAGE_SERVICE.toString(), false),
   PREVIEWER_SERVICE(DependencyHealthTypeDto.PREVIEWER_SERVICE.toString(), false);
