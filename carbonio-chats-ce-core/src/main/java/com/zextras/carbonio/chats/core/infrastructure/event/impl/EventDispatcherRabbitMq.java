@@ -56,6 +56,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
       if (Optional.ofNullable(connection).isEmpty()) {
         return;
       }
+      ChatsLogger.debug(EventDispatcherRabbitMq.class, String.format("send to '%s' message '%s'", userId, message));
       Channel channel = connection.createChannel();
       channel.queueDeclare(userId, true, false, false, Map.of());
       channel.basicPublish("", userId, null, message.getBytes(StandardCharsets.UTF_8));

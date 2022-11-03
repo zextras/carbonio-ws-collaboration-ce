@@ -110,10 +110,12 @@ public class EventsWebSocketEndpoint {
         String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
         userSessionsMap.get(userId).forEach(session -> {
             try {
+              ChatsLogger.debug(EventsWebSocketEndpoint.class,
+                String.format("put to '%s' message '%s'", userId, message));
               session.getBasicRemote().sendObject(message);
             } catch (EncodeException | IOException e) {
               ChatsLogger.error(
-                String.format("Error sending RabbitMQ message to websocket for user '%s'. Message: ''%s",
+                String.format("Error sending RabbitMQ message to websocket for user '%s'. Message: '%s'",
                   userId, message), e);
             }
           }

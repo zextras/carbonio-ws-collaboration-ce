@@ -30,6 +30,17 @@ SPDX-License-Identifier: AGPL-3.0-only
     </rollingPolicy>
   </appender>
 
+  <appender name="EVENTS_FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>/var/log/carbonio/chats/chats/events/chats-events.log</file>
+    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+      <Pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} %5p %-30.30logger{29} : %m%n</Pattern>
+    </encoder>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <FileNamePattern>/var/log/carbonio/chats/events/chats-events.%d{yyyy-MM-dd}.log.gz</FileNamePattern>
+      <MaxHistory>28</MaxHistory>
+    </rollingPolicy>
+  </appender>
+
   <appender name="CONSOLE_LOG" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
       <pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} %5p %-30.30logger{29} : %m%n</pattern>
@@ -39,6 +50,14 @@ SPDX-License-Identifier: AGPL-3.0-only
   <logger name="com.zextras.carbonio.chats.core.logging.aop" level="INFO" additivity="false">
     <appender-ref ref="TIMED_CALLS_FILE_APPENDER"/>
   </logger>
+
+  <logger name="com.zextras.carbonio.chats.core.infrastructure.event.impl" level="debug" additivity="false">
+    <appender-ref ref="EVENTS_FILE_APPENDER"/>
+  </logger>
+  <logger name="com.zextras.carbonio.chats.core.web.socket" level="debug" additivity="false">
+    <appender-ref ref="EVENTS_FILE_APPENDER"/>
+  </logger>
+
   <logger name="com.zextras.carbonio.chats.core" level="DEBUG" additivity="false">
     <appender-ref ref="FILE_APPENDER"/>
     <appender-ref ref="CONSOLE_LOG"/>
