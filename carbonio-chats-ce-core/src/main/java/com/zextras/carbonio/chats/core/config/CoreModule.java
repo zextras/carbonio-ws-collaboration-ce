@@ -32,7 +32,7 @@ import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabas
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.MessageDispatcherMongooseIm;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.MessageDispatcherGraphQl;
 import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
 import com.zextras.carbonio.chats.core.infrastructure.previewer.impl.PreviewerServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
@@ -157,7 +157,7 @@ public class CoreModule extends AbstractModule {
 
     bind(CapabilityService.class).to(CapabilityServiceImpl.class);
 
-    bind(MessageDispatcher.class).to(MessageDispatcherMongooseIm.class);
+    bind(MessageDispatcher.class).to(MessageDispatcherGraphQl.class);
     bind(StoragesService.class).to(StoragesServiceImpl.class);
     bind(PreviewerService.class).to(PreviewerServiceImpl.class);
     bind(ProfilingService.class).to(UserManagementProfilingService.class);
