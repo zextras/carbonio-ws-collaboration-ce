@@ -236,7 +236,7 @@ class UserServiceImplTest {
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(contactsIds,
-        UserPictureChangedEvent.create(userId).userId(userId));
+        UserPictureChangedEvent.create(userId, null).userId(userId));
       verifyNoMoreInteractions(fileMetadataRepository, storagesService, eventDispatcher);
     }
 
@@ -263,7 +263,7 @@ class UserServiceImplTest {
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(contactsIds,
-        UserPictureChangedEvent.create(userId).userId(userId));
+        UserPictureChangedEvent.create(userId, null).userId(userId));
       verifyNoMoreInteractions(fileMetadataRepository, storagesService, eventDispatcher);
     }
 
@@ -286,12 +286,12 @@ class UserServiceImplTest {
     void setUserPicture_failsIfPictureIsTooBig() {
       UUID userId = UUID.randomUUID();
       File file = mock(File.class);
-      when(file.length()).thenReturn(257L * 1024);
+      when(file.length()).thenReturn(600L * 1024);
       ChatsHttpException exception = assertThrows(BadRequestException.class,
         () -> userService.setUserPicture(userId, file, "image/jpeg", "picture", UserPrincipal.create(userId)));
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(String.format("Bad Request - The user picture cannot be greater than %d kB", 256),
+      assertEquals(String.format("Bad Request - The user picture cannot be greater than %d kB", 512),
         exception.getMessage());
     }
 

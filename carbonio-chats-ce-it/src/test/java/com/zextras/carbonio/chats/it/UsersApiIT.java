@@ -345,8 +345,8 @@ public class UsersApiIT {
       assertEquals(10, capabilities.getEditMessageTimeLimitInMinutes());
       assertEquals(10, capabilities.getDeleteMessageTimeLimitInMinutes());
       assertEquals(128, capabilities.getMaxGroupMembers());
-      assertEquals(256, capabilities.getMaxRoomImageSizeInKb());
-      assertEquals(256, capabilities.getMaxUserImageSizeInKb());
+      assertEquals(512, capabilities.getMaxRoomImageSizeInKb());
+      assertEquals(512, capabilities.getMaxUserImageSizeInKb());
     }
 
     @Test

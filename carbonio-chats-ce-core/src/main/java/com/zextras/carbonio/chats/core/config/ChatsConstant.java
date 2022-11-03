@@ -18,8 +18,8 @@ public class ChatsConstant {
 
     public static final boolean CAN_SEE_MESSAGE_READS                = true;
     public static final boolean CAN_SEE_USERS_PRESENCE               = true;
-    public static final int     MAX_USER_IMAGE_SIZE_IN_KB            = 256;
-    public static final int     MAX_ROOM_IMAGE_SIZE_IN_KB            = 256;
+    public static final int     MAX_USER_IMAGE_SIZE_IN_KB            = 512;
+    public static final int     MAX_ROOM_IMAGE_SIZE_IN_KB            = 512;
     public static final int     EDIT_MESSAGE_TIME_LIMIT_IN_MINUTES   = 10;
     public static final int     DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES = 10;
     public static final int     MAX_GROUP_MEMBERS                    = 128;

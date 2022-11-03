@@ -85,15 +85,17 @@ public class MembersServiceImpl implements MembersService {
     messageService.setMemberRole(room.getId(), currentUser.getId(), userId.toString(), isOwner);
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomOwnerChangedEvent.create(currentUser.getUUID())
+      RoomOwnerChangedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
         .roomId(roomId).userId(userId).isOwner(isOwner)
     );
   }
 
   @Override
   @Transactional
-  public MemberInsertedDto insertRoomMember(UUID roomId, MemberToInsertDto memberToInsertDto,
-    UserPrincipal currentUser) {
+  public MemberInsertedDto insertRoomMember(
+    UUID roomId, MemberToInsertDto memberToInsertDto,
+    UserPrincipal currentUser
+  ) {
     if (!userService.userExists(memberToInsertDto.getUserId(), currentUser)) {
       throw new NotFoundException(String.format("User with id '%s' was not found", memberToInsertDto.getUserId()));
     }
@@ -146,7 +148,7 @@ public class MembersServiceImpl implements MembersService {
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomMemberAddedEvent
-        .create(currentUser.getUUID()).roomId(UUID.fromString(room.getId()))
+        .create(currentUser.getUUID(), currentUser.getSessionId()).roomId(UUID.fromString(room.getId()))
         .member(subscriptionMapper.ent2memberDto(subscription)));
     return subscriptionMapper.ent2memberInsertedDto(subscription, settings);
   }
@@ -189,7 +191,7 @@ public class MembersServiceImpl implements MembersService {
     }
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomMemberRemovedEvent.create(currentUser.getUUID()).roomId(UUID.fromString(room.getId())).userId(userId)
+      RoomMemberRemovedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(UUID.fromString(room.getId())).userId(userId)
     );
   }
 

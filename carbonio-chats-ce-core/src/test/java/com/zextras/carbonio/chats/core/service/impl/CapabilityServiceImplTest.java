@@ -44,8 +44,8 @@ public class CapabilityServiceImplTest {
     assertEquals(10, capabilities.getEditMessageTimeLimitInMinutes());
     assertEquals(10, capabilities.getDeleteMessageTimeLimitInMinutes());
     assertEquals(128, capabilities.getMaxGroupMembers());
-    assertEquals(256, capabilities.getMaxRoomImageSizeInKb());
-    assertEquals(256, capabilities.getMaxUserImageSizeInKb());
+    assertEquals(512, capabilities.getMaxRoomImageSizeInKb());
+    assertEquals(512, capabilities.getMaxUserImageSizeInKb());
 
     verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_SEE_MESSAGE_READS);
     verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_SEE_USERS_PRESENCE);

@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.data.event;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import java.util.Objects;
 import java.util.UUID;
+import javax.annotation.Nullable;
 
 public class AttachmentAddedEvent extends DomainEvent {
 
@@ -15,12 +16,12 @@ public class AttachmentAddedEvent extends DomainEvent {
   private UUID          roomId;
   private AttachmentDto attachment;
 
-  public AttachmentAddedEvent(UUID from) {
-    super(EVENT_TYPE, from);
+  public AttachmentAddedEvent(UUID from, @Nullable String sessionId) {
+    super(EVENT_TYPE, from, sessionId);
   }
 
-  public static AttachmentAddedEvent create(UUID from) {
-    return new AttachmentAddedEvent(from);
+  public static AttachmentAddedEvent create(UUID from, @Nullable String sessionId) {
+    return new AttachmentAddedEvent(from, sessionId);
   }
 
   public UUID getRoomId() {

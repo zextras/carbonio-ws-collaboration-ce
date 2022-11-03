@@ -583,7 +583,7 @@ class RoomServiceImplTest {
       @Test
       @DisplayName("It creates the room and returns it")
       public void createGroupRoom_testOk() {
-        UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
+        UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id).sessionId("fake-session-id");
         when(userService.userExists(user2Id, mockUserPrincipal))
           .thenReturn(true);
         when(userService.userExists(user3Id, mockUserPrincipal))
@@ -623,7 +623,7 @@ class RoomServiceImplTest {
 
         verify(eventDispatcher, times(1)).sendToUserQueue(
           List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-          RoomCreatedEvent.create(user1Id).roomId(roomGroup1Id));
+          RoomCreatedEvent.create(user1Id, "fake-session-id").roomId(roomGroup1Id));
         verifyNoMoreInteractions(eventDispatcher);
         verify(messageDispatcher, times(1)).createRoom(roomGroup1, user1Id.toString());
         verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
@@ -705,7 +705,7 @@ class RoomServiceImplTest {
             .isOwner());
         verify(eventDispatcher, times(1)).sendToUserQueue(
           List.of(user1Id.toString(), user2Id.toString()),
-          RoomCreatedEvent.create(user1Id).roomId(roomOneToOne1Id));
+          RoomCreatedEvent.create(user1Id, null).roomId(roomOneToOne1Id));
         verifyNoMoreInteractions(eventDispatcher);
         verify(messageDispatcher, times(1)).createRoom(roomOneToOne1, user1Id.toString());
         verify(messageDispatcher, times(1)).addUsersToContacts(user1Id.toString(), user2Id.toString());
@@ -832,7 +832,7 @@ class RoomServiceImplTest {
 
         verify(eventDispatcher, times(1)).sendToUserQueue(
           List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-          RoomCreatedEvent.create(user1Id).roomId(roomWorkspace1Id));
+          RoomCreatedEvent.create(user1Id, null).roomId(roomWorkspace1Id));
         verifyNoMoreInteractions(eventDispatcher);
         verifyNoInteractions(messageDispatcher);
       }
@@ -891,7 +891,7 @@ class RoomServiceImplTest {
 
         verify(eventDispatcher, times(1)).sendToUserQueue(
           List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-          RoomCreatedEvent.create(user1Id).roomId(roomWorkspace2Id));
+          RoomCreatedEvent.create(user1Id, null).roomId(roomWorkspace2Id));
         verifyNoMoreInteractions(eventDispatcher);
         verifyNoInteractions(messageDispatcher);
       }
@@ -972,7 +972,7 @@ class RoomServiceImplTest {
 
         verify(eventDispatcher, times(1)).sendToUserQueue(
           List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-          RoomCreatedEvent.create(user1Id).roomId(roomChannel1Id));
+          RoomCreatedEvent.create(user1Id, null).roomId(roomChannel1Id));
         verify(messageDispatcher, times(1)).createRoom(roomChannel1, user1Id.toString());
         verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
         verifyNoMoreInteractions(roomRepository, eventDispatcher, messageDispatcher);
@@ -1018,7 +1018,7 @@ class RoomServiceImplTest {
 
         verify(eventDispatcher, times(1)).sendToUserQueue(
           List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-          RoomCreatedEvent.create(user1Id).roomId(roomChannel2Id));
+          RoomCreatedEvent.create(user1Id, null).roomId(roomChannel2Id));
         verify(messageDispatcher, times(1)).createRoom(roomChannel2, user1Id.toString());
         verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
         verifyNoMoreInteractions(roomRepository, eventDispatcher, messageDispatcher);
@@ -1186,7 +1186,7 @@ class RoomServiceImplTest {
 
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        RoomUpdatedEvent.create(user1Id).roomId(roomGroup1Id).name("room1-changed").description("Room one changed"));
+        RoomUpdatedEvent.create(user1Id, null).roomId(roomGroup1Id).name("room1-changed").description("Room one changed"));
       verify(messageDispatcher, times(1)).updateRoomName(roomGroup1Id.toString(), user1Id.toString(), "room1-changed");
       verify(messageDispatcher, times(1)).updateRoomDescription(roomGroup1Id.toString(), user1Id.toString(),
         "Room one changed");
@@ -1256,7 +1256,7 @@ class RoomServiceImplTest {
 
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        RoomDeletedEvent.create(user1Id).roomId(roomGroup1Id));
+        RoomDeletedEvent.create(user1Id, null).roomId(roomGroup1Id));
       verifyNoMoreInteractions(eventDispatcher);
       verify(messageDispatcher, times(1)).deleteRoom(roomGroup1Id.toString(), user1Id.toString());
       verifyNoMoreInteractions(messageDispatcher);
@@ -1271,7 +1271,7 @@ class RoomServiceImplTest {
 
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        RoomDeletedEvent.create(user1Id).roomId(roomWorkspace3Id));
+        RoomDeletedEvent.create(user1Id, null).roomId(roomWorkspace3Id));
       verifyNoMoreInteractions(eventDispatcher);
       verifyNoInteractions(messageDispatcher);
     }
@@ -1285,7 +1285,7 @@ class RoomServiceImplTest {
 
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        RoomDeletedEvent.create(user1Id).roomId(roomWorkspace1Id));
+        RoomDeletedEvent.create(user1Id, null).roomId(roomWorkspace1Id));
       verify(messageDispatcher, times(1)).deleteRoom(roomChannel1Id.toString(), user1Id.toString());
       verify(messageDispatcher, times(1)).deleteRoom(roomChannel2Id.toString(), user1Id.toString());
       verifyNoMoreInteractions(eventDispatcher, messageDispatcher);
@@ -1411,7 +1411,7 @@ class RoomServiceImplTest {
         .save(RoomUserSettings.create(roomGroup1, user1Id.toString())
           .mutedUntil(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
       verify(eventDispatcher, times(1)).sendToUserQueue(
-        user1Id.toString(), RoomMutedEvent.create(user1Id).roomId(roomGroup1Id));
+        user1Id.toString(), RoomMutedEvent.create(user1Id, null).roomId(roomGroup1Id));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 
@@ -1433,7 +1433,7 @@ class RoomServiceImplTest {
         .save(roomUserSettings
           .mutedUntil(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
       verify(eventDispatcher, times(1)).sendToUserQueue(
-        user1Id.toString(), RoomMutedEvent.create(user1Id).roomId(roomGroup1Id));
+        user1Id.toString(), RoomMutedEvent.create(user1Id, null).roomId(roomGroup1Id));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 
@@ -1536,7 +1536,7 @@ class RoomServiceImplTest {
       verify(roomUserSettingsRepository, times(1))
         .save(roomUserSettings.mutedUntil(null));
       verify(eventDispatcher, times(1)).sendToUserQueue(
-        user1Id.toString(), RoomUnmutedEvent.create(user1Id).roomId(roomGroup1Id));
+        user1Id.toString(), RoomUnmutedEvent.create(user1Id, null).roomId(roomGroup1Id));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 
@@ -1629,7 +1629,7 @@ class RoomServiceImplTest {
       verify(roomUserSettingsRepository, times(1)).save(userSettings);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         user1Id.toString(),
-        RoomHistoryClearedEvent.create(user1Id).roomId(roomGroup1Id).clearedAt(clearedAt));
+        RoomHistoryClearedEvent.create(user1Id, null).roomId(roomGroup1Id).clearedAt(clearedAt));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 
@@ -1658,7 +1658,7 @@ class RoomServiceImplTest {
       verify(roomUserSettingsRepository, times(1)).save(userSettings);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         user1Id.toString(),
-        RoomHistoryClearedEvent.create(user1Id).roomId(roomGroup1Id).clearedAt(clearedAt));
+        RoomHistoryClearedEvent.create(user1Id, null).roomId(roomGroup1Id).clearedAt(clearedAt));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
     }
 
@@ -1842,7 +1842,7 @@ class RoomServiceImplTest {
       verify(storagesService, times(0)).deleteFile(anyString(), anyString());
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        RoomPictureChangedEvent.create(user1Id).roomId(roomGroup1Id));
+        RoomPictureChangedEvent.create(user1Id, null).roomId(roomGroup1Id));
       verify(messageDispatcher, times(1)).updateRoomPicture(roomGroup1Id.toString(), user1Id.toString(),
         roomGroup1Id.toString(), "picture");
     }
@@ -1875,7 +1875,7 @@ class RoomServiceImplTest {
       verify(storagesService, times(1)).deleteFile("123", "fake-old-user");
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        RoomPictureChangedEvent.create(user1Id).roomId(roomGroup1Id));
+        RoomPictureChangedEvent.create(user1Id, null).roomId(roomGroup1Id));
       verify(messageDispatcher, times(1)).updateRoomPicture(roomGroup1Id.toString(), user1Id.toString(),
         "123", "picture");
     }
@@ -1908,7 +1908,7 @@ class RoomServiceImplTest {
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, user1Id.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user2Id.toString(), user3Id.toString()),
-        RoomPictureChangedEvent.create(user1Id).roomId(roomGroup2Id));
+        RoomPictureChangedEvent.create(user1Id, null).roomId(roomGroup2Id));
       verify(messageDispatcher, times(1)).updateRoomPicture(roomGroup2Id.toString(), user1Id.toString(),
         "123", "picture");
     }
@@ -1946,12 +1946,12 @@ class RoomServiceImplTest {
     void setRoomPicture_failsIfPictureIsTooBig() {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       File file = mock(File.class);
-      when(file.length()).thenReturn(257L * 1024);
+      when(file.length()).thenReturn(600L * 1024);
       BadRequestException exception = assertThrows(BadRequestException.class,
         () -> roomService.setRoomPicture(roomGroup1Id, file, "image/jpeg", "picture", UserPrincipal.create(user1Id)));
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(String.format("Bad Request - The size of room picture exceeds the maximum value of %d kB", 256),
+      assertEquals(String.format("Bad Request - The size of room picture exceeds the maximum value of %d kB", 512),
         exception.getMessage());
     }
 

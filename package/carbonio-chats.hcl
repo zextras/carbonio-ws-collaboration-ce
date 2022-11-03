@@ -47,7 +47,7 @@ services {
             local_bind_port    = 20004
           },
           {
-            destination_name   = "carbonio-message-broker-http"
+            destination_name   = "carbonio-message-broker"
             local_bind_address = "127.78.0.4"
             local_bind_port    = 20005
           }

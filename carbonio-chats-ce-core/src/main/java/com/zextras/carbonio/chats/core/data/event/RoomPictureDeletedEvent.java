@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.data.event;
 
 import java.util.Objects;
 import java.util.UUID;
+import javax.annotation.Nullable;
 
 public class RoomPictureDeletedEvent extends DomainEvent {
 
@@ -13,12 +14,12 @@ public class RoomPictureDeletedEvent extends DomainEvent {
 
   private UUID roomId;
 
-  public RoomPictureDeletedEvent(UUID from) {
-    super(EVENT_TYPE, from);
+  public RoomPictureDeletedEvent(UUID from, @Nullable String sessionId) {
+    super(EVENT_TYPE, from, sessionId);
   }
 
-  public static RoomPictureDeletedEvent create(UUID from) {
-    return new RoomPictureDeletedEvent(from);
+  public static RoomPictureDeletedEvent create(UUID from, @Nullable String sessionId) {
+    return new RoomPictureDeletedEvent(from, sessionId);
   }
 
   public UUID getRoomId() {

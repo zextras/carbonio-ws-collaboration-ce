@@ -3,20 +3,21 @@ package com.zextras.carbonio.chats.core.data.event;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
+import javax.annotation.Nullable;
 
 public class RoomHistoryClearedEvent extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_HISTORY_CLEARED;
 
-  private UUID roomId;
+  private UUID           roomId;
   private OffsetDateTime clearedAt;
 
-  public RoomHistoryClearedEvent(UUID from) {
-    super(EVENT_TYPE, from);
+  public RoomHistoryClearedEvent(UUID from, @Nullable String sessionId) {
+    super(EVENT_TYPE, from, sessionId);
   }
 
-  public static RoomHistoryClearedEvent create(UUID from) {
-    return new RoomHistoryClearedEvent(from);
+  public static RoomHistoryClearedEvent create(UUID from, @Nullable String sessionId) {
+    return new RoomHistoryClearedEvent(from, sessionId);
   }
 
   public UUID getRoomId() {

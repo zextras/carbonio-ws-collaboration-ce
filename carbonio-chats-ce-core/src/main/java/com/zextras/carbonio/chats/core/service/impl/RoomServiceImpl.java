@@ -199,7 +199,7 @@ public class RoomServiceImpl implements RoomService {
     UUID finalId = UUID.fromString(room.getId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomCreatedEvent.create(currentUser.getUUID()).roomId(finalId));
+      RoomCreatedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(finalId));
     return roomMapper.ent2dto(room,
       room.getUserSettings().stream().filter(userSettings -> userSettings.getUserId().equals(currentUser.getId()))
         .findAny().orElse(null), true, true);
@@ -275,7 +275,7 @@ public class RoomServiceImpl implements RoomService {
       roomRepository.update(room);
       eventDispatcher.sendToUserQueue(
         room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-        RoomUpdatedEvent.create(currentUser.getUUID())
+        RoomUpdatedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
           .roomId(roomId).name(room.getName()).description(room.getDescription()));
     }
     return roomMapper.ent2dto(room,
@@ -303,7 +303,7 @@ public class RoomServiceImpl implements RoomService {
     }
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomDeletedEvent.create(currentUser.getUUID()).roomId(roomId));
+      RoomDeletedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(roomId));
   }
 
   @Override
@@ -327,7 +327,7 @@ public class RoomServiceImpl implements RoomService {
     if (settings.getMutedUntil() == null) {
       roomUserSettingsRepository.save(settings.mutedUntil(MUTED_TO_INFINITY));
       eventDispatcher.sendToUserQueue(
-        currentUser.getId(), RoomMutedEvent.create(currentUser.getUUID()).roomId(roomId));
+        currentUser.getId(), RoomMutedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(roomId));
     }
   }
 
@@ -338,7 +338,8 @@ public class RoomServiceImpl implements RoomService {
       .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
     settings = roomUserSettingsRepository.save(settings.clearedAt(OffsetDateTime.now()));
     eventDispatcher.sendToUserQueue(currentUser.getId(),
-      RoomHistoryClearedEvent.create(currentUser.getUUID()).roomId(roomId).clearedAt(settings.getClearedAt()));
+      RoomHistoryClearedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(roomId)
+        .clearedAt(settings.getClearedAt()));
     return settings.getClearedAt();
   }
 
@@ -354,7 +355,8 @@ public class RoomServiceImpl implements RoomService {
         if (settings.getMutedUntil() != null) {
           roomUserSettingsRepository.save(settings.mutedUntil(null));
           eventDispatcher.sendToUserQueue(
-            currentUser.getId(), RoomUnmutedEvent.create(currentUser.getUUID()).roomId(roomId));
+            currentUser.getId(),
+            RoomUnmutedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(roomId));
         }
       });
   }
@@ -441,7 +443,8 @@ public class RoomServiceImpl implements RoomService {
     messageDispatcher.updateRoomPicture(room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomPictureChangedEvent.create(currentUser.getUUID()).roomId(UUID.fromString(room.getId())));
+      RoomPictureChangedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
+        .roomId(UUID.fromString(room.getId())));
   }
 
   @Override
@@ -455,7 +458,8 @@ public class RoomServiceImpl implements RoomService {
     messageDispatcher.deleteRoomPicture(room.getId(), currentUser.getId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomPictureDeletedEvent.create(currentUser.getUUID()).roomId(UUID.fromString(room.getId())));
+      RoomPictureDeletedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
+        .roomId(UUID.fromString(room.getId())));
   }
 
   @Override

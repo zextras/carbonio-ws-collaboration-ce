@@ -578,7 +578,7 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(roomService);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        AttachmentAddedEvent.create(user1Id).roomId(roomId).attachment(
+        AttachmentAddedEvent.create(user1Id, null).roomId(roomId).attachment(
           AttachmentDto.create()
             .id(attachmentUuid)
             .name("temp.pdf")
@@ -694,7 +694,7 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(storagesService);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        AttachmentRemovedEvent.create(user2Id).roomId(roomId));
+        AttachmentRemovedEvent.create(user2Id, null).roomId(roomId));
     }
 
     @Test
@@ -717,7 +717,7 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(storagesService);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        AttachmentRemovedEvent.create(user1Id).roomId(roomId));
+        AttachmentRemovedEvent.create(user1Id, null).roomId(roomId));
     }
 
     @Test

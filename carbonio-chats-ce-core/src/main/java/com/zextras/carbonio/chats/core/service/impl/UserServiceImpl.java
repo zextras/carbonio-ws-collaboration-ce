@@ -114,7 +114,7 @@ public class UserServiceImpl implements UserService {
     storagesService.saveFile(image, metadata, currentUser.getId());
     eventDispatcher.sendToUserQueue(
       subscriptionRepository.getContacts(userId.toString()),
-      UserPictureChangedEvent.create(currentUser.getUUID()).userId(userId));
+      UserPictureChangedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).userId(userId));
   }
 
   @Override
@@ -129,6 +129,6 @@ public class UserServiceImpl implements UserService {
     storagesService.deleteFile(metadata.getId(), metadata.getUserId());
     eventDispatcher.sendToUserQueue(
       subscriptionRepository.getContacts(userId.toString()),
-      UserPictureDeletedEvent.create(currentUser.getUUID()).userId(userId));
+      UserPictureDeletedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).userId(userId));
   }
 }

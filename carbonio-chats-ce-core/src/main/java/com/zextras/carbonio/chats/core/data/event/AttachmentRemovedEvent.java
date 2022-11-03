@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.data.event;
 
 import java.util.Objects;
 import java.util.UUID;
+import javax.annotation.Nullable;
 
 public class AttachmentRemovedEvent extends DomainEvent {
 
@@ -14,12 +15,12 @@ public class AttachmentRemovedEvent extends DomainEvent {
   private UUID roomId;
   private UUID fileId;
 
-  public AttachmentRemovedEvent(UUID from) {
-    super(EVENT_TYPE, from);
+  public AttachmentRemovedEvent(UUID from, @Nullable String sessionId) {
+    super(EVENT_TYPE, from, sessionId);
   }
 
-  public static AttachmentRemovedEvent create(UUID from) {
-    return new AttachmentRemovedEvent(from);
+  public static AttachmentRemovedEvent create(UUID from, @Nullable String sessionId) {
+    return new AttachmentRemovedEvent(from, sessionId);
   }
 
   public UUID getRoomId() {
@@ -57,6 +58,6 @@ public class AttachmentRemovedEvent extends DomainEvent {
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getRoomId(),getFileId());
+    return Objects.hash(super.hashCode(), getRoomId(), getFileId());
   }
 }

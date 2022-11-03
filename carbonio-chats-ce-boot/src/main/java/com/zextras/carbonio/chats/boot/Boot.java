@@ -4,7 +4,6 @@
 
 package com.zextras.carbonio.chats.boot;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Connection;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ChatsConstant;
@@ -36,7 +35,7 @@ public class Boot {
   private final Flyway                                       flyway;
   private final Connection                                   eventDispatcherConnection;
   private final AuthenticationService                        authenticationService;
-  private final ObjectMapper                                 objectMapper;
+  private final EventsWebSocketEndpoint                      eventsWebSocketEndpoint;
 
   @Inject
   public Boot(
@@ -45,14 +44,14 @@ public class Boot {
     Flyway flyway,
     Optional<Connection> eventDispatcherConnection,
     AuthenticationService authenticationService,
-    ObjectMapper objectMapper
+    EventsWebSocketEndpoint eventsWebSocketEndpoint
   ) {
     this.appConfig = appConfig;
     this.resteasyListener = resteasyListener;
     this.flyway = flyway;
     this.eventDispatcherConnection = eventDispatcherConnection.orElse(null);
     this.authenticationService = authenticationService;
-    this.objectMapper = objectMapper;
+    this.eventsWebSocketEndpoint = eventsWebSocketEndpoint;
   }
 
   public void boot() throws Exception {
@@ -70,7 +69,7 @@ public class Boot {
         wsContainer.setDefaultMaxTextMessageBufferSize(65535);
         wsContainer.addEndpoint(ServerEndpointConfig.Builder
           .create(EventsWebSocketEndpoint.class, "/events")
-          .configurator(new EventsWebSocketEndpointConfigurator(eventDispatcherConnection, objectMapper))
+          .configurator(new EventsWebSocketEndpointConfigurator(eventsWebSocketEndpoint))
           .build());
         servletContext.addFilter("eventsWebSocketAuthenticationFilter",
             EventsWebSocketAuthenticationFilter.create(authenticationService))

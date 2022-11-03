@@ -1,7 +1,5 @@
 package com.zextras.carbonio.chats.core.web.socket;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.Connection;
 import javax.servlet.http.HttpSession;
 import javax.websocket.HandshakeResponse;
 import javax.websocket.server.HandshakeRequest;
@@ -9,21 +7,18 @@ import javax.websocket.server.ServerEndpointConfig;
 
 public class EventsWebSocketEndpointConfigurator extends ServerEndpointConfig.Configurator {
 
-  private final Connection   connection;
-  private final ObjectMapper objectMapper;
+  private final EventsWebSocketEndpoint eventsWebSocketEndpoint;
 
   public EventsWebSocketEndpointConfigurator(
-    Connection connection,
-    ObjectMapper objectMapper
+    EventsWebSocketEndpoint eventsWebSocketEndpoint
   ) {
-    this.connection = connection;
-    this.objectMapper = objectMapper;
+    this.eventsWebSocketEndpoint = eventsWebSocketEndpoint;
   }
 
   @Override
   @SuppressWarnings("unchecked")
   public <T> T getEndpointInstance(Class<T> clazz) {
-    return (T) new EventsWebSocketEndpoint(connection, objectMapper);
+    return (T) eventsWebSocketEndpoint;
   }
 
   @Override

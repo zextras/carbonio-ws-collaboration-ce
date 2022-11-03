@@ -150,7 +150,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     storagesService.saveFile(file, metadata, currentUser.getId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      AttachmentAddedEvent.create(currentUser.getUUID())
+      AttachmentAddedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
         .roomId(roomId).attachment(attachmentMapper.ent2dto(metadata)));
     return IdDtoBuilder.create().id(id).build();
   }
@@ -170,6 +170,6 @@ public class AttachmentServiceImpl implements AttachmentService {
     storagesService.deleteFile(fileId.toString(), metadata.getUserId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      AttachmentRemovedEvent.create(currentUser.getUUID()).roomId(UUID.fromString(room.getId())));
+      AttachmentRemovedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(UUID.fromString(room.getId())));
   }
 }

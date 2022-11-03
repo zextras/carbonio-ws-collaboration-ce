@@ -14,6 +14,7 @@ public class UserPrincipal implements Principal {
   @Nullable
   private UUID                              userId;
   private boolean                           systemUser = false;
+  private String                            sessionId;
   private Map<AuthenticationMethod, String> authCredentials;
 
   public UserPrincipal() {
@@ -59,6 +60,15 @@ public class UserPrincipal implements Principal {
     return this;
   }
 
+  public String getSessionId() {
+    return sessionId;
+  }
+
+  public UserPrincipal sessionId(String sessionId) {
+    this.sessionId = sessionId;
+    return this;
+  }
+
   public Map<AuthenticationMethod, String> getAuthCredentials() {
     return new HashMap<>(authCredentials);
   }
@@ -81,12 +91,12 @@ public class UserPrincipal implements Principal {
       return false;
     }
     UserPrincipal that = (UserPrincipal) o;
-    return Objects.equals(userId, that.userId);
+    return Objects.equals(userId, that.userId) && Objects.equals(sessionId, that.sessionId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(userId);
+    return Objects.hash(userId, sessionId);
   }
 
   @Override

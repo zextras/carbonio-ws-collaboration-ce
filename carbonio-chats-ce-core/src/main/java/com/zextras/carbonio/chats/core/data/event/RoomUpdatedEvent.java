@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.data.event;
 
 import java.util.Objects;
 import java.util.UUID;
+import javax.annotation.Nullable;
 
 public class RoomUpdatedEvent extends DomainEvent {
 
@@ -15,12 +16,12 @@ public class RoomUpdatedEvent extends DomainEvent {
   private String name;
   private String description;
 
-  public RoomUpdatedEvent(UUID from) {
-    super(EVENT_TYPE, from);
+  public RoomUpdatedEvent(UUID from, @Nullable String sessionId) {
+    super(EVENT_TYPE, from, sessionId);
   }
 
-  public static RoomUpdatedEvent create(UUID from) {
-    return new RoomUpdatedEvent(from);
+  public static RoomUpdatedEvent create(UUID from, @Nullable String sessionId) {
+    return new RoomUpdatedEvent(from, sessionId);
   }
 
   public UUID getRoomId() {

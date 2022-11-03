@@ -8,17 +8,20 @@ package com.zextras.carbonio.chats.core.data.event;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
+import javax.annotation.Nullable;
 
 public class DomainEvent {
 
   private UUID           id;
   private EventType      type;
   private UUID           from;
+  private String         sessionId;
   private OffsetDateTime sentDate;
 
-  public DomainEvent(EventType type, UUID from) {
+  public DomainEvent(EventType type, UUID from, @Nullable String sessionId) {
     this.id = UUID.randomUUID();
     this.type = type;
+    this.sessionId = sessionId;
     this.sentDate = OffsetDateTime.now();
     this.from = from;
   }
@@ -39,6 +42,10 @@ public class DomainEvent {
     return from;
   }
 
+  public String getSessionId() {
+    return sessionId;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -49,11 +56,12 @@ public class DomainEvent {
     }
     DomainEvent that = (DomainEvent) o;
     return Objects.equals(getType(), that.getType()) &&
-      Objects.equals(getFrom(), that.getFrom());
+      Objects.equals(getFrom(), that.getFrom()) &&
+      Objects.equals(getSessionId(), that.getSessionId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getType(), getFrom());
+    return Objects.hash(getType(), getFrom(), getSessionId());
   }
 }

@@ -84,6 +84,7 @@ import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHan
 import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
+import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.ContactsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
@@ -115,8 +116,9 @@ public class CoreModule extends AbstractModule {
 
     bind(AppConfig.class).toProvider(new AppConfigProvider(".", ChatsConstant.CONFIG_PATH)).in(Singleton.class);
 
-    bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
     bind(AuthenticationFilter.class);
+    bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
+    bind(EventsWebSocketEndpoint.class);
 
     bind(RoomsApi.class);
     bind(RoomsApiService.class).to(RoomsApiServiceImpl.class);

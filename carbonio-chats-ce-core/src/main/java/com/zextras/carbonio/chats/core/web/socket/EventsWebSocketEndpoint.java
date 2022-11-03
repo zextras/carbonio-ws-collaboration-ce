@@ -6,17 +6,18 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DeliverCallback;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
-import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeoutException;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.http.HttpSession;
 import javax.websocket.EncodeException;
-import javax.websocket.EndpointConfig;
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
 import javax.websocket.OnMessage;
@@ -24,30 +25,30 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
+@Singleton
 @ServerEndpoint(value = "/events")
 public class EventsWebSocketEndpoint {
 
   private static final int MAX_IDLE_TIMEOUT = 90000;
 
-  private final Connection           connection;
-  private final ObjectMapper         objectMapper;
-  private final Map<String, Channel> sessionsMap = new HashMap<>();
+  private final Connection                 rabbitMqConnection;
+  private final ObjectMapper               objectMapper;
+  private final Map<String, List<Session>> userSessionsMap = new HashMap<>();
 
-  public EventsWebSocketEndpoint(Connection connection, ObjectMapper objectMapper) {
-    this.connection = connection;
+  @Inject
+  public EventsWebSocketEndpoint(Optional<Connection> rabbitMqConnection, ObjectMapper objectMapper) {
+    this.rabbitMqConnection = rabbitMqConnection.orElse(null);
     this.objectMapper = objectMapper;
   }
 
   @OnOpen
-  public void onOpen(Session session, EndpointConfig config) throws IOException, EncodeException {
-    String userId = Optional.ofNullable((String)
-        ((HttpSession) config.getUserProperties()
-          .get(HttpSession.class.getName()))
-          .getAttribute("userId"))
-      .orElseThrow(UnauthorizedException::new);
+  public void onOpen(Session session) throws IOException, EncodeException {
+    String userId = getSessionUser(session);
     session.setMaxIdleTimeout(MAX_IDLE_TIMEOUT);
     session.getBasicRemote().sendObject(objectMapper.writeValueAsString(SessionOutEvent.create(session.getId())));
-    sessionsMap.put(session.getId(), startBridge(session, userId));
+    userSessionsMap.computeIfAbsent(userId, k -> new ArrayList<>());
+    userSessionsMap.get(userId).add(session);
+    startBridge(userId);
   }
 
   @OnMessage
@@ -62,40 +63,64 @@ public class EventsWebSocketEndpoint {
   }
 
   @OnClose
-  public void onClose(Session session) throws IOException, EncodeException, TimeoutException {
-    if (sessionsMap.containsKey(session.getId())) {
-      sessionsMap.get(session.getId()).close();
-      sessionsMap.remove(session.getId());
-    }
+  public void onClose(Session session) throws IOException, EncodeException {
+    closeAndRemoveSession(session);
     session.getBasicRemote().sendObject("Disconnected");
   }
 
   @OnError
-  public void onError(Session session, Throwable throwable) throws IOException, TimeoutException {
-    if (sessionsMap.containsKey(session.getId())) {
-      sessionsMap.get(session.getId()).close();
-      sessionsMap.remove(session.getId());
-    }
-    ChatsLogger.error(EventsWebSocketEndpoint.class, "Error on Chats websocket", throwable);
+  public void onError(Session session, Throwable throwable) {
+    closeAndRemoveSession(session);
   }
 
-  private Channel startBridge(Session session, String userId) {
+  private String getSessionUser(Session session) {
+    return Optional.ofNullable((String)
+      ((HttpSession) session.getUserProperties()
+        .get(HttpSession.class.getName()))
+        .getAttribute("userId")).orElseThrow(() ->
+      new InternalErrorException("Session user not found for closeAndRemoveSession"));
+  }
+
+  public void closeAndRemoveSession(Session session) {
+    String userId = getSessionUser(session);
+    if (userSessionsMap.containsKey(userId)) {
+      Optional<Session> toRemove = userSessionsMap.get(userId).stream()
+        .filter(s -> s.getId().equals(session.getId()))
+        .findAny();
+      if (toRemove.isPresent()) {
+        if (session.isOpen()) {
+          try {
+            toRemove.get().close();
+          } catch (IOException ignored) {
+          }
+        }
+        userSessionsMap.get(userId).remove(toRemove.get());
+        if (userSessionsMap.get(userId).isEmpty()) {
+          userSessionsMap.remove(userId);
+        }
+      }
+    }
+  }
+
+  private void startBridge(String userId) {
     try {
-      Channel channel = connection.createChannel();
+      Channel channel = rabbitMqConnection.createChannel();
       channel.queueDeclare(userId, true, false, false, null);
       DeliverCallback deliverCallback = (consumerTag, delivery) -> {
         String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-        try {
-          session.getBasicRemote().sendObject(message);
-        } catch (EncodeException e) {
-          ChatsLogger.error(
-            String.format("Error sending RabbitMQ message to websocket for user '%s'. Message: ''%s",
-              userId, message), e);
-        }
+        userSessionsMap.get(userId).forEach(session -> {
+            try {
+              session.getBasicRemote().sendObject(message);
+            } catch (EncodeException | IOException e) {
+              ChatsLogger.error(
+                String.format("Error sending RabbitMQ message to websocket for user '%s'. Message: ''%s",
+                  userId, message), e);
+            }
+          }
+        );
       };
       channel.basicConsume(userId, true, deliverCallback, consumerTag -> {
       });
-      return channel;
     } catch (IOException e) {
       throw new InternalErrorException(String.format("Error running RabbitMQ client for user '%s'", userId), e);
     }
