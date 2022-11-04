@@ -8,6 +8,7 @@ import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
+import com.zextras.carbonio.chats.core.data.entity.User;
 import com.zextras.carbonio.chats.core.data.event.UserPictureChangedEvent;
 import com.zextras.carbonio.chats.core.data.event.UserPictureDeletedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
@@ -22,10 +23,13 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.service.UserService;
+import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
 import io.ebean.annotation.Transactional;
 import java.io.File;
+import java.time.Clock;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -41,6 +45,7 @@ public class UserServiceImpl implements UserService {
   private final SubscriptionRepository subscriptionRepository;
   private final EventDispatcher        eventDispatcher;
   private final AppConfig              appConfig;
+  private final Clock                  clock;
 
   @Inject
   public UserServiceImpl(
@@ -49,7 +54,8 @@ public class UserServiceImpl implements UserService {
     StoragesService storagesService,
     SubscriptionRepository subscriptionRepository,
     EventDispatcher eventDispatcher,
-    AppConfig appConfig
+    AppConfig appConfig,
+    Clock clock
   ) {
     this.profilingService = profilingService;
     this.userRepository = userRepository;
@@ -58,6 +64,7 @@ public class UserServiceImpl implements UserService {
     this.eventDispatcher = eventDispatcher;
     this.subscriptionRepository = subscriptionRepository;
     this.appConfig = appConfig;
+    this.clock = clock;
   }
 
   @Override
@@ -67,7 +74,7 @@ public class UserServiceImpl implements UserService {
         .name(profile.getName()))
       .orElseThrow(() -> new NotFoundException(String.format("User %s was not found", userId.toString())));
     userRepository.getById(userId.toString()).ifPresent(user -> {
-      partialDto.lastSeen(user.getLastSeen().toEpochSecond());
+      partialDto.pictureUpdatedAt(user.getPictureUpdatedAt());
       partialDto.statusMessage(user.getStatusMessage());
     });
     return partialDto;
@@ -111,6 +118,11 @@ public class UserServiceImpl implements UserService {
       .mimeType(mimeType)
       .userId(currentUser.getId());
     fileMetadataRepository.save(metadata);
+    userRepository.save(
+      userRepository.getById(userId.toString())
+        .orElseGet(() ->
+          User.create().id(userId.toString()).hash(Utils.encodeUuidHash(userId.toString(), clock)))
+        .pictureUpdatedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
     storagesService.saveFile(image, metadata, currentUser.getId());
     eventDispatcher.sendToUserQueue(
       subscriptionRepository.getContacts(userId.toString()),
@@ -126,6 +138,8 @@ public class UserServiceImpl implements UserService {
     FileMetadata metadata = fileMetadataRepository.getById(userId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", userId)));
     fileMetadataRepository.delete(metadata);
+    userRepository.getById(userId.toString())
+      .ifPresent(user -> userRepository.save(user.pictureUpdatedAt(null)));
     storagesService.deleteFile(metadata.getId(), metadata.getUserId());
     eventDispatcher.sendToUserQueue(
       subscriptionRepository.getContacts(userId.toString()),

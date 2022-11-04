@@ -29,8 +29,8 @@ public class EbeanUserRepository implements UserRepository {
   }
 
   @Override
-  public User insert(User user) {
-    database.insert(user);
+  public User save(User user) {
+    database.save(user);
     return user;
   }
 }
