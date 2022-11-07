@@ -159,7 +159,7 @@ public class RoomServiceImpl implements RoomService {
       .id(newRoomId.toString())
       .name(roomCreationFields.getName())
       .description(roomCreationFields.getDescription())
-      .hash(Utils.encodeUuidHash(newRoomId.toString()))
+      .hash(Utils.encodeUuidHash(newRoomId.toString(), clock))
       .type(roomCreationFields.getType())
       .parentId(roomCreationFields.getParentId() == null ? null : roomCreationFields.getParentId().toString());
 
@@ -309,7 +309,7 @@ public class RoomServiceImpl implements RoomService {
   @Override
   public HashDto resetRoomHash(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
-    String hash = Utils.encodeUuidHash(roomId.toString());
+    String hash = Utils.encodeUuidHash(roomId.toString(), clock);
     room.hash(hash);
     roomRepository.update(room);
     return HashDtoBuilder.create().hash(hash).build();
@@ -336,7 +336,8 @@ public class RoomServiceImpl implements RoomService {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
     RoomUserSettings settings = roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
       .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
-    settings = roomUserSettingsRepository.save(settings.clearedAt(OffsetDateTime.now()));
+    settings = roomUserSettingsRepository.save(
+      settings.clearedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
     eventDispatcher.sendToUserQueue(currentUser.getId(),
       RoomHistoryClearedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(roomId)
         .clearedAt(settings.getClearedAt()));
@@ -454,6 +455,7 @@ public class RoomServiceImpl implements RoomService {
     FileMetadata metadata = fileMetadataRepository.getById(roomId.toString())
       .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
     fileMetadataRepository.delete(metadata);
+    roomRepository.update(room.pictureUpdatedAt(null));
     storagesService.deleteFile(metadata.getId(), metadata.getUserId());
     messageDispatcher.deleteRoomPicture(room.getId(), currentUser.getId());
     eventDispatcher.sendToUserQueue(

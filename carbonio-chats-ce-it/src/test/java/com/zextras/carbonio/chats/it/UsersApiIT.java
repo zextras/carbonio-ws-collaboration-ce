@@ -2,6 +2,7 @@ package com.zextras.carbonio.chats.it;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -9,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
+import com.zextras.carbonio.chats.core.data.entity.User;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.Utils.MockedAccount;
@@ -25,7 +27,9 @@ import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.UserDto;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -87,7 +91,7 @@ public class UsersApiIT {
       assertEquals("snoopy@peanuts.com", user.getEmail());
       assertEquals("Snoopy", user.getName());
       assertEquals("hello", user.getStatusMessage());
-      assertEquals(clock.instant().getEpochSecond(), user.getLastSeen());
+      assertEquals(clock.instant(), user.getPictureUpdatedAt().toInstant());
     }
 
     @Test
@@ -177,19 +181,25 @@ public class UsersApiIT {
     public void updateUserPicture_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
+      clock.fixTimeAt(Instant.parse("2022-01-01T00:00:00Z"));
 
       MockHttpResponse response = dispatcher.put(url(account.getUUID()), fileMock.getId().getBytes(),
         Map.of("Content-Type", "application/octet-stream",
           "X-Content-Disposition",
           String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
         account.getToken());
+      clock.fixTimeAt(null);
 
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getContentAsString().length());
+      Optional<User> user = integrationTestUtils.getUserById(account.getUUID());
+      assertTrue(user.isPresent());
+      assertEquals(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneOffset.systemDefault()), user.get().getPictureUpdatedAt());
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
       // TODO: 01/03/22 verify event dispatcher iterations
       storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
 
-      assertEquals(204, response.getStatus());
-      assertEquals(0, response.getOutput().length);
+
     }
 
     @Test
@@ -282,11 +292,16 @@ public class UsersApiIT {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.USER_AVATAR, account.getUUID(), null);
+      integrationTestUtils.generateAndSaveUser(account.getUUID(), "hello",
+        OffsetDateTime.ofInstant(clock.instant(), clock.getZone()), "123");
 
       MockHttpResponse response = dispatcher.delete(url(account.getUUID()), account.getToken());
       assertEquals(204, response.getStatus());
       Optional<FileMetadata> metadata = integrationTestUtils.getFileMetadataById(fileMock.getUUID());
       assertTrue(metadata.isEmpty());
+      Optional<User> user = integrationTestUtils.getUserById(account.getUUID());
+      assertTrue(user.isPresent());
+      assertNull(user.get().getPictureUpdatedAt());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
       storageMockServer.verify("DELETE", "/delete", fileMock.getId(), 1);

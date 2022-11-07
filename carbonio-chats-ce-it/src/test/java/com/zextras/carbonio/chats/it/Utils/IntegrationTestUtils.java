@@ -14,6 +14,7 @@ import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.it.Utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,16 +30,19 @@ public class IntegrationTestUtils {
   private final FileMetadataRepository     fileMetadataRepository;
   private final UserRepository             userRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
+  private final Clock                      clock;
 
   @Inject
   public IntegrationTestUtils(
     RoomRepository roomRepository, FileMetadataRepository fileMetadataRepository, UserRepository userRepository,
-    RoomUserSettingsRepository roomUserSettingsRepository
+    RoomUserSettingsRepository roomUserSettingsRepository,
+    Clock clock
   ) {
     this.roomRepository = roomRepository;
     this.fileMetadataRepository = fileMetadataRepository;
     this.userRepository = userRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
+    this.clock = clock;
   }
 
   public Room generateAndSaveRoom(UUID id, RoomTypeDto type, String name, List<UUID> usersIds) {
@@ -64,7 +68,7 @@ public class IntegrationTestUtils {
       .name(name)
       .description(description)
       .type(type)
-      .hash(Utils.encodeUuidHash(id.toString()))
+      .hash(Utils.encodeUuidHash(id.toString(), clock))
       .subscriptions(usersIds.stream().map(userId ->
         Subscription.create()
           .id(new SubscriptionId(room.getId(), userId.toString()))
@@ -172,7 +176,9 @@ public class IntegrationTestUtils {
     return this.roomRepository.getById(roomId.toString());
   }
 
-  public FileMetadata generateAndSaveFileMetadata(UUID fileId, FileMetadataType fileType, UUID userId, @Nullable UUID roomId) {
+  public FileMetadata generateAndSaveFileMetadata(
+    UUID fileId, FileMetadataType fileType, UUID userId, @Nullable UUID roomId
+  ) {
     return fileMetadataRepository.save(
       FileMetadata.create()
         .id(fileId.toString())
@@ -206,12 +212,16 @@ public class IntegrationTestUtils {
     return fileMetadataRepository.getById(fileId.toString());
   }
 
-  public User generateAndSaveUser(UUID id, String statusMessage, OffsetDateTime lastSeenTimestamp, String hash) {
-    return userRepository.insert(
+  public Optional<User> getUserById(UUID id) {
+    return userRepository.getById(id.toString());
+  }
+
+  public User generateAndSaveUser(UUID id, String statusMessage, OffsetDateTime pictureUpdatedAt, String hash) {
+    return userRepository.save(
       User.create()
         .id(id.toString())
         .statusMessage(statusMessage)
-        .lastSeen(lastSeenTimestamp)
+        .pictureUpdatedAt(pictureUpdatedAt)
         .hash(hash)
     );
   }

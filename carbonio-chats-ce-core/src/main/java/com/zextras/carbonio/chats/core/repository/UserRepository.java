@@ -19,6 +19,6 @@ public interface UserRepository {
    * @param user the {@link User} to insert
    * @return the inserted {@link User}
    */
-  User insert(User user);
+  User save(User user);
 
 }

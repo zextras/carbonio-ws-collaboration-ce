@@ -17,6 +17,7 @@ import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.User;
@@ -36,15 +37,19 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.service.UserService;
+import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
 import java.io.File;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import javax.ws.rs.core.Response.Status;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -60,6 +65,7 @@ class UserServiceImplTest {
   private final SubscriptionRepository subscriptionRepository;
   private final EventDispatcher        eventDispatcher;
   private final AppConfig              appConfig;
+  private final Clock                  clock;
 
   public UserServiceImplTest() {
     this.profilingService = mock(ProfilingService.class);
@@ -69,6 +75,7 @@ class UserServiceImplTest {
     this.subscriptionRepository = mock(SubscriptionRepository.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.appConfig = mock(AppConfig.class);
+    this.clock = mock(Clock.class);
     this.userService = new UserServiceImpl(
       profilingService,
       userRepository,
@@ -76,8 +83,14 @@ class UserServiceImplTest {
       storagesService,
       subscriptionRepository,
       eventDispatcher,
-      appConfig
-    );
+      appConfig,
+      clock);
+  }
+
+  @BeforeEach
+  public void init() {
+    when(clock.instant()).thenReturn(Instant.parse("2022-01-01T00:00:00Z"));
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
   }
 
   @Nested
@@ -92,7 +105,7 @@ class UserServiceImplTest {
       when(userRepository.getById(requestedUserId.toString())).thenReturn(
         Optional.of(
           User.create().id(requestedUserId.toString())
-            .lastSeen(OffsetDateTime.of(2022, 12, 1, 12, 12, 12, 12, ZoneOffset.UTC))
+            .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
             .hash("12345").statusMessage("my status!"))
       );
       when(profilingService.getById(currentPrincipal, requestedUserId))
@@ -103,8 +116,7 @@ class UserServiceImplTest {
 
       assertNotNull(userById);
       assertEquals(requestedUserId, userById.getId());
-      assertEquals(OffsetDateTime.of(2022, 12, 1, 12, 12, 12, 12, ZoneOffset.UTC).toEpochSecond(),
-        userById.getLastSeen());
+      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), userById.getPictureUpdatedAt());
       assertEquals("my status!", userById.getStatusMessage());
       assertEquals("test user", userById.getName());
       assertEquals("test@example.com", userById.getEmail());
@@ -125,7 +137,7 @@ class UserServiceImplTest {
 
       assertNotNull(userById);
       assertEquals(requestedUserId, userById.getId());
-      assertNull(userById.getLastSeen());
+      assertNull(userById.getPictureUpdatedAt());
       assertNull(userById.getStatusMessage());
       assertEquals("test user", userById.getName());
       assertEquals("test@example.com", userById.getEmail());
@@ -226,18 +238,31 @@ class UserServiceImplTest {
       when(file.length()).thenReturn(123L);
       List<String> contactsIds = List.of("a", "b", "c");
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contactsIds);
+      when(userRepository.getById(userId.toString())).thenReturn(Optional.empty());
 
       userService.setUserPicture(userId, file, "image/jpeg", "picture", UserPrincipal.create(userId));
 
       FileMetadata expectedMetadata = FileMetadataBuilder.create().id(userId.toString())
         .mimeType("image/jpeg").type(FileMetadataType.USER_AVATAR).name("picture").originalSize(123L)
         .userId(userId.toString()).build();
+      verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB);
       verify(fileMetadataRepository, times(1)).getById(userId.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
+      verify(userRepository, times(1)).getById(userId.toString());
+      verify(userRepository, times(1)).save(
+        User.create()
+          .id(userId.toString())
+          .hash(Utils.encodeUuidHash(userId.toString(), clock))
+          .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
+      verify(clock, times(3)).instant();
+      verify(clock, times(3)).getZone();
+      verify(subscriptionRepository, times(1)).getContacts(userId.toString());
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(contactsIds,
         UserPictureChangedEvent.create(userId, null).userId(userId));
-      verifyNoMoreInteractions(fileMetadataRepository, storagesService, eventDispatcher);
+      verifyNoMoreInteractions(fileMetadataRepository, userRepository, storagesService, subscriptionRepository,
+        eventDispatcher, clock, appConfig);
+      verifyNoInteractions(profilingService);
     }
 
     @Test
@@ -253,18 +278,30 @@ class UserServiceImplTest {
       when(file.length()).thenReturn(123L);
       List<String> contactsIds = List.of("a", "b", "c");
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contactsIds);
+      User user = User.create().id(userId.toString()).hash("123")
+        .pictureUpdatedAt(OffsetDateTime.parse("2000-12-31T00:00:00Z"));
+      when(userRepository.getById(userId.toString())).thenReturn(Optional.of(user));
 
       userService.setUserPicture(userId, file, "image/jpeg", "picture", UserPrincipal.create(userId));
 
       FileMetadata expectedMetadata = FileMetadataBuilder.create().id(userId.toString())
         .mimeType("image/jpeg").type(FileMetadataType.USER_AVATAR).name("picture").originalSize(123L)
         .userId(userId.toString()).build();
+      verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB);
       verify(fileMetadataRepository, times(1)).getById(userId.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
+      verify(clock, times(1)).instant();
+      verify(clock, times(1)).getZone();
+      verify(userRepository, times(1)).getById(userId.toString());
+      verify(userRepository, times(1)).save(
+        user.pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
+      verify(subscriptionRepository, times(1)).getContacts(userId.toString());
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(contactsIds,
         UserPictureChangedEvent.create(userId, null).userId(userId));
-      verifyNoMoreInteractions(fileMetadataRepository, storagesService, eventDispatcher);
+      verifyNoMoreInteractions(fileMetadataRepository, userRepository, storagesService, subscriptionRepository,
+        eventDispatcher, clock, appConfig);
+      verifyNoInteractions(profilingService);
     }
 
     @Test
@@ -322,16 +359,23 @@ class UserServiceImplTest {
       when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.of(metadata));
       List<String> contacts = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contacts);
-
+      User user = User.create().id(userId.toString()).hash("1234")
+        .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+      when(userRepository.getById(userId.toString())).thenReturn(Optional.of(user));
       userService.deleteUserPicture(userId, UserPrincipal.create(userId));
 
       verify(fileMetadataRepository, times(1)).getById(userId.toString());
       verify(fileMetadataRepository, times(1)).delete(metadata);
+      verify(userRepository, times(1)).getById(userId.toString());
+      verify(userRepository, times(1)).save(user.pictureUpdatedAt(null));
       verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
       verify(eventDispatcher, times(1))
         .sendToUserQueue(eq(contacts), any(UserPictureDeletedEvent.class));
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
-      verifyNoMoreInteractions(fileMetadataRepository, storagesService, eventDispatcher, subscriptionRepository);
+
+      verifyNoMoreInteractions(fileMetadataRepository, userRepository, storagesService, eventDispatcher,
+        subscriptionRepository, eventDispatcher);
+      verifyNoInteractions(profilingService, appConfig, clock);
     }
 
     @Test

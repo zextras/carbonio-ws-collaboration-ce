@@ -24,9 +24,9 @@ public class User {
   @Column(name = "ID", length = 64, nullable = false)
   private String id;
 
-  @Column(name = "LAST_SEEN")
+  @Column(name = "PICTURE_UPDATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
-  private OffsetDateTime lastSeen;
+  private OffsetDateTime pictureUpdatedAt;
 
   @Column(name = "STATUS_MESSAGE", length = 256, nullable = false)
   private String statusMessage = "";
@@ -57,15 +57,6 @@ public class User {
     return this;
   }
 
-  public OffsetDateTime getLastSeen() {
-    return lastSeen;
-  }
-
-  public User lastSeen(OffsetDateTime lastSeen) {
-    this.lastSeen = lastSeen;
-    return this;
-  }
-
   public String getStatusMessage() {
     return statusMessage;
   }
@@ -81,6 +72,15 @@ public class User {
 
   public User hash(String hash) {
     this.hash = hash;
+    return this;
+  }
+
+  public OffsetDateTime getPictureUpdatedAt() {
+    return pictureUpdatedAt;
+  }
+
+  public User pictureUpdatedAt(OffsetDateTime pictureUpdatedAt) {
+    this.pictureUpdatedAt = pictureUpdatedAt;
     return this;
   }
 

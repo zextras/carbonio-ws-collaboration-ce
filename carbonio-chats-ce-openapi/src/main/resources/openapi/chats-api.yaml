@@ -979,11 +979,13 @@ components:
           type: string
           readOnly: true
           description: user's name
-        lastSeen:
-          type: integer
-          format: int64
+        pictureUpdatedAt:
+          type: string
+          format: date-time
           readOnly: true
-          description: user's last seen timestamp
+          description: |
+            user profile picture update timestamp,
+            returned only if the room picture was set at least once
         statusMessage:
           type: string
           description: the user's status message

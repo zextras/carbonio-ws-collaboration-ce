@@ -147,6 +147,9 @@ class RoomServiceImplTest {
 
   @BeforeEach
   public void init() {
+    when(clock.instant()).thenReturn(Instant.parse("2022-01-01T00:00:00Z"));
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
+
     user1Id = UUID.fromString("332a9527-3388-4207-be77-6d7e2978a723");
     user2Id = UUID.fromString("82735f6d-4c6c-471e-99d9-4eef91b1ec45");
     user3Id = UUID.fromString("ea7b9b61-bef5-4cf4-80cb-19612c42593a");
@@ -1186,7 +1189,8 @@ class RoomServiceImplTest {
 
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        RoomUpdatedEvent.create(user1Id, null).roomId(roomGroup1Id).name("room1-changed").description("Room one changed"));
+        RoomUpdatedEvent.create(user1Id, null).roomId(roomGroup1Id).name("room1-changed")
+          .description("Room one changed"));
       verify(messageDispatcher, times(1)).updateRoomName(roomGroup1Id.toString(), user1Id.toString(), "room1-changed");
       verify(messageDispatcher, times(1)).updateRoomDescription(roomGroup1Id.toString(), user1Id.toString(),
         "Room one changed");
@@ -1400,8 +1404,6 @@ class RoomServiceImplTest {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       when(roomUserSettingsRepository.getByRoomIdAndUserId(roomGroup1Id.toString(), user1Id.toString())).thenReturn(
         Optional.empty());
-      when(clock.instant()).thenReturn(Instant.parse("2022-01-01T00:00:00Z"));
-      when(clock.getZone()).thenReturn(ZoneId.systemDefault());
       roomService.muteRoom(roomGroup1Id, UserPrincipal.create(user1Id));
 
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
@@ -1422,8 +1424,6 @@ class RoomServiceImplTest {
       RoomUserSettings roomUserSettings = RoomUserSettings.create(roomGroup1, user1Id.toString());
       when(roomUserSettingsRepository.getByRoomIdAndUserId(roomGroup1Id.toString(), user1Id.toString())).thenReturn(
         Optional.of(roomUserSettings));
-      when(clock.instant()).thenReturn(Instant.parse("2022-01-01T00:00:00Z"));
-      when(clock.getZone()).thenReturn(ZoneId.systemDefault());
       roomService.muteRoom(roomGroup1Id, UserPrincipal.create(user1Id));
 
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
@@ -1609,12 +1609,9 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("Correctly sets the clear date to now when user settings doesn't exist")
     void clearRoom_testOkUserSettingNotExists() {
-      Instant desiredInstant = Instant.parse("2022-01-01T00:00:00Z");
-      OffsetDateTime desiredDate = OffsetDateTime.ofInstant(desiredInstant, ZoneId.systemDefault());
+      OffsetDateTime desiredDate = OffsetDateTime.ofInstant(clock.instant(), clock.getZone());
       RoomUserSettings userSettings = RoomUserSettings.create(roomGroup1, user1Id.toString()).clearedAt(desiredDate);
 
-      when(clock.instant()).thenReturn(desiredInstant);
-      when(clock.getZone()).thenReturn(ZoneId.systemDefault());
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       when(roomUserSettingsRepository.getByRoomIdAndUserId(roomGroup1Id.toString(), user1Id.toString())).thenReturn(
         Optional.empty());
@@ -1636,12 +1633,9 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("Correctly sets the clear date to now when user settings exists")
     void clearRoom_testOkUserSettingExists() {
-      Instant desiredInstant = Instant.parse("2022-01-01T00:00:00Z");
-      OffsetDateTime desiredDate = OffsetDateTime.ofInstant(desiredInstant, ZoneId.systemDefault());
+      OffsetDateTime desiredDate = OffsetDateTime.ofInstant(clock.instant(), clock.getZone());
       RoomUserSettings userSettings = RoomUserSettings.create(roomGroup1, user1Id.toString()).clearedAt(desiredDate);
 
-      when(clock.instant()).thenReturn(desiredInstant);
-      when(clock.getZone()).thenReturn(ZoneId.systemDefault());
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       when(roomUserSettingsRepository.getByRoomIdAndUserId(roomGroup1Id.toString(), user1Id.toString())).thenReturn(
         Optional.of(RoomUserSettings.create(roomGroup1, user1Id.toString()).clearedAt(
@@ -1821,8 +1815,6 @@ class RoomServiceImplTest {
     void setRoomPicture_testOkInsert() {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       when(fileMetadataRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.empty());
-      when(clock.instant()).thenReturn(Instant.parse("2022-01-01T00:00:00Z"));
-      when(clock.getZone()).thenReturn(ZoneId.systemDefault());
       File file = mock(File.class);
       when(file.length()).thenReturn(123L);
       when(storagesService.getFileById(roomGroup1Id.toString(), user2Id.toString())).thenReturn(file);
@@ -1854,8 +1846,6 @@ class RoomServiceImplTest {
       when(fileMetadataRepository.getById(roomGroup1Id.toString()))
         .thenReturn(Optional.of(FileMetadata.create().id("123").type(FileMetadataType.ROOM_AVATAR)
           .roomId(roomGroup1Id.toString()).userId("fake-old-user")));
-      when(clock.instant()).thenReturn(Instant.parse("2022-01-01T00:00:00Z"));
-      when(clock.getZone()).thenReturn(ZoneId.systemDefault());
       File file = mock(File.class);
       when(file.length()).thenReturn(123L);
       when(storagesService.getFileById(roomGroup1Id.toString(), user2Id.toString())).thenReturn(file);
@@ -1887,8 +1877,6 @@ class RoomServiceImplTest {
       when(fileMetadataRepository.getById(roomGroup2Id.toString()))
         .thenReturn(Optional.of(FileMetadata.create().id("123").type(FileMetadataType.ROOM_AVATAR)
           .roomId(roomGroup2Id.toString())));
-      when(clock.instant()).thenReturn(Instant.parse("2022-01-01T00:00:00Z"));
-      when(clock.getZone()).thenReturn(ZoneId.systemDefault());
       File file = mock(File.class);
       when(file.length()).thenReturn(123L);
       when(storagesService.getFileById(roomGroup2Id.toString(), user2Id.toString())).thenReturn(file);
@@ -1999,6 +1987,7 @@ class RoomServiceImplTest {
       roomService.deleteRoomPicture(roomGroup1Id, UserPrincipal.create(user1Id));
 
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(roomRepository, times(1)).update(roomGroup1.pictureUpdatedAt(null));
       verify(fileMetadataRepository, times(1)).getById(roomGroup1Id.toString());
       verify(fileMetadataRepository, times(1)).delete(metadata);
       verify(storagesService, times(1)).deleteFile(roomGroup1Id.toString(), user2Id.toString());
@@ -2022,6 +2011,7 @@ class RoomServiceImplTest {
       roomService.deleteRoomPicture(roomGroup2Id, UserPrincipal.create(user1Id).systemUser(true));
 
       verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
+      verify(roomRepository, times(1)).update(roomGroup2.pictureUpdatedAt(null));
       verify(fileMetadataRepository, times(1)).getById(roomGroup2Id.toString());
       verify(fileMetadataRepository, times(1)).delete(metadata);
       verify(storagesService, times(1)).deleteFile(roomGroup2Id.toString(), user2Id.toString());
