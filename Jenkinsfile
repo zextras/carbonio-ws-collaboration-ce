@@ -84,15 +84,15 @@ pipeline {
             ]]
           ])
 
-          sh """
+          sh '''
             git checkout master
             cp ../carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml ./static/chats/openapi/chats-api.yaml
             git config user.name chats-bot
             git config user.email bot@zextras.com
-            if [[ ""$(git diff)"" != """" ]]; then
-              git add . && git commit -m ""[CHATS-CE PIPELINE] Updated OpenAPI document"" && git push
+            if [[ "$(git diff)" != "" ]]; then
+              git add . && git commit -m "[CHATS-CE PIPELINE] Updated OpenAPI document" && git push
             fi
-          """
+          '''
         }
       }
       post {
