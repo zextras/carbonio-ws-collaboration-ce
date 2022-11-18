@@ -23,7 +23,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
-   <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.target>11</maven.compiler.target>
   </properties>
 
   <profiles>
@@ -80,7 +80,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       </exclusions>
     </dependency>
 
-        <!-- Jetty dependencies -->
+    <!-- Jetty dependencies -->
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-server</artifactId>
