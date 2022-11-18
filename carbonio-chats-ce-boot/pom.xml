@@ -23,7 +23,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
-   <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.target>11</maven.compiler.target>
   </properties>
 
   <profiles>
@@ -70,8 +70,8 @@ SPDX-License-Identifier: AGPL-3.0-only
   <dependencies>
     <dependency>
       <groupId>com.zextras.carbonio.chats</groupId>
-      <artifactId>carbonio-chats-ce-core</artifactId>
-      <version>0.1.2</version>
+      <artifactId>carbonio-chats-ce-meeting</artifactId>
+      <version>${project.version}</version>
       <exclusions>
         <exclusion>
           <groupId>javax.ws.rs</groupId>

@@ -1,0 +1,51 @@
+openapi: 3.0.3
+info:
+  title: Zextras Carbonio Chats CE Meeting Api
+  description: Zextras Carbonio Chats CE Meeting HTTP APIs definition.
+  version: 0.1.2
+  contact:
+    email: smokybeans@zextras.com
+servers:
+  - url: http://localhost:10000
+tags:
+  - name: Meeting
+paths:
+  /test/{id}:
+    get:
+      tags:
+        - Meeting
+      summary: Test
+      operationId: getTest
+      parameters:
+        - $ref: '#/components/parameters/testId'
+      responses:
+        200:
+          $ref: '#/components/responses/200TestResponse'
+components:
+  parameters:
+    testId:
+      in: path
+      name: id
+      description: test identifier
+      schema:
+        type: string
+      required: true
+      allowEmptyValue: false
+  responses:
+    200TestResponse:
+      description: Test response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Test'
+  schemas:
+    Test:
+      type: object
+      description: Test object
+      properties:
+        test:
+          type: string
+          description: test
+          readOnly: true
+        id:
+          type: string

@@ -1,0 +1,13 @@
+{
+  "title": "Zextras Carbonio Chats CE",
+  "serverPort": 8080,
+
+  "apiPackage":     "com.zextras.carbonio.chats.meeting.api",
+  "invokerPackage": "com.zextras.carbonio.chats.meeting.api",
+  "modelPackage":   "com.zextras.carbonio.chats.meeting.model",
+  "sourceFolder": "src/main/java",
+
+  "booleanGetterPrefix": "is",
+  "dateLibrary": "java8",
+  "hideGenerationTimestamp": true
+}
