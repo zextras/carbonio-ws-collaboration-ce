@@ -37,8 +37,9 @@ SPDX-License-Identifier: AGPL-3.0-only
     <profile>
       <id>default</id>
       <modules>
-        <module>carbonio-chats-ce-openapi</module>
+        <module>carbonio-chats-ce-core-openapi</module>
         <module>carbonio-chats-ce-core</module>
+        <module>carbonio-chats-ce-meeting-openapi</module>
         <module>carbonio-chats-ce-meeting</module>
         <module>carbonio-chats-ce-it</module>
         <module>carbonio-chats-ce-boot</module>
