@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.boot.config;
 
 import com.zextras.carbonio.chats.core.config.CoreModule;
+import com.zextras.carbonio.chats.meeting.config.MeetingModule;
 import org.jboss.resteasy.plugins.guice.ext.RequestScopeModule;
 
 public class BootModule extends RequestScopeModule {
@@ -17,5 +18,6 @@ public class BootModule extends RequestScopeModule {
   protected void configure() {
     super.configure();
     install(new CoreModule());
+    install(new MeetingModule());
   }
 }

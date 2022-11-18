@@ -106,7 +106,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               <generatorName>jaxrs-resteasy</generatorName>
               <engine>mustache</engine>
               <!-- Openapi files -->
-              <inputSpec>${project.basedir}/src/main/resources/openapi/chats-api.yaml</inputSpec>
+              <inputSpec>${project.basedir}/src/main/resources/openapi/chats-core-api.yaml</inputSpec>
               <configurationFile>${project.basedir}/src/main/resources/openapi/chats-generator-config.json
               </configurationFile>
               <templateDirectory>${project.basedir}/src/main/resources/openapi/chats-templates</templateDirectory>
@@ -114,6 +114,27 @@ SPDX-License-Identifier: AGPL-3.0-only
               </ignoreFileOverride>
               <!-- Generation options -->
               <output>${project.build.directory}/generated-sources/chats</output>
+              <modelNameSuffix>dto</modelNameSuffix>
+            </configuration>
+          </execution>
+
+          <execution>
+            <id>chats-meeting-api</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <generatorName>jaxrs-resteasy</generatorName>
+              <engine>mustache</engine>
+              <!-- Openapi files -->
+              <inputSpec>${project.basedir}/src/main/resources/openapi/chats-meeting-api.yaml</inputSpec>
+              <configurationFile>${project.basedir}/src/main/resources/openapi/chats-meeting-generator-config.json
+              </configurationFile>
+              <templateDirectory>${project.basedir}/src/main/resources/openapi/chats-templates</templateDirectory>
+              <ignoreFileOverride>${project.basedir}/src/main/resources/openapi/chats-generator-ignore
+              </ignoreFileOverride>
+              <!-- Generation options -->
+              <output>${project.build.directory}/generated-sources/chats-meeting</output>
               <modelNameSuffix>dto</modelNameSuffix>
             </configuration>
           </execution>

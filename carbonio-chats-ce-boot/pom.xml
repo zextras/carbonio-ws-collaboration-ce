@@ -70,8 +70,8 @@ SPDX-License-Identifier: AGPL-3.0-only
   <dependencies>
     <dependency>
       <groupId>com.zextras.carbonio.chats</groupId>
-      <artifactId>carbonio-chats-ce-core</artifactId>
-      <version>0.1.2</version>
+      <artifactId>carbonio-chats-ce-meeting</artifactId>
+      <version>${project.version}</version>
       <exclusions>
         <exclusion>
           <groupId>javax.ws.rs</groupId>
@@ -80,7 +80,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       </exclusions>
     </dependency>
 
-    <!-- Jetty dependencies -->
+        <!-- Jetty dependencies -->
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-server</artifactId>

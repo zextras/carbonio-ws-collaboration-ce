@@ -86,7 +86,7 @@ pipeline {
 
           sh '''
             git checkout master
-            cp ../carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml ./static/chats/openapi/chats-api.yaml
+            cp ../carbonio-chats-ce-openapi/src/main/resources/openapi/chats-core-api.yaml ./static/chats/openapi/chats-core-api.yaml
             git config user.name chats-bot
             git config user.email bot@zextras.com
             if [[ "$(git diff)" != "" ]]; then
@@ -223,7 +223,7 @@ void sendFailureEmail(String step) {
 
 boolean hasOpenAPIDocumentChanged() {
   def isChanged = sh(
-    script: "git --no-pager show --name-only --pretty=format: | grep -x carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml",
+    script: "git --no-pager show --name-only --pretty=format: | grep -x carbonio-chats-ce-openapi/src/main/resources/openapi/chats-core-api.yaml",
     returnStatus: true
   )
   return isChanged==0 ? true : false

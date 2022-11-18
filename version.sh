@@ -48,11 +48,11 @@ function check-project-version() {
   maven_version=$1
   check-yaml-version "$maven_version" "$chats_api_file"
   if [[ $? -eq 1 ]]; then
-    echo "The chats-api.yaml version is incorrect"
+    echo "The chats-core-api.yaml version is incorrect"
     exit 1
   fi
   if [[ $? -eq 2 ]]; then
-    echo "The chats-api.yaml version not found"
+    echo "The chats-core-api.yaml version not found"
     exit 1
   fi
   check-yaml-version "$maven_version" "$chats_internal_api_file"
@@ -77,7 +77,7 @@ function check-yaml-version() {
       if [[ "$str" == "$1" ]]; then
         exit 0
       else
-        echo "The chats-api.yaml version is incorrect"
+        echo "The chats-core-api.yaml version is incorrect"
         exit 1
       fi
     fi
@@ -103,6 +103,6 @@ function main() {
   echo "    CHECK: check that the version is adequate to the one passed by parameter"
   exit 1
 }
-chats_api_file="carbonio-chats-ce-openapi/src/main/resources/openapi/chats-api.yaml"
+chats_api_file="carbonio-chats-ce-openapi/src/main/resources/openapi/chats-core-api.yaml"
 chats_internal_api_file="carbonio-chats-ce-openapi/src/main/resources/openapi/chats-internal-api.yaml"
 main "$1" "$2"
