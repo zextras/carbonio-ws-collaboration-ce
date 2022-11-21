@@ -1,11 +1,9 @@
 package com.zextras.carbonio.chats.meeting.config;
 
 import com.google.inject.AbstractModule;
-import com.zextras.carbonio.chats.meeting.api.TestApi;
-import com.zextras.carbonio.chats.meeting.api.TestApiService;
-import com.zextras.carbonio.chats.meeting.service.TestService;
-import com.zextras.carbonio.chats.meeting.service.impl.TestServiceImpl;
-import com.zextras.carbonio.chats.meeting.web.api.TestApiServiceImpl;
+import com.zextras.carbonio.chats.meeting.api.MeetingsApi;
+import com.zextras.carbonio.chats.meeting.api.MeetingsApiService;
+import com.zextras.carbonio.chats.meeting.web.api.MeetingsApiServiceImpl;
 
 public class MeetingModule extends AbstractModule {
 
@@ -13,9 +11,8 @@ public class MeetingModule extends AbstractModule {
   protected void configure() {
     super.configure();
 
-    bind(TestApi.class);
-    bind(TestApiService.class).to(TestApiServiceImpl.class);
-    bind(TestService.class).to(TestServiceImpl.class);
+    bind(MeetingsApi.class);
+    bind(MeetingsApiService.class).to(MeetingsApiServiceImpl.class);
 
   }
 }
