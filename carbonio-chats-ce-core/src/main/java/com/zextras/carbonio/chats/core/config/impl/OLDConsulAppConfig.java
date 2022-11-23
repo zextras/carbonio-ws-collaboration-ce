@@ -17,11 +17,11 @@ import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
 
-public class ConsulAppConfig extends AppConfig {
+public class OLDConsulAppConfig extends AppConfig {
 
   private static final AppConfigType CONFIG_TYPE                        = AppConfigType.CONSUL;
   private static final int           CONSUL_CLIENT_READ_TIMEOUT_SECONDS = 15;
-  private static final int           CONSUL_CONFIG_WATCH_SECONDS        = 30;
+  private static final int           CONSUL_CONFIG_WATCH_SECONDS        = 10;
 
   private final Consul              consulClient;
   private final List<KVCache>       kvCacheList;
@@ -30,7 +30,7 @@ public class ConsulAppConfig extends AppConfig {
 
   private boolean loaded = false;
 
-  private ConsulAppConfig(Consul consulClient, String consulToken) {
+  private OLDConsulAppConfig(Consul consulClient, String consulToken) {
     super();
     this.consulClient = consulClient;
     this.kvCacheList = new ArrayList<>();
@@ -44,7 +44,7 @@ public class ConsulAppConfig extends AppConfig {
       ChatsLogger.warn("Consul token not found");
       return null;
     }
-    return new ConsulAppConfig(consulClient, consulToken);
+    return new OLDConsulAppConfig(consulClient, consulToken);
   }
 
   public static AppConfig create(String consulHost, Integer consulPort, @Nullable String consulToken) {
