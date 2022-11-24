@@ -24,7 +24,6 @@ public class Participant {
   @MapsId("userId")
   private String userId;
 
-
   @ManyToOne(fetch = FetchType.LAZY)
   @MapsId("meetingId")
   @JoinColumn(name = "MEETING_ID")
@@ -48,6 +47,22 @@ public class Participant {
   @Temporal(TemporalType.TIMESTAMP)
   @WhenModified
   private OffsetDateTime updatedAt;
+
+  public Participant() {
+    this.id = ParticipantId.create();
+  }
+
+  public Participant(String userId, String meetingId, String sessionId) {
+    this.id = ParticipantId.create(userId, meetingId, sessionId);
+  }
+
+  public static Participant create() {
+    return new Participant();
+  }
+
+  public static Participant create(String userId, String meetingId, String sessionId) {
+    return new Participant(userId, meetingId, sessionId);
+  }
 
   public String getUserId() {
     return userId;

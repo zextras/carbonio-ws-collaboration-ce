@@ -71,7 +71,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-    post:
+    put:
       tags:
         - Meetings
         - Rooms

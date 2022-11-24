@@ -12,7 +12,7 @@
     <version>0.1.2</version>
   </parent>
 
-  <artifactId>carbonio-chats-ce-it</artifactId>
+  <artifactId>carbonio-chats-ce-meeting-it</artifactId>
 
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
@@ -22,8 +22,17 @@
   <dependencies>
     <dependency>
       <groupId>com.zextras.carbonio.chats</groupId>
-      <artifactId>carbonio-chats-ce-core</artifactId>
+      <artifactId>carbonio-chats-ce-meeting</artifactId>
       <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.zextras.carbonio.chats</groupId>
+      <artifactId>carbonio-chats-ce-it</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <classifier>tests</classifier>
+      <scope>test</scope>
     </dependency>
 
     <!-- Integration Tests dependency -->
@@ -74,22 +83,11 @@
       <artifactId>rabbitmq-mock</artifactId>
       <scope>test</scope>
     </dependency>
+
   </dependencies>
 
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
@@ -104,7 +102,7 @@
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
               <resources>
                 <resource>
-                  <directory>${project.parent.basedir}/carbonio-chats-ce-core/target/classes</directory>
+                  <directory>${project.parent.basedir}/carbonio-chats-ce-meeting/target/classes</directory>
                   <includes>
                     <include>**/*.class</include>
                   </includes>
@@ -142,7 +140,7 @@
               <goal>prepare-agent</goal>
             </goals>
             <configuration>
-              <destFile>${project.parent.build.directory}/coverage-reports/jacoco-integration-tests.exec</destFile>
+              <destFile>${project.parent.build.directory}/coverage-reports/jacoco-meeting-integration-tests.exec</destFile>
               <propertyName>failsafeArgLine</propertyName>
             </configuration>
           </execution>
@@ -154,47 +152,13 @@
               <goal>report</goal>
             </goals>
             <configuration>
-              <dataFile>${project.parent.build.directory}/coverage-reports/jacoco-integration-tests.exec</dataFile>
-              <outputDirectory>${project.parent.reporting.outputDirectory}/jacoco-integration-tests</outputDirectory>
+              <dataFile>${project.parent.build.directory}/coverage-reports/jacoco-meeting-integration-tests.exec</dataFile>
+              <outputDirectory>${project.parent.reporting.outputDirectory}/jacoco-meeting-integration-tests</outputDirectory>
               <title>Integration tests coverage</title>
             </configuration>
-          </execution>
-
-          <execution>
-            <id>pre-merge-tests-results-execution</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>merge</goal>
-            </goals>
-            <configuration>
-              <fileSets>
-                <fileSet>
-                  <directory>${project.parent.build.directory}/coverage-reports</directory>
-                  <includes>
-                    <include>*.exec</include>
-                  </includes>
-                </fileSet>
-              </fileSets>
-              <destFile>${project.parent.build.directory}/coverage-reports/jacoco-all-tests.exec</destFile>
-            </configuration>
-          </execution>
-
-          <execution>
-            <id>post-merge-tests-results-execution</id>
-            <phase>verify</phase>
-            <goals>
-              <goal>report</goal>
-            </goals>
-            <configuration>
-              <dataFile>${project.parent.build.directory}/coverage-reports/jacoco-all-tests.exec</dataFile>
-              <outputDirectory>${project.parent.reporting.outputDirectory}/jacoco-all-tests</outputDirectory>
-              <title>All tests coverage</title>
-            </configuration>
-
           </execution>
         </executions>
       </plugin>
     </plugins>
   </build>
-
 </project>
