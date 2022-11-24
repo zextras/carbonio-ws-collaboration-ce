@@ -120,6 +120,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
     <maven-failsafe-plugin.version>3.0.0-M5</maven-failsafe-plugin.version>
     <jacoco-maven-plugin.version>0.8.7</jacoco-maven-plugin.version>
+
+    <ebean-maven-plugin.version>13.6.5</ebean-maven-plugin.version>
   </properties>
 
   <dependencyManagement>
@@ -498,6 +500,11 @@ SPDX-License-Identifier: AGPL-3.0-only
           <version>${maven-resources-plugin.version}</version>
         </plugin>
 
+        <plugin>
+          <groupId>io.ebean</groupId>
+          <artifactId>ebean-maven-plugin</artifactId>
+          <version>${ebean-maven-plugin.version}</version>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>

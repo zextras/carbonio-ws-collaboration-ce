@@ -82,7 +82,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, it creates a new meeting associated with the indicated room and returns its data")
-    public void createMeetingByRoomTests_testOk() throws Exception {
+    public void createMeetingByRoomTest_testOk() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
@@ -117,7 +117,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if there is a meeting associated with the room then it returns a status code 409")
-    public void getRoom_testErrorMeetingExists() throws Exception {
+    public void createMeetingByRoomTest_testErrorMeetingExists() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
@@ -136,7 +136,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if the room doesn't exists then it returns a status code 404")
-    public void getRoom_testErrorRoomNotExists() throws Exception {
+    public void createMeetingByRoomTest_testErrorRoomNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(url(roomId), null, user1Token);
 
       assertEquals(404, response.getStatus());
@@ -146,7 +146,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if authenticated user isn't a room member then return a status code 403")
-    public void getRoom_testErrorUserIsNotARoomMember() throws Exception {
+    public void createMeetingByRoomTest_testErrorUserIsNotARoomMember() throws Exception {
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
         List.of(
@@ -164,7 +164,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if there isn't an authenticated user then it returns a status code 401")
-    public void createMeetingByRoomTests_testErrorUnauthenticatedUser() throws Exception {
+    public void createMeetingByRoomTest_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(url(roomId), null, null);
 
       assertEquals(401, response.getStatus());
