@@ -80,14 +80,16 @@ paths:
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
       responses:
-        200:
-          $ref: '#/components/responses/200CreateMeetingResponse'
+        201:
+          $ref: '#/components/responses/201CreateMeetingResponse'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
         403:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+        409:
+          $ref: '#/components/responses/409Conflict'
   /meetings/{meetingId}/join:
     put:
       tags:
@@ -169,7 +171,7 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Meeting'
-    200CreateMeetingResponse:
+    201CreateMeetingResponse:
       description: Meeting was created successfully
       content:
         application/json:
@@ -190,6 +192,8 @@ components:
       description: The requester could not access the resource
     404NotFoundResponse:
       description: The requested resource was not found
+    409Conflict:
+      description: The request conflict with the current state
 
   schemas:
     Room:

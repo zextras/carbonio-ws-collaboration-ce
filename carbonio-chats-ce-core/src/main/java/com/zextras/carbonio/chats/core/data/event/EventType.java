@@ -6,7 +6,7 @@ package com.zextras.carbonio.chats.core.data.event;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
-public enum EventType {
+public enum EventType implements EventTypeDescription {
 
   ROOM_CREATED("roomCreated"),
   ROOM_UPDATED("roomUpdated"),
@@ -31,6 +31,7 @@ public enum EventType {
   }
 
   @JsonValue
+  @Override
   public String getDescription() {
     return description;
   }

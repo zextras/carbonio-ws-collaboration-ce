@@ -12,15 +12,15 @@ import javax.annotation.Nullable;
 
 public class DomainEvent {
 
-  private UUID           id;
-  private EventType      type;
-  private UUID           from;
-  private String         sessionId;
-  private OffsetDateTime sentDate;
+  private UUID                 id;
+  private EventTypeDescription eventTypeDescription;
+  private UUID                 from;
+  private String               sessionId;
+  private OffsetDateTime       sentDate;
 
-  public DomainEvent(EventType type, UUID from, @Nullable String sessionId) {
+  public DomainEvent(EventTypeDescription eventTypeDescription, UUID from, @Nullable String sessionId) {
     this.id = UUID.randomUUID();
-    this.type = type;
+    this.eventTypeDescription = eventTypeDescription;
     this.sessionId = sessionId;
     this.sentDate = OffsetDateTime.now();
     this.from = from;
@@ -30,8 +30,8 @@ public class DomainEvent {
     return id;
   }
 
-  public EventType getType() {
-    return type;
+  public EventTypeDescription getType() {
+    return eventTypeDescription;
   }
 
   public OffsetDateTime getSentDate() {
