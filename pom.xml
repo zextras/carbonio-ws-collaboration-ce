@@ -39,9 +39,10 @@ SPDX-License-Identifier: AGPL-3.0-only
       <modules>
         <module>carbonio-chats-ce-core-openapi</module>
         <module>carbonio-chats-ce-core</module>
+        <module>carbonio-chats-ce-it</module>
         <module>carbonio-chats-ce-meeting-openapi</module>
         <module>carbonio-chats-ce-meeting</module>
-        <module>carbonio-chats-ce-it</module>
+        <module>carbonio-chats-ce-meeting-it</module>
         <module>carbonio-chats-ce-boot</module>
       </modules>
       <activation>
@@ -110,12 +111,17 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Integration Tests dependency -->
     <org.testcontainers.version>1.16.2</org.testcontainers.version>
     <org.mock-server.version>5.11.2</org.mock-server.version>
+    <com.github.fridujo-rabbitmq-mock.version>1.1.1</com.github.fridujo-rabbitmq-mock.version>
+
 
     <!-- Plugins -->
+    <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
     <maven-resources-plugin.version>3.2.0</maven-resources-plugin.version>
     <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
     <maven-failsafe-plugin.version>3.0.0-M5</maven-failsafe-plugin.version>
     <jacoco-maven-plugin.version>0.8.7</jacoco-maven-plugin.version>
+
+    <ebean-maven-plugin.version>13.6.5</ebean-maven-plugin.version>
   </properties>
 
   <dependencyManagement>
@@ -446,12 +452,24 @@ SPDX-License-Identifier: AGPL-3.0-only
         <artifactId>mockserver-netty</artifactId>
         <version>${org.mock-server.version}</version>
       </dependency>
+
+      <dependency>
+        <groupId>com.github.fridujo</groupId>
+        <artifactId>rabbitmq-mock</artifactId>
+        <version>${com.github.fridujo-rabbitmq-mock.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
   <build>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>${maven-jar-plugin.version}</version>
+        </plugin>
+
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-resources-plugin</artifactId>
@@ -482,6 +500,11 @@ SPDX-License-Identifier: AGPL-3.0-only
           <version>${maven-resources-plugin.version}</version>
         </plugin>
 
+        <plugin>
+          <groupId>io.ebean</groupId>
+          <artifactId>ebean-maven-plugin</artifactId>
+          <version>${ebean-maven-plugin.version}</version>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>

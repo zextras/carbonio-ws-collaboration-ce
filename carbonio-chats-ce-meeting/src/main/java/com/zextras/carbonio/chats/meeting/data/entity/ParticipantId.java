@@ -29,6 +29,14 @@ public class ParticipantId implements Serializable {
     this.sessionId = sessionId;
   }
 
+  public static ParticipantId create() {
+    return new ParticipantId();
+  }
+
+  public static ParticipantId create(String userId, String meetingId, String sessionId) {
+    return new ParticipantId(userId, meetingId, sessionId);
+  }
+
   public String getUserId() {
     return userId;
   }

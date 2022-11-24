@@ -60,7 +60,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
       channel.queueDeclare(userId, true, false, false, Map.of());
       channel.basicPublish("", userId, null, message.getBytes(StandardCharsets.UTF_8));
       channel.close();
-    } catch (IOException | TimeoutException e) {
+    } catch (Exception e) {
       ChatsLogger.warn(String.format("Unable to send message to %s", userId), e);
     }
   }
