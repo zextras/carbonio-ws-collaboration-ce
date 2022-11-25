@@ -35,7 +35,7 @@ pipeline {
     }
     stage('Compiling') {
       steps {
-        sh './mvnw -Dmaven.repo.local=$(pwd)/m2 -T1C -B -q --settings settings-jenkins.xml compile'
+        sh './mvnw -Dmaven.repo.local=$(pwd)/m2 -T1C -B -q --settings settings-jenkins.xml install'
       }
       post {
         failure {
