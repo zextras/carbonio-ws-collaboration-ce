@@ -58,8 +58,8 @@ paths:
       tags:
         - Meetings
         - Rooms
-      summary: Retrieves the requested meeting
-      operationId: getMeetingByRoom
+      summary: Retrieves the meeting associated with the requested room
+      operationId: getMeetingByRoomId
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
       responses:

@@ -31,6 +31,7 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -63,6 +64,13 @@ public class MembersServiceImpl implements MembersService {
     this.subscriptionMapper = subscriptionMapper;
     this.userService = userService;
     this.messageService = messageDispatcher;
+  }
+
+  @Override
+  public Optional<MemberDto> getByUserIdAndRoomId(UUID userId, UUID roomId) {
+    return Optional.ofNullable(
+      subscriptionMapper.ent2memberDto(
+        subscriptionRepository.getById(roomId.toString(), userId.toString()).orElse(null)));
   }
 
   @Override
@@ -191,7 +199,8 @@ public class MembersServiceImpl implements MembersService {
     }
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomMemberRemovedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(UUID.fromString(room.getId())).userId(userId)
+      RoomMemberRemovedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
+        .roomId(UUID.fromString(room.getId())).userId(userId)
     );
   }
 

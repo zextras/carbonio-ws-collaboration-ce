@@ -7,6 +7,10 @@ import com.zextras.carbonio.chats.meeting.api.RoomsApi;
 import com.zextras.carbonio.chats.meeting.api.RoomsApiService;
 import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.impl.VideoServerServiceMock;
+import com.zextras.carbonio.chats.meeting.mapper.MeetingMapper;
+import com.zextras.carbonio.chats.meeting.mapper.ParticipantMapper;
+import com.zextras.carbonio.chats.meeting.mapper.impl.MeetingMapperImpl;
+import com.zextras.carbonio.chats.meeting.mapper.impl.ParticipantMapperImpl;
 import com.zextras.carbonio.chats.meeting.repository.MeetingRepository;
 import com.zextras.carbonio.chats.meeting.repository.impl.MeetingRepositoryImpl;
 import com.zextras.carbonio.chats.meeting.service.MeetingService;
@@ -27,6 +31,8 @@ public class MeetingModule extends AbstractModule {
     bind(MeetingsApiService.class).to(MeetingsApiServiceImpl.class);
     bind(MeetingService.class).to(MeetingServiceImpl.class);
     bind(MeetingRepository.class).to(MeetingRepositoryImpl.class);
+    bind(MeetingMapper.class).to(MeetingMapperImpl.class);
+    bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
 
     bind(VideoServerService.class).to(VideoServerServiceMock.class);
   }

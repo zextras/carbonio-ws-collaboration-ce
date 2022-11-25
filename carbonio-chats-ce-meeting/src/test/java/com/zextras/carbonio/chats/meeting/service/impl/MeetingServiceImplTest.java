@@ -14,14 +14,15 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
-import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.meeting.annotations.UnitTest;
 import com.zextras.carbonio.chats.meeting.data.entity.Meeting;
 import com.zextras.carbonio.chats.meeting.data.event.MeetingCreatedEvent;
 import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.chats.meeting.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.meeting.model.MeetingDto;
 import com.zextras.carbonio.chats.meeting.repository.MeetingRepository;
 import com.zextras.carbonio.chats.meeting.service.MeetingService;
@@ -43,17 +44,21 @@ public class MeetingServiceImplTest {
   private final MeetingService     meetingService;
   private final MeetingRepository  meetingRepository;
   private final RoomService        roomService;
+  private final MembersService     membersService;
   private final VideoServerService videoServerService;
   private final EventDispatcher    eventDispatcher;
 
-  public MeetingServiceImplTest() {
+  public MeetingServiceImplTest(MeetingMapper meetingMapper) {
     this.meetingRepository = mock(MeetingRepository.class);
     this.roomService = mock(RoomService.class);
+    this.membersService = mock(MembersService.class);
     this.videoServerService = mock(VideoServerService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.meetingService = new MeetingServiceImpl(
       this.meetingRepository,
+      meetingMapper,
       this.roomService,
+      this.membersService,
       this.videoServerService,
       this.eventDispatcher);
   }
@@ -101,9 +106,7 @@ public class MeetingServiceImplTest {
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(meetingId);
         uuid.when(() -> UUID.fromString(meeting.getId())).thenReturn(meetingId);
-        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-        uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
-        uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
+        uuid.when(() -> UUID.fromString(room1Id.toString())).thenReturn(room1Id);
         meetingDto = meetingService.createMeetingByRoom(room1Id, userPrincipal);
       }
 
@@ -119,6 +122,7 @@ public class MeetingServiceImplTest {
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         MeetingCreatedEvent.create(user1Id, null).meetingId(meetingId).roomId(room1Id));
       verifyNoMoreInteractions(roomService, meetingRepository, videoServerService, eventDispatcher);
+      verifyNoInteractions(membersService);
     }
 
     @Test
@@ -138,7 +142,8 @@ public class MeetingServiceImplTest {
       verify(roomService, times(1)).getRoomEntityAndCheckUser(room1Id, userPrincipal, false);
       verify(meetingRepository, times(1)).getMeetingByRoomId(room1Id.toString());
       verifyNoMoreInteractions(roomService, meetingRepository);
-      verifyNoInteractions(videoServerService, eventDispatcher);
+      verifyNoInteractions(membersService, videoServerService, eventDispatcher);
+
     }
 
   }

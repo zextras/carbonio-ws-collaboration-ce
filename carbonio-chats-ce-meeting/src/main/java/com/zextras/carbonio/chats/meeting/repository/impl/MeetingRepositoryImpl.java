@@ -18,6 +18,15 @@ public class MeetingRepositoryImpl implements MeetingRepository {
   }
 
   @Override
+  public Optional<Meeting> getMeetingById(String meetingId) {
+    return db.find(Meeting.class)
+      .fetch("participants")
+      .where()
+      .eq("id", meetingId)
+      .findOneOrEmpty();
+  }
+
+  @Override
   public Optional<Meeting> getMeetingByRoomId(String roomId) {
     return db.find(Meeting.class)
       .fetch("participants")

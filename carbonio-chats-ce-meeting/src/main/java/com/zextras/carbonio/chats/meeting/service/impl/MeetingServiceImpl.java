@@ -3,12 +3,16 @@ package com.zextras.carbonio.chats.meeting.service.impl;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
+import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.meeting.data.entity.Meeting;
 import com.zextras.carbonio.chats.meeting.data.event.MeetingCreatedEvent;
 import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.chats.meeting.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.meeting.model.MeetingDto;
 import com.zextras.carbonio.chats.meeting.repository.MeetingRepository;
 import com.zextras.carbonio.chats.meeting.service.MeetingService;
@@ -22,20 +26,44 @@ import javax.inject.Singleton;
 public class MeetingServiceImpl implements MeetingService {
 
   private final MeetingRepository  meetingRepository;
+  private final MeetingMapper      meetingMapper;
   private final RoomService        roomService;
+  private final MembersService     membersService;
   private final VideoServerService videoServerService;
   private final EventDispatcher    eventDispatcher;
 
   @Inject
   public MeetingServiceImpl(
-    MeetingRepository meetingRepository, RoomService roomService,
-    VideoServerService videoServerService,
+    MeetingRepository meetingRepository, MeetingMapper meetingMapper,
+    RoomService roomService,
+    MembersService membersService, VideoServerService videoServerService,
     EventDispatcher eventDispatcher
   ) {
     this.meetingRepository = meetingRepository;
+    this.meetingMapper = meetingMapper;
     this.roomService = roomService;
+    this.membersService = membersService;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
+  }
+
+  @Override
+  public MeetingDto getMeetingById(UUID meetingId, UserPrincipal currentUser) {
+    Meeting meeting = meetingRepository.getMeetingById(meetingId.toString())
+      .orElseThrow(() -> new NotFoundException(
+        String.format("Meeting with id '%s' not found", meetingId)));
+    membersService.getByUserIdAndRoomId(currentUser.getUUID(), UUID.fromString(meeting.getRoomId()))
+      .orElseThrow(() -> new ForbiddenException(
+        String.format("User '%s' hasn't access to the meeting with id '%s'", currentUser.getId(), meetingId)));
+    return meetingMapper.ent2dto(meeting);
+  }
+
+  @Override
+  public MeetingDto getMeetingByRoomId(UUID roomId, UserPrincipal currentUser) {
+    roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
+    return meetingMapper.ent2dto(meetingRepository.getMeetingByRoomId(roomId.toString())
+      .orElseThrow(() -> new NotFoundException(
+        String.format("Meeting of the room with id '%s' doesn't exist", roomId))));
   }
 
   @Override
@@ -54,9 +82,6 @@ public class MeetingServiceImpl implements MeetingService {
       MeetingCreatedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
         .meetingId(UUID.fromString(meeting.getId()))
         .roomId(roomId));
-    return MeetingDto.create()
-      .id(UUID.fromString(meeting.getId()))
-      .roomId(roomId)
-      .createdAt(meeting.getCreatedAt());
+    return meetingMapper.ent2dto(meeting);
   }
 }

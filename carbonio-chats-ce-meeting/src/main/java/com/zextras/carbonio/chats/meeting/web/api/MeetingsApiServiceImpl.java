@@ -1,9 +1,14 @@
 package com.zextras.carbonio.chats.meeting.web.api;
 
+import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
+import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.meeting.api.MeetingsApiService;
 import com.zextras.carbonio.chats.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.meeting.model.MeetingDto;
+import com.zextras.carbonio.chats.meeting.service.MeetingService;
+import java.util.Optional;
 import java.util.UUID;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
@@ -11,6 +16,13 @@ import javax.ws.rs.core.SecurityContext;
 
 @Singleton
 public class MeetingsApiServiceImpl implements MeetingsApiService {
+
+  private final MeetingService meetingService;
+
+  @Inject
+  public MeetingsApiServiceImpl(MeetingService meetingService) {
+    this.meetingService = meetingService;
+  }
 
   /**
    * Gets meetings list for authenticated user.
@@ -33,7 +45,9 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response getMeeting(UUID meetingId, SecurityContext securityContext) {
-    return Response.status(Status.NOT_IMPLEMENTED).build();
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    return Response.ok().entity(meetingService.getMeetingById(meetingId, currentUser)).build();
   }
 
   /**

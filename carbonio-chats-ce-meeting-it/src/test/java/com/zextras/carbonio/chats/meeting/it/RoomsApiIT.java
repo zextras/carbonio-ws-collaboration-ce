@@ -96,8 +96,6 @@ public class RoomsApiIT {
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(meetingId);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-        uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
-        uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
         uuid.when(() -> UUID.fromString(meetingId.toString())).thenReturn(meetingId);
         uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
         response = dispatcher.put(url(roomId), null, user1Token);

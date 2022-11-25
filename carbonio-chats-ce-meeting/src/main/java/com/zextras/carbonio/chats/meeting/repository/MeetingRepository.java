@@ -6,6 +6,14 @@ import java.util.Optional;
 public interface MeetingRepository {
 
   /**
+   * Gets a meeting by its identifier
+   *
+   * @param meetingId meeting identifier
+   * @return requested meeting {@link Meeting}
+   */
+  Optional<Meeting> getMeetingById(String meetingId);
+
+  /**
    * Gets a meeting by the identifier of his room
    *
    * @param roomId room identifier

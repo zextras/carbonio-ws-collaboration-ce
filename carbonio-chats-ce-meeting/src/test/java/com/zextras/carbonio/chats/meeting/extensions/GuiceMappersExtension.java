@@ -9,6 +9,10 @@ import com.zextras.carbonio.chats.core.mapper.AttachmentMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapperImpl;
+import com.zextras.carbonio.chats.meeting.mapper.MeetingMapper;
+import com.zextras.carbonio.chats.meeting.mapper.ParticipantMapper;
+import com.zextras.carbonio.chats.meeting.mapper.impl.MeetingMapperImpl;
+import com.zextras.carbonio.chats.meeting.mapper.impl.ParticipantMapperImpl;
 import java.util.Optional;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -29,9 +33,8 @@ public class GuiceMappersExtension implements ParameterResolver, BeforeAllCallba
         Guice.createInjector(new AbstractModule() {
           @Override
           protected void configure() {
-            bind(RoomMapper.class);
-            bind(SubscriptionMapper.class).to(SubscriptionMapperImpl.class);
-            bind(AttachmentMapper.class).to(AttachmentMapperImpl.class);
+            bind(MeetingMapper.class).to(MeetingMapperImpl.class);
+            bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
           }
         })
       );

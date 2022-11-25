@@ -41,14 +41,17 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   /**
+   * Gets the meeting of requested room
    *
-   * @param roomId
-   * @param securityContext
-   * @return
+   * @param roomId          room identifier
+   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 200 and the requested meeting {@link MeetingDto } in the body
    */
   @Override
-  public Response getMeetingByRoom(UUID roomId, SecurityContext securityContext) {
-    return Response.status(Status.NOT_IMPLEMENTED).build();
+  public Response getMeetingByRoomId(UUID roomId, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    return Response.ok().entity(meetingService.getMeetingByRoomId(roomId, currentUser)).build();
   }
 
 }
