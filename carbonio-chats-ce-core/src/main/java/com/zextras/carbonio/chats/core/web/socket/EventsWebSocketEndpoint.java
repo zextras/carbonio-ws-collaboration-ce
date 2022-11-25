@@ -129,7 +129,7 @@ public class EventsWebSocketEndpoint {
   private static class SessionOutEvent {
 
     private final String sessionId;
-    private final String type = "connected";
+    private final String type = "websocketConnected";
 
     public SessionOutEvent(String sessionId) {
       this.sessionId = sessionId;
