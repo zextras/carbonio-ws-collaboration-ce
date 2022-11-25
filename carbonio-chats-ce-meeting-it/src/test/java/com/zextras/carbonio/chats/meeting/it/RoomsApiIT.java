@@ -172,9 +172,13 @@ public class RoomsApiIT {
   }
 
   private Meeting generateAndSaveMeeting(UUID meetingId, UUID roomId, List<UUID> usersIds) {
+    Meeting meeting = Meeting.create()
+      .id(meetingId.toString())
+      .roomId(roomId.toString());
     List<Participant> participants = usersIds.stream().map(userId ->
-        Participant.create(userId.toString(), meetingId.toString(), UUID.randomUUID().toString()))
+        Participant.create(userId.toString(), meeting, UUID.randomUUID().toString()))
       .collect(Collectors.toList());
+    meeting.participants(participants);
     return meetingRepository.insert(Meeting.create()
       .id(meetingId.toString())
       .roomId(roomId.toString())
