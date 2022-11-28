@@ -126,7 +126,7 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a meeting identifier, if the user isn't a associated room member then it returns a status code 403")
+    @DisplayName("Given a meeting identifier, if the user doesn't have an associated room member then it returns a status code 403")
     public void getMeetingById_testUserIsNotRoomMember() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
@@ -230,7 +230,7 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier, if the user isn't a associated room member then it returns a status code 403")
+    @DisplayName("Given a room identifier, if the user doesn't have an associated room member then it returns a status code 403")
     public void getMeetingByRoomId_testUserIsNotRoomMember() throws Exception {
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
