@@ -22,10 +22,17 @@ public interface MeetingRepository {
   Optional<Meeting> getMeetingByRoomId(String roomId);
 
   /**
-   * Insert a new row into MEETING table
+   * Inserts a new row into MEETING table
    *
    * @param meeting meeting to insert {@link Meeting}
    * @return meeting inserted {@link Meeting}
    */
   Meeting insert(Meeting meeting);
+
+  /**
+   * Deletes a meeting by identifier
+   *
+   * @param meetingId meeting identifier
+   */
+  void deleteById(String meetingId);
 }

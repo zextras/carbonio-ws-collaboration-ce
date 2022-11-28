@@ -41,4 +41,9 @@ public class MeetingRepositoryImpl implements MeetingRepository {
     return meeting;
   }
 
+  @Override
+  public void deleteById(String meetingId) {
+    db.delete(Meeting.class, meetingId);
+  }
+
 }
