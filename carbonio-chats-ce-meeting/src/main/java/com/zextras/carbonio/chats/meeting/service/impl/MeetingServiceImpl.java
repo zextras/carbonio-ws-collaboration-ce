@@ -69,7 +69,7 @@ public class MeetingServiceImpl implements MeetingService {
 
   @Override
   @Transactional
-  public MeetingDto createMeetingByRoom(UUID roomId, UserPrincipal currentUser) {
+  public MeetingDto createMeetingByRoomId(UUID roomId, UserPrincipal currentUser) {
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
     if (meetingRepository.getMeetingByRoomId(roomId.toString()).isPresent()) {
       throw new ConflictException(String.format("Meeting for room '%s' exists", roomId));

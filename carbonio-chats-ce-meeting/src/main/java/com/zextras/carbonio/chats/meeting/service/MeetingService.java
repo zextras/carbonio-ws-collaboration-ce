@@ -41,7 +41,7 @@ public interface MeetingService {
    * @throws ForbiddenException if the current user isn't a member of indicated room
    * @throws ConflictException  if the room meeting already exists
    */
-  MeetingDto createMeetingByRoom(UUID roomId, UserPrincipal currentUser);
+  MeetingDto createMeetingByRoomId(UUID roomId, UserPrincipal currentUser);
 
   /**
    * Deletes a meeting ny identifier

@@ -22,8 +22,8 @@ public class ParticipantMapperImpl implements ParticipantMapper {
     return ParticipantDto.create()
       .userId(UUID.fromString(participant.getUserId()))
       .sessionId(participant.getSessionId())
-      .hasMicrophoneOn(Optional.of(participant.getMicrophoneOn()).orElse(false))
-      .hasCameraOn(Optional.of(participant.getCameraOn()).orElse(false));
+      .hasMicrophoneOn(Optional.ofNullable(participant.getMicrophoneOn()).orElse(false))
+      .hasCameraOn(Optional.ofNullable(participant.getCameraOn()).orElse(false));
   }
 
   @Override
