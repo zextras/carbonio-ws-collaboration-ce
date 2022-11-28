@@ -8,12 +8,12 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 @Singleton
-public class MeetingRepositoryImpl implements MeetingRepository {
+public class EbeanMeetingRepository implements MeetingRepository {
 
   private final Database db;
 
   @Inject
-  public MeetingRepositoryImpl(Database db) {
+  public EbeanMeetingRepository(Database db) {
     this.db = db;
   }
 
