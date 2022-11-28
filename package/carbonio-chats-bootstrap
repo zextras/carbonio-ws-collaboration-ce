@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# This script add not existing behavioral configuration values in consul
+
+CONSUL_TOKEN_PATH="/etc/carbonio/chats-db/service-discover/token"
+
+MAIN_SERVICE_NAME="carbonio-chats"
+
+CONSUL_KEY_VALUES=$(consul kv get -recurse -token-file="$CONSUL_TOKEN_PATH" "$KEY")
+
+BEHAVIORAL_CONFIGURATIONS=(
+  "$MAIN_SERVICE_NAME/configs/can-see-message-reads:true"
+  "$MAIN_SERVICE_NAME/configs/can-see-users-presence:true"
+  "$MAIN_SERVICE_NAME/configs/max-user-image-size-in-kb:512"
+  "$MAIN_SERVICE_NAME/configs/max-room-image-size-in-kb:512"
+  "$MAIN_SERVICE_NAME/configs/edit-message-time-limit-in-minutes:10"
+  "$MAIN_SERVICE_NAME/configs/delete-message-time-limit-in-minutes:10"
+  "$MAIN_SERVICE_NAME/configs/max-group-members:128"
+)
+
+for item in "${BEHAVIORAL_CONFIGURATIONS[@]}"
+do
+    KEY=${item%%:*}
+    DEFAULT_VALUE=${item##*:}
+
+    if [[ ! "${CONSUL_KEY_VALUES[*]}" =~ ${item} ]]; then
+      KEY_NAME=${KEY##*/}
+      consul kv put -token-file="$CONSUL_TOKEN_PATH" "$MAIN_SERVICE_NAME/configs/$KEY_NAME" "$DEFAULT_VALUE"
+    fi
+done

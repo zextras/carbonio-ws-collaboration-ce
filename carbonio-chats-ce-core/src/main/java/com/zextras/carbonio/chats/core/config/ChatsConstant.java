@@ -13,7 +13,6 @@ public class ChatsConstant {
   public static final String MONGOOSEIM_ADMIN_ENDPOINT = "admin";
   public static final String PREVIEW_AREA              = "320x160";
 
-  // TODO: 19/10/22 add configurations on Consul
   public static class CONFIGURATIONS_DEFAULT_VALUES {
 
     public static final boolean CAN_SEE_MESSAGE_READS                = true;
