@@ -52,16 +52,19 @@ public class Participant {
     this.id = ParticipantId.create();
   }
 
-  public Participant(String userId, String meetingId, String sessionId) {
-    this.id = ParticipantId.create(userId, meetingId, sessionId);
+  public Participant(String userId, Meeting meeting, String sessionId) {
+    this.id = ParticipantId.create(userId, meeting.getId(), sessionId);
+    this.userId = userId;
+    this.meeting = meeting;
+    this.sessionId = sessionId;
   }
 
   public static Participant create() {
     return new Participant();
   }
 
-  public static Participant create(String userId, String meetingId, String sessionId) {
-    return new Participant(userId, meetingId, sessionId);
+  public static Participant create(String userId, Meeting meeting, String sessionId) {
+    return new Participant(userId, meeting, sessionId);
   }
 
   public String getUserId() {

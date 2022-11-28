@@ -36,7 +36,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .orElseThrow(UnauthorizedException::new);
     return Response
       .status(Status.CREATED)
-      .entity(meetingService.createMeetingByRoom(roomId, currentUser))
+      .entity(meetingService.createMeetingByRoomId(roomId, currentUser))
       .build();
   }
 
