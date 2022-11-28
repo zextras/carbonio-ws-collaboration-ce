@@ -26,7 +26,7 @@ public class EbeanSubscriptionRepository implements SubscriptionRepository {
   }
 
   public Optional<Subscription> getById(String roomId, String userId) {
-    return Optional.ofNullable(db.find(Subscription.class, new SubscriptionId(userId, roomId)));
+    return Optional.ofNullable(db.find(Subscription.class, new SubscriptionId(roomId, userId)));
   }
 
   @Override
