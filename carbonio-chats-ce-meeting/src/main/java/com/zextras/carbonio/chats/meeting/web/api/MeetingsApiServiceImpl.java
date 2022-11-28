@@ -59,7 +59,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response deleteMeeting(UUID meetingId, SecurityContext securityContext) {
-    return Response.status(Status.NOT_IMPLEMENTED).build();
+    meetingService.deleteMeetingById(meetingId,
+      Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+        .orElseThrow(UnauthorizedException::new));
+    return Response.status(Status.NO_CONTENT).build();
   }
 
   /**

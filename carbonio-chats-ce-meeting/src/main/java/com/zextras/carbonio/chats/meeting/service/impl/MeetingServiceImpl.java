@@ -87,7 +87,7 @@ public class MeetingServiceImpl implements MeetingService {
   }
 
   @Override
-  public void deleteMeeting(UUID meetingId, UserPrincipal currentUser) {
+  public void deleteMeetingById(UUID meetingId, UserPrincipal currentUser) {
     Meeting meeting = meetingRepository.getMeetingById(meetingId.toString())
       .orElseThrow(() -> new NotFoundException(
         String.format("Meeting with id '%s' not found", meetingId)));
