@@ -43,4 +43,14 @@ public interface MeetingService {
    */
   MeetingDto createMeetingByRoomId(UUID roomId, UserPrincipal currentUser);
 
+  /**
+   * Deletes a meeting ny identifier
+   *
+   * @param meetingId   identifier of meeting to delete {@link UUID}
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   * @throws NotFoundException if the meeting doesn't exist
+   * @throws ForbiddenException if the current user isn't a member of associated room
+   */
+  void deleteMeetingById(UUID meetingId, UserPrincipal currentUser);
+
 }
