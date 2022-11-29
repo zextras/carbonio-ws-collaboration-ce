@@ -4,6 +4,7 @@ import com.zextras.carbonio.chats.meeting.data.entity.Meeting;
 import com.zextras.carbonio.chats.meeting.it.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.meeting.repository.MeetingRepository;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -27,6 +28,10 @@ public class MeetingTestUtils {
         participantBuilder.build(meeting))
       .collect(Collectors.toList()));
     return meetingRepository.insert(meeting);
+  }
+
+  public Optional<Meeting> getMeetingById(UUID meetingId) {
+    return meetingRepository.getMeetingById(meetingId.toString());
   }
 
 }

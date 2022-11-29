@@ -11,6 +11,7 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.meeting.data.entity.Meeting;
 import com.zextras.carbonio.chats.meeting.data.event.MeetingCreatedEvent;
+import com.zextras.carbonio.chats.meeting.data.event.MeetingDeletedEvent;
 import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.meeting.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.meeting.model.MeetingDto;
@@ -91,5 +92,19 @@ public class MeetingServiceImpl implements MeetingService {
         .meetingId(UUID.fromString(meeting.getId()))
         .roomId(roomId));
     return meetingMapper.ent2dto(meeting);
+  }
+
+  @Override
+  public void deleteMeetingById(UUID meetingId, UserPrincipal currentUser) {
+    Meeting meeting = meetingRepository.getMeetingById(meetingId.toString())
+      .orElseThrow(() -> new NotFoundException(
+        String.format("Meeting with id '%s' not found", meetingId)));
+    Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
+    meetingRepository.deleteById(meetingId.toString());
+    videoServerService.deleteMeeting(meeting.getId());
+    eventDispatcher.sendToUserQueue(
+      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+      MeetingDeletedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
+        .meetingId(UUID.fromString(meeting.getId())));
   }
 }
