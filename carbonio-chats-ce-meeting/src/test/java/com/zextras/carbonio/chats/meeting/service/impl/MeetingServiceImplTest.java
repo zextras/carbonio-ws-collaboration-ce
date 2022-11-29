@@ -325,7 +325,7 @@ public class MeetingServiceImplTest {
   public class DeleteMeetingByIdTests {
 
     @Test
-    @DisplayName("Deletes the required meeting")
+    @DisplayName("Deletes the requested meeting")
     public void deleteMeetingById_testOk() {
       when(meetingRepository.getMeetingById(meeting1Id.toString())).thenReturn(Optional.of(meeting1));
       when(roomService.getRoomEntityAndCheckUser(room1Id, UserPrincipal.create(user1Id), false)).thenReturn(room1);
@@ -344,7 +344,7 @@ public class MeetingServiceImplTest {
     }
 
     @Test
-    @DisplayName("If the meeting doesn't exist, it throws a 'mot found' exception")
+    @DisplayName("If the meeting doesn't exist, it throws a 'not found' exception")
     public void deleteMeetingById_testMeetingNotExists() {
       when(meetingRepository.getMeetingById(meeting1Id.toString())).thenReturn(Optional.empty());
 
