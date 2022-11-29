@@ -51,9 +51,10 @@ public class MeetingServiceImpl implements MeetingService {
 
   @Override
   public List<MeetingDto> getMeetings(UserPrincipal currentUser) {
-    return meetingMapper.ent2dto(
-      meetingRepository.getMeetingsByRoomsIds(
-        roomService.getRoomsIds(currentUser).stream().map(UUID::toString).collect(Collectors.toList())));
+    List<String> roomsIds = roomService.getRoomsIds(currentUser).stream().map(UUID::toString)
+      .collect(Collectors.toList());
+    List<Meeting> meetings = meetingRepository.getMeetingsByRoomsIds(roomsIds);
+    return meetingMapper.ent2dto(meetings);
   }
 
   @Override

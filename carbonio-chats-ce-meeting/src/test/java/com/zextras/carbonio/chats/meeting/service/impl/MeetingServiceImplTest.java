@@ -216,7 +216,6 @@ public class MeetingServiceImplTest {
         .getMeetingsByRoomsIds(List.of(room1Id.toString(), room2Id.toString(), room3Id.toString()));
       verifyNoMoreInteractions(roomService, meetingRepository);
       verifyNoInteractions(membersService, videoServerService, eventDispatcher);
-
     }
 
     @Test

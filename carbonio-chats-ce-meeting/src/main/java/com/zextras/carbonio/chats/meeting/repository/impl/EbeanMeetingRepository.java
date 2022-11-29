@@ -32,7 +32,7 @@ public class EbeanMeetingRepository implements MeetingRepository {
     return db.find(Meeting.class)
       .fetch("participants")
       .where()
-      .in("id", roomsIds)
+      .in("roomId", roomsIds)
       .findList();
   }
 
