@@ -3,6 +3,7 @@ package com.zextras.carbonio.chats.meeting.repository.impl;
 import com.zextras.carbonio.chats.meeting.data.entity.Meeting;
 import com.zextras.carbonio.chats.meeting.repository.MeetingRepository;
 import io.ebean.Database;
+import java.util.List;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -24,6 +25,15 @@ public class MeetingRepositoryImpl implements MeetingRepository {
       .where()
       .eq("id", meetingId)
       .findOneOrEmpty();
+  }
+
+  @Override
+  public List<Meeting> getMeetingsByRoomsIds(List<String> roomsIds) {
+    return db.find(Meeting.class)
+      .fetch("participants")
+      .where()
+      .in("id", roomsIds)
+      .findList();
   }
 
   @Override

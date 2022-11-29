@@ -363,6 +363,12 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
+  public List<UUID> getRoomsIds(UserPrincipal currentUser) {
+    return roomRepository.getIdsByUserId(currentUser.getId()).stream()
+      .map(UUID::fromString).collect(Collectors.toList());
+  }
+
+  @Override
   public Room getRoomEntityAndCheckUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner) {
     Room room = roomRepository.getById(roomId.toString()).orElseThrow(() ->
       new NotFoundException(String.format("Room '%s'", roomId)));
