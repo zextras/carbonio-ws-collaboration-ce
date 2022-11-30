@@ -18,6 +18,7 @@ import com.zextras.carbonio.chats.meeting.model.MeetingDto;
 import com.zextras.carbonio.chats.meeting.repository.MeetingRepository;
 import com.zextras.carbonio.chats.meeting.service.MeetingService;
 import io.ebean.annotation.Transactional;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -46,6 +47,14 @@ public class MeetingServiceImpl implements MeetingService {
     this.membersService = membersService;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
+  }
+
+  @Override
+  public List<MeetingDto> getMeetings(UserPrincipal currentUser) {
+    List<String> roomsIds = roomService.getRoomsIds(currentUser).stream().map(UUID::toString)
+      .collect(Collectors.toList());
+    List<Meeting> meetings = meetingRepository.getMeetingsByRoomsIds(roomsIds);
+    return meetingMapper.ent2dto(meetings);
   }
 
   @Override

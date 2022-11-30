@@ -38,7 +38,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response listMeeting(SecurityContext securityContext) {
-    return Response.status(Status.NOT_IMPLEMENTED).build();
+    return Response.ok().entity(meetingService.getMeetings(
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+          .orElseThrow(UnauthorizedException::new)))
+      .build();
   }
 
   /**

@@ -6,9 +6,18 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.meeting.data.entity.Meeting;
 import com.zextras.carbonio.chats.meeting.model.MeetingDto;
+import java.util.List;
 import java.util.UUID;
 
 public interface MeetingService {
+
+  /**
+   * Gets the meetings list of all rooms where the authenticated user is a member
+   *
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   * @return The {@link List} of {@link MeetingDto} of all rooms where the authenticated user is a member
+   */
+  List<MeetingDto> getMeetings(UserPrincipal currentUser);
 
   /**
    * Gets indicated meeting data

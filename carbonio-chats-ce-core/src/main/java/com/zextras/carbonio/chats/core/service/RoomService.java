@@ -25,6 +25,14 @@ import javax.annotation.Nullable;
 public interface RoomService {
 
   /**
+   * Retrieves rooms identifiers {@link UUID} {@link List} of every room the user has access to
+   *
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   * @return identifier {@link UUID} {@link List} of every room that the user has access to {@link RoomDto }
+   **/
+  List<UUID> getRoomsIds(UserPrincipal currentUser);
+
+  /**
    * Get room by identifier and check if the current user is subscribed. This method returns an entity because it's
    * intended to be used only to be called by services.
    *
