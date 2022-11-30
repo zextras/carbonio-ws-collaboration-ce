@@ -170,8 +170,8 @@ public class MeetingApiIT {
     }
 
     @Test
-    @DisplayName("If authenticate user isn't a member into rooms with meetings, correctly gets an empty list")
-    public void listMeeting_testUserIsNotIntoRoomsWithMeetings() throws Exception {
+    @DisplayName("If rooms, which user is member of, hasn't any meetings, it returns an empty list")
+    public void listMeeting_testUserRoomsHasNoMeetings() throws Exception {
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("room1hash").name("room1")
           .description("Room one"),
@@ -225,6 +225,7 @@ public class MeetingApiIT {
       assertNotNull(meetings);
       assertEquals(0, meetings.size());
     }
+
     @Test
     @DisplayName("If there isn't an authenticated user then it returns a status code 401")
     public void listMeeting_testErrorUnauthenticatedUser() throws Exception {

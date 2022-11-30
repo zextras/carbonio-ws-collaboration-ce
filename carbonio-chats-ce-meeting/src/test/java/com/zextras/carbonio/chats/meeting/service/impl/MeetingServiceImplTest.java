@@ -143,7 +143,7 @@ public class MeetingServiceImplTest {
   public class ListMeetingTests {
 
     @Test
-    @DisplayName("Returns all meeting of a user with all participants")
+    @DisplayName("Returns all meetings of a user with all participants")
     public void listMeeting_testOk() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       List<UUID> roomsIds = List.of(room1Id, room2Id, room3Id);
@@ -199,8 +199,8 @@ public class MeetingServiceImplTest {
     }
 
     @Test
-    @DisplayName("If authenticate user isn't a member into rooms with meetings, it returns an empty list")
-    public void listMeeting_testUserIsNotIntoRoomsWithMeetings() {
+    @DisplayName("If rooms, which user is member of, hasn't any meetings, it returns an empty list")
+    public void listMeeting_testUserRoomsHasNoMeetings() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       when(roomService.getRoomsIds(currentUser)).thenReturn(List.of(room1Id, room2Id, room3Id));
       when(meetingRepository.getMeetingsByRoomsIds(List.of(room1Id.toString(), room2Id.toString(), room3Id.toString())))

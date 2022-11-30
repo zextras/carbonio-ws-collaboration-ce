@@ -12,7 +12,7 @@ import java.util.Optional;
 public interface RoomRepository {
 
   /**
-   * Retrieves all rooms identifier of the rooms of which the user is subscribed
+   * Retrieves all identifiers of the rooms of which the user is subscribed
    *
    * @param userId the user identifier
    * @return rooms identifier {@link List}
@@ -22,11 +22,11 @@ public interface RoomRepository {
   /**
    * Retrieves all {@link Room} of which the user is subscribed
    *
-   * @param userId           user identifier
-   * @param addSubscriptions if true, rooms have subscriptions {@link Subscription}
+   * @param userId            user identifier
+   * @param withSubscriptions if true, rooms will also have subscriptions {@link Subscription}
    * @return {@link Room} {@link List} of which the user is subscribed
    */
-  List<Room> getByUserId(String userId, boolean addSubscriptions);
+  List<Room> getByUserId(String userId, boolean withSubscriptions);
 
   /**
    * Retrieves the {@link Room} requested with its subscriptions {@link Subscription}
@@ -37,7 +37,7 @@ public interface RoomRepository {
   Optional<Room> getById(String roomId);
 
   /**
-   * Retrieves the one-to-one {@link Room} by its users subscribed
+   * Retrieves the one-to-one {@link Room} by subscribed users ids
    *
    * @param user1Id first user identifier
    * @param user2Id second user identifier
