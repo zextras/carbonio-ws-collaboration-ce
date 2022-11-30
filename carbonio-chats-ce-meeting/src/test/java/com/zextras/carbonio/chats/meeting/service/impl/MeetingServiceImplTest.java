@@ -80,10 +80,14 @@ public class MeetingServiceImplTest {
   private String session1User3Id;
 
   private UUID room1Id;
+  private UUID room2Id;
+  private UUID room3Id;
   private Room room1;
 
   private UUID    meeting1Id;
+  private UUID    meeting2Id;
   private Meeting meeting1;
+  private Meeting meeting2;
 
   @BeforeEach
   public void init() {
@@ -105,6 +109,8 @@ public class MeetingServiceImplTest {
         Subscription.create(room1, user1Id.toString()).owner(true),
         Subscription.create(room1, user2Id.toString()).owner(false),
         Subscription.create(room1, user3Id.toString()).owner(false)));
+    room2Id = UUID.randomUUID();
+    room3Id = UUID.randomUUID();
 
     meeting1Id = UUID.randomUUID();
     meeting1 = Meeting.create();
@@ -120,6 +126,116 @@ public class MeetingServiceImplTest {
           .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build(),
         ParticipantBuilder.create(user3Id, meeting1, session1User3Id).createdAt(
           OffsetDateTime.parse("2022-01-01T13:15:00Z")).build()));
+    meeting2Id = UUID.randomUUID();
+    meeting2 = Meeting.create();
+    meeting2
+      .id(meeting2Id.toString())
+      .roomId(room2Id.toString())
+      .participants(List.of(
+        ParticipantBuilder.create(user1Id, meeting1, session1User1Id).microphoneOn(true).cameraOn(true)
+          .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z")).build(),
+        ParticipantBuilder.create(user3Id, meeting1, session1User3Id).createdAt(
+          OffsetDateTime.parse("2022-01-01T13:15:00Z")).build()));
+  }
+
+  @Nested
+  @DisplayName("List meetings tests")
+  public class ListMeetingTests {
+
+    @Test
+    @DisplayName("Returns all meetings of a user with all participants")
+    public void listMeeting_testOk() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      List<UUID> roomsIds = List.of(room1Id, room2Id, room3Id);
+      when(roomService.getRoomsIds(currentUser)).thenReturn(roomsIds);
+      when(meetingRepository.getMeetingsByRoomsIds(List.of(room1Id.toString(), room2Id.toString(), room3Id.toString())))
+        .thenReturn(List.of(meeting1, meeting2));
+
+      List<MeetingDto> meetings = meetingService.getMeetings(currentUser);
+
+      assertNotNull(meetings);
+      assertEquals(2, meetings.size());
+      MeetingDto meeting1Dto = meetings.get(0);
+      assertEquals(meeting1Id, meeting1Dto.getId());
+      assertEquals(room1Id, meeting1Dto.getRoomId());
+      assertNotNull(meeting1Dto.getParticipants());
+      assertEquals(4, meeting1Dto.getParticipants().size());
+      assertEquals(1, (int) meeting1Dto.getParticipants().stream()
+        .filter(p -> user1Id.equals(p.getUserId())).count());
+      assertEquals(2, (int) meeting1Dto.getParticipants().stream()
+        .filter(p -> user2Id.equals(p.getUserId())).count());
+      assertEquals(1, (int) meeting1Dto.getParticipants().stream()
+        .filter(p -> user3Id.equals(p.getUserId())).count());
+      Optional<ParticipantDto> participant1 = meeting1Dto.getParticipants().stream()
+        .filter(p -> user1Id.equals(p.getUserId())).findAny();
+      assertTrue(participant1.isPresent());
+      assertEquals(user1Id, participant1.get().getUserId());
+      assertEquals(session1User1Id, participant1.get().getSessionId());
+      assertTrue(participant1.get().isHasCameraOn());
+      assertTrue(participant1.get().isHasMicrophoneOn());
+
+      MeetingDto meeting2Dto = meetings.get(1);
+      assertEquals(meeting2Id, meeting2Dto.getId());
+      assertEquals(room2Id, meeting2Dto.getRoomId());
+      assertNotNull(meeting2Dto.getParticipants());
+      assertEquals(2, meeting2Dto.getParticipants().size());
+      assertEquals(1, (int) meeting2Dto.getParticipants().stream()
+        .filter(p -> user1Id.equals(p.getUserId())).count());
+      assertEquals(1, (int) meeting2Dto.getParticipants().stream()
+        .filter(p -> user3Id.equals(p.getUserId())).count());
+      participant1 = meeting2Dto.getParticipants().stream()
+        .filter(p -> user1Id.equals(p.getUserId())).findAny();
+      assertTrue(participant1.isPresent());
+      assertEquals(user1Id, participant1.get().getUserId());
+      assertEquals(session1User1Id, participant1.get().getSessionId());
+      assertTrue(participant1.get().isHasCameraOn());
+      assertTrue(participant1.get().isHasMicrophoneOn());
+
+      verify(roomService, times(1)).getRoomsIds(currentUser);
+      verify(meetingRepository, times(1))
+        .getMeetingsByRoomsIds(List.of(room1Id.toString(), room2Id.toString(), room3Id.toString()));
+      verifyNoMoreInteractions(roomService, meetingRepository);
+      verifyNoInteractions(membersService, videoServerService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If rooms, which user is member of, hasn't any meetings, it returns an empty list")
+    public void listMeeting_testUserRoomsHasNoMeetings() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      when(roomService.getRoomsIds(currentUser)).thenReturn(List.of(room1Id, room2Id, room3Id));
+      when(meetingRepository.getMeetingsByRoomsIds(List.of(room1Id.toString(), room2Id.toString(), room3Id.toString())))
+        .thenReturn(List.of());
+
+      List<MeetingDto> meetings = meetingService.getMeetings(currentUser);
+
+      assertNotNull(meetings);
+      assertEquals(0, meetings.size());
+
+      verify(roomService, times(1)).getRoomsIds(currentUser);
+      verify(meetingRepository, times(1))
+        .getMeetingsByRoomsIds(List.of(room1Id.toString(), room2Id.toString(), room3Id.toString()));
+      verifyNoMoreInteractions(roomService, meetingRepository);
+      verifyNoInteractions(membersService, videoServerService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the user is not a member of any room, it returns an empty list")
+    public void listMeeting_testUserHasNotRooms() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+
+      when(roomService.getRoomsIds(currentUser)).thenReturn(List.of());
+      when(meetingRepository.getMeetingsByRoomsIds(List.of())).thenReturn(List.of());
+
+      List<MeetingDto> meetings = meetingService.getMeetings(currentUser);
+
+      assertNotNull(meetings);
+      assertEquals(0, meetings.size());
+      verify(roomService, times(1)).getRoomsIds(currentUser);
+      verify(meetingRepository, times(1))
+        .getMeetingsByRoomsIds(List.of());
+      verifyNoMoreInteractions(roomService, meetingRepository);
+      verifyNoInteractions(membersService, videoServerService, eventDispatcher);
+    }
   }
 
   @Nested

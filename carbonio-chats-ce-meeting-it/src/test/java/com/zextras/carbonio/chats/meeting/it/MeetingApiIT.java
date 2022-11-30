@@ -1,9 +1,11 @@
 package com.zextras.carbonio.chats.meeting.it;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils;
@@ -68,7 +70,9 @@ public class MeetingApiIT {
   private static UUID   user2Id;
   private static UUID   user3Id;
   private static String user1Token;
-  private static UUID   roomId;
+  private static UUID   room1Id;
+  private static UUID   room2Id;
+  private static UUID   room3Id;
 
   @BeforeAll
   public static void initAll() {
@@ -76,7 +80,160 @@ public class MeetingApiIT {
     user1Token = MockedAccount.getAccount(MockedAccountType.SNOOPY).getToken();
     user2Id = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN).getUUID();
     user3Id = MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT).getUUID();
-    roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
+    room1Id = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
+    room2Id = UUID.fromString("0367dedb-a5d8-451f-bbc8-22e70d8a777a");
+    room3Id = UUID.fromString("e110c21d-8c73-4096-b449-166264399ac8");
+  }
+
+  @Nested
+  @DisplayName("List meetings tests")
+  public class ListMeetingTests {
+
+    private static final String URL = "/meetings";
+
+    @Test
+    @DisplayName("Correctly gets the meetings of authenticated user")
+    public void listMeeting_testOk() throws Exception {
+      UUID meeting1Id = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      UUID meeting2Id = UUID.fromString("4b592aa4-0d04-46d5-8292-953e4ed4247e");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("room1hash").name("room1")
+          .description("Room one"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).hash("room2hash").name("room2")
+          .description("Room two"),
+        List.of(
+          RoomMemberField.create().id(user1Id),
+          RoomMemberField.create().id(user2Id).owner(true),
+          RoomMemberField.create().id(user3Id)));
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room3Id.toString()).type(RoomTypeDto.GROUP).hash("room3hash").name("room3")
+          .description("Room three"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+      meetingTestUtils.generateAndSaveMeeting(meeting1Id, room1Id, List.of(
+        ParticipantBuilder.create(user1Id, "user1session1").microphoneOn(true).cameraOn(true),
+        ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(false).cameraOn(true),
+        ParticipantBuilder.create(user2Id, "user2session2").microphoneOn(true).cameraOn(false),
+        ParticipantBuilder.create(user3Id, "user3session1").microphoneOn(false).cameraOn(false)));
+      meetingTestUtils.generateAndSaveMeeting(meeting2Id, room2Id, List.of(
+        ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(true).cameraOn(false),
+        ParticipantBuilder.create(user3Id, "user2session1").microphoneOn(false).cameraOn(true)));
+
+      MockHttpResponse response = dispatcher.get(URL, user1Token);
+      assertEquals(200, response.getStatus());
+      List<MeetingDto> meetings = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
+      });
+      assertNotNull(meetings);
+      assertEquals(2, meetings.size());
+      MeetingDto meeting1Dto = meetings.stream().filter(m -> m.getId().equals(meeting1Id)).findAny().orElseThrow();
+      assertEquals(meeting1Id, meeting1Dto.getId());
+      assertEquals(room1Id, meeting1Dto.getRoomId());
+      assertNotNull(meeting1Dto.getParticipants());
+      assertEquals(4, meeting1Dto.getParticipants().size());
+      assertEquals(1, (int) meeting1Dto.getParticipants().stream()
+        .filter(p -> user1Id.equals(p.getUserId())).count());
+      assertEquals(2, (int) meeting1Dto.getParticipants().stream()
+        .filter(p -> user2Id.equals(p.getUserId())).count());
+      assertEquals(1, (int) meeting1Dto.getParticipants().stream()
+        .filter(p -> user3Id.equals(p.getUserId())).count());
+      Optional<ParticipantDto> participant = meeting1Dto.getParticipants().stream()
+        .filter(p -> user1Id.equals(p.getUserId())).findAny();
+      assertTrue(participant.isPresent());
+      assertEquals(user1Id, participant.get().getUserId());
+      assertEquals("user1session1", participant.get().getSessionId());
+      assertTrue(participant.get().isHasCameraOn());
+      assertTrue(participant.get().isHasMicrophoneOn());
+
+      MeetingDto meeting2Dto = meetings.stream().filter(m -> m.getId().equals(meeting2Id)).findAny().orElseThrow();
+      assertEquals(meeting2Id, meeting2Dto.getId());
+      assertEquals(room2Id, meeting2Dto.getRoomId());
+      assertNotNull(meeting2Dto.getParticipants());
+      assertEquals(2, meeting2Dto.getParticipants().size());
+      assertEquals(1, (int) meeting2Dto.getParticipants().stream()
+        .filter(p -> user2Id.equals(p.getUserId())).count());
+      assertEquals(1, (int) meeting2Dto.getParticipants().stream()
+        .filter(p -> user3Id.equals(p.getUserId())).count());
+      participant = meeting2Dto.getParticipants().stream()
+        .filter(p -> user2Id.equals(p.getUserId())).findAny();
+      assertTrue(participant.isPresent());
+      assertEquals(user2Id, participant.get().getUserId());
+      assertEquals("user2session1", participant.get().getSessionId());
+      assertFalse(participant.get().isHasCameraOn());
+      assertTrue(participant.get().isHasMicrophoneOn());
+    }
+
+    @Test
+    @DisplayName("If rooms, which user is member of, hasn't any meetings, it returns an empty list")
+    public void listMeeting_testUserRoomsHasNoMeetings() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("room1hash").name("room1")
+          .description("Room one"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).hash("room2hash").name("room2")
+          .description("Room two"),
+        List.of(
+          RoomMemberField.create().id(user1Id),
+          RoomMemberField.create().id(user2Id).owner(true),
+          RoomMemberField.create().id(user3Id)));
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room3Id.toString()).type(RoomTypeDto.GROUP).hash("room3hash").name("room3")
+          .description("Room three"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+
+      MockHttpResponse response = dispatcher.get(URL, user1Token);
+      assertEquals(200, response.getStatus());
+      List<MeetingDto> meetings = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
+      });
+      assertNotNull(meetings);
+      assertEquals(0, meetings.size());
+    }
+
+    @Test
+    @DisplayName("If the user is not a member of any room, correctly gets an empty list")
+    public void listMeeting_testUserHasNotRooms() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("room1hash").name("room1")
+          .description("Room one"),
+        List.of(
+          RoomMemberField.create().id(user2Id).owner(true),
+          RoomMemberField.create().id(user3Id)));
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).hash("room2hash").name("room2")
+          .description("Room two"),
+        List.of(
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id).owner(true)));
+
+      MockHttpResponse response = dispatcher.get(URL, user1Token);
+      assertEquals(200, response.getStatus());
+      List<MeetingDto> meetings = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
+      });
+      assertNotNull(meetings);
+      assertEquals(0, meetings.size());
+    }
+
+    @Test
+    @DisplayName("If there isn't an authenticated user then it returns a status code 401")
+    public void listMeeting_testErrorUnauthenticatedUser() throws Exception {
+      MockHttpResponse response = dispatcher.get(URL, null);
+
+      assertEquals(401, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
   }
 
   @Nested
@@ -92,12 +249,12 @@ public class MeetingApiIT {
     public void getMeetingById_testOk() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
         ParticipantBuilder.create(user1Id, "user1session1").microphoneOn(true).cameraOn(true),
         ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(false).cameraOn(true),
         ParticipantBuilder.create(user2Id, "user2session2").microphoneOn(true).cameraOn(false),
@@ -109,7 +266,7 @@ public class MeetingApiIT {
       MeetingDto meetingDto = objectMapper.readValue(response.getContentAsString(), MeetingDto.class);
       assertNotNull(meetingDto);
       assertEquals(meetingId, meetingDto.getId());
-      assertEquals(roomId, meetingDto.getRoomId());
+      assertEquals(room1Id, meetingDto.getRoomId());
       assertNotNull(meetingDto.getParticipants());
       assertEquals(4, meetingDto.getParticipants().size());
       assertEquals(1, (int) meetingDto.getParticipants().stream()
@@ -132,11 +289,11 @@ public class MeetingApiIT {
     public void getMeetingById_testUserIsNotRoomMember() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
         ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(false).cameraOn(true),
         ParticipantBuilder.create(user2Id, "user2session2").microphoneOn(true).cameraOn(false),
         ParticipantBuilder.create(user3Id, "user3session1").microphoneOn(false).cameraOn(false)));
@@ -179,12 +336,12 @@ public class MeetingApiIT {
     public void deleteMeetingById_testOk() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
         ParticipantBuilder.create(user1Id, "user1session1").microphoneOn(true).cameraOn(true),
         ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(false).cameraOn(true),
         ParticipantBuilder.create(user2Id, "user2session2").microphoneOn(true).cameraOn(false),
@@ -204,11 +361,11 @@ public class MeetingApiIT {
     public void deleteMeetingById_testUserIsNotRoomMember() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
         ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(false).cameraOn(true),
         ParticipantBuilder.create(user2Id, "user2session2").microphoneOn(true).cameraOn(false),
         ParticipantBuilder.create(user3Id, "user3session1").microphoneOn(false).cameraOn(false)));

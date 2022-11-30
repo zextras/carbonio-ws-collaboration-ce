@@ -1,6 +1,7 @@
 package com.zextras.carbonio.chats.meeting.repository;
 
 import com.zextras.carbonio.chats.meeting.data.entity.Meeting;
+import java.util.List;
 import java.util.Optional;
 
 public interface MeetingRepository {
@@ -12,6 +13,15 @@ public interface MeetingRepository {
    * @return requested meeting {@link Meeting}
    */
   Optional<Meeting> getMeetingById(String meetingId);
+
+  /**
+   * Gets a meeting list by their rooms identifiers
+   *
+   * @param roomsIds {@link List} of rooms identifiers
+   * @return {@link Meeting} {@link List} of requested rooms
+   */
+  List<Meeting> getMeetingsByRoomsIds(List<String> roomsIds);
+
 
   /**
    * Gets a meeting by the identifier of his room
