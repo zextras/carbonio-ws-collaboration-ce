@@ -53,12 +53,11 @@ public class ParticipantServiceImpl implements ParticipantService {
         .equals(currentUser.getSessionId()))) {
       throw new ConflictException("Session is already inserted into the meeting");
     }
-    Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()),
-      currentUser, false);
+    Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     participantRepository.insertParticipant(
       Participant.create(currentUser.getId(), meeting, currentUser.getSessionId())
         .microphoneOn(joinSettings.isMicrophoneOn())
-        .cameraOn(joinSettings.isMicrophoneOn()));
+        .cameraOn(joinSettings.isCameraOn()));
     videoServerService.joinSession(currentUser.getSessionId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
