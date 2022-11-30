@@ -4,6 +4,7 @@ import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.meeting.data.entity.Meeting;
 import com.zextras.carbonio.chats.meeting.model.MeetingDto;
 import java.util.UUID;
 
@@ -19,6 +20,16 @@ public interface MeetingService {
    * @throws ForbiddenException if the user isn't a meeting room member
    */
   MeetingDto getMeetingById(UUID meetingId, UserPrincipal currentUser);
+
+  /**
+   * Gets meeting by identifier. This method returns an entity because it's intended to be used only to be called by
+   * services.
+   *
+   * @param meetingId meeting identifier {@link UUID}
+   * @return The requested meeting {@link Meeting}
+   * @throws NotFoundException  if the meeting doesn't exist
+   */
+  Meeting getMeetingEntity(UUID meetingId);
 
   /**
    * Gets the meeting associated to indicated room
@@ -48,7 +59,7 @@ public interface MeetingService {
    *
    * @param meetingId   identifier of meeting to delete {@link UUID}
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @throws NotFoundException if the meeting doesn't exist
+   * @throws NotFoundException  if the meeting doesn't exist
    * @throws ForbiddenException if the current user isn't a member of associated room
    */
   void deleteMeetingById(UUID meetingId, UserPrincipal currentUser);

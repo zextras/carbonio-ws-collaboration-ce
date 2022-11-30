@@ -6,7 +6,8 @@ import com.zextras.carbonio.chats.core.data.event.EventTypeDescription;
 public enum MeetingEventType implements EventTypeDescription {
 
   MEETING_CREATED("meetingCreated"),
-  MEETING_DELETED("meetingDeleted");
+  MEETING_DELETED("meetingDeleted"),
+  PARTICIPANT_JOINED("participantJoined");
 
   private final String description;
 

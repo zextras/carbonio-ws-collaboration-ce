@@ -60,6 +60,13 @@ public class MeetingServiceImpl implements MeetingService {
   }
 
   @Override
+  public Meeting getMeetingEntity(UUID meetingId) {
+    return meetingRepository.getMeetingById(meetingId.toString())
+      .orElseThrow(() -> new NotFoundException(
+        String.format("Meeting with id '%s' not found", meetingId)));
+  }
+
+  @Override
   public MeetingDto getMeetingByRoomId(UUID roomId, UserPrincipal currentUser) {
     roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
     return meetingMapper.ent2dto(meetingRepository.getMeetingByRoomId(roomId.toString())

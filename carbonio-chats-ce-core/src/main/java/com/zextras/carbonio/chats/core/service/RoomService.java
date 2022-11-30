@@ -6,6 +6,8 @@ package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
+import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
@@ -30,6 +32,9 @@ public interface RoomService {
    * @param currentUser current authenticate user {@link UserPrincipal}
    * @param mustBeOwner if true, the user must be a room owner
    * @return The requested room {@link Room}
+   * @throws NotFoundException  if the indicated room doesn't exist
+   * @throws ForbiddenException if the user isn't a room member
+   * @throws ForbiddenException if the user isn't a room owner and mustBeOwner is true
    */
   Room getRoomEntityAndCheckUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner);
 

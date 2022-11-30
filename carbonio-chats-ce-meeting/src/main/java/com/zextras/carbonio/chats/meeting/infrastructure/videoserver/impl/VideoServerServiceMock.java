@@ -14,4 +14,9 @@ public class VideoServerServiceMock implements VideoServerService {
   public void deleteMeeting(String meetingId) {
 
   }
+
+  @Override
+  public void joinSession(String sessionId) {
+
+  }
 }

@@ -12,4 +12,12 @@ public interface ParticipantRepository {
    * @return the {@link List} of the meeting {@link Participant}
    */
   List<Participant> getParticipantsByMeetingId(String meetingId);
+
+  /**
+   * Inserts a new {@link Participant}
+   *
+   * @param participant {@link Participant} to insert
+   * @return {@link Participant} inserted
+   */
+  Participant insertParticipant(Participant participant);
 }

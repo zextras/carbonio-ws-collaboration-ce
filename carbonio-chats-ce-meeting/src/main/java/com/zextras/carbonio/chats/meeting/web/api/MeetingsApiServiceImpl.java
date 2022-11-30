@@ -6,6 +6,7 @@ import com.zextras.carbonio.chats.meeting.api.MeetingsApiService;
 import com.zextras.carbonio.chats.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.meeting.model.MeetingDto;
 import com.zextras.carbonio.chats.meeting.service.MeetingService;
+import com.zextras.carbonio.chats.meeting.service.ParticipantService;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -17,11 +18,15 @@ import javax.ws.rs.core.SecurityContext;
 @Singleton
 public class MeetingsApiServiceImpl implements MeetingsApiService {
 
-  private final MeetingService meetingService;
+  private final MeetingService     meetingService;
+  private final ParticipantService participantService;
 
   @Inject
-  public MeetingsApiServiceImpl(MeetingService meetingService) {
+  public MeetingsApiServiceImpl(
+    MeetingService meetingService, ParticipantService participantService
+  ) {
     this.meetingService = meetingService;
+    this.participantService = participantService;
   }
 
   /**
@@ -75,7 +80,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response joinMeeting(UUID meetingId, JoinSettingsDto joinSettingsDto, SecurityContext securityContext) {
-    return Response.status(Status.NOT_IMPLEMENTED).build();
+    participantService.insertMeetingParticipant(meetingId, joinSettingsDto,
+      Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+        .orElseThrow(UnauthorizedException::new));
+    return Response.status(Status.NO_CONTENT).build();
   }
 
   /**
