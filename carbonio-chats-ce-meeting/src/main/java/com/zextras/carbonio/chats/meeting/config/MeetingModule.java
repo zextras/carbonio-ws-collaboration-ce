@@ -16,7 +16,9 @@ import com.zextras.carbonio.chats.meeting.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.meeting.repository.impl.EbeanMeetingRepository;
 import com.zextras.carbonio.chats.meeting.repository.impl.EbeanParticipantRepository;
 import com.zextras.carbonio.chats.meeting.service.MeetingService;
+import com.zextras.carbonio.chats.meeting.service.ParticipantService;
 import com.zextras.carbonio.chats.meeting.service.impl.MeetingServiceImpl;
+import com.zextras.carbonio.chats.meeting.service.impl.ParticipantServiceImpl;
 import com.zextras.carbonio.chats.meeting.web.api.MeetingsApiServiceImpl;
 import com.zextras.carbonio.chats.meeting.web.api.RoomsApiServiceImpl;
 
@@ -35,6 +37,7 @@ public class MeetingModule extends AbstractModule {
     bind(MeetingRepository.class).to(EbeanMeetingRepository.class);
     bind(MeetingMapper.class).to(MeetingMapperImpl.class);
 
+    bind(ParticipantService.class).to(ParticipantServiceImpl.class);
     bind(ParticipantRepository.class).to(EbeanParticipantRepository.class);
     bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
 

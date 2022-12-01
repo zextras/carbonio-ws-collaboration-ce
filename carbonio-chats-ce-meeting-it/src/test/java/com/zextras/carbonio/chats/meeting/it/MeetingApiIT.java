@@ -16,9 +16,12 @@ import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.meeting.api.RoomsApi;
+import com.zextras.carbonio.chats.meeting.data.entity.Meeting;
+import com.zextras.carbonio.chats.meeting.data.entity.Participant;
 import com.zextras.carbonio.chats.meeting.it.annotations.MeetingApiIntegrationTest;
 import com.zextras.carbonio.chats.meeting.it.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.meeting.it.utils.MeetingTestUtils;
+import com.zextras.carbonio.chats.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.meeting.model.MeetingDto;
 import com.zextras.carbonio.chats.meeting.model.ParticipantDto;
 import com.zextras.carbonio.chats.meeting.repository.MeetingRepository;
@@ -26,6 +29,7 @@ import com.zextras.carbonio.chats.meeting.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.time.Clock;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.jboss.resteasy.mock.MockHttpResponse;
@@ -67,9 +71,13 @@ public class MeetingApiIT {
   }
 
   private static UUID   user1Id;
-  private static UUID   user2Id;
-  private static UUID   user3Id;
+  private static String user1session1;
   private static String user1Token;
+  private static UUID   user2Id;
+  private static String user2session1;
+  private static String user2session2;
+  private static UUID   user3Id;
+  private static String user3session1;
   private static UUID   room1Id;
   private static UUID   room2Id;
   private static UUID   room3Id;
@@ -78,8 +86,12 @@ public class MeetingApiIT {
   public static void initAll() {
     user1Id = MockedAccount.getAccount(MockedAccountType.SNOOPY).getUUID();
     user1Token = MockedAccount.getAccount(MockedAccountType.SNOOPY).getToken();
+    user1session1 = "user1session1";
     user2Id = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN).getUUID();
+    user2session1 = "user2session1";
+    user2session2 = "user2session2";
     user3Id = MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT).getUUID();
+    user3session1 = "user3session1";
     room1Id = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
     room2Id = UUID.fromString("0367dedb-a5d8-451f-bbc8-22e70d8a777a");
     room3Id = UUID.fromString("e110c21d-8c73-4096-b449-166264399ac8");
@@ -118,13 +130,13 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meeting1Id, room1Id, List.of(
-        ParticipantBuilder.create(user1Id, "user1session1").microphoneOn(true).cameraOn(true),
-        ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, "user2session2").microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, "user3session1").microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user1Id, user1session1).microphoneOn(true).cameraOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
       meetingTestUtils.generateAndSaveMeeting(meeting2Id, room2Id, List.of(
-        ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, "user2session1").microphoneOn(false).cameraOn(true)));
+        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(true).cameraOn(false),
+        ParticipantBuilder.create(user3Id, user2session1).microphoneOn(false).cameraOn(true)));
 
       MockHttpResponse response = dispatcher.get(URL, user1Token);
       assertEquals(200, response.getStatus());
@@ -147,7 +159,7 @@ public class MeetingApiIT {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant.isPresent());
       assertEquals(user1Id, participant.get().getUserId());
-      assertEquals("user1session1", participant.get().getSessionId());
+      assertEquals(user1session1, participant.get().getSessionId());
       assertTrue(participant.get().isHasCameraOn());
       assertTrue(participant.get().isHasMicrophoneOn());
 
@@ -164,7 +176,7 @@ public class MeetingApiIT {
         .filter(p -> user2Id.equals(p.getUserId())).findAny();
       assertTrue(participant.isPresent());
       assertEquals(user2Id, participant.get().getUserId());
-      assertEquals("user2session1", participant.get().getSessionId());
+      assertEquals(user2session1, participant.get().getSessionId());
       assertFalse(participant.get().isHasCameraOn());
       assertTrue(participant.get().isHasMicrophoneOn());
     }
@@ -255,10 +267,10 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
-        ParticipantBuilder.create(user1Id, "user1session1").microphoneOn(true).cameraOn(true),
-        ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, "user2session2").microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, "user3session1").microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user1Id, user1session1).microphoneOn(true).cameraOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
 
       MockHttpResponse response = dispatcher.get(url(meetingId), user1Token);
 
@@ -279,7 +291,7 @@ public class MeetingApiIT {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals("user1session1", participant1.get().getSessionId());
+      assertEquals(user1session1, participant1.get().getSessionId());
       assertTrue(participant1.get().isHasCameraOn());
       assertTrue(participant1.get().isHasMicrophoneOn());
     }
@@ -294,9 +306,9 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
-        ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, "user2session2").microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, "user3session1").microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
 
       MockHttpResponse response = dispatcher.get(url(meetingId), user1Token);
 
@@ -314,7 +326,7 @@ public class MeetingApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier, if there isn't an authenticated user then it returns a status code 401")
+    @DisplayName("Given a meeting identifier, if there isn't an authenticated user then it returns a status code 401")
     public void getMeetingById_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.get(url(UUID.randomUUID()), null);
 
@@ -342,10 +354,10 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
-        ParticipantBuilder.create(user1Id, "user1session1").microphoneOn(true).cameraOn(true),
-        ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, "user2session2").microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, "user3session1").microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user1Id, user1session1).microphoneOn(true).cameraOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
 
       MockHttpResponse response = dispatcher.delete(url(meetingId), user1Token);
 
@@ -366,9 +378,9 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
-        ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, "user2session2").microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, "user3session1").microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
 
       MockHttpResponse response = dispatcher.delete(url(meetingId), user1Token);
 
@@ -386,7 +398,6 @@ public class MeetingApiIT {
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
-
     }
 
     @Test
@@ -399,4 +410,88 @@ public class MeetingApiIT {
     }
   }
 
+  @Nested
+  @DisplayName("Join meeting Tests")
+  public class JoinMeetingTests {
+
+    private String url(UUID meetingId) {
+      return String.format("/meetings/%s/join", meetingId);
+    }
+
+    @Test
+    @DisplayName("Given a meeting identifier, the authenticated user correctly joins to the meeting")
+    public void joinMeeting_testOk() throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
+
+      MockHttpResponse response = dispatcher.put(url(meetingId),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        Map.of("session-id", user1session1), user1Token);
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+
+      Meeting meeting = meetingTestUtils.getMeetingById(meetingId).orElseThrow();
+      assertNotNull(meeting);
+      assertEquals(meetingId.toString(), meeting.getId());
+      assertEquals(room1Id.toString(), meeting.getRoomId());
+      assertEquals(4, meeting.getParticipants().size());
+      Participant newParticipant = meeting.getParticipants().stream().filter(participant ->
+        user1Id.toString().equals(participant.getUserId()) && user1session1.equals(participant.getSessionId())
+      ).findAny().orElseThrow();
+      assertTrue(newParticipant.getMicrophoneOn());
+      assertFalse(newParticipant.getCameraOn());
+    }
+
+    @Test
+    @DisplayName("Given a meeting identifier, if the user doesn't have an associated room member then it returns a status code 403")
+    public void joinMeeting_testUserIsNotRoomMember() throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user2Id).owner(true),
+          RoomMemberField.create().id(user3Id)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
+
+      MockHttpResponse response = dispatcher.put(url(meetingId),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        Map.of("session-id", user1session1), user1Token);
+      assertEquals(403, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("Given a meeting identifier, if the meeting doesn't exist then it returns a status code 404")
+    public void joinMeeting_testMeetingNotExists() throws Exception {
+      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(404, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("Given a meeting identifier, if there isn't an authenticated user then it returns a status code 401")
+    public void joinMeeting_testErrorUnauthenticatedUser() throws Exception {
+      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        Map.of("session-id", user1session1), null);
+
+      assertEquals(401, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+  }
 }

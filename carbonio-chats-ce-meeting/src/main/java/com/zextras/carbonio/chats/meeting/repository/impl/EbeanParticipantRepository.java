@@ -26,4 +26,10 @@ public class EbeanParticipantRepository implements ParticipantRepository {
       .eq("id.meetingId", meetingId)
       .findList();
   }
+
+  @Override
+  public Participant insertParticipant(Participant participant) {
+    db.insert(participant);
+    return participant;
+  }
 }
