@@ -419,7 +419,7 @@ public class MeetingApiIT {
     }
 
     @Test
-    @DisplayName("Given a meeting identifier, correctly joins the authenticated user to the meeting")
+    @DisplayName("Given a meeting identifier, the authenticated user correctly joins to the meeting")
     public void joinMeeting_testOk() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(

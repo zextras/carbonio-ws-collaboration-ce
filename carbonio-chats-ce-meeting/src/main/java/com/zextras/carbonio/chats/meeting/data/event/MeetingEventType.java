@@ -7,7 +7,7 @@ public enum MeetingEventType implements EventTypeDescription {
 
   MEETING_CREATED("meetingCreated"),
   MEETING_DELETED("meetingDeleted"),
-  PARTICIPANT_JOINED("participantJoined");
+  MEETING_PARTICIPANT_JOINED("meetingParticipantJoined");
 
   private final String description;
 

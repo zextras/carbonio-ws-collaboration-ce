@@ -21,7 +21,7 @@ import com.zextras.carbonio.chats.meeting.data.entity.Meeting;
 import com.zextras.carbonio.chats.meeting.data.entity.MeetingBuilder;
 import com.zextras.carbonio.chats.meeting.data.entity.Participant;
 import com.zextras.carbonio.chats.meeting.data.entity.ParticipantBuilder;
-import com.zextras.carbonio.chats.meeting.data.event.ParticipantJoinedEvent;
+import com.zextras.carbonio.chats.meeting.data.event.MeetingParticipantJoinedEvent;
 import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.meeting.repository.ParticipantRepository;
@@ -132,7 +132,7 @@ public class ParticipantServiceImplTest {
       verify(videoServerService, times(1)).joinSession(user3Session1);
       verify(eventDispatcher, times(1))
         .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-          ParticipantJoinedEvent.create(user3Id, user3Session1).meetingId(meetingId));
+          MeetingParticipantJoinedEvent.create(user3Id, user3Session1).meetingId(meetingId));
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
 

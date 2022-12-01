@@ -8,7 +8,7 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.meeting.data.entity.Meeting;
 import com.zextras.carbonio.chats.meeting.data.entity.Participant;
-import com.zextras.carbonio.chats.meeting.data.event.ParticipantJoinedEvent;
+import com.zextras.carbonio.chats.meeting.data.event.MeetingParticipantJoinedEvent;
 import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.meeting.repository.ParticipantRepository;
@@ -61,6 +61,6 @@ public class ParticipantServiceImpl implements ParticipantService {
     videoServerService.joinSession(currentUser.getSessionId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      ParticipantJoinedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).meetingId(meetingId));
+      MeetingParticipantJoinedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).meetingId(meetingId));
   }
 }
