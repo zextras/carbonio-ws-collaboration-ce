@@ -92,64 +92,12 @@ public class AttachmentsApiIT {
   }
 
   @Nested
-  @DisplayName("Generic tests")
-  public class GenericTests {
-
-    @Test
-    @DisplayName("Given an attachment identifier, if the identifier is not an UUID return a status code 404 for all attachment APIs")
-    public void generic_testErrorIdentifierIsNotUUID() throws Exception {
-      String url = "/attachments/not_a_uuid";
-      MockHttpResponse response = dispatcher.get(String.join("", url, "/download"), user1Token);
-      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-
-      response = dispatcher.get(String.join("", url, "/preview"), user1Token);
-      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-
-      response = dispatcher.get(url, user1Token);
-      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-
-      response = dispatcher.delete(url, user1Token);
-      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-    }
-
-    @Test
-    @DisplayName("Given an attachment identifier, if the attachment doesn't exist then return a status code 404 for all attachment APIs")
-    public void generic_testErrorFileNotExists() throws Exception {
-      String url = String.format("/attachments/%s", UUID.randomUUID());
-
-      MockHttpResponse response = dispatcher.get(String.join("", url, "/download"), user1Token);
-      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-
-      response = dispatcher.get(String.join("", url, "/preview"), user1Token);
-      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-
-      response = dispatcher.get(url, user1Token);
-      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-
-      response = dispatcher.delete(url, user1Token);
-      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-    }
-  }
-
-  @Nested
   @DisplayName("Gets attachment test")
   public class GetsAttachmentTests {
+
+    private String url(String attachmentId) {
+      return String.format("/attachments/%s/download", attachmentId);
+    }
 
     @Test
     @DisplayName("Correctly returns the attachment file for requested id")
@@ -158,8 +106,7 @@ public class AttachmentsApiIT {
       FileMetadata fileMetadata = fileMetadataRepository.save(
         integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
 
-      MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/download", fileMock.getId()),
-        user1Token);
+      MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user1Token);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
       assertArrayEquals(fileMock.getFileBytes(), response.getOutput());
@@ -177,7 +124,7 @@ public class AttachmentsApiIT {
     public void getAttachment_testExceptionStorageServerKO() throws Exception {
       storageMockServer.setIsAliveResponse(false);
 
-      MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/download", UUID.randomUUID()), null);
+      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), null);
 
       assertEquals(424, response.getStatus());
     }
@@ -185,7 +132,7 @@ public class AttachmentsApiIT {
     @Test
     @DisplayName("Given an attachment identifier, if the user is not authenticated return a status code 401")
     public void getAttachment_testErrorUnauthenticatedUser() throws Exception {
-      MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/download", UUID.randomUUID()), null);
+      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), null);
 
       assertEquals(Status.UNAUTHORIZED.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -197,7 +144,7 @@ public class AttachmentsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
 
-      MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/download", fileMock.getId()),
+      MockHttpResponse response = dispatcher.get(url(fileMock.getId()),
         user3Token);
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
@@ -205,11 +152,34 @@ public class AttachmentsApiIT {
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
     }
 
+    @Test
+    @DisplayName("Given an attachment identifier, if the identifier is not an UUID return a status code 404")
+    public void getAttachment_testErrorIdentifierIsNotUUID() throws Exception {
+      MockHttpResponse response = dispatcher.get(url("not_a_uuid"), user1Token);
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given an attachment identifier, if the attachment doesn't exist then return a status code 404")
+    public void getAttachment_testErrorFileNotExists() throws Exception {
+      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), user1Token);
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
   }
 
   @Nested
   @DisplayName("Gets attachment preview tests")
   public class GetsAttachmentPreviewTests {
+
+    private String url(String attachmentId) {
+      return String.format("/attachments/%s/preview", attachmentId);
+    }
 
     @Test
     @DisplayName("Correctly returns the attachment preview for requested id")
@@ -217,8 +187,7 @@ public class AttachmentsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
 
-      MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/preview", fileMock.getId()),
-        user1Token);
+      MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user1Token);
 
       FileMock expectedFile = MockedFiles.getPreview(MockedFileType.SNOOPY_PREVIEW);
 
@@ -234,10 +203,10 @@ public class AttachmentsApiIT {
 
     @Test
     @DisplayName("Returns 424 if the Previewer server is down")
-    public void getAttachment_testExceptionPreviewerKO() throws Exception {
+    public void getAttachmentPreview_testExceptionPreviewerKO() throws Exception {
       previewerMockServer.setIsAliveResponse(false);
 
-      MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/preview", UUID.randomUUID()), null);
+      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), null);
 
       assertEquals(424, response.getStatus());
     }
@@ -245,7 +214,7 @@ public class AttachmentsApiIT {
     @Test
     @DisplayName("Given an attachment identifier, if the user is not authenticated return a status code 401")
     public void getAttachmentPreview_testErrorUnauthenticatedUser() throws Exception {
-      MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/preview", UUID.randomUUID()), null);
+      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), null);
 
       assertEquals(Status.UNAUTHORIZED.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -257,12 +226,31 @@ public class AttachmentsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
 
-      MockHttpResponse response = dispatcher.get(String.format("/attachments/%s/preview", fileMock.getId()),
-        user3Token);
+      MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user3Token);
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given an attachment identifier, if the identifier is not an UUID return a status code 404")
+    public void getAttachmentPreview_testErrorIdentifierIsNotUUID() throws Exception {
+      MockHttpResponse response = dispatcher.get(url("not_a_uuid"), user1Token);
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given an attachment identifier, if the attachment doesn't exist then return a status code 404")
+    public void getAttachmentPreview_testErrorFileNotExists() throws Exception {
+      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), user1Token);
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
   }
 
@@ -270,13 +258,18 @@ public class AttachmentsApiIT {
   @DisplayName("Gets attachment information tests")
   public class GetsAttachmentInformationTests {
 
+    private String url(String attachmentId) {
+      return String.format("/attachments/%s", attachmentId);
+    }
+
     @Test
     @DisplayName("Correctly returns the attachment information for requested id")
     public void getAttachmentInfo_testOk() throws Exception {
       FileMetadata savedMetadata = integrationTestUtils.generateAndSaveFileMetadata(UUID.randomUUID(),
         FileMetadataType.ATTACHMENT, user1Id, roomId);
 
-      MockHttpResponse response = dispatcher.get(String.format("/attachments/%s", savedMetadata.getId()), user1Token);
+      MockHttpResponse response = dispatcher.get(url(savedMetadata.getId()),
+        user1Token);
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
       AttachmentDto attachment = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
       });
@@ -288,7 +281,7 @@ public class AttachmentsApiIT {
     @Test
     @DisplayName("Given an attachment identifier, if the user is not authenticated return a status code 401")
     public void getAttachmentInfo_testErrorUnauthenticatedUser() throws Exception {
-      MockHttpResponse response = dispatcher.get(String.format("/attachments/%s", UUID.randomUUID()), null);
+      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), null);
 
       assertEquals(Status.UNAUTHORIZED.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -300,17 +293,41 @@ public class AttachmentsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
 
-      MockHttpResponse response = dispatcher.get(String.format("/attachments/%s", fileMock.getId()), user3Token);
+      MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user3Token);
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given an attachment identifier, if the identifier is not an UUID return a status code 404")
+    public void getAttachmentInfo_testErrorIdentifierIsNotUUID() throws Exception {
+      MockHttpResponse response = dispatcher.get(url("not_a_uuid"), user1Token);
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given an attachment identifier, if the attachment doesn't exist then return a status code 404")
+    public void getAttachmentInfo_testErrorFileNotExists() throws Exception {
+      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), user1Token);
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
   }
 
   @Nested
   @DisplayName("Deletes attachment tests")
   public class DeletesAttachmentTests {
+
+    private String url(String attachmentId) {
+      return String.format("/attachments/%s", attachmentId);
+    }
 
     @Test
     @DisplayName("Correctly deletes the attachment with requested id by its owner")
@@ -319,7 +336,8 @@ public class AttachmentsApiIT {
         MockedFiles.get(MockedFileType.PEANUTS_IMAGE),
         FileMetadataType.ATTACHMENT, user2Id, roomId);
 
-      MockHttpResponse response = dispatcher.delete(String.format("/attachments/%s", fileMetadata.getId()), user2Token);
+      MockHttpResponse response = dispatcher.delete(url(fileMetadata.getId()),
+        user2Token);
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
       assertTrue(fileMetadataRepository.getById(fileMetadata.getId()).isEmpty());
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user2Token), 1);
@@ -333,7 +351,8 @@ public class AttachmentsApiIT {
         MockedFiles.get(MockedFileType.PEANUTS_IMAGE),
         FileMetadataType.ATTACHMENT, user2Id, roomId);
 
-      MockHttpResponse response = dispatcher.delete(String.format("/attachments/%s", fileMetadata.getId()), user1Token);
+      MockHttpResponse response = dispatcher.delete(url(fileMetadata.getId()),
+        user1Token);
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
       assertTrue(fileMetadataRepository.getById(fileMetadata.getId()).isEmpty());
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
@@ -343,7 +362,7 @@ public class AttachmentsApiIT {
     @Test
     @DisplayName("Given an attachment identifier, if the user is not authenticated return a status code 401")
     public void deleteAttachment_testErrorUnauthenticatedUser() throws Exception {
-      MockHttpResponse response = dispatcher.delete(String.join("", "/attachments/", UUID.randomUUID().toString()),
+      MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID().toString()),
         null);
 
       assertEquals(Status.UNAUTHORIZED.getStatusCode(), response.getStatus());
@@ -356,7 +375,7 @@ public class AttachmentsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
 
-      MockHttpResponse response = dispatcher.delete(String.join("", "/attachments/", fileMock.getId()), user3Token);
+      MockHttpResponse response = dispatcher.delete(url(fileMock.getId()), user3Token);
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -369,11 +388,31 @@ public class AttachmentsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
 
-      MockHttpResponse response = dispatcher.delete(String.join("", "/attachments/", fileMock.getId()), user2Token);
+      MockHttpResponse response = dispatcher.delete(url(fileMock.getId()), user2Token);
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user2Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given an attachment identifier, if the identifier is not an UUID return a status code 404")
+    public void deleteAttachment_testErrorIdentifierIsNotUUID() throws Exception {
+      MockHttpResponse response = dispatcher.delete(url("not_a_uuid"), user1Token);
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given an attachment identifier, if the attachment doesn't exist then return a status code 404")
+    public void deleteAttachment_testErrorFileNotExists() throws Exception {
+      MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID().toString()), user1Token);
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
   }
 }
