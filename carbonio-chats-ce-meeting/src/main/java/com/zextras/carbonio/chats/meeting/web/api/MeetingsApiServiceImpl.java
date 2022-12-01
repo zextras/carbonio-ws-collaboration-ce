@@ -98,6 +98,9 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response leaveMeeting(UUID meetingId, SecurityContext securityContext) {
-    return Response.status(Status.NOT_IMPLEMENTED).build();
+    participantService.removeMeetingParticipant(meetingId,
+      Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+        .orElseThrow(UnauthorizedException::new));
+    return Response.status(Status.NO_CONTENT).build();
   }
 }

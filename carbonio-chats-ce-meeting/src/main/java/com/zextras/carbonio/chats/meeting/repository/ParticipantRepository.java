@@ -20,4 +20,12 @@ public interface ParticipantRepository {
    * @return {@link Participant} inserted
    */
   Participant insertParticipant(Participant participant);
+
+  /**
+   * Removes the meeting participant
+   *
+   * @param participant meeting participant to remove
+   * @return true if the deletion was successful, false otherwise
+   */
+  boolean removeParticipant(Participant participant);
 }

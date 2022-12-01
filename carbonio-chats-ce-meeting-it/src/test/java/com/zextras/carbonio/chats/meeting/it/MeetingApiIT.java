@@ -494,4 +494,107 @@ public class MeetingApiIT {
       assertEquals(0, response.getOutput().length);
     }
   }
+
+  @Nested
+  @DisplayName("Leave meeting tests")
+  public class LeaveMeetingTests {
+
+    private String url(UUID meetingId) {
+      return String.format("/meetings/%s/leave", meetingId);
+    }
+
+    @Test
+    @DisplayName("Given a meeting identifier, the authenticated user correctly lefts from the meeting")
+    public void leaveMeeting_testOk() throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+        ParticipantBuilder.create(user1Id, user1session1).microphoneOn(true).cameraOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
+
+      MockHttpResponse response = dispatcher
+        .put(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      Meeting meeting = meetingTestUtils.getMeetingById(meetingId).orElseThrow();
+      assertTrue(meeting.getParticipants().stream().filter(participant ->
+        user1Id.toString().equals(participant.getUserId()) &&
+          user1session1.equals(participant.getSessionId())
+      ).findAny().isEmpty());
+    }
+
+    @Test
+    @DisplayName("Given a meeting identifier, the authenticated user correctly lefts from the meeting and meeting will remove")
+    public void leaveMeeting_testOkLastParticipant() throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+        ParticipantBuilder.create(user1Id, user1session1).microphoneOn(true).cameraOn(true)));
+
+      MockHttpResponse response = dispatcher
+        .put(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      assertTrue(meetingTestUtils.getMeetingById(meetingId).isEmpty());
+    }
+
+    @Test
+    @DisplayName("Given a meeting identifier, if the authenticated user isn't a meeting participant then it returns a status code 404")
+    public void leaveMeeting_testIsNotMeetingParticipant() throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
+
+      MockHttpResponse response = dispatcher
+        .put(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(404, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("Given a meeting identifier, if the meeting doesn't exist then it returns a status code 404")
+    public void leaveMeeting_testMeetingNotExists() throws Exception {
+      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(404, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+
+    @Test
+    @DisplayName("Given a meeting identifier, if there isn't an authenticated user then it returns a status code 401")
+    public void leaveMeeting_testErrorUnauthenticatedUser() throws Exception {
+      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        Map.of("session-id", user1session1), null);
+
+      assertEquals(401, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+  }
 }
