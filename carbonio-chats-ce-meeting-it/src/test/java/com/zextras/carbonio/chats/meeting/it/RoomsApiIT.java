@@ -166,7 +166,7 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier, if there isn't an authenticated user then it returns a status code 401")
+    @DisplayName("Given a room identifier, if the user isn’t authenticated then it returns a status code 401")
     public void getMeetingByRoomId_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.get(url(roomId), null);
 
@@ -268,7 +268,7 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier, if there isn't an authenticated user then it returns a status code 401")
+    @DisplayName("Given a room identifier, if the user isn’t authenticated then it returns a status code 401")
     public void createMeetingByRoomIdTest_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(url(roomId), null, null);
 
