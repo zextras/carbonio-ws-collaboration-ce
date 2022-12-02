@@ -2,11 +2,11 @@ package com.zextras.carbonio.chats.meeting.web.api;
 
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.meeting.api.MeetingsApiService;
-import com.zextras.carbonio.chats.meeting.model.JoinSettingsDto;
-import com.zextras.carbonio.chats.meeting.model.MeetingDto;
 import com.zextras.carbonio.chats.meeting.service.MeetingService;
 import com.zextras.carbonio.chats.meeting.service.ParticipantService;
+import com.zextras.carbonio.meeting.api.MeetingsApiService;
+import com.zextras.carbonio.meeting.model.JoinSettingsDto;
+import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -33,7 +33,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * Gets meetings list for authenticated user.
    *
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 200 and the meetings list {@link MeetingDto} of authenticated user
+   * @return a response {@link Response) with status 200 and the meetings list {@link MeetingDto } of authenticated user
    * in the body
    */
   @Override

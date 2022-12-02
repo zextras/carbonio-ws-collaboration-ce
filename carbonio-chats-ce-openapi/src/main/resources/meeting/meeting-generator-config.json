@@ -2,9 +2,9 @@
   "title": "Zextras Carbonio Chats CE",
   "serverPort": 8080,
 
-  "apiPackage":     "com.zextras.carbonio.chats.meeting.api",
-  "invokerPackage": "com.zextras.carbonio.chats.meeting.api",
-  "modelPackage":   "com.zextras.carbonio.chats.meeting.model",
+  "apiPackage":     "com.zextras.carbonio.meeting.api",
+  "invokerPackage": "com.zextras.carbonio.meeting.api",
+  "modelPackage":   "com.zextras.carbonio.meeting.model",
   "sourceFolder": "src/main/java",
 
   "booleanGetterPrefix": "is",

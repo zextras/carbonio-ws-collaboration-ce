@@ -2,7 +2,7 @@ package com.zextras.carbonio.chats.meeting.mapper.impl;
 
 import com.zextras.carbonio.chats.meeting.data.entity.Participant;
 import com.zextras.carbonio.chats.meeting.mapper.ParticipantMapper;
-import com.zextras.carbonio.chats.meeting.model.ParticipantDto;
+import com.zextras.carbonio.meeting.model.ParticipantDto;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

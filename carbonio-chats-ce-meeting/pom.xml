@@ -26,12 +26,6 @@
       <version>${project.version}</version>
     </dependency>
 
-    <dependency>
-      <groupId>com.zextras.carbonio.chats</groupId>
-      <artifactId>carbonio-chats-ce-meeting-openapi</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
     <dependency>

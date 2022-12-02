@@ -1,10 +1,6 @@
 package com.zextras.carbonio.chats.meeting.config;
 
 import com.google.inject.AbstractModule;
-import com.zextras.carbonio.chats.meeting.api.MeetingsApi;
-import com.zextras.carbonio.chats.meeting.api.MeetingsApiService;
-import com.zextras.carbonio.chats.meeting.api.RoomsApi;
-import com.zextras.carbonio.chats.meeting.api.RoomsApiService;
 import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.impl.VideoServerServiceMock;
 import com.zextras.carbonio.chats.meeting.mapper.MeetingMapper;
@@ -21,6 +17,10 @@ import com.zextras.carbonio.chats.meeting.service.impl.MeetingServiceImpl;
 import com.zextras.carbonio.chats.meeting.service.impl.ParticipantServiceImpl;
 import com.zextras.carbonio.chats.meeting.web.api.MeetingsApiServiceImpl;
 import com.zextras.carbonio.chats.meeting.web.api.RoomsApiServiceImpl;
+import com.zextras.carbonio.meeting.api.MeetingsApi;
+import com.zextras.carbonio.meeting.api.MeetingsApiService;
+import com.zextras.carbonio.meeting.api.RoomsApi;
+import com.zextras.carbonio.meeting.api.RoomsApiService;
 
 public class MeetingModule extends AbstractModule {
 

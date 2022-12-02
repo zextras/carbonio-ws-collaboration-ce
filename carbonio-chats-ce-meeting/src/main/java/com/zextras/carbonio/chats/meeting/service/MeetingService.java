@@ -5,7 +5,7 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.meeting.data.entity.Meeting;
-import com.zextras.carbonio.chats.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,7 +36,7 @@ public interface MeetingService {
    *
    * @param meetingId meeting identifier {@link UUID}
    * @return The requested meeting {@link Meeting}
-   * @throws NotFoundException  if the meeting doesn't exist
+   * @throws NotFoundException if the meeting doesn't exist
    */
   Meeting getMeetingEntity(UUID meetingId);
 

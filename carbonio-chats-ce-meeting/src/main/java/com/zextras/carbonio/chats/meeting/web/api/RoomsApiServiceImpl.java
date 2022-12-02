@@ -2,9 +2,9 @@ package com.zextras.carbonio.chats.meeting.web.api;
 
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.meeting.api.RoomsApiService;
-import com.zextras.carbonio.chats.meeting.model.MeetingDto;
 import com.zextras.carbonio.chats.meeting.service.MeetingService;
+import com.zextras.carbonio.meeting.api.RoomsApiService;
+import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;

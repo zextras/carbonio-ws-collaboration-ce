@@ -4,7 +4,7 @@ import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.meeting.model.JoinSettingsDto;
+import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import java.util.UUID;
 
 public interface ParticipantService {

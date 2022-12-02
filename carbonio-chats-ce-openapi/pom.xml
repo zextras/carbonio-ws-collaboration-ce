@@ -1,11 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<!--
-SPDX-FileCopyrightText: 2022 2021 Zextras <https://www.zextras.com>
-
-SPDX-License-Identifier: AGPL-3.0-only
--->
-
 <project xmlns="http://maven.apache.org/POM/4.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -19,7 +12,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <version>0.1.2</version>
   </parent>
 
-  <artifactId>carbonio-chats-ce-core-openapi</artifactId>
+  <artifactId>carbonio-chats-ce-openapi</artifactId>
 
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
@@ -99,7 +92,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <executions>
 
           <execution>
-            <id>chats-core-api</id>
+            <id>chats-api</id>
             <goals>
               <goal>generate</goal>
             </goals>
@@ -107,15 +100,38 @@ SPDX-License-Identifier: AGPL-3.0-only
               <generatorName>jaxrs-resteasy</generatorName>
               <engine>mustache</engine>
               <!-- Openapi files -->
-              <inputSpec>${project.basedir}/src/main/resources/chats-core/chats-core-api.yaml</inputSpec>
-              <configurationFile>${project.basedir}/src/main/resources/chats-core/chats-core-generator-config.json
+              <inputSpec>${project.basedir}/src/main/resources/chats/chats-api.yaml</inputSpec>
+              <configurationFile>${project.basedir}/src/main/resources/chats/chats-generator-config.json
               </configurationFile>
-              <templateDirectory>${project.parent.basedir}/openapi-files/chats-templates</templateDirectory>
-              <ignoreFileOverride>${project.parent.basedir}/openapi-files/chats-generator-ignore
+              <templateDirectory>${project.basedir}/src/main/resources/templates</templateDirectory>
+              <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore
               </ignoreFileOverride>
               <!-- Generation options -->
               <output>${project.build.directory}/generated-sources/chats</output>
               <modelNameSuffix>dto</modelNameSuffix>
+              <skipValidateSpec>true</skipValidateSpec>
+            </configuration>
+          </execution>
+
+          <execution>
+            <id>meeting-api</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <generatorName>jaxrs-resteasy</generatorName>
+              <engine>mustache</engine>
+              <!-- Openapi files -->
+              <inputSpec>${project.basedir}/src/main/resources/meeting/meeting-api.yaml</inputSpec>
+              <configurationFile>${project.basedir}/src/main/resources/meeting/meeting-generator-config.json
+              </configurationFile>
+              <templateDirectory>${project.basedir}/src/main/resources/templates</templateDirectory>
+              <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore
+              </ignoreFileOverride>
+              <!-- Generation options -->
+              <output>${project.build.directory}/generated-sources/meeting</output>
+              <modelNameSuffix>dto</modelNameSuffix>
+              <skipValidateSpec>true</skipValidateSpec>
             </configuration>
           </execution>
 

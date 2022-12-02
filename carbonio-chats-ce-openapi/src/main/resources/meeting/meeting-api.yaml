@@ -9,7 +9,6 @@ servers:
   - url: http://localhost:10000
 tags:
   - name: Meetings
-  - name: Rooms
 paths:
   /meetings:
     get:
@@ -206,7 +205,7 @@ components:
           readOnly: true
           description: room identifier
         type:
-          $ref: "../../../../carbonio-chats-ce-core-openapi/src/main/resources/chats-core/chats-core-api.yaml#/components/schemas/RoomType"
+          $ref: "../chats/chats-api.yaml#/components/schemas/RoomType"
         name:
           type: string
           readOnly: true
