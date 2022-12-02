@@ -8,6 +8,7 @@ public class VideoServerServiceMock implements VideoServerService {
 
   @Override
   public void createMeeting(String meetingId) {
+
   }
 
   @Override

@@ -1,12 +1,16 @@
 package com.zextras.carbonio.chats.meeting.config;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.meeting.api.MeetingsApi;
 import com.zextras.carbonio.chats.meeting.api.MeetingsApiService;
 import com.zextras.carbonio.chats.meeting.api.RoomsApi;
 import com.zextras.carbonio.chats.meeting.api.RoomsApiService;
-import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.impl.VideoServerServiceMock;
+import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.JanusService;
+import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.impl.VideoServerClient;
+import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.impl.VideoServerServiceImpl;
 import com.zextras.carbonio.chats.meeting.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.meeting.mapper.ParticipantMapper;
 import com.zextras.carbonio.chats.meeting.mapper.impl.MeetingMapperImpl;
@@ -21,6 +25,7 @@ import com.zextras.carbonio.chats.meeting.service.impl.MeetingServiceImpl;
 import com.zextras.carbonio.chats.meeting.service.impl.ParticipantServiceImpl;
 import com.zextras.carbonio.chats.meeting.web.api.MeetingsApiServiceImpl;
 import com.zextras.carbonio.chats.meeting.web.api.RoomsApiServiceImpl;
+import javax.inject.Singleton;
 
 public class MeetingModule extends AbstractModule {
 
@@ -41,6 +46,17 @@ public class MeetingModule extends AbstractModule {
     bind(ParticipantRepository.class).to(EbeanParticipantRepository.class);
     bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
 
-    bind(VideoServerService.class).to(VideoServerServiceMock.class);
+    bind(JanusService.class).to(VideoServerServiceImpl.class);
+  }
+
+  @Singleton
+  @Provides
+  private VideoServerClient getVideoServerClient(AppConfig appConfig) {
+    return VideoServerClient.atURL(
+      String.format("http://%s:%s",
+        appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST).orElseThrow(),
+        appConfig.get(String.class, ConfigName.VIDEO_SERVER_PORT).orElseThrow()
+      )
+    );
   }
 }
