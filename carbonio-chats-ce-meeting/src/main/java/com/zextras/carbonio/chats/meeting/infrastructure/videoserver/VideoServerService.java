@@ -7,4 +7,6 @@ public interface VideoServerService {
   void deleteMeeting(String meetingId);
 
   void joinSession(String sessionId);
+
+  void leaveSession(String sessionId);
 }

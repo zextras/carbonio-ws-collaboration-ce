@@ -32,4 +32,9 @@ public class EbeanParticipantRepository implements ParticipantRepository {
     db.insert(participant);
     return participant;
   }
+
+  @Override
+  public boolean removeParticipant(Participant participant) {
+    return db.delete(participant);
+  }
 }

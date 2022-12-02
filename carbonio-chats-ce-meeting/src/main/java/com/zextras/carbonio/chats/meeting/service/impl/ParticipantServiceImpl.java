@@ -3,12 +3,14 @@ package com.zextras.carbonio.chats.meeting.service.impl;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
+import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.meeting.data.entity.Meeting;
 import com.zextras.carbonio.chats.meeting.data.entity.Participant;
 import com.zextras.carbonio.chats.meeting.data.event.MeetingParticipantJoinedEvent;
+import com.zextras.carbonio.chats.meeting.data.event.MeetingParticipantLeftEvent;
 import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.meeting.repository.ParticipantRepository;
@@ -62,5 +64,23 @@ public class ParticipantServiceImpl implements ParticipantService {
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       MeetingParticipantJoinedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).meetingId(meetingId));
+  }
+
+  @Override
+  @Transactional
+  public void removeMeetingParticipant(UUID meetingId, UserPrincipal currentUser) {
+    Meeting meeting = meetingService.getMeetingEntity(meetingId);
+    Participant participant = meeting.getParticipants().stream()
+      .filter(p -> currentUser.getId().equals(p.getUserId()) && currentUser.getSessionId().equals(p.getSessionId()))
+      .findAny().orElseThrow(() -> new NotFoundException("Session not found"));
+    Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
+    participantRepository.removeParticipant(participant);
+    videoServerService.leaveSession(currentUser.getSessionId());
+    eventDispatcher.sendToUserQueue(
+      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+      MeetingParticipantLeftEvent.create(currentUser.getUUID(), currentUser.getSessionId()).meetingId(meetingId));
+    if (meeting.getParticipants().size() == 1) {
+      meetingService.deleteMeetingById(meetingId, currentUser);
+    }
   }
 }

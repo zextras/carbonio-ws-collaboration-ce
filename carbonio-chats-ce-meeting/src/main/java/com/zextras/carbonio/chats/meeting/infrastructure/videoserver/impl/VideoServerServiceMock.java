@@ -19,4 +19,9 @@ public class VideoServerServiceMock implements VideoServerService {
   public void joinSession(String sessionId) {
 
   }
+
+  @Override
+  public void leaveSession(String sessionId) {
+
+  }
 }
