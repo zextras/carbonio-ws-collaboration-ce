@@ -16,7 +16,7 @@ import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.meeting.it.annotations.MeetingApiIntegrationTest;
 import com.zextras.carbonio.chats.meeting.it.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.meeting.it.utils.MeetingTestUtils;
-import com.zextras.carbonio.chats.meeting.repository.MeetingRepository;
+import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.api.RoomsApi;
 import com.zextras.carbonio.meeting.model.MeetingDto;

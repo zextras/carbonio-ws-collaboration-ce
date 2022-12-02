@@ -1,7 +1,7 @@
 package com.zextras.carbonio.chats.meeting.it.data.entity;
 
-import com.zextras.carbonio.chats.meeting.data.entity.Meeting;
-import com.zextras.carbonio.chats.meeting.data.entity.Participant;
+import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.entity.Participant;
 import java.util.UUID;
 
 public class ParticipantBuilder {

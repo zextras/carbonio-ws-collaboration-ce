@@ -22,7 +22,12 @@ public enum EventType implements EventTypeDescription {
   ROOM_UNMUTED("roomUnmuted"),
   USER_PICTURE_CHANGED("userPictureChanged"),
   USER_PICTURE_DELETED("userPictureDeleted"),
-  ROOM_HISTORY_CLEARED("roomHistoryCleared");
+  ROOM_HISTORY_CLEARED("roomHistoryCleared"),
+  MEETING_CREATED("meetingCreated"),
+  MEETING_DELETED("meetingDeleted"),
+  MEETING_PARTICIPANT_JOINED("meetingParticipantJoined"),
+  MEETING_PARTICIPANT_LEFT("meetingParticipantLeft");
+
 
   private final String description;
 

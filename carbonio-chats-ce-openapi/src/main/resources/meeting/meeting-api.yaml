@@ -52,43 +52,6 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /rooms/{roomId}/meeting:
-    get:
-      tags:
-        - Meetings
-        - Rooms
-      summary: Retrieves the meeting associated with the requested room
-      operationId: getMeetingByRoomId
-      parameters:
-        - $ref: '#/components/parameters/pathRoomId'
-      responses:
-        200:
-          $ref: '#/components/responses/200GetMeetingResponse'
-        401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
-        403:
-          $ref: '#/components/responses/403ForbiddenResponse'
-        404:
-          $ref: '#/components/responses/404NotFoundResponse'
-    put:
-      tags:
-        - Meetings
-        - Rooms
-      summary: Creates a meeting from the indicated room
-      operationId: createMeetingByRoom
-      parameters:
-        - $ref: '#/components/parameters/pathRoomId'
-      responses:
-        201:
-          $ref: '#/components/responses/201CreateMeetingResponse'
-        401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
-        403:
-          $ref: '#/components/responses/403ForbiddenResponse'
-        404:
-          $ref: '#/components/responses/404NotFoundResponse'
-        409:
-          $ref: '#/components/responses/409Conflict'
   /meetings/{meetingId}/join:
     put:
       tags:

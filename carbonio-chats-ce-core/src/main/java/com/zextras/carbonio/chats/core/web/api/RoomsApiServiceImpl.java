@@ -12,6 +12,7 @@ import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
+import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.Utils;
@@ -22,6 +23,7 @@ import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomRankDto;
+import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.io.File;
 import java.util.List;
 import java.util.Optional;
@@ -38,15 +40,18 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   private final RoomService       roomService;
   private final MembersService    membersService;
   private final AttachmentService attachmentService;
+  private final MeetingService    meetingService;
 
   @Inject
   public RoomsApiServiceImpl(
     RoomService roomService, MembersService membersService,
-    AttachmentService attachmentService
+    AttachmentService attachmentService,
+    MeetingService meetingService
   ) {
     this.roomService = roomService;
     this.membersService = membersService;
     this.attachmentService = attachmentService;
+    this.meetingService = meetingService;
   }
 
   @Override
@@ -277,5 +282,35 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .build();
   }
 
+  /**
+   * Created a meeting associated to the room
+   *
+   * @param roomId          room identifier {@link UUID}
+   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 201 and the created meeting {@link MeetingDto } in the body
+   */
+  @Override
+  public Response createMeetingByRoom(UUID roomId, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    return Response
+      .status(Status.CREATED)
+      .entity(meetingService.createMeetingByRoomId(roomId, currentUser))
+      .build();
+  }
+
+  /**
+   * Gets the meeting of requested room
+   *
+   * @param roomId          room identifier
+   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 200 and the requested meeting {@link MeetingDto } in the body
+   */
+  @Override
+  public Response getMeetingByRoomId(UUID roomId, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    return Response.ok().entity(meetingService.getMeetingByRoomId(roomId, currentUser)).build();
+  }
 
 }

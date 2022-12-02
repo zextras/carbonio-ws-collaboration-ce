@@ -15,6 +15,7 @@ tags:
   - name: Health
   - name: Miscellaneous
   - name: Authentication
+  - name: Meeting
 paths:
   /health:
     get:
@@ -336,6 +337,44 @@ paths:
           $ref: '#/components/responses/404NotFoundResponse'
         403:
           $ref: '#/components/responses/403ForbiddenResponse'
+  /rooms/{roomId}/meeting:
+    get:
+      tags:
+        - Meetings
+        - Rooms
+      summary: Retrieves the meeting associated with the requested room
+      operationId: getMeetingByRoomId
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+      responses:
+        200:
+          $ref: '#/components/responses/200GetRoomMeetingResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+    put:
+      tags:
+        - Meetings
+        - Rooms
+      summary: Creates a meeting from the indicated room
+      operationId: createMeetingByRoom
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+      responses:
+        201:
+          $ref: '#/components/responses/201CreateMeetingResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+        409:
+          $ref: '#/components/responses/409Conflict'
+
   /users/capabilities:
     get:
       tags:
@@ -822,6 +861,19 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Token'
+    200GetRoomMeetingResponse:
+      description: Gets the requested meeting data
+      content:
+        application/json:
+          schema:
+            $ref: '../meeting/meeting-api.yaml#/components/schemas/Meeting'
+    201CreateMeetingResponse:
+      description: Meeting was created successfully
+      content:
+        application/json:
+          schema:
+            $ref: '../meeting/meeting-api.yaml#/components/schemas/Meeting'
+
     400BadRequestResponse:
       description: The request had wrong or missing parameters
     401UnauthorizedResponse:

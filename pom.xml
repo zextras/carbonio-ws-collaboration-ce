@@ -83,7 +83,6 @@ SPDX-License-Identifier: AGPL-3.0-only
     <com.fasterxml.jackson.version>2.13.0</com.fasterxml.jackson.version>
     <org.openapitools.jackson-databind-nullable.version>0.2.2</org.openapitools.jackson-databind-nullable.version>
     <!-- Utilities -->
-    <org.mapstruct.version>1.4.2.Final</org.mapstruct.version>
     <org.apache.commons.version>3.12.0</org.apache.commons.version>
     <!-- Open api-->
     <io.swagger.version>1.6.3</io.swagger.version>
@@ -328,19 +327,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         <groupId>com.fasterxml.jackson.datatype</groupId>
         <artifactId>jackson-datatype-jsr310</artifactId>
         <version>${com.fasterxml.jackson.version}</version>
-      </dependency>
-
-      <!-- Mapstruct dependencies -->
-      <dependency>
-        <groupId>org.mapstruct</groupId>
-        <artifactId>mapstruct</artifactId>
-        <version>${org.mapstruct.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.mapstruct</groupId>
-        <artifactId>mapstruct-processor</artifactId>
-        <version>${org.mapstruct.version}</version>
       </dependency>
 
       <!-- Apache dependencies -->

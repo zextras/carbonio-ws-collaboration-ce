@@ -20,10 +20,11 @@
   </properties>
 
   <dependencies>
+
+    <!-- Guice dependencies -->
     <dependency>
-      <groupId>com.zextras.carbonio.chats</groupId>
-      <artifactId>carbonio-chats-ce-core</artifactId>
-      <version>${project.version}</version>
+      <groupId>com.google.inject</groupId>
+      <artifactId>guice</artifactId>
     </dependency>
 
     <!-- Tests dependency -->
