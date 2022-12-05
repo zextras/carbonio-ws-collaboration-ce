@@ -9,8 +9,10 @@ import com.zextras.carbonio.chats.meeting.api.MeetingsApiService;
 import com.zextras.carbonio.chats.meeting.api.RoomsApi;
 import com.zextras.carbonio.chats.meeting.api.RoomsApiService;
 import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.JanusService;
+import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.impl.VideoServerClient;
 import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.impl.VideoServerServiceImpl;
+import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.impl.VideoServerServiceMock;
 import com.zextras.carbonio.chats.meeting.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.meeting.mapper.ParticipantMapper;
 import com.zextras.carbonio.chats.meeting.mapper.impl.MeetingMapperImpl;
@@ -46,6 +48,7 @@ public class MeetingModule extends AbstractModule {
     bind(ParticipantRepository.class).to(EbeanParticipantRepository.class);
     bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
 
+    bind(VideoServerService.class).to(VideoServerServiceMock.class);
     bind(JanusService.class).to(VideoServerServiceImpl.class);
   }
 
