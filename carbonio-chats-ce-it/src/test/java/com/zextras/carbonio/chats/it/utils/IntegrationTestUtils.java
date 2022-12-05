@@ -1,4 +1,4 @@
-package com.zextras.carbonio.chats.it.Utils;
+package com.zextras.carbonio.chats.it.utils;
 
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -12,7 +12,7 @@ import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.utils.Utils;
-import com.zextras.carbonio.chats.it.Utils.MockedFiles.FileMock;
+import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.time.Clock;
 import java.time.OffsetDateTime;

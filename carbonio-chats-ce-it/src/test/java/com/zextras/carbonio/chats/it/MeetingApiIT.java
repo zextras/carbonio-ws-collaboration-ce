@@ -1,4 +1,4 @@
-package com.zextras.carbonio.chats.meeting.it;
+package com.zextras.carbonio.chats.it;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -7,23 +7,23 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.core.data.entity.Room;
-import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils;
-import com.zextras.carbonio.chats.it.Utils.IntegrationTestUtils.RoomMemberField;
-import com.zextras.carbonio.chats.it.Utils.MockedAccount;
-import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockedAccountType;
+import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
+import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
+import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils.RoomMemberField;
+import com.zextras.carbonio.chats.it.utils.MockedAccount;
+import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
-import com.zextras.carbonio.chats.meeting.it.annotations.MeetingApiIntegrationTest;
-import com.zextras.carbonio.chats.meeting.it.data.entity.ParticipantBuilder;
-import com.zextras.carbonio.chats.meeting.it.utils.MeetingTestUtils;
+import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
+import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import com.zextras.carbonio.meeting.api.RoomsApi;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
@@ -38,7 +38,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-@MeetingApiIntegrationTest
+@ApiIntegrationTest
 public class MeetingApiIT {
 
   private final ResteasyRequestDispatcher dispatcher;

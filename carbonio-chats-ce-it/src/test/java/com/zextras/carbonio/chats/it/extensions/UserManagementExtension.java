@@ -5,8 +5,8 @@ import static org.mockserver.model.HttpResponse.response;
 
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.it.Utils.MockedAccount;
-import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockUserProfile;
+import com.zextras.carbonio.chats.it.utils.MockedAccount;
+import com.zextras.carbonio.chats.it.utils.MockedAccount.MockUserProfile;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.usermanagement.entities.UserId;

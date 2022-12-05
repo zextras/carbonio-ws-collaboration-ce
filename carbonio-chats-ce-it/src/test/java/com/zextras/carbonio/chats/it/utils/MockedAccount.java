@@ -1,4 +1,4 @@
-package com.zextras.carbonio.chats.it.Utils;
+package com.zextras.carbonio.chats.it.utils;
 
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import java.util.ArrayList;

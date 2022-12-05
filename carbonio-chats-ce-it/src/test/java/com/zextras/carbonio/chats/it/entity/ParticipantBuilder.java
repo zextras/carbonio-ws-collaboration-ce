@@ -1,4 +1,4 @@
-package com.zextras.carbonio.chats.meeting.it.data.entity;
+package com.zextras.carbonio.chats.it.entity;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;

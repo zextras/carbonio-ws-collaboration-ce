@@ -1,6 +1,6 @@
-package com.zextras.carbonio.chats.it.Utils;
+package com.zextras.carbonio.chats.it.utils;
 
-import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockedAccountType;
+import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

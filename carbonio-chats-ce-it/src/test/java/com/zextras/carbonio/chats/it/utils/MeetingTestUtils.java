@@ -1,7 +1,7 @@
-package com.zextras.carbonio.chats.meeting.it.utils;
+package com.zextras.carbonio.chats.it.utils;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
-import com.zextras.carbonio.chats.meeting.it.data.entity.ParticipantBuilder;
+import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import java.util.List;
 import java.util.Optional;

@@ -1,4 +1,4 @@
-package com.zextras.carbonio.chats.it.Utils;
+package com.zextras.carbonio.chats.it.utils;
 
 import java.time.Duration;
 
