@@ -1,0 +1,59 @@
+package com.zextras.carbonio.chats.core.repository.impl;
+
+import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.repository.MeetingRepository;
+import io.ebean.Database;
+import java.util.List;
+import java.util.Optional;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+@Singleton
+public class EbeanMeetingRepository implements MeetingRepository {
+
+  private final Database db;
+
+  @Inject
+  public EbeanMeetingRepository(Database db) {
+    this.db = db;
+  }
+
+  @Override
+  public Optional<Meeting> getMeetingById(String meetingId) {
+    return db.find(Meeting.class)
+      .fetch("participants")
+      .where()
+      .eq("id", meetingId)
+      .findOneOrEmpty();
+  }
+
+  @Override
+  public List<Meeting> getMeetingsByRoomsIds(List<String> roomsIds) {
+    return db.find(Meeting.class)
+      .fetch("participants")
+      .where()
+      .in("roomId", roomsIds)
+      .findList();
+  }
+
+  @Override
+  public Optional<Meeting> getMeetingByRoomId(String roomId) {
+    return db.find(Meeting.class)
+      .fetch("participants")
+      .where()
+      .eq("roomId", roomId)
+      .findOneOrEmpty();
+  }
+
+  @Override
+  public Meeting insert(Meeting meeting) {
+    db.insert(meeting);
+    return meeting;
+  }
+
+  @Override
+  public void deleteById(String meetingId) {
+    db.delete(Meeting.class, meetingId);
+  }
+
+}
