@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.api.AuthApi;
-import com.zextras.carbonio.chats.it.Utils.MockedAccount;
-import com.zextras.carbonio.chats.it.Utils.MockedAccount.MockUserProfile;
+import com.zextras.carbonio.chats.it.utils.MockedAccount;
+import com.zextras.carbonio.chats.it.utils.MockedAccount.MockUserProfile;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;

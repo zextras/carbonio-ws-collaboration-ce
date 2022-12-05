@@ -41,27 +41,27 @@ function change-project-version() {
   mvn versions:commit
 
   sed "s/  version: $old_version/  version: $new_version/" "$chats_api_file" -i
-  sed "s/  version: $old_version/  version: $new_version/" "$chats_internal_api_file" -i
+  sed "s/  version: $old_version/  version: $new_version/" "$meeting_api_file" -i
 }
 
 function check-project-version() {
   maven_version=$1
   check-yaml-version "$maven_version" "$chats_api_file"
   if [[ $? -eq 1 ]]; then
-    echo "The chats-core-api.yaml version is incorrect"
+    echo "The chats-api.yaml version is incorrect"
     exit 1
   fi
   if [[ $? -eq 2 ]]; then
-    echo "The chats-core-api.yaml version not found"
+    echo "The chats-api.yaml version not found"
     exit 1
   fi
-  check-yaml-version "$maven_version" "$chats_internal_api_file"
+  check-yaml-version "$maven_version" "$meeting_api_file"
   if [[ $? -eq 1 ]]; then
-    echo "The chats-internal-api.yaml version is incorrect"
+    echo "The meeting-api.yaml version is incorrect"
     exit 1
   fi
   if [[ $? -eq 2 ]]; then
-    echo "The chats-internal-api.yaml version not found"
+    echo "The meeting-api.yaml version not found"
     exit 1
   fi
   exit 0
@@ -77,7 +77,7 @@ function check-yaml-version() {
       if [[ "$str" == "$1" ]]; then
         exit 0
       else
-        echo "The chats-core-api.yaml version is incorrect"
+        echo "The chats-api.yaml version is incorrect"
         exit 1
       fi
     fi
@@ -103,6 +103,6 @@ function main() {
   echo "    CHECK: check that the version is adequate to the one passed by parameter"
   exit 1
 }
-chats_api_file="carbonio-chats-ce-core-openapi/src/main/resources/chats-core/chats-core-api.yaml"
-chats_internal_api_file="carbonio-chats-ce-core-openapi/src/main/resources/chats-core/chats-internal-api.yaml"
+chats_api_file="carbonio-chats-ce-openapi/src/main/resources/chats/chats-api.yaml"
+meeting_api_file="carbonio-chats-ce-openapi/src/main/resources/meeting/meeting-api.yaml"
 main "$1" "$2"

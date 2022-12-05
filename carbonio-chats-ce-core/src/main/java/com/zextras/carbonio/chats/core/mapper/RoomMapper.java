@@ -1,120 +1,70 @@
-// SPDX-FileCopyrightText: 2022 2021 Zextras <https://www.zextras.com>
-//
-// SPDX-License-Identifier: AGPL-3.0-only
-
 package com.zextras.carbonio.chats.core.mapper;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.model.RoomDto;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
-import com.zextras.carbonio.chats.model.RoomUserSettingsDto;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
+public interface RoomMapper {
 
-@Singleton
-public class RoomMapper {
-
-  private final SubscriptionMapper subscriptionMapper;
-
-  @Inject
-  public RoomMapper(SubscriptionMapper subscriptionMapper) {
-    this.subscriptionMapper = subscriptionMapper;
-  }
-
-  private RoomDto ent2dto(Room room, boolean includeMembers) {
-    return RoomDto.create()
-      .id(UUID.fromString(room.getId()))
-      .name(room.getName())
-      .description(room.getDescription())
-      .type(room.getType())
-      .hash(room.getHash())
-      .pictureUpdatedAt(room.getPictureUpdatedAt())
-      .createdAt(room.getCreatedAt())
-      .updatedAt(room.getUpdatedAt())
-      .parentId(room.getParentId() == null ? null : UUID.fromString(room.getParentId()))
-      .members(includeMembers ? subscriptionMapper.ent2memberDto(room.getSubscriptions()) : null);
-  }
-
+  /**
+   * Converts {@link Room} to {@link RoomDto}
+   *
+   * @param room            {@link Room} to convert
+   * @param userSettings    current user settings {@link RoomUserSettings}
+   * @param includeMembers  if true, it includes the room members
+   * @param includeSettings if true, it includes the current user settings
+   * @return Conversation result {@link RoomDto}
+   */
   @Nullable
-  public RoomDto ent2dto(Room room, RoomUserSettings userSettings, boolean includeMembers, boolean includeSettings) {
-    if (room == null) {
-      return null;
-    }
-    return ent2dto(room, includeMembers)
-      .rank(getRank(room, userSettings))
-      .children(RoomTypeDto.WORKSPACE.equals(room.getType()) ?
-        ent2dto(room.getChildren(), (RoomUserSettings) null, false, includeSettings) :
-        null)
-      .userSettings(includeSettings ? getRoomUserSettingsDto(room, userSettings) : null);
-  }
+  RoomDto ent2dto(
+    @Nullable Room room, @Nullable RoomUserSettings userSettings,
+    boolean includeMembers, boolean includeSettings
+  );
 
+  /**
+   * Converts a workspace {@link Room} to {@link RoomDto}
+   *
+   * @param room                workspace {@link Room} to convert
+   * @param settingsMapByRoomId current user settings {@link Map} for workspace groups {@link RoomUserSettings}
+   * @param includeMembers      if true, it includes the room members
+   * @param includeSettings     if true, it includes the current user settings
+   * @return Conversation result {@link RoomDto}
+   */
   @Nullable
-  public RoomDto ent2dto(
-    Room room, Map<String, RoomUserSettings> settingsMapByRoomId, boolean includeMembers, boolean includeSettings
-  ) {
-    if (room == null) {
-      return null;
-    }
-    return ent2dto(room, includeMembers)
-      .rank(getRank(room, settingsMapByRoomId == null ? null : settingsMapByRoomId.get(room.getId())))
-      .children(RoomTypeDto.WORKSPACE.equals(room.getType()) ?
-        ent2dto(room.getChildren(), settingsMapByRoomId, false,
-          includeSettings) : null)
-      .userSettings(
-        includeSettings ?
-          getRoomUserSettingsDto(room, settingsMapByRoomId == null ? null : settingsMapByRoomId.get(room.getId())) :
-          null);
-  }
+  RoomDto ent2dto(
+    @Nullable Room room, @Nullable Map<String, RoomUserSettings> settingsMapByRoomId,
+    boolean includeMembers, boolean includeSettings
+  );
 
-  public List<RoomDto> ent2dto(
-    List<Room> rooms, @Nullable RoomUserSettings userSettings, boolean includeMembers, boolean includeSettings
-  ) {
-    return rooms.stream()
-      .map(room -> ent2dto(room, userSettings, includeMembers, includeSettings))
-      .collect(Collectors.toList());
-  }
+  /**
+   * Converts {@link List} of {@link Room} to {@link List} of {@link RoomDto}
+   *
+   * @param rooms           {@link List} of {@link Room} to convert
+   * @param userSettings    current user settings {@link RoomUserSettings}
+   * @param includeMembers  if true, it includes the room members
+   * @param includeSettings if true, it includes the current user settings
+   * @return Conversation result ({@link List} of {@link RoomDto})
+   */
+  List<RoomDto> ent2dto(
+    @Nullable List<Room> rooms, @Nullable RoomUserSettings userSettings,
+    boolean includeMembers, boolean includeSettings
+  );
 
-  public List<RoomDto> ent2dto(
-    List<Room> rooms, @Nullable Map<String, RoomUserSettings> settingsMapByRoomId, boolean includeMembers,
-    boolean includeSettings
-  ) {
-    return rooms.stream()
-      .map(room -> ent2dto(room, settingsMapByRoomId, includeMembers, includeSettings)
-      ).collect(Collectors.toList());
-  }
-
-  @Nullable
-  private RoomUserSettingsDto getRoomUserSettingsDto(
-    Room room, @Nullable RoomUserSettings userSettings
-  ) {
-    if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
-      return null;
-    } else {
-      RoomUserSettingsDto userSettingsDto = RoomUserSettingsDto.create();
-      if (userSettings == null) {
-        userSettingsDto.muted(false);
-      } else {
-        userSettingsDto.muted(userSettings.getMutedUntil() != null);
-        userSettingsDto.clearedAt(userSettings.getClearedAt());
-      }
-      return userSettingsDto;
-    }
-  }
-
-  @Nullable
-  private Integer getRank(Room room, @Nullable RoomUserSettings userSettings) {
-    if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
-      return userSettings == null ? null : userSettings.getRank();
-    } else {
-      return room.getRank();
-    }
-  }
+  /**
+   * Converts {@link List} of workspace {@link Room} to {@link List} of  {@link RoomDto}
+   *
+   * @param rooms               {@link List} of workspace {@link Room} to convert
+   * @param settingsMapByRoomId current user settings {@link Map} for workspace groups {@link RoomUserSettings}
+   * @param includeMembers      if true, it includes the room members
+   * @param includeSettings     if true, it includes the current user settings
+   * @return Conversation result ({@link List} of {@link RoomDto})
+   */
+  List<RoomDto> ent2dto(
+    @Nullable List<Room> rooms, @Nullable Map<String, RoomUserSettings> settingsMapByRoomId,
+    boolean includeMembers, boolean includeSettings
+  );
 }
 

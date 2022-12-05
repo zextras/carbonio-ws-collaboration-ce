@@ -9,28 +9,36 @@ import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import java.util.List;
-import java.util.UUID;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import javax.annotation.Nullable;
 
-@Mapper(componentModel = "jsr330", imports = {UUID.class})
-public abstract class SubscriptionMapper {
+public interface SubscriptionMapper {
 
-  @Mapping(target = "userId", expression = "java(UUID.fromString(subscription.getUserId()))")
-  public abstract MemberDto ent2memberDto(Subscription subscription);
+  /**
+   * Converts {@link Subscription} to {@link MemberDto}
+   *
+   * @param subscription {@link Subscription} to convert
+   * @return conversation result {@link MemberDto}
+   */
+  @Nullable
+  MemberDto ent2memberDto(@Nullable Subscription subscription);
 
-  public abstract List<MemberDto> ent2memberDto(List<Subscription> subscription);
+  /**
+   * Converts a {@link List} of {@link Subscription} to a {@link List} of {@link MemberDto}
+   *
+   * @param subscriptions {@link List} of {@link Subscription} to convert
+   * @return conversation result ({@link List} of {@link MemberDto})
+   */
+  List<MemberDto> ent2memberDto(@Nullable List<Subscription> subscriptions);
 
-  public MemberInsertedDto ent2memberInsertedDto(Subscription subscription, RoomUserSettings roomUserSettings) {
-    if (subscription == null) {
-      return null;
-    }
-
-    return MemberInsertedDto.create()
-      .owner(subscription.isOwner())
-      .temporary(subscription.isTemporary())
-      .external(subscription.isExternal())
-      .userId(UUID.fromString(subscription.getUserId()))
-      .clearedAt(roomUserSettings == null ? null : roomUserSettings.getClearedAt());
-  }
+  /**
+   * Converts {@link Subscription} to {@link MemberInsertedDto} with current user settings
+   *
+   * @param subscription     {@link Subscription} to convert
+   * @param roomUserSettings current user settings {@link RoomUserSettings}
+   * @return conversation result {@link MemberInsertedDto}
+   */
+  @Nullable
+  MemberInsertedDto ent2memberInsertedDto(
+    @Nullable Subscription subscription, @Nullable RoomUserSettings roomUserSettings
+  );
 }

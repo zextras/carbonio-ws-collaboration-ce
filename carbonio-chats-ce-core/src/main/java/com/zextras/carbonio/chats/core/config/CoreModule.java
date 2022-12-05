@@ -43,18 +43,27 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.logging.aop.TimedCallInterceptor;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
-import com.zextras.carbonio.chats.core.mapper.AttachmentMapperImpl;
+import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
+import com.zextras.carbonio.chats.core.mapper.ParticipantMapper;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
-import com.zextras.carbonio.chats.core.mapper.SubscriptionMapperImpl;
+import com.zextras.carbonio.chats.core.mapper.impl.AttachmentMapperImpl;
+import com.zextras.carbonio.chats.core.mapper.impl.MeetingMapperImpl;
+import com.zextras.carbonio.chats.core.mapper.impl.ParticipantMapperImpl;
+import com.zextras.carbonio.chats.core.mapper.impl.RoomMapperImpl;
+import com.zextras.carbonio.chats.core.mapper.impl.SubscriptionMapperImpl;
 import com.zextras.carbonio.chats.core.provider.AppInfoProvider;
 import com.zextras.carbonio.chats.core.provider.impl.AppInfoProviderImpl;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
+import com.zextras.carbonio.chats.core.repository.MeetingRepository;
+import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanFileMetadataRepository;
+import com.zextras.carbonio.chats.core.repository.impl.EbeanMeetingRepository;
+import com.zextras.carbonio.chats.core.repository.impl.EbeanParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanSubscriptionRepository;
@@ -62,18 +71,23 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanUserRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
+import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
+import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.CapabilityServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.HealthcheckServiceImpl;
+import com.zextras.carbonio.chats.core.service.impl.MeetingServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
+import com.zextras.carbonio.chats.core.service.impl.ParticipantServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AuthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.MeetingsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.SupportedApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
@@ -85,11 +99,15 @@ import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler
 import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
+import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.impl.VideoServerServiceMock;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.ContactsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.OneToOneMessagesApi;
 import com.zextras.carbonio.chats.mongooseim.admin.invoker.ApiClient;
+import com.zextras.carbonio.meeting.api.MeetingsApi;
+import com.zextras.carbonio.meeting.api.MeetingsApiService;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.storages.api.StoragesClient;
@@ -123,7 +141,7 @@ public class CoreModule extends AbstractModule {
     bind(RoomsApi.class);
     bind(RoomsApiService.class).to(RoomsApiServiceImpl.class);
     bind(RoomRepository.class).to(EbeanRoomRepository.class);
-    bind(RoomMapper.class);
+    bind(RoomMapper.class).to(RoomMapperImpl.class);
     bind(RoomService.class).to(RoomServiceImpl.class);
 
     bind(AttachmentsApi.class);
@@ -158,6 +176,19 @@ public class CoreModule extends AbstractModule {
     bind(UserRepository.class).to(EbeanUserRepository.class);
 
     bind(CapabilityService.class).to(CapabilityServiceImpl.class);
+
+
+    bind(MeetingsApi.class);
+    bind(MeetingsApiService.class).to(MeetingsApiServiceImpl.class);
+    bind(MeetingService.class).to(MeetingServiceImpl.class);
+    bind(MeetingRepository.class).to(EbeanMeetingRepository.class);
+    bind(MeetingMapper.class).to(MeetingMapperImpl.class);
+
+    bind(ParticipantService.class).to(ParticipantServiceImpl.class);
+    bind(ParticipantRepository.class).to(EbeanParticipantRepository.class);
+    bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
+
+    bind(VideoServerService.class).to(VideoServerServiceMock.class);
 
     bind(MessageDispatcher.class).to(MessageDispatcherMongooseIm.class);
     bind(StoragesService.class).to(StoragesServiceImpl.class);
