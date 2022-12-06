@@ -1,4 +1,4 @@
-package com.zextras.carbonio.chats.meeting.infrastructure.videoserver;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver;
 
 public interface VideoServerService {
 

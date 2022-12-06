@@ -1,6 +1,6 @@
-package com.zextras.carbonio.chats.meeting.infrastructure.videoserver.impl;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver.impl;
 
-import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import javax.inject.Singleton;
 
 @Singleton

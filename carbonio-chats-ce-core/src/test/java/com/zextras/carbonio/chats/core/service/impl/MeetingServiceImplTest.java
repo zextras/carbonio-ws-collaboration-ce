@@ -13,23 +13,23 @@ import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingCreatedEvent;
 import com.zextras.carbonio.chats.core.data.event.MeetingDeletedEvent;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
-import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
@@ -317,6 +317,60 @@ public class MeetingServiceImplTest {
   }
 
   @Nested
+  @DisplayName("Get meeting entity tests")
+  public class GetMeetingEntityTests {
+
+    @Test
+    @DisplayName("Returns the required meeting entity with all participants")
+    public void getMeetingEntity_TestOk() {
+      when(meetingRepository.getMeetingById(meeting1Id.toString())).thenReturn(Optional.of(meeting1));
+
+      Meeting meeting = meetingService.getMeetingEntity(meeting1Id);
+      assertNotNull(meeting);
+      assertEquals(meeting1Id.toString(), meeting.getId());
+      assertEquals(room1Id.toString(), meeting.getRoomId());
+      assertNotNull(meeting.getParticipants());
+      assertEquals(4, meeting.getParticipants().size());
+      assertEquals(1, (int) meeting.getParticipants().stream()
+        .filter(p -> user1Id.toString().equals(p.getUserId())).count());
+      assertEquals(2, (int) meeting.getParticipants().stream()
+        .filter(p -> user2Id.toString().equals(p.getUserId())).count());
+      assertEquals(1, (int) meeting.getParticipants().stream()
+        .filter(p -> user3Id.toString().equals(p.getUserId())).count());
+      Optional<Participant> participant1 = meeting.getParticipants().stream()
+        .filter(p -> user1Id.toString().equals(p.getUserId())).findAny();
+      assertTrue(participant1.isPresent());
+      assertEquals(user1Id.toString(), participant1.get().getUserId());
+      assertEquals(session1User1Id, participant1.get().getSessionId());
+      assertTrue(participant1.get().getCameraOn());
+      assertTrue(participant1.get().getMicrophoneOn());
+
+      verify(meetingRepository, times(1)).getMeetingById(meeting1Id.toString());
+      verifyNoMoreInteractions(meetingRepository);
+      verifyNoInteractions(membersService, roomService, videoServerService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the meeting doesn't exists, it throws a 'not found' exception")
+    public void getMeetingEntity_testMeetingNotExists() {
+      when(meetingRepository.getMeetingById(meeting1Id.toString())).thenReturn(Optional.empty());
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
+        meetingService.getMeetingById(meeting1Id, UserPrincipal.create(user1Id)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Not Found - Meeting with id '%s' not found", meeting1Id),
+        exception.getMessage());
+
+      verify(meetingRepository, times(1)).getMeetingById(meeting1Id.toString());
+      verifyNoMoreInteractions(meetingRepository);
+      verifyNoInteractions(membersService, roomService, videoServerService, eventDispatcher);
+    }
+  }
+
+  @Nested
   @DisplayName("Get meeting by room id tests")
   public class GetMeetingByRoomIdTests {
 
@@ -378,12 +432,28 @@ public class MeetingServiceImplTest {
   }
 
   @Nested
-  @DisplayName("Create meeting by room id tests")
-  public class CreateMeetingByRoomIdTests {
+  @DisplayName("Gets creates meeting entity by room id tests")
+  public class GetsOrCreatesMeetingEntityByRoomIdTests {
 
     @Test
-    @DisplayName("It creates a meeting for specified room and returns it")
-    public void createMeetingByRoomId_testOk() {
+    @DisplayName("If meeting exists, correctly returns it")
+    public void getsOrCreatesMeetingEntityByRoomId_textOkMeetingExists() {
+      UserPrincipal userPrincipal = UserPrincipal.create(user1Id).sessionId(session1User1Id);
+      when(roomService.getRoomEntityAndCheckUser(room1Id, userPrincipal, false)).thenReturn(room1);
+      when(meetingRepository.getMeetingByRoomId(room1Id.toString())).thenReturn(Optional.of(meeting1));
+
+      Meeting meeting = meetingService.getsOrCreatesMeetingEntityByRoomId(room1Id, userPrincipal);
+      assertEquals(meeting1, meeting);
+
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(room1Id, userPrincipal, false);
+      verify(meetingRepository, times(1)).getMeetingByRoomId(room1Id.toString());
+      verifyNoMoreInteractions(roomService, meetingRepository);
+      verifyNoInteractions(membersService, videoServerService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If meeting doesn't exist, correctly it creates a new meeting for specified room and returns it")
+    public void getsOrCreatesMeetingEntityByRoomId_testOkMeetingNotExists() {
       UUID meetingId = UUID.randomUUID();
       Meeting meeting = Meeting.create().id(meetingId.toString()).roomId(room1Id.toString());
       UserPrincipal userPrincipal = UserPrincipal.create(user1Id);
@@ -391,17 +461,17 @@ public class MeetingServiceImplTest {
       when(meetingRepository.getMeetingByRoomId(room1Id.toString())).thenReturn(Optional.empty());
       when(meetingRepository.insert(meeting)).thenReturn(meeting);
 
-      MeetingDto meetingDto;
+      Meeting meetingEntity;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(meetingId);
-        uuid.when(() -> UUID.fromString(meeting.getId())).thenReturn(meetingId);
         uuid.when(() -> UUID.fromString(room1Id.toString())).thenReturn(room1Id);
-        meetingDto = meetingService.createMeetingByRoomId(room1Id, userPrincipal);
+        uuid.when(() -> UUID.fromString(meetingId.toString())).thenReturn(meetingId);
+        meetingEntity = meetingService.getsOrCreatesMeetingEntityByRoomId(room1Id, userPrincipal);
       }
 
-      assertNotNull(meetingDto);
-      assertEquals(meetingId, meetingDto.getId());
-      assertEquals(room1Id, meetingDto.getRoomId());
+      assertNotNull(meetingEntity);
+      assertEquals(meetingId.toString(), meetingEntity.getId());
+      assertEquals(room1Id.toString(), meetingEntity.getRoomId());
 
       verify(roomService, times(1)).getRoomEntityAndCheckUser(room1Id, userPrincipal, false);
       verify(meetingRepository, times(1)).getMeetingByRoomId(room1Id.toString());
@@ -412,26 +482,6 @@ public class MeetingServiceImplTest {
         MeetingCreatedEvent.create(user1Id, null).meetingId(meetingId).roomId(room1Id));
       verifyNoMoreInteractions(roomService, meetingRepository, videoServerService, eventDispatcher);
       verifyNoInteractions(membersService);
-    }
-
-    @Test
-    @DisplayName("If the room has a meeting, it throws a 'conflict' exception")
-    public void createMeetingByRoomId_testRoomMeetingExists() {
-      UserPrincipal userPrincipal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(room1Id, userPrincipal, false)).thenReturn(room1);
-      when(meetingRepository.getMeetingByRoomId(room1Id.toString())).thenReturn(Optional.of(Meeting.create()));
-
-      ChatsHttpException exception = assertThrows(ConflictException.class, () ->
-        meetingService.createMeetingByRoomId(room1Id, userPrincipal));
-
-      assertEquals(Status.CONFLICT.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.CONFLICT.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(String.format("Conflict - Meeting for room '%s' exists", room1Id), exception.getMessage());
-
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(room1Id, userPrincipal, false);
-      verify(meetingRepository, times(1)).getMeetingByRoomId(room1Id.toString());
-      verifyNoMoreInteractions(roomService, meetingRepository);
-      verifyNoInteractions(membersService, videoServerService, eventDispatcher);
     }
 
   }

@@ -99,8 +99,8 @@ import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler
 import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
-import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.impl.VideoServerServiceMock;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceMock;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.ContactsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;

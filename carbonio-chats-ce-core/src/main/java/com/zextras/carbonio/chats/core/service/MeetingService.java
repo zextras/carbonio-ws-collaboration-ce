@@ -1,10 +1,9 @@
 package com.zextras.carbonio.chats.core.service;
 
-import com.zextras.carbonio.chats.core.exception.ConflictException;
+import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.util.List;
 import java.util.UUID;
@@ -52,16 +51,15 @@ public interface MeetingService {
   MeetingDto getMeetingByRoomId(UUID roomId, UserPrincipal currentUser);
 
   /**
-   * Creates a meeting for the indicated room
+   * Gets or creates a meeting for the indicated room
    *
    * @param roomId      room identifier  {@link UUID }
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The newly created meeting {@link MeetingDto}
+   * @return The requested or newly created meeting {@link Meeting}
    * @throws NotFoundException  if the indicated room doesn't exist
    * @throws ForbiddenException if the current user isn't a member of indicated room
-   * @throws ConflictException  if the room meeting already exists
    */
-  MeetingDto createMeetingByRoomId(UUID roomId, UserPrincipal currentUser);
+  Meeting getsOrCreatesMeetingEntityByRoomId(UUID roomId, UserPrincipal currentUser);
 
   /**
    * Deletes a meeting ny identifier

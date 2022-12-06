@@ -1,21 +1,20 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
+import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.exception.ConflictException;
+import com.zextras.carbonio.chats.core.data.event.MeetingCreatedEvent;
+import com.zextras.carbonio.chats.core.data.event.MeetingDeletedEvent;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.service.MembersService;
-import com.zextras.carbonio.chats.core.service.RoomService;
-import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.core.data.entity.Meeting;
-import com.zextras.carbonio.chats.core.data.event.MeetingCreatedEvent;
-import com.zextras.carbonio.chats.core.data.event.MeetingDeletedEvent;
-import com.zextras.carbonio.chats.meeting.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
+import com.zextras.carbonio.chats.core.service.MembersService;
+import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import io.ebean.annotation.Transactional;
 import java.util.List;
@@ -85,21 +84,20 @@ public class MeetingServiceImpl implements MeetingService {
 
   @Override
   @Transactional
-  public MeetingDto createMeetingByRoomId(UUID roomId, UserPrincipal currentUser) {
+  public Meeting getsOrCreatesMeetingEntityByRoomId(UUID roomId, UserPrincipal currentUser) {
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
-    if (meetingRepository.getMeetingByRoomId(roomId.toString()).isPresent()) {
-      throw new ConflictException(String.format("Meeting for room '%s' exists", roomId));
-    }
-    Meeting meeting = meetingRepository.insert(Meeting.create()
-      .id(UUID.randomUUID().toString())
-      .roomId(roomId.toString()));
-    videoServerService.createMeeting(meeting.getId());
-    eventDispatcher.sendToUserQueue(
-      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      MeetingCreatedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
-        .meetingId(UUID.fromString(meeting.getId()))
-        .roomId(roomId));
-    return meetingMapper.ent2dto(meeting);
+    return meetingRepository.getMeetingByRoomId(roomId.toString()).orElseGet(() -> {
+      Meeting meeting = meetingRepository.insert(Meeting.create()
+        .id(UUID.randomUUID().toString())
+        .roomId(roomId.toString()));
+      videoServerService.createMeeting(meeting.getId());
+      eventDispatcher.sendToUserQueue(
+        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        MeetingCreatedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
+          .meetingId(UUID.fromString(meeting.getId()))
+          .roomId(roomId));
+      return meeting;
+    });
   }
 
   @Override

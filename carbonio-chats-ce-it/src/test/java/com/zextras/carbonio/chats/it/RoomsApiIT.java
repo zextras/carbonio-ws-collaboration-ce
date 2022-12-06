@@ -12,6 +12,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
+import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
@@ -47,6 +49,7 @@ import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.SubscriptionActionDto;
 import com.zextras.carbonio.chats.mongooseim.admin.model.SubscriptionActionDto.ActionEnum;
+import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
 import java.time.Clock;
@@ -3464,16 +3467,54 @@ public class RoomsApiIT {
   }
 
   @Nested
-  @DisplayName("Create meeting by room tests")
-  public class CreateMeetingByRoomIdTests {
+  @DisplayName("Join room meeting tests")
+  public class JoinRoomMeetingTests {
 
     private String url(UUID roomId) {
-      return String.format("/rooms/%s/meeting", roomId);
+      return String.format("/rooms/%s/meeting/join", roomId);
     }
 
     @Test
-    @DisplayName("Given a room identifier, it creates a new meeting associated with the indicated room and returns its data")
-    public void createMeetingByRoomIdTest_testOk() throws Exception {
+    @DisplayName("Given a room identifier, if the room meeting exists the authenticated user correctly joins to the meeting")
+    public void joinRoomMeeting_testOkMeetingExists() throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
+        ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(false).cameraOn(true),
+        ParticipantBuilder.create(user2Id, "user2session2").microphoneOn(true).cameraOn(false),
+        ParticipantBuilder.create(user3Id, "user3session1").microphoneOn(false).cameraOn(false)));
+      Instant executionInstant = Instant.parse("2022-01-01T00:00:00Z");
+      clock.fixTimeAt(executionInstant);
+      MockHttpResponse response = dispatcher.put(url(roomId),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        Map.of("session-id", "user1session1"), user1Token);
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+
+      Meeting meeting = meetingTestUtils.getMeetingById(meetingId).orElseThrow();
+      assertNotNull(meeting);
+      assertEquals(meetingId.toString(), meeting.getId());
+      assertEquals(roomId.toString(), meeting.getRoomId());
+      assertEquals(4, meeting.getParticipants().size());
+      Participant newParticipant = meeting.getParticipants().stream().filter(participant ->
+        user1Id.toString().equals(participant.getUserId()) && "user1session1".equals(participant.getSessionId())
+      ).findAny().orElseThrow();
+      assertTrue(newParticipant.getMicrophoneOn());
+      assertFalse(newParticipant.getCameraOn());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a room identifier, if the room meeting doesn't exist " +
+      "it creates a new meeting associated with the indicated room and authenticated user correctly joins to the meeting")
+    public void joinRoomMeeting_testOkMeetingNotExists() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
@@ -3490,49 +3531,32 @@ public class RoomsApiIT {
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         uuid.when(() -> UUID.fromString(meetingId.toString())).thenReturn(meetingId);
         uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
-        response = dispatcher.put(url(roomId), null, user1Token);
+        response = dispatcher.put(url(roomId),
+          objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+          Map.of("session-id", "user1session1"), user1Token);
       }
       clock.removeFixTime();
-      assertEquals(201, response.getStatus());
+      assertEquals(200, response.getStatus());
       MeetingDto meetingDto = objectMapper.readValue(response.getContentAsString(), MeetingDto.class);
       assertNotNull(meetingDto);
       assertEquals("86cc37de-1217-4056-8c95-69997a6bccce", meetingDto.getId().toString());
       assertEquals(roomId, meetingDto.getRoomId());
-      assertNotNull(meetingDto.getParticipants());
-      assertEquals(0, meetingDto.getParticipants().size());
       assertEquals(executionInstant, meetingDto.getCreatedAt().toInstant());
+      assertNotNull(meetingDto.getParticipants());
+      assertEquals(1, meetingDto.getParticipants().size());
+      assertEquals(user1Id, meetingDto.getParticipants().get(0).getUserId());
+      assertTrue(meetingDto.getParticipants().get(0).isHasMicrophoneOn());
+      assertFalse(meetingDto.getParticipants().get(0).isHasCameraOn());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-    }
-
-    @Test
-    @DisplayName("Given a room identifier, if there is a meeting associated with the room then it returns a status code 409")
-    public void createMeetingByRoomIdTest_testErrorMeetingExists() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
-      UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
-      integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
-        List.of(
-          RoomMemberField.create().id(user1Id).owner(true),
-          RoomMemberField.create().id(user2Id),
-          RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
-        ParticipantBuilder.create(user1Id, "user1session1"),
-        ParticipantBuilder.create(user2Id, "user2session1"),
-        ParticipantBuilder.create(user2Id, "user2session2"),
-        ParticipantBuilder.create(user3Id, "user3session1")));
-
-      MockHttpResponse response = dispatcher.put(url(roomId), null, user1Token);
-
-      assertEquals(409, response.getStatus());
-      assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
     @Test
     @DisplayName("Given a room identifier, if the room doesn't exists then it returns a status code 404")
-    public void createMeetingByRoomIdTest_testErrorRoomNotExists() throws Exception {
-      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()), null, user1Token);
+    public void joinRoomMeeting_testErrorRoomNotExists() throws Exception {
+      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        Map.of("session-id", "user1session1"), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -3541,7 +3565,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if authenticated user isn't a room member then return a status code 403")
-    public void createMeetingByRoomIdTest_testErrorUserIsNotARoomMember() throws Exception {
+    public void joinRoomMeeting_testErrorUserIsNotARoomMember() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
@@ -3549,7 +3573,9 @@ public class RoomsApiIT {
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
 
-      MockHttpResponse response = dispatcher.put(url(roomId), null, user1Token);
+      MockHttpResponse response = dispatcher.put(url(roomId),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        Map.of("session-id", "user1session1"), user1Token);
 
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -3559,9 +3585,9 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if the user isn’t authenticated then it returns a status code 401")
-    public void createMeetingByRoomIdTest_testErrorUnauthenticatedUser() throws Exception {
-      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()), null, null);
-
+    public void joinRoomMeeting_testErrorUnauthenticatedUser() throws Exception {
+      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)), null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }

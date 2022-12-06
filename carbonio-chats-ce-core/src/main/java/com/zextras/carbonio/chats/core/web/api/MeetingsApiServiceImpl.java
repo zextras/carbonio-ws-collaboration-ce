@@ -1,9 +1,9 @@
 package com.zextras.carbonio.chats.core.web.api;
 
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
-import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
+import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;

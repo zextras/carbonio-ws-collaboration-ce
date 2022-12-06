@@ -34,12 +34,6 @@ SPDX-License-Identifier: AGPL-3.0-only
     </dependency>
 
     <dependency>
-      <groupId>com.zextras.carbonio.chats</groupId>
-      <artifactId>carbonio-chats-ce-meeting</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
       <groupId>org.igniterealtime.smack</groupId>
       <artifactId>smack-core</artifactId>
       <version>4.4.5</version>
