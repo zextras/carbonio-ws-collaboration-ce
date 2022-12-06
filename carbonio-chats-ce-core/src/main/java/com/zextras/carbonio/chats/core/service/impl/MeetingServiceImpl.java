@@ -105,8 +105,13 @@ public class MeetingServiceImpl implements MeetingService {
     Meeting meeting = meetingRepository.getMeetingById(meetingId.toString())
       .orElseThrow(() -> new NotFoundException(
         String.format("Meeting with id '%s' not found", meetingId)));
+    deleteMeeting(meeting, currentUser);
+  }
+
+  @Override
+  public void deleteMeeting(Meeting meeting, UserPrincipal currentUser) {
     Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
-    meetingRepository.deleteById(meetingId.toString());
+    meetingRepository.delete(meeting);
     videoServerService.deleteMeeting(meeting.getId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),

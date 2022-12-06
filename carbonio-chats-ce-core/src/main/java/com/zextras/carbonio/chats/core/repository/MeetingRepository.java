@@ -42,7 +42,14 @@ public interface MeetingRepository {
   /**
    * Deletes a meeting by identifier
    *
-   * @param meetingId meeting identifier
+   * @param meetingId identifier of meeting to delete
    */
   void deleteById(String meetingId);
+
+  /**
+   * Deletes a meeting
+   *
+   * @param meeting meeting to delete
+   */
+  void delete(Meeting meeting);
 }

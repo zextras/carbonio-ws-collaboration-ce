@@ -288,7 +288,7 @@ public class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         MeetingParticipantLeftEvent.create(user2Id, user2Session1).meetingId(meeting2Id));
-      verify(meetingService, times(1)).deleteMeetingById(meeting2Id, currentUser);
+      verify(meetingService, times(1)).deleteMeeting(meeting2, currentUser);
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
 
@@ -310,6 +310,4 @@ public class ParticipantServiceImplTest {
       verifyNoInteractions(roomService, participantRepository, videoServerService, eventDispatcher);
     }
   }
-
-
 }

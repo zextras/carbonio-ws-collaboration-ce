@@ -62,7 +62,7 @@ public interface MeetingService {
   Meeting getsOrCreatesMeetingEntityByRoomId(UUID roomId, UserPrincipal currentUser);
 
   /**
-   * Deletes a meeting ny identifier
+   * Deletes a meeting by identifier
    *
    * @param meetingId   identifier of meeting to delete {@link UUID}
    * @param currentUser current authenticated user {@link UserPrincipal}
@@ -70,5 +70,13 @@ public interface MeetingService {
    * @throws ForbiddenException if the current user isn't a member of associated room
    */
   void deleteMeetingById(UUID meetingId, UserPrincipal currentUser);
+
+  /**
+   * Deletes a meeting.This method accepts an entity because it's intended to be used only to be called by services.
+   *
+   * @param meeting     meeting to delete {@link Meeting}
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   */
+  void deleteMeeting(Meeting meeting, UserPrincipal currentUser);
 
 }

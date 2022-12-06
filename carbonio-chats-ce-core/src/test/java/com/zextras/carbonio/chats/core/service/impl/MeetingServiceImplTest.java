@@ -499,7 +499,7 @@ public class MeetingServiceImplTest {
       meetingService.deleteMeetingById(meeting1Id, UserPrincipal.create(user1Id));
 
       verify(meetingRepository, times(1)).getMeetingById(meeting1Id.toString());
-      verify(meetingRepository, times(1)).deleteById(meeting1Id.toString());
+      verify(meetingRepository, times(1)).delete(meeting1);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(room1Id, UserPrincipal.create(user1Id), false);
       verify(videoServerService, times(1)).deleteMeeting(meeting1Id.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(

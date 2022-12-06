@@ -56,4 +56,9 @@ public class EbeanMeetingRepository implements MeetingRepository {
     db.delete(Meeting.class, meetingId);
   }
 
+  @Override
+  public void delete(Meeting meeting) {
+    db.delete(meeting);
+  }
+
 }

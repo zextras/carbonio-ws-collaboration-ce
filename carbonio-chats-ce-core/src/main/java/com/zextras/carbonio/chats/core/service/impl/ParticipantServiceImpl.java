@@ -100,8 +100,9 @@ public class ParticipantServiceImpl implements ParticipantService {
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       MeetingParticipantLeftEvent.create(currentUser.getUUID(), currentUser.getSessionId()).meetingId(meetingId));
-    if (meeting.getParticipants().size() == 1) {
-      meetingService.deleteMeetingById(meetingId, currentUser);
+    meeting.getParticipants().remove(participant);
+    if (meeting.getParticipants().isEmpty()) {
+      meetingService.deleteMeeting(meeting, currentUser);
     }
   }
 }
