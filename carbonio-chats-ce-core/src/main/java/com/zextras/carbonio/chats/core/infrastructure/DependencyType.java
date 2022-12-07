@@ -9,9 +9,10 @@ public enum DependencyType {
   XMPP_SERVER(DependencyHealthTypeDto.XMPP_SERVER.toString(), true),
   EVENT_DISPATCHER(DependencyHealthTypeDto.EVENT_DISPATCHER.toString(), false),
   STORAGE_SERVICE(DependencyHealthTypeDto.STORAGE_SERVICE.toString(), false),
-  PREVIEWER_SERVICE(DependencyHealthTypeDto.PREVIEWER_SERVICE.toString(), false);
+  PREVIEWER_SERVICE(DependencyHealthTypeDto.PREVIEWER_SERVICE.toString(), false),
+  VIDEOSERVER_SERVICE(DependencyHealthTypeDto.VIDEOSERVER_SERVICE.toString(), false);
 
-  private final String name;
+  private final String  name;
   private final boolean required;
 
   DependencyType(String name, boolean required) {

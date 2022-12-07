@@ -2,24 +2,23 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.JanusErrorResponse;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.JanusEvent;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.JanusEventsResponse;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.JanusIdResponse;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.JanusMessage;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.JanusPluginResponse;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.JanusResponse;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.JanusRoomErrorResponse;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.JanusRoomResponse;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.JanusSessionCreationRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.JanusSessionInteractionRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.RoomRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.entity.JanusEvent;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.entity.JanusMessage;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.JanusConnectionCreationRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.JanusConnectionInteractionRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.RoomRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.JanusErrorResponse;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.JanusEventsResponse;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.JanusIdResponse;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.JanusPluginResponse;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.JanusResponse;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.JanusRoomErrorResponse;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.JanusRoomResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import javax.annotation.Nullable;
-import javax.inject.Singleton;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.HttpVersion;
@@ -30,7 +29,6 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 
-@Singleton
 public class VideoServerClient {
 
   private static final String JANUS_ENDPOINT           = "/janus";
@@ -44,7 +42,7 @@ public class VideoServerClient {
   public static final  String JANUS_VIDEOROOM_PLUGIN   = "janus.plugin.videoroom";
   public static final  String JANUS_AUDIOBRIDGE_PLUGIN = "janus.plugin.audiobridge";
 
-  private String videoServerURL;
+  private final String videoServerURL;
 
   VideoServerClient(String videoServerURL) {
     this.videoServerURL = videoServerURL;
@@ -58,14 +56,14 @@ public class VideoServerClient {
     return new VideoServerClient(protocol + "://" + domain + ":" + port);
   }
 
-  public JanusResponse createSession() {
+  public JanusResponse createConnection() {
     CloseableHttpClient httpClient = HttpClients.createDefault();
     HttpPost request = new HttpPost(videoServerURL + JANUS_ENDPOINT);
     request.setProtocolVersion(HttpVersion.HTTP_1_1);
     request.addHeader("content-type", "application/json");
-    JanusSessionCreationRequest janusRequest = new JanusSessionCreationRequest(
+    JanusConnectionCreationRequest janusRequest = new JanusConnectionCreationRequest(
       JANUS_CREATE,
-      UUID.randomUUID()
+      UUID.randomUUID().toString()
     );
     try {
       request.setEntity(
@@ -91,9 +89,9 @@ public class VideoServerClient {
     }
   }
 
-  public JanusResponse getSessionEvents(String sessionId) {
+  public JanusResponse getConnectionEvents(String connectionId) {
     CloseableHttpClient httpClient = HttpClients.createDefault();
-    HttpGet request = new HttpGet(videoServerURL + JANUS_ENDPOINT + "/" + sessionId);
+    HttpGet request = new HttpGet(videoServerURL + JANUS_ENDPOINT + "/" + connectionId);
     request.setProtocolVersion(HttpVersion.HTTP_1_1);
     request.addHeader("content-type", "application/json");
     try {
@@ -119,14 +117,14 @@ public class VideoServerClient {
     }
   }
 
-  public JanusResponse manageSession(String sessionId, String action, @Nullable String pluginName) {
+  public JanusResponse interactWithConnection(String connectionId, String action, @Nullable String pluginName) {
     CloseableHttpClient httpClient = HttpClients.createDefault();
-    HttpPost request = new HttpPost(videoServerURL + JANUS_ENDPOINT + "/" + sessionId);
+    HttpPost request = new HttpPost(videoServerURL + JANUS_ENDPOINT + "/" + connectionId);
     request.setProtocolVersion(HttpVersion.HTTP_1_1);
     request.addHeader("content-type", "application/json");
-    JanusSessionInteractionRequest janusRequest = new JanusSessionInteractionRequest(
+    JanusConnectionInteractionRequest janusRequest = new JanusConnectionInteractionRequest(
       action,
-      UUID.randomUUID(),
+      UUID.randomUUID().toString(),
       pluginName
     );
     try {
@@ -153,13 +151,13 @@ public class VideoServerClient {
     }
   }
 
-  public JanusResponse destroySession(String sessionId) {
-    return manageSession(sessionId, JANUS_DESTROY, null);
+  public JanusResponse destroyConnection(String connectionId) {
+    return interactWithConnection(connectionId, JANUS_DESTROY, null);
   }
 
-  public JanusResponse getHandleEvents(String sessionId, String handleId) {
+  public JanusResponse getHandleEvents(String connectionId, String handleId) {
     CloseableHttpClient httpClient = HttpClients.createDefault();
-    HttpPost request = new HttpPost(videoServerURL + JANUS_ENDPOINT + "/" + sessionId + "/" + handleId);
+    HttpPost request = new HttpPost(videoServerURL + JANUS_ENDPOINT + "/" + connectionId + "/" + handleId);
     request.setProtocolVersion(HttpVersion.HTTP_1_1);
     request.addHeader("content-type", "application/json");
     try {
@@ -185,15 +183,15 @@ public class VideoServerClient {
     }
   }
 
-  public JanusPluginResponse sendPluginMessage(String sessionId, String handleId, String messageType,
+  public JanusPluginResponse sendPluginMessage(String connectionId, String handleId, String messageType,
     @Nullable RoomRequest body) {
     CloseableHttpClient httpClient = HttpClients.createDefault();
-    HttpPost request = new HttpPost(videoServerURL + JANUS_ENDPOINT + "/" + sessionId + "/" + handleId);
+    HttpPost request = new HttpPost(videoServerURL + JANUS_ENDPOINT + "/" + connectionId + "/" + handleId);
     request.setProtocolVersion(HttpVersion.HTTP_1_1);
     request.addHeader("content-type", "application/json");
     JanusMessage message = new JanusMessage(
       messageType,
-      UUID.randomUUID(),
+      UUID.randomUUID().toString(),
       body
     );
     try {
@@ -220,7 +218,7 @@ public class VideoServerClient {
     }
   }
 
-  public JanusPluginResponse destroyPluginHandle(String sessionId, String handleId) {
-    return sendPluginMessage(sessionId, handleId, JANUS_DETACH, null);
+  public JanusPluginResponse destroyPluginHandle(String connectionId, String handleId) {
+    return sendPluginMessage(connectionId, handleId, JANUS_DETACH, null);
   }
 }

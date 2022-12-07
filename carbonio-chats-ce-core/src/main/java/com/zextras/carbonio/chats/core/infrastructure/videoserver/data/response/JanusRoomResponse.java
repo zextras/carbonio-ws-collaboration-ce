@@ -1,43 +1,43 @@
-package com.zextras.carbonio.chats.core.infrastructure.videoserver.data;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.entity.Participant;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.entity.Room;
 import java.util.List;
 
 @JsonInclude(Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
 public class JanusRoomResponse implements JanusPluginResponse {
 
-  @JsonProperty
   private String            audioRoom;
-  @JsonProperty
   private String            videoRoom;
-  @JsonProperty
   private String            room;
-  @JsonProperty
   private String            permanent;
-  @JsonProperty
   private boolean           exists;
-  @JsonProperty
   private Allowed           allowed;
-  @JsonProperty
-  private List<VideoRoom>   videoRoomList;
-  @JsonProperty
+  @JsonProperty("list")
+  private List<Room>        roomList;
+  @JsonProperty("participants")
   private List<Participant> participantList;
 
   public JanusRoomResponse() {
   }
 
   public JanusRoomResponse(String audioRoom, String videoRoom, String room, String permanent, boolean exists,
-    Allowed allowed, List<VideoRoom> videoRoomList, List<Participant> participantList) {
+    Allowed allowed, List<Room> roomList, List<Participant> participantList) {
+    this.audioRoom = audioRoom;
     this.videoRoom = videoRoom;
     this.room = room;
     this.permanent = permanent;
     this.exists = exists;
     this.allowed = allowed;
-    this.videoRoomList = videoRoomList;
+    this.roomList = roomList;
     this.participantList = participantList;
   }
 
@@ -90,12 +90,12 @@ public class JanusRoomResponse implements JanusPluginResponse {
     this.allowed = allowed;
   }
 
-  public List<VideoRoom> getVideoRoomList() {
-    return videoRoomList;
+  public List<Room> getVideoRoomList() {
+    return roomList;
   }
 
-  public void setVideoRoomList(List<VideoRoom> videoRoomList) {
-    this.videoRoomList = videoRoomList;
+  public void setVideoRoomList(List<Room> videoRoomList) {
+    this.roomList = videoRoomList;
   }
 
   public List<Participant> getParticipantList() {
@@ -113,14 +113,5 @@ public class JanusRoomResponse implements JanusPluginResponse {
 
   private static class Allowed {
 
-  }
-
-  @Override
-  public String toString() {
-    try {
-      return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(this);
-    } catch (JsonProcessingException e) {
-      return this.toString();
-    }
   }
 }

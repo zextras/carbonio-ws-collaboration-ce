@@ -1,23 +1,24 @@
-package com.zextras.carbonio.chats.core.infrastructure.videoserver.data;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.UUID;
 
+@JsonInclude(Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class JanusErrorResponse extends JanusResponse {
 
   @JsonProperty("transaction")
-  private UUID  transactionId;
-  @JsonProperty("error")
-  private Error error;
+  private String transactionId;
+  private Error  error;
 
   public JanusErrorResponse() {
   }
 
   public JanusErrorResponse(
     String status,
-    UUID transactionId,
+    String transactionId,
     Error error
   ) {
     super(status);
@@ -25,11 +26,11 @@ public class JanusErrorResponse extends JanusResponse {
     this.error = error;
   }
 
-  public UUID getTransactionId() {
+  public String getTransactionId() {
     return transactionId;
   }
 
-  public void setTransactionId(UUID transactionId) {
+  public void setTransactionId(String transactionId) {
     this.transactionId = transactionId;
   }
 
@@ -41,20 +42,9 @@ public class JanusErrorResponse extends JanusResponse {
     this.error = error;
   }
 
-  @Override
-  public String toString() {
-    try {
-      return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(this);
-    } catch (JsonProcessingException e) {
-      return this.toString();
-    }
-  }
-
   private static class Error {
 
-    @JsonProperty("code")
     private long   code;
-    @JsonProperty("reason")
     private String reason;
 
     public Error() {

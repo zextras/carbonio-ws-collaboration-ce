@@ -1,19 +1,19 @@
-package com.zextras.carbonio.chats.core.infrastructure.videoserver.data;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.UUID;
 
+@JsonInclude(Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class JanusEvent {
 
   @JsonProperty("janus")
   private String     type;
-  @JsonProperty("sender")
   private long       sender;
   @JsonProperty("transaction")
-  private UUID       transaction;
-  @JsonProperty("pluginData")
+  private String     transactionId;
   private PluginData pluginData;
 
   public JanusEvent() {
@@ -22,12 +22,12 @@ public class JanusEvent {
   public JanusEvent(
     String type,
     long sender,
-    UUID transaction,
+    String transactionId,
     PluginData pluginData
   ) {
     this.type = type;
     this.sender = sender;
-    this.transaction = transaction;
+    this.transactionId = transactionId;
     this.pluginData = pluginData;
   }
 
@@ -47,12 +47,12 @@ public class JanusEvent {
     this.sender = sender;
   }
 
-  public UUID getTransaction() {
-    return transaction;
+  public String getTransactionId() {
+    return transactionId;
   }
 
-  public void setTransaction(UUID transaction) {
-    this.transaction = transaction;
+  public void setTransactionId(String transactionId) {
+    this.transactionId = transactionId;
   }
 
   public PluginData getPluginData() {
@@ -65,9 +65,7 @@ public class JanusEvent {
 
   private static class PluginData {
 
-    @JsonProperty("plugin")
     private String plugin;
-    @JsonProperty("data")
     private Data   data;
 
     public PluginData() {
@@ -97,14 +95,5 @@ public class JanusEvent {
 
   private static class Data {
 
-  }
-
-  @Override
-  public String toString() {
-    try {
-      return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(this);
-    } catch (JsonProcessingException e) {
-      return this.toString();
-    }
   }
 }

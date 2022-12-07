@@ -1,5 +1,6 @@
-package com.zextras.carbonio.chats.core.infrastructure.videoserver.data;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response;
 
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.entity.JanusEvent;
 import java.util.List;
 
 public class JanusEventsResponse extends JanusResponse {

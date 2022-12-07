@@ -1,12 +1,14 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver;
 
-public interface VideoServerService {
+import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
+
+public interface VideoServerService extends HealthIndicator {
 
   void createMeeting(String meetingId);
 
   void deleteMeeting(String meetingId);
 
-  void joinSession(String sessionId);
+  void joinMeeting(String userId, String sessionId, String meetingId, boolean webcamOn, boolean audioOn);
 
-  void leaveSession(String sessionId);
+  void leaveMeeting(String userId, String sessionId, String meetingId);
 }

@@ -1,4 +1,4 @@
-package com.zextras.carbonio.chats.core.infrastructure.videoserver.data;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response;
 
 public interface JanusPluginResponse {
 

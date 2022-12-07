@@ -1,21 +1,19 @@
-package com.zextras.carbonio.chats.core.infrastructure.videoserver.data;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 @JsonInclude(Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
 public class JanusRoomErrorResponse implements JanusPluginResponse {
 
-  @JsonProperty
   private String videoRoom;
-  @JsonProperty
   private String audioRoom;
-  @JsonProperty
   private String errorCode;
-  @JsonProperty
   private String error;
 
   public JanusRoomErrorResponse() {
@@ -68,14 +66,5 @@ public class JanusRoomErrorResponse implements JanusPluginResponse {
   @Override
   public String getRoom() {
     return null;
-  }
-
-  @Override
-  public String toString() {
-    try {
-      return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(this);
-    } catch (JsonProcessingException e) {
-      return this.toString();
-    }
   }
 }

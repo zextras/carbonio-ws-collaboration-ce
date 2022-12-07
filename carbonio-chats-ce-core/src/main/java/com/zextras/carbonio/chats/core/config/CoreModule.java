@@ -39,6 +39,9 @@ import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService
 import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagementProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceMock;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.logging.aop.TimedCallInterceptor;
@@ -61,6 +64,8 @@ import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
+import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
+import com.zextras.carbonio.chats.core.repository.VideoServerSessionUserRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanFileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanParticipantRepository;
@@ -68,6 +73,8 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanSubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanUserRepository;
+import com.zextras.carbonio.chats.core.repository.impl.EbeanVideoServerMeetingRepository;
+import com.zextras.carbonio.chats.core.repository.impl.EbeanVideoServerSessionUserRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
@@ -99,11 +106,6 @@ import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler
 import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.JanusService;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceImpl;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceMock;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.ContactsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
@@ -180,7 +182,6 @@ public class CoreModule extends AbstractModule {
 
     bind(CapabilityService.class).to(CapabilityServiceImpl.class);
 
-
     bind(MeetingsApi.class);
     bind(MeetingsApiService.class).to(MeetingsApiServiceImpl.class);
     bind(MeetingService.class).to(MeetingServiceImpl.class);
@@ -192,7 +193,8 @@ public class CoreModule extends AbstractModule {
     bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
 
     bind(VideoServerService.class).to(VideoServerServiceMock.class);
-    bind(JanusService.class).to(VideoServerServiceImpl.class);
+    bind(VideoServerMeetingRepository.class).to(EbeanVideoServerMeetingRepository.class);
+    bind(VideoServerSessionUserRepository.class).to(EbeanVideoServerSessionUserRepository.class);
 
     bind(MessageDispatcher.class).to(MessageDispatcherMongooseIm.class);
     bind(StoragesService.class).to(StoragesServiceImpl.class);

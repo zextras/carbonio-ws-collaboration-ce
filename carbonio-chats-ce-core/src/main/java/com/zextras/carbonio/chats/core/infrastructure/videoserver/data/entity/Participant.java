@@ -1,18 +1,10 @@
-package com.zextras.carbonio.chats.core.infrastructure.videoserver.data;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.entity;
 
 public class Participant {
 
-  @JsonProperty
   private String  id;
-  @JsonProperty
   private String  display;
-  @JsonProperty
   private boolean publisher;
-  @JsonProperty
   private boolean talking;
 
   public Participant() {
@@ -55,14 +47,5 @@ public class Participant {
 
   public void setTalking(boolean talking) {
     this.talking = talking;
-  }
-
-  @Override
-  public String toString() {
-    try {
-      return new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(this);
-    } catch (JsonProcessingException e) {
-      return this.toString();
-    }
   }
 }

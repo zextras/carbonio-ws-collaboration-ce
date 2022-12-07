@@ -1,20 +1,20 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
+import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoinedEvent;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeftEvent;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.service.RoomService;
-import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.core.data.entity.Meeting;
-import com.zextras.carbonio.chats.core.data.entity.Participant;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoinedEvent;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeftEvent;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
+import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import io.ebean.annotation.Transactional;
 import java.util.UUID;
@@ -60,7 +60,9 @@ public class ParticipantServiceImpl implements ParticipantService {
       Participant.create(currentUser.getId(), meeting, currentUser.getSessionId())
         .microphoneOn(joinSettings.isMicrophoneOn())
         .cameraOn(joinSettings.isCameraOn()));
-    videoServerService.joinSession(currentUser.getSessionId());
+    videoServerService.joinMeeting(currentUser.getId(), currentUser.getSessionId(), meetingId.toString(),
+      joinSettings.isCameraOn(),
+      joinSettings.isMicrophoneOn());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       MeetingParticipantJoinedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).meetingId(meetingId));
@@ -75,7 +77,7 @@ public class ParticipantServiceImpl implements ParticipantService {
       .findAny().orElseThrow(() -> new NotFoundException("Session not found"));
     Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     participantRepository.removeParticipant(participant);
-    videoServerService.leaveSession(currentUser.getSessionId());
+    videoServerService.leaveMeeting(currentUser.getId(), currentUser.getSessionId(), meetingId.toString());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       MeetingParticipantLeftEvent.create(currentUser.getUUID(), currentUser.getSessionId()).meetingId(meetingId));

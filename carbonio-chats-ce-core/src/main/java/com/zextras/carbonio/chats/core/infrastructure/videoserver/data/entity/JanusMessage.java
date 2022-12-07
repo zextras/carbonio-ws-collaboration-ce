@@ -1,17 +1,16 @@
-package com.zextras.carbonio.chats.core.infrastructure.videoserver.data;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.UUID;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.RoomRequest;
 
 public class JanusMessage {
 
   @JsonProperty("janus")
   private String      message;
   @JsonProperty("transaction")
-  private UUID        transactionId;
-  @JsonProperty("body")
+  private String      transactionId;
   private RoomRequest body;
 
   public JanusMessage() {
@@ -19,7 +18,7 @@ public class JanusMessage {
 
   public JanusMessage(
     String message,
-    UUID transactionId,
+    String transactionId,
     RoomRequest body
   ) {
     this.message = message;
@@ -35,11 +34,11 @@ public class JanusMessage {
     this.message = message;
   }
 
-  public UUID getTransactionId() {
+  public String getTransactionId() {
     return transactionId;
   }
 
-  public void setTransactionId(UUID transactionId) {
+  public void setTransactionId(String transactionId) {
     this.transactionId = transactionId;
   }
 

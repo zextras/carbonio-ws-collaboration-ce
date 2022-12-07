@@ -1,21 +1,24 @@
-package com.zextras.carbonio.chats.core.infrastructure.videoserver.data;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.util.UUID;
 
+@JsonInclude(Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class JanusIdResponse extends JanusResponse {
 
   @JsonProperty("transaction")
-  private UUID transactionId;
-  @JsonProperty("data")
-  private Data data;
+  private String transactionId;
+  private Data   data;
 
   public JanusIdResponse() {
   }
 
   public JanusIdResponse(
     String status,
-    UUID transactionId,
+    String transactionId,
     Data data
   ) {
     super(status);
@@ -23,11 +26,11 @@ public class JanusIdResponse extends JanusResponse {
     this.data = data;
   }
 
-  public UUID getTransactionId() {
+  public String getTransactionId() {
     return transactionId;
   }
 
-  public void setTransactionId(UUID transactionId) {
+  public void setTransactionId(String transactionId) {
     this.transactionId = transactionId;
   }
 
@@ -45,7 +48,6 @@ public class JanusIdResponse extends JanusResponse {
 
   private static class Data {
 
-    @JsonProperty("id")
     private String id;
 
     public Data() {

@@ -1,346 +1,312 @@
-package com.zextras.carbonio.chats.core.infrastructure.videoserver.data;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.util.List;
 
 @JsonInclude(Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
 public class VideoRoom extends Room {
 
-  public static final String NAME = "video_room";
-
-  @JsonProperty
   private String       room;
-  @JsonProperty
   private Boolean      permanent;
-  @JsonProperty
   private String       description;
-  @JsonProperty
   private String       secret;
-  @JsonProperty
   private String       pin;
-  @JsonProperty
   private Boolean      isPrivate;
-  @JsonProperty
   private List<String> allowed;
-  @JsonProperty
   private Boolean      requirePvtId;
-  @JsonProperty
   private Short        publishers;
-  @JsonProperty
   private Long         bitrate;
-  @JsonProperty
   private Boolean      bitrateCap;
-  @JsonProperty
   private Integer      firFreq;
-  @JsonProperty
-  private AudioCodec   audioCodec;
-  @JsonProperty
-  private VideoCodec   videoCodec;
-  @JsonProperty
+  private List<String> audioCodec;
+  private List<String> videoCodec;
   private Short        vp9Profile;
-  @JsonProperty
   private Short        h264Profile;
-  @JsonProperty
   private Boolean      opusFEC;
-  @JsonProperty
   private Boolean      videoSVC;
-  @JsonProperty
   private Boolean      audioLevelExt;
-  @JsonProperty
   private Boolean      audioLevelEvent;
-  @JsonProperty
   private Short        audioLevelAverage;
-  @JsonProperty
   private Boolean      videoOrientExt;
-  @JsonProperty
   private Boolean      playoutDelayExt;
-  @JsonProperty
   private Boolean      transportWideCCExt;
-  @JsonProperty
   private Boolean      record;
-  @JsonProperty
   private String       recordDir;
-  @JsonProperty
   private Boolean      lockRecord;
-  @JsonProperty
   private Boolean      notifyJoining;
-  @JsonProperty
   private Boolean      requireE2ee;
 
   public VideoRoom() {
   }
 
-  public VideoRoom(String room, Boolean permanent, String description, String secret, String pin, Boolean isPrivate,
-    List<String> allowed, Boolean requirePvtId, Short publishers, Long bitrate, Boolean bitrateCap, Integer firFreq,
-    AudioCodec audioCodec, VideoCodec videoCodec, Short vp9Profile, Short h264Profile, Boolean opusFEC,
-    Boolean videoSVC,
-    Boolean audioLevelExt, Boolean audioLevelEvent, Short audioLevelAverage, Boolean videoOrientExt,
-    Boolean playoutDelayExt, Boolean transportWideCCExt, Boolean record, String recordDir, Boolean lockRecord,
-    Boolean notifyJoining, Boolean requireE2ee) {
-    this.room = room;
-    this.permanent = permanent;
-    this.description = description;
-    this.secret = secret;
-    this.pin = pin;
-    this.isPrivate = isPrivate;
-    this.allowed = allowed;
-    this.requirePvtId = requirePvtId;
-    this.publishers = publishers;
-    this.bitrate = bitrate;
-    this.bitrateCap = bitrateCap;
-    this.firFreq = firFreq;
-    this.audioCodec = audioCodec;
-    this.videoCodec = videoCodec;
-    this.vp9Profile = vp9Profile;
-    this.h264Profile = h264Profile;
-    this.opusFEC = opusFEC;
-    this.videoSVC = videoSVC;
-    this.audioLevelExt = audioLevelExt;
-    this.audioLevelEvent = audioLevelEvent;
-    this.audioLevelAverage = audioLevelAverage;
-    this.videoOrientExt = videoOrientExt;
-    this.playoutDelayExt = playoutDelayExt;
-    this.transportWideCCExt = transportWideCCExt;
-    this.record = record;
-    this.recordDir = recordDir;
-    this.lockRecord = lockRecord;
-    this.notifyJoining = notifyJoining;
-    this.requireE2ee = requireE2ee;
+  public static VideoRoom create() {
+    return new VideoRoom();
   }
 
   public String getRoom() {
     return room;
   }
 
-  public void setRoom(String room) {
+  public VideoRoom room(String room) {
     this.room = room;
+    return this;
   }
 
-  public Boolean getPermanent() {
+  public Boolean isPermanent() {
     return permanent;
   }
 
-  public void setPermanent(Boolean permanent) {
+  public VideoRoom permanent(Boolean permanent) {
     this.permanent = permanent;
+    return this;
   }
 
   public String getDescription() {
     return description;
   }
 
-  public void setDescription(String description) {
+  public VideoRoom description(String description) {
     this.description = description;
+    return this;
   }
 
   public String getSecret() {
     return secret;
   }
 
-  public void setSecret(String secret) {
+  public VideoRoom secret(String secret) {
     this.secret = secret;
+    return this;
   }
 
   public String getPin() {
     return pin;
   }
 
-  public void setPin(String pin) {
+  public VideoRoom pin(String pin) {
     this.pin = pin;
+    return this;
   }
 
-  public Boolean getPrivate() {
+  public Boolean isPrivate() {
     return isPrivate;
   }
 
-  public void setPrivate(Boolean aPrivate) {
-    isPrivate = aPrivate;
+  public VideoRoom isPrivate(Boolean isPrivate) {
+    this.isPrivate = isPrivate;
+    return this;
   }
 
   public List<String> getAllowed() {
     return allowed;
   }
 
-  public void setAllowed(List<String> allowed) {
+  public VideoRoom allowed(List<String> allowed) {
     this.allowed = allowed;
+    return this;
   }
 
   public Boolean getRequirePvtId() {
     return requirePvtId;
   }
 
-  public void setRequirePvtId(Boolean requirePvtId) {
+  public VideoRoom requirePvtId(Boolean requirePvtId) {
     this.requirePvtId = requirePvtId;
+    return this;
   }
 
   public Short getPublishers() {
     return publishers;
   }
 
-  public void setPublishers(Short publishers) {
+  public VideoRoom publishers(Short publishers) {
     this.publishers = publishers;
+    return this;
   }
 
   public Long getBitrate() {
     return bitrate;
   }
 
-  public void setBitrate(Long bitrate) {
+  public VideoRoom bitrate(Long bitrate) {
     this.bitrate = bitrate;
+    return this;
   }
 
   public Boolean getBitrateCap() {
     return bitrateCap;
   }
 
-  public void setBitrateCap(Boolean bitrateCap) {
+  public VideoRoom bitrateCap(Boolean bitrateCap) {
     this.bitrateCap = bitrateCap;
+    return this;
   }
 
   public Integer getFirFreq() {
     return firFreq;
   }
 
-  public void setFirFreq(Integer firFreq) {
+  public VideoRoom firFreq(Integer firFreq) {
     this.firFreq = firFreq;
+    return this;
   }
 
-  public AudioCodec getAudioCodec() {
+  public List<String> getAudioCodec() {
     return audioCodec;
   }
 
-  public void setAudioCodec(AudioCodec audioCodec) {
+  public VideoRoom audioCodec(List<String> audioCodec) {
     this.audioCodec = audioCodec;
+    return this;
   }
 
-  public VideoCodec getVideoCodec() {
+  public List<String> getVideoCodec() {
     return videoCodec;
   }
 
-  public void setVideoCodec(VideoCodec videoCodec) {
+  public VideoRoom videoCodec(List<String> videoCodec) {
     this.videoCodec = videoCodec;
+    return this;
   }
 
   public Short getVp9Profile() {
     return vp9Profile;
   }
 
-  public void setVp9Profile(Short vp9Profile) {
+  public VideoRoom vp9Profile(Short vp9Profile) {
     this.vp9Profile = vp9Profile;
+    return this;
   }
 
   public Short getH264Profile() {
     return h264Profile;
   }
 
-  public void setH264Profile(Short h264Profile) {
+  public VideoRoom h264Profile(Short h264Profile) {
     this.h264Profile = h264Profile;
+    return this;
   }
 
   public Boolean getOpusFEC() {
     return opusFEC;
   }
 
-  public void setOpusFEC(Boolean opusFEC) {
+  public VideoRoom opusFEC(Boolean opusFEC) {
     this.opusFEC = opusFEC;
+    return this;
   }
 
   public Boolean getVideoSVC() {
     return videoSVC;
   }
 
-  public void setVideoSVC(Boolean videoSVC) {
+  public VideoRoom videoSVC(Boolean videoSVC) {
     this.videoSVC = videoSVC;
+    return this;
   }
 
   public Boolean getAudioLevelExt() {
     return audioLevelExt;
   }
 
-  public void setAudioLevelExt(Boolean audioLevelExt) {
+  public VideoRoom audioLevelExt(Boolean audioLevelExt) {
     this.audioLevelExt = audioLevelExt;
+    return this;
   }
 
   public Boolean getAudioLevelEvent() {
     return audioLevelEvent;
   }
 
-  public void setAudioLevelEvent(Boolean audioLevelEvent) {
+  public VideoRoom audioLevelEvent(Boolean audioLevelEvent) {
     this.audioLevelEvent = audioLevelEvent;
+    return this;
   }
 
   public Short getAudioLevelAverage() {
     return audioLevelAverage;
   }
 
-  public void setAudioLevelAverage(Short audioLevelAverage) {
+  public VideoRoom audioLevelAverage(Short audioLevelAverage) {
     this.audioLevelAverage = audioLevelAverage;
+    return this;
   }
 
   public Boolean getVideoOrientExt() {
     return videoOrientExt;
   }
 
-  public void setVideoOrientExt(Boolean videoOrientExt) {
+  public VideoRoom videoOrientExt(Boolean videoOrientExt) {
     this.videoOrientExt = videoOrientExt;
+    return this;
   }
 
   public Boolean getPlayoutDelayExt() {
     return playoutDelayExt;
   }
 
-  public void setPlayoutDelayExt(Boolean playoutDelayExt) {
+  public VideoRoom playoutDelayExt(Boolean playoutDelayExt) {
     this.playoutDelayExt = playoutDelayExt;
+    return this;
   }
 
   public Boolean getTransportWideCCExt() {
     return transportWideCCExt;
   }
 
-  public void setTransportWideCCExt(Boolean transportWideCCExt) {
+  public VideoRoom transportWideCCExt(Boolean transportWideCCExt) {
     this.transportWideCCExt = transportWideCCExt;
+    return this;
   }
 
   public Boolean getRecord() {
     return record;
   }
 
-  public void setRecord(Boolean record) {
+  public VideoRoom record(Boolean record) {
     this.record = record;
+    return this;
   }
 
   public String getRecordDir() {
     return recordDir;
   }
 
-  public void setRecordDir(String recordDir) {
+  public VideoRoom recordDir(String recordDir) {
     this.recordDir = recordDir;
+    return this;
   }
 
   public Boolean getLockRecord() {
     return lockRecord;
   }
 
-  public void setLockRecord(Boolean lockRecord) {
+  public VideoRoom lockRecord(Boolean lockRecord) {
     this.lockRecord = lockRecord;
+    return this;
   }
 
   public Boolean getNotifyJoining() {
     return notifyJoining;
   }
 
-  public void setNotifyJoining(Boolean notifyJoining) {
+  public VideoRoom notifyJoining(Boolean notifyJoining) {
     this.notifyJoining = notifyJoining;
+    return this;
   }
 
   public Boolean getRequireE2ee() {
     return requireE2ee;
   }
 
-  public void setRequireE2ee(Boolean requireE2ee) {
+  public VideoRoom requireE2ee(Boolean requireE2ee) {
     this.requireE2ee = requireE2ee;
+    return this;
   }
 }
