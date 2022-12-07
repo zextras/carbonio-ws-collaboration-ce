@@ -23,20 +23,18 @@ import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -149,7 +147,7 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1))
-        .insertParticipant(Participant.create(user3Id.toString(), meeting1, user3Session1));
+        .insert(Participant.create(user3Id.toString(), meeting1, user3Session1));
       verify(videoServerService, times(1)).joinSession(user3Session1);
       verify(eventDispatcher, times(1))
         .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -173,7 +171,7 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1))
-        .insertParticipant(Participant.create(user3Id.toString(), meeting, user3Session1));
+        .insert(Participant.create(user3Id.toString(), meeting, user3Session1));
       verify(videoServerService, times(1)).joinSession(user3Session1);
       verify(eventDispatcher, times(1))
         .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -190,7 +188,7 @@ public class ParticipantServiceImplTest {
     @DisplayName("It inserts the current user as meeting participant")
     public void insertMeetingParticipant_testOk() {
       UserPrincipal currentUser = UserPrincipal.create(user3Id).sessionId(user3Session1);
-      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(meeting1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       participantService.insertMeetingParticipant(meeting1Id,
@@ -199,7 +197,7 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1))
-        .insertParticipant(Participant.create(user3Id.toString(), meeting1, user3Session1));
+        .insert(Participant.create(user3Id.toString(), meeting1, user3Session1));
       verify(videoServerService, times(1)).joinSession(user3Session1);
       verify(eventDispatcher, times(1))
         .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -211,7 +209,7 @@ public class ParticipantServiceImplTest {
     @DisplayName("It inserts the user as meeting participant with another session")
     public void insertMeetingParticipant_testOkSameUserAnotherSession() {
       UserPrincipal currentUser = UserPrincipal.create(user2Id).sessionId(user2Session2);
-      when(meetingService.getMeetingEntity(meeting2Id)).thenReturn(meeting2);
+      when(meetingService.getMeetingEntity(meeting2Id)).thenReturn(Optional.of(meeting2));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       participantService.insertMeetingParticipant(meeting2Id,
@@ -220,7 +218,7 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(meeting2Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1))
-        .insertParticipant(Participant.create(user2Id.toString(), meeting2, user2Session2));
+        .insert(Participant.create(user2Id.toString(), meeting2, user2Session2));
       verify(videoServerService, times(1)).joinSession(user2Session2);
       verify(eventDispatcher, times(1))
         .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -232,7 +230,7 @@ public class ParticipantServiceImplTest {
     @DisplayName("If the current user is already a meeting participant, it throws a 'conflict' exception")
     public void insertMeetingParticipant_testIsAlreadyMeetingParticipant() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).sessionId(user1Session1);
-      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(meeting1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
       ChatsHttpException exception = assertThrows(ConflictException.class, () ->
         participantService.insertMeetingParticipant(meeting1Id,
@@ -256,14 +254,14 @@ public class ParticipantServiceImplTest {
     @DisplayName("It removes the current user as meeting participant")
     public void removeMeetingParticipant_testOk() {
       UserPrincipal currentUser = UserPrincipal.create(user2Id).sessionId(user2Session2);
-      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(meeting1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       participantService.removeMeetingParticipant(meeting1Id, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
-      verify(participantRepository, times(1)).removeParticipant(participant2Session2);
+      verify(participantRepository, times(1)).remove(participant2Session2);
       verify(videoServerService, times(1)).leaveSession(user2Session2);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -276,19 +274,43 @@ public class ParticipantServiceImplTest {
       "if it's the last one, the meeting is also removed")
     public void removeMeetingParticipant_testOkLastParticipant() {
       UserPrincipal currentUser = UserPrincipal.create(user2Id).sessionId(user2Session1);
-      when(meetingService.getMeetingEntity(meeting2Id)).thenReturn(meeting2);
+      when(meetingService.getMeetingEntity(meeting2Id)).thenReturn(Optional.of(meeting2));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       participantService.removeMeetingParticipant(meeting2Id, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting2Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
-      verify(participantRepository, times(1)).removeParticipant(participant2Session1);
+      verify(participantRepository, times(1)).remove(participant2Session1);
       verify(videoServerService, times(1)).leaveSession(user2Session1);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         MeetingParticipantLeftEvent.create(user2Id, user2Session1).meetingId(meeting2Id));
-      verify(meetingService, times(1)).deleteMeeting(meeting2, currentUser);
+      verify(meetingService, times(1)).deleteMeeting(meeting2, room, user2Id, user2Session1);
+      verifyNoMoreInteractions(meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("It removes all meeting participants bu the current user")
+    public void removeMeetingParticipant_testOkAllSessions() {
+      UserPrincipal currentUser = UserPrincipal.create(user2Id);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
+
+      participantService.removeMeetingParticipant(meeting1Id, currentUser);
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
+      verify(participantRepository, times(1)).remove(participant2Session1);
+      verify(participantRepository, times(1)).remove(participant2Session2);
+      verify(videoServerService, times(1)).leaveSession(user2Session1);
+      verify(videoServerService, times(1)).leaveSession(user2Session2);
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+        MeetingParticipantLeftEvent.create(user2Id, user2Session1).meetingId(meeting1Id));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+        MeetingParticipantLeftEvent.create(user2Id, user2Session2).meetingId(meeting1Id));
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
 
@@ -296,7 +318,7 @@ public class ParticipantServiceImplTest {
     @DisplayName("If the current user isn't a meeting participant, it throws a 'not found' exception")
     public void removeMeetingParticipant_testIsNotMeetingParticipant() {
       UserPrincipal currentUser = UserPrincipal.create(user3Id).sessionId(user3Session1);
-      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(meeting1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
         participantService.removeMeetingParticipant(meeting1Id, currentUser));
@@ -306,8 +328,9 @@ public class ParticipantServiceImplTest {
       assertEquals("Not Found - Session not found", exception.getMessage());
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
-      verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, videoServerService, eventDispatcher);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
+      verifyNoMoreInteractions(meetingService, roomService);
+      verifyNoInteractions(participantRepository, videoServerService, eventDispatcher);
     }
   }
 }

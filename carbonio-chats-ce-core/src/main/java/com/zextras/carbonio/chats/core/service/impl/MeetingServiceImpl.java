@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -53,13 +54,13 @@ public class MeetingServiceImpl implements MeetingService {
   public List<MeetingDto> getMeetings(UserPrincipal currentUser) {
     List<String> roomsIds = roomService.getRoomsIds(currentUser).stream().map(UUID::toString)
       .collect(Collectors.toList());
-    List<Meeting> meetings = meetingRepository.getMeetingsByRoomsIds(roomsIds);
+    List<Meeting> meetings = meetingRepository.getByRoomsIds(roomsIds);
     return meetingMapper.ent2dto(meetings);
   }
 
   @Override
   public MeetingDto getMeetingById(UUID meetingId, UserPrincipal currentUser) {
-    Meeting meeting = meetingRepository.getMeetingById(meetingId.toString())
+    Meeting meeting = meetingRepository.getById(meetingId.toString())
       .orElseThrow(() -> new NotFoundException(
         String.format("Meeting with id '%s' not found", meetingId)));
     membersService.getByUserIdAndRoomId(currentUser.getUUID(), UUID.fromString(meeting.getRoomId()))
@@ -69,15 +70,13 @@ public class MeetingServiceImpl implements MeetingService {
   }
 
   @Override
-  public Meeting getMeetingEntity(UUID meetingId) {
-    return meetingRepository.getMeetingById(meetingId.toString())
-      .orElseThrow(() -> new NotFoundException(
-        String.format("Meeting with id '%s' not found", meetingId)));
+  public Optional<Meeting> getMeetingEntity(UUID meetingId) {
+    return meetingRepository.getById(meetingId.toString());
   }
 
   @Override
   public Optional<Meeting> getMeetingEntityByRoomId(UUID roomId) {
-    return meetingRepository.getMeetingByRoomId(roomId.toString());
+    return meetingRepository.getByRoomId(roomId.toString());
   }
 
   @Override
@@ -92,7 +91,7 @@ public class MeetingServiceImpl implements MeetingService {
   @Transactional
   public Meeting getsOrCreatesMeetingEntityByRoomId(UUID roomId, UserPrincipal currentUser) {
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
-    return meetingRepository.getMeetingByRoomId(roomId.toString()).orElseGet(() -> {
+    return meetingRepository.getByRoomId(roomId.toString()).orElseGet(() -> {
       Meeting meeting = meetingRepository.insert(Meeting.create()
         .id(UUID.randomUUID().toString())
         .roomId(roomId.toString()));
@@ -108,20 +107,22 @@ public class MeetingServiceImpl implements MeetingService {
 
   @Override
   public void deleteMeetingById(UUID meetingId, UserPrincipal currentUser) {
-    Meeting meeting = meetingRepository.getMeetingById(meetingId.toString())
+    Meeting meeting = meetingRepository.getById(meetingId.toString())
       .orElseThrow(() -> new NotFoundException(
         String.format("Meeting with id '%s' not found", meetingId)));
-    deleteMeeting(meeting, currentUser);
+
+    deleteMeeting(meeting,
+      roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false ),
+      currentUser.getUUID(), currentUser.getSessionId());
   }
 
   @Override
-  public void deleteMeeting(Meeting meeting, UserPrincipal currentUser) {
-    Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
+  public void deleteMeeting(Meeting meeting, Room room, UUID userId, @Nullable String sessionId) {
     meetingRepository.delete(meeting);
     videoServerService.deleteMeeting(meeting.getId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      MeetingDeletedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
+      MeetingDeletedEvent.create(userId, sessionId)
         .meetingId(UUID.fromString(meeting.getId())));
   }
 }

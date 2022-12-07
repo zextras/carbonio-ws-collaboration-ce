@@ -20,12 +20,12 @@ public class EbeanParticipantRepository implements ParticipantRepository {
   }
 
   @Override
-  public Participant getParticipantById(String userId, String meetingId, String sessionId) {
+  public Participant getById(String userId, String meetingId, String sessionId) {
     return db.find(Participant.class, ParticipantId.create(userId, meetingId, sessionId));
   }
 
   @Override
-  public List<Participant> getParticipantsByMeetingId(String meetingId) {
+  public List<Participant> getByMeetingId(String meetingId) {
     return db.find(Participant.class)
       .where()
       .eq("id.meetingId", meetingId)
@@ -33,13 +33,13 @@ public class EbeanParticipantRepository implements ParticipantRepository {
   }
 
   @Override
-  public Participant insertParticipant(Participant participant) {
+  public Participant insert(Participant participant) {
     db.insert(participant);
     return participant;
   }
 
   @Override
-  public boolean removeParticipant(Participant participant) {
+  public boolean remove(Participant participant) {
     return db.delete(participant);
   }
 }

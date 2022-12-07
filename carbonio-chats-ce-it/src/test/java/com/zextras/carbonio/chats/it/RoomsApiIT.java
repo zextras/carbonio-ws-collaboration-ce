@@ -2542,6 +2542,68 @@ public class RoomsApiIT {
     }
 
     @Test
+    @DisplayName("Given a group room identifier and a member identifier, " +
+      "correctly leaves all user sessions from the meeting associated and removes the user from room members")
+    public void deleteRoomMember_memberIsMeetingParticipantTestOk() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      UUID meetingId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
+        ParticipantBuilder.create(user1Id, "user1session1"),
+        ParticipantBuilder.create(user2Id, "user2session1"),
+        ParticipantBuilder.create(user2Id, "user2session2"),
+        ParticipantBuilder.create(user3Id, "user3session1")));
+
+      MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      Optional<Room> room = integrationTestUtils.getRoomById(roomId);
+      assertTrue(room.isPresent());
+      assertTrue(room.get().getSubscriptions().stream().filter(s -> s.getUserId().equals(user2Id.toString())).findAny()
+        .isEmpty());
+      Optional<Meeting> meeting = meetingTestUtils.getMeetingById(meetingId);
+      assertTrue(meeting.isPresent());
+      assertEquals(2, meeting.get().getParticipants().size());
+      assertTrue(meeting.get().getParticipants().stream().noneMatch(participant ->
+        user2Id.toString().equals(participant.getUserId())));
+
+      // TODO: 25/02/22 verify event dispatcher
+      mongooseImMockServer.verify("PUT",
+        String.format("/admin/muc-lights/carbonio/%s/%s/affiliation", roomId, String.format("%s%%40carbonio", user1Id)),
+        1);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a group room identifier and a member identifier, " +
+      "correctly leaves user session from the meeting associated, " +
+      "removes the meeting because the user session was the last and removes the user from room members")
+    public void deleteRoomMember_memberIsLastMeetingParticipantTestOk() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      UUID meetingId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
+        ParticipantBuilder.create(user2Id, "user2session1")));
+
+      MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      Optional<Room> room = integrationTestUtils.getRoomById(roomId);
+      assertTrue(room.isPresent());
+      assertTrue(room.get().getSubscriptions().stream().filter(s -> s.getUserId().equals(user2Id.toString())).findAny()
+        .isEmpty());
+      assertTrue(meetingTestUtils.getMeetingById(meetingId).isEmpty());
+
+      // TODO: 25/02/22 verify event dispatcher
+      mongooseImMockServer.verify("PUT",
+        String.format("/admin/muc-lights/carbonio/%s/%s/affiliation", roomId, String.format("%s%%40carbonio", user1Id)),
+        1);
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
     @DisplayName("Given a workspace room identifier and a member identifier, correctly remove the user from room members")
     public void deleteRoomMember_workspaceTestOk() throws Exception {
       List.of(1, 2, 4, 5).forEach(index ->
@@ -2645,8 +2707,6 @@ public class RoomsApiIT {
         1);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
     }
-
-
   }
 
   @Nested

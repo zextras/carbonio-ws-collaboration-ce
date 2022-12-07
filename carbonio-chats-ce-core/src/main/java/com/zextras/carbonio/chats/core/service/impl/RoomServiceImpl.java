@@ -293,7 +293,7 @@ public class RoomServiceImpl implements RoomService {
   public void deleteRoom(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     meetingService.getMeetingEntityByRoomId(roomId).ifPresent(meeting ->
-      meetingService.deleteMeeting(meeting, currentUser));
+      meetingService.deleteMeeting(meeting, room, currentUser.getUUID(), currentUser.getSessionId()));
     roomRepository.delete(roomId.toString());
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
       room.getChildren().forEach(child -> {

@@ -1290,7 +1290,7 @@ class RoomServiceImplTest {
       roomService.deleteRoom(roomGroup1Id, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntityByRoomId(roomGroup1Id);
-      verify(meetingService, times(1)).deleteMeeting(meeting, currentUser);
+      verify(meetingService, times(1)).deleteMeeting(meeting, roomGroup1, user1Id, null);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         RoomDeletedEvent.create(user1Id, null).roomId(roomGroup1Id));

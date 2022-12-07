@@ -1,6 +1,7 @@
 package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -8,6 +9,7 @@ import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import javax.annotation.Nullable;
 
 public interface MeetingService {
 
@@ -36,9 +38,8 @@ public interface MeetingService {
    *
    * @param meetingId meeting identifier {@link UUID}
    * @return The requested meeting {@link Meeting}
-   * @throws NotFoundException if the meeting doesn't exist
    */
-  Meeting getMeetingEntity(UUID meetingId);
+  Optional<Meeting> getMeetingEntity(UUID meetingId);
 
   /**
    * Gets meeting by identifier fo associated room. This method returns an entity because it's intended to be used only
@@ -73,7 +74,7 @@ public interface MeetingService {
   Meeting getsOrCreatesMeetingEntityByRoomId(UUID roomId, UserPrincipal currentUser);
 
   /**
-   * Deletes a meeting by identifier
+   * Deletes a meeting by identifier.
    *
    * @param meetingId   identifier of meeting to delete {@link UUID}
    * @param currentUser current authenticated user {@link UserPrincipal}
@@ -83,11 +84,13 @@ public interface MeetingService {
   void deleteMeetingById(UUID meetingId, UserPrincipal currentUser);
 
   /**
-   * Deletes a meeting.This method accepts an entity because it's intended to be used only to be called by services.
+   * Deletes a meeting. This method accepts entities because it's intended to be used only to be called by services.
    *
-   * @param meeting     meeting to delete {@link Meeting}
-   * @param currentUser current authenticated user {@link UserPrincipal}
+   * @param meeting   {@link Meeting} to delete
+   * @param room      meeting {@link Room}
+   * @param userId    current user identifier
+   * @param sessionId current session identifier
    */
-  void deleteMeeting(Meeting meeting, UserPrincipal currentUser);
+  void deleteMeeting(Meeting meeting, Room room, UUID userId, @Nullable String sessionId);
 
 }

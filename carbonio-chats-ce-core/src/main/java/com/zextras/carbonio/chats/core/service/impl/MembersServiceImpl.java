@@ -20,7 +20,9 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
+import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
+import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -47,6 +49,8 @@ public class MembersServiceImpl implements MembersService {
   private final SubscriptionMapper         subscriptionMapper;
   private final UserService                userService;
   private final MessageDispatcher          messageService;
+  private final MeetingService             meetingService;
+  private final ParticipantService         participantService;
 
   @Inject
   public MembersServiceImpl(
@@ -55,7 +59,8 @@ public class MembersServiceImpl implements MembersService {
     EventDispatcher eventDispatcher,
     SubscriptionMapper subscriptionMapper,
     UserService userService,
-    MessageDispatcher messageDispatcher
+    MessageDispatcher messageDispatcher,
+    MeetingService meetingService, ParticipantService participantService
   ) {
     this.roomService = roomService;
     this.subscriptionRepository = subscriptionRepository;
@@ -64,6 +69,8 @@ public class MembersServiceImpl implements MembersService {
     this.subscriptionMapper = subscriptionMapper;
     this.userService = userService;
     this.messageService = messageDispatcher;
+    this.meetingService = meetingService;
+    this.participantService = participantService;
   }
 
   @Override
@@ -172,6 +179,9 @@ public class MembersServiceImpl implements MembersService {
       room.getSubscriptions().stream().noneMatch(s -> s.getUserId().equals(userId.toString()))) {
       throw new NotFoundException("The user is not a room member");
     }
+    meetingService.getMeetingEntityByRoomId(roomId).ifPresent(meeting ->
+      participantService.removeMeetingParticipant(meeting, room, userId, null)
+    );
     List<String> owners = room.getSubscriptions().stream()
       .filter(Subscription::isOwner)
       .map(Subscription::getUserId)

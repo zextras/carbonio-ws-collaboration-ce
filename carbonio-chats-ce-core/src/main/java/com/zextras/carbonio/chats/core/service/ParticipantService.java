@@ -1,5 +1,7 @@
 package com.zextras.carbonio.chats.core.service;
 
+import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -8,6 +10,7 @@ import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.util.Optional;
 import java.util.UUID;
+import javax.annotation.Nullable;
 
 public interface ParticipantService {
 
@@ -49,4 +52,15 @@ public interface ParticipantService {
    * @throws ForbiddenException if the user isn't a room owner and mustBeOwner is true
    */
   void removeMeetingParticipant(UUID meetingId, UserPrincipal currentUser);
+
+  /**
+   * Removes the participant of current user from a meeting. This method accepts entities because it's intended to be
+   * used only to be called by services.
+   *
+   * @param meeting   participant {@link Meeting}
+   * @param room      participant {@link Room}
+   * @param userId    identifier of the user to remove
+   * @param sessionId identifier of the session to remove. If it is null, it removes all user sessions
+   */
+  void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, @Nullable String sessionId);
 }

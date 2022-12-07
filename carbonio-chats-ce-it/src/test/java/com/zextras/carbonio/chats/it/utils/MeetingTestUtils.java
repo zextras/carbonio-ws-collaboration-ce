@@ -38,12 +38,12 @@ public class MeetingTestUtils {
   }
 
   public Optional<Meeting> getMeetingById(UUID meetingId) {
-    return meetingRepository.getMeetingById(meetingId.toString());
+    return meetingRepository.getById(meetingId.toString());
   }
 
   public Optional<Participant> getParticipant(UUID userId, UUID meetingId, String sessionId) {
     return Optional.ofNullable(
-      participantRepository.getParticipantById(userId.toString(), meetingId.toString(), sessionId));
+      participantRepository.getById(userId.toString(), meetingId.toString(), sessionId));
   }
 
 }

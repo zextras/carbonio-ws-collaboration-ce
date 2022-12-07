@@ -367,7 +367,7 @@ public class MeetingApiIT {
       assertEquals(0, response.getOutput().length);
 
       assertTrue(meetingTestUtils.getMeetingById(meetingId).isEmpty());
-      assertEquals(0, participantRepository.getParticipantsByMeetingId(meetingId.toString()).size());
+      assertEquals(0, participantRepository.getByMeetingId(meetingId.toString()).size());
     }
 
     @Test
@@ -390,7 +390,7 @@ public class MeetingApiIT {
       assertEquals(0, response.getOutput().length);
 
       assertTrue(meetingTestUtils.getMeetingById(meetingId).isPresent());
-      assertEquals(3, participantRepository.getParticipantsByMeetingId(meetingId.toString()).size());
+      assertEquals(3, participantRepository.getByMeetingId(meetingId.toString()).size());
     }
 
     @Test

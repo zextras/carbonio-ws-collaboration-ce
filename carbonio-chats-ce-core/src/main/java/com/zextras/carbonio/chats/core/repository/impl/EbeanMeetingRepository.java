@@ -19,7 +19,7 @@ public class EbeanMeetingRepository implements MeetingRepository {
   }
 
   @Override
-  public Optional<Meeting> getMeetingById(String meetingId) {
+  public Optional<Meeting> getById(String meetingId) {
     return db.find(Meeting.class)
       .fetch("participants")
       .where()
@@ -28,7 +28,7 @@ public class EbeanMeetingRepository implements MeetingRepository {
   }
 
   @Override
-  public List<Meeting> getMeetingsByRoomsIds(List<String> roomsIds) {
+  public List<Meeting> getByRoomsIds(List<String> roomsIds) {
     return db.find(Meeting.class)
       .fetch("participants")
       .where()
@@ -37,7 +37,7 @@ public class EbeanMeetingRepository implements MeetingRepository {
   }
 
   @Override
-  public Optional<Meeting> getMeetingByRoomId(String roomId) {
+  public Optional<Meeting> getByRoomId(String roomId) {
     return db.find(Meeting.class)
       .fetch("participants")
       .where()
@@ -49,11 +49,6 @@ public class EbeanMeetingRepository implements MeetingRepository {
   public Meeting insert(Meeting meeting) {
     db.insert(meeting);
     return meeting;
-  }
-
-  @Override
-  public void deleteById(String meetingId) {
-    db.delete(Meeting.class, meetingId);
   }
 
   @Override
