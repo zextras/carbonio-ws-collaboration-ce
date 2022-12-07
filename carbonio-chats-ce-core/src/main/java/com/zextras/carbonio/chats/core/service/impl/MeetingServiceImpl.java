@@ -18,6 +18,7 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import io.ebean.annotation.Transactional;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -75,9 +76,14 @@ public class MeetingServiceImpl implements MeetingService {
   }
 
   @Override
+  public Optional<Meeting> getMeetingEntityByRoomId(UUID roomId) {
+    return meetingRepository.getMeetingByRoomId(roomId.toString());
+  }
+
+  @Override
   public MeetingDto getMeetingByRoomId(UUID roomId, UserPrincipal currentUser) {
     roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
-    return meetingMapper.ent2dto(meetingRepository.getMeetingByRoomId(roomId.toString())
+    return meetingMapper.ent2dto(getMeetingEntityByRoomId(roomId)
       .orElseThrow(() -> new NotFoundException(
         String.format("Meeting of the room with id '%s' doesn't exist", roomId))));
   }

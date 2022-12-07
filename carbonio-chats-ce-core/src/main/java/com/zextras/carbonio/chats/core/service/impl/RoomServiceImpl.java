@@ -35,7 +35,9 @@ import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
+import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
+import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.utils.Utils;
@@ -76,6 +78,7 @@ public class RoomServiceImpl implements RoomService {
   private final MessageDispatcher          messageDispatcher;
   private final UserService                userService;
   private final MembersService             membersService;
+  private final MeetingService             meetingService;
   private final FileMetadataRepository     fileMetadataRepository;
   private final StoragesService            storagesService;
   private final Clock                      clock;
@@ -88,6 +91,7 @@ public class RoomServiceImpl implements RoomService {
     MessageDispatcher messageDispatcher,
     UserService userService,
     MembersService membersService,
+    MeetingService meetingService,
     FileMetadataRepository fileMetadataRepository,
     StoragesService storagesService,
     Clock clock,
@@ -100,6 +104,7 @@ public class RoomServiceImpl implements RoomService {
     this.messageDispatcher = messageDispatcher;
     this.userService = userService;
     this.membersService = membersService;
+    this.meetingService = meetingService;
     this.fileMetadataRepository = fileMetadataRepository;
     this.storagesService = storagesService;
     this.clock = clock;
@@ -287,6 +292,8 @@ public class RoomServiceImpl implements RoomService {
   @Transactional
   public void deleteRoom(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
+    meetingService.getMeetingEntityByRoomId(roomId).ifPresent(meeting ->
+      meetingService.deleteMeeting(meeting, currentUser));
     roomRepository.delete(roomId.toString());
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
       room.getChildren().forEach(child -> {

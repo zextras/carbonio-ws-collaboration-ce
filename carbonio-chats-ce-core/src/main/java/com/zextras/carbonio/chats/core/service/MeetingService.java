@@ -6,6 +6,7 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface MeetingService {
@@ -38,6 +39,16 @@ public interface MeetingService {
    * @throws NotFoundException if the meeting doesn't exist
    */
   Meeting getMeetingEntity(UUID meetingId);
+
+  /**
+   * Gets meeting by identifier fo associated room. This method returns an entity because it's intended to be used only
+   * to be called by services.
+   *
+   * @param roomId room identifier {@link UUID}
+   * @return The requested meeting {@link Meeting} wrapped in a {@link Optional}
+   */
+  Optional<Meeting> getMeetingEntityByRoomId(UUID roomId);
+
 
   /**
    * Gets the meeting associated to indicated room

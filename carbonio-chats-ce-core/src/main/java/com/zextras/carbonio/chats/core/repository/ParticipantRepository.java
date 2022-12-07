@@ -6,6 +6,16 @@ import java.util.List;
 public interface ParticipantRepository {
 
   /**
+   * Retrieves a participant by its row identifier
+   *
+   * @param userId    user identifier
+   * @param meetingId meeting identifier
+   * @param sessionId session identifier
+   * @return required {@link Participant} if it exists else null
+   */
+  Participant getParticipantById(String userId, String meetingId, String sessionId);
+
+  /**
    * Retrieves the list of meeting participants
    *
    * @param meetingId meeting identifier

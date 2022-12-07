@@ -1331,7 +1331,7 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a group room identifier, correctly delete the room")
+    @DisplayName("Given a group room identifier, correctly deletes the room")
     public void deleteRoom_groupTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP,
@@ -1349,6 +1349,32 @@ public class RoomsApiIT {
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
 
       // TODO: 23/02/22 verify event dispatcher interactions
+      mongooseImMockServer.verify("DELETE",
+        String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", roomId, user1Id), 1);
+    }
+
+    @Test
+    @DisplayName("Given a group room identifier, correctly deletes the room and the associated meeting")
+    public void deleteRoom_groupWithMeetingTestOk() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      UUID meetingId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP,
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id).muted(true),
+          RoomMemberField.create().id(user3Id)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
+        ParticipantBuilder.create(user1Id, "user3session1").microphoneOn(false).cameraOn(false)));
+
+      MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      assertTrue(integrationTestUtils.getRoomById(roomId).isEmpty());
+      assertTrue(roomUserSettingsRepository.getByRoomId(roomId.toString()).isEmpty());
+      assertTrue(meetingTestUtils.getMeetingById(meetingId).isEmpty());
+      assertTrue(meetingTestUtils.getParticipant(user1Id, meetingId, "user3session1").isEmpty());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       mongooseImMockServer.verify("DELETE",
         String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", roomId, user1Id), 1);
     }
