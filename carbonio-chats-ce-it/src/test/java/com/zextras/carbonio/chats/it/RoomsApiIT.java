@@ -2543,7 +2543,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a group room identifier and a member identifier, " +
-      "correctly leaves all user sessions from the meeting associated and removes the user from room members")
+      "correctly leaves all user sessions from the associated meeting and removes the user from room members")
     public void deleteRoomMember_memberIsMeetingParticipantTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       UUID meetingId = UUID.randomUUID();
@@ -2577,7 +2577,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a group room identifier and a member identifier, " +
-      "correctly leaves user session from the meeting associated, " +
+      "correctly leaves the user session from the associated meeting, " +
       "removes the meeting because the user session was the last and removes the user from room members")
     public void deleteRoomMember_memberIsLastMeetingParticipantTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
@@ -3561,7 +3561,7 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier, if the room meeting exists the authenticated user correctly joins to the meeting")
+    @DisplayName("Given a room identifier, if the room meeting exists the authenticated user correctly joins the meeting")
     public void joinRoomMeeting_testOkMeetingExists() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
@@ -3599,7 +3599,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if the room meeting doesn't exist " +
-      "it creates a new meeting associated with the indicated room and authenticated user correctly joins to the meeting")
+      "it creates a new meeting associated with the indicated room and authenticated user correctly joins the meeting")
     public void joinRoomMeeting_testOkMeetingNotExists() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");

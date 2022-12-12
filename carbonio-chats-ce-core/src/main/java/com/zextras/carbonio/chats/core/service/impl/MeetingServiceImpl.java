@@ -112,7 +112,7 @@ public class MeetingServiceImpl implements MeetingService {
         String.format("Meeting with id '%s' not found", meetingId)));
 
     deleteMeeting(meeting,
-      roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false ),
+      roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false),
       currentUser.getUUID(), currentUser.getSessionId());
   }
 

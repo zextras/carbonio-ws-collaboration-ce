@@ -878,7 +878,7 @@ components:
           schema:
             $ref: '../meeting/meeting-api.yaml#/components/schemas/Meeting'
     200JoinRoomMeetingResponse:
-      description: Meeting was created and user joined it successfully
+      description: A meeting was created and the user joined it successfully
       content:
         application/json:
           schema:

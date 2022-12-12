@@ -432,7 +432,7 @@ public class MeetingServiceImplTest {
   }
 
   @Nested
-  @DisplayName("Gets creates meeting entity by room id tests")
+  @DisplayName("Gets or creates meeting entity by room id tests")
   public class GetsOrCreatesMeetingEntityByRoomIdTests {
 
     @Test
@@ -452,7 +452,7 @@ public class MeetingServiceImplTest {
     }
 
     @Test
-    @DisplayName("If meeting doesn't exist, correctly it creates a new meeting for specified room and returns it")
+    @DisplayName("If meeting doesn't exist, it correctly creates a new meeting for the specified room and returns it")
     public void getsOrCreatesMeetingEntityByRoomId_testOkMeetingNotExists() {
       UUID meetingId = UUID.randomUUID();
       Meeting meeting = Meeting.create().id(meetingId.toString()).roomId(room1Id.toString());

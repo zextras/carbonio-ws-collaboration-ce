@@ -15,7 +15,7 @@ import javax.annotation.Nullable;
 public interface ParticipantService {
 
   /**
-   * Inserts a participant into the meeting of indicated room. If the room meeting doesn't exist it created it
+   * Inserts a participant into the meeting of the specified room. If the meeting doesn’t exist it will be created
    *
    * @param roomId       room identifier of the associated meeting in which to insert the participant {@link UUID}
    * @param joinSettings participation settings {@link JoinSettingsDto}
@@ -54,8 +54,8 @@ public interface ParticipantService {
   void removeMeetingParticipant(UUID meetingId, UserPrincipal currentUser);
 
   /**
-   * Removes the participant of current user from a meeting. This method accepts entities because it's intended to be
-   * used only to be called by services.
+   * Removes the participant of the current user from a meeting. This method accepts entities because it's intended to
+   * be used only to be called by services.
    *
    * @param meeting   participant {@link Meeting}
    * @param room      participant {@link Room}

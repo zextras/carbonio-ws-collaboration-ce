@@ -134,7 +134,7 @@ public class ParticipantServiceImplTest {
   public class InsertMeetingParticipantByRoomIdTests {
 
     @Test
-    @DisplayName("If the meeting exists, it inserts the current user as meeting participant")
+    @DisplayName("If the meeting exists, it inserts the current user as a meeting participant")
     public void insertMeetingParticipantByRoomId_testOkMeetingExists() {
       UserPrincipal currentUser = UserPrincipal.create(user3Id).sessionId(user3Session1);
       when(meetingService.getsOrCreatesMeetingEntityByRoomId(roomId, currentUser)).thenReturn(meeting1);
@@ -156,7 +156,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    @DisplayName("If the meeting doesn't exist, it creates a new meeting and inserts the current user as meeting participant")
+    @DisplayName("If the meeting doesn't exist, it creates a new meeting and inserts the current user as a meeting participant")
     public void insertMeetingParticipantByRoomId_testOkMeetingNotExists() {
       UserPrincipal currentUser = UserPrincipal.create(user3Id).sessionId(user3Session1);
       Meeting meeting = Meeting.create()
@@ -291,7 +291,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    @DisplayName("It removes all meeting participants bu the current user")
+    @DisplayName("It removes all meeting participant’s sessions")
     public void removeMeetingParticipant_testOkAllSessions() {
       UserPrincipal currentUser = UserPrincipal.create(user2Id);
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));

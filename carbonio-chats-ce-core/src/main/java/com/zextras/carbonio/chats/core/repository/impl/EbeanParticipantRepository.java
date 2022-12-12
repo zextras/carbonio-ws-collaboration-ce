@@ -5,7 +5,6 @@ import com.zextras.carbonio.chats.core.data.entity.ParticipantId;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import io.ebean.Database;
 import java.util.List;
-import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 

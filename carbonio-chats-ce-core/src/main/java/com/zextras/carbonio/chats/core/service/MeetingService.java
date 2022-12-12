@@ -42,7 +42,7 @@ public interface MeetingService {
   Optional<Meeting> getMeetingEntity(UUID meetingId);
 
   /**
-   * Gets meeting by identifier fo associated room. This method returns an entity because it's intended to be used only
+   * Gets meeting by identifier for associated room. This method returns an entity because it's intended to be used only
    * to be called by services.
    *
    * @param roomId room identifier {@link UUID}
