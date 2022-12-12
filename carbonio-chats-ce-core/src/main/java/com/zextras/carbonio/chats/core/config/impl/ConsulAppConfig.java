@@ -20,8 +20,8 @@ import javax.annotation.Nullable;
 public class ConsulAppConfig extends AppConfig {
 
   private static final AppConfigType CONFIG_TYPE                        = AppConfigType.CONSUL;
-  private static final int           CONSUL_CLIENT_READ_TIMEOUT_SECONDS = 300;
-  private static final int           CONSUL_CONFIG_WATCH_SECONDS        = 30;
+  private static final int           CONSUL_CLIENT_READ_TIMEOUT_SECONDS = 15;
+  private static final int           CONSUL_CONFIG_WATCH_SECONDS        = 10;
 
   private final Consul              consulClient;
   private final List<KVCache>       kvCacheList;
