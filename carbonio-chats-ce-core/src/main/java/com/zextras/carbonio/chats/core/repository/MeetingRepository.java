@@ -12,7 +12,7 @@ public interface MeetingRepository {
    * @param meetingId meeting identifier
    * @return requested meeting {@link Meeting}
    */
-  Optional<Meeting> getMeetingById(String meetingId);
+  Optional<Meeting> getById(String meetingId);
 
   /**
    * Gets a meeting list by their rooms identifiers
@@ -20,7 +20,7 @@ public interface MeetingRepository {
    * @param roomsIds {@link List} of rooms identifiers
    * @return {@link Meeting} {@link List} of requested rooms
    */
-  List<Meeting> getMeetingsByRoomsIds(List<String> roomsIds);
+  List<Meeting> getByRoomsIds(List<String> roomsIds);
 
 
   /**
@@ -29,7 +29,7 @@ public interface MeetingRepository {
    * @param roomId room identifier
    * @return requested meeting {@link Meeting}
    */
-  Optional<Meeting> getMeetingByRoomId(String roomId);
+  Optional<Meeting> getByRoomId(String roomId);
 
   /**
    * Inserts a new row into MEETING table
@@ -40,9 +40,9 @@ public interface MeetingRepository {
   Meeting insert(Meeting meeting);
 
   /**
-   * Deletes a meeting by identifier
+   * Deletes a meeting
    *
-   * @param meetingId meeting identifier
+   * @param meeting meeting to delete
    */
-  void deleteById(String meetingId);
+  void delete(Meeting meeting);
 }

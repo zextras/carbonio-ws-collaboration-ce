@@ -22,6 +22,8 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
+import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
@@ -47,6 +49,7 @@ import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
+import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
@@ -91,6 +94,7 @@ class RoomServiceImplTest {
   private final MessageDispatcher          messageDispatcher;
   private final UserService                userService;
   private final MembersService             membersService;
+  private final MeetingService             meetingService;
   private final FileMetadataRepository     fileMetadataRepository;
   private final StoragesService            storagesService;
   private final Clock                      clock;
@@ -103,6 +107,7 @@ class RoomServiceImplTest {
     this.membersService = mock(MembersService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.messageDispatcher = mock(MessageDispatcher.class);
+    this.meetingService = mock(MeetingService.class);
     this.fileMetadataRepository = mock(FileMetadataRepository.class);
     this.storagesService = mock(StoragesService.class);
     this.clock = mock(Clock.class);
@@ -115,6 +120,7 @@ class RoomServiceImplTest {
       this.messageDispatcher,
       this.userService,
       this.membersService,
+      this.meetingService,
       this.fileMetadataRepository,
       this.storagesService,
       this.clock,
@@ -1263,6 +1269,34 @@ class RoomServiceImplTest {
         RoomDeletedEvent.create(user1Id, null).roomId(roomGroup1Id));
       verifyNoMoreInteractions(eventDispatcher);
       verify(messageDispatcher, times(1)).deleteRoom(roomGroup1Id.toString(), user1Id.toString());
+      verifyNoMoreInteractions(messageDispatcher);
+    }
+
+    @Test
+    @DisplayName("Deletes the required group room and the associated meeting")
+    public void deleteRoom_groupWithMeetingTestOk() {
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      Meeting meeting = Meeting.create()
+        .id(UUID.randomUUID().toString())
+        .roomId(roomGroup1Id.toString());
+      meeting
+        .participants(List.of(
+          ParticipantBuilder.create(user1Id, meeting, "session1User1Id").microphoneOn(true).cameraOn(true)
+            .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z")).build(),
+          ParticipantBuilder.create(user3Id, meeting, "session1User3Id").createdAt(
+            OffsetDateTime.parse("2022-01-01T13:15:00Z")).build()));
+      when(meetingService.getMeetingEntityByRoomId(roomGroup1Id)).thenReturn(Optional.of(meeting));
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      roomService.deleteRoom(roomGroup1Id, currentUser);
+
+      verify(meetingService, times(1)).getMeetingEntityByRoomId(roomGroup1Id);
+      verify(meetingService, times(1)).deleteMeeting(meeting, roomGroup1, user1Id, null);
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+        RoomDeletedEvent.create(user1Id, null).roomId(roomGroup1Id));
+      verify(messageDispatcher, times(1)).deleteRoom(roomGroup1Id.toString(), user1Id.toString());
+
+      verifyNoMoreInteractions(meetingService, eventDispatcher);
       verifyNoMoreInteractions(messageDispatcher);
     }
 
