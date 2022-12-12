@@ -29,7 +29,9 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
+import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
+import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -58,6 +60,8 @@ public class MembersServiceImplTest {
   private final UserService                userService;
   private final MessageDispatcher          messageDispatcher;
   private final MembersService             membersService;
+  private final MeetingService             meetingService;
+  private final ParticipantService         participantService;
 
   public MembersServiceImplTest(
     SubscriptionMapper subscriptionMapper
@@ -68,6 +72,8 @@ public class MembersServiceImplTest {
     this.eventDispatcher = mock(EventDispatcher.class);
     this.userService = mock(UserService.class);
     this.messageDispatcher = mock(MessageDispatcher.class);
+    this.meetingService = mock(MeetingService.class);
+    this.participantService = mock(ParticipantService.class);
     this.membersService = new MembersServiceImpl(
       roomService,
       subscriptionRepository,
@@ -75,8 +81,9 @@ public class MembersServiceImplTest {
       eventDispatcher,
       subscriptionMapper,
       userService,
-      messageDispatcher
-    );
+      messageDispatcher,
+      meetingService,
+      participantService);
   }
 
   private static UUID user1Id;
@@ -122,7 +129,8 @@ public class MembersServiceImplTest {
       verify(subscriptionRepository, times(1)).update(user2subscription.owner(true));
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        RoomOwnerChangedEvent.create(user1Id, null).roomId(UUID.fromString(room.getId())).userId(user2Id).isOwner(true));
+        RoomOwnerChangedEvent.create(user1Id, null).roomId(UUID.fromString(room.getId())).userId(user2Id)
+          .isOwner(true));
       verify(messageDispatcher, times(1)).setMemberRole(roomId.toString(), user1Id.toString(), user2Id.toString(),
         true);
       verifyNoMoreInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);
@@ -145,7 +153,8 @@ public class MembersServiceImplTest {
       verify(subscriptionRepository, times(1)).update(user2subscription.owner(false));
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        RoomOwnerChangedEvent.create(user1Id, null).roomId(UUID.fromString(room.getId())).userId(user2Id).isOwner(false));
+        RoomOwnerChangedEvent.create(user1Id, null).roomId(UUID.fromString(room.getId())).userId(user2Id)
+          .isOwner(false));
       verify(messageDispatcher, times(1)).setMemberRole(roomId.toString(), user1Id.toString(), user2Id.toString(),
         false);
       verifyNoMoreInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);

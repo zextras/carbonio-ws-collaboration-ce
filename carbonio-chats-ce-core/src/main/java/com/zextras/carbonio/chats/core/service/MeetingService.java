@@ -1,13 +1,15 @@
 package com.zextras.carbonio.chats.core.service;
 
-import com.zextras.carbonio.chats.core.exception.ConflictException;
+import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import javax.annotation.Nullable;
 
 public interface MeetingService {
 
@@ -36,9 +38,18 @@ public interface MeetingService {
    *
    * @param meetingId meeting identifier {@link UUID}
    * @return The requested meeting {@link Meeting}
-   * @throws NotFoundException if the meeting doesn't exist
    */
-  Meeting getMeetingEntity(UUID meetingId);
+  Optional<Meeting> getMeetingEntity(UUID meetingId);
+
+  /**
+   * Gets meeting by identifier for associated room. This method returns an entity because it's intended to be used only
+   * to be called by services.
+   *
+   * @param roomId room identifier {@link UUID}
+   * @return The requested meeting {@link Meeting} wrapped in a {@link Optional}
+   */
+  Optional<Meeting> getMeetingEntityByRoomId(UUID roomId);
+
 
   /**
    * Gets the meeting associated to indicated room
@@ -52,19 +63,18 @@ public interface MeetingService {
   MeetingDto getMeetingByRoomId(UUID roomId, UserPrincipal currentUser);
 
   /**
-   * Creates a meeting for the indicated room
+   * Gets or creates a meeting for the indicated room
    *
    * @param roomId      room identifier  {@link UUID }
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The newly created meeting {@link MeetingDto}
+   * @return The requested or newly created meeting {@link Meeting}
    * @throws NotFoundException  if the indicated room doesn't exist
    * @throws ForbiddenException if the current user isn't a member of indicated room
-   * @throws ConflictException  if the room meeting already exists
    */
-  MeetingDto createMeetingByRoomId(UUID roomId, UserPrincipal currentUser);
+  Meeting getsOrCreatesMeetingEntityByRoomId(UUID roomId, UserPrincipal currentUser);
 
   /**
-   * Deletes a meeting ny identifier
+   * Deletes a meeting by identifier.
    *
    * @param meetingId   identifier of meeting to delete {@link UUID}
    * @param currentUser current authenticated user {@link UserPrincipal}
@@ -72,5 +82,15 @@ public interface MeetingService {
    * @throws ForbiddenException if the current user isn't a member of associated room
    */
   void deleteMeetingById(UUID meetingId, UserPrincipal currentUser);
+
+  /**
+   * Deletes a meeting. This method accepts entities because it's intended to be used only to be called by services.
+   *
+   * @param meeting   {@link Meeting} to delete
+   * @param room      meeting {@link Room}
+   * @param userId    current user identifier
+   * @param sessionId current session identifier
+   */
+  void deleteMeeting(Meeting meeting, Room room, UUID userId, @Nullable String sessionId);
 
 }

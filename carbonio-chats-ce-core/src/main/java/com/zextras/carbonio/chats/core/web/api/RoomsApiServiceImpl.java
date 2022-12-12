@@ -4,7 +4,6 @@
 
 package com.zextras.carbonio.chats.core.web.api;
 
-import com.zextras.carbonio.chats.api.NotFoundException;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -14,15 +13,18 @@ import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
+import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ClearedDateDto;
+import com.zextras.carbonio.chats.model.JoinSettingsByRoomDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomRankDto;
+import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.io.File;
 import java.util.List;
@@ -37,21 +39,24 @@ import javax.ws.rs.core.SecurityContext;
 @Singleton
 public class RoomsApiServiceImpl implements RoomsApiService {
 
-  private final RoomService       roomService;
-  private final MembersService    membersService;
-  private final AttachmentService attachmentService;
-  private final MeetingService    meetingService;
+  private final RoomService        roomService;
+  private final MembersService     membersService;
+  private final AttachmentService  attachmentService;
+  private final MeetingService     meetingService;
+  private final ParticipantService participantService;
 
   @Inject
   public RoomsApiServiceImpl(
     RoomService roomService, MembersService membersService,
     AttachmentService attachmentService,
-    MeetingService meetingService
+    MeetingService meetingService,
+    ParticipantService participantService
   ) {
     this.roomService = roomService;
     this.membersService = membersService;
     this.attachmentService = attachmentService;
     this.meetingService = meetingService;
+    this.participantService = participantService;
   }
 
   @Override
@@ -173,7 +178,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  public Response clearRoomHistory(UUID roomId, SecurityContext securityContext) throws NotFoundException {
+  public Response clearRoomHistory(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response.status(Status.OK)
@@ -283,23 +288,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   /**
-   * Created a meeting associated to the room
-   *
-   * @param roomId          room identifier {@link UUID}
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 201 and the created meeting {@link MeetingDto } in the body
-   */
-  @Override
-  public Response createMeetingByRoom(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
-    return Response
-      .status(Status.CREATED)
-      .entity(meetingService.createMeetingByRoomId(roomId, currentUser))
-      .build();
-  }
-
-  /**
    * Gets the meeting of requested room
    *
    * @param roomId          room identifier
@@ -312,5 +300,24 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .orElseThrow(UnauthorizedException::new);
     return Response.ok().entity(meetingService.getMeetingByRoomId(roomId, currentUser)).build();
   }
+
+  @Override
+  public Response joinRoomMeeting(
+    UUID roomId, JoinSettingsByRoomDto joinSettingsByRoomDto, SecurityContext securityContext
+  ) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    Optional<MeetingDto> meeting = participantService.insertMeetingParticipantByRoomId(roomId,
+      JoinSettingsDto.create()
+        .cameraOn(joinSettingsByRoomDto.isCameraOn())
+        .microphoneOn(joinSettingsByRoomDto.isMicrophoneOn()),
+      currentUser);
+    if (meeting.isPresent()) {
+      return Response.ok().entity(meeting.get()).build();
+    } else {
+      return Response.status(Status.NO_CONTENT).build();
+    }
+  }
+
 
 }
