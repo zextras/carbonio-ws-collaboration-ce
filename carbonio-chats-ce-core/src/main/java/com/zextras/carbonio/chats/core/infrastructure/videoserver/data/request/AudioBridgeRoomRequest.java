@@ -1,8 +1,16 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.entity.AudioBridgeRoom;
 import java.util.UUID;
 
+/**
+ * This class represents the request for the audio bridge room and also contains one with default values.
+ *
+ * @see <a href="https://janus.conf.meetecho.com/docs/audiobridge.html">AudioBridgeRoom</a>
+ */
+@JsonInclude(Include.NON_NULL)
 public class AudioBridgeRoomRequest extends AudioBridgeRoom implements RoomRequest {
 
   private static final String ROOM_DEFAULT                 = "audio_";
@@ -13,11 +21,8 @@ public class AudioBridgeRoomRequest extends AudioBridgeRoom implements RoomReque
 
   private String request;
 
-  public AudioBridgeRoomRequest() {
-  }
-
-  public static AudioBridgeRoomRequest create() {
-    return new AudioBridgeRoomRequest();
+  public static AudioBridgeRoomRequest create(String request) {
+    return new AudioBridgeRoomRequest(request);
   }
 
   public AudioBridgeRoomRequest(String request) {

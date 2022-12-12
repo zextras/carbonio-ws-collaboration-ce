@@ -7,68 +7,33 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class JanusErrorResponse extends JanusResponse {
+public class VideoServerErrorResponse extends VideoServerResponse {
 
   @JsonProperty("transaction")
   private String transactionId;
   private Error  error;
 
-  public JanusErrorResponse() {
-  }
-
-  public JanusErrorResponse(
-    String status,
-    String transactionId,
-    Error error
-  ) {
-    super(status);
-    this.transactionId = transactionId;
-    this.error = error;
-  }
-
   public String getTransactionId() {
     return transactionId;
-  }
-
-  public void setTransactionId(String transactionId) {
-    this.transactionId = transactionId;
   }
 
   public Error getError() {
     return error;
   }
 
-  public void setData(Error error) {
-    this.error = error;
-  }
-
+  @JsonInclude(Include.NON_NULL)
+  @JsonIgnoreProperties(ignoreUnknown = true)
   private static class Error {
 
     private long   code;
     private String reason;
 
-    public Error() {
-    }
-
-    public Error(long code, String reason) {
-      this.code = code;
-      this.reason = reason;
-    }
-
     public long getCode() {
       return code;
     }
 
-    public void setCode(long code) {
-      this.code = code;
-    }
-
     public String getReason() {
       return reason;
-    }
-
-    public void setReason(String reason) {
-      this.reason = reason;
     }
   }
 }

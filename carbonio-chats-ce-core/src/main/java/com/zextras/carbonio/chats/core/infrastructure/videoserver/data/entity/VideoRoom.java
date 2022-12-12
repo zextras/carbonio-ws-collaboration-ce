@@ -3,13 +3,18 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.util.List;
 
+/**
+ * This class represents the video room entity with all its fields.
+ *
+ * @see <a href="https://janus.conf.meetecho.com/docs/videoroom.html">VideoRoom</a>
+ */
 @JsonInclude(Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class VideoRoom extends Room {
 
   private String       room;
@@ -41,9 +46,6 @@ public class VideoRoom extends Room {
   private Boolean      lockRecord;
   private Boolean      notifyJoining;
   private Boolean      requireE2ee;
-
-  public VideoRoom() {
-  }
 
   public static VideoRoom create() {
     return new VideoRoom();

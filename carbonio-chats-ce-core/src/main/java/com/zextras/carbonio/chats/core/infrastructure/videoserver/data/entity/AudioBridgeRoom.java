@@ -3,57 +3,37 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.List;
 
+/**
+ * This class represents the audio bridge room entity with all its fields.
+ *
+ * @see <a href="https://janus.conf.meetecho.com/docs/audiobridge.html">AudioBridgeRoom</a>
+ */
 @JsonInclude(Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class AudioBridgeRoom extends Room {
 
-  private String  room;
-  private Boolean permanent;
-  private String  description;
-  private String  secret;
-  private String  pin;
-  private Boolean isPrivate;
-  private String  allowed;
-  private Long    samplingRate;
-  private Boolean audioLevelExt;
-  private Boolean audioLevelEvent;
-  private Long    audioActivePackets;
-  private Short   audioLevelAverage;
-  private Short   defaultPreBuffering;
-  private Boolean hasToRecord;
-  private String  recordFile;
-  private String  recordDir;
-  private String  mjrsDir;
-
-  public AudioBridgeRoom() {
-  }
-
-  public AudioBridgeRoom(String room, Boolean isPermanent, String description, String secret, String pin,
-    Boolean isPrivate, String allowed, Long samplingRate, Boolean audioLevelExt, Boolean audioLevelEvent,
-    Long audioActivePackets, Short audioLevelAverage, Short defaultPreBuffering, Boolean hasToRecord, String recordFile,
-    String recordDir, String mjrsDir) {
-    this.room = room;
-    this.permanent = isPermanent;
-    this.description = description;
-    this.secret = secret;
-    this.pin = pin;
-    this.isPrivate = isPrivate;
-    this.allowed = allowed;
-    this.samplingRate = samplingRate;
-    this.audioLevelExt = audioLevelExt;
-    this.audioLevelEvent = audioLevelEvent;
-    this.audioActivePackets = audioActivePackets;
-    this.audioLevelAverage = audioLevelAverage;
-    this.defaultPreBuffering = defaultPreBuffering;
-    this.hasToRecord = hasToRecord;
-    this.recordFile = recordFile;
-    this.recordDir = recordDir;
-    this.mjrsDir = mjrsDir;
-  }
+  private String       room;
+  private Boolean      permanent;
+  private String       description;
+  private String       secret;
+  private String       pin;
+  private Boolean      isPrivate;
+  private List<String> allowed;
+  private Long         samplingRate;
+  private Boolean      audioLevelExt;
+  private Boolean      audioLevelEvent;
+  private Long         audioActivePackets;
+  private Short        audioLevelAverage;
+  private Short        defaultPreBuffering;
+  private Boolean      hasToRecord;
+  private String       recordFile;
+  private String       recordDir;
+  private String       mjrsDir;
 
   public static AudioBridgeRoom create() {
     return new AudioBridgeRoom();
@@ -113,11 +93,11 @@ public class AudioBridgeRoom extends Room {
     return this;
   }
 
-  public String getAllowed() {
+  public List<String> getAllowed() {
     return allowed;
   }
 
-  public AudioBridgeRoom allowed(String allowed) {
+  public AudioBridgeRoom allowed(List<String> allowed) {
     this.allowed = allowed;
     return this;
   }

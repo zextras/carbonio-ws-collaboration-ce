@@ -1,11 +1,19 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.VideoCodec;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.entity.VideoRoom;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * This class represents the request for the video room and also contains one with default values.
+ *
+ * @see <a href="https://janus.conf.meetecho.com/docs/videoroom.html">VideoRoom</a>
+ */
+@JsonInclude(Include.NON_NULL)
 public class VideoRoomRequest extends VideoRoom implements RoomRequest {
 
   private static final String ROOM_DEFAULT           = "video_";
@@ -15,11 +23,8 @@ public class VideoRoomRequest extends VideoRoom implements RoomRequest {
 
   private String request;
 
-  public VideoRoomRequest() {
-  }
-
-  public static VideoRoomRequest create() {
-    return new VideoRoomRequest();
+  public static VideoRoomRequest create(String request) {
+    return new VideoRoomRequest(request);
   }
 
   public VideoRoomRequest(String request) {

@@ -7,24 +7,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonInclude(Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public abstract class JanusResponse {
+public abstract class VideoServerResponse {
 
   @JsonProperty("janus")
   private String status;
 
-  public JanusResponse() {
-
-  }
-
-  public JanusResponse(String status) {
-    this.status = status;
-  }
-
   public String getStatus() {
     return status;
-  }
-
-  public void setStatus(String status) {
-    this.status = status;
   }
 }

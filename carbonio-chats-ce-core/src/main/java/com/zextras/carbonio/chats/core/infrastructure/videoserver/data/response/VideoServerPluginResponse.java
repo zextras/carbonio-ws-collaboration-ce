@@ -1,6 +1,6 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response;
 
-public interface JanusPluginResponse {
+public interface VideoServerPluginResponse {
 
   boolean statusOK();
 
