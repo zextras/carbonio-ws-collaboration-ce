@@ -4,26 +4,26 @@ import java.util.Objects;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
-public class MeetingParticipantVideoStreamOpened extends DomainEvent {
+public class MeetingParticipantVideoStreamClosed extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_VIDEO_STREAM_OPENED;
+  private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_VIDEO_STREAM_CLOSED;
 
   private UUID   meetingId;
   private String sessionId;
 
-  public MeetingParticipantVideoStreamOpened(UUID from, @Nullable String sessionId) {
+  public MeetingParticipantVideoStreamClosed(UUID from, @Nullable String sessionId) {
     super(EVENT_TYPE, from, sessionId);
   }
 
-  public static MeetingParticipantVideoStreamOpened create(UUID from, @Nullable String sessionId) {
-    return new MeetingParticipantVideoStreamOpened(from, sessionId);
+  public static MeetingParticipantVideoStreamClosed create(UUID from, @Nullable String sessionId) {
+    return new MeetingParticipantVideoStreamClosed(from, sessionId);
   }
 
   public UUID getMeetingId() {
     return meetingId;
   }
 
-  public MeetingParticipantVideoStreamOpened meetingId(UUID meetingId) {
+  public MeetingParticipantVideoStreamClosed meetingId(UUID meetingId) {
     this.meetingId = meetingId;
     return this;
   }
@@ -33,7 +33,7 @@ public class MeetingParticipantVideoStreamOpened extends DomainEvent {
     return sessionId;
   }
 
-  public MeetingParticipantVideoStreamOpened sessionId(String sessionId) {
+  public MeetingParticipantVideoStreamClosed sessionId(String sessionId) {
     this.sessionId = sessionId;
     return this;
   }
@@ -49,7 +49,7 @@ public class MeetingParticipantVideoStreamOpened extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    MeetingParticipantVideoStreamOpened that = (MeetingParticipantVideoStreamOpened) o;
+    MeetingParticipantVideoStreamClosed that = (MeetingParticipantVideoStreamClosed) o;
     return Objects.equals(getMeetingId(), that.getMeetingId()) && Objects.equals(getSessionId(), that.getSessionId());
   }
 

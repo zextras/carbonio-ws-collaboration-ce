@@ -2,18 +2,18 @@ package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import java.util.List;
+import java.util.Optional;
 
 public interface ParticipantRepository {
 
   /**
    * Retrieves a participant by its row identifier
    *
-   * @param userId    user identifier
    * @param meetingId meeting identifier
    * @param sessionId session identifier
-   * @return required {@link Participant} if it exists else null
+   * @return required {@link Participant} wrapped in a {@link Optional}
    */
-  Participant getById(String userId, String meetingId, String sessionId);
+  Optional<Participant> getById(String meetingId, String sessionId);
 
   /**
    * Retrieves the list of meeting participants
@@ -30,6 +30,14 @@ public interface ParticipantRepository {
    * @return {@link Participant} inserted
    */
   Participant insert(Participant participant);
+
+  /**
+   * Updates the {@link Participant}
+   *
+   * @param participant {@link Participant} to update
+   * @return {@link Participant} updated
+   */
+  Participant update(Participant participant);
 
   /**
    * Removes the meeting participant

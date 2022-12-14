@@ -1,5 +1,6 @@
 package com.zextras.carbonio.chats.core.web.api;
 
+import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
@@ -83,9 +84,12 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response joinMeeting(UUID meetingId, JoinSettingsDto joinSettingsDto, SecurityContext securityContext) {
-    participantService.insertMeetingParticipant(meetingId, joinSettingsDto,
-      Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-        .orElseThrow(UnauthorizedException::new));
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
+      throw new BadRequestException("Session identifier is mandatory");
+    }
+    participantService.insertMeetingParticipant(meetingId, joinSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -98,9 +102,50 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response leaveMeeting(UUID meetingId, SecurityContext securityContext) {
-    participantService.removeMeetingParticipant(meetingId,
-      Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-        .orElseThrow(UnauthorizedException::new));
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
+      throw new BadRequestException("Session identifier is mandatory");
+    }
+    participantService.removeMeetingParticipant(meetingId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
+
+  /**
+   * Opens the video stream in the meeting for the current session
+   *
+   * @param meetingId       meeting identifier {@link UUID}
+   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 204
+   */
+  @Override
+  public Response openVideoStream(UUID meetingId, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
+      throw new BadRequestException("Session identifier is mandatory");
+    }
+    participantService.setVideoStreamEnabling(meetingId, currentUser.getSessionId(), true, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  /**
+   * Closes the video stream in the meeting for the session
+   *
+   * @param meetingId       meeting identifier {@link UUID}
+   * @param sessionId       identifier of the session to close
+   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 204
+   */
+  @Override
+  public Response closeVideoStream(UUID meetingId, String sessionId, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
+      throw new BadRequestException("Session identifier is mandatory");
+    }
+    participantService.setVideoStreamEnabling(meetingId, currentUser.getSessionId(), false, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
 }

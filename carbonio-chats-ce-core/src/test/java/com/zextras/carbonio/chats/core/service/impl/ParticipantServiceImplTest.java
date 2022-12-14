@@ -92,15 +92,15 @@ public class ParticipantServiceImplTest {
   public void init() {
     user1Id = UUID.randomUUID();
     user1Session1 = "user1Session1";
-    participant1Session1 = ParticipantBuilder.create(user1Id, Meeting.create(), user1Session1)
-      .microphoneOn(true).cameraOn(false).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
+    participant1Session1 = ParticipantBuilder.create(Meeting.create(), user1Session1).userId(user1Id)
+      .audioStreamOn(true).videoStreamOn(false).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
     user2Id = UUID.randomUUID();
     user2Session1 = "user2Session1";
-    participant2Session1 = ParticipantBuilder.create(user2Id, Meeting.create(), user2Session1)
-      .microphoneOn(true).cameraOn(false).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
+    participant2Session1 = ParticipantBuilder.create(Meeting.create(), user2Session1).userId(user2Id)
+      .audioStreamOn(true).videoStreamOn(false).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
     user2Session2 = "user2Session2";
-    participant2Session2 = ParticipantBuilder.create(user2Id, Meeting.create(), user2Session2)
-      .microphoneOn(true).cameraOn(false).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
+    participant2Session2 = ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id)
+      .audioStreamOn(true).videoStreamOn(false).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
     user3Id = UUID.randomUUID();
     user3Session1 = "user3Session1";
 
@@ -147,7 +147,7 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1))
-        .insert(Participant.create(user3Id.toString(), meeting1, user3Session1));
+        .insert(Participant.create(meeting1, user3Session1).userId(user3Id.toString()));
       verify(videoServerService, times(1)).joinSession(user3Session1);
       verify(eventDispatcher, times(1))
         .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -171,7 +171,7 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1))
-        .insert(Participant.create(user3Id.toString(), meeting, user3Session1));
+        .insert(Participant.create(meeting, user3Session1).userId(user3Id.toString()));
       verify(videoServerService, times(1)).joinSession(user3Session1);
       verify(eventDispatcher, times(1))
         .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -197,7 +197,7 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1))
-        .insert(Participant.create(user3Id.toString(), meeting1, user3Session1));
+        .insert(Participant.create(meeting1, user3Session1).userId(user3Id.toString()));
       verify(videoServerService, times(1)).joinSession(user3Session1);
       verify(eventDispatcher, times(1))
         .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -218,7 +218,7 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(meeting2Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1))
-        .insert(Participant.create(user2Id.toString(), meeting2, user2Session2));
+        .insert(Participant.create(meeting2, user2Session2).userId(user2Id.toString()));
       verify(videoServerService, times(1)).joinSession(user2Session2);
       verify(eventDispatcher, times(1))
         .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),

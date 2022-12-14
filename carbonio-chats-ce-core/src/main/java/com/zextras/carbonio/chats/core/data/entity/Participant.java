@@ -21,9 +21,6 @@ public class Participant {
   @EmbeddedId
   private ParticipantId id;
 
-  @MapsId("userId")
-  private String userId;
-
   @ManyToOne(fetch = FetchType.LAZY)
   @MapsId("meetingId")
   @JoinColumn(name = "MEETING_ID")
@@ -32,11 +29,17 @@ public class Participant {
   @MapsId("sessionId")
   private String sessionId;
 
-  @Column(name = "MICROPHONE_ON")
-  private Boolean microphoneOn;
+  @Column(name = "USER_ID", length = 64, nullable = false)
+  private String userId;
 
-  @Column(name = "CAMERA_ON")
-  private Boolean cameraOn;
+  @Column(name = "AUDIO_STREAM_ON")
+  private Boolean audioStreamOn = false;
+
+  @Column(name = "VIDEO_STREAM_ON")
+  private Boolean videoStreamOn = false;
+
+  @Column(name = "SCREEN_STREAM_ON")
+  private Boolean screenStreamOn = false;
 
   @Column(name = "CREATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
@@ -52,9 +55,8 @@ public class Participant {
     this.id = ParticipantId.create();
   }
 
-  public Participant(String userId, Meeting meeting, String sessionId) {
-    this.id = ParticipantId.create(userId, meeting.getId(), sessionId);
-    this.userId = userId;
+  public Participant(Meeting meeting, String sessionId) {
+    this.id = ParticipantId.create(meeting.getId(), sessionId);
     this.meeting = meeting;
     this.sessionId = sessionId;
   }
@@ -63,8 +65,8 @@ public class Participant {
     return new Participant();
   }
 
-  public static Participant create(String userId, Meeting meeting, String sessionId) {
-    return new Participant(userId, meeting, sessionId);
+  public static Participant create(Meeting meeting, String sessionId) {
+    return new Participant(meeting, sessionId);
   }
 
   public String getUserId() {
@@ -73,7 +75,6 @@ public class Participant {
 
   public Participant userId(String userId) {
     this.userId = userId;
-    this.id.userId(userId);
     return this;
   }
 
@@ -97,21 +98,30 @@ public class Participant {
     return this;
   }
 
-  public Boolean getMicrophoneOn() {
-    return microphoneOn;
+  public Boolean hasAudioStreamOn() {
+    return audioStreamOn;
   }
 
-  public Participant microphoneOn(Boolean microphoneOn) {
-    this.microphoneOn = microphoneOn;
+  public Participant audioStreamOn(Boolean microphoneOn) {
+    this.audioStreamOn = microphoneOn;
     return this;
   }
 
-  public Boolean getCameraOn() {
-    return cameraOn;
+  public Boolean hasVideoStreamOn() {
+    return videoStreamOn;
   }
 
-  public Participant cameraOn(Boolean cameraOn) {
-    this.cameraOn = cameraOn;
+  public Participant videoStreamOn(Boolean cameraOn) {
+    this.videoStreamOn = cameraOn;
+    return this;
+  }
+
+  public Boolean hasScreenStreamOn() {
+    return screenStreamOn;
+  }
+
+  public Participant screenStreamOn(Boolean screenStreamOn) {
+    this.screenStreamOn = screenStreamOn;
     return this;
   }
 

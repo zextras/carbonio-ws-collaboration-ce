@@ -6,6 +6,9 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoinedEvent;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeftEvent;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantVideoStreamClosed;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantVideoStreamOpened;
+import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -79,9 +82,10 @@ public class ParticipantServiceImpl implements ParticipantService {
   private void insertMeetingParticipant(Meeting meeting, JoinSettingsDto joinSettings, UserPrincipal currentUser) {
     Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     Participant participant = participantRepository.insert(
-      Participant.create(currentUser.getId(), meeting, currentUser.getSessionId())
-        .microphoneOn(joinSettings.isMicrophoneOn())
-        .cameraOn(joinSettings.isCameraOn()));
+      Participant.create(meeting, currentUser.getSessionId())
+        .userId(currentUser.getId())
+        .audioStreamOn(joinSettings.isMicrophoneOn())
+        .videoStreamOn(joinSettings.isCameraOn()));
     videoServerService.joinSession(currentUser.getSessionId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
@@ -121,4 +125,32 @@ public class ParticipantServiceImpl implements ParticipantService {
     });
   }
 
+  @Override
+  @Transactional
+  public void setVideoStreamEnabling(
+    UUID meetingId, String sessionId, boolean hasVideoStreamOn, UserPrincipal currentUser
+  ) {
+    Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
+      new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
+    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
+      .findAny().orElseThrow(() ->
+        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
+    if (!sessionId.equals(currentUser.getSessionId())) {
+      if (hasVideoStreamOn) {
+        throw new BadRequestException(String.format(
+          "User '%s' cannot enable the video stream of the session '%s'", currentUser.getId(), sessionId));
+      }
+      roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
+    }
+    if (hasVideoStreamOn != participant.hasVideoStreamOn()) {
+      participantRepository.update(participant.videoStreamOn(hasVideoStreamOn));
+      eventDispatcher.sendToUserQueue(
+        meeting.getParticipants().stream().map(Participant::getUserId).collect(Collectors.toList()),
+        hasVideoStreamOn ?
+          MeetingParticipantVideoStreamOpened
+            .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId) :
+          MeetingParticipantVideoStreamClosed
+            .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
+    }
+  }
 }

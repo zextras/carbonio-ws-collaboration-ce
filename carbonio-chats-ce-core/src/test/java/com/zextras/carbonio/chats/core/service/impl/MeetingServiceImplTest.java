@@ -118,13 +118,13 @@ public class MeetingServiceImplTest {
       .id(meeting1Id.toString())
       .roomId(room1Id.toString())
       .participants(List.of(
-        ParticipantBuilder.create(user1Id, meeting1, session1User1Id).microphoneOn(true).cameraOn(true)
+        ParticipantBuilder.create(meeting1, session1User1Id).userId(user1Id).audioStreamOn(true).videoStreamOn(true)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z")).build(),
-        ParticipantBuilder.create(user2Id, meeting1, session1User2Id).microphoneOn(false).cameraOn(true)
+        ParticipantBuilder.create(meeting1, session1User2Id).userId(user2Id).audioStreamOn(false).videoStreamOn(true)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:30:00Z")).build(),
-        ParticipantBuilder.create(user2Id, meeting1, session2User2Id).microphoneOn(true).cameraOn(false)
+        ParticipantBuilder.create(meeting1, session2User2Id).userId(user2Id).audioStreamOn(true).videoStreamOn(false)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build(),
-        ParticipantBuilder.create(user3Id, meeting1, session1User3Id).createdAt(
+        ParticipantBuilder.create(meeting1, session1User3Id).userId(user3Id).createdAt(
           OffsetDateTime.parse("2022-01-01T13:15:00Z")).build()));
     meeting2Id = UUID.randomUUID();
     meeting2 = Meeting.create();
@@ -132,9 +132,9 @@ public class MeetingServiceImplTest {
       .id(meeting2Id.toString())
       .roomId(room2Id.toString())
       .participants(List.of(
-        ParticipantBuilder.create(user1Id, meeting1, session1User1Id).microphoneOn(true).cameraOn(true)
+        ParticipantBuilder.create(meeting1, session1User1Id).userId(user1Id).audioStreamOn(true).videoStreamOn(true)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z")).build(),
-        ParticipantBuilder.create(user3Id, meeting1, session1User3Id).createdAt(
+        ParticipantBuilder.create(meeting1, session1User3Id).userId(user3Id).createdAt(
           OffsetDateTime.parse("2022-01-01T13:15:00Z")).build()));
   }
 
@@ -171,8 +171,8 @@ public class MeetingServiceImplTest {
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
       assertEquals(session1User1Id, participant1.get().getSessionId());
-      assertTrue(participant1.get().isHasCameraOn());
-      assertTrue(participant1.get().isHasMicrophoneOn());
+      assertTrue(participant1.get().isHasVideoStreamOn());
+      assertTrue(participant1.get().isHasAudioStreamOn());
 
       MeetingDto meeting2Dto = meetings.get(1);
       assertEquals(meeting2Id, meeting2Dto.getId());
@@ -188,8 +188,8 @@ public class MeetingServiceImplTest {
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
       assertEquals(session1User1Id, participant1.get().getSessionId());
-      assertTrue(participant1.get().isHasCameraOn());
-      assertTrue(participant1.get().isHasMicrophoneOn());
+      assertTrue(participant1.get().isHasVideoStreamOn());
+      assertTrue(participant1.get().isHasAudioStreamOn());
 
       verify(roomService, times(1)).getRoomsIds(currentUser);
       verify(meetingRepository, times(1))
@@ -266,8 +266,8 @@ public class MeetingServiceImplTest {
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
       assertEquals(session1User1Id, participant1.get().getSessionId());
-      assertTrue(participant1.get().isHasCameraOn());
-      assertTrue(participant1.get().isHasMicrophoneOn());
+      assertTrue(participant1.get().isHasVideoStreamOn());
+      assertTrue(participant1.get().isHasAudioStreamOn());
 
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(membersService, times(1)).getByUserIdAndRoomId(user1Id, room1Id);
@@ -342,8 +342,8 @@ public class MeetingServiceImplTest {
       assertTrue(participant1.isPresent());
       assertEquals(user1Id.toString(), participant1.get().getUserId());
       assertEquals(session1User1Id, participant1.get().getSessionId());
-      assertTrue(participant1.get().getCameraOn());
-      assertTrue(participant1.get().getMicrophoneOn());
+      assertTrue(participant1.get().hasVideoStreamOn());
+      assertTrue(participant1.get().hasAudioStreamOn());
 
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verifyNoMoreInteractions(meetingRepository);
@@ -399,8 +399,8 @@ public class MeetingServiceImplTest {
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
       assertEquals(session1User1Id, participant1.get().getSessionId());
-      assertTrue(participant1.get().isHasCameraOn());
-      assertTrue(participant1.get().isHasMicrophoneOn());
+      assertTrue(participant1.get().isHasVideoStreamOn());
+      assertTrue(participant1.get().isHasAudioStreamOn());
 
       verify(roomService, times(1)).getRoomEntityAndCheckUser(room1Id, UserPrincipal.create(user1Id), false);
       verify(meetingRepository, times(1)).getByRoomId(room1Id.toString());

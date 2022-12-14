@@ -1364,7 +1364,7 @@ public class RoomsApiIT {
           RoomMemberField.create().id(user2Id).muted(true),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
-        ParticipantBuilder.create(user1Id, "user3session1").microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user1Id, "user3session1").audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -1372,7 +1372,7 @@ public class RoomsApiIT {
       assertTrue(integrationTestUtils.getRoomById(roomId).isEmpty());
       assertTrue(roomUserSettingsRepository.getByRoomId(roomId.toString()).isEmpty());
       assertTrue(meetingTestUtils.getMeetingById(meetingId).isEmpty());
-      assertTrue(meetingTestUtils.getParticipant(user1Id, meetingId, "user3session1").isEmpty());
+      assertTrue(meetingTestUtils.getParticipant(meetingId, "user3session1").isEmpty());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       mongooseImMockServer.verify("DELETE",
@@ -3470,10 +3470,10 @@ public class RoomsApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
-        ParticipantBuilder.create(user1Id, "user1session1").microphoneOn(true).cameraOn(true),
-        ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, "user2session2").microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, "user3session1").microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user1Id, "user1session1").audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, "user2session1").audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, "user2session2").audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, "user3session1").audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.get(url(roomId), user1Token);
 
@@ -3495,8 +3495,8 @@ public class RoomsApiIT {
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
       assertEquals("user1session1", participant1.get().getSessionId());
-      assertTrue(participant1.get().isHasCameraOn());
-      assertTrue(participant1.get().isHasMicrophoneOn());
+      assertTrue(participant1.get().isHasVideoStreamOn());
+      assertTrue(participant1.get().isHasAudioStreamOn());
     }
 
     @Test
@@ -3572,9 +3572,9 @@ public class RoomsApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
-        ParticipantBuilder.create(user2Id, "user2session1").microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, "user2session2").microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, "user3session1").microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user2Id, "user2session1").audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, "user2session2").audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, "user3session1").audioStreamOn(false).videoStreamOn(false)));
       Instant executionInstant = Instant.parse("2022-01-01T00:00:00Z");
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response = dispatcher.put(url(roomId),
@@ -3591,8 +3591,8 @@ public class RoomsApiIT {
       Participant newParticipant = meeting.getParticipants().stream().filter(participant ->
         user1Id.toString().equals(participant.getUserId()) && "user1session1".equals(participant.getSessionId())
       ).findAny().orElseThrow();
-      assertTrue(newParticipant.getMicrophoneOn());
-      assertFalse(newParticipant.getCameraOn());
+      assertTrue(newParticipant.hasAudioStreamOn());
+      assertFalse(newParticipant.hasVideoStreamOn());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -3631,8 +3631,8 @@ public class RoomsApiIT {
       assertNotNull(meetingDto.getParticipants());
       assertEquals(1, meetingDto.getParticipants().size());
       assertEquals(user1Id, meetingDto.getParticipants().get(0).getUserId());
-      assertTrue(meetingDto.getParticipants().get(0).isHasMicrophoneOn());
-      assertFalse(meetingDto.getParticipants().get(0).isHasCameraOn());
+      assertTrue(meetingDto.getParticipants().get(0).isHasAudioStreamOn());
+      assertFalse(meetingDto.getParticipants().get(0).isHasVideoStreamOn());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }

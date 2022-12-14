@@ -1281,9 +1281,9 @@ class RoomServiceImplTest {
         .roomId(roomGroup1Id.toString());
       meeting
         .participants(List.of(
-          ParticipantBuilder.create(user1Id, meeting, "session1User1Id").microphoneOn(true).cameraOn(true)
+          ParticipantBuilder.create(meeting, "session1User1Id").userId(user1Id).audioStreamOn(true).videoStreamOn(true)
             .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z")).build(),
-          ParticipantBuilder.create(user3Id, meeting, "session1User3Id").createdAt(
+          ParticipantBuilder.create(meeting, "session1User3Id").userId(user3Id).createdAt(
             OffsetDateTime.parse("2022-01-01T13:15:00Z")).build()));
       when(meetingService.getMeetingEntityByRoomId(roomGroup1Id)).thenReturn(Optional.of(meeting));
       UserPrincipal currentUser = UserPrincipal.create(user1Id);

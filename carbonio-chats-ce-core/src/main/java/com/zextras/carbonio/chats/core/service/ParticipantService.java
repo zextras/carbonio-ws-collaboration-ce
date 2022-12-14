@@ -63,4 +63,14 @@ public interface ParticipantService {
    * @param sessionId identifier of the session to remove. If it is null, it removes all user sessions
    */
   void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, @Nullable String sessionId);
+
+  /**
+   * Sets the video stream enabling in the meeting for the current session
+   *
+   * @param meetingId        meeting identifier {@link UUID}
+   * @param sessionId        identifier of the session to set video stream enabling
+   * @param hasVideoStreamOn indicates whether the video stream must be enabled or not
+   * @param currentUser      currentUser current authenticated user {@link UserPrincipal}
+   */
+  void setVideoStreamEnabling(UUID meetingId, String sessionId, boolean hasVideoStreamOn, UserPrincipal currentUser);
 }
