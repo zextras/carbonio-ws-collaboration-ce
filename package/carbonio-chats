@@ -73,6 +73,8 @@ fi
 
 consul reload
 
+carbonio-chats-configs
+
 # Limit token visibility as much as possible
 export -n CONSUL_HTTP_TOKEN
 
