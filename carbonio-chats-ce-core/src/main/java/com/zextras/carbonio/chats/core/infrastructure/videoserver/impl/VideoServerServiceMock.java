@@ -8,6 +8,7 @@ public class VideoServerServiceMock implements VideoServerService {
 
   @Override
   public void createMeeting(String meetingId) {
+
   }
 
   @Override
@@ -16,12 +17,18 @@ public class VideoServerServiceMock implements VideoServerService {
   }
 
   @Override
-  public void joinSession(String sessionId) {
+  public void joinMeeting(String sessionId, String meetingId, boolean videoStreamOn, boolean audioStreamOn) {
 
   }
 
   @Override
-  public void leaveSession(String sessionId) {
+  public void leaveMeeting(String sessionId, String meetingId) {
 
+  }
+
+
+  @Override
+  public boolean isAlive() {
+    return true;
   }
 }

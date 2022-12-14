@@ -28,6 +28,7 @@ backup=(
 )
 sources=(
    "carbonio-chats"
+   "carbonio-chats-configs"
    "carbonio-chats.service"
    "carbonio-chats.hcl"
    "carbonio-chats-sidecar.service"
@@ -39,7 +40,8 @@ sources=(
    "logback.xml"
 )
 hashsums=(
-   "98682f7cb5269c92c21b90f265f666c009e38e1e79bedf9c56c3aecdb39774f2"
+   "bb55b726a04ac11a7eb108fb80e9f8ebb62417c16168918a104e7e57cde687d6"
+   "766217a086ec182685c68d66516944cf1e5f7500d5272dc1be2d10394df85438"
    "skip"
    "dfd690174c720b770c99262ca1e7584852e6d35b034c4ca8b0cb1ac039893ecc"
    "407d7bdf5c3165b06663b18ccb8634004f8c4fc93775766fe61fdaa94bdf738c"
@@ -58,6 +60,7 @@ package() {
 
   cd "${srcdir}"
   install -Dm 755 carbonio-chats "${pkgdir}/usr/bin/carbonio-chats"
+  install -Dm 755 carbonio-chats-configs "${pkgdir}/usr/bin/carbonio-chats-configs"
   install -Dm 644 config.properties "${pkgdir}/etc/carbonio/chats/config.properties"
   install -Dm 644 logback.xml "${pkgdir}/etc/carbonio/chats/logback.xml"
   install -Dm 644 carbonio-chats.service "${pkgdir}/lib/systemd/system/carbonio-chats.service"

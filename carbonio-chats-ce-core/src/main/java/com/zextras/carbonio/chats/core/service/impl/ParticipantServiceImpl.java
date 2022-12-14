@@ -86,7 +86,9 @@ public class ParticipantServiceImpl implements ParticipantService {
         .userId(currentUser.getId())
         .audioStreamOn(joinSettings.isMicrophoneOn())
         .videoStreamOn(joinSettings.isCameraOn()));
-    videoServerService.joinSession(currentUser.getSessionId());
+    videoServerService.joinMeeting(currentUser.getSessionId(), meeting.getId(),
+      joinSettings.isCameraOn(),
+      joinSettings.isMicrophoneOn());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       MeetingParticipantJoinedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
@@ -113,7 +115,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
     participants.forEach(participant -> {
       participantRepository.remove(participant);
-      videoServerService.leaveSession(participant.getSessionId());
+      videoServerService.leaveMeeting(participant.getSessionId(), meeting.getId());
       eventDispatcher.sendToUserQueue(
         room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
         MeetingParticipantLeftEvent.create(userId, participant.getSessionId())
@@ -153,4 +155,5 @@ public class ParticipantServiceImpl implements ParticipantService {
             .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
     }
   }
+
 }

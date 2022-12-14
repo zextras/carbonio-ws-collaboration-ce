@@ -40,6 +40,7 @@ import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagem
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceMock;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
@@ -63,6 +64,8 @@ import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
+import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
+import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanFileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanParticipantRepository;
@@ -70,6 +73,8 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanRoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanSubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanUserRepository;
+import com.zextras.carbonio.chats.core.repository.impl.EbeanVideoServerMeetingRepository;
+import com.zextras.carbonio.chats.core.repository.impl.EbeanVideoServerSessionRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
@@ -114,11 +119,9 @@ import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.config.DatabaseConfig;
-import java.io.IOException;
 import java.time.Clock;
 import java.time.ZoneId;
 import java.util.Optional;
-import java.util.concurrent.TimeoutException;
 import javax.inject.Singleton;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
@@ -188,6 +191,8 @@ public class CoreModule extends AbstractModule {
     bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
 
     bind(VideoServerService.class).to(VideoServerServiceMock.class);
+    bind(VideoServerMeetingRepository.class).to(EbeanVideoServerMeetingRepository.class);
+    bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
 
     bind(MessageDispatcher.class).to(MessageDispatcherMongooseIm.class);
     bind(StoragesService.class).to(StoragesServiceImpl.class);
@@ -322,7 +327,7 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private Optional<Connection> getRabbitMqConnection(AppConfig appConfig) throws IOException, TimeoutException {
+  private Optional<Connection> getRabbitMqConnection(AppConfig appConfig) {
     try {
       ConnectionFactory factory = new ConnectionFactory();
       factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
@@ -341,4 +346,15 @@ public class CoreModule extends AbstractModule {
     }
   }
 
+  @Singleton
+  @Provides
+  private VideoServerClient getVideoServerClient(AppConfig appConfig, ObjectMapper objectMapper) {
+    return VideoServerClient.atURL(
+      String.format("http://%s:%s",
+        appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST).orElseThrow(),
+        appConfig.get(String.class, ConfigName.VIDEO_SERVER_PORT).orElseThrow()
+      ),
+      objectMapper
+    );
+  }
 }
