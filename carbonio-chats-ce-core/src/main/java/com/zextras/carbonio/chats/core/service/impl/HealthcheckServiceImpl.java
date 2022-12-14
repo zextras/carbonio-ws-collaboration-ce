@@ -13,6 +13,7 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.model.DependencyHealthDto;
 import com.zextras.carbonio.chats.model.DependencyHealthTypeDto;
@@ -36,7 +37,8 @@ public class HealthcheckServiceImpl implements HealthcheckService {
     StoragesService storagesService,
     PreviewerService previewerService,
     AuthenticationService authenticationService,
-    ProfilingService profilingService
+    ProfilingService profilingService,
+    VideoServerService videoServerService
   ) {
     dependencies = List.of(
       HealthDependency.create(databaseInfoService, DependencyType.DATABASE),
@@ -45,7 +47,8 @@ public class HealthcheckServiceImpl implements HealthcheckService {
       HealthDependency.create(messageDispatcher, DependencyType.XMPP_SERVER),
       HealthDependency.create(eventDispatcher, DependencyType.EVENT_DISPATCHER),
       HealthDependency.create(storagesService, DependencyType.STORAGE_SERVICE),
-      HealthDependency.create(previewerService, DependencyType.PREVIEWER_SERVICE)
+      HealthDependency.create(previewerService, DependencyType.PREVIEWER_SERVICE),
+      HealthDependency.create(videoServerService, DependencyType.VIDEOSERVER_SERVICE)
     );
   }
 
@@ -60,7 +63,8 @@ public class HealthcheckServiceImpl implements HealthcheckService {
       .isLive(true)
       .status(checkServiceStatus())
       .dependencies(dependencies.stream()
-        .map(dependency -> DependencyHealthDto.create().name(dependency.getDependencyHealthType()).isHealthy(dependency.isAlive()))
+        .map(dependency -> DependencyHealthDto.create().name(dependency.getDependencyHealthType())
+          .isHealthy(dependency.isAlive()))
         .collect(Collectors.toList()));
   }
 

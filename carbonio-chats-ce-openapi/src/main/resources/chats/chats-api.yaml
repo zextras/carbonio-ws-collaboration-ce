@@ -954,6 +954,7 @@ components:
         - previewer_service
         - authentication_service
         - profiling_service
+        - videoserver_service
     Id:
       type: object
       description: Identifier object

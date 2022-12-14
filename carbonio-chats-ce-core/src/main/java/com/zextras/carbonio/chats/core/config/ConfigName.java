@@ -38,6 +38,8 @@ public enum ConfigName {
     "carbonio-message-broker/username"),
   EVENT_DISPATCHER_USER_PASSWORD("event.dispatcher.user.password", "EVENT_DISPATCHER_USER_PASSWORD",
     "carbonio-message-broker/password"),
+  VIDEO_SERVER_HOST("video.server.host", "VIDEO_SERVER_HOST", "carbonio-chats/video-server-host"),
+  VIDEO_SERVER_PORT("video.server.port", "VIDEO_SERVER_PORT", "carbonio-chats/video-server-port"),
 
   // behavioral configurations
   CAN_SEE_MESSAGE_READS("can.see.message.reads", "CAN_SEE_MESSAGE_READS",

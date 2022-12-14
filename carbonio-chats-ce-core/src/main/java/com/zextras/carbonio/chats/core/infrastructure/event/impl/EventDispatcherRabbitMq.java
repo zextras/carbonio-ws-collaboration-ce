@@ -7,12 +7,10 @@ import com.rabbitmq.client.Connection;
 import com.zextras.carbonio.chats.core.data.event.DomainEvent;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeoutException;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 

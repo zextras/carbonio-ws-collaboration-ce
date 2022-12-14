@@ -14,6 +14,7 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.model.DependencyHealthDto;
 import com.zextras.carbonio.chats.model.DependencyHealthTypeDto;
 import com.zextras.carbonio.chats.model.HealthStatusDto;
@@ -35,6 +36,7 @@ class HealthcheckServiceImplTest {
   private final PreviewerService       previewerService;
   private final AuthenticationService  authenticationService;
   private final ProfilingService       profilingService;
+  private final VideoServerService     videoServerService;
 
   public HealthcheckServiceImplTest() {
     this.messageDispatcher = mock(MessageDispatcher.class);
@@ -44,6 +46,7 @@ class HealthcheckServiceImplTest {
     this.previewerService = mock(PreviewerService.class);
     this.authenticationService = mock(AuthenticationService.class);
     this.profilingService = mock(ProfilingService.class);
+    this.videoServerService = mock(VideoServerService.class);
     this.healthcheckService = new HealthcheckServiceImpl(
       this.messageDispatcher,
       this.databaseInfoService,
@@ -51,7 +54,8 @@ class HealthcheckServiceImplTest {
       this.storagesService,
       this.previewerService,
       this.authenticationService,
-      this.profilingService
+      this.profilingService,
+      this.videoServerService
     );
   }
 
@@ -81,6 +85,7 @@ class HealthcheckServiceImplTest {
       when(previewerService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
+      when(videoServerService.isAlive()).thenReturn(true);
 
       assertEquals(HealthStatusTypeDto.OK, healthcheckService.getServiceStatus());
     }
@@ -95,6 +100,7 @@ class HealthcheckServiceImplTest {
       when(previewerService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
+      when(videoServerService.isAlive()).thenReturn(true);
 
       assertEquals(HealthStatusTypeDto.ERROR, healthcheckService.getServiceStatus());
     }
@@ -109,6 +115,7 @@ class HealthcheckServiceImplTest {
       when(previewerService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
+      when(videoServerService.isAlive()).thenReturn(true);
 
       assertEquals(HealthStatusTypeDto.ERROR, healthcheckService.getServiceStatus());
     }
@@ -123,6 +130,7 @@ class HealthcheckServiceImplTest {
       when(previewerService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
+      when(videoServerService.isAlive()).thenReturn(true);
 
       assertEquals(HealthStatusTypeDto.WARN, healthcheckService.getServiceStatus());
     }
@@ -137,6 +145,7 @@ class HealthcheckServiceImplTest {
       when(previewerService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
+      when(videoServerService.isAlive()).thenReturn(true);
 
       assertEquals(HealthStatusTypeDto.WARN, healthcheckService.getServiceStatus());
     }
@@ -151,6 +160,7 @@ class HealthcheckServiceImplTest {
       when(previewerService.isAlive()).thenReturn(false);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
+      when(videoServerService.isAlive()).thenReturn(true);
 
       assertEquals(HealthStatusTypeDto.WARN, healthcheckService.getServiceStatus());
     }
@@ -165,6 +175,7 @@ class HealthcheckServiceImplTest {
       when(previewerService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(false);
       when(profilingService.isAlive()).thenReturn(true);
+      when(videoServerService.isAlive()).thenReturn(true);
 
       assertEquals(HealthStatusTypeDto.ERROR, healthcheckService.getServiceStatus());
     }
@@ -179,8 +190,24 @@ class HealthcheckServiceImplTest {
       when(previewerService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(false);
+      when(videoServerService.isAlive()).thenReturn(true);
 
       assertEquals(HealthStatusTypeDto.ERROR, healthcheckService.getServiceStatus());
+    }
+
+    @Test
+    @DisplayName("Returns error when the videoserver service is not healthy")
+    public void getServiceStatus_testVideoServerDead() {
+      when(messageDispatcher.isAlive()).thenReturn(true);
+      when(databaseInfoService.isAlive()).thenReturn(true);
+      when(eventDispatcher.isAlive()).thenReturn(true);
+      when(storagesService.isAlive()).thenReturn(true);
+      when(previewerService.isAlive()).thenReturn(true);
+      when(authenticationService.isAlive()).thenReturn(true);
+      when(profilingService.isAlive()).thenReturn(true);
+      when(videoServerService.isAlive()).thenReturn(false);
+
+      assertEquals(HealthStatusTypeDto.WARN, healthcheckService.getServiceStatus());
     }
 
     @Test
@@ -213,6 +240,7 @@ class HealthcheckServiceImplTest {
       when(previewerService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
+      when(videoServerService.isAlive()).thenReturn(true);
 
       List<DependencyHealthDto> dependencyHealthDto = List.of(
         DependencyHealthDto.create().name(DependencyHealthTypeDto.XMPP_SERVER).isHealthy(true),
@@ -221,7 +249,8 @@ class HealthcheckServiceImplTest {
         DependencyHealthDto.create().name(DependencyHealthTypeDto.STORAGE_SERVICE).isHealthy(true),
         DependencyHealthDto.create().name(DependencyHealthTypeDto.PREVIEWER_SERVICE).isHealthy(true),
         DependencyHealthDto.create().name(DependencyHealthTypeDto.AUTHENTICATION_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.PROFILING_SERVICE).isHealthy(true)
+        DependencyHealthDto.create().name(DependencyHealthTypeDto.PROFILING_SERVICE).isHealthy(true),
+        DependencyHealthDto.create().name(DependencyHealthTypeDto.VIDEOSERVER_SERVICE).isHealthy(true)
       );
       HealthStatusDto serviceHealth = healthcheckService.getServiceHealth();
       assertTrue(serviceHealth.isIsLive());
@@ -239,6 +268,7 @@ class HealthcheckServiceImplTest {
       when(previewerService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(false);
+      when(videoServerService.isAlive()).thenReturn(true);
 
       List<DependencyHealthDto> dependencyHealthDto = List.of(
         DependencyHealthDto.create().name(DependencyHealthTypeDto.XMPP_SERVER).isHealthy(true),
@@ -247,7 +277,8 @@ class HealthcheckServiceImplTest {
         DependencyHealthDto.create().name(DependencyHealthTypeDto.STORAGE_SERVICE).isHealthy(true),
         DependencyHealthDto.create().name(DependencyHealthTypeDto.PREVIEWER_SERVICE).isHealthy(true),
         DependencyHealthDto.create().name(DependencyHealthTypeDto.AUTHENTICATION_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.PROFILING_SERVICE).isHealthy(false)
+        DependencyHealthDto.create().name(DependencyHealthTypeDto.PROFILING_SERVICE).isHealthy(false),
+        DependencyHealthDto.create().name(DependencyHealthTypeDto.VIDEOSERVER_SERVICE).isHealthy(true)
       );
       HealthStatusDto serviceHealth = healthcheckService.getServiceHealth();
       assertTrue(serviceHealth.isIsLive());
@@ -265,6 +296,7 @@ class HealthcheckServiceImplTest {
       when(previewerService.isAlive()).thenReturn(false);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
+      when(videoServerService.isAlive()).thenReturn(true);
 
       List<DependencyHealthDto> dependencyHealthDto = List.of(
         DependencyHealthDto.create().name(DependencyHealthTypeDto.XMPP_SERVER).isHealthy(true),
@@ -273,7 +305,8 @@ class HealthcheckServiceImplTest {
         DependencyHealthDto.create().name(DependencyHealthTypeDto.STORAGE_SERVICE).isHealthy(true),
         DependencyHealthDto.create().name(DependencyHealthTypeDto.PREVIEWER_SERVICE).isHealthy(false),
         DependencyHealthDto.create().name(DependencyHealthTypeDto.AUTHENTICATION_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.PROFILING_SERVICE).isHealthy(true)
+        DependencyHealthDto.create().name(DependencyHealthTypeDto.PROFILING_SERVICE).isHealthy(true),
+        DependencyHealthDto.create().name(DependencyHealthTypeDto.VIDEOSERVER_SERVICE).isHealthy(true)
       );
       HealthStatusDto serviceHealth = healthcheckService.getServiceHealth();
       assertTrue(serviceHealth.isIsLive());
@@ -291,6 +324,7 @@ class HealthcheckServiceImplTest {
       when(previewerService.isAlive()).thenReturn(false);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(false);
+      when(videoServerService.isAlive()).thenReturn(true);
 
       List<DependencyHealthDto> dependencyHealthDto = List.of(
         DependencyHealthDto.create().name(DependencyHealthTypeDto.XMPP_SERVER).isHealthy(true),
@@ -299,7 +333,8 @@ class HealthcheckServiceImplTest {
         DependencyHealthDto.create().name(DependencyHealthTypeDto.STORAGE_SERVICE).isHealthy(true),
         DependencyHealthDto.create().name(DependencyHealthTypeDto.PREVIEWER_SERVICE).isHealthy(false),
         DependencyHealthDto.create().name(DependencyHealthTypeDto.AUTHENTICATION_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.PROFILING_SERVICE).isHealthy(false)
+        DependencyHealthDto.create().name(DependencyHealthTypeDto.PROFILING_SERVICE).isHealthy(false),
+        DependencyHealthDto.create().name(DependencyHealthTypeDto.VIDEOSERVER_SERVICE).isHealthy(true)
       );
       HealthStatusDto serviceHealth = healthcheckService.getServiceHealth();
       assertTrue(serviceHealth.isIsLive());
