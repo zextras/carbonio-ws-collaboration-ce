@@ -229,15 +229,15 @@ components:
           type: string
           readOnly: true
           description: VideoServer session id
-        hasAudioStreamOn:
+        audioStreamOn:
           type: boolean
           readOnly: true
           description: indicates if the audio stream is on
-        hasVideoStreamOn:
+        videoStreamOn:
           type: boolean
           readOnly: true
           description: indicates if the video stream is on
-        hasScreenStreamOn:
+        screenStreamOn:
           type: boolean
           readOnly: true
           description: indicates if the screen share stream is on

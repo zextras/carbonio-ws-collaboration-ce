@@ -3495,8 +3495,8 @@ public class RoomsApiIT {
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
       assertEquals("user1session1", participant1.get().getSessionId());
-      assertTrue(participant1.get().isHasVideoStreamOn());
-      assertTrue(participant1.get().isHasAudioStreamOn());
+      assertTrue(participant1.get().isVideoStreamOn());
+      assertTrue(participant1.get().isAudioStreamOn());
     }
 
     @Test
@@ -3631,8 +3631,8 @@ public class RoomsApiIT {
       assertNotNull(meetingDto.getParticipants());
       assertEquals(1, meetingDto.getParticipants().size());
       assertEquals(user1Id, meetingDto.getParticipants().get(0).getUserId());
-      assertTrue(meetingDto.getParticipants().get(0).isHasAudioStreamOn());
-      assertFalse(meetingDto.getParticipants().get(0).isHasVideoStreamOn());
+      assertTrue(meetingDto.getParticipants().get(0).isAudioStreamOn());
+      assertFalse(meetingDto.getParticipants().get(0).isVideoStreamOn());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }

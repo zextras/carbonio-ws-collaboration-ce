@@ -102,8 +102,8 @@ public class Participant {
     return audioStreamOn;
   }
 
-  public Participant audioStreamOn(Boolean microphoneOn) {
-    this.audioStreamOn = microphoneOn;
+  public Participant audioStreamOn(Boolean audioStreamOn) {
+    this.audioStreamOn = audioStreamOn;
     return this;
   }
 
@@ -111,8 +111,8 @@ public class Participant {
     return videoStreamOn;
   }
 
-  public Participant videoStreamOn(Boolean cameraOn) {
-    this.videoStreamOn = cameraOn;
+  public Participant videoStreamOn(Boolean videoStreamOn) {
+    this.videoStreamOn = videoStreamOn;
     return this;
   }
 

@@ -129,7 +129,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   @Override
   @Transactional
-  public void setVideoStreamEnabling(
+  public void enableVideoStream(
     UUID meetingId, String sessionId, boolean hasVideoStreamOn, UserPrincipal currentUser
   ) {
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->

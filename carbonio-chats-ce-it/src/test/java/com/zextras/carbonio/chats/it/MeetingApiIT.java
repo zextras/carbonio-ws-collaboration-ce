@@ -162,8 +162,8 @@ public class MeetingApiIT {
       assertTrue(participant.isPresent());
       assertEquals(user1Id, participant.get().getUserId());
       assertEquals(user1session1, participant.get().getSessionId());
-      assertTrue(participant.get().isHasVideoStreamOn());
-      assertTrue(participant.get().isHasAudioStreamOn());
+      assertTrue(participant.get().isVideoStreamOn());
+      assertTrue(participant.get().isAudioStreamOn());
 
       MeetingDto meeting2Dto = meetings.stream().filter(m -> m.getId().equals(meeting2Id)).findAny().orElseThrow();
       assertEquals(meeting2Id, meeting2Dto.getId());
@@ -179,8 +179,8 @@ public class MeetingApiIT {
       assertTrue(participant.isPresent());
       assertEquals(user2Id, participant.get().getUserId());
       assertEquals(user2session1, participant.get().getSessionId());
-      assertFalse(participant.get().isHasVideoStreamOn());
-      assertTrue(participant.get().isHasAudioStreamOn());
+      assertFalse(participant.get().isVideoStreamOn());
+      assertTrue(participant.get().isAudioStreamOn());
     }
 
     @Test
@@ -294,8 +294,8 @@ public class MeetingApiIT {
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
       assertEquals(user1session1, participant1.get().getSessionId());
-      assertTrue(participant1.get().isHasVideoStreamOn());
-      assertTrue(participant1.get().isHasAudioStreamOn());
+      assertTrue(participant1.get().isVideoStreamOn());
+      assertTrue(participant1.get().isAudioStreamOn());
     }
 
     @Test

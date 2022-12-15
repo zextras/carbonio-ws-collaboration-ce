@@ -72,5 +72,5 @@ public interface ParticipantService {
    * @param hasVideoStreamOn indicates whether the video stream must be enabled or not
    * @param currentUser      currentUser current authenticated user {@link UserPrincipal}
    */
-  void setVideoStreamEnabling(UUID meetingId, String sessionId, boolean hasVideoStreamOn, UserPrincipal currentUser);
+  void enableVideoStream(UUID meetingId, String sessionId, boolean hasVideoStreamOn, UserPrincipal currentUser);
 }

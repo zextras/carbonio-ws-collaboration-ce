@@ -171,8 +171,8 @@ public class MeetingServiceImplTest {
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
       assertEquals(session1User1Id, participant1.get().getSessionId());
-      assertTrue(participant1.get().isHasVideoStreamOn());
-      assertTrue(participant1.get().isHasAudioStreamOn());
+      assertTrue(participant1.get().isVideoStreamOn());
+      assertTrue(participant1.get().isAudioStreamOn());
 
       MeetingDto meeting2Dto = meetings.get(1);
       assertEquals(meeting2Id, meeting2Dto.getId());
@@ -188,8 +188,8 @@ public class MeetingServiceImplTest {
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
       assertEquals(session1User1Id, participant1.get().getSessionId());
-      assertTrue(participant1.get().isHasVideoStreamOn());
-      assertTrue(participant1.get().isHasAudioStreamOn());
+      assertTrue(participant1.get().isVideoStreamOn());
+      assertTrue(participant1.get().isAudioStreamOn());
 
       verify(roomService, times(1)).getRoomsIds(currentUser);
       verify(meetingRepository, times(1))
@@ -266,8 +266,8 @@ public class MeetingServiceImplTest {
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
       assertEquals(session1User1Id, participant1.get().getSessionId());
-      assertTrue(participant1.get().isHasVideoStreamOn());
-      assertTrue(participant1.get().isHasAudioStreamOn());
+      assertTrue(participant1.get().isVideoStreamOn());
+      assertTrue(participant1.get().isAudioStreamOn());
 
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(membersService, times(1)).getByUserIdAndRoomId(user1Id, room1Id);
@@ -399,8 +399,8 @@ public class MeetingServiceImplTest {
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
       assertEquals(session1User1Id, participant1.get().getSessionId());
-      assertTrue(participant1.get().isHasVideoStreamOn());
-      assertTrue(participant1.get().isHasAudioStreamOn());
+      assertTrue(participant1.get().isVideoStreamOn());
+      assertTrue(participant1.get().isAudioStreamOn());
 
       verify(roomService, times(1)).getRoomEntityAndCheckUser(room1Id, UserPrincipal.create(user1Id), false);
       verify(meetingRepository, times(1)).getByRoomId(room1Id.toString());

@@ -125,7 +125,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
       throw new BadRequestException("Session identifier is mandatory");
     }
-    participantService.setVideoStreamEnabling(meetingId, currentUser.getSessionId(), true, currentUser);
+    participantService.enableVideoStream(meetingId, currentUser.getSessionId(), true, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -144,7 +144,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
       throw new BadRequestException("Session identifier is mandatory");
     }
-    participantService.setVideoStreamEnabling(meetingId, currentUser.getSessionId(), false, currentUser);
+    participantService.enableVideoStream(meetingId, currentUser.getSessionId(), false, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
