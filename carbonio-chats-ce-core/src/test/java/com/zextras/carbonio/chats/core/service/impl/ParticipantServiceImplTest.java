@@ -347,7 +347,7 @@ public class ParticipantServiceImplTest {
   @DisplayName("Enable video stream tests")
   public class EnableVideoStreamTests {
 
-    private boolean hasVideoStreamOn = true;
+    private final boolean hasVideoStreamOn = true;
 
     @Test
     @DisplayName("It opens the video stream for the current session")
@@ -448,7 +448,7 @@ public class ParticipantServiceImplTest {
   @DisplayName("Disable video stream tests")
   public class DisableVideoStreamTests {
 
-    private boolean hasVideoStreamOn = false;
+    private final boolean hasVideoStreamOn = false;
 
     @Test
     @DisplayName("It closes the video stream for the current session")
