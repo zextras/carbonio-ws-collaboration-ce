@@ -1,11 +1,11 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.impl;
 
-import static com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient.JANUS_ATTACH;
-import static com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient.JANUS_AUDIOBRIDGE_PLUGIN;
-import static com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient.JANUS_CREATE;
-import static com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient.JANUS_MESSAGE;
-import static com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient.JANUS_SUCCESS;
-import static com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient.JANUS_VIDEOROOM_PLUGIN;
+import static com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient.VIDEO_SERVER_ATTACH;
+import static com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient.VIDEO_SERVER_AUDIOBRIDGE_PLUGIN;
+import static com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient.VIDEO_SERVER_CREATE;
+import static com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient.VIDEO_SERVER_MESSAGE;
+import static com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient.VIDEO_SERVER_SUCCESS;
+import static com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient.VIDEO_SERVER_VIDEOROOM_PLUGIN;
 
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
@@ -47,26 +47,26 @@ public class VideoServerServiceImpl implements VideoServerService {
       throw new VideoServerException("Videoserver meeting " + meetingId + " is already present");
     }
     VideoServerResponse videoServerResponse = videoServerClient.createConnection();
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
+    if (!VIDEO_SERVER_SUCCESS.equals(videoServerResponse.getStatus())) {
       throw new VideoServerException(
         "An error occurred when creating a videoserver connection for the meeting " + meetingId);
     }
     VideoServerIdResponse response = (VideoServerIdResponse) videoServerResponse;
     String connectionId = response.getDataId();
-    videoServerResponse = videoServerClient.interactWithConnection(connectionId, JANUS_ATTACH,
-      JANUS_AUDIOBRIDGE_PLUGIN);
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
+    videoServerResponse = videoServerClient.interactWithConnection(connectionId, VIDEO_SERVER_ATTACH,
+      VIDEO_SERVER_AUDIOBRIDGE_PLUGIN);
+    if (!VIDEO_SERVER_SUCCESS.equals(videoServerResponse.getStatus())) {
       throw new VideoServerException(
         "An error occurred when attaching to the audiobridge plugin for the connection " + connectionId +
           " for the meeting " + meetingId);
     }
     response = (VideoServerIdResponse) videoServerResponse;
     String audioHandleId = response.getDataId();
-    AudioBridgeRoomRequest audioBridgeRoomRequest = AudioBridgeRoomRequest.create(JANUS_CREATE);
+    AudioBridgeRoomRequest audioBridgeRoomRequest = AudioBridgeRoomRequest.create(VIDEO_SERVER_CREATE);
     VideoServerPluginResponse audioPluginResponse = videoServerClient.sendPluginMessage(
       connectionId,
       audioHandleId,
-      JANUS_MESSAGE,
+      VIDEO_SERVER_MESSAGE,
       audioBridgeRoomRequest
     );
     if (!audioPluginResponse.statusOK()) {
@@ -74,19 +74,20 @@ public class VideoServerServiceImpl implements VideoServerService {
         "An error occurred when creating an audiobridge room for the connection " + connectionId + " with plugin "
           + audioHandleId + " for the meeting " + meetingId);
     }
-    videoServerResponse = videoServerClient.interactWithConnection(connectionId, JANUS_ATTACH, JANUS_VIDEOROOM_PLUGIN);
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
+    videoServerResponse = videoServerClient.interactWithConnection(connectionId, VIDEO_SERVER_ATTACH,
+      VIDEO_SERVER_VIDEOROOM_PLUGIN);
+    if (!VIDEO_SERVER_SUCCESS.equals(videoServerResponse.getStatus())) {
       throw new VideoServerException(
         "An error occurred when attaching to the videoroom plugin for the connection " + connectionId
           + " for the meeting " + meetingId);
     }
     response = (VideoServerIdResponse) videoServerResponse;
     String videoHandleId = response.getDataId();
-    VideoRoomRequest videoRoomRequest = VideoRoomRequest.create(JANUS_CREATE);
+    VideoRoomRequest videoRoomRequest = VideoRoomRequest.create(VIDEO_SERVER_CREATE);
     VideoServerPluginResponse videoPluginResponse = videoServerClient.sendPluginMessage(
       connectionId,
       videoHandleId,
-      JANUS_MESSAGE,
+      VIDEO_SERVER_MESSAGE,
       videoRoomRequest
     );
     if (!videoPluginResponse.statusOK()) {
@@ -128,7 +129,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     }
     VideoServerResponse videoServerResponse = videoServerClient.destroyConnection(
       videoServerMeetingToRemove.getConnectionId());
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
+    if (!VIDEO_SERVER_SUCCESS.equals(videoServerResponse.getStatus())) {
       throw new VideoServerException(
         "An error occurred when destroying the videoserver connection "
           + videoServerMeetingToRemove.getConnectionId() + " for the meeting " + meetingId);
@@ -148,15 +149,16 @@ public class VideoServerServiceImpl implements VideoServerService {
           + meetingId);
     }
     VideoServerResponse videoServerResponse = videoServerClient.createConnection();
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
+    if (!VIDEO_SERVER_SUCCESS.equals(videoServerResponse.getStatus())) {
       throw new VideoServerException(
         "An error occurred when creating a videoserver connection for sessionId " + sessionId + " on the meeting "
           + meetingId);
     }
     VideoServerIdResponse response = (VideoServerIdResponse) videoServerResponse;
     String connectionId = response.getDataId();
-    videoServerResponse = videoServerClient.interactWithConnection(connectionId, JANUS_ATTACH, JANUS_VIDEOROOM_PLUGIN);
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
+    videoServerResponse = videoServerClient.interactWithConnection(connectionId, VIDEO_SERVER_ATTACH,
+      VIDEO_SERVER_VIDEOROOM_PLUGIN);
+    if (!VIDEO_SERVER_SUCCESS.equals(videoServerResponse.getStatus())) {
       throw new VideoServerException(
         "An error occurred when attaching to the videoroom plugin for the connection " + connectionId
           + " with sessionId " + sessionId + " on the meeting " + meetingId);
@@ -183,12 +185,17 @@ public class VideoServerServiceImpl implements VideoServerService {
         "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
     VideoServerResponse videoServerResponse = videoServerClient.destroyConnection(
       videoServerSession.getConnectionId());
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
+    if (!VIDEO_SERVER_SUCCESS.equals(videoServerResponse.getStatus())) {
       throw new VideoServerException(
         "An error occurred when destroying the videoserver connection " + videoServerSession.getConnectionId()
           + " with session " + sessionId + " on the meeting " + meetingId);
     }
     videoServerSessionRepository.remove(videoServerSession);
+  }
+
+  @Override
+  public void enableAudioStream(String sessionId, String meetingId, boolean isEnabled) {
+
   }
 
   @Override

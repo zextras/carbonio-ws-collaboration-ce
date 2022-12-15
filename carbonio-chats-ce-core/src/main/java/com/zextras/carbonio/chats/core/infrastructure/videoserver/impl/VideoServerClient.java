@@ -27,16 +27,16 @@ import org.apache.http.impl.client.HttpClients;
 
 public class VideoServerClient {
 
-  private static final String JANUS_ENDPOINT           = "/janus";
-  private static final String JANUS_INFO               = "info";
-  public static final  String JANUS_CREATE             = "create";
-  public static final  String JANUS_MESSAGE            = "message";
-  public static final  String JANUS_ATTACH             = "attach";
-  public static final  String JANUS_DETACH             = "detach";
-  public static final  String JANUS_DESTROY            = "destroy";
-  public static final  String JANUS_SUCCESS            = "success";
-  public static final  String JANUS_VIDEOROOM_PLUGIN   = "janus.plugin.videoroom";
-  public static final  String JANUS_AUDIOBRIDGE_PLUGIN = "janus.plugin.audiobridge";
+  private static final String VIDEO_SERVER_ENDPOINT           = "/janus";
+  private static final String VIDEO_SERVER_INFO               = "info";
+  static final         String VIDEO_SERVER_CREATE             = "create";
+  static final         String VIDEO_SERVER_MESSAGE            = "message";
+  static final         String VIDEO_SERVER_ATTACH             = "attach";
+  static final         String VIDEO_SERVER_DETACH             = "detach";
+  static final         String VIDEO_SERVER_DESTROY            = "destroy";
+  static final         String VIDEO_SERVER_SUCCESS            = "success";
+  static final         String VIDEO_SERVER_VIDEOROOM_PLUGIN   = "janus.plugin.videoroom";
+  static final         String VIDEO_SERVER_AUDIOBRIDGE_PLUGIN = "janus.plugin.audiobridge";
 
   private final String       videoServerURL;
   private final ObjectMapper objectMapper;
@@ -68,10 +68,10 @@ public class VideoServerClient {
     CloseableHttpClient httpClient = HttpClients.createDefault();
     try {
       CloseableHttpResponse response = httpClient.execute(
-        getHttpPost(videoServerURL + JANUS_ENDPOINT,
+        getHttpPost(videoServerURL + VIDEO_SERVER_ENDPOINT,
           objectMapper.writeValueAsString(
             VideoServerMessageRequest.create()
-              .messageRequest(JANUS_CREATE)
+              .messageRequest(VIDEO_SERVER_CREATE)
               .transactionId(UUID.randomUUID().toString())
           )
         )
@@ -105,7 +105,7 @@ public class VideoServerClient {
     CloseableHttpClient httpClient = HttpClients.createDefault();
     try {
       CloseableHttpResponse response = httpClient.execute(
-        getHttpPost(videoServerURL + JANUS_ENDPOINT + "/" + connectionId,
+        getHttpPost(videoServerURL + VIDEO_SERVER_ENDPOINT + "/" + connectionId,
           objectMapper.writeValueAsString(
             VideoServerMessageRequest.create()
               .messageRequest(action)
@@ -139,7 +139,7 @@ public class VideoServerClient {
    * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
    */
   public VideoServerResponse destroyConnection(String connectionId) {
-    return interactWithConnection(connectionId, JANUS_DESTROY, null);
+    return interactWithConnection(connectionId, VIDEO_SERVER_DESTROY, null);
   }
 
   /**
@@ -157,7 +157,7 @@ public class VideoServerClient {
     CloseableHttpClient httpClient = HttpClients.createDefault();
     try {
       CloseableHttpResponse response = httpClient.execute(
-        getHttpPost(videoServerURL + JANUS_ENDPOINT + "/" + connectionId + "/" + handleId,
+        getHttpPost(videoServerURL + VIDEO_SERVER_ENDPOINT + "/" + connectionId + "/" + handleId,
           objectMapper.writeValueAsString(
             VideoServerMessageRequest.create()
               .messageRequest(messageType)
@@ -192,7 +192,7 @@ public class VideoServerClient {
    * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
    */
   public VideoServerPluginResponse destroyPluginHandle(String connectionId, String handleId) {
-    return sendPluginMessage(connectionId, handleId, JANUS_DETACH, null);
+    return sendPluginMessage(connectionId, handleId, VIDEO_SERVER_DETACH, null);
   }
 
   /**
@@ -202,7 +202,7 @@ public class VideoServerClient {
    */
   public boolean isAlive() {
     CloseableHttpClient httpClient = HttpClients.createDefault();
-    HttpGet request = new HttpGet(videoServerURL + JANUS_ENDPOINT + "/" + JANUS_INFO);
+    HttpGet request = new HttpGet(videoServerURL + VIDEO_SERVER_ENDPOINT + "/" + VIDEO_SERVER_INFO);
     request.setProtocolVersion(HttpVersion.HTTP_1_1);
     request.addHeader("content-type", "application/json");
     try {

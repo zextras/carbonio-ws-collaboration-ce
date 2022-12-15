@@ -73,4 +73,14 @@ public interface ParticipantService {
    * @param currentUser      currentUser current authenticated user {@link UserPrincipal}
    */
   void enableVideoStream(UUID meetingId, String sessionId, boolean hasVideoStreamOn, UserPrincipal currentUser);
+
+  /**
+   * Sets the audio stream enabling in the meeting for the current session
+   *
+   * @param meetingId        meeting identifier {@link UUID}
+   * @param sessionId        identifier of the session to set video stream enabling
+   * @param hasAudioStreamOn indicates whether the audio stream must be enabled or not
+   * @param currentUser      currentUser current authenticated user {@link UserPrincipal}
+   */
+  void enableAudioStream(UUID meetingId, String sessionId, boolean hasAudioStreamOn, UserPrincipal currentUser);
 }

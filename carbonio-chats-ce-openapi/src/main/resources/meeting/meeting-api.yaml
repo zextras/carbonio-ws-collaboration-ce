@@ -123,6 +123,41 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/audio:
+    put:
+      tags:
+        - Meetings
+      summary: open audio stream for the current session
+      operationId: openAudioStream
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      responses:
+        204:
+          $ref: '#/components/responses/204OpenAudioStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/sessions/{sessionId}/audio:
+    delete:
+      tags:
+        - Meetings
+      summary: close audio stream for the current session
+      operationId: closeAudioStream
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: '#/components/parameters/pathSessionId'
+      responses:
+        204:
+          $ref: '#/components/responses/204CloseAudioStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
 
 components:
   parameters:

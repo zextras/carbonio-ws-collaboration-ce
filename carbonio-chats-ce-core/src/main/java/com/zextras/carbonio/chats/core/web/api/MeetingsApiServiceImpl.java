@@ -148,4 +148,41 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     return Response.status(Status.NO_CONTENT).build();
   }
 
+  /**
+   * Opens the audio stream in the meeting for the current session
+   *
+   * @param meetingId       meeting identifier {@link UUID}
+   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 204
+   */
+  @Override
+  public Response openAudioStream(UUID meetingId, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
+      throw new BadRequestException("Session identifier is mandatory");
+    }
+    participantService.enableAudioStream(meetingId, currentUser.getSessionId(), true, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  /**
+   * Closes the audio stream in the meeting for the session
+   *
+   * @param meetingId       meeting identifier {@link UUID}
+   * @param sessionId       identifier of the session to close
+   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 204
+   */
+  @Override
+  public Response closeAudioStream(UUID meetingId, String sessionId, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
+      throw new BadRequestException("Session identifier is mandatory");
+    }
+    participantService.enableAudioStream(meetingId, currentUser.getSessionId(), false, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
 }
