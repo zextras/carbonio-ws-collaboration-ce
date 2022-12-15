@@ -82,7 +82,8 @@ public class ResteasyRequestDispatcher {
   }
 
   public MockHttpResponse put(
-    String path, @Nullable String requestBody, Map<String, String> requestHeaders, @Nullable String userToken)
+    String path, @Nullable String requestBody, Map<String, String> requestHeaders, @Nullable String userToken
+  )
     throws URISyntaxException {
     MockHttpRequest request = preparePut(path, requestHeaders, userToken);
     Optional.ofNullable(requestBody).ifPresent(body -> request.content(requestBody.getBytes()));
@@ -90,14 +91,30 @@ public class ResteasyRequestDispatcher {
   }
 
   public MockHttpResponse put(
-    String path, byte[] requestBody, Map<String, String> requestHeaders, @Nullable String userToken)
+    String path, byte[] requestBody, Map<String, String> requestHeaders, @Nullable String userToken
+  )
     throws URISyntaxException {
     return sendRequest(preparePut(path, requestHeaders, userToken).content(requestBody));
   }
 
+  private MockHttpRequest prepareDelete(String path, Map<String, String> requestHeaders, @Nullable String userToken)
+    throws URISyntaxException {
+    MockHttpRequest request = MockHttpRequest.delete(path);
+    requestHeaders.forEach(request::header);
+    Optional.ofNullable(userToken).ifPresent(token -> request.cookie("ZM_AUTH_TOKEN", token));
+
+    request.accept(MediaType.APPLICATION_JSON);
+    request.contentType(MediaType.APPLICATION_JSON_TYPE);
+    return request;
+  }
+
   public MockHttpResponse delete(String path, @Nullable String userToken) throws URISyntaxException {
-    MockHttpRequest request = MockHttpRequest.delete(path).cookie("ZM_AUTH_TOKEN", userToken);
-    return sendRequest(request);
+    return sendRequest(prepareDelete(path, Map.of(), userToken));
+  }
+
+  public MockHttpResponse delete(String path, Map<String, String> requestHeaders, @Nullable String userToken)
+    throws URISyntaxException {
+    return sendRequest(prepareDelete(path, requestHeaders, userToken));
   }
 
   private MockHttpResponse sendRequest(MockHttpRequest request) {

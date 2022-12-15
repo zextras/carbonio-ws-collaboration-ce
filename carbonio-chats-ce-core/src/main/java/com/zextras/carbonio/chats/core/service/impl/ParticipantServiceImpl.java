@@ -147,12 +147,13 @@ public class ParticipantServiceImpl implements ParticipantService {
     if (hasVideoStreamOn != participant.hasVideoStreamOn()) {
       participantRepository.update(participant.videoStreamOn(hasVideoStreamOn));
       eventDispatcher.sendToUserQueue(
-        meeting.getParticipants().stream().map(Participant::getUserId).collect(Collectors.toList()),
+        meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
         hasVideoStreamOn ?
           MeetingParticipantVideoStreamOpened
             .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId) :
           MeetingParticipantVideoStreamClosed
             .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
+      videoServerService.enableVideoStream(sessionId, meetingId.toString(), hasVideoStreamOn);
     }
   }
 
