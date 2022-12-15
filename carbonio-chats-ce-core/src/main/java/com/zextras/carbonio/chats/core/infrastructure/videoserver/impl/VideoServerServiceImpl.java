@@ -192,7 +192,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
-  public void enableVideoStream(String sessionId, String meetingId, boolean isEnabled) {
+  public void enableVideoStream(String sessionId, String meetingId, boolean enable) {
 
   }
 

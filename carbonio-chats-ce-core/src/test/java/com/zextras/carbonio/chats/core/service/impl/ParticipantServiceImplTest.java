@@ -370,7 +370,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    @DisplayName("If video stream is already opened for the current session, correctly it does nothing")
+    @DisplayName("If video stream is already opened for the current session, correctly it ignores")
     public void enableVideoStream_testOkVideoStreamAlreadyOpenWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
@@ -383,7 +383,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    @DisplayName("If the current session is not the requested session, it throw a 'bad request' exception")
+    @DisplayName("If the current session is not the requested session, it throws a 'bad request' exception")
     public void enableVideoStream_testErrorEnableWithSessionDifferentToCurrent() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
@@ -404,7 +404,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    @DisplayName("If the requested session isn't in a meeting participants, it throw a 'not found' exception")
+    @DisplayName("If the requested session isn't in the meeting participants, it throws a 'not found' exception")
     public void enableVideoStream_testErrorSessionNotFoundInMeetingParticipants() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
@@ -424,7 +424,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    @DisplayName("If the requested meeting doesn't exist, it throw a 'not found' exception")
+    @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
     public void enableVideoStream_testErrorMeetingNotExists() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.empty());
 
@@ -470,7 +470,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    @DisplayName("If video stream is already closed for the current session, correctly it does nothing")
+    @DisplayName("If video stream is already closed for the current session, correctly it ignores")
     public void disableVideoStream_testOkVideoStreamAlreadyCloseWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
@@ -502,7 +502,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    @DisplayName("If video stream is already closed for another session, correctly it does nothing")
+    @DisplayName("If video stream is already closed for another session, correctly it ignores")
     public void disableVideoStream_testOkVideoStreamAlreadyCloseWithAnotherSession() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).sessionId(user1Session1);
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
@@ -516,7 +516,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    @DisplayName("If the requested session isn't in a meeting participants, it throw a 'not found' exception")
+    @DisplayName("If the requested session isn't in the meeting participants, it throws a 'not found' exception")
     public void disableVideoStream_testErrorSessionNotFoundInMeetingParticipants() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
@@ -536,7 +536,7 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    @DisplayName("If the requested meeting doesn't exist, it throw a 'not found' exception")
+    @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
     public void disableVideoStream_testErrorMeetingNotExists() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.empty());
 

@@ -661,7 +661,7 @@ public class MeetingApiIT {
     }
 
     @Test
-    @DisplayName("If video stream is already opened for the current session, correctly it does nothing and returns a status code 204")
+    @DisplayName("If video stream is already opened for the current session, correctly it ignores and returns a status code 204")
     public void enableVideoStream_testOkVideoStreamAlreadyOpenWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
@@ -681,7 +681,7 @@ public class MeetingApiIT {
     }
 
     @Test
-    @DisplayName("If the requested session isn't in a meeting participants, it returns a status code 404")
+    @DisplayName("If the requested session isn't in the meeting participants, it returns a status code 404")
     public void enableVideoStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
@@ -756,7 +756,7 @@ public class MeetingApiIT {
     }
 
     @Test
-    @DisplayName("If video stream is already closed for the current session, correctly it does nothing and returns a status code 204")
+    @DisplayName("If video stream is already closed for the current session, correctly it ignores and returns a status code 204")
     public void disableVideoStream_testOkVideoStreamAlreadyCloseWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
@@ -798,7 +798,7 @@ public class MeetingApiIT {
     }
 
     @Test
-    @DisplayName("If video stream is already closed for another session, correctly it does nothing and it returns a status code 204")
+    @DisplayName("If video stream is already closed for another session, correctly it ignores and it returns a status code 204")
     public void disableVideoStream_testOkVideoStreamAlreadyCloseWithAnotherSession() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
@@ -840,7 +840,7 @@ public class MeetingApiIT {
     }
 
     @Test
-    @DisplayName("If the requested session isn't in a meeting participants, it returns a status code 404")
+    @DisplayName("If the requested session isn't in the meeting participants, it returns a status code 404")
     public void disableVideoStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
