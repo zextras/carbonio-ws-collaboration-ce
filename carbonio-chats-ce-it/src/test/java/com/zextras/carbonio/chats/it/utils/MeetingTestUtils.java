@@ -41,9 +41,9 @@ public class MeetingTestUtils {
     return meetingRepository.getById(meetingId.toString());
   }
 
-  public Optional<Participant> getParticipant(UUID userId, UUID meetingId, String sessionId) {
-    return Optional.ofNullable(
-      participantRepository.getById(userId.toString(), meetingId.toString(), sessionId));
+  public Optional<Participant> getParticipant(UUID meetingId, String sessionId) {
+    return
+      participantRepository.getById(meetingId.toString(), sessionId);
   }
 
 }

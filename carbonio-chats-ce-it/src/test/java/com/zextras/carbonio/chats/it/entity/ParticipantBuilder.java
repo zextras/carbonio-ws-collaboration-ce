@@ -8,8 +8,9 @@ public class ParticipantBuilder {
 
   private final UUID    userId;
   private final String  sessionId;
-  private       Boolean microphoneOn = false;
-  private       Boolean cameraOn     = false;
+  private       Boolean audioStreamOn  = false;
+  private       Boolean videoStreamOn  = false;
+  private       Boolean screenStreamOn = false;
 
   public ParticipantBuilder(UUID userId, String sessionId) {
     this.userId = userId;
@@ -28,27 +29,39 @@ public class ParticipantBuilder {
     return sessionId;
   }
 
-  public Boolean getMicrophoneOn() {
-    return microphoneOn;
+  public Boolean getAudioStreamOn() {
+    return audioStreamOn;
   }
 
-  public ParticipantBuilder microphoneOn(Boolean microphoneOn) {
-    this.microphoneOn = microphoneOn;
+  public ParticipantBuilder audioStreamOn(Boolean audioStreamOn) {
+    this.audioStreamOn = audioStreamOn;
     return this;
   }
 
-  public Boolean getCameraOn() {
-    return cameraOn;
+  public Boolean getVideoStreamOn() {
+    return videoStreamOn;
   }
 
-  public ParticipantBuilder cameraOn(Boolean cameraOn) {
-    this.cameraOn = cameraOn;
+  public ParticipantBuilder videoStreamOn(Boolean videoStreamOn) {
+    this.videoStreamOn = videoStreamOn;
+    return this;
+  }
+
+  public Boolean getScreenStreamOn() {
+    return screenStreamOn;
+  }
+
+  public ParticipantBuilder screenStreamOn(Boolean screenStreamOn) {
+    this.screenStreamOn = screenStreamOn;
     return this;
   }
 
   public Participant build(Meeting meeting) {
-    return Participant.create(userId.toString(), meeting, sessionId)
-      .microphoneOn(this.microphoneOn)
-      .cameraOn(this.cameraOn);
+    return Participant.create(meeting, sessionId)
+      .userId(userId.toString())
+      .audioStreamOn(this.audioStreamOn)
+      .videoStreamOn(this.videoStreamOn)
+      .screenStreamOn(this.screenStreamOn);
   }
 }
+

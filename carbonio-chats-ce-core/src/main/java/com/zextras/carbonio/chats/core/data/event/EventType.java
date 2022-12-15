@@ -26,8 +26,9 @@ public enum EventType implements EventTypeDescription {
   MEETING_CREATED("meetingCreated"),
   MEETING_DELETED("meetingDeleted"),
   MEETING_PARTICIPANT_JOINED("meetingParticipantJoined"),
-  MEETING_PARTICIPANT_LEFT("meetingParticipantLeft");
-
+  MEETING_PARTICIPANT_LEFT("meetingParticipantLeft"),
+  MEETING_PARTICIPANT_VIDEO_STREAM_OPENED("meetingParticipantVideoStreamOpened"),
+  MEETING_PARTICIPANT_VIDEO_STREAM_CLOSED("meetingParticipantVideoStreamClosed");
 
   private final String description;
 

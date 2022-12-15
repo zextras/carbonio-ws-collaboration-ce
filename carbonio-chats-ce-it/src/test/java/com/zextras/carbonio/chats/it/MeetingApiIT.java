@@ -132,13 +132,13 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meeting1Id, room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).microphoneOn(true).cameraOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
       meetingTestUtils.generateAndSaveMeeting(meeting2Id, room2Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, user2session1).microphoneOn(false).cameraOn(true)));
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(true)));
 
       MockHttpResponse response = dispatcher.get(URL, user1Token);
       assertEquals(200, response.getStatus());
@@ -162,8 +162,8 @@ public class MeetingApiIT {
       assertTrue(participant.isPresent());
       assertEquals(user1Id, participant.get().getUserId());
       assertEquals(user1session1, participant.get().getSessionId());
-      assertTrue(participant.get().isHasCameraOn());
-      assertTrue(participant.get().isHasMicrophoneOn());
+      assertTrue(participant.get().isVideoStreamOn());
+      assertTrue(participant.get().isAudioStreamOn());
 
       MeetingDto meeting2Dto = meetings.stream().filter(m -> m.getId().equals(meeting2Id)).findAny().orElseThrow();
       assertEquals(meeting2Id, meeting2Dto.getId());
@@ -179,8 +179,8 @@ public class MeetingApiIT {
       assertTrue(participant.isPresent());
       assertEquals(user2Id, participant.get().getUserId());
       assertEquals(user2session1, participant.get().getSessionId());
-      assertFalse(participant.get().isHasCameraOn());
-      assertTrue(participant.get().isHasMicrophoneOn());
+      assertFalse(participant.get().isVideoStreamOn());
+      assertTrue(participant.get().isAudioStreamOn());
     }
 
     @Test
@@ -269,10 +269,10 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).microphoneOn(true).cameraOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.get(url(meetingId), user1Token);
 
@@ -294,8 +294,8 @@ public class MeetingApiIT {
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
       assertEquals(user1session1, participant1.get().getSessionId());
-      assertTrue(participant1.get().isHasCameraOn());
-      assertTrue(participant1.get().isHasMicrophoneOn());
+      assertTrue(participant1.get().isVideoStreamOn());
+      assertTrue(participant1.get().isAudioStreamOn());
     }
 
     @Test
@@ -308,9 +308,9 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.get(url(meetingId), user1Token);
 
@@ -356,10 +356,10 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).microphoneOn(true).cameraOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.delete(url(meetingId), user1Token);
 
@@ -380,9 +380,9 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.delete(url(meetingId), user1Token);
 
@@ -431,9 +431,9 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(url(meetingId),
         objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
@@ -449,8 +449,8 @@ public class MeetingApiIT {
       Participant newParticipant = meeting.getParticipants().stream().filter(participant ->
         user1Id.toString().equals(participant.getUserId()) && user1session1.equals(participant.getSessionId())
       ).findAny().orElseThrow();
-      assertTrue(newParticipant.getMicrophoneOn());
-      assertFalse(newParticipant.getCameraOn());
+      assertTrue(newParticipant.hasAudioStreamOn());
+      assertFalse(newParticipant.hasVideoStreamOn());
     }
 
     @Test
@@ -464,9 +464,9 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).microphoneOn(true).cameraOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(url(meetingId),
         objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
@@ -482,8 +482,8 @@ public class MeetingApiIT {
       Participant newParticipant = meeting.getParticipants().stream().filter(participant ->
         user2Id.toString().equals(participant.getUserId()) && user2session2.equals(participant.getSessionId())
       ).findAny().orElseThrow();
-      assertTrue(newParticipant.getMicrophoneOn());
-      assertFalse(newParticipant.getCameraOn());
+      assertTrue(newParticipant.hasAudioStreamOn());
+      assertFalse(newParticipant.hasVideoStreamOn());
     }
 
     @Test
@@ -496,9 +496,9 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(url(meetingId),
         objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
@@ -549,10 +549,10 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).microphoneOn(true).cameraOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher
         .put(url(meetingId), (String) null, Map.of("session-id", user2session2), user2Token);
@@ -578,7 +578,7 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).microphoneOn(true).cameraOn(true)));
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
 
       MockHttpResponse response = dispatcher
         .put(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);
@@ -599,9 +599,9 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).microphoneOn(false).cameraOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).microphoneOn(true).cameraOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).microphoneOn(false).cameraOn(false)));
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher
         .put(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);

@@ -5,6 +5,7 @@ import com.zextras.carbonio.chats.core.data.entity.ParticipantId;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import io.ebean.Database;
 import java.util.List;
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -19,8 +20,9 @@ public class EbeanParticipantRepository implements ParticipantRepository {
   }
 
   @Override
-  public Participant getById(String userId, String meetingId, String sessionId) {
-    return db.find(Participant.class, ParticipantId.create(userId, meetingId, sessionId));
+  public Optional<Participant> getById(String meetingId, String sessionId) {
+    return Optional.ofNullable(
+      db.find(Participant.class, ParticipantId.create(meetingId, sessionId)));
   }
 
   @Override
@@ -34,6 +36,12 @@ public class EbeanParticipantRepository implements ParticipantRepository {
   @Override
   public Participant insert(Participant participant) {
     db.insert(participant);
+    return participant;
+  }
+
+  @Override
+  public Participant update(Participant participant) {
+    db.update(participant);
     return participant;
   }
 
