@@ -19,6 +19,9 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoinedEvent;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeftEvent;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantVideoStreamClosed;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantVideoStreamOpened;
+import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -100,7 +103,7 @@ public class ParticipantServiceImplTest {
       .audioStreamOn(true).videoStreamOn(false).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
     user2Session2 = "user2Session2";
     participant2Session2 = ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id)
-      .audioStreamOn(true).videoStreamOn(false).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
+      .audioStreamOn(true).videoStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
     user3Id = UUID.randomUUID();
     user3Session1 = "user3Session1";
 
@@ -338,5 +341,219 @@ public class ParticipantServiceImplTest {
       verifyNoMoreInteractions(meetingService, roomService);
       verifyNoInteractions(participantRepository, videoServerService, eventDispatcher);
     }
+  }
+
+  @Nested
+  @DisplayName("Enable video stream tests")
+  public class EnableVideoStreamTests {
+
+    private boolean hasVideoStreamOn = true;
+
+    @Test
+    @DisplayName("It opens the video stream for the current session")
+    public void enableVideoStream_testOkEnableWithSessionEqualToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableVideoStream(meeting1Id, user1Session1, true,
+        UserPrincipal.create(user1Id).sessionId(user1Session1));
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verify(participantRepository, times(1)).update(participant1Session1.videoStreamOn(hasVideoStreamOn));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString()),
+        MeetingParticipantVideoStreamOpened
+          .create(user1Id, user1Session1).meetingId(meeting1Id).sessionId(user1Session1));
+      verify(videoServerService, times(1)).enableVideoStream(user1Session1, meeting1Id.toString(), true);
+
+      verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("If video stream is already opened for the current session, correctly it does nothing")
+    public void enableVideoStream_testOkVideoStreamAlreadyOpenWithSessionEqualToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableVideoStream(meeting1Id, user2Session2, hasVideoStreamOn,
+        UserPrincipal.create(user2Id).sessionId(user2Session2));
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the current session is not the requested session, it throw a 'bad request' exception")
+    public void enableVideoStream_testErrorEnableWithSessionDifferentToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        participantService.enableVideoStream(meeting1Id, user2Session2, hasVideoStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Bad Request - User '%s' cannot enable the video stream of the session '%s'", user1Id,
+          user2Session2),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the requested session isn't in a meeting participants, it throw a 'not found' exception")
+    public void enableVideoStream_testErrorSessionNotFoundInMeetingParticipants() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
+        participantService.enableVideoStream(meeting1Id, user3Session1, hasVideoStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Not Found - Session '%s' not found into meeting '%s'", user3Session1, meeting1Id),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the requested meeting doesn't exist, it throw a 'not found' exception")
+    public void enableVideoStream_testErrorMeetingNotExists() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.empty());
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
+        participantService.enableVideoStream(meeting1Id, user3Session1, hasVideoStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Not Found - Meeting '%s' not found", meeting1Id),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+  }
+
+  @Nested
+  @DisplayName("Disable video stream tests")
+  public class DisableVideoStreamTests {
+
+    private boolean hasVideoStreamOn = false;
+
+    @Test
+    @DisplayName("It closes the video stream for the current session")
+    public void disableVideoStream_testOkDisableWithSessionEqualToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableVideoStream(meeting1Id, user2Session2, false,
+        UserPrincipal.create(user2Id).sessionId(user2Session2));
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verify(participantRepository, times(1)).update(participant2Session2.videoStreamOn(hasVideoStreamOn));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString()),
+        MeetingParticipantVideoStreamClosed
+          .create(user2Id, user2Session2).meetingId(meeting1Id).sessionId(user2Session2));
+      verify(videoServerService, times(1)).enableVideoStream(user2Session2, meeting1Id.toString(), false);
+      verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("If video stream is already closed for the current session, correctly it does nothing")
+    public void disableVideoStream_testOkVideoStreamAlreadyCloseWithSessionEqualToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableVideoStream(meeting1Id, user1Session1, hasVideoStreamOn,
+        UserPrincipal.create(user1Id).sessionId(user1Session1));
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("It closes the video stream for another session")
+    public void disableVideoStream_testOkDisableWithAnotherSession() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).sessionId(user1Session1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableVideoStream(meeting1Id, user2Session2, hasVideoStreamOn,        currentUser);
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, true);
+      verify(participantRepository, times(1)).update(participant2Session2.videoStreamOn(false));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString()),
+        MeetingParticipantVideoStreamClosed
+          .create(user1Id, user1Session1).meetingId(meeting1Id).sessionId(user2Session2));
+      verify(videoServerService, times(1)).enableVideoStream(user2Session2, meeting1Id.toString(), false);
+      verifyNoMoreInteractions(meetingService, roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If video stream is already closed for another session, correctly it does nothing")
+    public void disableVideoStream_testOkVideoStreamAlreadyCloseWithAnotherSession() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).sessionId(user1Session1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableVideoStream(meeting1Id, user2Session1, hasVideoStreamOn, currentUser);
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, true);
+      verifyNoMoreInteractions(meetingService, roomService);
+      verifyNoInteractions(participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the requested session isn't in a meeting participants, it throw a 'not found' exception")
+    public void disableVideoStream_testErrorSessionNotFoundInMeetingParticipants() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
+        participantService.enableVideoStream(meeting1Id, user3Session1, hasVideoStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Not Found - Session '%s' not found into meeting '%s'", user3Session1, meeting1Id),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the requested meeting doesn't exist, it throw a 'not found' exception")
+    public void disableVideoStream_testErrorMeetingNotExists() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.empty());
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
+        participantService.enableVideoStream(meeting1Id, user3Session1, hasVideoStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Not Found - Meeting '%s' not found", meeting1Id),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
   }
 }

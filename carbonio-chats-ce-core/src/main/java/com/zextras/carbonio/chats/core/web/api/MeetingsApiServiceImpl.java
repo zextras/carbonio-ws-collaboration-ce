@@ -141,10 +141,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   public Response closeVideoStream(UUID meetingId, String sessionId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
-      throw new BadRequestException("Session identifier is mandatory");
-    }
-    participantService.enableVideoStream(meetingId, currentUser.getSessionId(), false, currentUser);
+    participantService.enableVideoStream(meetingId, sessionId, false, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
