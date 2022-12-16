@@ -3,6 +3,7 @@ package com.zextras.carbonio.chats.it;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -571,7 +572,7 @@ public class MeetingApiIT {
       "the authenticated user correctly leaves the meeting as last participant and the meeting is closed")
     public void leaveMeeting_testOkLastParticipant() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
-      integrationTestUtils.generateAndSaveRoom(
+      Room room = integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
@@ -579,9 +580,12 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
-
+      integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
       MockHttpResponse response = dispatcher
         .put(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);
+
+      assertTrue(meetingTestUtils.getMeetingById(meetingId).isEmpty());
+      assertNull(integrationTestUtils.getRoomById(room1Id).orElseThrow().getMeetingId());
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);

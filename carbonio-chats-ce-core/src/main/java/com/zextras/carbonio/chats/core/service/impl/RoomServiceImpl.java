@@ -9,6 +9,7 @@ import com.zextras.carbonio.chats.core.config.ChatsConstant.CONFIGURATIONS_DEFAU
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.builder.HashDtoBuilder;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
+import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
@@ -539,5 +540,10 @@ public class RoomServiceImpl implements RoomService {
         }));
 
     roomRepository.update(workspace);
+  }
+
+  @Override
+  public void setMeetingIntoRoom(Room room, Meeting meeting) {
+    roomRepository.update(room.meetingId(meeting.getId()));
   }
 }

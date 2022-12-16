@@ -95,6 +95,7 @@ public class MeetingServiceImpl implements MeetingService {
       Meeting meeting = meetingRepository.insert(Meeting.create()
         .id(UUID.randomUUID().toString())
         .roomId(roomId.toString()));
+      roomService.setMeetingIntoRoom(room, meeting);
       videoServerService.createMeeting(meeting.getId());
       eventDispatcher.sendToUserQueue(
         room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),

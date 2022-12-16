@@ -49,6 +49,9 @@ public class Room {
   @Temporal(TemporalType.TIMESTAMP)
   private OffsetDateTime pictureUpdatedAt;
 
+  @Column(name = "MEETING_ID", length = 64)
+  private String meetingId;
+
   @Column(name = "PARENT_ID", length = 64)
   private String parentId;
 
@@ -141,6 +144,15 @@ public class Room {
 
   public Room pictureUpdatedAt(OffsetDateTime pictureUpdatedAt) {
     this.pictureUpdatedAt = pictureUpdatedAt;
+    return this;
+  }
+
+  public String getMeetingId() {
+    return meetingId;
+  }
+
+  public Room meetingId(String meetingId) {
+    this.meetingId = meetingId;
     return this;
   }
 

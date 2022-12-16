@@ -3633,6 +3633,8 @@ public class RoomsApiIT {
       assertEquals(user1Id, meetingDto.getParticipants().get(0).getUserId());
       assertTrue(meetingDto.getParticipants().get(0).isAudioStreamOn());
       assertFalse(meetingDto.getParticipants().get(0).isVideoStreamOn());
+      assertEquals("86cc37de-1217-4056-8c95-69997a6bccce",
+        integrationTestUtils.getRoomById(roomId).orElseThrow().getMeetingId());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
