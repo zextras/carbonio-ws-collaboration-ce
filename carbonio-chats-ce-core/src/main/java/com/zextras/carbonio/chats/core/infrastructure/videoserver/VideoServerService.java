@@ -44,4 +44,13 @@ public interface VideoServerService extends HealthIndicator {
    * @param enable    if true the video stream will be enabled, otherwise it will be disabled
    */
   void enableVideoStream(String sessionId, String meetingId, boolean enable);
+
+  /**
+   * Enable or disable the screen share stream for the user's session in the meeting
+   *
+   * @param sessionId participant's session identifier
+   * @param meetingId identification of the meeting on which to perform the operation
+   * @param enable    if true the screen share stream will be enabled, otherwise it will be disabled
+   */
+  void enableScreenShareStream(String sessionId, String meetingId, boolean enable);
 }

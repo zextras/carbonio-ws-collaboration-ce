@@ -197,6 +197,11 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
+  public void enableScreenShareStream(String sessionId, String meetingId, boolean enable) {
+
+  }
+
+  @Override
   public boolean isAlive() {
     return videoServerClient.isAlive();
   }

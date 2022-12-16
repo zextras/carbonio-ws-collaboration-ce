@@ -19,6 +19,8 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoinedEvent;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeftEvent;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantScreenStreamClosed;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantScreenStreamOpened;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantVideoStreamClosed;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantVideoStreamOpened;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -96,14 +98,17 @@ public class ParticipantServiceImplTest {
     user1Id = UUID.randomUUID();
     user1Session1 = "user1Session1";
     participant1Session1 = ParticipantBuilder.create(Meeting.create(), user1Session1).userId(user1Id)
-      .audioStreamOn(true).videoStreamOn(false).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
+      .audioStreamOn(true).videoStreamOn(false).screenStreamOn(false)
+      .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
     user2Id = UUID.randomUUID();
     user2Session1 = "user2Session1";
     participant2Session1 = ParticipantBuilder.create(Meeting.create(), user2Session1).userId(user2Id)
-      .audioStreamOn(true).videoStreamOn(false).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
+      .audioStreamOn(true).videoStreamOn(false).screenStreamOn(false)
+      .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
     user2Session2 = "user2Session2";
     participant2Session2 = ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id)
-      .audioStreamOn(true).videoStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
+      .audioStreamOn(true).videoStreamOn(true).screenStreamOn(true)
+      .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
     user3Id = UUID.randomUUID();
     user3Session1 = "user3Session1";
 
@@ -455,7 +460,7 @@ public class ParticipantServiceImplTest {
     public void disableVideoStream_testOkDisableWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      participantService.enableVideoStream(meeting1Id, user2Session2, false,
+      participantService.enableVideoStream(meeting1Id, user2Session2, hasVideoStreamOn,
         UserPrincipal.create(user2Id).sessionId(user2Session2));
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
@@ -488,7 +493,7 @@ public class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).sessionId(user1Session1);
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      participantService.enableVideoStream(meeting1Id, user2Session2, hasVideoStreamOn,        currentUser);
+      participantService.enableVideoStream(meeting1Id, user2Session2, hasVideoStreamOn, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, true);
@@ -554,6 +559,218 @@ public class ParticipantServiceImplTest {
       verifyNoMoreInteractions(meetingService);
       verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
     }
+  }
 
+  @Nested
+  @DisplayName("Enable screen share stream tests")
+  public class EnableScreenShareStreamTests {
+
+    private final boolean hasScreenStreamOn = true;
+
+    @Test
+    @DisplayName("It opens the screen share stream for the current session")
+    public void enableScreenShareStream_testOkEnableWithSessionEqualToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableScreenShareStream(meeting1Id, user1Session1, true,
+        UserPrincipal.create(user1Id).sessionId(user1Session1));
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verify(participantRepository, times(1)).update(participant1Session1.screenStreamOn(hasScreenStreamOn));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString()),
+        MeetingParticipantScreenStreamOpened
+          .create(user1Id, user1Session1).meetingId(meeting1Id).sessionId(user1Session1));
+      verify(videoServerService, times(1)).enableScreenShareStream(user1Session1, meeting1Id.toString(), true);
+
+      verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("If screen share stream is already opened for the current session, correctly it ignores")
+    public void enableScreenShareStream_testOkScreenShareStreamAlreadyOpenWithSessionEqualToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableScreenShareStream(meeting1Id, user2Session2, hasScreenStreamOn,
+        UserPrincipal.create(user2Id).sessionId(user2Session2));
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the current session is not the requested session, it throws a 'bad request' exception")
+    public void enableScreenShareStream_testErrorEnableWithSessionDifferentToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        participantService.enableScreenShareStream(meeting1Id, user2Session2, hasScreenStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Bad Request - User '%s' cannot enable the screen share stream of the session '%s'", user1Id,
+          user2Session2),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the requested session isn't in the meeting participants, it throws a 'not found' exception")
+    public void enableScreenShareStream_testErrorSessionNotFoundInMeetingParticipants() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
+        participantService.enableScreenShareStream(meeting1Id, user3Session1, hasScreenStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Not Found - Session '%s' not found into meeting '%s'", user3Session1, meeting1Id),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
+    public void enableScreenShareStream_testErrorMeetingNotExists() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.empty());
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
+        participantService.enableScreenShareStream(meeting1Id, user3Session1, hasScreenStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Not Found - Meeting '%s' not found", meeting1Id),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+  }
+
+  @Nested
+  @DisplayName("Disable screen share stream tests")
+  public class DisableScreenShareStreamTests {
+
+    private final boolean hasScreenStreamOn = false;
+
+    @Test
+    @DisplayName("It closes the screen share stream for the current session")
+    public void disableScreenShareStream_testOkDisableWithSessionEqualToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableScreenShareStream(meeting1Id, user2Session2, false,
+        UserPrincipal.create(user2Id).sessionId(user2Session2));
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verify(participantRepository, times(1)).update(participant2Session2.screenStreamOn(hasScreenStreamOn));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString()),
+        MeetingParticipantScreenStreamClosed
+          .create(user2Id, user2Session2).meetingId(meeting1Id).sessionId(user2Session2));
+      verify(videoServerService, times(1)).enableScreenShareStream(user2Session2, meeting1Id.toString(), false);
+      verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("If screen share stream is already closed for the current session, correctly it ignores")
+    public void disableScreenShareStream_testOkScreenShareStreamAlreadyCloseWithSessionEqualToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableScreenShareStream(meeting1Id, user1Session1, hasScreenStreamOn,
+        UserPrincipal.create(user1Id).sessionId(user1Session1));
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("It closes the screen share stream for another session")
+    public void disableScreenShareStream_testOkDisableWithAnotherSession() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).sessionId(user1Session1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableScreenShareStream(meeting1Id, user2Session2, hasScreenStreamOn, currentUser);
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, true);
+      verify(participantRepository, times(1)).update(participant2Session2.screenStreamOn(false));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString()),
+        MeetingParticipantScreenStreamClosed
+          .create(user1Id, user1Session1).meetingId(meeting1Id).sessionId(user2Session2));
+      verify(videoServerService, times(1)).enableScreenShareStream(user2Session2, meeting1Id.toString(), false);
+      verifyNoMoreInteractions(meetingService, roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If screen share stream is already closed for another session, correctly it ignores")
+    public void disableScreenShareStream_testOkScreenShareStreamAlreadyCloseWithAnotherSession() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).sessionId(user1Session1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableScreenShareStream(meeting1Id, user2Session1, hasScreenStreamOn, currentUser);
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, true);
+      verifyNoMoreInteractions(meetingService, roomService);
+      verifyNoInteractions(participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the requested session isn't in the meeting participants, it throws a 'not found' exception")
+    public void disableScreenShareStream_testErrorSessionNotFoundInMeetingParticipants() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
+        participantService.enableScreenShareStream(meeting1Id, user3Session1, hasScreenStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Not Found - Session '%s' not found into meeting '%s'", user3Session1, meeting1Id),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
+    public void disableScreenShareStream_testErrorMeetingNotExists() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.empty());
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
+        participantService.enableScreenShareStream(meeting1Id, user3Session1, hasScreenStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Not Found - Meeting '%s' not found", meeting1Id),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
   }
 }

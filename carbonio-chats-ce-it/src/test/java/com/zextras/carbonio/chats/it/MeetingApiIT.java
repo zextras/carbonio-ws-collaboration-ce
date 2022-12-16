@@ -876,4 +876,248 @@ public class MeetingApiIT {
     }
   }
 
+  @Nested
+  @DisplayName("Enable screen share stream tests")
+  public class EnableScreenShareStreamTests {
+
+    private String url(UUID meetingId) {
+      return String.format("/meetings/%s/screen", meetingId);
+    }
+
+    @Test
+    @DisplayName("Screen share stream correctly was opened for the current session and it returns a status code 204")
+    public void enableScreenShareStream_testOkEnableWithSessionEqualToCurrent() throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(RoomMemberField.create().id(user1Id).owner(true)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id,
+        List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(false)));
+
+      MockHttpResponse response = dispatcher
+        .put(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      assertTrue(participant.hasScreenStreamOn());
+    }
+
+    @Test
+    @DisplayName("If screen share stream is already opened for the current session, correctly it ignores and returns a status code 204")
+    public void enableScreenShareStream_testOkScreenShareStreamAlreadyOpenWithSessionEqualToCurrent() throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(true)));
+
+      MockHttpResponse response = dispatcher
+        .put(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      assertTrue(participant.hasScreenStreamOn());
+    }
+
+    @Test
+    @DisplayName("If the requested session isn't in the meeting participants, it returns a status code 404")
+    public void enableScreenShareStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).screenStreamOn(false)));
+
+      MockHttpResponse response = dispatcher
+        .put(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(404, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("If the requested meeting doesn't exist, it returns a status code 404")
+    public void enableScreenShareStream_testErrorMeetingNotExists() throws Exception {
+      MockHttpResponse response = dispatcher
+        .put(url(UUID.randomUUID()), (String) null, Map.of("session-id", user1session1), user1Token);
+      assertEquals(404, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("If the current user doesn't have the session identifier, it returns a status code 400")
+    public void enableScreenShareStream_testErrorCurrentUserWithoutSessionId() throws Exception {
+      MockHttpResponse response = dispatcher
+        .put(url(UUID.randomUUID()), (String) null, Map.of(), user1Token);
+      assertEquals(400, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("If the user isn’t authenticated then it returns a status code 401")
+    public void enableScreenShareStream_testErrorUnauthenticatedUser() throws Exception {
+      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()), (String) null, Map.of(), null);
+
+      assertEquals(401, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+  }
+
+  @Nested
+  @DisplayName("Disable screen share stream tests")
+  public class DisableScreenShareStreamTests {
+
+    private String url(UUID meetingId, String sessionId) {
+      return String.format("/meetings/%s/sessions/%s/screen", meetingId, sessionId);
+    }
+
+    @Test
+    @DisplayName("It closes the screen stream for the current session and returns a status code 204")
+    public void disableScreenShareStream_testOkDisableWithSessionEqualToCurrent() throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(true)));
+
+      MockHttpResponse response = dispatcher
+        .delete(url(meetingId, user1session1), Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      assertFalse(participant.hasScreenStreamOn());
+    }
+
+    @Test
+    @DisplayName("If screen share stream is already closed for the current session, correctly it ignores and returns a status code 204")
+    public void disableScreenShareStream_testOkScreenShareStreamAlreadyCloseWithSessionEqualToCurrent()
+      throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(false)));
+
+      MockHttpResponse response = dispatcher
+        .delete(url(meetingId, user1session1), Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      assertFalse(participant.hasScreenStreamOn());
+    }
+
+    @Test
+    @DisplayName("It closes the screen share stream for another session and returns a status code 204")
+    public void disableScreenShareStream_testOkDisableWithAnotherSession() throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).screenStreamOn(true)));
+
+      MockHttpResponse response = dispatcher
+        .delete(url(meetingId, user2session1), Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user2session1).orElseThrow();
+      assertFalse(participant.hasScreenStreamOn());
+    }
+
+    @Test
+    @DisplayName("If screen share stream is already closed for another session, correctly it ignores and it returns a status code 204")
+    public void disableScreenShareStream_testOkScreenShareStreamAlreadyCloseWithAnotherSession() throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).screenStreamOn(false)));
+
+      MockHttpResponse response = dispatcher
+        .delete(url(meetingId, user2session1), Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user2session1).orElseThrow();
+      assertFalse(participant.hasScreenStreamOn());
+    }
+
+    @Test
+    @DisplayName("If current user isn't a room owner, it returns a status code 403")
+    public void disableScreenShareStream_testErrorCurrentUserNotRoomOwner() throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id),
+          RoomMemberField.create().id(user2Id).owner(true)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).screenStreamOn(false)));
+
+      MockHttpResponse response = dispatcher
+        .delete(url(meetingId, user2session1), Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(403, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("If the requested session isn't in the meeting participants, it returns a status code 404")
+    public void disableScreenShareStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
+      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(RoomMemberField.create().id(user1Id).owner(true)));
+      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id,
+        List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(true)));
+
+      MockHttpResponse response = dispatcher
+        .delete(url(meetingId, user2session1), Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(404, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("If the requested meeting doesn't exist, it returns a status code 404")
+    public void disableScreenShareStream_testErrorMeetingNotExists() throws Exception {
+      MockHttpResponse response = dispatcher
+        .delete(url(UUID.randomUUID(), user1session1), Map.of("session-id", user1session1), user1Token);
+
+      assertEquals(404, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("If the user isn’t authenticated, it returns a status code 401")
+    public void disableScreenShareStream_testErrorUnauthenticatedUser() throws Exception {
+      MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID(), "-"), Map.of(), null);
+
+      assertEquals(401, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+  }
+
 }
