@@ -436,7 +436,7 @@ public class MeetingApiIT {
         ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(url(meetingId),
-        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false)),
         Map.of("session-id", user1session1), user1Token);
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -469,7 +469,7 @@ public class MeetingApiIT {
         ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(url(meetingId),
-        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false)),
         Map.of("session-id", user2session2), user2Token);
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -501,7 +501,7 @@ public class MeetingApiIT {
         ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(url(meetingId),
-        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false)),
         Map.of("session-id", user1session1), user1Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -511,7 +511,7 @@ public class MeetingApiIT {
     @DisplayName("Given a meeting identifier, if the meeting doesn't exist then it returns a status code 404")
     public void joinMeeting_testMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
-        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -522,7 +522,7 @@ public class MeetingApiIT {
     @DisplayName("Given a meeting identifier, if the user isn’t authenticated then it returns a status code 401")
     public void joinMeeting_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
-        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false)),
         Map.of("session-id", user1session1), null);
 
       assertEquals(401, response.getStatus());
@@ -614,7 +614,7 @@ public class MeetingApiIT {
     @DisplayName("Given a meeting identifier, if the meeting doesn't exist then it returns a status code 404")
     public void leaveMeeting_testMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
-        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -625,7 +625,7 @@ public class MeetingApiIT {
     @DisplayName("Given a meeting identifier, if the user isn’t authenticated then it returns a status code 401")
     public void leaveMeeting_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
-        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false)),
         Map.of("session-id", user1session1), null);
 
       assertEquals(401, response.getStatus());

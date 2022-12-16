@@ -149,7 +149,7 @@ public class ParticipantServiceImplTest {
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       Optional<MeetingDto> meetingDto = participantService.insertMeetingParticipantByRoomId(roomId,
-        JoinSettingsDto.create().microphoneOn(true).cameraOn(false), currentUser);
+        JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false), currentUser);
       assertTrue(meetingDto.isEmpty());
 
       verify(meetingService, times(1)).getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
@@ -174,7 +174,7 @@ public class ParticipantServiceImplTest {
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       Optional<MeetingDto> meetingDto = participantService.insertMeetingParticipantByRoomId(roomId,
-        JoinSettingsDto.create().microphoneOn(true).cameraOn(false), currentUser);
+        JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false), currentUser);
       assertTrue(meetingDto.isPresent());
 
       verify(meetingService, times(1)).getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
@@ -202,7 +202,7 @@ public class ParticipantServiceImplTest {
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       participantService.insertMeetingParticipant(meeting1Id,
-        JoinSettingsDto.create().microphoneOn(true).cameraOn(false), currentUser);
+        JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false), currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
@@ -224,7 +224,7 @@ public class ParticipantServiceImplTest {
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       participantService.insertMeetingParticipant(meeting2Id,
-        JoinSettingsDto.create().microphoneOn(true).cameraOn(false), currentUser);
+        JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false), currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting2Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
@@ -246,7 +246,7 @@ public class ParticipantServiceImplTest {
 
       ChatsHttpException exception = assertThrows(ConflictException.class, () ->
         participantService.insertMeetingParticipant(meeting1Id,
-          JoinSettingsDto.create().microphoneOn(true).cameraOn(false), currentUser));
+          JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false), currentUser));
 
       assertEquals(Status.CONFLICT.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.CONFLICT.getReasonPhrase(), exception.getHttpStatusPhrase());

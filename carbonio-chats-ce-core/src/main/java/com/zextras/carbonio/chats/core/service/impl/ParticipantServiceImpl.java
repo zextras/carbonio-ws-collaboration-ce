@@ -86,11 +86,11 @@ public class ParticipantServiceImpl implements ParticipantService {
     Participant participant = participantRepository.insert(
       Participant.create(meeting, currentUser.getSessionId())
         .userId(currentUser.getId())
-        .audioStreamOn(joinSettings.isMicrophoneOn())
-        .videoStreamOn(joinSettings.isCameraOn()));
+        .audioStreamOn(joinSettings.isAudioStreamOn())
+        .videoStreamOn(joinSettings.isVideoStreamOn()));
     videoServerService.joinMeeting(currentUser.getSessionId(), meeting.getId(),
-      joinSettings.isCameraOn(),
-      joinSettings.isMicrophoneOn());
+      joinSettings.isVideoStreamOn(),
+      joinSettings.isAudioStreamOn());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       MeetingParticipantJoinedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
