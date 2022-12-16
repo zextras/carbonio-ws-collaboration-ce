@@ -642,7 +642,7 @@ public class MeetingApiIT {
     }
 
     @Test
-    @DisplayName("Video stream correctly was opened for the current session and it returns a status code 204")
+    @DisplayName("Video stream correctly opened for the current session and it returns a status code 204")
     public void enableVideoStream_testOkEnableWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
@@ -885,7 +885,7 @@ public class MeetingApiIT {
     }
 
     @Test
-    @DisplayName("Screen share stream correctly was opened for the current session and it returns a status code 204")
+    @DisplayName("Screen share stream correctly opened for the current session and it returns a status code 204")
     public void enableScreenShareStream_testOkEnableWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
