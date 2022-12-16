@@ -3578,7 +3578,7 @@ public class RoomsApiIT {
       Instant executionInstant = Instant.parse("2022-01-01T00:00:00Z");
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response = dispatcher.put(url(roomId),
-        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false)),
         Map.of("session-id", "user1session1"), user1Token);
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -3618,7 +3618,7 @@ public class RoomsApiIT {
         uuid.when(() -> UUID.fromString(meetingId.toString())).thenReturn(meetingId);
         uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
         response = dispatcher.put(url(roomId),
-          objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+          objectMapper.writeValueAsString(JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false)),
           Map.of("session-id", "user1session1"), user1Token);
       }
       clock.removeFixTime();
@@ -3641,7 +3641,7 @@ public class RoomsApiIT {
     @DisplayName("Given a room identifier, if the room doesn't exists then it returns a status code 404")
     public void joinRoomMeeting_testErrorRoomNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
-        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false)),
         Map.of("session-id", "user1session1"), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -3660,7 +3660,7 @@ public class RoomsApiIT {
           RoomMemberField.create().id(user3Id)));
 
       MockHttpResponse response = dispatcher.put(url(roomId),
-        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)),
+        objectMapper.writeValueAsString(JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false)),
         Map.of("session-id", "user1session1"), user1Token);
 
       assertEquals(403, response.getStatus());
@@ -3673,7 +3673,7 @@ public class RoomsApiIT {
     @DisplayName("Given a room identifier, if the user isn’t authenticated then it returns a status code 401")
     public void joinRoomMeeting_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
-        objectMapper.writeValueAsString(JoinSettingsDto.create().microphoneOn(true).cameraOn(false)), null);
+        objectMapper.writeValueAsString(JoinSettingsDto.create().audioStreamOn(true).videoStreamOn(false)), null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }

@@ -307,12 +307,14 @@ components:
       type: object
       description: user settings to participate
       properties:
-        microphoneOn:
+        audioStreamOn:
           type: boolean
+          default: false
           readOnly: true
-          description: indicates if the microphone is on
-        cameraOn:
+          description: indicates if the audio stream is on
+        videoStreamOn:
           type: boolean
+          default: false
           readOnly: true
-          description: indicates if the camera is on
-      required: [ microphoneOn, cameraOn ]
+          description: indicates if the video stream is on
+      required: [ audioStreamOn, videoStreamOn ]
