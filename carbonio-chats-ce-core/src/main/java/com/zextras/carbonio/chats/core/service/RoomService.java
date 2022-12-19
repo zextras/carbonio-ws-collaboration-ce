@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.service;
 
+import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
@@ -178,4 +179,13 @@ public interface RoomService {
    * @param currentUser current authenticated user {@link UserPrincipal}
    */
   void updateChannelsRank(UUID workspaceId, List<RoomRankDto> roomRankDto, UserPrincipal currentUser);
+
+  /**
+   * Sets the meeting as a reference in the room. This method accepts entities because it's intended to be used only to
+   * be called by services.
+   *
+   * @param room    {@link Room} in which to set up the meeting
+   * @param meeting {@link Meeting} to set
+   */
+  void setMeetingIntoRoom(Room room, Meeting meeting);
 }

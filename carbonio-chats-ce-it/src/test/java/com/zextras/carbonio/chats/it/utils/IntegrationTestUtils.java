@@ -124,6 +124,10 @@ public class IntegrationTestUtils {
     return roomRepository.insert(room);
   }
 
+  public Room updateRoom(Room room) {
+    return roomRepository.update(room);
+  }
+
   public static class RoomMemberField {
 
     private UUID    id;
