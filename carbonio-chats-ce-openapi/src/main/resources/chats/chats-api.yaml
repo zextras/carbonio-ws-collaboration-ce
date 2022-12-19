@@ -1119,6 +1119,11 @@ components:
               type: integer
               description: number that defines the sorting position for workspaces room
               readOnly: true
+            meetingId:
+              type: string
+              format: uuid
+              readOnly: true
+              description: identifier of associated meeting
             createdAt:
               type: string
               format: date-time

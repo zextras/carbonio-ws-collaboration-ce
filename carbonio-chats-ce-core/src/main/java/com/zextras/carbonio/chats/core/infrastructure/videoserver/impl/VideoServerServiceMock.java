@@ -26,6 +26,21 @@ public class VideoServerServiceMock implements VideoServerService {
 
   }
 
+  @Override
+  public void enableAudioStream(String sessionId, String meetingId, boolean isEnabled) {
+
+  }
+
+  @Override
+  public void enableVideoStream(String sessionId, String meetingId, boolean enable) {
+
+  }
+
+  @Override
+  public void enableScreenShareStream(String sessionId, String meetingId, boolean enable) {
+
+  }
+
 
   @Override
   public boolean isAlive() {

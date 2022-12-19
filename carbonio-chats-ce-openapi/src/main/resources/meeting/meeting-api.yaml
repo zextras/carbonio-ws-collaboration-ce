@@ -109,7 +109,7 @@ paths:
     delete:
       tags:
         - Meetings
-      summary: close video stream for the current session
+      summary: close video stream for the requested session
       operationId: closeVideoStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
@@ -152,6 +152,41 @@ paths:
       responses:
         204:
           $ref: '#/components/responses/204CloseAudioStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/screen:
+    put:
+      tags:
+        - Meetings
+      summary: open screen share stream for the current session
+      operationId: openScreenShareStream
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      responses:
+        204:
+          $ref: '#/components/responses/204OpenScreenShareStream'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/sessions/{sessionId}/screen:
+    delete:
+      tags:
+        - Meetings
+      summary: close screen share stream for the requested session
+      operationId: closeScreenShareStream
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: '#/components/parameters/pathSessionId'
+      responses:
+        204:
+          $ref: '#/components/responses/204CloseScreenShareStream'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
         403:
@@ -219,6 +254,10 @@ components:
       description: The video stream opened successfully
     204CloseVideoStreamResponse:
       description: The video stream closed successfully
+    204OpenScreenShareStream:
+      description: The screen share stream opened successfully
+    204CloseScreenShareStream:
+      description: The screen share stream closed successfully
 
     400BadRequestResponse:
       description: The request had wrong or missing parameters
@@ -303,12 +342,14 @@ components:
       type: object
       description: user settings to participate
       properties:
-        microphoneOn:
+        audioStreamOn:
           type: boolean
+          default: false
           readOnly: true
-          description: indicates if the microphone is on
-        cameraOn:
+          description: indicates if the audio stream is on
+        videoStreamOn:
           type: boolean
+          default: false
           readOnly: true
-          description: indicates if the camera is on
-      required: [ microphoneOn, cameraOn ]
+          description: indicates if the video stream is on
+      required: [ audioStreamOn, videoStreamOn ]

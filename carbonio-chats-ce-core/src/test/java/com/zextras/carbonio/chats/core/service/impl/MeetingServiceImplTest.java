@@ -474,6 +474,7 @@ public class MeetingServiceImplTest {
       assertEquals(room1Id.toString(), meetingEntity.getRoomId());
 
       verify(roomService, times(1)).getRoomEntityAndCheckUser(room1Id, userPrincipal, false);
+      verify(roomService, times(1)).setMeetingIntoRoom(room1, meetingEntity);
       verify(meetingRepository, times(1)).getByRoomId(room1Id.toString());
       verify(meetingRepository, times(1)).insert(meeting);
       verify(videoServerService, times(1)).createMeeting(meetingId.toString());

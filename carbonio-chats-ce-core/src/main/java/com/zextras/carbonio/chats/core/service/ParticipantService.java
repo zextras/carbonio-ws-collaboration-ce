@@ -2,6 +2,7 @@ package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -47,7 +48,7 @@ public interface ParticipantService {
    * @param currentUser current authenticated user {@link UserPrincipal}
    * @throws NotFoundException  if the meeting doesn't exist
    * @throws NotFoundException  if the user session for indicated meeting doesn't exist.
-   * @throws NotFoundException  if the indicated room doesn't exist
+   * @throws NotFoundException  if the associated room doesn't exist
    * @throws ForbiddenException if the user isn't a room member
    * @throws ForbiddenException if the user isn't a room owner and mustBeOwner is true
    */
@@ -61,26 +62,47 @@ public interface ParticipantService {
    * @param room      participant {@link Room}
    * @param userId    identifier of the user to remove
    * @param sessionId identifier of the session to remove. If it is null, it removes all user sessions
+   * @throws NotFoundException if the user session for indicated meeting doesn't exist.
    */
   void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, @Nullable String sessionId);
 
   /**
    * Sets the video stream enabling in the meeting for the current session
    *
-   * @param meetingId        meeting identifier {@link UUID}
-   * @param sessionId        identifier of the session to set video stream enabling
-   * @param hasVideoStreamOn indicates whether the video stream must be enabled or not
-   * @param currentUser      currentUser current authenticated user {@link UserPrincipal}
+   * @param meetingId   meeting identifier {@link UUID}
+   * @param sessionId   identifier of the session to set video stream enabling
+   * @param enable      indicates whether the video stream must be enabled or not
+   * @param currentUser currentUser current authenticated user {@link UserPrincipal}
+   * @throws NotFoundException   if the meeting doesn't exist
+   * @throws NotFoundException   if the user session for indicated meeting doesn't exist.
+   * @throws NotFoundException   if the associated room doesn't exist
+   * @throws BadRequestException if another session tries to enable the stream
+   * @throws ForbiddenException  if the current user isn't a room owner
    */
-  void enableVideoStream(UUID meetingId, String sessionId, boolean hasVideoStreamOn, UserPrincipal currentUser);
+  void enableVideoStream(UUID meetingId, String sessionId, boolean enable, UserPrincipal currentUser);
 
   /**
    * Sets the audio stream enabling in the meeting for the current session
    *
    * @param meetingId        meeting identifier {@link UUID}
    * @param sessionId        identifier of the session to set video stream enabling
-   * @param hasAudioStreamOn indicates whether the audio stream must be enabled or not
+   * @param enable           indicates whether the audio stream must be enabled or not
    * @param currentUser      currentUser current authenticated user {@link UserPrincipal}
    */
-  void enableAudioStream(UUID meetingId, String sessionId, boolean hasAudioStreamOn, UserPrincipal currentUser);
+  void enableAudioStream(UUID meetingId, String sessionId, boolean enable, UserPrincipal currentUser);
+
+  /**
+   * Sets the screen share stream enabling in the meeting for the current session
+   *
+   * @param meetingId   meeting identifier {@link UUID}
+   * @param sessionId   identifier of the session to set video stream enabling
+   * @param enable      indicates whether the video stream must be enabled or not
+   * @param currentUser currentUser current authenticated user {@link UserPrincipal}
+   * @throws NotFoundException   if the meeting doesn't exist
+   * @throws NotFoundException   if the user session for indicated meeting doesn't exist.
+   * @throws NotFoundException   if the associated room doesn't exist
+   * @throws BadRequestException if another session tries to enable the stream
+   * @throws ForbiddenException  if the current user isn't a room owner
+   */
+  void enableScreenShareStream(UUID meetingId, String sessionId, boolean enable, UserPrincipal currentUser);
 }
