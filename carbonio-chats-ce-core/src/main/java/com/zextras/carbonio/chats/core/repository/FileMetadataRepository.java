@@ -22,6 +22,15 @@ public interface FileMetadataRepository {
   Optional<FileMetadata> getById(String fileId);
 
   /**
+   * Gets all identifiers of file metadata by the room identifier and type
+   *
+   * @param roomId room identifier
+   * @param type   file metadata type {@link FileMetadataType}
+   * @return The required file metadata identifiers list
+   */
+  List<String> getIdsByRoomIdAndType(String roomId, FileMetadataType type);
+
+  /**
    * Gets a paginated list of file metadata info filtered by roomId and type
    *
    * @param roomId           room identifier
@@ -49,4 +58,9 @@ public interface FileMetadataRepository {
    */
   void delete(FileMetadata metadata);
 
+  /**
+   * Delete a metadata info list by their identifier
+   * @param ids identifier of metadata info to delete
+   */
+  void deleteByIds(List<String> ids);
 }

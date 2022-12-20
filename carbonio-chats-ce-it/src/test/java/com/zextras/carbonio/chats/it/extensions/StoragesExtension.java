@@ -7,10 +7,10 @@ import static org.mockserver.model.Parameter.param;
 
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.it.utils.MockedFiles;
-import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
+import com.zextras.carbonio.chats.it.utils.MockedFiles;
+import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.storages.internal.pojo.Query;
 import java.io.IOException;
 import java.util.Optional;
@@ -121,6 +121,15 @@ public class StoragesExtension implements AfterEachCallback, BeforeAllCallback, 
         .withStatusCode(200)
     );
   }
+
+//  private void mockBulkDelete(MockServerClient client, List<String> fileIds) {
+//    client.when(
+//      request()
+//        .withMethod("POST")
+//        .withPath("/bulk-delete")
+//        .withQueryStringParameter(param("type", "chats"))
+//    )
+//  }
 
   private void mockHealthLive(MockServerClient client) {
     client.when(

@@ -37,6 +37,16 @@ public class EbeanFileMetadataRepository implements FileMetadataRepository {
   }
 
   @Override
+  public List<String> getIdsByRoomIdAndType(String roomId, FileMetadataType type) {
+    return db.find(FileMetadata.class)
+      .where()
+      .eq("roomId", roomId).and().eq("type", type)
+      .select("id")
+      .findSingleAttributeList();
+  }
+
+
+  @Override
   public List<FileMetadata> getByRoomIdAndType(
     String roomId, FileMetadataType type, int itemsNumber, @Nullable PaginationFilter paginationFilter
   ) {
@@ -66,5 +76,10 @@ public class EbeanFileMetadataRepository implements FileMetadataRepository {
   @Override
   public void delete(FileMetadata metadata) {
     db.delete(metadata);
+  }
+
+  @Override
+  public void deleteByIds(List<String> ids) {
+    db.deleteAll(FileMetadata.class, ids);
   }
 }

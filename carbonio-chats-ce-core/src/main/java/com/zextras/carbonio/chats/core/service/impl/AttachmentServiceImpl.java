@@ -170,6 +170,15 @@ public class AttachmentServiceImpl implements AttachmentService {
     storagesService.deleteFile(fileId.toString(), metadata.getUserId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      AttachmentRemovedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(UUID.fromString(room.getId())));
+      AttachmentRemovedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
+        .roomId(UUID.fromString(room.getId())));
+  }
+
+  @Override
+  public void deleteAttachmentByRoomId(UUID roomId, UserPrincipal currentUser) {
+    fileMetadataRepository.deleteByIds(
+      storagesService.deleteFileList(
+        fileMetadataRepository.getIdsByRoomIdAndType(roomId.toString(),
+          FileMetadataType.ATTACHMENT), currentUser.getId()));
   }
 }

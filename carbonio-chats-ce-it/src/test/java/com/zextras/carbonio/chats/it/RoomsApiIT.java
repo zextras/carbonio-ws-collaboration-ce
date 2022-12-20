@@ -1358,13 +1358,14 @@ public class RoomsApiIT {
     public void deleteRoom_groupWithMeetingTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       UUID meetingId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP,
+      Room room = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP,
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id).muted(true),
           RoomMemberField.create().id(user3Id)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
         ParticipantBuilder.create(user1Id, "user3session1").audioStreamOn(false).videoStreamOn(false)));
+      integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -2547,12 +2548,14 @@ public class RoomsApiIT {
     public void deleteRoomMember_memberIsMeetingParticipantTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       UUID meetingId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
+      Room roomEntity = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
+        List.of(user1Id, user2Id, user3Id));
       meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
         ParticipantBuilder.create(user1Id, "user1session1"),
         ParticipantBuilder.create(user2Id, "user2session1"),
         ParticipantBuilder.create(user2Id, "user2session2"),
         ParticipantBuilder.create(user3Id, "user3session1")));
+      integrationTestUtils.updateRoom(roomEntity.meetingId(meetingId.toString()));
 
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
 
@@ -2582,9 +2585,11 @@ public class RoomsApiIT {
     public void deleteRoomMember_memberIsLastMeetingParticipantTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       UUID meetingId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
+      Room roomEntity = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
+        List.of(user1Id, user2Id, user3Id));
       meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
         ParticipantBuilder.create(user2Id, "user2session1")));
+      integrationTestUtils.updateRoom(roomEntity.meetingId(meetingId.toString()));
 
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
 
