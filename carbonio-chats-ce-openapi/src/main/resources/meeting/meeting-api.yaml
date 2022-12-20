@@ -250,6 +250,10 @@ components:
       description: The user joined the meeting successfully
     204LeaveMeetingResponse:
       description: The user exited the meeting successfully
+    204OpenAudioStreamResponse:
+      description: The audio stream opened successfully
+    204CloseAudioStreamResponse:
+      description: The audio stream closed successfully
     204OpenVideoStreamResponse:
       description: The video stream opened successfully
     204CloseVideoStreamResponse:

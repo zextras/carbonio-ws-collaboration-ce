@@ -190,7 +190,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   @Override
   @Transactional
   public void enableAudioStream(
-    UUID meetingId, String sessionId, boolean hasAudioStreamOn, UserPrincipal currentUser
+    UUID meetingId, String sessionId, boolean enable, UserPrincipal currentUser
   ) {
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
@@ -198,22 +198,22 @@ public class ParticipantServiceImpl implements ParticipantService {
       .findAny().orElseThrow(() ->
         new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
     if (!sessionId.equals(currentUser.getSessionId())) {
-      if (hasAudioStreamOn) {
+      if (enable) {
         throw new BadRequestException(String.format(
           "User '%s' cannot enable the audio stream of the session '%s'", currentUser.getId(), sessionId));
       }
       roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
     }
-    if (hasAudioStreamOn != participant.hasAudioStreamOn()) {
-      participantRepository.update(participant.audioStreamOn(hasAudioStreamOn));
+    if (enable != participant.hasAudioStreamOn()) {
+      participantRepository.update(participant.audioStreamOn(enable));
       eventDispatcher.sendToUserQueue(
         meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
-        hasAudioStreamOn ?
+        enable ?
           MeetingParticipantAudioStreamOpened
             .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId) :
           MeetingParticipantAudioStreamClosed
             .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
-      videoServerService.enableAudioStream(currentUser.getSessionId(), meetingId.toString(), hasAudioStreamOn);
+      videoServerService.enableAudioStream(currentUser.getSessionId(), meetingId.toString(), enable);
     }
   }
 

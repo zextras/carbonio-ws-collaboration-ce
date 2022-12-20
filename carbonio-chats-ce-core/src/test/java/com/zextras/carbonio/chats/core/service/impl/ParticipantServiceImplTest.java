@@ -17,6 +17,7 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantAudioStreamOpened;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoinedEvent;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeftEvent;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantScreenStreamClosed;
@@ -98,12 +99,12 @@ public class ParticipantServiceImplTest {
     user1Id = UUID.randomUUID();
     user1Session1 = "user1Session1";
     participant1Session1 = ParticipantBuilder.create(Meeting.create(), user1Session1).userId(user1Id)
-      .audioStreamOn(true).videoStreamOn(false).screenStreamOn(false)
+      .audioStreamOn(false).videoStreamOn(false).screenStreamOn(false)
       .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
     user2Id = UUID.randomUUID();
     user2Session1 = "user2Session1";
     participant2Session1 = ParticipantBuilder.create(Meeting.create(), user2Session1).userId(user2Id)
-      .audioStreamOn(true).videoStreamOn(false).screenStreamOn(false)
+      .audioStreamOn(false).videoStreamOn(false).screenStreamOn(false)
       .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build();
     user2Session2 = "user2Session2";
     participant2Session2 = ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id)
@@ -547,6 +548,219 @@ public class ParticipantServiceImplTest {
 
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
         participantService.enableVideoStream(meeting1Id, user3Session1, hasVideoStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Not Found - Meeting '%s' not found", meeting1Id),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+  }
+
+  @Nested
+  @DisplayName("Enable audio stream tests")
+  public class EnableAudioStreamTests {
+
+    private final boolean hasAudioStreamOn = true;
+
+    @Test
+    @DisplayName("It opens the audio stream for the current session")
+    public void enableAudioStream_testOkEnableWithSessionEqualToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableAudioStream(meeting1Id, user1Session1, true,
+        UserPrincipal.create(user1Id).sessionId(user1Session1));
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verify(participantRepository, times(1)).update(participant1Session1.videoStreamOn(hasAudioStreamOn));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString()),
+        MeetingParticipantAudioStreamOpened
+          .create(user1Id, user1Session1).meetingId(meeting1Id).sessionId(user1Session1));
+      verify(videoServerService, times(1)).enableAudioStream(user1Session1, meeting1Id.toString(), true);
+
+      verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("If audio stream is already opened for the current session, correctly it ignores")
+    public void enableAudioStream_testOkAudioStreamAlreadyOpenWithSessionEqualToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableAudioStream(meeting1Id, user2Session2, hasAudioStreamOn,
+        UserPrincipal.create(user2Id).sessionId(user2Session2));
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the current session is not the requested session, it throws a 'bad request' exception")
+    public void enableAudioStream_testErrorEnableWithSessionDifferentToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        participantService.enableAudioStream(meeting1Id, user2Session2, hasAudioStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Bad Request - User '%s' cannot enable the audio stream of the session '%s'", user1Id,
+          user2Session2),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the requested session isn't in the meeting participants, it throws a 'not found' exception")
+    public void enableAudioStream_testErrorSessionNotFoundInMeetingParticipants() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
+        participantService.enableAudioStream(meeting1Id, user3Session1, hasAudioStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Not Found - Session '%s' not found into meeting '%s'", user3Session1, meeting1Id),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
+    public void enableAudioStream_testErrorMeetingNotExists() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.empty());
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
+        participantService.enableAudioStream(meeting1Id, user3Session1, hasAudioStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Not Found - Meeting '%s' not found", meeting1Id),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+  }
+
+  @Nested
+  @DisplayName("Disable audio stream tests")
+  public class DisableAudioStreamTests {
+
+    private final boolean hasAudioStreamOn = false;
+
+    @Test
+    @DisplayName("It closes the audio stream for the current session")
+    public void disableAudioStream_testOkDisableWithSessionEqualToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableAudioStream(meeting1Id, user2Session2, hasAudioStreamOn,
+        UserPrincipal.create(user2Id).sessionId(user2Session2));
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verify(participantRepository, times(1)).update(participant2Session2.videoStreamOn(hasAudioStreamOn));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString()),
+        MeetingParticipantVideoStreamClosed
+          .create(user2Id, user2Session2).meetingId(meeting1Id).sessionId(user2Session2));
+      verify(videoServerService, times(1)).enableAudioStream(user2Session2, meeting1Id.toString(), false);
+      verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("If audio stream is already closed for the current session, correctly it ignores")
+    public void disableAudioStream_testOkAudioStreamAlreadyCloseWithSessionEqualToCurrent() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableAudioStream(meeting1Id, user1Session1, hasAudioStreamOn,
+        UserPrincipal.create(user1Id).sessionId(user1Session1));
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("It closes the audio stream for another session")
+    public void disableAudioStream_testOkDisableWithAnotherSession() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).sessionId(user1Session1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableAudioStream(meeting1Id, user2Session2, hasAudioStreamOn, currentUser);
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, true);
+      verify(participantRepository, times(1)).update(participant2Session2.videoStreamOn(false));
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString(), user2Id.toString()),
+        MeetingParticipantVideoStreamClosed
+          .create(user1Id, user1Session1).meetingId(meeting1Id).sessionId(user2Session2));
+      verify(videoServerService, times(1)).enableAudioStream(user1Session1, meeting1Id.toString(), false);
+      verifyNoMoreInteractions(meetingService, roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If audio stream is already closed for another session, correctly it ignores")
+    public void disableAudioStream_testOkAudioStreamAlreadyCloseWithAnotherSession() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).sessionId(user1Session1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      participantService.enableAudioStream(meeting1Id, user2Session1, hasAudioStreamOn, currentUser);
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, true);
+      verifyNoMoreInteractions(meetingService, roomService);
+      verifyNoInteractions(participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the requested session isn't in the meeting participants, it throws a 'not found' exception")
+    public void disableAudioStream_testErrorSessionNotFoundInMeetingParticipants() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
+        participantService.enableAudioStream(meeting1Id, user3Session1, hasAudioStreamOn,
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+        String.format("Not Found - Session '%s' not found into meeting '%s'", user3Session1, meeting1Id),
+        exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
+    public void disableAudioStream_testErrorMeetingNotExists() {
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.empty());
+
+      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
+        participantService.enableAudioStream(meeting1Id, user3Session1, hasAudioStreamOn,
           UserPrincipal.create(user1Id).sessionId(user1Session1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());

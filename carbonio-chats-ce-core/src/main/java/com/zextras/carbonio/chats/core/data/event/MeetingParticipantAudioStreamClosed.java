@@ -6,7 +6,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class MeetingParticipantAudioStreamClosed extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_VIDEO_STREAM_CLOSED;
+  private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_AUDIO_STREAM_CLOSED;
 
   private UUID   meetingId;
   private String sessionId;

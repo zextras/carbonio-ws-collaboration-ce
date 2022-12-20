@@ -1004,7 +1004,7 @@ public class MeetingApiIT {
 
     @Test
     @DisplayName("If audio stream is already closed for the current session, correctly it ignores and returns a status code 204")
-    public void disableAudioStream_testOkVideoStreamAlreadyCloseWithSessionEqualToCurrent() throws Exception {
+    public void disableAudioStream_testOkAudioStreamAlreadyCloseWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
