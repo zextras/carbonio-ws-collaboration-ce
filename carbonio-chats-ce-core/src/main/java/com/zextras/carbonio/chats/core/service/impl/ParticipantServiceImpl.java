@@ -4,6 +4,8 @@ import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantAudioStreamClosed;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantAudioStreamOpened;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoinedEvent;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeftEvent;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantScreenStreamClosed;
@@ -182,6 +184,36 @@ public class ParticipantServiceImpl implements ParticipantService {
           MeetingParticipantScreenStreamClosed
             .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
       videoServerService.enableScreenShareStream(sessionId, meetingId.toString(), enable);
+    }
+  }
+
+  @Override
+  @Transactional
+  public void enableAudioStream(
+    UUID meetingId, String sessionId, boolean enable, UserPrincipal currentUser
+  ) {
+    Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
+      new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
+    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
+      .findAny().orElseThrow(() ->
+        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
+    if (!sessionId.equals(currentUser.getSessionId())) {
+      if (enable) {
+        throw new BadRequestException(String.format(
+          "User '%s' cannot enable the audio stream of the session '%s'", currentUser.getId(), sessionId));
+      }
+      roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
+    }
+    if (enable != participant.hasAudioStreamOn()) {
+      participantRepository.update(participant.audioStreamOn(enable));
+      eventDispatcher.sendToUserQueue(
+        meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
+        enable ?
+          MeetingParticipantAudioStreamOpened
+            .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId) :
+          MeetingParticipantAudioStreamClosed
+            .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
+      videoServerService.enableAudioStream(currentUser.getSessionId(), meetingId.toString(), enable);
     }
   }
 

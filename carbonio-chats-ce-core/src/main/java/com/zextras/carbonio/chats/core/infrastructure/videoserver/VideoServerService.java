@@ -37,6 +37,15 @@ public interface VideoServerService extends HealthIndicator {
   void leaveMeeting(String sessionId, String meetingId);
 
   /**
+   * Enable or disable the audio stream for the user's session in the meeting
+   *
+   * @param sessionId participant's session identifier
+   * @param meetingId identification of the meeting on which to perform the operation
+   * @param enable    if true the audio stream is enabled, otherwise it is disabled
+   */
+  void enableAudioStream(String sessionId, String meetingId, boolean enable);
+
+  /**
    * Enable or disable the video stream for the user's session in the meeting
    *
    * @param sessionId participant's session identifier

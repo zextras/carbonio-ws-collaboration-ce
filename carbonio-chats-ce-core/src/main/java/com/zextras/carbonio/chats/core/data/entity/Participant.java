@@ -3,6 +3,7 @@ package com.zextras.carbonio.chats.core.data.entity;
 import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
@@ -131,5 +132,27 @@ public class Participant {
 
   public OffsetDateTime getUpdatedAt() {
     return updatedAt;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Participant that = (Participant) o;
+    return Objects.equals(id, that.id) && Objects.equals(meeting, that.meeting)
+      && Objects.equals(sessionId, that.sessionId) && Objects.equals(userId, that.userId)
+      && Objects.equals(audioStreamOn, that.audioStreamOn) && Objects.equals(videoStreamOn,
+      that.videoStreamOn) && Objects.equals(screenStreamOn, that.screenStreamOn) && Objects.equals(
+      createdAt, that.createdAt) && Objects.equals(updatedAt, that.updatedAt);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, meeting, sessionId, userId, audioStreamOn, videoStreamOn, screenStreamOn, createdAt,
+      updatedAt);
   }
 }
