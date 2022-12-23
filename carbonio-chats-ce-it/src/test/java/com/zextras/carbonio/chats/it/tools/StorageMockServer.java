@@ -2,12 +2,20 @@ package com.zextras.carbonio.chats.it.tools;
 
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
+import static org.mockserver.model.Parameter.param;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.storages.internal.pojo.BulkDeleteItem;
+import com.zextras.storages.internal.pojo.Query;
+import com.zextras.storages.internal.pojo.StoragesBulkDeleteBody;
+import com.zextras.storages.internal.pojo.StoragesBulkDeleteResponse;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
+import org.mockserver.model.JsonBody;
 import org.mockserver.verify.VerificationTimes;
 
 public class StorageMockServer extends ClientAndServer implements CloseableResource {
@@ -39,6 +47,42 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
         response()
           .withStatusCode(success ? 204 : 500)
       );
+  }
+
+
+  public HttpRequest getBulkDeleteRequest(List<String> requestIds) {
+    StoragesBulkDeleteBody requestBody = new StoragesBulkDeleteBody();
+    requestBody.setIds(requestIds.stream().map(fileId -> {
+      BulkDeleteItem item = new BulkDeleteItem();
+      item.setNode(fileId);
+      return item;
+    }).collect(Collectors.toList()));
+    return request()
+      .withMethod("POST")
+      .withPath("/bulk-delete")
+      .withQueryStringParameter(param("type", "chats"))
+      .withBody(JsonBody.json(requestBody));
+
+  }
+
+  public void setBulkDeleteResponse(List<String> requestIds, List<String> responseIds) {
+    HttpRequest request = getBulkDeleteRequest(requestIds);
+    clear(request);
+    if (responseIds != null) {
+      StoragesBulkDeleteResponse responseBody = new StoragesBulkDeleteResponse();
+      responseBody.setIds(responseIds.stream().map(fileId -> {
+        Query query = new Query();
+        query.setType("chats");
+        query.setNode(fileId);
+        return query;
+      }).collect(Collectors.toList()));
+      when(request).respond(
+        response()
+          .withStatusCode(200)
+          .withBody(JsonBody.json(responseBody)));
+    } else {
+      when(request).respond(response().withStatusCode(500));
+    }
   }
 
   @Override

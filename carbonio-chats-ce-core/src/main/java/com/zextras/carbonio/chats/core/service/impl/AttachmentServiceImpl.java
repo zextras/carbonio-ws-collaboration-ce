@@ -21,6 +21,7 @@ import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
+import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
@@ -170,6 +171,18 @@ public class AttachmentServiceImpl implements AttachmentService {
     storagesService.deleteFile(fileId.toString(), metadata.getUserId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      AttachmentRemovedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(UUID.fromString(room.getId())));
+      AttachmentRemovedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
+        .roomId(UUID.fromString(room.getId())));
+  }
+
+  @Override
+  public void deleteAttachmentsByRoomId(UUID roomId, UserPrincipal currentUser) {
+    try {
+      fileMetadataRepository.deleteByIds(
+        storagesService.deleteFileList(
+          fileMetadataRepository.getIdsByRoomIdAndType(roomId.toString(),
+            FileMetadataType.ATTACHMENT), currentUser.getId()));
+    } catch (StorageException ignored) {}
+
   }
 }

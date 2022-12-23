@@ -179,9 +179,11 @@ public class MembersServiceImpl implements MembersService {
       room.getSubscriptions().stream().noneMatch(s -> s.getUserId().equals(userId.toString()))) {
       throw new NotFoundException("The user is not a room member");
     }
-    meetingService.getMeetingEntityByRoomId(roomId).ifPresent(meeting ->
-      participantService.removeMeetingParticipant(meeting, room, userId, null)
-    );
+    if (room.getMeetingId() != null) {
+      meetingService.getMeetingEntity(UUID.fromString(room.getMeetingId())).ifPresent(meeting ->
+        participantService.removeMeetingParticipant(meeting, room, userId, null)
+      );
+    }
     List<String> owners = room.getSubscriptions().stream()
       .filter(Subscription::isOwner)
       .map(Subscription::getUserId)
@@ -190,7 +192,6 @@ public class MembersServiceImpl implements MembersService {
       throw new BadRequestException("Last owner can't leave the room");
     }
 
-    // TODO do we need to delete the room?
     subscriptionRepository.delete(room.getId(), userId.toString());
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
       roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), userId.toString())
@@ -212,6 +213,11 @@ public class MembersServiceImpl implements MembersService {
       RoomMemberRemovedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
         .roomId(UUID.fromString(room.getId())).userId(userId)
     );
+    // the room isn't updated with subscriptions table. It still has the deleted subscription,
+    // so if room has only one subscription, but actually it is empty
+    if (room.getSubscriptions().size() == 1) {
+      roomService.deleteRoom(roomId, currentUser);
+    }
   }
 
   @Override

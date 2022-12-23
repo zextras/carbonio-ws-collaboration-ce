@@ -49,6 +49,7 @@ import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
+import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
@@ -88,6 +89,7 @@ import org.mockito.Mockito;
 class RoomServiceImplTest {
 
   private final RoomService                roomService;
+  private final AttachmentService          attachmentService;
   private final RoomRepository             roomRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
   private final EventDispatcher            eventDispatcher;
@@ -102,6 +104,7 @@ class RoomServiceImplTest {
 
   public RoomServiceImplTest(RoomMapper roomMapper) {
     this.roomRepository = mock(RoomRepository.class);
+    this.attachmentService = mock(AttachmentService.class);
     this.roomUserSettingsRepository = mock(RoomUserSettingsRepository.class);
     this.userService = mock(UserService.class);
     this.membersService = mock(MembersService.class);
@@ -123,6 +126,7 @@ class RoomServiceImplTest {
       this.meetingService,
       this.fileMetadataRepository,
       this.storagesService,
+      this.attachmentService,
       this.clock,
       this.appConfig
     );
@@ -1275,9 +1279,11 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("Deletes the required group room and the associated meeting")
     public void deleteRoom_groupWithMeetingTestOk() {
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      UUID meetingId = UUID.randomUUID();
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(
+        Optional.of(roomGroup1.meetingId(meetingId.toString())));
       Meeting meeting = Meeting.create()
-        .id(UUID.randomUUID().toString())
+        .id(meetingId.toString())
         .roomId(roomGroup1Id.toString());
       meeting
         .participants(List.of(
@@ -1285,11 +1291,11 @@ class RoomServiceImplTest {
             .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z")).build(),
           ParticipantBuilder.create(meeting, "session1User3Id").userId(user3Id).createdAt(
             OffsetDateTime.parse("2022-01-01T13:15:00Z")).build()));
-      when(meetingService.getMeetingEntityByRoomId(roomGroup1Id)).thenReturn(Optional.of(meeting));
+      when(meetingService.getMeetingEntity(meetingId)).thenReturn(Optional.of(meeting));
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       roomService.deleteRoom(roomGroup1Id, currentUser);
 
-      verify(meetingService, times(1)).getMeetingEntityByRoomId(roomGroup1Id);
+      verify(meetingService, times(1)).getMeetingEntity(meetingId);
       verify(meetingService, times(1)).deleteMeeting(meeting, roomGroup1, user1Id, null);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),

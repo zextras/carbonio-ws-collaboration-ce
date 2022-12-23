@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.infrastructure.storage;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import java.io.File;
+import java.util.List;
 
 public interface StoragesService extends HealthIndicator {
 
@@ -44,4 +45,13 @@ public interface StoragesService extends HealthIndicator {
    * @param ownerId identifier of the owner of the file
    */
   void deleteFile(String fileId, String ownerId);
+
+  /**
+   * Deletes file list by their identifiers
+   *
+   * @param fileIds       identifiers list of files to delete
+   * @param currentUserId identifier of the current user
+   * @return identifiers list of files deleted
+   */
+  List<String> deleteFileList(List<String> fileIds, String currentUserId);
 }
