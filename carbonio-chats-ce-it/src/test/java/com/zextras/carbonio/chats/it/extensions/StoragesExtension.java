@@ -122,15 +122,6 @@ public class StoragesExtension implements AfterEachCallback, BeforeAllCallback, 
     );
   }
 
-//  private void mockBulkDelete(MockServerClient client, List<String> fileIds) {
-//    client.when(
-//      request()
-//        .withMethod("POST")
-//        .withPath("/bulk-delete")
-//        .withQueryStringParameter(param("type", "chats"))
-//    )
-//  }
-
   private void mockHealthLive(MockServerClient client) {
     client.when(
       request()

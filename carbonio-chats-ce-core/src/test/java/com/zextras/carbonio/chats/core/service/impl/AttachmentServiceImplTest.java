@@ -10,6 +10,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -30,6 +31,7 @@ import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
+import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
@@ -779,4 +781,69 @@ public class AttachmentServiceImplTest {
       assertThrows(ForbiddenException.class, () -> attachmentService.deleteAttachment(attachmentUuid, currentUser));
     }
   }
+
+  @Nested
+  @DisplayName("Delete attachments by room id tests")
+  class DeleteAttachmentsByRoomIdTests {
+
+    @Test
+    @DisplayName("Correctly deletes all room attachments")
+    public void deleteAttachmentsByRoomId_testOk() {
+      String file1Id = UUID.randomUUID().toString();
+      String file2Id = UUID.randomUUID().toString();
+
+      when(fileMetadataRepository.getIdsByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT))
+        .thenReturn(List.of(file1Id, file2Id));
+      when(storagesService.deleteFileList(List.of(file1Id, file2Id), user1Id.toString()))
+        .thenReturn(List.of(file1Id, file2Id));
+
+      attachmentService.deleteAttachmentsByRoomId(roomId, UserPrincipal.create(user1Id));
+
+      verify(storagesService, times(1)).deleteFileList(List.of(file1Id, file2Id), user1Id.toString());
+      verify(fileMetadataRepository, times(1)).getIdsByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT);
+      verify(fileMetadataRepository, times(1)).deleteByIds(List.of(file1Id, file2Id));
+      verifyNoMoreInteractions(storagesService, fileMetadataRepository);
+      verifyNoInteractions(roomService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("Only deletes room's attachments deleted also from storage service")
+    public void deleteAttachmentsByRoomId_onlyFilesDeletedAlsoFromStorageService() {
+      String file1Id = UUID.randomUUID().toString();
+      String file2Id = UUID.randomUUID().toString();
+
+      when(fileMetadataRepository.getIdsByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT))
+        .thenReturn(List.of(file1Id, file2Id));
+      when(storagesService.deleteFileList(List.of(file1Id, file2Id), user1Id.toString()))
+        .thenReturn(List.of(file1Id, file2Id));
+
+      attachmentService.deleteAttachmentsByRoomId(roomId, UserPrincipal.create(user1Id));
+
+      verify(storagesService, times(1)).deleteFileList(List.of(file1Id, file2Id), user1Id.toString());
+      verify(fileMetadataRepository, times(1)).getIdsByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT);
+      verify(fileMetadataRepository, times(1)).deleteByIds(List.of(file1Id, file2Id));
+      verifyNoMoreInteractions(storagesService, fileMetadataRepository);
+      verifyNoInteractions(roomService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("Correctly deletes no attachments if storage service fails")
+    public void deleteAttachmentsByRoomId_storageServiceFailed() {
+      String file1Id = UUID.randomUUID().toString();
+      String file2Id = UUID.randomUUID().toString();
+
+      when(fileMetadataRepository.getIdsByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT))
+        .thenReturn(List.of(file1Id, file2Id));
+      when(storagesService.deleteFileList(List.of(file1Id, file2Id), user1Id.toString()))
+        .thenThrow(StorageException.class);
+
+      attachmentService.deleteAttachmentsByRoomId(roomId, UserPrincipal.create(user1Id));
+
+      verify(storagesService, times(1)).deleteFileList(List.of(file1Id, file2Id), user1Id.toString());
+      verify(fileMetadataRepository, times(1)).getIdsByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT);
+      verifyNoMoreInteractions(storagesService, fileMetadataRepository);
+      verifyNoInteractions(roomService, eventDispatcher);
+    }
+  }
+
 }

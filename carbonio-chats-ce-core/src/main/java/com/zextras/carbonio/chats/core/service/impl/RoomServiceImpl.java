@@ -82,7 +82,7 @@ public class RoomServiceImpl implements RoomService {
   private final MeetingService             meetingService;
   private final FileMetadataRepository     fileMetadataRepository;
   private final StoragesService            storagesService;
-  private final AttachmentService attachmentService;
+  private final AttachmentService          attachmentService;
   private final Clock                      clock;
   private final AppConfig                  appConfig;
 
@@ -299,6 +299,11 @@ public class RoomServiceImpl implements RoomService {
       meetingService.getMeetingEntity(UUID.fromString(room.getMeetingId())).ifPresent(meeting ->
         meetingService.deleteMeeting(meeting, room, currentUser.getUUID(), currentUser.getSessionId()));
     }
+    attachmentService.deleteAttachmentsByRoomId(roomId, currentUser);
+    if (room.getPictureUpdatedAt() != null) {
+      fileMetadataRepository.deleteById(room.getId());
+      storagesService.deleteFile(room.getId(), currentUser.getId());
+    }
     roomRepository.delete(roomId.toString());
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
       room.getChildren().forEach(child -> {
@@ -313,7 +318,6 @@ public class RoomServiceImpl implements RoomService {
     } else {
       messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId());
     }
-    attachmentService.deleteAttachmentByRoomId(roomId, currentUser);
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomDeletedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(roomId));

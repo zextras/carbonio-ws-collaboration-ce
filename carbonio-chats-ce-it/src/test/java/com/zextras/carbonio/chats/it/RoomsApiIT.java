@@ -17,6 +17,7 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
@@ -71,6 +72,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.mockserver.verify.VerificationTimes;
 
 @ApiIntegrationTest
 public class RoomsApiIT {
@@ -83,6 +85,7 @@ public class RoomsApiIT {
   private final MongooseImMockServer       mongooseImMockServer;
   private final StorageMockServer          storageMockServer;
   private final RoomRepository             roomRepository;
+  private final FileMetadataRepository     fileMetadataRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
 
   private final AppClock clock;
@@ -92,7 +95,8 @@ public class RoomsApiIT {
     IntegrationTestUtils integrationTestUtils,
     MeetingTestUtils meetingTestUtils,
     UserManagementMockServer userManagementMockServer,
-    MongooseImMockServer mongooseImMockServer, StorageMockServer storageMockServer, Clock clock,
+    MongooseImMockServer mongooseImMockServer, StorageMockServer storageMockServer,
+    FileMetadataRepository fileMetadataRepository, Clock clock,
     RoomRepository roomRepository,
     RoomUserSettingsRepository roomUserSettingsRepository
   ) {
@@ -103,6 +107,7 @@ public class RoomsApiIT {
     this.userManagementMockServer = userManagementMockServer;
     this.mongooseImMockServer = mongooseImMockServer;
     this.storageMockServer = storageMockServer;
+    this.fileMetadataRepository = fileMetadataRepository;
     this.roomRepository = roomRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
@@ -1380,6 +1385,125 @@ public class RoomsApiIT {
         String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", roomId, user1Id), 1);
     }
 
+    @Nested
+    @DisplayName("Delete group room with attachments tests")
+    public class DeleteGroupRoomWithAttachmentsTests {
+
+      @Test
+      @DisplayName("Correctly deletes the room and all associated attachments files")
+      public void deleteGroupRoomWithAttachments_testOk() throws Exception {
+        UUID roomId = UUID.randomUUID();
+        String file1Id = UUID.randomUUID().toString();
+        String file2Id = UUID.randomUUID().toString();
+        integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP,
+          List.of(
+            RoomMemberField.create().id(user1Id).owner(true),
+            RoomMemberField.create().id(user2Id).muted(true),
+            RoomMemberField.create().id(user3Id)));
+        fileMetadataRepository.save(
+          FileMetadata.create().id(file1Id).type(FileMetadataType.ATTACHMENT).name("-").userId(user1Id.toString())
+            .roomId(roomId.toString()).originalSize(0L).mimeType("-"));
+        fileMetadataRepository.save(
+          FileMetadata.create().id(file2Id).type(FileMetadataType.ATTACHMENT).name("-").userId(user1Id.toString())
+            .roomId(roomId.toString()).originalSize(0L).mimeType("-"));
+        storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), List.of(file1Id, file2Id));
+
+        MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
+
+        assertEquals(204, response.getStatus());
+        assertEquals(0, response.getOutput().length);
+        assertTrue(integrationTestUtils.getRoomById(roomId).isEmpty());
+        assertTrue(roomUserSettingsRepository.getByRoomId(roomId.toString()).isEmpty());
+        assertTrue(
+          fileMetadataRepository.getIdsByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT).isEmpty());
+
+        storageMockServer.verify(
+          storageMockServer.getBulkDeleteRequest(List.of(file1Id, file2Id)), VerificationTimes.exactly(1));
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        mongooseImMockServer.verify("DELETE",
+          String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", roomId, user1Id), 1);
+      }
+
+      @Test
+      @DisplayName("Deletes the room and only attachments that storage service has deleted")
+      public void deleteGroupRoomWithAttachments_storageServiceNotDeletesAllFiles() throws Exception {
+        UUID roomId = UUID.randomUUID();
+        String file1Id = UUID.randomUUID().toString();
+        String file2Id = UUID.randomUUID().toString();
+        integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP,
+          List.of(
+            RoomMemberField.create().id(user1Id).owner(true),
+            RoomMemberField.create().id(user2Id).muted(true),
+            RoomMemberField.create().id(user3Id)));
+        fileMetadataRepository.save(
+          FileMetadata.create().id(file1Id).type(FileMetadataType.ATTACHMENT).name("-").userId(user1Id.toString())
+            .roomId(roomId.toString()).originalSize(0L).mimeType("-"));
+        fileMetadataRepository.save(
+          FileMetadata.create().id(file2Id).type(FileMetadataType.ATTACHMENT).name("-").userId(user1Id.toString())
+            .roomId(roomId.toString()).originalSize(0L).mimeType("-"));
+        storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), List.of(file1Id));
+
+        MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
+
+        assertEquals(204, response.getStatus());
+        assertEquals(0, response.getOutput().length);
+        assertTrue(integrationTestUtils.getRoomById(roomId).isEmpty());
+        assertTrue(roomUserSettingsRepository.getByRoomId(roomId.toString()).isEmpty());
+        assertTrue(
+          fileMetadataRepository.getById(file1Id).isEmpty());
+        Optional<FileMetadata> snoopy = fileMetadataRepository.getById(file2Id);
+        assertTrue(snoopy.isPresent());
+        assertNull(snoopy.get().getRoomId());
+
+        storageMockServer.verify(
+          storageMockServer.getBulkDeleteRequest(List.of(file1Id, file2Id)), VerificationTimes.exactly(1));
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        mongooseImMockServer.verify("DELETE",
+          String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", roomId, user1Id), 1);
+      }
+
+      @Test
+      @DisplayName("Deletes the room but no associated attachments files because storage service failed")
+      public void deleteGroupRoomWithAttachments_storageServiceFailed() throws Exception {
+        UUID roomId = UUID.randomUUID();
+        String file1Id = UUID.randomUUID().toString();
+        String file2Id = UUID.randomUUID().toString();
+        integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP,
+          List.of(
+            RoomMemberField.create().id(user1Id).owner(true),
+            RoomMemberField.create().id(user2Id).muted(true),
+            RoomMemberField.create().id(user3Id)));
+        fileMetadataRepository.save(
+          FileMetadata.create().id(file1Id).type(FileMetadataType.ATTACHMENT).name("-").userId(user1Id.toString())
+            .roomId(roomId.toString()).originalSize(0L).mimeType("-"));
+        fileMetadataRepository.save(
+          FileMetadata.create().id(file2Id).type(FileMetadataType.ATTACHMENT).name("-").userId(user1Id.toString())
+            .roomId(roomId.toString()).originalSize(0L).mimeType("-"));
+        storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), null);
+
+        MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
+
+        assertEquals(204, response.getStatus());
+        assertEquals(0, response.getOutput().length);
+        assertTrue(integrationTestUtils.getRoomById(roomId).isEmpty());
+        assertTrue(roomUserSettingsRepository.getByRoomId(roomId.toString()).isEmpty());
+
+        Optional<FileMetadata> charlie = fileMetadataRepository.getById(file1Id);
+        assertTrue(charlie.isPresent());
+        assertNull(charlie.get().getRoomId());
+
+        Optional<FileMetadata> snoopy = fileMetadataRepository.getById(file2Id);
+        assertTrue(snoopy.isPresent());
+        assertNull(snoopy.get().getRoomId());
+
+        storageMockServer.verify(
+          storageMockServer.getBulkDeleteRequest(List.of(file1Id, file2Id)), VerificationTimes.exactly(1));
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        mongooseImMockServer.verify("DELETE",
+          String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", roomId, user1Id), 1);
+      }
+    }
+    
     @Test
     @DisplayName("Given a workspace identifier, correctly delete the workspace without channel")
     public void deleteRoom_workspaceWithoutChannelTestOk() throws Exception {

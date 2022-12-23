@@ -59,7 +59,15 @@ public interface FileMetadataRepository {
   void delete(FileMetadata metadata);
 
   /**
+   * Deletes metadata info by its identifier
+   *
+   * @param id identifier of metadata to delete
+   */
+  void deleteById(String id);
+
+  /**
    * Delete a metadata info list by their identifier
+   *
    * @param ids identifier of metadata info to delete
    */
   void deleteByIds(List<String> ids);

@@ -82,5 +82,5 @@ public interface AttachmentService {
    * @param roomId      room identifier {@link UUID}
    * @param currentUser current authenticated user {@link UserPrincipal}
    */
-  void deleteAttachmentByRoomId(UUID roomId, UserPrincipal currentUser);
+  void deleteAttachmentsByRoomId(UUID roomId, UserPrincipal currentUser);
 }
