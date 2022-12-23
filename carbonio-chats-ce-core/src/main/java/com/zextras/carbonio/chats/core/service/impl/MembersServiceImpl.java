@@ -213,6 +213,8 @@ public class MembersServiceImpl implements MembersService {
       RoomMemberRemovedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
         .roomId(UUID.fromString(room.getId())).userId(userId)
     );
+    // the room isn't updated with subscriptions table. It still has the deleted subscription,
+    // so if room has only one subscription, but actually it is empty
     if (room.getSubscriptions().size() == 1) {
       roomService.deleteRoom(roomId, currentUser);
     }
