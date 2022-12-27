@@ -40,7 +40,6 @@ import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagem
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceMock;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
@@ -346,15 +345,4 @@ public class CoreModule extends AbstractModule {
     }
   }
 
-  @Singleton
-  @Provides
-  private VideoServerClient getVideoServerClient(AppConfig appConfig, ObjectMapper objectMapper) {
-    return VideoServerClient.atURL(
-      String.format("http://%s:%s",
-        appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST).orElseThrow(),
-        appConfig.get(String.class, ConfigName.VIDEO_SERVER_PORT).orElseThrow()
-      ),
-      objectMapper
-    );
-  }
 }
