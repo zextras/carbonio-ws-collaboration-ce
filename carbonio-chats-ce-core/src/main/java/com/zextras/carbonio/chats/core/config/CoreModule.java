@@ -40,7 +40,6 @@ import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagem
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceMock;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
@@ -106,6 +105,7 @@ import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler
 import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
+import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.ContactsApi;
 import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
@@ -190,6 +190,7 @@ public class CoreModule extends AbstractModule {
     bind(ParticipantRepository.class).to(EbeanParticipantRepository.class);
     bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
 
+    bind(HttpClient.class);
     bind(VideoServerService.class).to(VideoServerServiceMock.class);
     bind(VideoServerMeetingRepository.class).to(EbeanVideoServerMeetingRepository.class);
     bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
@@ -346,15 +347,4 @@ public class CoreModule extends AbstractModule {
     }
   }
 
-  @Singleton
-  @Provides
-  private VideoServerClient getVideoServerClient(AppConfig appConfig, ObjectMapper objectMapper) {
-    return VideoServerClient.atURL(
-      String.format("http://%s:%s",
-        appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST).orElseThrow(),
-        appConfig.get(String.class, ConfigName.VIDEO_SERVER_PORT).orElseThrow()
-      ),
-      objectMapper
-    );
-  }
 }
