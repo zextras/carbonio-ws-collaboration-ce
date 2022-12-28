@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 2021 Zextras <https://www.zextras.com>
+// SPDX-FileCopyrightText: 2022 Zextras <https://www.zextras.com>
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
@@ -7,11 +7,9 @@ package com.zextras.carbonio.chats.core.data.entity;
 import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
 import java.time.OffsetDateTime;
-import java.util.Date;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
-import javax.persistence.Lob;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;

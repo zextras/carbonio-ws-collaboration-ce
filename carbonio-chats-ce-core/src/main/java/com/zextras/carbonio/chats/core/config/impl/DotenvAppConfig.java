@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2022 2021 Zextras <https://www.zextras.com>
+// SPDX-FileCopyrightText: 2022 Zextras <https://www.zextras.com>
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
@@ -8,7 +8,6 @@ import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import io.github.cdimascio.dotenv.Dotenv;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 

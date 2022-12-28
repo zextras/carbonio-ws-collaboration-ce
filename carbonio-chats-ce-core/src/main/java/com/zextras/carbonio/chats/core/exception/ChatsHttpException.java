@@ -1,14 +1,14 @@
-// SPDX-FileCopyrightText: 2022 2021 Zextras <https://www.zextras.com>
+// SPDX-FileCopyrightText: 2022 Zextras <https://www.zextras.com>
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
 package com.zextras.carbonio.chats.core.exception;
 
-
 /**
  * This is an abstract class implemented by Chats exceptions that wrap an HTTP error response. Each class that extends
  * this represents a specific HTTP status.
  */
+
 public abstract class ChatsHttpException extends RuntimeException {
 
   private static final long serialVersionUID = 5522054402537696862L;

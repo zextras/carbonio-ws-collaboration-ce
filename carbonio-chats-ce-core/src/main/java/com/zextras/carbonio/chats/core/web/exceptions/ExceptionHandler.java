@@ -1,11 +1,11 @@
-// SPDX-FileCopyrightText: 2022 2021 Zextras <https://www.zextras.com>
+// SPDX-FileCopyrightText: 2022 Zextras <https://www.zextras.com>
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
 package com.zextras.carbonio.chats.core.web.exceptions;
 
-import com.zextras.carbonio.chats.core.config.EnvironmentType;
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.EnvironmentType;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.model.ErrorDto;
 import java.util.Arrays;
@@ -15,7 +15,6 @@ import javax.inject.Inject;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.ExceptionMapper;
 import org.apache.commons.lang3.RandomStringUtils;

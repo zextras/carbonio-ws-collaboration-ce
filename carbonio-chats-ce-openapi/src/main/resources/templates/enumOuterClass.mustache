@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2022 Zextras <https://www.zextras.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+
 import javax.ws.rs.BadRequestException;
 
 {{#description}}
@@ -8,30 +14,30 @@ import javax.ws.rs.BadRequestException;
 {{/description}}
 {{>additionalEnumTypeAnnotations}}{{>generatedAnnotation}}
 public enum {{datatypeWithEnum}}{{^datatypeWithEnum}}{{classname}}{{/datatypeWithEnum}} {
-  {{#allowableValues}}
+{{#allowableValues}}
   {{#enumVars}}
-  {{{name}}}({{{value}}}){{^-last}},{{/-last}}{{#-last}};{{/-last}}
+    {{{name}}}({{{value}}}){{^-last}},{{/-last}}{{#-last}};{{/-last}}
   {{/enumVars}}
-  {{/allowableValues}}
+{{/allowableValues}}
 
-  private final {{dataType}} value;
+private final {{dataType}} value;
 
-  {{datatypeWithEnum}}{{^datatypeWithEnum}}{{classname}}{{/datatypeWithEnum}}({{dataType}} value) {
-    this.value = value;
-  }
+{{datatypeWithEnum}}{{^datatypeWithEnum}}{{classname}}{{/datatypeWithEnum}}({{dataType}} value) {
+this.value = value;
+}
 
-  @Override
-  @JsonValue
-  public String toString() {
-    return String.valueOf(value);
-  }
+@Override
+@JsonValue
+public String toString() {
+return String.valueOf(value);
+}
 
-  public static {{classname}} fromString(String param) {
-    String toUpper = param.toUpperCase();
-    try {
-      return valueOf(toUpper);
-    } catch (Exception e) {
-      throw new BadRequestException(String.format("Cannot deserialize '%s'", param));
-    }
-  }
+public static {{classname}} fromString(String param) {
+String toUpper = param.toUpperCase();
+try {
+return valueOf(toUpper);
+} catch (Exception e) {
+throw new BadRequestException(String.format("Cannot deserialize '%s'", param));
+}
+}
 }
