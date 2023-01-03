@@ -1,14 +1,20 @@
 import javax.ws.rs.BadRequestException;
 
+{{!
+SPDX-FileCopyrightText: 2023 Zextras <https://www.zextras.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+}}
+
 {{#description}}
-/**
-* {{.}}
-*/
-@ApiModel(description="{{{.}}}")
+  /**
+  * {{.}}
+  */
+  @ApiModel(description="{{{.}}}")
 {{/description}}
 {{>additionalEnumTypeAnnotations}}{{>generatedAnnotation}}
 public enum {{datatypeWithEnum}}{{^datatypeWithEnum}}{{classname}}{{/datatypeWithEnum}} {
-  {{#allowableValues}}
+{{#allowableValues}}
   {{#enumVars}}
   {{{name}}}({{{value}}}){{^-last}},{{/-last}}{{#-last}};{{/-last}}
   {{/enumVars}}

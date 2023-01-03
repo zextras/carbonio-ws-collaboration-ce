@@ -1,15 +1,21 @@
 import io.swagger.annotations.*;
 
+{{!
+SPDX-FileCopyrightText: 2023 Zextras <https://www.zextras.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+}}
+
 {{#description}}@ApiModel(description="{{{.}}}"){{/description}}{{>additionalModelTypeAnnotations}}{{>generatedAnnotation}}{{#discriminator}}{{>typeInfoAnnotation}}{{/discriminator}}
 public class {{classname}} {{#parent}}extends {{{.}}}{{/parent}} {{#serializableModel}}implements Serializable{{/serializableModel}} {
 {{#serializableModel}}
   private static final long serialVersionUID = 1L;
 {{/serializableModel}}
-  {{#vars}}{{#isEnum}}{{^isContainer}}
+{{#vars}}{{#isEnum}}{{^isContainer}}
 
-{{>enumClass}}{{/isContainer}}{{#isContainer}}{{#mostInnerItems}}
+  {{>enumClass}}{{/isContainer}}{{#isContainer}}{{#mostInnerItems}}
 
-{{>enumClass}}{{/mostInnerItems}}{{/isContainer}}{{/isEnum}}
+  {{>enumClass}}{{/mostInnerItems}}{{/isContainer}}{{/isEnum}}
   private {{{datatypeWithEnum}}} {{name}}{{#defaultValue}} = {{{.}}}{{/defaultValue}};{{/vars}}
 
   public static {{classname}} create() {
