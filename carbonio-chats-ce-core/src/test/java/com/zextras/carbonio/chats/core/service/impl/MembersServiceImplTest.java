@@ -135,9 +135,8 @@ public class MembersServiceImplTest {
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         RoomOwnerChangedEvent.create(user1Id, null).roomId(UUID.fromString(room.getId())).userId(user2Id)
           .isOwner(true));
-      verify(messageDispatcher, times(1)).setMemberRole(roomId.toString(), user1Id.toString(), user2Id.toString(),
-        true);
-      verifyNoMoreInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);
+      verifyNoMoreInteractions(subscriptionRepository, eventDispatcher);
+      verifyNoInteractions(messageDispatcher);
     }
 
     @Test
@@ -159,9 +158,8 @@ public class MembersServiceImplTest {
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         RoomOwnerChangedEvent.create(user1Id, null).roomId(UUID.fromString(room.getId())).userId(user2Id)
           .isOwner(false));
-      verify(messageDispatcher, times(1)).setMemberRole(roomId.toString(), user1Id.toString(), user2Id.toString(),
-        false);
-      verifyNoMoreInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);
+      verifyNoMoreInteractions(subscriptionRepository, eventDispatcher);
+      verifyNoInteractions(messageDispatcher);
     }
 
     @Test

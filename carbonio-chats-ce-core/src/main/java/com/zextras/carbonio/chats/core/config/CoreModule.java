@@ -102,15 +102,9 @@ import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandle
 import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler;
-import com.zextras.carbonio.chats.core.web.exceptions.XmppServerExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
-import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
-import com.zextras.carbonio.chats.mongooseim.admin.api.ContactsApi;
-import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
-import com.zextras.carbonio.chats.mongooseim.admin.api.OneToOneMessagesApi;
-import com.zextras.carbonio.chats.mongooseim.admin.invoker.ApiClient;
 import com.zextras.carbonio.meeting.api.MeetingsApi;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
 import com.zextras.carbonio.preview.PreviewClient;
@@ -195,7 +189,7 @@ public class CoreModule extends AbstractModule {
     bind(VideoServerMeetingRepository.class).to(EbeanVideoServerMeetingRepository.class);
     bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
 
-    bind(MessageDispatcher.class).to(MessageDispatcherMongooseIm.class);
+//    bind(MessageDispatcher.class).to(MessageDispatcherMongooseIm.class);
     bind(StoragesService.class).to(StoragesServiceImpl.class);
     bind(PreviewerService.class).to(PreviewerServiceImpl.class);
     bind(ProfilingService.class).to(UserManagementProfilingService.class);
@@ -208,7 +202,6 @@ public class CoreModule extends AbstractModule {
 
   private void bindExceptionMapper() {
     bind(ChatsHttpExceptionHandler.class);
-    bind(XmppServerExceptionHandler.class);
     bind(ClientErrorExceptionHandler.class);
     bind(JsonProcessingExceptionHandler.class);
     bind(DefaultExceptionHandler.class);
@@ -219,36 +212,6 @@ public class CoreModule extends AbstractModule {
   @Provides
   private Clock getClock() {
     return Clock.system(ZoneId.systemDefault());
-  }
-
-  @Singleton
-  @Provides
-  private ApiClient getMongooseImAdminApiClient(AppConfig appConfig) {
-    return new ApiClient()
-      .setBasePath(String.format("http://%s:%s/%s",
-        appConfig.get(String.class, ConfigName.XMPP_SERVER_HOST).orElseThrow(),
-        appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow(),
-        ChatsConstant.MONGOOSEIM_ADMIN_ENDPOINT))
-      .addDefaultHeader("Accept", "*/*")
-      .setDebugging(true);
-  }
-
-  @Singleton
-  @Provides
-  private MucLightManagementApi getMongooseImMucLight(ApiClient apiClient) {
-    return new MucLightManagementApi(apiClient);
-  }
-
-  @Singleton
-  @Provides
-  private OneToOneMessagesApi getOneToOneMessageApi(ApiClient apiClient) {
-    return new OneToOneMessagesApi(apiClient);
-  }
-
-  @Singleton
-  @Provides
-  private ContactsApi getMongooseImContacts(ApiClient apiClient) {
-    return new ContactsApi(apiClient);
   }
 
   @Singleton
@@ -322,8 +285,14 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private CommandsApi getMongooseImCommands(ApiClient apiClient) {
-    return new CommandsApi(apiClient);
+  private MessageDispatcher getMessageDispatcher(AppConfig appConfig, ObjectMapper objectMapper) {
+    return new MessageDispatcherMongooseIm(String.format("http://%s:%s/%s",
+      appConfig.get(String.class, ConfigName.XMPP_SERVER_HOST).orElseThrow(),
+      appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow(),
+      ChatsConstant.MONGOOSEIM_GRAPHQL_ENDPOINT),
+      appConfig.get(String.class, ConfigName.XMPP_SERVER_USERNAME).orElseThrow(),
+      appConfig.get(String.class, ConfigName.XMPP_SERVER_PASSWORD).orElseThrow(),
+      objectMapper);
   }
 
   @Singleton

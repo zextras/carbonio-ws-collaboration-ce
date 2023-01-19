@@ -97,7 +97,7 @@ public class MembersServiceImpl implements MembersService {
 
     subscription.owner(isOwner);
     subscriptionRepository.update(subscription);
-    messageService.setMemberRole(room.getId(), currentUser.getId(), userId.toString(), isOwner);
+//    messageService.setMemberRole(room.getId(), currentUser.getId(), userId.toString(), isOwner);
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomOwnerChangedEvent.create(currentUser.getUUID(), currentUser.getSessionId())

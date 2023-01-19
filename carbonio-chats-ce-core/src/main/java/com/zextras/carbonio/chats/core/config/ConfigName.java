@@ -27,6 +27,8 @@ public enum ConfigName {
     "carbonio-chats/hikari-leak-detection-threshold"),
   XMPP_SERVER_HOST("xmpp.host", "XMPP_HOST", "carbonio-chats/xmpp-host"),
   XMPP_SERVER_HTTP_PORT("xmpp.http.port", "XMPP_HTTP_PORT", "carbonio-chats/xmpp-http-port"),
+  XMPP_SERVER_USERNAME("xmpp.username", "XMPP_USERNAME", "carbonio-chats-messaging/api/username"),
+  XMPP_SERVER_PASSWORD("xmpp.password", "XMPP_PASSWORD", "carbonio-chats-messaging/api/password"),
   STORAGES_HOST("carbonio.storages.host", "STORAGES_HOST", "carbonio-chats/storages-host"),
   STORAGES_PORT("carbonio.storages.port", "STORAGES_PORT", "carbonio-chats/storages-port"),
   USER_MANAGEMENT_HOST("carbonio.usermanagement.host", "USER_MANAGEMENT_HOST", "carbonio-chats/user-management-host"),

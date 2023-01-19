@@ -6,6 +6,9 @@
       },
       "carbonio-message-broker/": {
         "policy": "read"
+      },
+      "carbonio-chats-messaging/": {
+        "policy": "read"
       }
     }
   ],

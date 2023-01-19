@@ -1,69 +1,71 @@
-// SPDX-FileCopyrightText: 2023 Zextras <https://www.zextras.com>
-//
-// SPDX-License-Identifier: AGPL-3.0-only
-
 package com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.MessageDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
-import com.zextras.carbonio.chats.mongooseim.admin.api.CommandsApi;
-import com.zextras.carbonio.chats.mongooseim.admin.api.ContactsApi;
-import com.zextras.carbonio.chats.mongooseim.admin.api.MucLightManagementApi;
-import com.zextras.carbonio.chats.mongooseim.admin.api.OneToOneMessagesApi;
-import com.zextras.carbonio.chats.mongooseim.admin.model.AffiliationDetailsDto;
-import com.zextras.carbonio.chats.mongooseim.admin.model.AffiliationDetailsDto.AffiliationEnum;
-import com.zextras.carbonio.chats.mongooseim.admin.model.ChatMessageDto;
-import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
-import com.zextras.carbonio.chats.mongooseim.admin.model.Message1Dto;
-import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
-import com.zextras.carbonio.chats.mongooseim.admin.model.SubscriptionActionDto;
-import com.zextras.carbonio.chats.mongooseim.admin.model.SubscriptionActionDto.ActionEnum;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.jivesoftware.smack.packet.Message.Type;
 import org.jivesoftware.smack.packet.StandardExtensionElement;
 import org.jivesoftware.smack.packet.StandardExtensionElement.Builder;
 import org.jivesoftware.smack.packet.StanzaBuilder;
 import org.jxmpp.stringprep.XmppStringprepException;
 
-@Singleton
 public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
-  private static final String XMPP_HOST      = "carbonio";
-  private static final String ROOM_XMPP_HOST = "muclight.carbonio";
+  private static final String DOMAIN = "muclight.carbonio";
 
-  private final MucLightManagementApi mucLightManagementApi;
-  private final CommandsApi           commandsApi;
-  private final ContactsApi           contactsApi;
-  private final OneToOneMessagesApi   oneToOneMessagesApi;
+  private final String       mongooseimUrl;
+  private final ObjectMapper objectMapper;
+  private final String       authToken;
 
-  @Inject
   public MessageDispatcherMongooseIm(
-    MucLightManagementApi mucLightManagementApi,
-    CommandsApi commandsApi,
-    ContactsApi contactsApi,
-    OneToOneMessagesApi oneToOneMessagesApi
+    String mongooseimUrl, String username, String password, ObjectMapper objectMapper
   ) {
-    this.mucLightManagementApi = mucLightManagementApi;
-    this.commandsApi = commandsApi;
-    this.contactsApi = contactsApi;
-    this.oneToOneMessagesApi = oneToOneMessagesApi;
+    this.mongooseimUrl = mongooseimUrl;
+    this.authToken = String.format("Basic %s",
+      Base64.getEncoder().encodeToString(String.join(":", username, password).getBytes()));
+    this.objectMapper = objectMapper;
+  }
+
+  @Override
+  public boolean isAlive() {
+    return executeQuery("query checkAuth { checkAuth { authStatus } }").getErrors() == null;
   }
 
   @Override
   public void createRoom(Room room, String senderId) {
-    try {
-      mucLightManagementApi.mucLightsXMPPHostPut(XMPP_HOST, new RoomDetailsDto()
-        .id(room.getId())
-        .owner(userId2userDomain(senderId))
-        .name(room.getId())
-        .subject(room.getDescription()));
-    } catch (Exception e) {
-      throw new MessageDispatcherException("An error occurred when adding a room to MongooseIm", e);
+    GraphQlResponse result = executeMutation(GraphQlBody.create(
+      "mutation muc_light { muc_light { createRoom (" +
+        String.format("mucDomain: \"%s\", ", DOMAIN) +
+        String.format("id: \"%s\", ", room.getId()) +
+        String.format("owner: \"%s\", ", userId2userDomain(senderId)) +
+        String.format("name: \"%s\", ", room.getName()) +
+        String.format("subject: \"%s\") ", room.getDescription()) +
+        "{ jid } } }", "muc_light", Map.of()));
+    if (result.errors != null) {
+      try {
+        throw new MessageDispatcherException(
+          String.format("Error while creating a room: %s", objectMapper.writeValueAsString(result.errors)));
+      } catch (JsonProcessingException e) {
+        throw new InternalErrorException("Error during parsing the json of response error ", e);
+      }
     }
     room.getSubscriptions().stream()
       .filter(member -> !member.getUserId().equals(senderId))
@@ -71,66 +73,199 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   }
 
   @Override
+  public void deleteRoom(String roomId, String userId) {
+    GraphQlResponse result = executeMutation(GraphQlBody.create(
+      "mutation muc_light { muc_light { deleteRoom (" +
+        String.format("room: \"%s\") ", roomId2roomDomain(roomId)) +
+        "} }", "muc_light", Map.of()));
+    if (result.errors != null) {
+      try {
+        throw new MessageDispatcherException(
+          String.format("Error while deleting a room: %s", objectMapper.writeValueAsString(result.errors)));
+      } catch (JsonProcessingException e) {
+        throw new InternalErrorException("Error during parsing the json of response error ", e);
+      }
+    }
+  }
+
+  @Override
+  public void updateRoomName(String roomId, String senderId, String name) {
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.CHANGED_ROOM_NAME, Map.of("value", name));
+    if (result.errors != null) {
+      try {
+        throw new MessageDispatcherException(
+          String.format("Error while sending update room name: %s", objectMapper.writeValueAsString(result.errors)));
+      } catch (JsonProcessingException e) {
+        throw new InternalErrorException("Error during parsing the json of response error ", e);
+      }
+    }
+  }
+
+  @Override
+  public void updateRoomDescription(String roomId, String senderId, String description) {
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.CHANGED_ROOM_DESCRIPTION,
+      Map.of("value", description));
+    if (result.errors != null) {
+      try {
+        throw new MessageDispatcherException(
+          String.format("Error while sending update room description: %s",
+            objectMapper.writeValueAsString(result.errors)));
+      } catch (JsonProcessingException e) {
+        throw new InternalErrorException("Error during parsing the json of response error ", e);
+      }
+    }
+  }
+
+  @Override
+  public void updateRoomPicture(String roomId, String senderId, String pictureId, String pictureName) {
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.UPDATED_ROOM_PICTURE,
+      Map.of("picture-id", pictureId, "picture-name", pictureName));
+    if (result.errors != null) {
+      try {
+        throw new MessageDispatcherException(
+          String.format("Error while sending update room picture: %s",
+            objectMapper.writeValueAsString(result.errors)));
+      } catch (JsonProcessingException e) {
+        throw new InternalErrorException("Error during parsing the json of response error ", e);
+      }
+    }
+  }
+
+  @Override
+  public void deleteRoomPicture(String roomId, String senderId) {
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.DELETED_ROOM_PICTURE, null);
+    if (result.errors != null) {
+      try {
+        throw new MessageDispatcherException(
+          String.format("Error while sending update room picture: %s",
+            objectMapper.writeValueAsString(result.errors)));
+      } catch (JsonProcessingException e) {
+        throw new InternalErrorException("Error during parsing the json of response error ", e);
+      }
+    }
+  }
+
+  @Override
   public void addRoomMember(String roomId, String senderId, String recipientId) {
-    try {
-      mucLightManagementApi.mucLightsXMPPMUCHostRoomNameParticipantsPost(XMPP_HOST, roomId,
-        new InviteDto()
-          .sender(userId2userDomain(senderId))
-          .recipient(userId2userDomain(recipientId))
-      );
-    } catch (Exception e) {
-      throw new MessageDispatcherException("An error occurred when adding a member to a MongooseIm room", e);
+    GraphQlResponse result = executeMutation(GraphQlBody.create(
+      "mutation muc_light { muc_light { inviteUser (" +
+        String.format("room: \"%s\", ", roomId2roomDomain(roomId)) +
+        String.format("sender: \"%s\", ", userId2userDomain(senderId)) +
+        String.format("recipient: \"%s\") ", userId2userDomain(recipientId)) +
+        "} }", "muc_light", Map.of()));
+    if (result.errors != null) {
+      try {
+        throw new MessageDispatcherException(
+          String.format("Error while adding a room member: %s", objectMapper.writeValueAsString(result.errors)));
+      } catch (JsonProcessingException e) {
+        throw new InternalErrorException("Error during parsing the json of response error ", e);
+      }
     }
   }
 
   @Override
   public void removeRoomMember(String roomId, String senderId, String idToRemove) {
-    mucLightManagementApi.mucLightsXMPPMUCHostRoomNameUserAffiliationPut(XMPP_HOST, roomId, userId2userDomain(senderId),
-      new AffiliationDetailsDto().target(userId2userDomain(idToRemove)).affiliation(
-        AffiliationEnum.NONE));
+    GraphQlResponse result = executeMutation(GraphQlBody.create(
+      "mutation muc_light { muc_light { kickUser (" +
+        String.format("room: \"%s\", ", roomId2roomDomain(roomId)) +
+        String.format("user: \"%s\") ", userId2userDomain(idToRemove)) +
+        "} }", "muc_light", Map.of()));
+    if (result.errors != null) {
+      try {
+        throw new MessageDispatcherException(
+          String.format("Error while removing a room member: %s", objectMapper.writeValueAsString(result.errors)));
+      } catch (JsonProcessingException e) {
+        throw new InternalErrorException("Error during parsing the json of response error ", e);
+      }
+    }
   }
 
   @Override
   public void addUsersToContacts(String user1id, String user2id) {
-    if (user1id.equals(user2id)) {
-      return;
+    GraphQlResponse result = executeMutation(GraphQlBody.create(
+      "mutation roster { roster { setMutualSubscription (" +
+        String.format("userA: \"%s\", ", userId2userDomain(user1id)) +
+        String.format("userB: \"%s\", ", userId2userDomain(user2id)) +
+        "action: CONNECT) } }", "roster", Map.of()));
+    if (result.errors != null) {
+      try {
+        throw new MessageDispatcherException(
+          String.format("Error while setting users contacts: %s", objectMapper.writeValueAsString(result.errors)));
+      } catch (JsonProcessingException e) {
+        throw new InternalErrorException("Error during parsing the json of response error ", e);
+      }
     }
-    String user1jid = userId2userDomain(user1id);
-    String user2jid = userId2userDomain(user2id);
-    contactsApi.contactsUserContactManagePut(user1jid, user2jid,
-      new SubscriptionActionDto().action(ActionEnum.CONNECT));
   }
 
   @Override
   public void setMemberRole(String roomId, String senderId, String recipientId, boolean isOwner) {
-    mucLightManagementApi.mucLightsXMPPMUCHostRoomNameUserAffiliationPut(XMPP_HOST, roomId, userId2userDomain(senderId),
-      new AffiliationDetailsDto().target(userId2userDomain(recipientId))
-        .affiliation(isOwner ? AffiliationEnum.OWNER : AffiliationEnum.MEMBER));
-  }
-
-  @Override
-  public void sendMessageToRoom(String roomId, String senderId, String message) {
-    mucLightManagementApi.mucLightsXMPPMUCHostRoomNameMessagesPost(
-      XMPP_HOST, roomId, new ChatMessageDto()
-        .from(userId2userDomain(senderId))
-        .body(message)
-    );
-  }
-
-  @Override
-  public boolean isAlive() {
-    try {
-      commandsApi.commandsGet();
-      return true;
-    } catch (Exception e) {
-      return false;
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.CHANGED_MEMBER_ROLE,
+      Map.of("recipient", userId2userDomain(recipientId), "role", isOwner ? "OWNER" : "MEMBER"));
+    if (result.errors != null) {
+      try {
+        throw new MessageDispatcherException(
+          String.format("Error while sending update room name: %s", objectMapper.writeValueAsString(result.errors)));
+      } catch (JsonProcessingException e) {
+        throw new InternalErrorException("Error during parsing the json of response error ", e);
+      }
     }
   }
 
-  @Override
-  public void deleteRoom(String roomId, String userId) {
-    mucLightManagementApi.mucLightsXMPPMUCHostRoomNameUserManagementDelete(XMPP_HOST, roomId,
-      userId2userDomain(userId));
+  private GraphQlResponse executeMutation(GraphQlBody body) {
+    CloseableHttpClient client = HttpClientBuilder.create().build();
+    HttpPost request = new HttpPost(mongooseimUrl);
+    try {
+      request.setEntity(new StringEntity(objectMapper.writeValueAsString(body)));
+      request.addHeader("Authorization", authToken);
+      request.addHeader("Accept", "application/json");
+      request.addHeader("Content-Type", "application/json");
+      CloseableHttpResponse response = client.execute(request);
+      return objectMapper.readValue(
+        response.getEntity().getContent(), GraphQlResponse.class);
+    } catch (IOException e) {
+      throw new MessageDispatcherException("MongooseIm GraphQL response error", e);
+    }
+  }
+
+  private GraphQlResponse executeQuery(String query) {
+    CloseableHttpClient client = HttpClientBuilder.create().build();
+    try {
+      HttpGet request = new HttpGet(
+        new URIBuilder(mongooseimUrl)
+          .addParameter("query", query)
+          .build());
+      request.addHeader("Authorization", authToken);
+      CloseableHttpResponse response = client.execute(request);
+      return objectMapper.readValue(
+        response.getEntity().getContent(), GraphQlResponse.class);
+    } catch (URISyntaxException e) {
+      throw new InternalErrorException(String.format("Unable to write the URI for query '%s'", query), e);
+    } catch (IOException e) {
+      throw new MessageDispatcherException("MongooseIm GraphQL response error", e);
+    }
+  }
+
+  private GraphQlResponse sendStanza(String roomId, String senderId, MessageType type, Map<String, String> content) {
+    return executeMutation(GraphQlBody.create(
+      "mutation stanza { stanza { sendStanza (" +
+        String.format("stanza: \"%s\") ", getStanzaMessage(roomId, senderId, type, content)) +
+        "{ id } } }", "stanza", Map.of()));
+  }
+
+  private String getStanzaMessage(String roomId, String senderId, MessageType type, Map<String, String> elementsMap) {
+    try {
+      return StanzaBuilder
+        .buildMessage()
+        .from(userId2userDomain(senderId))
+        .to(roomId2roomDomain(roomId))
+        .ofType(Type.groupchat)
+        .addExtension(getStanzasElementX(type, elementsMap))
+        .build()
+        .toXML()
+        .toString();
+    } catch (XmppStringprepException e) {
+      throw new InternalErrorException("Unable to build the stanza message", e);
+    }
   }
 
   private StandardExtensionElement getStanzasElementX(MessageType type, @Nullable Map<String, String> elementsMap) {
@@ -142,69 +277,34 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     return x.build();
   }
 
-  private String getStanzaMessage(String roomId, String senderId, MessageType type, Map<String, String> elementsMap)
-    throws XmppStringprepException {
-    return StanzaBuilder
-      .buildMessage()
-      .from(userId2userDomain(senderId))
-      .to(roomId2roomDomain(roomId))
-      .ofType(Type.groupchat)
-      .addExtension(getStanzasElementX(type, elementsMap))
-      .build()
-      .toXML()
-      .toString();
-  }
-
-  @Override
-  public void updateRoomName(String roomId, String senderId, String name) {
-    try {
-      oneToOneMessagesApi.stanzasPost(new Message1Dto().stanza(
-        getStanzaMessage(roomId, senderId, MessageType.CHANGED_ROOM_NAME, Map.of("value", name))));
-    } catch (XmppStringprepException e) {
-      throw new MessageDispatcherException(
-        "An error occurred when sending a message for room name changed to a MongooseIm room", e);
-    }
-  }
-
-  @Override
-  public void updateRoomDescription(String roomId, String senderId, String description) {
-    try {
-      oneToOneMessagesApi.stanzasPost(new Message1Dto().stanza(
-        getStanzaMessage(roomId, senderId, MessageType.CHANGED_ROOM_DESCRIPTION, Map.of("value", description))));
-    } catch (XmppStringprepException e) {
-      throw new MessageDispatcherException(
-        "An error occurred when sending a message for room description changed to a MongooseIm room", e);
-    }
-  }
-
-  @Override
-  public void updateRoomPicture(String roomId, String senderId, String pictureId, String pictureName) {
-    try {
-      oneToOneMessagesApi.stanzasPost(new Message1Dto().stanza(
-        getStanzaMessage(roomId, senderId, MessageType.UPDATED_ROOM_PICTURE,
-          Map.of("picture-id", pictureId, "picture-name", pictureName))));
-    } catch (XmppStringprepException e) {
-      throw new MessageDispatcherException(
-        "An error occurred when sending a message for room picture updated to a MongooseIm room", e);
-    }
-  }
-
-  @Override
-  public void deleteRoomPicture(String roomId, String senderId) {
-    try {
-      oneToOneMessagesApi.stanzasPost(new Message1Dto().stanza(
-        getStanzaMessage(roomId, senderId, MessageType.DELETED_ROOM_PICTURE, null)));
-    } catch (XmppStringprepException e) {
-      throw new MessageDispatcherException(
-        "An error occurred when sending a message for room picture updated to a MongooseIm room", e);
-    }
-  }
-
   private String roomId2roomDomain(String roomId) {
-    return String.join("@", roomId, ROOM_XMPP_HOST);
+    return String.join("@", roomId, "muclight.carbonio");
   }
 
   private String userId2userDomain(String userId) {
-    return String.join("@", userId, XMPP_HOST);
+    return String.join("@", userId, "carbonio");
+  }
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  private static class GraphQlResponse {
+
+    private Object       data;
+    private List<Object> errors;
+
+    public Object getData() {
+      return data;
+    }
+
+    public void setData(Object data) {
+      this.data = data;
+    }
+
+    public List<Object> getErrors() {
+      return errors;
+    }
+
+    public void setErrors(List<Object> errors) {
+      this.errors = errors;
+    }
   }
 }
