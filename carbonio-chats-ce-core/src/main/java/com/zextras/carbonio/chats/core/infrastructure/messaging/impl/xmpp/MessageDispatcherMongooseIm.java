@@ -63,7 +63,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
       "mutation muc_light { muc_light { createRoom (" +
         String.format("mucDomain: \"%s\", ", DOMAIN) +
         String.format("id: \"%s\", ", room.getId()) +
-        String.format("owner: \"%s\", ", userId2userDomain(senderId)) +
+        String.format("owner: \"%s\", ", userIdToUserDomain(senderId)) +
         String.format("name: \"%s\", ", room.getName()) +
         String.format("subject: \"%s\") ", room.getDescription()) +
         "{ jid } } }", "muc_light", Map.of()));
@@ -84,7 +84,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   public void deleteRoom(String roomId, String userId) {
     GraphQlResponse result = executeMutation(GraphQlBody.create(
       "mutation muc_light { muc_light { deleteRoom (" +
-        String.format("room: \"%s\") ", roomId2roomDomain(roomId)) +
+        String.format("room: \"%s\") ", roomIdToRoomDomain(roomId)) +
         "} }", "muc_light", Map.of()));
     if (result.errors != null) {
       try {
@@ -157,9 +157,9 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   public void addRoomMember(String roomId, String senderId, String recipientId) {
     GraphQlResponse result = executeMutation(GraphQlBody.create(
       "mutation muc_light { muc_light { inviteUser (" +
-        String.format("room: \"%s\", ", roomId2roomDomain(roomId)) +
-        String.format("sender: \"%s\", ", userId2userDomain(senderId)) +
-        String.format("recipient: \"%s\") ", userId2userDomain(recipientId)) +
+        String.format("room: \"%s\", ", roomIdToRoomDomain(roomId)) +
+        String.format("sender: \"%s\", ", userIdToUserDomain(senderId)) +
+        String.format("recipient: \"%s\") ", userIdToUserDomain(recipientId)) +
         "} }", "muc_light", Map.of()));
     if (result.errors != null) {
       try {
@@ -175,8 +175,8 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   public void removeRoomMember(String roomId, String senderId, String idToRemove) {
     GraphQlResponse result = executeMutation(GraphQlBody.create(
       "mutation muc_light { muc_light { kickUser (" +
-        String.format("room: \"%s\", ", roomId2roomDomain(roomId)) +
-        String.format("user: \"%s\") ", userId2userDomain(idToRemove)) +
+        String.format("room: \"%s\", ", roomIdToRoomDomain(roomId)) +
+        String.format("user: \"%s\") ", userIdToUserDomain(idToRemove)) +
         "} }", "muc_light", Map.of()));
     if (result.errors != null) {
       try {
@@ -192,8 +192,8 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   public void addUsersToContacts(String user1id, String user2id) {
     GraphQlResponse result = executeMutation(GraphQlBody.create(
       "mutation roster { roster { setMutualSubscription (" +
-        String.format("userA: \"%s\", ", userId2userDomain(user1id)) +
-        String.format("userB: \"%s\", ", userId2userDomain(user2id)) +
+        String.format("userA: \"%s\", ", userIdToUserDomain(user1id)) +
+        String.format("userB: \"%s\", ", userIdToUserDomain(user2id)) +
         "action: CONNECT) } }", "roster", Map.of()));
     if (result.errors != null) {
       try {
@@ -208,7 +208,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   @Override
   public void setMemberRole(String roomId, String senderId, String recipientId, boolean isOwner) {
     GraphQlResponse result = sendStanza(roomId, senderId, MessageType.CHANGED_MEMBER_ROLE,
-      Map.of("recipient", userId2userDomain(recipientId), "role", isOwner ? "OWNER" : "MEMBER"));
+      Map.of("recipient", userIdToUserDomain(recipientId), "role", isOwner ? "OWNER" : "MEMBER"));
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -264,10 +264,10 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     try {
       return StanzaBuilder
         .buildMessage()
-        .from(userId2userDomain(senderId))
-        .to(roomId2roomDomain(roomId))
+        .from(userIdToUserDomain(senderId))
+        .to(roomIdToRoomDomain(roomId))
         .ofType(Type.groupchat)
-        .addExtension(getStanzasElementX(type, elementsMap))
+        .addExtension(getStanzaElementX(type, elementsMap))
         .build()
         .toXML()
         .toString();
@@ -276,7 +276,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     }
   }
 
-  private StandardExtensionElement getStanzasElementX(MessageType type, @Nullable Map<String, String> elementsMap) {
+  private StandardExtensionElement getStanzaElementX(MessageType type, @Nullable Map<String, String> elementsMap) {
     Builder x = StandardExtensionElement.builder("x", "urn:xmpp:muclight:0#configuration")
       .addElement("operation", type.getName());
     if (elementsMap != null) {
@@ -285,11 +285,11 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     return x.build();
   }
 
-  private String roomId2roomDomain(String roomId) {
+  private String roomIdToRoomDomain(String roomId) {
     return String.join("@", roomId, "muclight.carbonio");
   }
 
-  private String userId2userDomain(String userId) {
+  private String userIdToUserDomain(String userId) {
     return String.join("@", userId, "carbonio");
   }
 
