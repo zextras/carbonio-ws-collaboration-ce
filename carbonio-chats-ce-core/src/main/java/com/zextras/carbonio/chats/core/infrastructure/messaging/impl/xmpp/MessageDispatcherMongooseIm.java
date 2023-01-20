@@ -50,7 +50,11 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public boolean isAlive() {
-    return executeQuery("query checkAuth { checkAuth { authStatus } }").getErrors() == null;
+    try {
+      return executeQuery("query checkAuth { checkAuth { authStatus } }").getErrors() == null;
+    } catch (Exception e) {
+      return false;
+    }
   }
 
   @Override

@@ -189,7 +189,6 @@ public class CoreModule extends AbstractModule {
     bind(VideoServerMeetingRepository.class).to(EbeanVideoServerMeetingRepository.class);
     bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
 
-//    bind(MessageDispatcher.class).to(MessageDispatcherMongooseIm.class);
     bind(StoragesService.class).to(StoragesServiceImpl.class);
     bind(PreviewerService.class).to(PreviewerServiceImpl.class);
     bind(ProfilingService.class).to(UserManagementProfilingService.class);
