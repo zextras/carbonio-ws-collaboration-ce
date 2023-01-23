@@ -6,7 +6,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 Carbonio Chats-CE manages a chat server-side
 
-Copyright (C) 2022 Zextras <https://www.zextras.com>
+Copyright (C) 2023 Zextras <https://www.zextras.com>
 
 This program is free software: you can redistribute it and/or modify it
 under the terms of the GNU Affero General Public License as published by
