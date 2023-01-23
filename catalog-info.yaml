@@ -8,7 +8,8 @@ metadata:
   name: carbonio-chats-ce
   title: Carbonio Chats CE service
   description: |
-    Service that allows to create one-to-one and group chats, write on them and create or join video-calls.
+    Service containing the business logic of a chat application.
+    It allows to chat or video-call with other users.
   tags:
     - java
     - backend
