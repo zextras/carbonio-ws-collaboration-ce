@@ -24,6 +24,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<logger name="io.swagger" level="INFO"/>
 	<logger name="org.mockserver" level="WARN"/>
 	<logger name="org.jboss.resteasy" level="INFO"/>
+	<logger name="com.orbitz.consul.cache" level="OFF"/>
 	<root level="INFO">
 		<appender-ref ref="CONSOLE_LOG"/>
 	</root>

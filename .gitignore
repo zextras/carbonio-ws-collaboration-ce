@@ -49,6 +49,7 @@ Thumbs.db
 
 .env*
 !.env.example
+!.env.example.license
 .openapi-generator/
 Dockerfile
 docker-compose.yml

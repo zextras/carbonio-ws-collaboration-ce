@@ -96,13 +96,4 @@ public interface MessageDispatcher extends HealthIndicator {
    * @param isOwner     if true set the user as owner, otherwise as member
    */
   void setMemberRole(String roomId, String senderId, String recipientId, boolean isOwner);
-
-  /**
-   * Sends a message to a room
-   *
-   * @param roomId   room identifier
-   * @param senderId operation user identifier
-   * @param message  message to send
-   */
-  void sendMessageToRoom(String roomId, String senderId, String message);
 }

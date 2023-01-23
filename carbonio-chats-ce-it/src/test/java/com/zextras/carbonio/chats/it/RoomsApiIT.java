@@ -50,10 +50,6 @@ import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomRankDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import com.zextras.carbonio.chats.mongooseim.admin.model.InviteDto;
-import com.zextras.carbonio.chats.mongooseim.admin.model.RoomDetailsDto;
-import com.zextras.carbonio.chats.mongooseim.admin.model.SubscriptionActionDto;
-import com.zextras.carbonio.chats.mongooseim.admin.model.SubscriptionActionDto.ActionEnum;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
@@ -454,6 +450,9 @@ public class RoomsApiIT {
         clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), "testRoom", "Test room", true);
+        mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString(), true);
+        mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user3Id.toString(), true);
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
           uuid.when(UUID::randomUUID).thenReturn(roomId);
           uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
@@ -484,22 +483,15 @@ public class RoomsApiIT {
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
 
-        mongooseImMockServer.verify("PUT", "/admin/muc-lights/carbonio",
-          new RoomDetailsDto()
-            .id(room.getId().toString())
-            .owner(String.format("%s@carbonio", user1Id))
-            .name(room.getId().toString())
-            .subject(room.getDescription()), 1);
-        mongooseImMockServer.verify("POST",
-          String.format("/admin/muc-lights/carbonio/%s/participants", room.getId()),
-          new InviteDto()
-            .sender(String.format("%s@carbonio", user1Id.toString()))
-            .recipient(String.format("%s@carbonio", user2Id.toString())), 1);
-        mongooseImMockServer.verify("POST",
-          String.format("/admin/muc-lights/carbonio/%s/participants", room.getId()),
-          new InviteDto()
-            .sender(String.format("%s@carbonio", user1Id.toString()))
-            .recipient(String.format("%s@carbonio", user3Id.toString())), 1);
+        mongooseImMockServer.verify(
+          mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString(), "testRoom", "Test room"),
+          VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+          mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user2Id.toString()),
+          VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+          mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user3Id.toString()),
+          VerificationTimes.exactly(1));
         // TODO: 23/02/22 verify event dispatcher interactions
       }
 
@@ -529,6 +521,9 @@ public class RoomsApiIT {
         clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("c9f83f1c-9b96-4731-9404-79e45a5d6d3c");
+        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), "testOneToOne", "Test room", true);
+        mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString(), true);
+        mongooseImMockServer.mockAddUserToContacts(user2Id.toString(), user1Id.toString(), true);
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
           uuid.when(UUID::randomUUID).thenReturn(roomId);
           uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
@@ -556,21 +551,15 @@ public class RoomsApiIT {
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
 
-        mongooseImMockServer.verify("PUT", "/admin/muc-lights/carbonio",
-          new RoomDetailsDto()
-            .id(room.getId().toString())
-            .owner(String.format("%s@carbonio", user1Id))
-            .name(room.getId().toString())
-            .subject(room.getDescription()), 1);
-        mongooseImMockServer.verify("POST",
-          String.format("/admin/muc-lights/carbonio/%s/participants", room.getId()),
-          new InviteDto()
-            .sender(String.format("%s@carbonio", user1Id.toString()))
-            .recipient(String.format("%s@carbonio", user2Id.toString())), 1);
-        mongooseImMockServer.verify("PUT",
-          String.format("/admin/contacts/%s%%40carbonio/%s%%40carbonio/manage", user2Id.toString(), user1Id.toString()),
-          new SubscriptionActionDto().action(ActionEnum.CONNECT), 1);
-
+        mongooseImMockServer.verify(
+          mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString(), "testOneToOne", "Test room"),
+          VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+          mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user2Id.toString()),
+          VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+          mongooseImMockServer.getAddUserToContactsRequest(user2Id.toString(), user1Id.toString()),
+          VerificationTimes.exactly(1));
         // TODO: 23/02/22 verify event dispatcher interactions
       }
 
@@ -737,6 +726,9 @@ public class RoomsApiIT {
         clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), "testRoom", "Test room", true);
+        mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString(), true);
+        mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user3Id.toString(), true);
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
           uuid.when(UUID::randomUUID).thenReturn(roomId);
           uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
@@ -771,22 +763,15 @@ public class RoomsApiIT {
         assertEquals(executionInstant, room.getCreatedAt().toInstant());
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
-        mongooseImMockServer.verify("PUT", "/admin/muc-lights/carbonio",
-          new RoomDetailsDto()
-            .id(room.getId().toString())
-            .owner(String.format("%s@carbonio", user1Id))
-            .name(room.getId().toString())
-            .subject(room.getDescription()), 1);
-        mongooseImMockServer.verify("POST",
-          String.format("/admin/muc-lights/carbonio/%s/participants", room.getId()),
-          new InviteDto()
-            .sender(String.format("%s@carbonio", user1Id.toString()))
-            .recipient(String.format("%s@carbonio", user2Id.toString())), 1);
-        mongooseImMockServer.verify("POST",
-          String.format("/admin/muc-lights/carbonio/%s/participants", room.getId()),
-          new InviteDto()
-            .sender(String.format("%s@carbonio", user1Id.toString()))
-            .recipient(String.format("%s@carbonio", user3Id.toString())), 1);
+        mongooseImMockServer.verify(
+          mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString(), "testRoom", "Test room"),
+          VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+          mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user2Id.toString()),
+          VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+          mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user3Id.toString()),
+          VerificationTimes.exactly(1));
         // TODO: 23/02/22 verify event dispatcher interactions
       }
 
@@ -813,6 +798,9 @@ public class RoomsApiIT {
         clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), "testRoom", "Test room", true);
+        mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString(), true);
+        mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user3Id.toString(), true);
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
           uuid.when(UUID::randomUUID).thenReturn(roomId);
           uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
@@ -847,22 +835,15 @@ public class RoomsApiIT {
         assertEquals(executionInstant, room.getCreatedAt().toInstant());
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
-        mongooseImMockServer.verify("PUT", "/admin/muc-lights/carbonio",
-          new RoomDetailsDto()
-            .id(room.getId().toString())
-            .owner(String.format("%s@carbonio", user1Id))
-            .name(room.getId().toString())
-            .subject(room.getDescription()), 1);
-        mongooseImMockServer.verify("POST",
-          String.format("/admin/muc-lights/carbonio/%s/participants", room.getId()),
-          new InviteDto()
-            .sender(String.format("%s@carbonio", user1Id.toString()))
-            .recipient(String.format("%s@carbonio", user2Id.toString())), 1);
-        mongooseImMockServer.verify("POST",
-          String.format("/admin/muc-lights/carbonio/%s/participants", room.getId()),
-          new InviteDto()
-            .sender(String.format("%s@carbonio", user1Id.toString()))
-            .recipient(String.format("%s@carbonio", user3Id.toString())), 1);
+        mongooseImMockServer.verify(
+          mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString(), "testRoom", "Test room"),
+          VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+          mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user2Id.toString()),
+          VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+          mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user3Id.toString()),
+          VerificationTimes.exactly(1));
         // TODO: 23/02/22 verify event dispatcher interactions
       }
 
@@ -1240,6 +1221,11 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom", "Test room",
         List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
         OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "changedRoomName",
+        Map.of("value", "updatedRoom"), true);
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "changedRoomDescription",
+        Map.of("value", "Updated room"), true);
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response = dispatcher.put(url(roomId),
         getUpdateRoomRequestBody("updatedRoom", "Updated room"), user1Token);
@@ -1255,6 +1241,12 @@ public class RoomsApiIT {
 
       // TODO: 23/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "changedRoomName",
+          Map.of("value", "updatedRoom")), VerificationTimes.exactly(1));
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "changedRoomDescription",
+          Map.of("value", "Updated room")), VerificationTimes.exactly(1));
     }
 
     @Test
@@ -1348,6 +1340,7 @@ public class RoomsApiIT {
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id).muted(true),
           RoomMemberField.create().id(user3Id)));
+      mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -1358,8 +1351,8 @@ public class RoomsApiIT {
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
 
       // TODO: 23/02/22 verify event dispatcher interactions
-      mongooseImMockServer.verify("DELETE",
-        String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", roomId, user1Id), 1);
+      mongooseImMockServer.verify(mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
+        VerificationTimes.exactly(1));
     }
 
     @Test
@@ -1375,6 +1368,7 @@ public class RoomsApiIT {
       meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
         ParticipantBuilder.create(user1Id, "user3session1").audioStreamOn(false).videoStreamOn(false)));
       integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
+      mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -1385,8 +1379,8 @@ public class RoomsApiIT {
       assertTrue(meetingTestUtils.getParticipant(meetingId, "user3session1").isEmpty());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      mongooseImMockServer.verify("DELETE",
-        String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", roomId, user1Id), 1);
+      mongooseImMockServer.verify(mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
+        VerificationTimes.exactly(1));
     }
 
     @Nested
@@ -1411,6 +1405,7 @@ public class RoomsApiIT {
           FileMetadata.create().id(file2Id).type(FileMetadataType.ATTACHMENT).name("-").userId(user1Id.toString())
             .roomId(roomId.toString()).originalSize(0L).mimeType("-"));
         storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), List.of(file1Id, file2Id));
+        mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
 
@@ -1424,8 +1419,8 @@ public class RoomsApiIT {
         storageMockServer.verify(
           storageMockServer.getBulkDeleteRequest(List.of(file1Id, file2Id)), VerificationTimes.exactly(1));
         userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-        mongooseImMockServer.verify("DELETE",
-          String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", roomId, user1Id), 1);
+        mongooseImMockServer.verify(mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
+          VerificationTimes.exactly(1));
       }
 
       @Test
@@ -1446,6 +1441,7 @@ public class RoomsApiIT {
           FileMetadata.create().id(file2Id).type(FileMetadataType.ATTACHMENT).name("-").userId(user1Id.toString())
             .roomId(roomId.toString()).originalSize(0L).mimeType("-"));
         storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), List.of(file1Id));
+        mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
 
@@ -1462,8 +1458,8 @@ public class RoomsApiIT {
         storageMockServer.verify(
           storageMockServer.getBulkDeleteRequest(List.of(file1Id, file2Id)), VerificationTimes.exactly(1));
         userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-        mongooseImMockServer.verify("DELETE",
-          String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", roomId, user1Id), 1);
+        mongooseImMockServer.verify(mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
+          VerificationTimes.exactly(1));
       }
 
       @Test
@@ -1484,6 +1480,7 @@ public class RoomsApiIT {
           FileMetadata.create().id(file2Id).type(FileMetadataType.ATTACHMENT).name("-").userId(user1Id.toString())
             .roomId(roomId.toString()).originalSize(0L).mimeType("-"));
         storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), null);
+        mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
 
@@ -1503,11 +1500,11 @@ public class RoomsApiIT {
         storageMockServer.verify(
           storageMockServer.getBulkDeleteRequest(List.of(file1Id, file2Id)), VerificationTimes.exactly(1));
         userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-        mongooseImMockServer.verify("DELETE",
-          String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", roomId, user1Id), 1);
+        mongooseImMockServer.verify(mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
+          VerificationTimes.exactly(1));
       }
     }
-    
+
     @Test
     @DisplayName("Given a workspace identifier, correctly delete the workspace without channel")
     public void deleteRoom_workspaceWithoutChannelTestOk() throws Exception {
@@ -1556,6 +1553,8 @@ public class RoomsApiIT {
         .hash(UUID.randomUUID().toString())
         .parentId(workspaceId.toString())
         .rank(2), List.of());
+      mongooseImMockServer.mockDeleteRoom(channel1Id.toString(), true);
+      mongooseImMockServer.mockDeleteRoom(channel2Id.toString(), true);
 
       MockHttpResponse response = dispatcher.delete(url(workspaceId), user1Token);
       assertEquals(204, response.getStatus());
@@ -1564,10 +1563,10 @@ public class RoomsApiIT {
       assertTrue(roomUserSettingsRepository.getByRoomId(workspaceId.toString()).isEmpty());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      mongooseImMockServer.verify("DELETE",
-        String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", channel1Id, user1Id), 1);
-      mongooseImMockServer.verify("DELETE",
-        String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", channel2Id, user1Id), 1);
+      mongooseImMockServer.verify(mongooseImMockServer.getDeleteRoomRequest(channel1Id.toString()),
+        VerificationTimes.exactly(1));
+      mongooseImMockServer.verify(mongooseImMockServer.getDeleteRoomRequest(channel2Id.toString()),
+        VerificationTimes.exactly(1));
       // TODO: 23/02/22 verify event dispatcher interactions
     }
 
@@ -1589,18 +1588,17 @@ public class RoomsApiIT {
         .hash(UUID.randomUUID().toString())
         .parentId(workspaceId.toString())
         .rank(1), List.of());
-
+      mongooseImMockServer.mockDeleteRoom(channelId.toString(), true);
       MockHttpResponse response = dispatcher.delete(url(channelId), user1Token);
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
       assertTrue(integrationTestUtils.getRoomById(channelId).isEmpty());
       assertTrue(roomUserSettingsRepository.getByRoomId(channelId.toString()).isEmpty());
-
       assertTrue(integrationTestUtils.getRoomById(workspaceId).orElseThrow().getChildren().isEmpty());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      mongooseImMockServer.verify("DELETE",
-        String.format("/admin/muc-lights/carbonio/%s/%s%%40carbonio/management", channelId, user1Id), 1);
+      mongooseImMockServer.verify(mongooseImMockServer.getDeleteRoomRequest(channelId.toString()),
+        VerificationTimes.exactly(1));
       // TODO: 23/02/22 verify event dispatcher interactions
     }
 
@@ -1727,6 +1725,8 @@ public class RoomsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "updatedRoomPicture",
+        Map.of("picture-id", roomId.toString(), "picture-name", fileMock.getName()), true);
       Instant now = Instant.now();
       clock.fixTimeAt(now);
       MockHttpResponse response = dispatcher.put(url(roomId), fileMock.getId().getBytes(),
@@ -1734,6 +1734,9 @@ public class RoomsApiIT {
           "X-Content-Disposition",
           String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
         user1Token);
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "updatedRoomPicture",
+          Map.of("picture-id", roomId.toString(), "picture-name", fileMock.getName())));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       // TODO: 01/03/22 verify event dispatcher iterations
       storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
@@ -1873,12 +1876,16 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id),
         List.of(user1Id), null, OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "deletedRoomPicture", Map.of(), true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
       assertTrue(integrationTestUtils.getFileMetadataById(fileMock.getUUID()).isEmpty());
       assertNull(integrationTestUtils.getRoomById(roomId).orElseThrow().getPictureUpdatedAt());
 
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "deletedRoomPicture",
+          Map.of()), VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       storageMockServer.verify("DELETE", "/delete", fileMock.getId(), 1);
     }
@@ -2370,6 +2377,7 @@ public class RoomsApiIT {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
         List.of(user1Id, user2Id));
+      mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user4Id.toString(), true);
 
       MemberToInsertDto requestMember = MemberToInsertDto.create().userId(user4Id).historyCleared(false);
       MockHttpResponse response = dispatcher.post(url(roomId),
@@ -2384,12 +2392,9 @@ public class RoomsApiIT {
       assertTrue(room.isPresent());
       assertTrue(room.get().getSubscriptions().stream().anyMatch(s -> user4Id.toString().equals(s.getUserId())));
 
-      mongooseImMockServer.verify("POST",
-        String.format("/admin/muc-lights/carbonio/%s/participants", roomId),
-        new InviteDto()
-          .sender(String.format("%s@carbonio", user1Id.toString()))
-          .recipient(String.format("%s@carbonio", user4Id.toString())), 1);
-
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user4Id.toString()),
+        VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/users/id/%s", user4Id), user1Token, 1);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -2438,7 +2443,7 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(UUID.randomUUID(), RoomTypeDto.WORKSPACE, List.of(
         RoomMemberField.create().id(user4Id).rank(5)
       ));
-
+      mongooseImMockServer.mockAddRoomMember(workspaceId.toString(), user1Id.toString(), user4Id.toString(), true);
       MemberToInsertDto requestMember = MemberToInsertDto.create().userId(user4Id).historyCleared(false);
       MockHttpResponse response = dispatcher.post(url(workspaceId),
         getInsertRoomMemberRequestBody(requestMember), user1Token);
@@ -2457,16 +2462,12 @@ public class RoomsApiIT {
       assertTrue(userSettings.isPresent());
       assertEquals(6, userSettings.get().getRank());
 
-      mongooseImMockServer.verify("POST",
-        String.format("/admin/muc-lights/carbonio/%s/participants", channel1Id),
-        new InviteDto()
-          .sender(String.format("%s@carbonio", user1Id.toString()))
-          .recipient(String.format("%s@carbonio", user4Id.toString())), 1);
-      mongooseImMockServer.verify("POST",
-        String.format("/admin/muc-lights/carbonio/%s/participants", channel2Id),
-        new InviteDto()
-          .sender(String.format("%s@carbonio", user1Id.toString()))
-          .recipient(String.format("%s@carbonio", user4Id.toString())), 1);
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getAddRoomMemberRequest(channel1Id.toString(), user1Id.toString(), user4Id.toString()),
+        VerificationTimes.exactly(1));
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getAddRoomMemberRequest(channel2Id.toString(), user1Id.toString(), user4Id.toString()),
+        VerificationTimes.exactly(1));
 
       userManagementMockServer.verify("GET", String.format("/users/id/%s", user4Id), user1Token, 1);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
@@ -2504,6 +2505,7 @@ public class RoomsApiIT {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
         List.of(user1Id, user2Id));
+      mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user4Id.toString(), true);
 
       MemberToInsertDto requestMember = MemberToInsertDto.create().userId(user4Id).historyCleared(true);
       MockHttpResponse response = dispatcher.post(url(roomId),
@@ -2522,11 +2524,9 @@ public class RoomsApiIT {
       assertTrue(roomUserSettings.isPresent());
       assertNotNull(roomUserSettings.get().getClearedAt());
 
-      mongooseImMockServer.verify("POST",
-        String.format("/admin/muc-lights/carbonio/%s/participants", roomId),
-        new InviteDto()
-          .sender(String.format("%s@carbonio", user1Id.toString()))
-          .recipient(String.format("%s@carbonio", user4Id.toString())), 1);
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user4Id.toString()),
+        VerificationTimes.exactly(1));
 
       userManagementMockServer.verify("GET", String.format("/users/id/%s", user4Id), user1Token, 1);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
@@ -2654,6 +2654,7 @@ public class RoomsApiIT {
     public void deleteRoomMember_groupTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -2664,9 +2665,9 @@ public class RoomsApiIT {
         .isEmpty());
 
       // TODO: 25/02/22 verify event dispatcher
-      mongooseImMockServer.verify("PUT",
-        String.format("/admin/muc-lights/carbonio/%s/%s/affiliation", roomId, String.format("%s%%40carbonio", user1Id)),
-        1);
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user2Id.toString()),
+        VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
@@ -2684,6 +2685,7 @@ public class RoomsApiIT {
         ParticipantBuilder.create(user2Id, "user2session2"),
         ParticipantBuilder.create(user3Id, "user3session1")));
       integrationTestUtils.updateRoom(roomEntity.meetingId(meetingId.toString()));
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
 
@@ -2700,9 +2702,9 @@ public class RoomsApiIT {
         user2Id.toString().equals(participant.getUserId())));
 
       // TODO: 25/02/22 verify event dispatcher
-      mongooseImMockServer.verify("PUT",
-        String.format("/admin/muc-lights/carbonio/%s/%s/affiliation", roomId, String.format("%s%%40carbonio", user1Id)),
-        1);
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user2Id.toString()),
+        VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
@@ -2719,6 +2721,8 @@ public class RoomsApiIT {
         ParticipantBuilder.create(user2Id, "user2session1")));
       integrationTestUtils.updateRoom(roomEntity.meetingId(meetingId.toString()));
 
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -2730,9 +2734,9 @@ public class RoomsApiIT {
       assertTrue(meetingTestUtils.getMeetingById(meetingId).isEmpty());
 
       // TODO: 25/02/22 verify event dispatcher
-      mongooseImMockServer.verify("PUT",
-        String.format("/admin/muc-lights/carbonio/%s/%s/affiliation", roomId, String.format("%s%%40carbonio", user1Id)),
-        1);
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user2Id.toString()),
+        VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
@@ -2825,6 +2829,7 @@ public class RoomsApiIT {
     public void deleteRoomMember_userRemoveItselfTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
       MockHttpResponse response = dispatcher.delete(url(roomId, user3Id), user3Token);
 
       assertEquals(204, response.getStatus());
@@ -2835,9 +2840,8 @@ public class RoomsApiIT {
         .isEmpty());
 
       // TODO: 25/02/22 verify event dispatcher
-      mongooseImMockServer.verify("PUT",
-        String.format("/admin/muc-lights/carbonio/%s/%s/affiliation", roomId, String.format("%s%%40carbonio", user3Id)),
-        1);
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user3Id.toString()));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
     }
   }
@@ -2865,9 +2869,6 @@ public class RoomsApiIT {
           .orElseThrow().isOwner());
 
       // TODO: 25/02/22 verify event dispatcher interactions
-      mongooseImMockServer.verify("PUT",
-        String.format("/admin/muc-lights/carbonio/%s/%s/affiliation", roomId, String.format("%s%%40carbonio", user1Id)),
-        1);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
@@ -2977,9 +2978,6 @@ public class RoomsApiIT {
 
       // TODO: 28/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      mongooseImMockServer.verify("PUT",
-        String.format("/admin/muc-lights/carbonio/%s/%s/affiliation", roomId, String.format("%s%%40carbonio", user1Id)),
-        1);
     }
 
     @Test

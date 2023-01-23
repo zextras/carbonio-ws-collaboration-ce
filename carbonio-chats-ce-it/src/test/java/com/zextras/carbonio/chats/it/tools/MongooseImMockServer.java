@@ -8,18 +8,15 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import javax.annotation.Nullable;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
-import org.mockserver.client.MockServerClient;
 import org.mockserver.integration.ClientAndServer;
-import org.mockserver.matchers.MatchType;
-import org.mockserver.model.ClearType;
+import org.mockserver.model.Header;
 import org.mockserver.model.HttpRequest;
-import org.mockserver.model.JsonBody;
-import org.mockserver.model.MediaType;
-import org.mockserver.verify.VerificationTimes;
+import org.mockserver.model.HttpResponse;
+import org.mockserver.model.Parameter;
+import org.mockserver.model.StringBody;
 
 public class MongooseImMockServer extends ClientAndServer implements CloseableResource {
 
@@ -31,38 +28,137 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
     super(remoteHost, remotePort, ports);
   }
 
-  public void verify(String method, String path, int iterationsNumber) {
-    verify(method, path, null, iterationsNumber);
-  }
-
-  public void verify(String method, String path, Object body, int iterationsNumber) {
-    HttpRequest request = getRequestDefinition(method, path, body);
-    try {
-      verify(request, VerificationTimes.exactly(iterationsNumber));
-    } finally {
-      clear(request, ClearType.LOG);
-    }
-  }
-
-  public void setIsAliveResponse(boolean success) {
-    HttpRequest request = request().withMethod("GET").withPath("/admin/commands");
-    clear(request);
-    when(request)
-      .respond(
-        response()
-          .withStatusCode(success ? 200 : 500)
-          .withContentType(MediaType.APPLICATION_JSON)
-      );
-  }
-
-
-  public HttpRequest getRequestDefinition(String method, String path, @Nullable Object body) {
+  private HttpRequest getRequest(String method, String body) {
     HttpRequest request = request()
       .withMethod(method)
-      .withPath(path);
-    Optional.ofNullable(body)
-      .ifPresent(b -> request.withBody(JsonBody.json(b, MatchType.ONLY_MATCHING_FIELDS)));
+      .withPath("/api/graphql")
+      .withHeaders(
+        Header.header("Authorization", "Basic dXNlcm5hbWU6cGFzc3dvcmQ="));
+    if ("GET".equals(method)) {
+      request.withQueryStringParameter(Parameter.param("query", body));
+    }
+    if ("POST".equals(method)) {
+      request.withHeaders(
+          Header.header("Content-Type", "application/json"),
+          Header.header("Accept", "application/json"))
+        .withBody(StringBody.exact(body));
+    }
     return request;
+  }
+
+  private HttpResponse getResponse(boolean success) {
+    return response()
+      .withStatusCode(200)
+      .withBody(success ?
+        "{ \"data\": { \"mock\": \"success\" } }" :
+        "{ \"errors\": [ { \"mock\": \"failure\" } ] }")
+      .withHeaders(
+        Header.header("Authorization", "Basic dXNlcm5hbWU6cGFzc3dvcmQ="),
+        Header.header("Accept", "application/json"));
+  }
+
+  public HttpRequest getIsAliveRequest() {
+    return getRequest("GET", "query checkAuth { checkAuth { authStatus } }");
+  }
+
+  public void mockIsAlive(boolean success) {
+    HttpRequest request = getIsAliveRequest();
+    clear(request);
+    when(request).respond(getResponse(success));
+  }
+
+  public HttpRequest getCreateRoomRequest(String roomId, String senderId, String name, String description) {
+    return getRequest("POST",
+      "{\"query\":\"mutation muc_light { muc_light { createRoom (mucDomain: \\\"muclight.carbonio\\\", " +
+        String.format("id: \\\"%s\\\", ", roomId) +
+        String.format("owner: \\\"%s@carbonio\\\", ", senderId) +
+        String.format("name: \\\"%s\\\", ", name) +
+        String.format("subject: \\\"%s\\\") ", description) +
+        "{ jid } } }\",\"operationName\":\"muc_light\",\"variables\":{}}");
+  }
+
+  public void mockCreateRoom(String roomId, String senderId, String name, String description, boolean success) {
+    HttpRequest request = getCreateRoomRequest(roomId, senderId, name, description);
+    clear(request);
+    when(request).respond(getResponse(success));
+  }
+
+  public HttpRequest getDeleteRoomRequest(String roomId) {
+    return getRequest("POST",
+      "{\"query\":\"mutation muc_light { muc_light { deleteRoom (" +
+        String.format("room: \\\"%s@muclight.carbonio\\\") ", roomId) +
+        "} }\",\"operationName\":\"muc_light\",\"variables\":{}}");
+  }
+
+  public void mockDeleteRoom(String roomId, boolean success) {
+    HttpRequest request = getDeleteRoomRequest(roomId);
+    clear(request);
+    when(request).respond(getResponse(success));
+  }
+
+  public HttpRequest getAddRoomMemberRequest(String roomId, String senderId, String recipientId) {
+    return getRequest("POST",
+      "{\"query\":\"mutation muc_light { muc_light { inviteUser (" +
+        String.format("room: \\\"%s@muclight.carbonio\\\", ", roomId) +
+        String.format("sender: \\\"%s@carbonio\\\", ", senderId) +
+        String.format("recipient: \\\"%s@carbonio\\\") ", recipientId) +
+        "} }\",\"operationName\":\"muc_light\",\"variables\":{}}");
+  }
+
+  public void mockAddRoomMember(String roomId, String senderId, String recipientId, boolean success) {
+    HttpRequest request = getAddRoomMemberRequest(roomId, senderId, recipientId);
+    clear(request);
+    when(request).respond(getResponse(success));
+  }
+
+  public HttpRequest getRemoveRoomMemberRequest(String roomId, String idToRemove) {
+    return getRequest("POST",
+      "{\"query\":\"mutation muc_light { muc_light { kickUser (" +
+        String.format("room: \\\"%s@muclight.carbonio\\\", ", roomId) +
+        String.format("user: \\\"%s@carbonio\\\") ", idToRemove) +
+        "} }\",\"operationName\":\"muc_light\",\"variables\":{}}");
+  }
+
+  public void mockRemoveRoomMember(String roomId, String idToRemove, boolean success) {
+    HttpRequest request = getRemoveRoomMemberRequest(roomId, idToRemove);
+    clear(request);
+    when(request).respond(getResponse(success));
+  }
+
+  public HttpRequest getAddUserToContactsRequest(String user1id, String user2id) {
+    return getRequest("POST",
+      "{\"query\":\"mutation roster { roster { setMutualSubscription (" +
+        String.format("userA: \\\"%s@carbonio\\\", ", user1id) +
+        String.format("userB: \\\"%s@carbonio\\\", ", user2id) +
+        "action: CONNECT) } }\",\"operationName\":\"roster\",\"variables\":{}}");
+  }
+
+  public void mockAddUserToContacts(String user1id, String user2id, boolean success) {
+    HttpRequest request = getAddUserToContactsRequest(user1id, user2id);
+    clear(request);
+    when(request).respond(getResponse(success));
+  }
+
+  public HttpRequest getSendStanzaRequest(
+    String roomId, String senderId, String type, Map<String, String> content
+  ) {
+    return getRequest("POST",
+      "{\"query\":\"mutation stanza { stanza { sendStanza (stanza: \\\"<message xmlns='jabber:client' " +
+        String.format("to='%s@muclight.carbonio' ", roomId) +
+        String.format("from='%s@carbonio' ", senderId) +
+        "type='groupchat'><x xmlns='urn:xmpp:muclight:0#configuration'>" +
+        String.format("<operation>%s</operation>", type) +
+        content.keySet().stream().map(k -> "<" + k + ">" + content.get(k) + "</" + k + ">")
+          .collect(Collectors.joining()) +
+        "</x></message>\\\") { id } } }\",\"operationName\":\"stanza\",\"variables\":{}}");
+  }
+
+  public void mockSendStanza(
+    String roomId, String senderId, String type, Map<String, String> content, boolean success
+  ) {
+    HttpRequest request = getSendStanzaRequest(roomId, senderId, type, content);
+    clear(request);
+    when(request).respond(getResponse(success));
   }
 
   @Override

@@ -23,6 +23,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockserver.verify.VerificationTimes;
 
 @ApiIntegrationTest
 public class HealthApiIT {
@@ -46,7 +47,7 @@ public class HealthApiIT {
 
   @AfterEach
   public void afterEach() {
-    mongooseImMockServer.setIsAliveResponse(true);
+    mongooseImMockServer.mockIsAlive(true);
     previewerMockServer.setIsAliveResponse(true);
   }
 
@@ -57,6 +58,7 @@ public class HealthApiIT {
     @Test
     @DisplayName("Returns the success health status")
     public void getHealthStatus_TestOk() throws Exception {
+      mongooseImMockServer.mockIsAlive(true);
       MockHttpResponse response = dispatcher.get("/health");
       assertEquals(200, response.getStatus());
       HealthStatusDto healthStatus = objectMapper.readValue(response.getContentAsString(), HealthStatusDto.class);
@@ -65,11 +67,13 @@ public class HealthApiIT {
 
       assertEquals(0, (int) healthStatus.getDependencies().stream().map(DependencyHealthDto::isIsHealthy)
         .filter(isLive -> !isLive).count());
+      mongooseImMockServer.verify(mongooseImMockServer.getIsAliveRequest(), VerificationTimes.exactly(2));
     }
 
     @Test
     @DisplayName("Returns the health status when previewer isn't alive")
     public void getHealthStatus_TestWarn() throws Exception {
+      mongooseImMockServer.mockIsAlive(true);
       previewerMockServer.setIsAliveResponse(false);
       MockHttpResponse response = dispatcher.get("/health");
       assertEquals(200, response.getStatus());
@@ -81,12 +85,13 @@ public class HealthApiIT {
         .filter(dependency -> !dependency.isIsHealthy()).collect(Collectors.toList());
       assertEquals(1, failedDependencies.size());
       assertEquals(DependencyHealthTypeDto.PREVIEWER_SERVICE, failedDependencies.get(0).getName());
+      mongooseImMockServer.verify(mongooseImMockServer.getIsAliveRequest(), VerificationTimes.exactly(2));
     }
 
     @Test
     @DisplayName("Returns the health status when xmpp server isn't alive")
     public void getHealthStatus_TestError() throws Exception {
-      mongooseImMockServer.setIsAliveResponse(false);
+      mongooseImMockServer.mockIsAlive(false);
       MockHttpResponse response = dispatcher.get("/health");
       assertEquals(200, response.getStatus());
       HealthStatusDto healthStatus = objectMapper.readValue(response.getContentAsString(), HealthStatusDto.class);
@@ -97,6 +102,7 @@ public class HealthApiIT {
         .filter(dependency -> !dependency.isIsHealthy()).collect(Collectors.toList());
       assertEquals(1, failedDependencies.size());
       assertEquals(DependencyHealthTypeDto.XMPP_SERVER, failedDependencies.get(0).getName());
+      mongooseImMockServer.verify(mongooseImMockServer.getIsAliveRequest(), VerificationTimes.exactly(2));
     }
   }
 
@@ -121,25 +127,30 @@ public class HealthApiIT {
     @Test
     @DisplayName("Checks correct ready test")
     public void isReady_testOk() throws Exception {
+      mongooseImMockServer.mockIsAlive(true);
       MockHttpResponse response = dispatcher.get("/health/ready");
       assertEquals(204, response.getStatus());
+      mongooseImMockServer.verify(mongooseImMockServer.getIsAliveRequest(), VerificationTimes.exactly(1));
     }
 
 
     @Test
     @DisplayName("Checks warn ready test")
     public void isReady_testWarn() throws Exception {
+      mongooseImMockServer.mockIsAlive(true);
       previewerMockServer.setIsAliveResponse(false);
       MockHttpResponse response = dispatcher.get("/health/ready");
       assertEquals(204, response.getStatus());
+      mongooseImMockServer.verify(mongooseImMockServer.getIsAliveRequest(), VerificationTimes.exactly(1));
     }
 
     @Test
     @DisplayName("Checks error ready test")
     public void isReady_testError() throws Exception {
-      mongooseImMockServer.setIsAliveResponse(false);
+      mongooseImMockServer.mockIsAlive(false);
       MockHttpResponse response = dispatcher.get("/health/ready");
       assertEquals(500, response.getStatus());
+      mongooseImMockServer.verify(mongooseImMockServer.getIsAliveRequest(), VerificationTimes.exactly(1));
     }
   }
 }
