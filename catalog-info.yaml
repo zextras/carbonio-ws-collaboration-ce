@@ -1,0 +1,49 @@
+# SPDX-FileCopyrightText: 2023 Zextras <https://www.zextras.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: carbonio-chats-ce
+  title: Carbonio Chats CE service
+  description: |
+    Service containing the business logic of a chat application.
+    It allows to chat or video-call with other users.
+  tags:
+    - java
+    - backend
+  links:
+    - url: https://github.com/Zextras/carbonio-chats-ce/blob/main/README.md
+      title: README
+spec:
+  type: service
+  lifecycle: production
+  owner: smoky-beans
+  providesApis:
+    - carbonio-chats-ce-rest-api
+  dependsOn:
+    - component:carbonio-chats-db
+    - component:carbonio-chats-messaging
+    - component:carbonio-message-broker
+    - component:carbonio-user-management
+    - component:carbonio-storages-ce
+    - component:carbonio-preview-ce
+    - component:carbonio-videoserver
+
+---
+
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: carbonio-chats-ce-rest-api
+  title: Carbonio Chats CE REST APIs
+  description: Carbonio Chats Community Edition REST APIs.
+  tags:
+    - rest
+spec:
+  type: openapi
+  lifecycle: production
+  owner: smoky-beans
+  definition:
+    $text: https://github.com/Zextras/carbonio-chats-ce/blob/main/carbonio-chats-ce-openapi/src/main/resources/chats/chats-api.yaml
