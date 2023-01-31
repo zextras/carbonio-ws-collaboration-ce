@@ -6,7 +6,7 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Chats CE Api
   description: Zextras Carbonio Chats CE HTTP APIs definition.
-  version: 0.2.0
+  version: 0.3.0
   contact:
     email: smokybeans@zextras.com
 servers:
