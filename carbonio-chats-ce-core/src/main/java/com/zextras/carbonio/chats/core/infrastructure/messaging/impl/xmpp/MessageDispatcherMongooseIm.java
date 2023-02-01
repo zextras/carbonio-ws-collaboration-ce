@@ -98,7 +98,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void updateRoomName(String roomId, String senderId, String name) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.CHANGED_ROOM_NAME, Map.of("value", name));
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_NAME_CHANGED, Map.of("value", name));
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -111,7 +111,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void updateRoomDescription(String roomId, String senderId, String description) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.CHANGED_ROOM_DESCRIPTION,
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_DESCRIPTION_CHANGED,
       Map.of("value", description));
     if (result.errors != null) {
       try {
@@ -126,7 +126,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void updateRoomPicture(String roomId, String senderId, String pictureId, String pictureName) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.UPDATED_ROOM_PICTURE,
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_PICTURE_UPDATED,
       Map.of("picture-id", pictureId, "picture-name", pictureName));
     if (result.errors != null) {
       try {
@@ -141,7 +141,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void deleteRoomPicture(String roomId, String senderId) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.DELETED_ROOM_PICTURE, null);
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_PICTURE_DELETED, null);
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -207,7 +207,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void setMemberRole(String roomId, String senderId, String recipientId, boolean isOwner) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.CHANGED_MEMBER_ROLE,
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.MEMBER_ROLE_CHANGED,
       Map.of("recipient", userIdToUserDomain(recipientId), "role", isOwner ? "OWNER" : "MEMBER"));
     if (result.errors != null) {
       try {
