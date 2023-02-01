@@ -1222,9 +1222,9 @@ public class RoomsApiIT {
         List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
         OffsetDateTime.parse("2022-01-01T00:00:00Z"));
 
-      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "changedRoomName",
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomNameChanged",
         Map.of("value", "updatedRoom"), true);
-      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "changedRoomDescription",
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomDescriptionChanged",
         Map.of("value", "Updated room"), true);
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response = dispatcher.put(url(roomId),
@@ -1242,10 +1242,10 @@ public class RoomsApiIT {
       // TODO: 23/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       mongooseImMockServer.verify(
-        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "changedRoomName",
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomNameChanged",
           Map.of("value", "updatedRoom")), VerificationTimes.exactly(1));
       mongooseImMockServer.verify(
-        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "changedRoomDescription",
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomDescriptionChanged",
           Map.of("value", "Updated room")), VerificationTimes.exactly(1));
     }
 
@@ -1725,7 +1725,7 @@ public class RoomsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
-      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "updatedRoomPicture",
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomPictureUpdated",
         Map.of("picture-id", roomId.toString(), "picture-name", fileMock.getName()), true);
       Instant now = Instant.now();
       clock.fixTimeAt(now);
@@ -1735,7 +1735,7 @@ public class RoomsApiIT {
           String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
         user1Token);
       mongooseImMockServer.verify(
-        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "updatedRoomPicture",
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomPictureUpdated",
           Map.of("picture-id", roomId.toString(), "picture-name", fileMock.getName())));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       // TODO: 01/03/22 verify event dispatcher iterations
@@ -1876,7 +1876,7 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id),
         List.of(user1Id), null, OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
-      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "deletedRoomPicture", Map.of(), true);
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomPictureDeleted", Map.of(), true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -1884,7 +1884,7 @@ public class RoomsApiIT {
       assertNull(integrationTestUtils.getRoomById(roomId).orElseThrow().getPictureUpdatedAt());
 
       mongooseImMockServer.verify(
-        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "deletedRoomPicture",
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomPictureDeleted",
           Map.of()), VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       storageMockServer.verify("DELETE", "/delete", fileMock.getId(), 1);
