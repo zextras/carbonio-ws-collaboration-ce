@@ -58,6 +58,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -1729,11 +1730,10 @@ public class RoomsApiIT {
         Map.of("picture-id", roomId.toString(), "picture-name", fileMock.getName()), true);
       Instant now = Instant.now();
       clock.fixTimeAt(now);
+      String evil = Base64.getEncoder().encodeToString(fileMock.getName().getBytes());
       MockHttpResponse response = dispatcher.put(url(roomId), fileMock.getId().getBytes(),
-        Map.of("Content-Type", "application/octet-stream",
-          "X-Content-Disposition",
-          String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
-        user1Token);
+        Map.of("Content-Type", "application/octet-stream", "X-Content-Disposition",
+          String.format("fileName=%s;mimeType=%s", evil, fileMock.getMimeType())), user1Token);
       mongooseImMockServer.verify(
         mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomPictureUpdated",
           Map.of("picture-id", roomId.toString(), "picture-name", fileMock.getName())));
@@ -1784,8 +1784,8 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.put(url(roomId), fileMock.getFileBytes(),
         Map.of("Content-Type", "application/octet-stream",
           "X-Content-Disposition",
-          String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
-        user3Token);
+          String.format("fileName=%s;mimeType=%s", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            fileMock.getMimeType())), user3Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
@@ -1801,8 +1801,8 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.put(url(roomId), fileMock.getFileBytes(),
         Map.of("Content-Type", "application/octet-stream",
           "X-Content-Disposition",
-          String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
-        user3Token);
+          String.format("fileName=%s;mimeType=%s", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            fileMock.getMimeType())), user3Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
@@ -1818,8 +1818,8 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.put(url(roomId), fileMock.getFileBytes(),
         Map.of("Content-Type", "application/octet-stream",
           "X-Content-Disposition",
-          String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
-        user1Token);
+          String.format("fileName=%s;mimeType=%s", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            fileMock.getMimeType())), user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
@@ -1835,8 +1835,8 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.put(url(roomId), fileMock.getFileBytes(),
         Map.of("Content-Type", "application/octet-stream",
           "X-Content-Disposition",
-          String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
-        user1Token);
+          String.format("fileName=%s;mimeType=%s", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            fileMock.getMimeType())), user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
@@ -1850,10 +1850,9 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
 
       MockHttpResponse response = dispatcher.put(url(roomId), fileMock.getFileBytes(),
-        Map.of("Content-Type", "application/octet-stream",
-          "X-Content-Disposition",
-          String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
-        user1Token);
+        Map.of("Content-Type", "application/octet-stream", "X-Content-Disposition",
+          String.format("fileName=%s;mimeType=%s", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            fileMock.getMimeType())), user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
@@ -3195,10 +3194,9 @@ public class RoomsApiIT {
         uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         response = dispatcher.post(url(roomId), fileMock.getFileBytes(),
-          Map.of("Content-Type", "application/octet-stream",
-            "X-Content-Disposition",
-            String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
-          user1Token);
+          Map.of("Content-Type", "application/octet-stream", "X-Content-Disposition",
+            String.format("fileName=%s;mimeType=%s", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+              fileMock.getMimeType())), user1Token);
       }
 
       assertEquals(201, response.getStatus());
@@ -3234,10 +3232,9 @@ public class RoomsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
 
       MockHttpResponse response = dispatcher.post(url(roomId), fileMock.getFileBytes(),
-        Map.of("Content-Type", "application/octet-stream",
-          "X-Content-Disposition",
-          String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
-        user3Token);
+        Map.of("Content-Type", "application/octet-stream", "X-Content-Disposition",
+          String.format("fileName=%s;mimeType=%s", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            fileMock.getMimeType())), user3Token);
 
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);

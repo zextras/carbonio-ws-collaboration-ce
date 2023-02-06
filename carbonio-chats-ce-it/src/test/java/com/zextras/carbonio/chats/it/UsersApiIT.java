@@ -34,6 +34,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -188,10 +189,9 @@ public class UsersApiIT {
       clock.fixTimeAt(Instant.parse("2022-01-01T00:00:00Z"));
 
       MockHttpResponse response = dispatcher.put(url(account.getUUID()), fileMock.getId().getBytes(),
-        Map.of("Content-Type", "application/octet-stream",
-          "X-Content-Disposition",
-          String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
-        account.getToken());
+        Map.of("Content-Type", "application/octet-stream", "X-Content-Disposition",
+          String.format("fileName=%s;mimeType=%s", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            fileMock.getMimeType())), account.getToken());
       clock.fixTimeAt(null);
 
       assertEquals(204, response.getStatus());
@@ -241,10 +241,9 @@ public class UsersApiIT {
       MockUserProfile account2 = MockedAccount.getAccount(MockedAccountType.PEPERITA_PATTY);
 
       MockHttpResponse response = dispatcher.put(url(account1.getUUID()), fileMock.getFileBytes(),
-        Map.of("Content-Type", "application/octet-stream",
-          "X-Content-Disposition",
-          String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
-        account2.getToken());
+        Map.of("Content-Type", "application/octet-stream", "X-Content-Disposition",
+          String.format("fileName=%s;mimeType=%s", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            fileMock.getMimeType())), account2.getToken());
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account2.getToken()), 1);
@@ -256,10 +255,9 @@ public class UsersApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.CHARLIE_BROWN_LARGE_IMAGE);
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN);
       MockHttpResponse response = dispatcher.put(url(account.getUUID()), fileMock.getFileBytes(),
-        Map.of("Content-Type", "application/octet-stream",
-          "X-Content-Disposition",
-          String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
-        account.getToken());
+        Map.of("Content-Type", "application/octet-stream", "X-Content-Disposition",
+          String.format("fileName=%s;mimeType=%s", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            fileMock.getMimeType())), account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
@@ -272,10 +270,9 @@ public class UsersApiIT {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT);
 
       MockHttpResponse response = dispatcher.put(url(account.getUUID()), fileMock.getFileBytes(),
-        Map.of("Content-Type", "application/octet-stream",
-          "X-Content-Disposition",
-          String.format("fileName=%s;mimeType=%s", fileMock.getName(), fileMock.getMimeType())),
-        account.getToken());
+        Map.of("Content-Type", "application/octet-stream", "X-Content-Disposition",
+          String.format("fileName=%s;mimeType=%s", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            fileMock.getMimeType())), account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
