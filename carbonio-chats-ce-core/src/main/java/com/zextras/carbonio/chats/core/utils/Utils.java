@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.utils;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.Base64;
 import java.util.Optional;
 import org.apache.commons.codec.binary.Base32;
 
@@ -45,7 +46,8 @@ public class Utils {
       if (value.contains(";")) {
         value = value.substring(0, value.indexOf(";"));
       }
-      return Optional.of(value.trim());
+      value = value.trim();
+      return Optional.of("fileName".equals(property) ? new String(Base64.getDecoder().decode(value)) : value);
     } else {
       return Optional.empty();
     }
