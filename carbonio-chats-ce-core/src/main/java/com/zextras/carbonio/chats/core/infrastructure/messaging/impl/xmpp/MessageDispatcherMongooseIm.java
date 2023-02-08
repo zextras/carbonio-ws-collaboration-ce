@@ -26,6 +26,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.jivesoftware.smack.packet.Message.Type;
+import org.jivesoftware.smack.packet.MessageBuilder;
 import org.jivesoftware.smack.packet.StandardExtensionElement;
 import org.jivesoftware.smack.packet.StandardExtensionElement.Builder;
 import org.jivesoftware.smack.packet.StanzaBuilder;
@@ -98,7 +99,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void updateRoomName(String roomId, String senderId, String name) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_NAME_CHANGED, Map.of("value", name));
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_NAME_CHANGED, Map.of("value", name), null);
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -112,7 +113,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   @Override
   public void updateRoomDescription(String roomId, String senderId, String description) {
     GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_DESCRIPTION_CHANGED,
-      Map.of("value", description));
+      Map.of("value", description), null);
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -127,7 +128,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   @Override
   public void updateRoomPicture(String roomId, String senderId, String pictureId, String pictureName) {
     GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_PICTURE_UPDATED,
-      Map.of("picture-id", pictureId, "picture-name", pictureName));
+      Map.of("picture-id", pictureId, "picture-name", pictureName), null);
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -141,7 +142,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void deleteRoomPicture(String roomId, String senderId) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_PICTURE_DELETED, null);
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_PICTURE_DELETED, null, null);
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -208,11 +209,25 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   @Override
   public void setMemberRole(String roomId, String senderId, String recipientId, boolean isOwner) {
     GraphQlResponse result = sendStanza(roomId, senderId, MessageType.MEMBER_ROLE_CHANGED,
-      Map.of("recipient", userIdToUserDomain(recipientId), "role", isOwner ? "OWNER" : "MEMBER"));
+      Map.of("recipient", userIdToUserDomain(recipientId), "role", isOwner ? "OWNER" : "MEMBER"), null);
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
           String.format("Error while sending update room name: %s", objectMapper.writeValueAsString(result.errors)));
+      } catch (JsonProcessingException e) {
+        throw new InternalErrorException("Error during parsing the json of response error ", e);
+      }
+    }
+  }
+
+  @Override
+  public void sendAttachment(String roomId, String senderId, String attachmentId, String fileName, String description) {
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ATTACHMENT_ADDED,
+      Map.of("attachment-id", attachmentId, "filename", fileName), description);
+    if (result.errors != null) {
+      try {
+        throw new MessageDispatcherException(
+          String.format("Error while sending attachment: %s", objectMapper.writeValueAsString(result.errors)));
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
@@ -253,21 +268,27 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     }
   }
 
-  private GraphQlResponse sendStanza(String roomId, String senderId, MessageType type, Map<String, String> content) {
+  private GraphQlResponse sendStanza(String roomId, String senderId, MessageType type, Map<String, String> content,
+    @Nullable String body) {
     return executeMutation(GraphQlBody.create(
       "mutation stanza { stanza { sendStanza (" +
-        String.format("stanza: \"%s\") ", getStanzaMessage(roomId, senderId, type, content)) +
+        String.format("stanza: \"%s\") ", getStanzaMessage(roomId, senderId, type, content, body)) +
         "{ id } } }", "stanza", Map.of()));
   }
 
-  private String getStanzaMessage(String roomId, String senderId, MessageType type, Map<String, String> elementsMap) {
+  private String getStanzaMessage(String roomId, String senderId, MessageType type, Map<String, String> elementsMap,
+    @Nullable String body) {
     try {
-      return StanzaBuilder
+      MessageBuilder messageBuilder = StanzaBuilder
         .buildMessage()
         .from(userIdToUserDomain(senderId))
         .to(roomIdToRoomDomain(roomId))
         .ofType(Type.groupchat)
-        .addExtension(getStanzaElementX(type, elementsMap))
+        .addExtension(getStanzaElementX(type, elementsMap));
+      if (body != null) {
+        messageBuilder.addBody(null, body);
+      }
+      return messageBuilder
         .build()
         .toXML()
         .toString();

@@ -140,23 +140,28 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
   }
 
   public HttpRequest getSendStanzaRequest(
-    String roomId, String senderId, String type, Map<String, String> content
+    String roomId, String senderId, String type, Map<String, String> content, String body
   ) {
-    return getRequest("POST",
-      "{\"query\":\"mutation stanza { stanza { sendStanza (stanza: \\\"<message xmlns='jabber:client' " +
-        String.format("to='%s@muclight.carbonio' ", roomId) +
-        String.format("from='%s@carbonio' ", senderId) +
-        "type='groupchat'><x xmlns='urn:xmpp:muclight:0#configuration'>" +
-        String.format("<operation>%s</operation>", type) +
-        content.keySet().stream().map(k -> "<" + k + ">" + content.get(k) + "</" + k + ">")
-          .collect(Collectors.joining()) +
-        "</x></message>\\\") { id } } }\",\"operationName\":\"stanza\",\"variables\":{}}");
+    String xml = "<message xmlns='jabber:client' " +
+      String.format("to='%s@muclight.carbonio' ", roomId) +
+      String.format("from='%s@carbonio' ", senderId) +
+      "type='groupchat'><x xmlns='urn:xmpp:muclight:0#configuration'>" +
+      String.format("<operation>%s</operation>", type) +
+      content.keySet().stream().map(k -> "<" + k + ">" + content.get(k) + "</" + k + ">")
+        .collect(Collectors.joining()) + "</x>";
+    if (body != null) {
+      xml += "<body>" + body + "</body>";
+    }
+    xml += "</message>";
+
+    return getRequest("POST", "{\"query\":\"mutation stanza { stanza { sendStanza (stanza: \\\"" + xml
+      + "\\\") { id } } }\",\"operationName\":\"stanza\",\"variables\":{}}");
   }
 
   public void mockSendStanza(
-    String roomId, String senderId, String type, Map<String, String> content, boolean success
+    String roomId, String senderId, String type, Map<String, String> content, String body, boolean success
   ) {
-    HttpRequest request = getSendStanzaRequest(roomId, senderId, type, content);
+    HttpRequest request = getSendStanzaRequest(roomId, senderId, type, content, body);
     clear(request);
     when(request).respond(getResponse(success));
   }

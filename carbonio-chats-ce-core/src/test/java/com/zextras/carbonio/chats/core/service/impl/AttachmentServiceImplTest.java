@@ -37,6 +37,7 @@ import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
@@ -71,6 +72,7 @@ public class AttachmentServiceImplTest {
   private final StoragesService        storagesService;
   private final RoomService            roomService;
   private final EventDispatcher        eventDispatcher;
+  private final MessageDispatcher      messageDispatcher;
   private final ObjectMapper           objectMapper;
 
   @TempDir
@@ -81,6 +83,7 @@ public class AttachmentServiceImplTest {
     this.storagesService = mock(StoragesService.class);
     this.roomService = mock(RoomService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
+    this.messageDispatcher = mock(MessageDispatcher.class);
     this.objectMapper = new ObjectMapper()
       .registerModule(new JavaTimeModule())
       .setDateFormat(new RFC3339DateFormat());
@@ -90,6 +93,7 @@ public class AttachmentServiceImplTest {
       this.storagesService,
       this.roomService,
       this.eventDispatcher,
+      this.messageDispatcher,
       this.objectMapper);
   }
 
