@@ -194,8 +194,9 @@ public class UsersApiIT {
           "application/octet-stream",
           "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
           "mimeType", fileMock.getMimeType()
-        )
-        , account.getToken());
+        ),
+        account.getToken()
+      );
       clock.fixTimeAt(null);
 
       assertEquals(204, response.getStatus());
@@ -221,7 +222,8 @@ public class UsersApiIT {
           "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
           "mimeType", fileMock.getMimeType()
         ),
-        null);
+        null
+      );
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }
@@ -232,8 +234,7 @@ public class UsersApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN);
       MockHttpResponse response = dispatcher.put(url(account.getUUID()), fileMock.getFileBytes(),
-        Collections.singletonMap("Content-Type", "application/octet-stream"),
-        account.getToken());
+        Collections.singletonMap("Content-Type", "application/octet-stream"), account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
@@ -253,7 +254,9 @@ public class UsersApiIT {
           "application/octet-stream",
           "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
           "mimeType", fileMock.getMimeType()
-        ), account2.getToken());
+        ),
+        account2.getToken()
+      );
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account2.getToken()), 1);
@@ -270,7 +273,9 @@ public class UsersApiIT {
           "application/octet-stream",
           "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
           "mimeType", fileMock.getMimeType()
-        ), account.getToken());
+        ),
+        account.getToken()
+      );
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
@@ -288,7 +293,9 @@ public class UsersApiIT {
           "application/octet-stream",
           "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
           "mimeType", fileMock.getMimeType()
-        ), account.getToken());
+        ),
+        account.getToken()
+      );
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
