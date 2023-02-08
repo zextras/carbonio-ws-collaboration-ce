@@ -11,9 +11,9 @@ import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.UserService;
-import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import java.io.File;
+import java.util.Base64;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -63,16 +63,18 @@ public class UsersApiServiceImpl implements UsersApiService {
 
   @Override
   public Response updateUserPicture(
-    UUID userId, String xContentDisposition, File body, SecurityContext securityContext
+    UUID userId, String headerFileName, String headerMimeType, File body, SecurityContext securityContext
   ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    userService.setUserPicture(userId, body,
-      Utils.getFilePropertyFromContentDisposition(xContentDisposition, "mimeType")
-        .orElseThrow(() -> new BadRequestException("Mime type not found in X-Content-Disposition header")),
-      Utils.getFilePropertyFromContentDisposition(xContentDisposition, "fileName")
-        .orElseThrow(() -> new BadRequestException("File name not found in X-Content-Disposition header")),
-      currentUser);
+    userService.setUserPicture(
+      userId,
+      body,
+      Optional.of(headerMimeType).orElseThrow(() -> new BadRequestException("Mime type not found")),
+      Optional.of(new String(Base64.getDecoder().decode(headerFileName)))
+        .orElseThrow(() -> new BadRequestException("File name not found")),
+      currentUser
+    );
     return Response.status(Status.NO_CONTENT).build();
   }
 

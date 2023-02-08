@@ -133,7 +133,8 @@ public class AttachmentServiceImpl implements AttachmentService {
 
   @Override
   @Transactional
-  public IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, UserPrincipal currentUser) {
+  public IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, String description,
+    UserPrincipal currentUser) {
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
     if (List.of(RoomTypeDto.WORKSPACE, RoomTypeDto.CHANNEL).contains(room.getType())) {
       throw new BadRequestException(String.format("Cannot add attachments on %s rooms", room.getType()));
