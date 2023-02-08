@@ -15,7 +15,6 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
-import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ClearedDateDto;
 import com.zextras.carbonio.chats.model.JoinSettingsByRoomDto;
@@ -27,6 +26,7 @@ import com.zextras.carbonio.chats.model.RoomRankDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.io.File;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -128,15 +128,16 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response updateRoomPicture(
-    UUID roomId, String xContentDisposition, File body, SecurityContext securityContext
+    UUID roomId, String headerFileName, String headerMimeType, File body, SecurityContext securityContext
   ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    roomService.setRoomPicture(roomId, body,
-      Utils.getFilePropertyFromContentDisposition(xContentDisposition, "mimeType")
-        .orElseThrow(() -> new BadRequestException("Mime type not found in X-Content-Disposition header")),
-      Utils.getFilePropertyFromContentDisposition(xContentDisposition, "fileName")
-        .orElseThrow(() -> new BadRequestException("File name not found in X-Content-Disposition header")),
+    roomService.setRoomPicture(
+      roomId,
+      body,
+      Optional.of(headerMimeType).orElseThrow(() -> new BadRequestException("Mime type not found")),
+      Optional.of(new String(Base64.getDecoder().decode(headerFileName)))
+        .orElseThrow(() -> new BadRequestException("File name not found")),
       currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -267,10 +268,10 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .entity(attachmentService.getAttachmentInfoByRoomId(roomId, itemsNumber, filter, currentUser)).build();
   }
 
-  @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response insertAttachment(
-    UUID roomId, String xContentDisposition, File body, SecurityContext securityContext
+    UUID roomId, String headerFileName, String headerMimeType, File body, String headerDescription,
+    SecurityContext securityContext
   ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -279,10 +280,10 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .entity(attachmentService.addAttachment(
         roomId,
         body,
-        Utils.getFilePropertyFromContentDisposition(xContentDisposition, "mimeType")
-          .orElseThrow(() -> new BadRequestException("Mime type not found in X-Content-Disposition header")),
-        Utils.getFilePropertyFromContentDisposition(xContentDisposition, "fileName")
-          .orElseThrow(() -> new BadRequestException("File name not found in X-Content-Disposition header")),
+        Optional.of(headerMimeType).orElseThrow(() -> new BadRequestException("Mime type not found")),
+        Optional.of(new String(Base64.getDecoder().decode(headerFileName)))
+          .orElseThrow(() -> new BadRequestException("File name not found")),
+        Optional.ofNullable(headerDescription).map(d -> new String(Base64.getDecoder().decode(d))).orElse(""),
         currentUser))
       .build();
   }

@@ -151,7 +151,8 @@ paths:
       operationId: updateRoomPicture
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
-        - $ref: '#/components/parameters/headerXContentDisposition'
+        - $ref: '#/components/parameters/headerFileName'
+        - $ref: '#/components/parameters/headerMimeType'
       requestBody:
         $ref: '#/components/requestBodies/UpdateRoomPictureRequest'
       responses:
@@ -427,7 +428,8 @@ paths:
       operationId: updateUserPicture
       parameters:
         - $ref: '#/components/parameters/pathUserId'
-        - $ref: '#/components/parameters/headerXContentDisposition'
+        - $ref: '#/components/parameters/headerFileName'
+        - $ref: '#/components/parameters/headerMimeType'
       requestBody:
         $ref: '#/components/requestBodies/UpdateUserPictureRequest'
       responses:
@@ -483,7 +485,9 @@ paths:
       operationId: insertAttachment
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
-        - $ref: '#/components/parameters/headerXContentDisposition'
+        - $ref: '#/components/parameters/headerFileName'
+        - $ref: '#/components/parameters/headerMimeType'
+        - $ref: '#/components/parameters/headerDescription'
       requestBody:
         $ref: '#/components/requestBodies/InsertAttachmentRequest'
       responses:
@@ -608,14 +612,30 @@ components:
         format: uuid
       required: true
       allowEmptyValue: false
-    headerXContentDisposition:
+    headerFileName:
       in: header
-      name: X-Content-Disposition
-      description: file content type and file name writes with inline format ('fileName=<>;mimeType=<>')
+      name: fileName
+      description: file name
       schema:
         type: string
       required: true
       allowEmptyValue: false
+    headerMimeType:
+      in: header
+      name: mimeType
+      description: content type
+      schema:
+        type: string
+      required: true
+      allowEmptyValue: false
+    headerDescription:
+      in: header
+      name: description
+      description: description
+      schema:
+        type: string
+      required: false
+      allowEmptyValue: true
     queryPageItemsNumber:
       in: query
       name: itemsNumber

@@ -6,8 +6,6 @@ package com.zextras.carbonio.chats.core.utils;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.Base64;
-import java.util.Optional;
 import org.apache.commons.codec.binary.Base32;
 
 public class Utils {
@@ -40,16 +38,4 @@ public class Utils {
     return encodedHash.toString();
   }
 
-  public static Optional<String> getFilePropertyFromContentDisposition(String xContentDisposition, String property) {
-    if (xContentDisposition.contains(property)) {
-      String value = xContentDisposition.substring(xContentDisposition.indexOf(property) + property.length() + 1);
-      if (value.contains(";")) {
-        value = value.substring(0, value.indexOf(";"));
-      }
-      value = value.trim();
-      return Optional.of("fileName".equals(property) ? new String(Base64.getDecoder().decode(value)) : value);
-    } else {
-      return Optional.empty();
-    }
-  }
 }

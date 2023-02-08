@@ -63,10 +63,12 @@ public interface AttachmentService {
    * @param file        file to save {@link File}
    * @param mimeType    file mime type
    * @param fileName    file name
+   * @param description file description
    * @param currentUser current authenticated user {@link UserPrincipal}
    * @return The added file identifier {@link IdDto}
    */
-  IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, UserPrincipal currentUser);
+  IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, String description,
+    UserPrincipal currentUser);
 
   /**
    * Deletes a room's attachment file
