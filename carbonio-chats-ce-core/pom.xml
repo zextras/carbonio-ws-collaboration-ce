@@ -85,11 +85,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>resteasy-validator-provider</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>org.hibernate</groupId>
-      <artifactId>hibernate-validator-cdi</artifactId>
-    </dependency>
-
     <!-- JavaEE api -->
     <dependency>
       <groupId>javax</groupId>
@@ -248,23 +243,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         <configuration>
           <parallel>classes</parallel>
         </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>io.ebean</groupId>
-        <artifactId>ebean-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>main</id>
-            <phase>process-classes</phase>
-            <configuration>
-              <transformArgs>debug=1</transformArgs>
-            </configuration>
-            <goals>
-              <goal>enhance</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
 
       <!-- Code Coverage report generation -->

@@ -1,0 +1,52 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Chats
+Upstream-Contact: Smoky Beans <smokybeans@zextras.com>
+Source: https://example.com/jane/project
+
+Files: README.md
+Copyright: 2023 Zextras s.r.l
+License: AGPL-3.0-only
+
+Files: .env.example
+Copyright: 2023 Zextras s.r.l
+License: CC0-1.0
+
+Files: pacur.json
+Copyright: 2023 Zextras s.r.l
+License: AGPL-3.0-only
+
+Files: package/*
+Copyright: 2023 Zextras s.r.l
+License: AGPL-3.0-only
+
+Files: carbonio-chats-ce-core/src/main/resources/build-information
+Copyright: 2023 Zextras s.r.l
+License: AGPL-3.0-only
+
+Files: carbonio-chats-ce-core/src/main/resources/ebean.mf
+Copyright: 2023 Zextras s.r.l
+License: AGPL-3.0-only
+
+Files: carbonio-chats-ce-openapi/src/main/resources/chats/chats-generator-config.json
+Copyright: 2023 Zextras s.r.l
+License: AGPL-3.0-only
+
+Files: carbonio-chats-ce-openapi/src/main/resources/generator-ignore
+Copyright: 2023 Zextras s.r.l
+License: AGPL-3.0-only
+
+Files: carbonio-chats-ce-openapi/src/main/resources/meeting/meeting-generator-config.json
+Copyright: 2023 Zextras s.r.l
+License: AGPL-3.0-only
+
+Files: carbonio-chats-ce-core/src/test/resources/build-information
+Copyright: 2023 Zextras s.r.l
+License: AGPL-3.0-only
+
+Files: carbonio-chats-ce-it/src/test/resources/build-information
+Copyright: 2023 Zextras s.r.l
+License: AGPL-3.0-only
+
+Files: carbonio-chats-ce-it/src/test/resources/files/*
+Copyright: 2023 Zextras s.r.l
+License: CC-BY-NC-SA-4.0
