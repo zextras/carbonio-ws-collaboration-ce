@@ -207,20 +207,6 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   }
 
   @Override
-  public void setMemberRole(String roomId, String senderId, String recipientId, boolean isOwner) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.MEMBER_ROLE_CHANGED,
-      Map.of("recipient", userIdToUserDomain(recipientId), "role", isOwner ? "OWNER" : "MEMBER"), null);
-    if (result.errors != null) {
-      try {
-        throw new MessageDispatcherException(
-          String.format("Error while sending update room name: %s", objectMapper.writeValueAsString(result.errors)));
-      } catch (JsonProcessingException e) {
-        throw new InternalErrorException("Error during parsing the json of response error ", e);
-      }
-    }
-  }
-
-  @Override
   public void sendAttachment(String roomId, String senderId, String attachmentId, String fileName, String description) {
     GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ATTACHMENT_ADDED,
       Map.of("attachment-id", attachmentId, "filename", fileName), description);
