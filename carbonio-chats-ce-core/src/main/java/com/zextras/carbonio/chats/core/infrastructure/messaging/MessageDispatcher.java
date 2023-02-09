@@ -88,12 +88,13 @@ public interface MessageDispatcher extends HealthIndicator {
   void addUsersToContacts(String user1id, String user2id);
 
   /**
-   * Sets the member role
+   * Sends the attachment
    *
-   * @param roomId      room identifier
-   * @param senderId    operation user identifier
-   * @param recipientId identifier of the user to modify the roles
-   * @param isOwner     if true set the user as owner, otherwise as member
+   * @param roomId        room identifier
+   * @param senderId      operation user identifier
+   * @param attachmentId  identifier of the attachment to send
+   * @param fileName      name of the attachment
+   * @param description   description of the attachment
    */
-  void setMemberRole(String roomId, String senderId, String recipientId, boolean isOwner);
+  void sendAttachment(String roomId, String senderId, String attachmentId, String fileName, String description);
 }

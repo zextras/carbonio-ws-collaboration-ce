@@ -23,6 +23,7 @@ import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
@@ -53,18 +54,21 @@ public class AttachmentServiceImpl implements AttachmentService {
   private final StoragesService        storagesService;
   private final RoomService            roomService;
   private final EventDispatcher        eventDispatcher;
+  private final MessageDispatcher      messageDispatcher;
   private final ObjectMapper           objectMapper;
 
   @Inject
   public AttachmentServiceImpl(
     FileMetadataRepository fileMetadataRepository, AttachmentMapper attachmentMapper, StoragesService storagesService,
-    RoomService roomService, EventDispatcher eventDispatcher, ObjectMapper objectMapper
+    RoomService roomService, EventDispatcher eventDispatcher, MessageDispatcher messageDispatcher,
+    ObjectMapper objectMapper
   ) {
     this.fileMetadataRepository = fileMetadataRepository;
     this.attachmentMapper = attachmentMapper;
     this.storagesService = storagesService;
     this.roomService = roomService;
     this.eventDispatcher = eventDispatcher;
+    this.messageDispatcher = messageDispatcher;
     this.objectMapper = objectMapper;
   }
 
@@ -150,6 +154,7 @@ public class AttachmentServiceImpl implements AttachmentService {
       .roomId(roomId.toString());
     metadata = fileMetadataRepository.save(metadata);
     storagesService.saveFile(file, metadata, currentUser.getId());
+    messageDispatcher.sendAttachment(roomId.toString(), currentUser.getId(), id.toString(), fileName, description);
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       AttachmentAddedEvent.create(currentUser.getUUID(), currentUser.getSessionId())

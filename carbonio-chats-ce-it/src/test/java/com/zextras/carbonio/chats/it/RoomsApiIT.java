@@ -1224,9 +1224,9 @@ public class RoomsApiIT {
         OffsetDateTime.parse("2022-01-01T00:00:00Z"));
 
       mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomNameChanged",
-        Map.of("value", "updatedRoom"), true);
+        Map.of("value", "updatedRoom"), null, true);
       mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomDescriptionChanged",
-        Map.of("value", "Updated room"), true);
+        Map.of("value", "Updated room"), null, true);
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response = dispatcher.put(url(roomId),
         getUpdateRoomRequestBody("updatedRoom", "Updated room"), user1Token);
@@ -1244,10 +1244,10 @@ public class RoomsApiIT {
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       mongooseImMockServer.verify(
         mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomNameChanged",
-          Map.of("value", "updatedRoom")), VerificationTimes.exactly(1));
+          Map.of("value", "updatedRoom"), null), VerificationTimes.exactly(1));
       mongooseImMockServer.verify(
         mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomDescriptionChanged",
-          Map.of("value", "Updated room")), VerificationTimes.exactly(1));
+          Map.of("value", "Updated room"), null), VerificationTimes.exactly(1));
     }
 
     @Test
@@ -1727,7 +1727,7 @@ public class RoomsApiIT {
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
       mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomPictureUpdated",
-        Map.of("picture-id", roomId.toString(), "picture-name", fileMock.getName()), true);
+        Map.of("picture-id", roomId.toString(), "picture-name", fileMock.getName()), null, true);
       Instant now = Instant.now();
       clock.fixTimeAt(now);
       MockHttpResponse response = dispatcher.put(url(roomId), fileMock.getId().getBytes(),
@@ -1739,7 +1739,7 @@ public class RoomsApiIT {
         ), user1Token);
       mongooseImMockServer.verify(
         mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomPictureUpdated",
-          Map.of("picture-id", roomId.toString(), "picture-name", fileMock.getName())));
+          Map.of("picture-id", roomId.toString(), "picture-name", fileMock.getName()), null));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       // TODO: 01/03/22 verify event dispatcher iterations
       storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
@@ -1883,7 +1883,8 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id),
         List.of(user1Id), null, OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
-      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomPictureDeleted", Map.of(), true);
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomPictureDeleted", Map.of(), null,
+        true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -1892,7 +1893,7 @@ public class RoomsApiIT {
 
       mongooseImMockServer.verify(
         mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomPictureDeleted",
-          Map.of()), VerificationTimes.exactly(1));
+          Map.of(), null), VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       storageMockServer.verify("DELETE", "/delete", fileMock.getId(), 1);
     }
@@ -3196,6 +3197,8 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
 
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "attachmentAdded",
+        Map.of("attachment-id", fileMock.getId(), "filename", fileMock.getName()), "", true);
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
@@ -3212,6 +3215,51 @@ public class RoomsApiIT {
       }
 
       assertEquals(201, response.getStatus());
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "attachmentAdded",
+          Map.of("attachment-id", fileMock.getId(), "filename", fileMock.getName()), ""), VerificationTimes.exactly(1));
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
+      IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
+
+      assertTrue(
+        integrationTestUtils.getFileMetadataByRoomIdAndType(roomId, FileMetadataType.ATTACHMENT)
+          .stream().anyMatch(attach ->
+            attach.getId().equals(id.getId().toString())));
+      // TODO: 28/02/22 verify event dispatcher interactions
+    }
+
+    @Test
+    @DisplayName("Given a room identifier and an attachment, correctly inserts the attachment with a description")
+    public void insertAttachment_testOkwithDescription() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+      String description = "peanuts image";
+
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "attachmentAdded",
+        Map.of("attachment-id", fileMock.getId(), "filename", fileMock.getName()), description, true);
+      MockHttpResponse response;
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        response = dispatcher.post(url(roomId), fileMock.getFileBytes(),
+          Map.of(
+            "Content-Type",
+            "application/octet-stream",
+            "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            "mimeType", fileMock.getMimeType(),
+            "description", Base64.getEncoder().encodeToString(description.getBytes())
+          ),
+          user1Token);
+      }
+
+      assertEquals(201, response.getStatus());
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "attachmentAdded",
+          Map.of("attachment-id", fileMock.getId(), "filename", fileMock.getName()), description),
+        VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
       IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
