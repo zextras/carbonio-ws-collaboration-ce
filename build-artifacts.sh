@@ -5,7 +5,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 function build-all-artifacts() {
-
   version=$1
   artifacts_folder=$2
   no_docker=$3
