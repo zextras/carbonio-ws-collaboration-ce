@@ -50,3 +50,7 @@ License: AGPL-3.0-only
 Files: carbonio-chats-ce-it/src/test/resources/files/*
 Copyright: 2023 Zextras s.r.l
 License: CC-BY-NC-SA-4.0
+
+Files: carbonio-chats-ce-boot/src/main/resources/banner.txt
+Copyright: 2023 Zextras s.r.l
+License: CC0-1.0
