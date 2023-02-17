@@ -9,7 +9,9 @@ import static org.mockserver.model.HttpResponse.response;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.Header;
@@ -140,7 +142,7 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
   }
 
   public HttpRequest getSendStanzaRequest(
-    String roomId, String senderId, String type, Map<String, String> content, String body
+    String roomId, String senderId, String type, Map<String, String> content, @Nullable String body
   ) {
     String xml = "<message xmlns='jabber:client' " +
       String.format("to='%s@muclight.carbonio' ", roomId) +
@@ -148,11 +150,8 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
       "type='groupchat'><x xmlns='urn:xmpp:muclight:0#configuration'>" +
       String.format("<operation>%s</operation>", type) +
       content.keySet().stream().map(k -> "<" + k + ">" + content.get(k) + "</" + k + ">")
-        .collect(Collectors.joining()) + "</x>";
-    if (body != null) {
-      xml += "<body>" + body + "</body>";
-    }
-    xml += "</message>";
+        .collect(Collectors.joining()) + "</x>" +
+      "<body>" + Optional.ofNullable(body).orElse("") + "</body></message>";
 
     return getRequest("POST", "{\"query\":\"mutation stanza { stanza { sendStanza (stanza: \\\"" + xml
       + "\\\") { id } } }\",\"operationName\":\"stanza\",\"variables\":{}}");

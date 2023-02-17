@@ -3231,7 +3231,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier and an attachment, correctly inserts the attachment with a description")
-    public void insertAttachment_testOkwithDescription() throws Exception {
+    public void insertAttachment_testOkWithDescription() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
