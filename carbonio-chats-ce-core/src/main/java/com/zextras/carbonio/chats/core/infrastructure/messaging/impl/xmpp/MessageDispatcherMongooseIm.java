@@ -26,7 +26,6 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.jivesoftware.smack.packet.Message.Type;
-import org.jivesoftware.smack.packet.MessageBuilder;
 import org.jivesoftware.smack.packet.StandardExtensionElement;
 import org.jivesoftware.smack.packet.StandardExtensionElement.Builder;
 import org.jivesoftware.smack.packet.StanzaBuilder;
@@ -254,27 +253,28 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     }
   }
 
-  private GraphQlResponse sendStanza(String roomId, String senderId, MessageType type, Map<String, String> content,
-    @Nullable String body) {
+  private GraphQlResponse sendStanza(
+    String roomId, String senderId, MessageType type, Map<String, String> content,
+    @Nullable String body
+  ) {
     return executeMutation(GraphQlBody.create(
       "mutation stanza { stanza { sendStanza (" +
         String.format("stanza: \"%s\") ", getStanzaMessage(roomId, senderId, type, content, body)) +
         "{ id } } }", "stanza", Map.of()));
   }
 
-  private String getStanzaMessage(String roomId, String senderId, MessageType type, Map<String, String> elementsMap,
-    @Nullable String body) {
+  private String getStanzaMessage(
+    String roomId, String senderId, MessageType type, Map<String, String> elementsMap,
+    @Nullable String body
+  ) {
     try {
-      MessageBuilder messageBuilder = StanzaBuilder
+      return StanzaBuilder
         .buildMessage()
         .from(userIdToUserDomain(senderId))
         .to(roomIdToRoomDomain(roomId))
         .ofType(Type.groupchat)
-        .addExtension(getStanzaElementX(type, elementsMap));
-      if (body != null) {
-        messageBuilder.addBody(null, body);
-      }
-      return messageBuilder
+        .addExtension(getStanzaElementX(type, elementsMap))
+        .setBody(body == null ? "" : body)
         .build()
         .toXML()
         .toString();
