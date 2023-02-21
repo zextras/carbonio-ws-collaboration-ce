@@ -12,7 +12,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import javax.validation.constraints.Null;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.Header;
@@ -161,7 +160,8 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
   }
 
   public void mockSendStanza(
-    String roomId, String senderId, String type, Map<String, String> content, @Nullable String body, @Nullable String messageId, boolean success
+    String roomId, String senderId, String type, Map<String, String> content, @Nullable String body,
+    @Nullable String messageId, boolean success
   ) {
     HttpRequest request = getSendStanzaRequest(roomId, senderId, type, content, body, messageId);
     clear(request);

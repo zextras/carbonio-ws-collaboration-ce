@@ -257,8 +257,8 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   }
 
   private GraphQlResponse sendStanza(
-    String roomId, String senderId, MessageType type, Map<String, String> content,
-    @Nullable String body, @Nullable String messageId
+    String roomId, String senderId, MessageType type, Map<String, String> content, @Nullable String body,
+    @Nullable String messageId
   ) {
     return executeMutation(GraphQlBody.create(
       "mutation stanza { stanza { sendStanza (" +
