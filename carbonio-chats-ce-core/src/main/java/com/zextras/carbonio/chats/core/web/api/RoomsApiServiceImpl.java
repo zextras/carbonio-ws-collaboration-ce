@@ -270,7 +270,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response insertAttachment(
-    UUID roomId, String headerFileName, String headerMimeType, File body, String headerDescription,
+    UUID roomId, String fileName, String mimeType, File body, String description, String messageId,
     SecurityContext securityContext
   ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
@@ -280,11 +280,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .entity(attachmentService.addAttachment(
         roomId,
         body,
-        Optional.of(headerMimeType).orElseThrow(() -> new BadRequestException("Mime type not found")),
-        Optional.of(new String(Base64.getDecoder().decode(headerFileName)))
+        Optional.of(mimeType).orElseThrow(() -> new BadRequestException("Mime type not found")),
+        Optional.of(new String(Base64.getDecoder().decode(fileName)))
           .orElseThrow(() -> new BadRequestException("File name not found")),
-        Optional.ofNullable(headerDescription).map(d -> new String(Base64.getDecoder().decode(d))).orElse(""),
-        currentUser))
+        Optional.ofNullable(description).map(d -> new String(Base64.getDecoder().decode(d))).orElse(""),
+        "".equals(messageId) ? null : messageId, currentUser))
       .build();
   }
 

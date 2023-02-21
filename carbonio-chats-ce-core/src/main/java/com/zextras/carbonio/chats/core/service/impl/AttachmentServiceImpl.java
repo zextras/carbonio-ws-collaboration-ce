@@ -138,7 +138,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   @Override
   @Transactional
   public IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, String description,
-    UserPrincipal currentUser) {
+    @Nullable String messageId, UserPrincipal currentUser) {
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
     if (List.of(RoomTypeDto.WORKSPACE, RoomTypeDto.CHANNEL).contains(room.getType())) {
       throw new BadRequestException(String.format("Cannot add attachments on %s rooms", room.getType()));
@@ -154,7 +154,7 @@ public class AttachmentServiceImpl implements AttachmentService {
       .roomId(roomId.toString());
     metadata = fileMetadataRepository.save(metadata);
     storagesService.saveFile(file, metadata, currentUser.getId());
-    messageDispatcher.sendAttachment(roomId.toString(), currentUser.getId(), id.toString(), fileName, description);
+    messageDispatcher.sendAttachment(roomId.toString(), currentUser.getId(), id.toString(), fileName, description, messageId);
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       AttachmentAddedEvent.create(currentUser.getUUID(), currentUser.getSessionId())

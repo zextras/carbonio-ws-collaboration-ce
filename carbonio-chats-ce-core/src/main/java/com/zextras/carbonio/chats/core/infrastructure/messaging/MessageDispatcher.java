@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.infrastructure.messaging;
 
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
+import javax.annotation.Nullable;
 
 public interface MessageDispatcher extends HealthIndicator {
 
@@ -90,11 +91,14 @@ public interface MessageDispatcher extends HealthIndicator {
   /**
    * Sends the attachment
    *
-   * @param roomId        room identifier
-   * @param senderId      operation user identifier
-   * @param attachmentId  identifier of the attachment to send
-   * @param fileName      name of the attachment
-   * @param description   description of the attachment
+   * @param roomId       room identifier
+   * @param senderId     operation user identifier
+   * @param attachmentId identifier of the attachment to send
+   * @param fileName     name of the attachment
+   * @param description  description of the attachment
+   * @param messageId    identifier of XMPP message to create
    */
-  void sendAttachment(String roomId, String senderId, String attachmentId, String fileName, String description);
+  void sendAttachment(
+    String roomId, String senderId, String attachmentId, String fileName, String description, @Nullable String messageId
+  );
 }
