@@ -208,10 +208,15 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void sendAttachment(
-    String roomId, String senderId, String attachmentId, String fileName, String description, @Nullable String messageId
+    String roomId, String senderId, String attachmentId, String fileName, String mimeType, long fileSize, String description, @Nullable String messageId
   ) {
     GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ATTACHMENT_ADDED,
-      Map.of("attachment-id", attachmentId, "filename", fileName), description, messageId);
+      Map.of(
+        "attachment-id", attachmentId,
+        "filename", fileName,
+        "mime-type", mimeType,
+        "size", String.valueOf(fileSize)
+      ), description, messageId);
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
