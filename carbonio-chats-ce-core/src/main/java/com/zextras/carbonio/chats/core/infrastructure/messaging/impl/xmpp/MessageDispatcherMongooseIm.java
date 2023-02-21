@@ -98,7 +98,8 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void updateRoomName(String roomId, String senderId, String name) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_NAME_CHANGED, Map.of("value", name), null);
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_NAME_CHANGED, Map.of("value", name), null,
+      null);
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -112,7 +113,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   @Override
   public void updateRoomDescription(String roomId, String senderId, String description) {
     GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_DESCRIPTION_CHANGED,
-      Map.of("value", description), null);
+      Map.of("value", description), null, null);
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -127,7 +128,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   @Override
   public void updateRoomPicture(String roomId, String senderId, String pictureId, String pictureName) {
     GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_PICTURE_UPDATED,
-      Map.of("picture-id", pictureId, "picture-name", pictureName), null);
+      Map.of("picture-id", pictureId, "picture-name", pictureName), null, null);
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -141,7 +142,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void deleteRoomPicture(String roomId, String senderId) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_PICTURE_DELETED, null, null);
+    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_PICTURE_DELETED, null, null, null);
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -206,9 +207,11 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   }
 
   @Override
-  public void sendAttachment(String roomId, String senderId, String attachmentId, String fileName, String description) {
+  public void sendAttachment(
+    String roomId, String senderId, String attachmentId, String fileName, String description, @Nullable String messageId
+  ) {
     GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ATTACHMENT_ADDED,
-      Map.of("attachment-id", attachmentId, "filename", fileName), description);
+      Map.of("attachment-id", attachmentId, "filename", fileName), description, messageId);
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -255,21 +258,21 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   private GraphQlResponse sendStanza(
     String roomId, String senderId, MessageType type, Map<String, String> content,
-    @Nullable String body
+    @Nullable String body, @Nullable String messageId
   ) {
     return executeMutation(GraphQlBody.create(
       "mutation stanza { stanza { sendStanza (" +
-        String.format("stanza: \"%s\") ", getStanzaMessage(roomId, senderId, type, content, body)) +
+        String.format("stanza: \"%s\") ", getStanzaMessage(roomId, senderId, type, content, body, messageId)) +
         "{ id } } }", "stanza", Map.of()));
   }
 
   private String getStanzaMessage(
     String roomId, String senderId, MessageType type, Map<String, String> elementsMap,
-    @Nullable String body
+    @Nullable String body, @Nullable String messageId
   ) {
     try {
       return StanzaBuilder
-        .buildMessage()
+        .buildMessage(messageId)
         .from(userIdToUserDomain(senderId))
         .to(roomIdToRoomDomain(roomId))
         .ofType(Type.groupchat)

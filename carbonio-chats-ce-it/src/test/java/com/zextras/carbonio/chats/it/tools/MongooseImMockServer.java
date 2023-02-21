@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import javax.validation.constraints.Null;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.Header;
@@ -142,11 +143,13 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
   }
 
   public HttpRequest getSendStanzaRequest(
-    String roomId, String senderId, String type, Map<String, String> content, @Nullable String body
+    String roomId, String senderId, String type, Map<String, String> content, @Nullable String body,
+    @Nullable String messageId
   ) {
     String xml = "<message xmlns='jabber:client' " +
       String.format("to='%s@muclight.carbonio' ", roomId) +
       String.format("from='%s@carbonio' ", senderId) +
+      (messageId == null ? "" : String.format("id='%s' ", messageId)) +
       "type='groupchat'><x xmlns='urn:xmpp:muclight:0#configuration'>" +
       String.format("<operation>%s</operation>", type) +
       content.keySet().stream().map(k -> "<" + k + ">" + content.get(k) + "</" + k + ">")
@@ -158,9 +161,9 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
   }
 
   public void mockSendStanza(
-    String roomId, String senderId, String type, Map<String, String> content, String body, boolean success
+    String roomId, String senderId, String type, Map<String, String> content, @Nullable String body, @Nullable String messageId, boolean success
   ) {
-    HttpRequest request = getSendStanzaRequest(roomId, senderId, type, content, body);
+    HttpRequest request = getSendStanzaRequest(roomId, senderId, type, content, body, messageId);
     clear(request);
     when(request).respond(getResponse(success));
   }

@@ -64,11 +64,14 @@ public interface AttachmentService {
    * @param mimeType    file mime type
    * @param fileName    file name
    * @param description file description
+   * @param messageId   identifier of XMPP message to create
    * @param currentUser current authenticated user {@link UserPrincipal}
    * @return The added file identifier {@link IdDto}
    */
-  IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, String description,
-    UserPrincipal currentUser);
+  IdDto addAttachment(
+    UUID roomId, File file, String mimeType, String fileName, String description, @Nullable String messageId,
+    UserPrincipal currentUser
+  );
 
   /**
    * Deletes a room's attachment file
