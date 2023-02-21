@@ -646,7 +646,7 @@ public class AttachmentServiceImplTest {
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room2);
       assertThrows(BadRequestException.class,
         () -> attachmentService.addAttachment(roomId, mock(File.class), "application/pdf", "temp.pdf", "description",
-          "null",
+          null,
           currentUser));
 
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
