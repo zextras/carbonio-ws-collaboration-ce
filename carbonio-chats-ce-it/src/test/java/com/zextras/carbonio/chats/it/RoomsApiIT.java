@@ -3198,7 +3198,11 @@ public class RoomsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
 
       mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "attachmentAdded",
-        Map.of("attachment-id", fileMock.getId(), "filename", fileMock.getName()), "", null, true);
+        Map.of(
+          "attachment-id", fileMock.getId(),
+          "filename", fileMock.getName(),
+          "mime-type", fileMock.getMimeType(),
+          "size", String.valueOf(fileMock.getSize())), "", null, true);
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
@@ -3217,7 +3221,11 @@ public class RoomsApiIT {
       assertEquals(201, response.getStatus());
       mongooseImMockServer.verify(
         mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "attachmentAdded",
-          Map.of("attachment-id", fileMock.getId(), "filename", fileMock.getName()), "", null),
+          Map.of(
+            "attachment-id", fileMock.getId(),
+            "filename", fileMock.getName(),
+            "mime-type", fileMock.getMimeType(),
+            "size", String.valueOf(fileMock.getSize())), "", null),
         VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
@@ -3239,7 +3247,11 @@ public class RoomsApiIT {
       String description = "peanuts image";
 
       mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "attachmentAdded",
-        Map.of("attachment-id", fileMock.getId(), "filename", fileMock.getName()), description, "the-xmpp-message-id",
+        Map.of(
+          "attachment-id", fileMock.getId(),
+          "filename", fileMock.getName(),
+          "mime-type", fileMock.getMimeType(),
+          "size", String.valueOf(fileMock.getSize())), description, "the-xmpp-message-id",
         true);
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -3260,7 +3272,11 @@ public class RoomsApiIT {
       assertEquals(201, response.getStatus());
       mongooseImMockServer.verify(
         mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "attachmentAdded",
-          Map.of("attachment-id", fileMock.getId(), "filename", fileMock.getName()), description,
+          Map.of(
+            "attachment-id", fileMock.getId(),
+            "filename", fileMock.getName(),
+            "mime-type", fileMock.getMimeType(),
+            "size", String.valueOf(fileMock.getSize())), description,
           "the-xmpp-message-id"),
         VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
