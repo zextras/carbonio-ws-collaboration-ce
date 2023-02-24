@@ -143,7 +143,7 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
 
   public HttpRequest getSendStanzaRequest(
     String roomId, String senderId, String type, Map<String, String> content, @Nullable String body,
-    @Nullable String messageId
+    @Nullable String messageId, @Nullable String replyId
   ) {
     String xml = "<message xmlns='jabber:client' " +
       String.format("to='%s@muclight.carbonio' ", roomId) +
@@ -153,17 +153,20 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
       String.format("<operation>%s</operation>", type) +
       content.keySet().stream().map(k -> "<" + k + ">" + content.get(k) + "</" + k + ">")
         .collect(Collectors.joining()) + "</x>" +
-      "<body>" + Optional.ofNullable(body).orElse("") + "</body></message>";
-
+      "<body>" + Optional.ofNullable(body).orElse("") + "</body>" +
+      (replyId == null ? "" : "<reply xmlns='urn:xmpp:reply:0' " +
+        String.format("to='%s@muclight.carbonio' ", roomId) +
+        String.format("id='%s'", replyId) + "></reply>") +
+      "</message>";
     return getRequest("POST", "{\"query\":\"mutation stanza { stanza { sendStanza (stanza: \\\"" + xml
       + "\\\") { id } } }\",\"operationName\":\"stanza\",\"variables\":{}}");
   }
 
   public void mockSendStanza(
     String roomId, String senderId, String type, Map<String, String> content, @Nullable String body,
-    @Nullable String messageId, boolean success
+    @Nullable String messageId, @Nullable String replyId, boolean success
   ) {
-    HttpRequest request = getSendStanzaRequest(roomId, senderId, type, content, body, messageId);
+    HttpRequest request = getSendStanzaRequest(roomId, senderId, type, content, body, messageId, replyId);
     clear(request);
     when(request).respond(getResponse(success));
   }

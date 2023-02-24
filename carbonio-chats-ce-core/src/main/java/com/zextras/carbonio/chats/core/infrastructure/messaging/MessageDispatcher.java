@@ -99,9 +99,10 @@ public interface MessageDispatcher extends HealthIndicator {
    * @param fileSize     file size
    * @param description  description of the attachment
    * @param messageId    identifier of XMPP message to create
+   * @param replyId      identifier of the message being replied to
    */
   void sendAttachment(
     String roomId, String senderId, String attachmentId, String fileName, String mimeType, long fileSize,
-    String description, @Nullable String messageId
+    String description, @Nullable String messageId, @Nullable String replyId
   );
 }
