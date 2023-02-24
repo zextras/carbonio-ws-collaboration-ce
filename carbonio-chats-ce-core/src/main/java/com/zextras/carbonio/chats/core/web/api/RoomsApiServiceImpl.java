@@ -270,7 +270,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response insertAttachment(
-    UUID roomId, String fileName, String mimeType, File body, String description, String messageId,
+    UUID roomId, String fileName, String mimeType, File body, String description, String messageId, String replyId,
     SecurityContext securityContext
   ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
@@ -284,7 +284,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
         Optional.of(new String(Base64.getDecoder().decode(fileName)))
           .orElseThrow(() -> new BadRequestException("File name not found")),
         Optional.ofNullable(description).map(d -> new String(Base64.getDecoder().decode(d))).orElse(""),
-        "".equals(messageId) ? null : messageId, currentUser))
+        "".equals(messageId) ? null : messageId,
+        "".equals(replyId) ? null : replyId, currentUser))
       .build();
   }
 

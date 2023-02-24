@@ -489,6 +489,7 @@ paths:
         - $ref: '#/components/parameters/headerMimeType'
         - $ref: '#/components/parameters/headerDescription'
         - $ref: '#/components/parameters/headerMessageId'
+        - $ref: '#/components/parameters/headerReplyId'
       requestBody:
         $ref: '#/components/requestBodies/InsertAttachmentRequest'
       responses:
@@ -641,6 +642,14 @@ components:
       in: header
       name: messageId
       description: description
+      schema:
+        type: string
+      required: false
+      allowEmptyValue: true
+    headerReplyId:
+      in: header
+      name: replyId
+      description: identifier of the message being replied to
       schema:
         type: string
       required: false
