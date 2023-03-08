@@ -260,11 +260,3 @@ void sendFailureEmail(String step) {
   subject: "[CHATS TRUNK FAILURE] Trunk ${step} step failure",
   to: FAILURE_EMAIL_RECIPIENTS
 }
-
-boolean hasOpenAPIDocumentChanged() {
-  def isChanged = sh(
-    script: "git --no-pager show --name-only --pretty=format: | grep -x carbonio-chats-ce-openapi/src/main/resources/chats/chats-api.yaml",
-    returnStatus: true
-  )
-  return isChanged==0 ? true : false
-}
