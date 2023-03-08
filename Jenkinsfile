@@ -73,46 +73,6 @@ pipeline {
         }
       }
     }
-    stage("Publishing documentation") {
-      when {
-        allOf {
-          branch "main"
-          expression { hasOpenAPIDocumentChanged() }
-        }
-      }
-      steps {
-        dir("dev-guide") {
-          checkout([
-            $class: 'GitSCM',
-            branches: [[name: 'master']],
-            userRemoteConfigs: [[
-              credentialsId: 'tarsier_bot-ssh-key',
-              url: 'git@bitbucket.org:zextras/dev-guide.git'
-            ]]
-          ])
-
-          sh '''
-            git checkout master
-            cp ../carbonio-chats-ce-openapi/src/main/resources/chats/chats-api.yaml ./static/chats/openapi/chats-api.yaml
-            cp ../carbonio-chats-ce-openapi/src/main/resources/meeting/meeting-api.yaml ./static/chats/openapi/meeting-api.yaml
-            git config user.name chats-bot
-            git config user.email bot@zextras.com
-            if [[ "$(git diff)" != "" ]]; then
-              git add . && git commit -m "[CHATS-CE PIPELINE] Updated OpenAPI document" && git push
-            fi
-          '''
-        }
-      }
-      post {
-        failure {
-          script {
-            if ("main".equals(env.BRANCH_NAME)) {
-              sendFailureEmail(STAGE_NAME)
-            }
-          }
-        }
-      }
-    }
   
     stage('Stashing for packaging') {
       when {
