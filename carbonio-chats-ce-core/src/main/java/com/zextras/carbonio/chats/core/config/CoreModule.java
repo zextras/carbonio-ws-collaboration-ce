@@ -33,8 +33,6 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.MessageDispatcherMongooseIm;
-import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
-import com.zextras.carbonio.chats.core.infrastructure.previewer.impl.PreviewerServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagementProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -80,6 +78,7 @@ import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
+import com.zextras.carbonio.chats.core.service.PreviewService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentServiceImpl;
@@ -88,6 +87,7 @@ import com.zextras.carbonio.chats.core.service.impl.HealthcheckServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MeetingServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.ParticipantServiceImpl;
+import com.zextras.carbonio.chats.core.service.impl.PreviewServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
@@ -190,7 +190,7 @@ public class CoreModule extends AbstractModule {
     bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
 
     bind(StoragesService.class).to(StoragesServiceImpl.class);
-    bind(PreviewerService.class).to(PreviewerServiceImpl.class);
+    bind(PreviewService.class).to(PreviewServiceImpl.class);
     bind(ProfilingService.class).to(UserManagementProfilingService.class);
     bind(AuthenticationService.class).to(UserManagementAuthenticationService.class);
 

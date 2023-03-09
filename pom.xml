@@ -106,7 +106,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <!-- Integration Tests dependency -->
     <org.testcontainers.version>1.16.2</org.testcontainers.version>
-    <org.mock-server.version>5.11.2</org.mock-server.version>
+    <org.mock-server.version>5.14.0</org.mock-server.version>
     <com.github.fridujo-rabbitmq-mock.version>1.1.1</com.github.fridujo-rabbitmq-mock.version>
 
 
@@ -432,7 +432,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <dependency>
         <groupId>org.mock-server</groupId>
-        <artifactId>mockserver-netty</artifactId>
+        <artifactId>mockserver-netty-no-dependencies</artifactId>
         <version>${org.mock-server.version}</version>
       </dependency>
 

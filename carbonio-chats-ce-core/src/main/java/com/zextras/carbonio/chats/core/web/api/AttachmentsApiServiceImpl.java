@@ -6,16 +6,14 @@ package com.zextras.carbonio.chats.core.web.api;
 
 import com.zextras.carbonio.chats.api.AttachmentsApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
-import com.zextras.carbonio.chats.core.exception.PreviewerException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
-import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import java.io.File;
+
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -27,15 +25,13 @@ import javax.ws.rs.core.SecurityContext;
 @Singleton
 public class AttachmentsApiServiceImpl implements AttachmentsApiService {
 
-  private final PreviewerService  previewService;
   private final StoragesService   storagesService;
   private final AttachmentService attachmentService;
 
   @Inject
-  public AttachmentsApiServiceImpl(AttachmentService attachmentService, PreviewerService previewService,
+  public AttachmentsApiServiceImpl(AttachmentService attachmentService,
     StoragesService storagesService) {
     this.attachmentService = attachmentService;
-    this.previewService = previewService;
     this.storagesService = storagesService;
   }
 
@@ -56,7 +52,7 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
       .header("Content-Disposition", String.format("inline; filename=\"%s\"", attachment.getMetadata().getName()))
       .build();
   }
-
+/*
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response getAttachmentPreview(UUID fileId, SecurityContext securityContext) {
@@ -72,7 +68,7 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
       .header("Content-Type", "image/jpeg")
       .header("Content-Length", attachment.length())
       .build();
-  }
+  }*/
 
   @Override
   @TimedCall

@@ -60,7 +60,14 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <dependency>
       <groupId>org.mock-server</groupId>
-      <artifactId>mockserver-netty</artifactId>
+      <artifactId>mockserver-netty-no-dependencies</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.mock-server</groupId>
+      <artifactId>mockserver-junit-jupiter-no-dependencies</artifactId>
+      <version>5.14.0</version>
       <scope>test</scope>
     </dependency>
 
