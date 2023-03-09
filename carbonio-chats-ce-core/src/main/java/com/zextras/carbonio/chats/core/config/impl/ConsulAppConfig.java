@@ -68,6 +68,7 @@ public class ConsulAppConfig extends AppConfig {
                 .builder()
                 .withMinDelayBetweenRequests(Duration.ofSeconds(60))
                 .withMinDelayOnEmptyResult(Duration.ofSeconds(30))
+                .withBackOffDelay(Duration.ofSeconds(30))
                 .build()
             )
           )
