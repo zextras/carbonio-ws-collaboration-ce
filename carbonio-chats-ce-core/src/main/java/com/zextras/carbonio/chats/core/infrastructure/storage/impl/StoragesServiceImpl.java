@@ -93,6 +93,16 @@ public class StoragesServiceImpl implements StoragesService {
   }
 
   @Override
+  public void copyFile(String sourceId, String sourceOwnerId, String destinationId, String destinationOwnerId) {
+    try {
+      storagesClient.copy(ChatsIdentifier.of(sourceId, sourceOwnerId), ChatsIdentifier.of(destinationId,
+        destinationOwnerId), false);
+    } catch (Exception e) {
+      throw new StorageException("An error occurred while coping the file", e);
+    }
+  }
+
+  @Override
   public void deleteFile(String fileId, String ownerId) {
     try {
       storagesClient.delete(ChatsIdentifier.of(fileId, ownerId));

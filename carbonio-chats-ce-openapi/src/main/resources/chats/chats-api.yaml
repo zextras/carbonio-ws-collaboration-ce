@@ -497,6 +497,26 @@ paths:
           $ref: '#/components/responses/201InsertAttachmentResponse'
         413:
           $ref: '#/components/responses/413PayloadTooLargeResponse'
+  /rooms/{roomId}/forward:
+    post:
+      tags:
+        - Rooms
+        - Attachments
+      summary: Message forwarding
+      operationId: forwardMessages
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+      requestBody:
+        $ref: '#/components/requestBodies/ForwardMessagesRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204ForwardMessagesResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /attachments/{fileId}:
     delete:
       tags:
@@ -745,6 +765,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/JoinSettingsByRoom'
+    ForwardMessagesRequest:
+      description: Messages forwarding request
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ForwardMessagesList'
 
   responses:
     200HealthStatusResponse:
@@ -927,6 +954,8 @@ components:
             $ref: '../meeting/meeting-api.yaml#/components/schemas/Meeting'
     204JoinRoomMeetingResponse:
       description: The user joined the meeting successfully
+    204ForwardMessagesResponse:
+      description: successfully forwarded the messages
 
     400BadRequestResponse:
       description: The request had wrong or missing parameters
@@ -1345,3 +1374,27 @@ components:
       description: Room data
       allOf:
         - $ref: '../meeting/meeting-api.yaml#/components/schemas/JoinSettings'
+    ForwardMessagesList:
+      type: array
+      description: Room data
+      items:
+        $ref: '#/components/schemas/ForwardMessage'
+    ForwardMessage:
+      type: object
+      description: Message to forward
+      properties:
+        originalMessage:
+          type: string
+          readOnly: true
+          description: XML message to forward
+        originalMessageSentAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: date and time the original message was sent
+        description:
+          type: string
+          readOnly: true
+          description: description of the forwarded message
+      required: [ originalMessage ]
+

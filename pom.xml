@@ -54,7 +54,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Carbonio User Management -->
     <carbonio-user-management-sdk.version>0.1.1</carbonio-user-management-sdk.version>
     <!-- Storages -->
-    <storages-sdk.version>0.0.14-SNAPSHOT</storages-sdk.version>
+    <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
     <!-- Previewer -->
     <preview-sdk.version>0.2.1</preview-sdk.version>
     <!-- Jetty -->
