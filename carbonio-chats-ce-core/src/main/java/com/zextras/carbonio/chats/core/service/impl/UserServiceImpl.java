@@ -30,8 +30,10 @@ import io.ebean.annotation.Transactional;
 import java.io.File;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -78,6 +80,21 @@ public class UserServiceImpl implements UserService {
       partialDto.statusMessage(user.getStatusMessage());
     });
     return partialDto;
+  }
+
+  @Override
+  public List<UserDto> getUsersByIds(List<String> userIds, UserPrincipal currentUser) {
+    List<UserDto> partialDtos = profilingService.getByIds(currentUser, userIds).stream().map(
+      profile -> UserDto.create().id(UUID.fromString(profile.getId())).email(profile.getEmail())
+        .name(profile.getName())).collect(Collectors.toList());
+    userRepository.getByIds(partialDtos.stream().map(UserDto::getId).map(UUID::toString).collect(Collectors.toList()))
+      .forEach(user -> {
+        partialDtos.stream().filter(userDto -> userDto.getId().equals(UUID.fromString(user.getId()))).findFirst()
+          .ifPresent(userDto -> userDto.pictureUpdatedAt(user.getPictureUpdatedAt()));
+        partialDtos.stream().filter(userDto -> userDto.getId().equals(UUID.fromString(user.getId()))).findFirst()
+          .ifPresent(userDto -> userDto.statusMessage(user.getStatusMessage()));
+      });
+    return partialDtos;
   }
 
   @Override

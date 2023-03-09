@@ -12,6 +12,7 @@ import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.carbonio.usermanagement.exceptions.UserNotFound;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -41,6 +42,13 @@ public class UserManagementProfilingService implements ProfilingService {
           .domain(userInfo.getDomain())
       ).recover(UserNotFound.class, e -> null)
         .getOrElseThrow((fail) -> new ProfilingException(fail)));
+  }
+
+  @Override
+  public List<UserProfile> getByIds(UserPrincipal principal, List<String> userIds) {
+    String token = principal.getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN)
+      .orElseThrow(ForbiddenException::new);
+    return;
   }
 
   @Override
