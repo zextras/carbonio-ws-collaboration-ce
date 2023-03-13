@@ -19,13 +19,18 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <repositories>
     <repository>
-      <id>artifactory</id>
-      <name>Zextras releases</name>
-      <url>https://zextras.jfrog.io/artifactory/public-maven-repo</url>
+      <id>snapshot-artifactory</id>
+      <name>Zextras snapshot</name>
+      <url>https://zextras.jfrog.io/artifactory/maven-snapshot</url>
     </repository>
     <repository>
       <id>snapshots-repo</id>
       <url>https://repo.zextras.io/maven/snapshot/</url>
+    </repository>
+    <repository>
+      <id>release-artifactory</id>
+      <name>Zextras releases</name>
+      <url>https://zextras.jfrog.io/artifactory/public-maven-repo</url>
     </repository>
     <repository>
       <id>releases-repo</id>
