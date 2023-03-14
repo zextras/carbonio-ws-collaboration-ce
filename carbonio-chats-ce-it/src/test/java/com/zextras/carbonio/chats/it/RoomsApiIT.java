@@ -4035,6 +4035,7 @@ public class RoomsApiIT {
         .type(FileMetadataType.ATTACHMENT)
         .userId(user2Id.toString())
         .roomId(room1Id.toString()));
+      storageMockServer.mockCopyFile(attach1Id.toString(), attach2Id.toString(), true);
       String hoped = "<?xml version=\\\"1.0\\\" encoding=\\\"UTF-16\\\"?>"
         + String.format(
         "<message xmlns=\\\"jabber:client\\\" from=\\\"%s@carbonio\\\" to=\\\"%s@muclight.carbonio\\\" type=\\\"groupchat\\\">",
@@ -4061,6 +4062,7 @@ public class RoomsApiIT {
         + "</x><body/></message>"
         + "</forwarded>"
         + "</message>";
+
       mongooseImMockServer.mockSendStanza(hoped, true);
 
       String messageToForward =
@@ -4101,6 +4103,10 @@ public class RoomsApiIT {
       assertEquals("filename", fileMetadata.getName());
       assertEquals("mimetype", fileMetadata.getMimeType());
       assertEquals(1024, fileMetadata.getOriginalSize());
+
+      storageMockServer.verify(
+        storageMockServer.getCopyFileRequest(attach1Id.toString(), attach2Id.toString()),
+        VerificationTimes.exactly(1));
 
       mongooseImMockServer.verify(
         mongooseImMockServer.getSendStanzaRequest(hoped),
