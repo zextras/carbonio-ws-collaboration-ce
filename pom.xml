@@ -17,22 +17,6 @@ SPDX-License-Identifier: AGPL-3.0-only
   <artifactId>carbonio-chats-ce</artifactId>
   <version>0.3.0</version>
 
-  <repositories>
-    <repository>
-      <id>artifactory</id>
-      <name>Zextras releases</name>
-      <url>https://zextras.jfrog.io/artifactory/public-maven-repo</url>
-    </repository>
-    <repository>
-      <id>snapshots-repo</id>
-      <url>https://repo.zextras.io/maven/snapshot/</url>
-    </repository>
-    <repository>
-      <id>releases-repo</id>
-      <url>https://repo.zextras.io/maven/release/</url>
-    </repository>
-  </repositories>
-
   <profiles>
     <profile>
       <id>default</id>
@@ -492,4 +476,27 @@ SPDX-License-Identifier: AGPL-3.0-only
     </pluginManagement>
   </build>
 
+  <repositories>
+    <repository>
+      <id>artifactory</id>
+      <name>Zextras releases</name>
+      <url>https://zextras.jfrog.io/artifactory/public-maven-repo</url>
+    </repository>
+    <repository>
+      <id>snapshots-repo</id>
+      <url>https://repo.zextras.io/maven/snapshot/</url>
+    </repository>
+    <repository>
+      <id>releases-repo</id>
+      <url>https://repo.zextras.io/maven/release/</url>
+    </repository>
+  </repositories>
+
+  <distributionManagement>
+    <repository>
+      <id>zextras-artifactory</id>
+      <name>Zextras artifactory repository</name>
+      <url>https://zextras.jfrog.io/artifactory/public-maven-repo</url>
+    </repository>
+  </distributionManagement>
 </project>
