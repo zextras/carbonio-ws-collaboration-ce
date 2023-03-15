@@ -113,7 +113,7 @@ pipeline {
 
     stage('Publishing version') {
       steps {
-        sh './mvnw -Dmaven.repo.local=$(pwd)/m2 -B --settings settings-jenkins.xml deploy'
+        sh 'mvn -B --settings settings-jenkins.xml deploy'
       }
     }
 
