@@ -15,6 +15,7 @@ import com.zextras.carbonio.usermanagement.exceptions.UserNotFound;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -48,7 +49,12 @@ public class UserManagementProfilingService implements ProfilingService {
   public List<UserProfile> getByIds(UserPrincipal principal, List<String> userIds) {
     String token = principal.getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN)
       .orElseThrow(ForbiddenException::new);
-    return;
+    return userManagementClient.getUsers(
+        String.format("%s=%s", AUTH_COOKIE, token),
+        userIds.stream().map(UUID::fromString).collect(Collectors.toList())
+      ).getOrElseThrow((fail) -> new ProfilingException(fail)).stream()
+      .map(u -> UserProfile.create(u.getId()).name(u.getFullName()).email(u.getEmail()).domain(u.getDomain()))
+      .collect(Collectors.toList());
   }
 
   @Override
