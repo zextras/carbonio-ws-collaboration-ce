@@ -52,23 +52,6 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
       .header("Content-Disposition", String.format("inline; filename=\"%s\"", attachment.getMetadata().getName()))
       .build();
   }
-/*
-  @Override
-  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
-  public Response getAttachmentPreview(UUID fileId, SecurityContext securityContext) {
-    if (!previewService.isAlive()) {
-      throw new PreviewerException("Previewer service is not alive");
-    }
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
-    File attachment = attachmentService.getAttachmentPreviewById(fileId, currentUser);
-    return Response
-      .status(Status.OK)
-      .entity(attachment)
-      .header("Content-Type", "image/jpeg")
-      .header("Content-Length", attachment.length())
-      .build();
-  }*/
 
   @Override
   @TimedCall

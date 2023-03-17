@@ -50,8 +50,8 @@ public class PreviewApiServiceImpl implements PreviewApiService {
       FileResponse image = previewService.getImage(currentUser,
         fileId,
         area,
-        Option.of(quality).map(q -> Quality.valueOf(q.toString())),
-        Option.of(outputFormat).map(f -> Format.valueOf(f.toString())),
+        Option.of(quality).map(q -> Quality.valueOf(q.toString().toUpperCase())),
+        Option.of(outputFormat).map(f -> Format.valueOf(f.toString().toUpperCase())),
         Option.of(crop));
       return Response
         .status(Response.Status.OK)
@@ -74,9 +74,9 @@ public class PreviewApiServiceImpl implements PreviewApiService {
       FileResponse image = previewService.getImageThumbnail(currentUser,
         fileId,
         area,
-        Option.of(quality).map(q -> Quality.valueOf(q.toString())),
-        Option.of(outputFormat).map(f -> Format.valueOf(f.toString())),
-        Option.of(shape).map(s -> Shape.valueOf(s.toString()))
+        Option.of(quality).map(q -> Quality.valueOf(q.toString().toUpperCase())),
+        Option.of(outputFormat).map(f -> Format.valueOf(f.toString().toUpperCase())),
+        Option.of(shape).map(s -> Shape.valueOf(s.toString().toUpperCase()))
       );
       return Response
         .status(Response.Status.OK)
@@ -123,9 +123,9 @@ public class PreviewApiServiceImpl implements PreviewApiService {
         currentUser,
         fileId,
         area,
-        Option.of(quality).map(q -> Quality.valueOf(q.toString())),
-        Option.of(outputFormat).map(f -> Format.valueOf(f.toString())),
-        Option.of(shape).map(s -> Shape.valueOf(s.toString()))
+        Option.of(quality).map(q -> Quality.valueOf(q.toString().toUpperCase())),
+        Option.of(outputFormat).map(f -> Format.valueOf(f.toString().toUpperCase())),
+        Option.of(shape).map(s -> Shape.valueOf(s.toString().toUpperCase()))
       );
       return Response
         .status(Response.Status.OK)

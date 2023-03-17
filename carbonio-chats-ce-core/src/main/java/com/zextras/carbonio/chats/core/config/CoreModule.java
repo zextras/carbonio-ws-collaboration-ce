@@ -18,6 +18,8 @@ import com.zextras.carbonio.chats.api.AuthApi;
 import com.zextras.carbonio.chats.api.AuthApiService;
 import com.zextras.carbonio.chats.api.HealthApi;
 import com.zextras.carbonio.chats.api.HealthApiService;
+import com.zextras.carbonio.chats.api.PreviewApi;
+import com.zextras.carbonio.chats.api.PreviewApiService;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.api.SupportedApi;
@@ -94,6 +96,7 @@ import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AuthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.MeetingsApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.PreviewApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.SupportedApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
@@ -151,6 +154,10 @@ public class CoreModule extends AbstractModule {
     bind(UsersApiService.class).to(UsersApiServiceImpl.class);
     bind(UserService.class).to(UserServiceImpl.class);
 
+    bind(PreviewApi.class);
+    bind(PreviewApiService.class).to(PreviewApiServiceImpl.class);
+    bind(PreviewService.class).to(PreviewServiceImpl.class);
+
     bind(HealthApi.class);
     bind(HealthApiService.class).to(HealthApiServiceImpl.class);
     bind(HealthcheckService.class).to(HealthcheckServiceImpl.class);
@@ -190,7 +197,6 @@ public class CoreModule extends AbstractModule {
     bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
 
     bind(StoragesService.class).to(StoragesServiceImpl.class);
-    bind(PreviewService.class).to(PreviewServiceImpl.class);
     bind(ProfilingService.class).to(UserManagementProfilingService.class);
     bind(AuthenticationService.class).to(UserManagementAuthenticationService.class);
 

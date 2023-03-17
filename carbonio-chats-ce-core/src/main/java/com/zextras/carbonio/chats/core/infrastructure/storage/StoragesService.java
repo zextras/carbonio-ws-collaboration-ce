@@ -21,15 +21,6 @@ public interface StoragesService extends HealthIndicator {
   File getFileById(String fileId, String ownerId);
 
   /**
-   * Retrieves a preview of the specified file
-   *
-   * @param file    file identifier
-   * @param ownerId identifier of the owner of the file
-   * @return A jpeg preview of the requested file {@link File}
-   */
-  File getPreview(FileMetadata file, String ownerId);
-
-  /**
    * Saves a file on the repository
    *
    * @param file          file to save

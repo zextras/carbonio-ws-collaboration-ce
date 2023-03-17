@@ -634,9 +634,9 @@ paths:
     get:
       tags:
         - Preview
-      summary: Get image thumbnail
+      summary: Get pdf thumbnail
       description: |
-        Creates and returns a preview of the image fetched by id
+        Creates and returns a preview of the pdf fetched by id
         with the given size, quality and format
         - **fileId**: UUID of the pdf        
         - **quality**: quality of the output image
@@ -745,14 +745,14 @@ components:
       required: false
     queryFirstPage:
       in: query
-      name: first_page
+      name: firstPage
       schema:
         title: FirstPage
         type: integer
       required: false
     queryLastPage:
       in: query
-      name: last_page
+      name: lastPage
       schema:
         title: LastPage
         type: integer
@@ -1509,18 +1509,18 @@ components:
     ImageQualityEnum:
       title: ImageQualityEnum
       enum:
-        - lowest
-        - low
-        - medium
-        - high
-        - highest
+        - Lowest
+        - Low
+        - Medium
+        - High
+        - Highest
       type: string
       description: Class representing all the image quality accepted values
     ImageTypeEnum:
       title: ImageTypeEnum
       enum:
-        - jpeg
-        - png
+        - Jpeg
+        - Png
       type: string
       description: Class representing all the image type accepted values
     ImageShapeEnum:

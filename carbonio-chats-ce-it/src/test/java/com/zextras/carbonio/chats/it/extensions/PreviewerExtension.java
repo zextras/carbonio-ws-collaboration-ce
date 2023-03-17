@@ -44,7 +44,6 @@ public class PreviewerExtension implements AfterEachCallback, BeforeAllCallback,
     context.getRoot().getStore(EXTENSION_NAMESPACE).getOrComputeIfAbsent(CLIENT_STORE_ENTRY, (key) -> {
       ChatsLogger.debug("Starting Previewer mock...");
       PreviewerMockServer client = new PreviewerMockServer(SERVER_PORT);
-      mockResponses(client);
       InMemoryConfigStore.set(ConfigName.PREVIEWER_HOST, SERVER_HOST);
       InMemoryConfigStore.set(ConfigName.PREVIEWER_PORT, Integer.toString(SERVER_PORT));
       return client;
@@ -76,46 +75,5 @@ public class PreviewerExtension implements AfterEachCallback, BeforeAllCallback,
       .ifPresent(
         mock -> mock.clear(request(), ClearType.LOG)
       );
-  }
-
-  private void mockResponses(MockServerClient client) {
-    mockIsAlive(client);
-    mockGetPreview(client, MockedFiles.getPreview(MockedFileType.SNOOPY_PREVIEW));
-  }
-
-  private void mockGetPreview(MockServerClient client, FileMock fileMock) {
-    try {
-      BasicHttpEntity entity = new BasicHttpEntity();
-      entity.setContent(new ByteArrayInputStream(fileMock.getFileBytes()));
-      client.when(
-        request()
-          .withMethod("GET")
-          .withPath("/preview/image/{fileId}/{version}/{area}")
-          .withPathParameter("fileId", fileMock.getId())
-          .withPathParameter("version", "1")
-          .withPathParameter("area", ChatsConstant.PREVIEW_AREA)
-          .withQueryStringParameter(param("service_type", "chats"))
-      ).respond(
-        response()
-          .withStatusCode(200)
-          .withBody(
-            BinaryBody.binary(fileMock.getFileBytes())
-          )
-          .withContentType(MediaType.JPEG)
-      );
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private void mockIsAlive(MockServerClient client) {
-    client.when(
-      request()
-        .withMethod("GET")
-        .withPath("/health/ready/")
-    ).respond(
-      response()
-        .withStatusCode(200)
-    );
   }
 }

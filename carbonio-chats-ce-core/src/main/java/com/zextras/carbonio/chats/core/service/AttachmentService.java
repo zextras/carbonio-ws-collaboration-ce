@@ -26,15 +26,6 @@ public interface AttachmentService {
   FileContentAndMetadata getAttachmentById(UUID fileId, UserPrincipal currentUser);
 
   /**
-   * Retrieves the preview of an uploaded attachment
-   *
-   * @param fileId      file identifier {@link UUID}
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The requested file preview {@link File}
-   **/
-  File getAttachmentPreviewById(UUID fileId, UserPrincipal currentUser);
-
-  /**
    * Retrieves paged list of metadata of every attachment uploaded to the room and the filter for the next page
    *
    * @param roomId      room identifier {@link UUID}
