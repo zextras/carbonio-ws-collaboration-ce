@@ -113,7 +113,6 @@ pipeline {
 
     stage('Publishing version') {
       steps {
-        sh 'mvn -B --settings settings-jenkins.xml deploy'
         sh '''
           ./mvnw -Dmaven.repo.local=$(pwd)/m2 -B --settings settings-jenkins.xml \
             -Dlogback.configurationFile="$(pwd)"/carbonio-chats-ce-boot/src/main/resources/logback-test-silent.xml \
