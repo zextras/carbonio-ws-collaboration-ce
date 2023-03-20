@@ -173,7 +173,8 @@ pipeline {
     }
     stage('Upload To Release') {
       when {
-        anyOf {
+        allOf {
+          branch "main"
           expression { params.RC == true }
         }
       }
