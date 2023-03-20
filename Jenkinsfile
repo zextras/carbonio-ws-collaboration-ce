@@ -76,9 +76,7 @@ pipeline {
   
     stage('Stashing for packaging') {
       when {
-        anyOf {
-          branch "main"
-        }
+        branch "main"
       }
       steps {
         stash includes: '**', name: 'project'
@@ -86,9 +84,7 @@ pipeline {
     }
     stage('Building packages') {
       when {
-        anyOf {
-          branch "main"
-        }
+        branch "main"
       }
       parallel {
         stage('Ubuntu 20') {
