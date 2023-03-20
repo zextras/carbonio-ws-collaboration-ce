@@ -92,7 +92,13 @@ public class XmppMessageBuilder {
       DOMImplementationLS domImplLS = (DOMImplementationLS) document
         .getImplementation();
       LSSerializer serializer = domImplLS.createLSSerializer();
-      return serializer.writeToString(message);
+
+      serializer.getDomConfig().setParameter("xml-declaration", false);
+//      serializer.getDomConfig().setParameter("normalize-characters", true);
+
+      String result = serializer.writeToString(message);
+      result = result.replace("\"", "'");
+      return result;
     } catch (ParserConfigurationException e) {
       throw new InternalErrorException("Unable to initialize the XMPP message", e);
     }
