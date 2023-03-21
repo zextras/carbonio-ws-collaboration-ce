@@ -130,18 +130,18 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
     @Nullable String body, @Nullable String messageId, @Nullable String replyId
   ) {
     return getSendStanzaRequest(
-      "<?xml version=\\\"1.0\\\" encoding=\\\"UTF-16\\\"?><message xmlns=\\\"jabber:client\\\" " + String.format(
-        "from=\\\"%s@carbonio\\\" ", senderId) + (messageId == null ? "" : String.format("id=\\\"%s\\\" ", messageId))
-        + String.format("to=\\\"%s@muclight.carbonio\\\" ", roomId) + "type=\\\"groupchat\\\">"
+      "<message xmlns='jabber:client' " + String.format(
+        "from='%s@carbonio' ", senderId) + (messageId == null ? "" : String.format("id='%s' ", messageId))
+        + String.format("to='%s@muclight.carbonio' ", roomId) + "type='groupchat'>"
         + Optional.ofNullable(content.isEmpty() && type == null ? null : content).map(
-        list -> "<x xmlns=\\\"urn:xmpp:muclight:0#configuration\\\">" + Optional.ofNullable(type)
+        list -> "<x xmlns='urn:xmpp:muclight:0#configuration'>" + Optional.ofNullable(type)
           .map(t -> String.format("<operation>%s</operation>", t)).orElse("") + list.stream()
           .map(c -> "<" + c.getKey() + ">" + c.getValue() + "</" + c.getKey() + ">").collect(Collectors.joining())
           + "</x>").orElse("") + Optional.ofNullable("".equals(body) ? null : body)
         .map(b -> String.format("<body>%s</body>", b))
         .orElse("<body/>") + (replyId == null ? ""
-        : "<reply xmlns=\\\"urn:xmpp:reply:0\\\" " + String.format("id=\\\"%s\\\" ", replyId) + String.format(
-          "to=\\\"%s@muclight.carbonio\\\"", roomId) + "/>") + "</message>");
+        : "<reply xmlns='urn:xmpp:reply:0' " + String.format("id='%s' ", replyId) + String.format(
+          "to='%s@muclight.carbonio'", roomId) + "/>") + "</message>");
   }
 
   public HttpRequest getSendStanzaRequest(String xmppMessage) {

@@ -3973,14 +3973,13 @@ public class RoomsApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
 
-      String hoped = "<?xml version=\\\"1.0\\\" encoding=\\\"UTF-16\\\"?>"
-        + String.format(
-        "<message xmlns=\\\"jabber:client\\\" from=\\\"%s@carbonio\\\" to=\\\"%s@muclight.carbonio\\\" type=\\\"groupchat\\\">",
+      String hoped = String.format(
+        "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
         user1Id, roomId)
         + "<body>this is my body !</body>"
-        + "<forwarded xmlns=\\\"urn:xmpp:forward:0\\\">"
-        + "<delay xmlns=\\\"urn:xmpp:delay\\\" stamp=\\\"2023-01-01T00:00:00Z\\\"/>"
-        + "<message from=\\\"sender-id\\\" to=\\\"recipient-id\\\" type=\\\"groupchat\\\">"
+        + "<forwarded xmlns='urn:xmpp:forward:0'>"
+        + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
+        + "<message from='sender-id' to='recipient-id' type='groupchat'>"
         + "<body>this is the body of the message to forward!</body>"
         + "</message>"
         + "</forwarded>"
@@ -4036,11 +4035,10 @@ public class RoomsApiIT {
         .userId(user2Id.toString())
         .roomId(room1Id.toString()));
       storageMockServer.mockCopyFile(attach1Id.toString(), attach2Id.toString(), true);
-      String hoped = "<?xml version=\\\"1.0\\\" encoding=\\\"UTF-16\\\"?>"
-        + String.format(
-        "<message xmlns=\\\"jabber:client\\\" from=\\\"%s@carbonio\\\" to=\\\"%s@muclight.carbonio\\\" type=\\\"groupchat\\\">",
+      String hoped = String.format(
+        "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
         user1Id, room2Id)
-        + "<x xmlns=\\\"urn:xmpp:muclight:0#configuration\\\">"
+        + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
         + "<operation>attachmentAdded</operation>"
         + String.format("<attachment-id>%s</attachment-id>", attach2Id)
         + "<filename>filename</filename>"
@@ -4048,10 +4046,10 @@ public class RoomsApiIT {
         + "<size>1024</size>"
         + "</x>"
         + "<body>this is my body !</body>"
-        + "<forwarded xmlns=\\\"urn:xmpp:forward:0\\\">"
-        + "<delay xmlns=\\\"urn:xmpp:delay\\\" stamp=\\\"2023-01-01T00:00:00Z\\\"/>"
+        + "<forwarded xmlns='urn:xmpp:forward:0'>"
+        + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
         + String.format(
-        "<message from=\\\"%s@carbonio\\\" to=\\\"%s@muclight.carbonio\\\" type=\\\"groupchat\\\">",
+        "<message from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
         user2Id, room1Id)
         + "<x>"
         + "<operation>attachmentAdded</operation>"

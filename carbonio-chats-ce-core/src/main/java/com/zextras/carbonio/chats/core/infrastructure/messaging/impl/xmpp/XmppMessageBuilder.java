@@ -8,6 +8,8 @@ import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
 import java.io.ByteArrayInputStream;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.AbstractMap.SimpleEntry;
@@ -16,10 +18,12 @@ import java.util.List;
 import java.util.Optional;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import org.apache.commons.text.StringEscapeUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.ls.DOMImplementationLS;
+import org.w3c.dom.ls.LSOutput;
 import org.w3c.dom.ls.LSSerializer;
 
 public class XmppMessageBuilder {
@@ -86,19 +90,20 @@ public class XmppMessageBuilder {
       if (!configurations.isEmpty()) {
         message.appendChild(createConfigurationsElement(document));
       }
-      message.appendChild(createTextElement(document, "body", Optional.ofNullable(body).orElse("")));
+
+      message.appendChild(createTextElement(document, "body", Optional.ofNullable(body).map(
+        StringEscapeUtils::escapeHtml4).orElse("")));
       Optional.ofNullable(replyId).ifPresent(id -> message.appendChild(createReplyElement(document)));
       Optional.ofNullable(messageToForward).ifPresent(m -> message.appendChild(createForwardedElement(document)));
-      DOMImplementationLS domImplLS = (DOMImplementationLS) document
-        .getImplementation();
+      DOMImplementationLS domImplLS = (DOMImplementationLS) document.getImplementation();
       LSSerializer serializer = domImplLS.createLSSerializer();
-
       serializer.getDomConfig().setParameter("xml-declaration", false);
-//      serializer.getDomConfig().setParameter("normalize-characters", true);
-
-      String result = serializer.writeToString(message);
-      result = result.replace("\"", "'");
-      return result;
+      LSOutput lsOutput = domImplLS.createLSOutput();
+      lsOutput.setEncoding("UTF-8");
+      Writer stringWriter = new StringWriter();
+      lsOutput.setCharacterStream(stringWriter);
+      serializer.write(document, lsOutput);
+      return stringWriter.toString().replace("\"", "'");
     } catch (ParserConfigurationException e) {
       throw new InternalErrorException("Unable to initialize the XMPP message", e);
     }
