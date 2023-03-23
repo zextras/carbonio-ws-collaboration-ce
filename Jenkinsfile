@@ -170,14 +170,14 @@ pipeline {
           uploadSpec = '''{
             "files": [
               {
-                  "pattern": "artifacts/*.deb",
-                  "target": "ubuntu-playground/pool/",
-                  "props": "deb.distribution=focal;deb.component=main;deb.architecture=amd64"
+                "pattern": "artifacts/*.deb",
+                "target": "ubuntu-playground/pool/",
+                "props": "deb.distribution=focal;deb.component=main;deb.architecture=amd64"
               },
               {
-                  "pattern": "artifacts/(carbonio-chats-ce)-(*).rpm",
-                  "target": "centos8-playground/zextras/{1}/{1}-{2}.rpm",
-                  "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras"
+                "pattern": "artifacts/(carbonio-chats-ce)-(*).rpm",
+                "target": "centos8-playground/zextras/{1}/{1}-{2}.rpm",
+                "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras"
               }
             ]
           }'''
@@ -201,14 +201,14 @@ pipeline {
           uploadSpec = '''{
             "files": [
               {
-                  "pattern": "artifacts/*.deb",
-                  "target": "ubuntu-devel/pool/",
-                  "props": "deb.distribution=focal;deb.component=main;deb.architecture=amd64"
+                "pattern": "artifacts/*.deb",
+                "target": "ubuntu-devel/pool/",
+                "props": "deb.distribution=focal;deb.component=main;deb.architecture=amd64"
               },
               {
-                  "pattern": "artifacts/(carbonio-chats-ce)-(*).rpm",
-                  "target": "centos8-devel/zextras/{1}/{1}-{2}.rpm",
-                  "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras"
+                "pattern": "artifacts/(carbonio-chats-ce)-(*).rpm",
+                "target": "centos8-devel/zextras/{1}/{1}-{2}.rpm",
+                "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras"
               }
             ]
           }'''
@@ -248,9 +248,9 @@ pipeline {
           uploadSpec = '''{
             "files": [
               {
-                  "pattern": "artifacts/*.deb",
-                  "target": "ubuntu-rc/pool/",
-                  "props": "deb.distribution=focal;deb.component=main;deb.architecture=amd64"
+                "pattern": "artifacts/*.deb",
+                "target": "ubuntu-rc/pool/",
+                "props": "deb.distribution=focal;deb.component=main;deb.architecture=amd64"
               }
             ]
           }'''
@@ -275,9 +275,9 @@ pipeline {
           uploadSpec = '''{
             "files": [
               {
-                  "pattern": "artifacts/(carbonio-chats-ce)-(*).rpm",
-                  "target": "centos8-rc/zextras/{1}/{1}-{2}.rpm",
-                  "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras"
+                "pattern": "artifacts/(carbonio-chats-ce)-(*).rpm",
+                "target": "centos8-rc/zextras/{1}/{1}-{2}.rpm",
+                "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras"
               }
             ]
           }'''
