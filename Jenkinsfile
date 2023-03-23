@@ -47,7 +47,7 @@ pipeline {
     }
     stage('Compiling') {
       steps {
-        sh './mvnw -Dmaven.repo.local=$(pwd)/m2 -T1C -B -q --settings settings-jenkins.xml install'
+        sh './mvnw -Dmaven.repo.local=$(pwd)/m2 -T1C -B -q --settings settings-jenkins.xml compile'
       }
       post {
         failure {
@@ -81,7 +81,10 @@ pipeline {
   
     stage('Stashing for packaging') {
       when {
-        branch "main"
+        anyOf {
+          branch "main"
+          expression { params.PLAYGROUND == true }
+        }
       }
       steps {
         stash includes: '**', name: 'project'
@@ -89,7 +92,10 @@ pipeline {
     }
     stage('Building packages') {
       when {
-        branch "main"
+        anyOf {
+          branch "main"
+          expression { params.PLAYGROUND == true }
+        }
       }
       parallel {
         stage('Ubuntu 20') {
