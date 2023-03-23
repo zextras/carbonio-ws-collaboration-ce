@@ -173,6 +173,15 @@ pipeline {
           server.upload spec: uploadSpec, buildInfo: buildInfo, failNoOp: false
         }
       }
+      post {
+        failure {
+          script {
+            if (env.BRANCH_NAME.equals("main")) {
+              sendFailureEmail(STAGE_NAME)
+            }
+          }
+        }
+      }
     }
     stage('Upload To Release') {
       when {
@@ -244,6 +253,15 @@ pipeline {
           ]
           Artifactory.addInteractivePromotion server: server, promotionConfig: config, displayName: 'Centos8 Promotion to Release'
           server.publishBuildInfo buildInfo
+        }
+      }
+      post {
+        failure {
+          script {
+            if (env.BRANCH_NAME.equals("main")) {
+              sendFailureEmail(STAGE_NAME)
+            }
+          }
         }
       }
     }
