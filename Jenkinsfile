@@ -149,6 +149,8 @@ pipeline {
       }
       steps {
         unstash 'artifacts-ubuntu-focal'
+        unstash 'artifacts-rocky-8'
+
         script {
           def server = Artifactory.server 'zextras-artifactory'
           def buildInfo
@@ -160,6 +162,11 @@ pipeline {
                   "pattern": "artifacts/*.deb",
                   "target": "ubuntu-devel/pool/",
                   "props": "deb.distribution=focal;deb.component=main;deb.architecture=amd64"
+              },
+              {
+                  "pattern": "artifacts/(carbonio-chats-ce)-(*).rpm",
+                  "target": "centos8-devel/zextras/{1}/{1}-{2}.rpm",
+                  "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras"
               }
             ]
           }'''
