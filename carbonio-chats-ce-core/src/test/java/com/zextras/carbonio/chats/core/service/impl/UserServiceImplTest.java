@@ -220,6 +220,44 @@ class UserServiceImplTest {
     }
 
     @Test
+    @DisplayName("Don't returns duplicates")
+    public void getUsersByIds_testNoDuplicates() {
+      UUID requestedUserId1 = UUID.randomUUID();
+      List<String> requestedUserIds = Arrays.asList(requestedUserId1.toString(), requestedUserId1.toString());
+
+      UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId1);
+
+      when(userRepository.getByIds(requestedUserIds)).thenReturn(
+        Collections.singletonList(
+          User.create().id(requestedUserId1.toString())
+            .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
+            .hash("111").statusMessage("my status 1")
+        )
+      );
+      when(profilingService.getByIds(currentPrincipal, requestedUserIds))
+        .thenReturn(
+          Collections.singletonList(
+            UserProfile.create(requestedUserId1).email("test1@example.com").domain("mydomain.com").name("test user 1")
+          )
+        );
+
+      List<UserDto> usersById = userService.getUsersByIds(requestedUserIds, currentPrincipal);
+
+      assertFalse(usersById.isEmpty());
+      assertEquals(1, usersById.size());
+    }
+
+    @Test
+    @DisplayName("Returns empty list")
+    public void getUsersByIds_testEmptyList() {
+      UserPrincipal currentPrincipal = UserPrincipal.create(UUID.randomUUID());
+      when(userRepository.getByIds(Collections.emptyList())).thenReturn(Collections.emptyList());
+      when(profilingService.getByIds(currentPrincipal, Collections.emptyList())).thenReturn(Collections.emptyList());
+
+      assertTrue(userService.getUsersByIds(Collections.emptyList(), currentPrincipal).isEmpty());
+    }
+
+    @Test
     @DisplayName("Returns the user with the profiling info if it's not found in out db")
     public void getUsersByIds_testDbNotFound() {
       UUID requestedUserId = UUID.randomUUID();
