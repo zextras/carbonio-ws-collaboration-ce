@@ -3,43 +3,32 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 pipeline {
-  options {
-    skipDefaultCheckout()
-    buildDiscarder(logRotator(numToKeepStr: '5'))
-    timeout(time: 1, unit: 'HOURS')
-  }
   agent {
     node {
       label 'openjdk11-agent-v1'
     }
   }
   environment {
-    NETWORK_OPTS = '--network ci_agent'
+    JAVA_OPTS="-Dfile.encoding=UTF8"
+    LC_ALL="C.UTF-8"
+    jenkins_build="true"
     FAILURE_EMAIL_RECIPIENTS='smokybeans@zextras.com'
   }
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '25'))
+    timeout(time: 2, unit: 'HOURS')
+  }
   stages {
-    stage('Build setup') {
+    stage('Setup') {
       steps {
-        checkout([
-          $class: 'GitSCM',
-          branches: scm.branches,
-          extensions: [[
-            $class: 'CloneOption',
-            shallow: true,
-            depth:   2,
-            timeout: 30
-          ]],
-          userRemoteConfigs: scm.userRemoteConfigs
-        ])
         withCredentials([file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')]) {
-          sh 'cp $SETTINGS_PATH settings-jenkins.xml'
-          sh 'mvn -Dmaven.repo.local=$(pwd)/m2 -N wrapper:wrapper'
+          sh 'cp ${SETTINGS_PATH} settings-jenkins.xml'
         }
       }
     }
     stage('Compiling') {
       steps {
-        sh './mvnw -Dmaven.repo.local=$(pwd)/m2 -T1C -B -q --settings settings-jenkins.xml install'
+        sh 'mvn -B --settings settings-jenkins.xml package -D skipTests'
       }
       post {
         failure {
@@ -53,11 +42,7 @@ pipeline {
     }
     stage('Testing') {
       steps {
-        sh '''
-        ./mvnw -Dmaven.repo.local=$(pwd)/m2 -B --settings settings-jenkins.xml \
-            -Dlogback.configurationFile="$(pwd)"/carbonio-chats-ce-boot/src/main/resources/logback-test-silent.xml \
-            verify
-        '''
+        sh 'mvn -B --settings settings-jenkins.xml verify'
         publishCoverage adapters: [jacocoAdapter('target/site/jacoco-all-tests/jacoco.xml')]
       }
       post {
@@ -70,54 +55,9 @@ pipeline {
         }
       }
     }
-    stage("Publishing documentation") {
-      when {
-        allOf {
-          branch "main"
-          expression { hasOpenAPIDocumentChanged() }
-        }
-      }
+    stage('Publishing') {
       steps {
-        dir("dev-guide") {
-          checkout([
-            $class: 'GitSCM',
-            branches: [[name: 'master']],
-            userRemoteConfigs: [[
-              credentialsId: 'tarsier_bot-ssh-key',
-              url: 'git@bitbucket.org:zextras/dev-guide.git'
-            ]]
-          ])
-
-          sh '''
-            git checkout master
-            cp ../carbonio-chats-ce-openapi/src/main/resources/chats/chats-api.yaml ./static/chats/openapi/chats-api.yaml
-            cp ../carbonio-chats-ce-openapi/src/main/resources/meeting/meeting-api.yaml ./static/chats/openapi/meeting-api.yaml
-            git config user.name chats-bot
-            git config user.email bot@zextras.com
-            if [[ "$(git diff)" != "" ]]; then
-              git add . && git commit -m "[CHATS-CE PIPELINE] Updated OpenAPI document" && git push
-            fi
-          '''
-        }
-      }
-      post {
-        failure {
-          script {
-            if ("main".equals(env.BRANCH_NAME)) {
-              sendFailureEmail(STAGE_NAME)
-            }
-          }
-        }
-      }
-    }
-
-    stage('Publishing version') {
-      steps {
-        sh '''
-          ./mvnw -Dmaven.repo.local=$(pwd)/m2 -B --settings settings-jenkins.xml \
-            -Dlogback.configurationFile="$(pwd)"/carbonio-chats-ce-boot/src/main/resources/logback-test-silent.xml \
-            deploy
-        '''
+        sh 'mvn -B --settings settings-jenkins.xml deploy'
       }
     }
 
@@ -234,12 +174,4 @@ void sendFailureEmail(String step) {
   """,
   subject: "[CHATS TRUNK FAILURE] Trunk ${step} step failure",
   to: FAILURE_EMAIL_RECIPIENTS
-}
-
-boolean hasOpenAPIDocumentChanged() {
-  def isChanged = sh(
-    script: "git --no-pager show --name-only --pretty=format: | grep -x carbonio-chats-ce-openapi/src/main/resources/chats/chats-api.yaml",
-    returnStatus: true
-  )
-  return isChanged==0 ? true : false
 }
