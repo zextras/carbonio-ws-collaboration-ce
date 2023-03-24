@@ -49,6 +49,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -156,6 +158,105 @@ class UserServiceImplTest {
       when(profilingService.getById(currentPrincipal, requestedUserId)).thenReturn(Optional.empty());
 
       assertThrows(NotFoundException.class, () -> userService.getUserById(requestedUserId, currentPrincipal));
+    }
+
+  }
+
+  @Nested
+  @DisplayName("Get users by ids tests")
+  class GetUsersByIdsTests {
+
+    @Test
+    @DisplayName("Returns all the users with every info")
+    public void getUsersByIds_testOk() {
+      UUID requestedUserId1 = UUID.randomUUID();
+      UUID requestedUserId2 = UUID.randomUUID();
+      UUID requestedUserId3 = UUID.randomUUID();
+      List<String> requestedUserIds = Arrays.asList(requestedUserId1.toString(), requestedUserId2.toString(),
+        requestedUserId3.toString());
+
+      UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId1);
+
+      when(userRepository.getByIds(requestedUserIds)).thenReturn(
+        Arrays.asList(
+          User.create().id(requestedUserId1.toString())
+            .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
+            .hash("111").statusMessage("my status 1"),
+          User.create().id(requestedUserId2.toString())
+            .pictureUpdatedAt(OffsetDateTime.parse("2022-02-02T00:00:00Z"))
+            .hash("222").statusMessage("my status 2"),
+          User.create().id(requestedUserId3.toString())
+            .pictureUpdatedAt(OffsetDateTime.parse("2022-03-03T00:00:00Z"))
+            .hash("333").statusMessage("my status 3")
+        )
+      );
+      when(profilingService.getByIds(currentPrincipal, requestedUserIds))
+        .thenReturn(
+          Arrays.asList(
+            UserProfile.create(requestedUserId1).email("test1@example.com").domain("mydomain.com").name("test user 1"),
+            UserProfile.create(requestedUserId2).email("test2@example.com").domain("mydomain.com").name("test user 2"),
+            UserProfile.create(requestedUserId3).email("test3@example.com").domain("mydomain.com").name("test user 3")
+          )
+        );
+
+      List<UserDto> usersById = userService.getUsersByIds(requestedUserIds, currentPrincipal);
+
+      assertFalse(usersById.isEmpty());
+      assertEquals(requestedUserId1, usersById.get(0).getId());
+      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), usersById.get(0).getPictureUpdatedAt());
+      assertEquals("my status 1", usersById.get(0).getStatusMessage());
+      assertEquals("test user 1", usersById.get(0).getName());
+      assertEquals("test1@example.com", usersById.get(0).getEmail());
+      assertEquals(requestedUserId2, usersById.get(1).getId());
+      assertEquals(OffsetDateTime.parse("2022-02-02T00:00:00Z"), usersById.get(1).getPictureUpdatedAt());
+      assertEquals("my status 2", usersById.get(1).getStatusMessage());
+      assertEquals("test user 2", usersById.get(1).getName());
+      assertEquals("test2@example.com", usersById.get(1).getEmail());
+      assertEquals(requestedUserId3, usersById.get(2).getId());
+      assertEquals(OffsetDateTime.parse("2022-03-03T00:00:00Z"), usersById.get(2).getPictureUpdatedAt());
+      assertEquals("my status 3", usersById.get(2).getStatusMessage());
+      assertEquals("test user 3", usersById.get(2).getName());
+      assertEquals("test3@example.com", usersById.get(2).getEmail());
+    }
+
+    @Test
+    @DisplayName("Returns the user with the profiling info if it's not found in out db")
+    public void getUsersByIds_testDbNotFound() {
+      UUID requestedUserId = UUID.randomUUID();
+      UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId);
+      when(userRepository.getByIds(Collections.singletonList(requestedUserId.toString()))).thenReturn(
+        Collections.emptyList());
+      when(
+        profilingService.getByIds(currentPrincipal, Collections.singletonList(requestedUserId.toString()))).thenReturn(
+        Collections.singletonList(
+          UserProfile.create(requestedUserId).email("test@example.com").domain("mydomain.com").name("test user")));
+
+      List<UserDto> usersById = userService.getUsersByIds(Collections.singletonList(requestedUserId.toString()),
+        currentPrincipal);
+
+      assertFalse(usersById.isEmpty());
+      assertEquals(requestedUserId, usersById.get(0).getId());
+      assertNull(usersById.get(0).getPictureUpdatedAt());
+      assertNull(usersById.get(0).getStatusMessage());
+      assertEquals("test user", usersById.get(0).getName());
+      assertEquals("test@example.com", usersById.get(0).getEmail());
+    }
+
+    @Test
+    @DisplayName("Return an empty list if the user was not found using the profiling service")
+    public void getUserById_testProfilingNotFound() {
+      UUID requestedUserId = UUID.randomUUID();
+      UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId);
+      when(userRepository.getByIds(Collections.singletonList(requestedUserId.toString()))).thenReturn(
+        Collections.emptyList());
+      when(
+        profilingService.getByIds(currentPrincipal, Collections.singletonList(requestedUserId.toString()))).thenReturn(
+        Collections.emptyList());
+
+      List<UserDto> usersById = userService.getUsersByIds(Collections.singletonList(requestedUserId.toString()),
+        currentPrincipal);
+
+      assertTrue(usersById.isEmpty());
     }
 
   }
