@@ -570,8 +570,6 @@ paths:
           $ref: '#/components/responses/400BadRequestResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-        502:
-          $ref: '#/components/responses/502BadGatewayResponse'
   /preview/image/{fileId}/{area}/thumbnail:
     get:
       tags:
@@ -602,8 +600,6 @@ paths:
           $ref: '#/components/responses/400BadRequestResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-        502:
-          $ref: '#/components/responses/502BadGatewayResponse'
   /preview/pdf/{fileId}/:
     get:
       tags:
@@ -628,8 +624,6 @@ paths:
           $ref: '#/components/responses/400BadRequestResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-        502:
-          $ref: '#/components/responses/502BadGatewayResponse'
   /preview/pdf/{fileId}/{area}/thumbnail:
     get:
       tags:
@@ -660,8 +654,6 @@ paths:
           $ref: '#/components/responses/400BadRequestResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-        502:
-          $ref: '#/components/responses/502BadGatewayResponse'
   /supported:
     get:
       tags:
@@ -899,13 +891,6 @@ components:
           schema:
             $ref: '#/components/schemas/JoinSettingsByRoom'
   responses:
-    200PreviewFileResponse:
-      description: The preview of the requested file
-      content:
-        application/octet-stream:
-          schema:
-            type: string
-            format: binary
     200HealthStatusResponse:
       description: General status of the service and its dependencies
       content:
@@ -1049,8 +1034,8 @@ components:
           schema:
             type: string
             format: binary
-    200GetAttachmentPreviewResponse:
-      description: The requested file preview
+    200PreviewFileResponse:
+      description: The preview of the requested file
       content:
         application/octet-stream:
           schema:

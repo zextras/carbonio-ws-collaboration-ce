@@ -7,7 +7,9 @@ package com.zextras.carbonio.chats.core.service;
 import com.zextras.carbonio.chats.core.data.model.FileResponse;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.ImageQualityEnumDto;
 import com.zextras.carbonio.chats.model.ImageShapeEnumDto;
+import com.zextras.carbonio.chats.model.ImageTypeEnumDto;
 import com.zextras.carbonio.preview.queries.enums.Format;
 import com.zextras.carbonio.preview.queries.enums.Quality;
 import com.zextras.carbonio.preview.queries.enums.Shape;
@@ -28,7 +30,7 @@ public interface PreviewService extends HealthIndicator {
    * @param user the user trying to access the preview attachment
    * @return the preview requested with necessary data {@link FileResponse}
    */
-  FileResponse getImage(UserPrincipal user, UUID fileId, String area, Option<Quality> quality, Option<Format> outputFormat, Option<Boolean> crop);
+  FileResponse getImage(UserPrincipal user, UUID fileId, String area, Option<ImageQualityEnumDto> quality, Option<ImageTypeEnumDto> outputFormat, Option<Boolean> crop);
 
   /**
    * Get the preview of an image
@@ -41,9 +43,9 @@ public interface PreviewService extends HealthIndicator {
    * @param user the user trying to access the preview attachment
    * @return the preview requested with necessary data {@link FileResponse}
    */
-  FileResponse getImageThumbnail(UserPrincipal user, UUID fileId, String area, Option<Quality> quality, Option<Format> outputFormat, Option<Shape> shape);
+  FileResponse getImageThumbnail(UserPrincipal user, UUID fileId, String area, Option<ImageQualityEnumDto> quality, Option<ImageTypeEnumDto> outputFormat, Option<ImageShapeEnumDto> shape);
 
   FileResponse getPDF(UserPrincipal user, UUID fileId, Integer firstPage, Integer lastPage);
 
-  FileResponse getPDFThumbnail(UserPrincipal user, UUID fileId, String area, Option<Quality> quality, Option<Format> outputFormat, Option<Shape> shape);
+  FileResponse getPDFThumbnail(UserPrincipal user, UUID fileId, String area, Option<ImageQualityEnumDto> quality, Option<ImageTypeEnumDto> outputFormat, Option<ImageShapeEnumDto> shape);
 }

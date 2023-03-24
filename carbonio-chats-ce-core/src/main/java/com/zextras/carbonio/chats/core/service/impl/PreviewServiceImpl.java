@@ -11,10 +11,14 @@ import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.model.FileResponse;
+import com.zextras.carbonio.chats.core.exception.PreviewerException;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.service.PreviewService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.ImageQualityEnumDto;
+import com.zextras.carbonio.chats.model.ImageShapeEnumDto;
+import com.zextras.carbonio.chats.model.ImageTypeEnumDto;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.preview.queries.BlobResponse;
 import com.zextras.carbonio.preview.queries.Query;
@@ -28,6 +32,7 @@ import org.apache.commons.io.FileUtils;
 
 
 import java.io.File;
+import java.io.IOException;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -45,92 +50,101 @@ public class PreviewServiceImpl implements PreviewService {
     RoomService roomService,
     FileMetadataRepository fileMetadataRepository,
     PreviewClient previewClient
-
   ) {
     this.previewClient = previewClient;
     this.roomService = roomService;
     this.fileMetadataRepository = fileMetadataRepository;
   }
 
-  private Try<FileResponse> remapBlobToDataFile(Try<BlobResponse> response) {
+  private FileResponse remapBlobToDataFile(Try<BlobResponse> response) {
     return response.map(bResp ->
       Try.of(() -> {
         File file = File.createTempFile(Instant.now().toString(), ".tmp");
         FileUtils.copyInputStreamToFile(bResp.getContent(), file);
         return new FileResponse(file, bResp.getLength(),bResp.getMimeType());
-      }).get());
+      }).getOrElseThrow(t -> new RuntimeException(t))
+    ).getOrElseThrow(t-> new PreviewerException(t));
   }
 
   @Override
-  public FileResponse getImage(UserPrincipal user, UUID fileId, String area, Option<Quality> quality, Option<Format> outputFormat, Option<Boolean> crop) {
+  public FileResponse getImage(UserPrincipal user,
+                               UUID fileId,
+                               String area,
+                               Option<ImageQualityEnumDto> quality,
+                               Option<ImageTypeEnumDto> outputFormat,
+                               Option<Boolean> crop) {
     validateUser(fileId,user);
 
     Query.QueryBuilder parameters = new Query.QueryBuilder()
+      .setFileOwnerId(user.getId())
       .setServiceType(ServiceType.CHATS)
-      .setNodeId(fileId.toString())
+      .setFileId(fileId.toString())
       .setVersion(1)
       .setPreviewArea(area);
-    quality.map(parameters::setQuality);
-    outputFormat.map(parameters::setOutputFormat);
+    quality.map(q -> parameters.setQuality(q.toString().toUpperCase()));
+    outputFormat.map(f -> parameters.setOutputFormat(f.toString().toUpperCase()));
     crop.map(parameters::setCrop);
 
-    return remapBlobToDataFile(previewClient.getPreviewOfImage(parameters.build())).get();
+    return remapBlobToDataFile(previewClient.getPreviewOfImage(parameters.build()));
   }
 
   @Override
   public FileResponse getImageThumbnail(UserPrincipal user,
                                         UUID fileId,
                                         String area,
-                                        Option<Quality> quality,
-                                        Option<Format> outputFormat,
-                                        Option<Shape> shape) {
+                                        Option<ImageQualityEnumDto> quality,
+                                        Option<ImageTypeEnumDto> outputFormat,
+                                        Option<ImageShapeEnumDto> shape) {
     validateUser(fileId,user);
 
     Query.QueryBuilder parameters = new Query.QueryBuilder()
+      .setFileOwnerId(user.getId())
       .setServiceType(ServiceType.CHATS)
-      .setNodeId(fileId.toString())
+      .setFileId(fileId.toString())
       .setVersion(1)
       .setPreviewArea(area);
-    quality.map(parameters::setQuality);
-    outputFormat.map(parameters::setOutputFormat);
-    shape.map(parameters::setShape);
+    quality.map(q -> parameters.setQuality(q.toString().toUpperCase()));
+    outputFormat.map(f -> parameters.setOutputFormat(f.toString().toUpperCase()));
+    shape.map(s -> parameters.setShape(s.toString().toUpperCase()));
 
-    return remapBlobToDataFile(previewClient.getThumbnailOfImage(parameters.build())).get();
+    return remapBlobToDataFile(previewClient.getThumbnailOfImage(parameters.build()));
   }
 
   @Override
   public FileResponse getPDF(UserPrincipal user, UUID fileId, Integer firstPage, Integer lastPage) {
     validateUser(fileId,user);
 
-    Query parameters = new Query.QueryBuilder()
+    Query.QueryBuilder parameters = new Query.QueryBuilder()
+      .setFileOwnerId(user.getId())
       .setServiceType(ServiceType.CHATS)
-      .setNodeId(fileId.toString())
-      .setVersion(1)
-      .setFirstPage(firstPage)
-      .setLastPage(lastPage)
-      .build();
-    return remapBlobToDataFile(previewClient.getPreviewOfPdf(parameters)).get();
+      .setFileId(fileId.toString())
+      .setVersion(1);
+    Option.of(firstPage).peek(parameters::setFirstPage);
+    Option.of(lastPage).peek(parameters::setLastPage);
+
+    return remapBlobToDataFile(previewClient.getPreviewOfPdf(parameters.build()));
   }
 
   @Override
   public FileResponse getPDFThumbnail(UserPrincipal user,
                                       UUID fileId,
                                       String area,
-                                      Option<Quality> quality,
-                                      Option<Format> outputFormat,
-                                      Option<Shape> shape) {
+                                      Option<ImageQualityEnumDto> quality,
+                                      Option<ImageTypeEnumDto> outputFormat,
+                                      Option<ImageShapeEnumDto> shape) {
     validateUser(fileId,user);
 
     Query.QueryBuilder parameters = new Query.QueryBuilder()
+      .setFileOwnerId(user.getId())
       .setServiceType(ServiceType.CHATS)
-      .setNodeId(fileId.toString())
+      .setFileId(fileId.toString())
       .setVersion(1)
       .setPreviewArea(area);
-    quality.map(parameters::setQuality);
-    outputFormat.map(parameters::setOutputFormat);
-    shape.map(parameters::setShape);
+    quality.map(q -> parameters.setQuality(q.toString().toUpperCase()));
+    outputFormat.map(f -> parameters.setOutputFormat(f.toString().toUpperCase()));
+    shape.map(s -> parameters.setShape(s.toString().toUpperCase()));
 
-    return remapBlobToDataFile(previewClient.getThumbnailOfPdf(parameters.build())).get();
+    return remapBlobToDataFile(previewClient.getThumbnailOfPdf(parameters.build()));
   }
 
   private void validateUser(UUID fileId, UserPrincipal user){

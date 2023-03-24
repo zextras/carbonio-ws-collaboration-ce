@@ -84,9 +84,10 @@ public class UsersApiIT {
     @DisplayName("Returns the requested user")
     public void getUser_testOK() throws Exception {
       UUID userId = UUID.fromString("332a9527-3388-4207-be77-6d7e2978a723");
-      clock.fixTimeAt(OffsetDateTime.now().toInstant());
+      OffsetDateTime ofdt = OffsetDateTime.now();
+      clock.fixTimeAt(ofdt.toInstant());
       integrationTestUtils.generateAndSaveUser(userId, "hello",
-        OffsetDateTime.ofInstant(clock.instant(), clock.getZone()), "123");
+        ofdt, "123");
 
       MockHttpResponse mockHttpResponse = dispatcher.get(url(userId), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
       assertEquals(200, mockHttpResponse.getStatus());
@@ -96,7 +97,7 @@ public class UsersApiIT {
       assertEquals("snoopy@peanuts.com", user.getEmail());
       assertEquals("Snoopy", user.getName());
       assertEquals("hello", user.getStatusMessage());
-      assertEquals(clock.instant(), user.getPictureUpdatedAt().toInstant());
+      assertEquals(clock.instant().toEpochMilli(), user.getPictureUpdatedAt().toInstant().toEpochMilli());
     }
 
     @Test

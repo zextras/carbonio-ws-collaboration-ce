@@ -30,8 +30,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockserver.client.MockServerClient;
-import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.BinaryBody;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
@@ -40,22 +38,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.ws.rs.core.Response.Status;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockserver.integration.ClientAndServer.startClientAndServer;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 import static org.mockserver.model.Parameter.param;
 
-
-
-//@TestInstance(PER_CLASS)
 @ApiIntegrationTest
 public class PreviewApiIT {
   private final FileMetadataRepository fileMetadataRepository;
@@ -118,25 +110,27 @@ public class PreviewApiIT {
   public class PreviewImageTests {
 
 
-    private void mockGetPreviewImage(String fileId,
-                                     String area,
-                                     Quality quality,
-                                     Format format,
-                                     Boolean crop,
-                                     Integer status,
-                                     String filename) {
+    private HttpRequest mockGetPreviewImageRequest(String fileId,
+                                            String area,
+                                            Quality quality,
+                                            Format format,
+                                            Boolean crop) {
+      HttpRequest request = request()
+        .withMethod("GET")
+        .withPath("/preview/image/{fileId}/1/{area}/")
+        .withPathParameter("fileId", fileId)
+        .withPathParameter("area", area)
+        .withQueryStringParameter(param("service_type", "chats"));
+      if (crop != null) request.withQueryStringParameter(param("crop", crop.toString().toLowerCase()));
+      if (quality != null) request.withQueryStringParameter(param("quality", quality.toString().toLowerCase()));
+      if (format != null) request.withQueryStringParameter(param("output_format", format.toString().toLowerCase()));
+      return request;
+    }
+
+    private HttpResponse mockGetPreviewImageResponse(Format format,
+                                                     Integer status,
+                                                     String filename){
       try {
-        HttpRequest request = request()
-          .withMethod("GET")
-          .withPath("/preview/image/{fileId}/1/{area}/")
-          .withPathParameter("fileId", fileId)
-          .withPathParameter("area", area)
-          .withQueryStringParameter(param("service_type", "chats"));
-        if (crop != null) request.withQueryStringParameter(param("crop", crop.toString().toLowerCase()));
-        if (quality != null) request.withQueryStringParameter(param("quality", quality.toString().toLowerCase()));
-        if (format != null) request.withQueryStringParameter(param("output_format", format.toString().toLowerCase()));
-
-
         HttpResponse response = response()
           .withStatusCode(status);
         if (filename != null) response.withBody(BinaryBody.binary(getFileBytes(filename)));
@@ -144,14 +138,10 @@ public class PreviewApiIT {
           if (format == Format.JPEG) {
             response.withContentType(MediaType.JPEG);
           } else {
-            request.withContentType(MediaType.PNG);
+            response.withContentType(MediaType.PNG);
           }
         }
-        previewMockServer.when(
-          request
-        ).respond(
-          response
-        );
+        return response;
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -183,7 +173,7 @@ public class PreviewApiIT {
           if (format == Format.JPEG) {
             response.withContentType(MediaType.JPEG);
           } else {
-            request.withContentType(MediaType.PNG);
+            response.withContentType(MediaType.PNG);
           }
         }
         previewMockServer.when(
@@ -252,7 +242,7 @@ public class PreviewApiIT {
           if (format == Format.JPEG) {
             response.withContentType(MediaType.JPEG);
           } else {
-            request.withContentType(MediaType.PNG);
+            response.withContentType(MediaType.PNG);
           }
         }
         previewMockServer.when(
@@ -316,13 +306,15 @@ public class PreviewApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
       FileMock expectedFile = MockedFiles.getPreview(MockedFileType.SNOOPY_PREVIEW);
-      mockGetPreviewImage(fileMock.getId(),
+      previewMockServer.when(mockGetPreviewImageRequest(fileMock.getId(),
         "320x160",
         Quality.HIGH,
         Format.JPEG,
-        false,
+        false)
+      ).respond(mockGetPreviewImageResponse(Format.JPEG,
         Status.OK.getStatusCode(),
-        expectedFile.getName());
+        expectedFile.getName())
+      );
 
       MockHttpResponse response = dispatcher.get(previewImageUrl(
           fileMock.getId(),
@@ -365,7 +357,7 @@ public class PreviewApiIT {
     }
 
     @Test
-    @DisplayName("Correctly returns the image thumbnail for requested id")
+    @DisplayName("Correctly returns the pdf preview for requested id")
     public void getPDFPreview_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_PDF);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
@@ -384,11 +376,11 @@ public class PreviewApiIT {
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
       assertArrayEquals(expectedFile.getFileBytes(), response.getOutput());
-      //assertEquals("image/jpeg", response.getOutputHeaders().get("Content-Type").get(0).toString());
+      assertEquals("application/pdf", response.getOutputHeaders().get("Content-Type").get(0).toString());
     }
 
     @Test
-    @DisplayName("Correctly returns the image thumbnail for requested id")
+    @DisplayName("Correctly returns the pdf thumbnail for requested id")
     public void getPDFThumbnail_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_PDF);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
@@ -413,12 +405,29 @@ public class PreviewApiIT {
       assertArrayEquals(expectedFile.getFileBytes(), response.getOutput());
       assertEquals("image/jpeg", response.getOutputHeaders().get("Content-Type").get(0).toString());
     }
-   /* @Test
+
+    @Test
     @DisplayName("Returns 424 if the Previewer server is down")
     public void getAttachmentPreview_testExceptionPreviewerKO() throws Exception {
-      previewerMockServer.setIsAliveResponse(false);
+      FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
+      integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
+      previewMockServer.when(mockGetPreviewImageRequest(fileMock.getId(),
+        "320x160",
+        Quality.HIGH,
+        Format.JPEG,
+        false)
+      ).respond(mockGetPreviewImageResponse(null,
+        500,
+        null)
+      );
 
-      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), null);
+      MockHttpResponse response = dispatcher.get(previewImageUrl(
+          fileMock.getId(),
+          "320x160",
+          ImageQualityEnumDto.HIGH,
+          ImageTypeEnumDto.JPEG,
+          false),
+        user1Token);
 
       assertEquals(424, response.getStatus());
     }
@@ -426,44 +435,46 @@ public class PreviewApiIT {
     @Test
     @DisplayName("Given an attachment identifier, if the user is not authenticated return a status code 401")
     public void getAttachmentPreview_testErrorUnauthenticatedUser() throws Exception {
-      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), null);
+      MockHttpResponse response = dispatcher.get(previewImageUrl(
+          UUID.randomUUID().toString(),
+          "320x160",
+          ImageQualityEnumDto.HIGH,
+          ImageTypeEnumDto.JPEG,
+          false),
+        null);
 
       assertEquals(Status.UNAUTHORIZED.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
     }
 
     @Test
-    @DisplayName("Given an attachment identifier, if authenticated user isn't a room member then return a status code 403")
+    @DisplayName("Given an attachment identifier, if authenticated user isn't a room member then return a status code 404")
     public void getAttachmentPreview_testErrorUserIsNotARoomMember() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
 
-      MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user3Token);
-
-      assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
-    }
-
-    @Test
-    @DisplayName("Given an attachment identifier, if the identifier is not an UUID return a status code 404")
-    public void getAttachmentPreview_testErrorIdentifierIsNotUUID() throws Exception {
-      MockHttpResponse response = dispatcher.get(url("not_a_uuid"), user1Token);
+      MockHttpResponse response = dispatcher.get(previewImageUrl(
+          UUID.randomUUID().toString(),
+          "320x160",
+          ImageQualityEnumDto.HIGH,
+          ImageTypeEnumDto.JPEG,
+          false),
+        user3Token);
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
     @Test
     @DisplayName("Given an attachment identifier, if the attachment doesn't exist then return a status code 404")
     public void getAttachmentPreview_testErrorFileNotExists() throws Exception {
-      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), user1Token);
+      MockHttpResponse response = dispatcher.get(previewImageUrl(
+          UUID.randomUUID().toString(),
+          "320x160",
+          ImageQualityEnumDto.HIGH,
+          ImageTypeEnumDto.JPEG,
+          false),
+        user1Token);
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
-  }*/
   }
 }

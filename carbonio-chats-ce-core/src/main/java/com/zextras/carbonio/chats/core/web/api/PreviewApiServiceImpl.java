@@ -39,93 +39,53 @@ public class PreviewApiServiceImpl implements PreviewApiService {
   }
 
   @Override
-  public Response getImagePreview(UUID fileId, String area, ImageQualityEnumDto quality, ImageTypeEnumDto outputFormat, Boolean crop, SecurityContext securityContext) throws NotFoundException {
-    if(ObjectUtils.anyNull(fileId,area)){
-      return Response
-        .status(Response.Status.BAD_REQUEST)
-        .build();
-    } else {
-      UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-        .orElseThrow(UnauthorizedException::new);
-      FileResponse image = previewService.getImage(currentUser,
-        fileId,
-        area,
-        Option.of(quality).map(q -> Quality.valueOf(q.toString().toUpperCase())),
-        Option.of(outputFormat).map(f -> Format.valueOf(f.toString().toUpperCase())),
-        Option.of(crop));
-      return Response
-        .status(Response.Status.OK)
-        .entity(image.getContent())
-        .header("Content-Type", image.getMimeType())
-        .header("Content-Length", image.getLength())
-        .build();
-    }
-  }
-
-  @Override
-  public Response getImageThumbnail(UUID fileId, String area, ImageQualityEnumDto quality, ImageTypeEnumDto outputFormat, ImageShapeEnumDto shape, SecurityContext securityContext) throws NotFoundException {
-    if(ObjectUtils.anyNull(fileId,area)){
-      return Response
-        .status(Response.Status.BAD_REQUEST)
-        .build();
-    } else {
-      UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-        .orElseThrow(UnauthorizedException::new);
-      FileResponse image = previewService.getImageThumbnail(currentUser,
-        fileId,
-        area,
-        Option.of(quality).map(q -> Quality.valueOf(q.toString().toUpperCase())),
-        Option.of(outputFormat).map(f -> Format.valueOf(f.toString().toUpperCase())),
-        Option.of(shape).map(s -> Shape.valueOf(s.toString().toUpperCase()))
-      );
-      return Response
-        .status(Response.Status.OK)
-        .entity(image.getContent())
-        .header("Content-Type", image.getMimeType())
-        .header("Content-Length", image.getLength())
-        .build();
-    }
-  }
-
-  @Override
-  public Response getPdfPreview(UUID fileId, Integer firstPage, Integer lastPage, SecurityContext securityContext) throws NotFoundException {
+  public Response getImagePreview(UUID fileId, String area, ImageQualityEnumDto quality, ImageTypeEnumDto outputFormat, Boolean crop, SecurityContext securityContext){
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    if(ObjectUtils.anyNull(fileId,firstPage,lastPage)){
-      return Response
-        .status(Response.Status.BAD_REQUEST)
-        .build();
-    } else {
+    FileResponse image = previewService.getImage(currentUser,
+      fileId,
+      area,
+      Option.of(quality),
+      Option.of(outputFormat),
+      Option.of(crop));
+    return Response
+      .status(Response.Status.OK)
+      .entity(image.getContent())
+      .header("Content-Type", image.getMimeType())
+      .header("Content-Length", image.getLength())
+      .build();
+
+  }
+
+  @Override
+  public Response getImageThumbnail(UUID fileId, String area, ImageQualityEnumDto quality, ImageTypeEnumDto outputFormat, ImageShapeEnumDto shape, SecurityContext securityContext){
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    FileResponse image = previewService.getImageThumbnail(currentUser,
+      fileId,
+      area,
+      Option.of(quality),
+      Option.of(outputFormat),
+      Option.of(shape)
+    );
+    return Response
+      .status(Response.Status.OK)
+      .entity(image.getContent())
+      .header("Content-Type", image.getMimeType())
+      .header("Content-Length", image.getLength())
+      .build();
+
+  }
+
+  @Override
+  public Response getPdfPreview(UUID fileId, Integer firstPage, Integer lastPage, SecurityContext securityContext){
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
       FileResponse image = previewService.getPDF(
         currentUser,
         fileId,
         firstPage,
-        lastPage);
-      return Response
-        .status(Response.Status.OK)
-        .entity(image.getContent())
-        .header("Content-Type", image.getMimeType())
-        .header("Content-Length", image.getLength())
-        .build();
-    }
-  }
-
-  @Override
-  public Response getPdfThumbnail(UUID fileId, String area, ImageQualityEnumDto quality, ImageTypeEnumDto outputFormat, ImageShapeEnumDto shape, SecurityContext securityContext) throws NotFoundException {
-    if(ObjectUtils.anyNull(fileId,area)){
-      return Response
-        .status(Response.Status.BAD_REQUEST)
-        .build();
-    } else {
-      UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-        .orElseThrow(UnauthorizedException::new);
-      FileResponse image = previewService.getPDFThumbnail(
-        currentUser,
-        fileId,
-        area,
-        Option.of(quality).map(q -> Quality.valueOf(q.toString().toUpperCase())),
-        Option.of(outputFormat).map(f -> Format.valueOf(f.toString().toUpperCase())),
-        Option.of(shape).map(s -> Shape.valueOf(s.toString().toUpperCase()))
+        lastPage
       );
       return Response
         .status(Response.Status.OK)
@@ -133,6 +93,30 @@ public class PreviewApiServiceImpl implements PreviewApiService {
         .header("Content-Type", image.getMimeType())
         .header("Content-Length", image.getLength())
         .build();
-    }
+  }
+
+  @Override
+  public Response getPdfThumbnail(UUID fileId,
+                                  String area,
+                                  ImageQualityEnumDto quality,
+                                  ImageTypeEnumDto outputFormat,
+                                  ImageShapeEnumDto shape,
+                                  SecurityContext securityContext){
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    FileResponse image = previewService.getPDFThumbnail(
+      currentUser,
+      fileId,
+      area,
+      Option.of(quality),
+      Option.of(outputFormat),
+      Option.of(shape)
+    );
+    return Response
+      .status(Response.Status.OK)
+      .entity(image.getContent())
+      .header("Content-Type", image.getMimeType())
+      .header("Content-Length", image.getLength())
+      .build();
   }
 }
