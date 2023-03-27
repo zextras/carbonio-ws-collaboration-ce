@@ -9,6 +9,7 @@ Jetty Core Server, Copyright (C) 1995-2022 Mort Bay Consulting Pty Ltd and other
 guice, 2006, Copyright (C) 2006 Google Inc.;
 guice-assistedinject, 2006, Copyright (C) 2006 Google Inc.;
 common-lang3, 2001-2022, Copyright (C) 2001-2022 The Apache Software Foundation;
+commons-text, 2001-2022, Copyright (C) 2001-2022 The Apache Software Foundation;
 ebean;
 jackson-annotations;
 jackson-core;
