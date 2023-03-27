@@ -78,6 +78,12 @@ pipeline {
         }
       }
     }
+
+    stage('Publishing') {
+      steps {
+        sh 'mvn -B --settings settings-jenkins.xml -D skipTests deploy'
+      }
+    }
   
     stage('Stashing for packaging') {
       when {
