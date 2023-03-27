@@ -60,8 +60,8 @@ public class UserManagementMockServer extends ClientAndServer implements Closeab
   public HttpRequest getUsersBulkRequest(List<String> usersIds) {
     return request()
       .withMethod("GET")
-      .withPath("/users?")
-      .withQueryStringParameters(usersIds.stream().map(p -> new Parameter("userIds", p)).collect(Collectors.toList()));
+      .withPath("/users/?")
+      .withQueryStringParameters(usersIds.stream().map(p -> Parameter.param("userIds", p)).collect(Collectors.toList()));
   }
 
   public void mockUsersBulk(List<String> usersIds, List<UserInfo> usersInfo, boolean success) {
