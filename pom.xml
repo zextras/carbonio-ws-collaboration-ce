@@ -19,13 +19,18 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <repositories>
     <repository>
-      <id>artifactory</id>
-      <name>Zextras releases</name>
-      <url>https://zextras.jfrog.io/artifactory/public-maven-repo</url>
+      <id>snapshot-artifactory</id>
+      <name>Zextras snapshot</name>
+      <url>https://zextras.jfrog.io/artifactory/maven-snapshot</url>
     </repository>
     <repository>
       <id>snapshots-repo</id>
       <url>https://repo.zextras.io/maven/snapshot/</url>
+    </repository>
+    <repository>
+      <id>release-artifactory</id>
+      <name>Zextras releases</name>
+      <url>https://zextras.jfrog.io/artifactory/public-maven-repo</url>
     </repository>
     <repository>
       <id>releases-repo</id>
@@ -54,7 +59,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Carbonio User Management -->
     <carbonio-user-management-sdk.version>0.1.1</carbonio-user-management-sdk.version>
     <!-- Storages -->
-    <storages-sdk.version>0.0.14-SNAPSHOT</storages-sdk.version>
+    <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
     <!-- Previewer -->
     <preview-sdk.version>0.2.1</preview-sdk.version>
     <!-- Jetty -->
@@ -81,7 +86,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     <com.fasterxml.jackson.version>2.13.0</com.fasterxml.jackson.version>
     <org.openapitools.jackson-databind-nullable.version>0.2.2</org.openapitools.jackson-databind-nullable.version>
     <!-- Utilities -->
-    <org.apache.commons.version>3.12.0</org.apache.commons.version>
+    <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
+    <org.apache.commons.text.version>1.10.0</org.apache.commons.text.version>
     <!-- Open api-->
     <io.swagger.version>1.6.3</io.swagger.version>
     <org.hibernate.validator.version>5.2.4.Final</org.hibernate.validator.version>
@@ -331,7 +337,13 @@ SPDX-License-Identifier: AGPL-3.0-only
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>${org.apache.commons.version}</version>
+        <version>${org.apache.commons.lang3.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-text</artifactId>
+        <version>${org.apache.commons.text.version}</version>
       </dependency>
 
       <!-- Open API dependencies-->

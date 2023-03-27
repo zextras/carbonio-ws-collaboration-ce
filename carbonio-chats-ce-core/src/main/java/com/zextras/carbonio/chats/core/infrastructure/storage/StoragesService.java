@@ -39,6 +39,16 @@ public interface StoragesService extends HealthIndicator {
   void saveFile(File file, FileMetadata metadata, String currentUserId);
 
   /**
+   * Copies a file
+   *
+   * @param sourceId           identifier of the source file
+   * @param sourceOwnerId      identifier of the source file owner
+   * @param destinationId      identifier of the destination file
+   * @param destinationOwnerId identifier of the destination file owner
+   */
+  void copyFile(String sourceId, String sourceOwnerId, String destinationId, String destinationOwnerId);
+
+  /**
    * Deletes a file from the repository
    *
    * @param fileId  file identifier

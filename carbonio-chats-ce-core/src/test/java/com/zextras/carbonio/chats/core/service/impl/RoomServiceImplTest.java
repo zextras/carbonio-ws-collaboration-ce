@@ -59,6 +59,7 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -2411,6 +2412,125 @@ class RoomServiceImplTest {
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Ranks must be progressive number that starts with 1", exception.getMessage());
       verifyNoInteractions(roomRepository);
+    }
+  }
+
+  @Nested
+  @DisplayName("Forward messages tests")
+  public class ForwardMessagesTests {
+
+    @Test
+    @DisplayName("Forwards a text message")
+    public void forwardMessages_textMessage() {
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      String messageToForward =
+        "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\" type=\"groupchat\">"
+          + "<body>this is the body of the message to forward!</body>"
+          + "</message>";
+      ForwardMessageDto forwardMessageDto = ForwardMessageDto.create()
+        .originalMessage(messageToForward)
+        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
+        .description("this is my body");
+      roomService.forwardMessages(roomGroup1Id, List.of(forwardMessageDto), UserPrincipal.create(user1Id));
+
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(messageDispatcher, times(1))
+        .forwardMessage(roomGroup1Id.toString(), user1Id.toString(), forwardMessageDto, null);
+      verify(messageDispatcher, times(1)).getAttachmentIdFromMessage(messageToForward);
+      verifyNoMoreInteractions(roomRepository, messageDispatcher);
+      verifyNoInteractions(attachmentService, eventDispatcher, userService, membersService, meetingService,
+        storagesService);
+    }
+
+    @Test
+    @DisplayName("Forwards a message describing an attachment")
+    public void forwardMessages_attachmentMessage() {
+      String messageToForward =
+        "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\" type=\"groupchat\">"
+          + "<x xmlns=\"urn:xmpp:muclight:0#configuration\">"
+          + "<operation>attachmentAdded</operation>"
+          + "<attachment-id>7247c23f-1669-46ef-9a87-e8726fefb7aa</attachment-id>"
+          + "<filename>image.jpg</filename>"
+          + "<mime-type>image/jpg</mime-type>"
+          + "<size>1024</size>"
+          + "</x><body/></message>";
+      ForwardMessageDto forwardMessageDto = ForwardMessageDto.create()
+        .originalMessage(messageToForward)
+        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
+        .description("this is my body");
+      FileMetadata newAttachment = FileMetadata.create().id(UUID.randomUUID().toString()).name("image.jpg")
+        .originalSize(1024L).mimeType("image/jpg");
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      when(messageDispatcher.getAttachmentIdFromMessage(messageToForward)).thenReturn(
+        Optional.of("7247c23f-1669-46ef-9a87-e8726fefb7aa"));
+      when(attachmentService.copyAttachment(roomGroup1, UUID.fromString("7247c23f-1669-46ef-9a87-e8726fefb7aa"),
+        UserPrincipal.create(user1Id))).thenReturn(newAttachment);
+
+      roomService.forwardMessages(roomGroup1Id, List.of(forwardMessageDto), UserPrincipal.create(user1Id));
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(attachmentService, times(1)).copyAttachment(roomGroup1,
+        UUID.fromString("7247c23f-1669-46ef-9a87-e8726fefb7aa"), UserPrincipal.create(user1Id));
+      verify(messageDispatcher, times(1)).getAttachmentIdFromMessage(messageToForward);
+      verify(messageDispatcher, times(1))
+        .forwardMessage(roomGroup1Id.toString(), user1Id.toString(), forwardMessageDto, newAttachment);
+      verify(messageDispatcher, times(1)).getAttachmentIdFromMessage(messageToForward);
+
+      verifyNoMoreInteractions(roomRepository, messageDispatcher, attachmentService);
+      verifyNoInteractions(eventDispatcher, userService, membersService, meetingService,
+        storagesService);
+    }
+
+    @Test
+    @DisplayName("Forwards a message describing an attachment")
+    public void forwardMessages_someMessages() {
+      String message1ToForward =
+        "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\" type=\"groupchat\">"
+          + "<body>this is the body of the message to forward!</body>"
+          + "</message>";
+      ForwardMessageDto forwardMessage1Dto = ForwardMessageDto.create()
+        .originalMessage(message1ToForward)
+        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
+        .description("this is my body");
+
+      String message2ToForward =
+        "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\" type=\"groupchat\">"
+          + "<x xmlns=\"urn:xmpp:muclight:0#configuration\">"
+          + "<operation>attachmentAdded</operation>"
+          + "<attachment-id>7247c23f-1669-46ef-9a87-e8726fefb7aa</attachment-id>"
+          + "<filename>image.jpg</filename>"
+          + "<mime-type>image/jpg</mime-type>"
+          + "<size>1024</size>"
+          + "</x><body/></message>";
+      ForwardMessageDto forwardMessage2Dto = ForwardMessageDto.create()
+        .originalMessage(message2ToForward)
+        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
+        .description("this is my body");
+      FileMetadata newAttachment = FileMetadata.create().id(UUID.randomUUID().toString()).name("image.jpg")
+        .originalSize(1024L).mimeType("image/jpg");
+
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      when(messageDispatcher.getAttachmentIdFromMessage(message2ToForward)).thenReturn(
+        Optional.of("7247c23f-1669-46ef-9a87-e8726fefb7aa"));
+      when(attachmentService.copyAttachment(roomGroup1, UUID.fromString("7247c23f-1669-46ef-9a87-e8726fefb7aa"),
+        UserPrincipal.create(user1Id))).thenReturn(newAttachment);
+
+      roomService.forwardMessages(roomGroup1Id, List.of(forwardMessage1Dto, forwardMessage2Dto),
+        UserPrincipal.create(user1Id));
+
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(attachmentService, times(1)).copyAttachment(roomGroup1,
+        UUID.fromString("7247c23f-1669-46ef-9a87-e8726fefb7aa"), UserPrincipal.create(user1Id));
+      verify(messageDispatcher, times(1))
+        .forwardMessage(roomGroup1Id.toString(), user1Id.toString(), forwardMessage1Dto, null);
+      verify(messageDispatcher, times(1)).getAttachmentIdFromMessage(message1ToForward);
+      verify(messageDispatcher, times(1)).getAttachmentIdFromMessage(message2ToForward);
+      verify(messageDispatcher, times(1))
+        .forwardMessage(roomGroup1Id.toString(), user1Id.toString(), forwardMessage2Dto, newAttachment);
+      verify(messageDispatcher, times(1)).getAttachmentIdFromMessage(message2ToForward);
+
+      verifyNoMoreInteractions(roomRepository, messageDispatcher, attachmentService);
+      verifyNoInteractions(eventDispatcher, userService, membersService, meetingService,
+        storagesService);
     }
   }
 }

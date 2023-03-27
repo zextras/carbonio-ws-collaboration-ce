@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.service;
 
+import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
+import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -73,6 +75,16 @@ public interface AttachmentService {
     UUID roomId, File file, String mimeType, String fileName, String description, @Nullable String messageId,
     @Nullable String replyId, UserPrincipal currentUser
   );
+
+  /**
+   * Copies an attachment in a destinationRoom
+   *
+   * @param destinationRoom      destination room {@link Room}
+   * @param originalAttachmentId identifier of the attachment to copy {@link UUID}
+   * @param currentUser          current authenticated user {@link UserPrincipal}
+   * @return The new file data {@link FileMetadata}
+   */
+  FileMetadata copyAttachment(Room destinationRoom, UUID originalAttachmentId, UserPrincipal currentUser);
 
   /**
    * Deletes a room's attachment file

@@ -17,6 +17,7 @@ import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ClearedDateDto;
+import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.JoinSettingsByRoomDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
@@ -148,6 +149,16 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     roomService.deleteRoomPicture(roomId, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
+  public Response forwardMessages(
+    UUID roomId, List<ForwardMessageDto> forwardMessageDto, SecurityContext securityContext
+  ) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    roomService.forwardMessages(roomId, forwardMessageDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 

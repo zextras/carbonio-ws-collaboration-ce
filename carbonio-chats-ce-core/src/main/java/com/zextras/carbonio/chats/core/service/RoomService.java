@@ -10,6 +10,7 @@ import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -188,4 +189,13 @@ public interface RoomService {
    * @param meeting {@link Meeting} to set
    */
   void setMeetingIntoRoom(Room room, Meeting meeting);
+
+  /**
+   * Forward a list of messages to a specified room
+   *
+   * @param roomId            identifier of the room to send messages to be forwarded
+   * @param forwardMessageDto {@link List} of messages to be forwarded {@link ForwardMessageDto}
+   * @param currentUser       current authenticated user {@link UserPrincipal}
+   */
+  void forwardMessages(UUID roomId, List<ForwardMessageDto> forwardMessageDto, UserPrincipal currentUser);
 }
