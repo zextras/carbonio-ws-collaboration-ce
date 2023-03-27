@@ -95,8 +95,10 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
       .withPath("/copy?")
       .withQueryStringParameters(
         param("sourceNode", sourceId),
+        param("sourceVersion", String.valueOf(0)),
         param("destinationNode", destinationId),
-        param("type", "chats"),
+        param("destinationVersion", String.valueOf(0)),
+        param("type", "files"),
         param("override", "false"));
   }
 
