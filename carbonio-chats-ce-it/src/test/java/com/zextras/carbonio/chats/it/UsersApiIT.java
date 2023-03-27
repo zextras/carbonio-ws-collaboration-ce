@@ -16,6 +16,11 @@ import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.User;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
+import com.zextras.carbonio.chats.it.config.AppClock;
+import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
+import com.zextras.carbonio.chats.it.tools.StorageMockServer;
+import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockUserProfile;
@@ -23,22 +28,21 @@ import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.it.utils.MockedFiles;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
-import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
-import com.zextras.carbonio.chats.it.config.AppClock;
-import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
-import com.zextras.carbonio.chats.it.tools.StorageMockServer;
-import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.UserDto;
+import com.zextras.carbonio.usermanagement.entities.UserInfo;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -108,6 +112,93 @@ public class UsersApiIT {
       MockHttpResponse mockHttpResponse = dispatcher.get(url(userId), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
       assertEquals(404, mockHttpResponse.getStatus());
     }
+  }
+
+  @Nested
+  @DisplayName("Get users tests")
+  class GetUsersTests {
+
+    private String url(List<String> userIds) {
+      return "/users?" + userIds.stream().map(id -> String.join("=", "userIds", id))
+        .collect(Collectors.joining("&"));
+    }
+
+    @Test
+    @DisplayName("Returns the requested users")
+    public void getUsers_testOK() throws Exception {
+      List<String> userIds = Arrays.asList(
+        "332a9527-3388-4207-be77-6d7e2978a723",
+        "82735f6d-4c6c-471e-99d9-4eef91b1ec45",
+        "ea7b9b61-bef5-4cf4-80cb-19612c42593a"
+      );
+      integrationTestUtils.generateAndSaveUser(UUID.fromString(userIds.get(0)), "status message 1",
+        OffsetDateTime.parse("0001-01-01T00:00:00Z"), "111");
+      UserInfo user1 = new UserInfo("332a9527-3388-4207-be77-6d7e2978a723", "snoopy@peanuts.com", "Snoopy",
+        "peanuts.com");
+      UserInfo user2 = new UserInfo("82735f6d-4c6c-471e-99d9-4eef91b1ec45", "charlie.brown@peanuts.com",
+        "Charlie Brown", "peanuts.com");
+      UserInfo user3 = new UserInfo("ea7b9b61-bef5-4cf4-80cb-19612c42593a", "lucy.van.pelt@peanuts.com",
+        "Lucy van Pelt", "peanuts.com");
+      userManagementMockServer.mockUsersBulk(userIds, List.of(user1, user2, user3), true);
+
+      MockHttpResponse mockHttpResponse = dispatcher.get(url(userIds), "F2TkzabOK2pu91sL951ofbJ7Ur3zcJKV9gBwdB84");
+      assertEquals(200, mockHttpResponse.getStatus());
+      List<UserDto> users = objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
+      assertEquals("332a9527-3388-4207-be77-6d7e2978a723", users.get(0).getId().toString());
+      assertEquals("snoopy@peanuts.com", users.get(0).getEmail());
+      assertEquals("Snoopy", users.get(0).getName());
+      assertEquals("status message 1", users.get(0).getStatusMessage());
+      assertEquals(OffsetDateTime.parse("0001-01-01T00:00:00Z"), users.get(0).getPictureUpdatedAt());
+      assertEquals("82735f6d-4c6c-471e-99d9-4eef91b1ec45", users.get(1).getId().toString());
+      assertEquals("charlie.brown@peanuts.com", users.get(1).getEmail());
+      assertEquals("Charlie Brown", users.get(1).getName());
+      assertEquals("ea7b9b61-bef5-4cf4-80cb-19612c42593a", users.get(2).getId().toString());
+      assertEquals("lucy.van.pelt@peanuts.com", users.get(2).getEmail());
+      assertEquals("Lucy van Pelt", users.get(2).getName());
+    }
+
+    @Test
+    @DisplayName("Returns parts of the requested users")
+    public void getUser_testPartiallyOK() throws Exception {
+      List<String> userIds = Arrays.asList(
+        "332a9527-3388-4207-be77-6d7e2978a723",
+        "82735f6d-4c6c-471e-99d9-4eef91b1ec45",
+        "ea7b9b61-bef5-4cf4-80cb-19612c42593a"
+      );
+      integrationTestUtils.generateAndSaveUser(UUID.fromString(userIds.get(0)), "status message 1",
+        OffsetDateTime.parse("0001-01-01T00:00:00Z"), "111");
+      UserInfo user1 = new UserInfo("332a9527-3388-4207-be77-6d7e2978a723", "snoopy@peanuts.com", "Snoopy",
+        "peanuts.com");
+      UserInfo user2 = new UserInfo("82735f6d-4c6c-471e-99d9-4eef91b1ec45", "charlie.brown@peanuts.com",
+        "Charlie Brown", "peanuts.com");
+      userManagementMockServer.mockUsersBulk(userIds, List.of(user1, user2), true);
+
+      MockHttpResponse mockHttpResponse = dispatcher.get(url(userIds), "F2TkzabOK2pu91sL951ofbJ7Ur3zcJKV9gBwdB84");
+      assertEquals(200, mockHttpResponse.getStatus());
+      List<UserDto> users = objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
+      assertEquals("332a9527-3388-4207-be77-6d7e2978a723", users.get(0).getId().toString());
+      assertEquals("snoopy@peanuts.com", users.get(0).getEmail());
+      assertEquals("Snoopy", users.get(0).getName());
+      assertEquals("status message 1", users.get(0).getStatusMessage());
+      assertEquals(OffsetDateTime.parse("0001-01-01T00:00:00Z"), users.get(0).getPictureUpdatedAt());
+      assertEquals("82735f6d-4c6c-471e-99d9-4eef91b1ec45", users.get(1).getId().toString());
+      assertEquals("charlie.brown@peanuts.com", users.get(1).getEmail());
+      assertEquals("Charlie Brown", users.get(1).getName());
+    }
+
+    @Test
+    @DisplayName("Returns empty list")
+    public void getUser_testUserNotFound() throws Exception {
+      List<String> userIds = Collections.singletonList("332a9527-3388-4207-be77-6d7e2978a722");
+
+      MockHttpResponse mockHttpResponse = dispatcher.get(url(userIds), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
+      userManagementMockServer.mockUsersBulk(userIds, Collections.emptyList(), true);
+      List<UserDto> users = objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
+      assertEquals(200, mockHttpResponse.getStatus());
+      assertTrue(users.isEmpty());
+    }
+
+
   }
 
   @Nested

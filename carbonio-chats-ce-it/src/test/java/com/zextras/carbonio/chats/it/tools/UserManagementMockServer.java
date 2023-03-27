@@ -8,14 +8,18 @@ import static org.mockserver.model.Header.header;
 import static org.mockserver.model.HttpRequest.request;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.usermanagement.entities.UserInfo;
+import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
-import org.mockserver.client.MockServerClient;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
+import org.mockserver.model.HttpResponse;
+import org.mockserver.model.JsonBody;
+import org.mockserver.model.Parameter;
 import org.mockserver.verify.VerificationTimes;
 
 public class UserManagementMockServer extends ClientAndServer implements CloseableResource {
@@ -52,4 +56,21 @@ public class UserManagementMockServer extends ClientAndServer implements Closeab
     ChatsLogger.debug("Stopping user management mock...");
     super.close();
   }
+
+  public HttpRequest getUsersBulkRequest(List<String> usersIds) {
+    return request()
+      .withMethod("GET")
+      .withPath("/users?")
+      .withQueryStringParameters(usersIds.stream().map(p -> new Parameter("userIds", p)).collect(Collectors.toList()));
+  }
+
+  public void mockUsersBulk(List<String> usersIds, List<UserInfo> usersInfo, boolean success) {
+    HttpRequest request = getUsersBulkRequest(usersIds);
+    clear(request);
+    when(request).respond(HttpResponse.response()
+      .withStatusCode(200)
+      .withBody(JsonBody.json(usersInfo))
+    );
+  }
+
 }
