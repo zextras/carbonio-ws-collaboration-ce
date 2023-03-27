@@ -19,7 +19,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<logger name="com.github.dockerjava" level="WARN"/>
 	<logger name="org.flywaydb" level="INFO"/>
 	<logger name="com.zaxxer.hikari" level="INFO"/>
-	<logger name="org.mockserver" level="DEBUG"/>
+	<logger name="org.mockserver" level="ERROR"/>
 	<logger name="io.netty" level="INFO"/>
 	<logger name="io.swagger" level="INFO"/>
 	<logger name="org.jboss.resteasy" level="INFO"/>

@@ -145,7 +145,8 @@ class PreviewServiceImplTest {
       .setPreviewArea("100x100")
       .setQuality(Quality.HIGH)
       .setOutputFormat(Format.JPEG)
-      .setCrop(false).build();
+      .setCrop(false)
+      .build();
     BlobResponse mockBlobResponse = mock(BlobResponse.class);
     when(mockBlobResponse.getContent()).thenReturn(new ByteArrayInputStream("image".getBytes()));
     when(mockBlobResponse.getLength()).thenReturn(5L);
@@ -192,7 +193,7 @@ class PreviewServiceImplTest {
     when(mockBlobResponse.getLength()).thenReturn(5L);
     when(mockBlobResponse.getMimeType()).thenReturn("image/jpeg");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
-    when(previewClient.getPreviewOfImage(any(Query.class))).thenReturn(Try.success(mockBlobResponse));
+    when(previewClient.getThumbnailOfImage(any(Query.class))).thenReturn(Try.success(mockBlobResponse));
     FileResponse previewImageResponse = previewService.getImageThumbnail(currentUser,
       fileId,
       "100x100",
@@ -200,7 +201,7 @@ class PreviewServiceImplTest {
       Option.of(ImageTypeEnumDto.JPEG),
       Option.of(ImageShapeEnumDto.RECTANGULAR));
 
-    verify(previewClient,times(1)).getPreviewOfImage(parametersCapture.capture());
+    verify(previewClient,times(1)).getThumbnailOfImage(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
     assertEquals(new String(Files.readAllBytes(previewImageResponse.getContent().toPath())),
       "image");
@@ -231,13 +232,13 @@ class PreviewServiceImplTest {
     when(mockBlobResponse.getLength()).thenReturn(3L);
     when(mockBlobResponse.getMimeType()).thenReturn("application/pdf");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
-    when(previewClient.getPreviewOfImage(any(Query.class))).thenReturn(Try.success(mockBlobResponse));
+    when(previewClient.getPreviewOfPdf(any(Query.class))).thenReturn(Try.success(mockBlobResponse));
     FileResponse previewImageResponse = previewService.getPDF(currentUser,
       fileId,
       1,
       0);
 
-    verify(previewClient,times(1)).getPreviewOfImage(parametersCapture.capture());
+    verify(previewClient,times(1)).getPreviewOfPdf(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
     assertEquals(new String(Files.readAllBytes(previewImageResponse.getContent().toPath())),
       "pdf");
@@ -270,15 +271,15 @@ class PreviewServiceImplTest {
     when(mockBlobResponse.getLength()).thenReturn(3L);
     when(mockBlobResponse.getMimeType()).thenReturn("application/pdf");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
-    when(previewClient.getPreviewOfImage(any(Query.class))).thenReturn(Try.success(mockBlobResponse));
-    FileResponse previewImageResponse = previewService.getImageThumbnail(currentUser,
+    when(previewClient.getThumbnailOfPdf(any(Query.class))).thenReturn(Try.success(mockBlobResponse));
+    FileResponse previewImageResponse = previewService.getPDFThumbnail(currentUser,
       fileId,
       "100x100",
       Option.of(ImageQualityEnumDto.HIGH),
       Option.of(ImageTypeEnumDto.JPEG),
       Option.of(ImageShapeEnumDto.RECTANGULAR));
 
-    verify(previewClient,times(1)).getPreviewOfImage(parametersCapture.capture());
+    verify(previewClient,times(1)).getThumbnailOfPdf(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
     assertEquals(new String(Files.readAllBytes(previewImageResponse.getContent().toPath())),
       "pdf");
