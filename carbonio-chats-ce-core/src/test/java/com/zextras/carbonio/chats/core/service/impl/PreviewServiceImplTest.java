@@ -5,39 +5,22 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
-import com.zextras.carbonio.chats.core.config.AppConfig;
-import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.entity.User;
-import com.zextras.carbonio.chats.core.data.event.UserPictureChangedEvent;
-import com.zextras.carbonio.chats.core.data.event.UserPictureDeletedEvent;
-import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.FileResponse;
-import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
-import com.zextras.carbonio.chats.core.exception.BadRequestException;
-import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
-import com.zextras.carbonio.chats.core.exception.NotFoundException;
-import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
-import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
+import com.zextras.carbonio.chats.core.exception.PreviewException;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
-import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
-import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.service.PreviewService;
 import com.zextras.carbonio.chats.core.service.RoomService;
-import com.zextras.carbonio.chats.core.service.UserService;
-import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ImageQualityEnumDto;
 import com.zextras.carbonio.chats.model.ImageShapeEnumDto;
 import com.zextras.carbonio.chats.model.ImageTypeEnumDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import com.zextras.carbonio.chats.model.UserDto;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.preview.queries.BlobResponse;
 import com.zextras.carbonio.preview.queries.Query;
@@ -47,26 +30,15 @@ import com.zextras.carbonio.preview.queries.enums.ServiceType;
 import com.zextras.carbonio.preview.queries.enums.Shape;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.entity.HttpEntityWrapper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import javax.ws.rs.core.Response.Status;
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -82,8 +54,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @UnitTest
@@ -289,7 +259,7 @@ class PreviewServiceImplTest {
 
   @Test
   @DisplayName("Returns error if user is not in the room")
-  public void getImagePreviewNotAuthorized() throws IOException {
+  public void getImagePreviewNotAuthorized() {
     UUID fileId = UUID.randomUUID();
     UserPrincipal currentUser = UserPrincipal.create(user1Id);
     FileMetadata expectedMetadata = FileMetadataBuilder.create().id(fileId.toString())
@@ -307,4 +277,23 @@ class PreviewServiceImplTest {
       Option.of(false)));
   }
 
+  @Test
+  @DisplayName("Returns error if preview returns an error")
+  public void getImagePreviewPreviewException() {
+    UUID fileId = UUID.randomUUID();
+    UserPrincipal currentUser = UserPrincipal.create(user1Id);
+    FileMetadata expectedMetadata = FileMetadataBuilder.create().id(fileId.toString())
+      .name("snoopy.jpg").mimeType("image/jpeg").type(FileMetadataType.ATTACHMENT)
+      .userId(user1Id.toString()).roomId(room1.getId()).build();
+    when(fileMetadataRepository.getById(fileId.toString())).thenReturn(Optional.of(expectedMetadata));
+    when(roomService.getRoomEntityAndCheckUser(UUID.fromString(room1.getId()), currentUser, false))
+      .thenReturn(room1);
+    when(previewClient.getPreviewOfImage(any(Query.class))).thenReturn(Try.failure(new RuntimeException()));
+    assertThrows(PreviewException.class, () -> previewService.getImage(currentUser,
+      fileId,
+      "100x100",
+      Option.of(ImageQualityEnumDto.HIGH),
+      Option.of(ImageTypeEnumDto.JPEG),
+      Option.of(false)));
+  }
 }

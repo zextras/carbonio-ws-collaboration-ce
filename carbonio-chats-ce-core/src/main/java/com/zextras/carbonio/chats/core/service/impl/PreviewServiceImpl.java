@@ -7,11 +7,9 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.zextras.carbonio.chats.core.config.AppConfig;
-import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.model.FileResponse;
-import com.zextras.carbonio.chats.core.exception.PreviewerException;
+import com.zextras.carbonio.chats.core.exception.PreviewException;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.service.PreviewService;
 import com.zextras.carbonio.chats.core.service.RoomService;
@@ -22,17 +20,13 @@ import com.zextras.carbonio.chats.model.ImageTypeEnumDto;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.preview.queries.BlobResponse;
 import com.zextras.carbonio.preview.queries.Query;
-import com.zextras.carbonio.preview.queries.enums.Format;
-import com.zextras.carbonio.preview.queries.enums.Quality;
 import com.zextras.carbonio.preview.queries.enums.ServiceType;
-import com.zextras.carbonio.preview.queries.enums.Shape;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
 import org.apache.commons.io.FileUtils;
 
 
 import java.io.File;
-import java.io.IOException;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -63,7 +57,7 @@ public class PreviewServiceImpl implements PreviewService {
         FileUtils.copyInputStreamToFile(bResp.getContent(), file);
         return new FileResponse(file, bResp.getLength(),bResp.getMimeType());
       }).getOrElseThrow(t -> new RuntimeException(t))
-    ).getOrElseThrow(t-> new PreviewerException(t));
+    ).getOrElseThrow(t-> new PreviewException(t));
   }
 
   @Override

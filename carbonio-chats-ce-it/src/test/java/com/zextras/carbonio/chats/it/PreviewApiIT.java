@@ -50,27 +50,21 @@ import static org.mockserver.model.Parameter.param;
 
 @ApiIntegrationTest
 public class PreviewApiIT {
-  private final FileMetadataRepository fileMetadataRepository;
+
   private final ResteasyRequestDispatcher dispatcher;
-  private final ObjectMapper objectMapper;
+
   private final IntegrationTestUtils      integrationTestUtils;
-  private final UserManagementMockServer  userManagementMockServer;
+
   private final PreviewerMockServer previewMockServer;
 
   public PreviewApiIT(
     PreviewApi previewApi,
     ResteasyRequestDispatcher dispatcher,
     IntegrationTestUtils integrationTestUtils,
-    UserManagementMockServer userManagementMockServer,
-    FileMetadataRepository fileMetadataRepository,
-    ObjectMapper objectMapper,
     PreviewerMockServer previewMockServer
   ) {
-    this.fileMetadataRepository = fileMetadataRepository;
-    this.objectMapper = objectMapper;
     this.dispatcher = dispatcher;
     this.integrationTestUtils = integrationTestUtils;
-    this.userManagementMockServer = userManagementMockServer;
     this.previewMockServer = previewMockServer;
     this.dispatcher.getRegistry().addSingletonResource(previewApi);
     this.integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
@@ -79,7 +73,6 @@ public class PreviewApiIT {
   private static UUID   user1Id;
   private static UUID   user2Id;
   private static String user1Token;
-  private static String user2Token;
   private static String user3Token;
   private static UUID   roomId;
 
@@ -88,7 +81,6 @@ public class PreviewApiIT {
     user1Id = MockedAccount.getAccounts().get(0).getUUID();
     user1Token = MockedAccount.getAccounts().get(0).getToken();
     user2Id = MockedAccount.getAccounts().get(1).getUUID();
-    user2Token = MockedAccount.getAccounts().get(1).getToken();
     user3Token = MockedAccount.getAccounts().get(2).getToken();
     roomId = UUID.randomUUID();
   }
