@@ -198,7 +198,6 @@ public class UsersApiIT {
       assertTrue(users.isEmpty());
     }
 
-
   }
 
   @Nested
