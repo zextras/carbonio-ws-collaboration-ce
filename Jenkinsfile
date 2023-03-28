@@ -78,6 +78,15 @@ pipeline {
         }
       }
     }
+
+    stage('Publishing') {
+      when {
+        branch "main"
+      }
+      steps {
+        sh 'mvn -B --settings settings-jenkins.xml -D skipTests deploy'
+      }
+    }
   
     stage('Stashing for packaging') {
       when {
