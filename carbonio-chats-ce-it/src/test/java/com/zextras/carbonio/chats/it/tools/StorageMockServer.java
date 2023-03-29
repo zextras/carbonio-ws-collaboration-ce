@@ -13,6 +13,7 @@ import com.zextras.storages.internal.pojo.BulkDeleteItem;
 import com.zextras.storages.internal.pojo.Query;
 import com.zextras.storages.internal.pojo.StoragesBulkDeleteBody;
 import com.zextras.storages.internal.pojo.StoragesBulkDeleteResponse;
+import com.zextras.storages.internal.pojo.StoragesUploadResponse;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
@@ -66,7 +67,6 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
       .withPath("/bulk-delete")
       .withQueryStringParameter(param("type", "chats"))
       .withBody(JsonBody.json(requestBody));
-
   }
 
   public void setBulkDeleteResponse(List<String> requestIds, List<String> responseIds) {
@@ -87,6 +87,32 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
     } else {
       when(request).respond(response().withStatusCode(500));
     }
+  }
+
+  public HttpRequest getCopyFileRequest(String sourceId, String destinationId) {
+    return request()
+      .withMethod("PUT")
+      .withPath("/copy?")
+      .withQueryStringParameters(
+        param("sourceNode", sourceId),
+        param("sourceVersion", String.valueOf(0)),
+        param("destinationNode", destinationId),
+        param("destinationVersion", String.valueOf(0)),
+        param("type", "files"),
+        param("override", "false"));
+  }
+
+  public void mockCopyFile(String sourceId, String destinationId, boolean success) {
+    StoragesUploadResponse response = new StoragesUploadResponse();
+    response.setQuery(new Query());
+    response.getQuery().setNode(destinationId);
+    response.getQuery().setType("chats");
+    HttpRequest request = getCopyFileRequest(sourceId, destinationId);
+    clear(request);
+    when(request).respond(
+      response()
+        .withStatusCode(success ? 200 : 500)
+        .withBody(JsonBody.json(response)));
   }
 
   @Override

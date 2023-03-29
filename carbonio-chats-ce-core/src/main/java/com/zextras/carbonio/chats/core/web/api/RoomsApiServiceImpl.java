@@ -17,6 +17,7 @@ import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ClearedDateDto;
+import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.JoinSettingsByRoomDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
@@ -152,6 +153,16 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  public Response forwardMessages(
+    UUID roomId, List<ForwardMessageDto> forwardMessageDto, SecurityContext securityContext
+  ) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    roomService.forwardMessages(roomId, forwardMessageDto, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
   @TimedCall
   public Response resetRoomHash(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
@@ -270,7 +281,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response insertAttachment(
-    UUID roomId, String fileName, String mimeType, File body, String description, String messageId,
+    UUID roomId, String fileName, String mimeType, File body, String description, String messageId, String replyId,
     SecurityContext securityContext
   ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
@@ -284,7 +295,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
         Optional.of(new String(Base64.getDecoder().decode(fileName)))
           .orElseThrow(() -> new BadRequestException("File name not found")),
         Optional.ofNullable(description).map(d -> new String(Base64.getDecoder().decode(d))).orElse(""),
-        "".equals(messageId) ? null : messageId, currentUser))
+        "".equals(messageId) ? null : messageId,
+        "".equals(replyId) ? null : replyId, currentUser))
       .build();
   }
 

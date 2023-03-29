@@ -4,8 +4,11 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.messaging;
 
+import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
+import com.zextras.carbonio.chats.model.ForwardMessageDto;
+import java.util.Optional;
 import javax.annotation.Nullable;
 
 public interface MessageDispatcher extends HealthIndicator {
@@ -91,17 +94,36 @@ public interface MessageDispatcher extends HealthIndicator {
   /**
    * Sends the attachment
    *
-   * @param roomId       room identifier
-   * @param senderId     operation user identifier
-   * @param attachmentId identifier of the attachment to send
-   * @param fileName     name of the attachment
-   * @param mimeType     file mime type
-   * @param fileSize     file size
-   * @param description  description of the attachment
-   * @param messageId    identifier of XMPP message to create
+   * @param roomId      room identifier
+   * @param senderId    operation user identifier
+   * @param metadata    file properties {@link FileMetadata}
+   * @param description description of the attachment
+   * @param messageId   identifier of XMPP message to create
+   * @param replyId     identifier of the message being replied to
    */
   void sendAttachment(
-    String roomId, String senderId, String attachmentId, String fileName, String mimeType, long fileSize,
-    String description, @Nullable String messageId
+    String roomId, String senderId, FileMetadata metadata, String description, @Nullable String messageId,
+    @Nullable String replyId
   );
+
+  /**
+   * Forwards a message
+   *
+   * @param roomId           room identifier
+   * @param senderId         operation user identifier
+   * @param messageToForward message to forward
+   * @param fileMetadata     file properties {@link FileMetadata}
+   */
+  void forwardMessage(
+    String roomId, String senderId, ForwardMessageDto messageToForward, @Nullable FileMetadata fileMetadata
+  );
+
+  /**
+   * Returns the attachment identifier into the message if it exists
+   *
+   * @param message message to parse
+   * @return The attachment identifier of the message wrapped into an {@link Optional} only if it exists
+   */
+  Optional<String> getAttachmentIdFromMessage(String message);
+
 }

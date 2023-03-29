@@ -7,17 +7,22 @@ package com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.MessageDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
+import com.zextras.carbonio.chats.model.ForwardMessageDto;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import javax.annotation.Nullable;
+import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -25,11 +30,10 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.jivesoftware.smack.packet.Message.Type;
-import org.jivesoftware.smack.packet.StandardExtensionElement;
-import org.jivesoftware.smack.packet.StandardExtensionElement.Builder;
-import org.jivesoftware.smack.packet.StanzaBuilder;
-import org.jxmpp.stringprep.XmppStringprepException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.ls.DOMImplementationLS;
+import org.w3c.dom.ls.LSSerializer;
 
 public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
@@ -98,8 +102,10 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void updateRoomName(String roomId, String senderId, String name) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_NAME_CHANGED, Map.of("value", name), null,
-      null);
+    GraphQlResponse result = sendStanza(
+      XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+        .type(MessageType.ROOM_NAME_CHANGED)
+        .addConfig("value", name).build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -112,8 +118,10 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void updateRoomDescription(String roomId, String senderId, String description) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_DESCRIPTION_CHANGED,
-      Map.of("value", description), null, null);
+    GraphQlResponse result = sendStanza(
+      XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+        .type(MessageType.ROOM_DESCRIPTION_CHANGED)
+        .addConfig("value", description).build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -127,8 +135,11 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void updateRoomPicture(String roomId, String senderId, String pictureId, String pictureName) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_PICTURE_UPDATED,
-      Map.of("picture-id", pictureId, "picture-name", pictureName), null, null);
+    GraphQlResponse result = sendStanza(
+      XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+        .type(MessageType.ROOM_PICTURE_UPDATED)
+        .addConfig("picture-id", pictureId)
+        .addConfig("picture-name", pictureName).build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -142,7 +153,9 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void deleteRoomPicture(String roomId, String senderId) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ROOM_PICTURE_DELETED, null, null, null);
+    GraphQlResponse result = sendStanza(
+      XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+        .type(MessageType.ROOM_PICTURE_DELETED).build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -208,15 +221,20 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void sendAttachment(
-    String roomId, String senderId, String attachmentId, String fileName, String mimeType, long fileSize, String description, @Nullable String messageId
+    String roomId, String senderId, FileMetadata metadata, String description, @Nullable String messageId,
+    @Nullable String replyId
   ) {
-    GraphQlResponse result = sendStanza(roomId, senderId, MessageType.ATTACHMENT_ADDED,
-      Map.of(
-        "attachment-id", attachmentId,
-        "filename", fileName,
-        "mime-type", mimeType,
-        "size", String.valueOf(fileSize)
-      ), description, messageId);
+    GraphQlResponse result = sendStanza(
+      XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+        .type(MessageType.ATTACHMENT_ADDED)
+        .addConfig("attachment-id", metadata.getId())
+        .addConfig("filename", metadata.getName())
+        .addConfig("mime-type", metadata.getMimeType())
+        .addConfig("size", String.valueOf(metadata.getOriginalSize()))
+        .body(description)
+        .messageId(messageId)
+        .replyId(replyId)
+        .build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -224,6 +242,73 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
+    }
+  }
+
+  @Override
+  public Optional<String> getAttachmentIdFromMessage(String message) {
+    try {
+      Element node = DocumentBuilderFactory
+        .newInstance()
+        .newDocumentBuilder()
+        .parse(new ByteArrayInputStream(message.getBytes()))
+        .getDocumentElement();
+      Element x = (Element) node.getElementsByTagName("x").item(0);
+      if (x != null) {
+        Element op = (Element) x.getElementsByTagName("operation").item(0);
+        if (MessageType.ATTACHMENT_ADDED.getName().equals(op.getFirstChild().getNodeValue())) {
+          Element attachmentId = (Element) x.getElementsByTagName("attachment-id").item(0);
+          return Optional.of(attachmentId.getFirstChild().getNodeValue());
+        }
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    return Optional.empty();
+  }
+
+  @Override
+  public void forwardMessage(
+    String roomId, String senderId, ForwardMessageDto messageToForward, @Nullable FileMetadata fileMetadata
+  ) {
+    XmppMessageBuilder xmppMessageBuilder = XmppMessageBuilder
+      .create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+      .messageToForward(messageToForward.getOriginalMessage())
+      .messageToForwardSentAt(messageToForward.getOriginalMessageSentAt())
+      .body(messageToForward.getDescription());
+    Optional.ofNullable(fileMetadata).ifPresent(metadata ->
+      xmppMessageBuilder
+        .type(MessageType.ATTACHMENT_ADDED)
+        .addConfig("attachment-id", metadata.getId())
+        .addConfig("filename", metadata.getName())
+        .addConfig("mime-type", metadata.getMimeType())
+        .addConfig("size", String.valueOf(metadata.getOriginalSize())));
+    GraphQlResponse result = sendStanza(xmppMessageBuilder.build());
+    if (result.errors != null) {
+      try {
+        throw new MessageDispatcherException(
+          String.format("Error while sending forward message: %s", objectMapper.writeValueAsString(result.errors)));
+      } catch (JsonProcessingException e) {
+        throw new InternalErrorException("Error during parsing the json of response error ", e);
+      }
+    }
+  }
+
+  public String cleanMessage(String message) {
+    try {
+      Document document = DocumentBuilderFactory
+        .newInstance()
+        .newDocumentBuilder()
+        .parse(new ByteArrayInputStream(message.getBytes()));
+      Element messageTag = document.getDocumentElement();
+      Optional.ofNullable(messageTag.getElementsByTagName("forwarded").item(0)).ifPresent(messageTag::removeChild);
+      Optional.ofNullable(messageTag.getElementsByTagName("reply").item(0)).ifPresent(messageTag::removeChild);
+      DOMImplementationLS domImplLS = (DOMImplementationLS) document
+        .getImplementation();
+      LSSerializer serializer = domImplLS.createLSSerializer();
+      return serializer.writeToString(messageTag);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -261,43 +346,11 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     }
   }
 
-  private GraphQlResponse sendStanza(
-    String roomId, String senderId, MessageType type, Map<String, String> content, @Nullable String body,
-    @Nullable String messageId
-  ) {
+  private GraphQlResponse sendStanza(String message) {
     return executeMutation(GraphQlBody.create(
       "mutation stanza { stanza { sendStanza (" +
-        String.format("stanza: \"%s\") ", getStanzaMessage(roomId, senderId, type, content, body, messageId)) +
+        String.format("stanza: \"%s\") ", message) +
         "{ id } } }", "stanza", Map.of()));
-  }
-
-  private String getStanzaMessage(
-    String roomId, String senderId, MessageType type, Map<String, String> elementsMap,
-    @Nullable String body, @Nullable String messageId
-  ) {
-    try {
-      return StanzaBuilder
-        .buildMessage(messageId)
-        .from(userIdToUserDomain(senderId))
-        .to(roomIdToRoomDomain(roomId))
-        .ofType(Type.groupchat)
-        .addExtension(getStanzaElementX(type, elementsMap))
-        .setBody(body == null ? "" : body)
-        .build()
-        .toXML()
-        .toString();
-    } catch (XmppStringprepException e) {
-      throw new InternalErrorException("Unable to build the stanza message", e);
-    }
-  }
-
-  private StandardExtensionElement getStanzaElementX(MessageType type, @Nullable Map<String, String> elementsMap) {
-    Builder x = StandardExtensionElement.builder("x", "urn:xmpp:muclight:0#configuration")
-      .addElement("operation", type.getName());
-    if (elementsMap != null) {
-      elementsMap.keySet().forEach(k -> x.addElement(k, elementsMap.get(k)));
-    }
-    return x.build();
   }
 
   private String roomIdToRoomDomain(String roomId) {

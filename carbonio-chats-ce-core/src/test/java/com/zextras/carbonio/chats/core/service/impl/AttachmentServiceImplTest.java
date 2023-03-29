@@ -481,7 +481,7 @@ public class AttachmentServiceImplTest {
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
         uuid.when(() -> UUID.fromString(attachmentUuid.toString())).thenReturn(attachmentUuid);
-        attachmentService.addAttachment(roomId, attachmentFile, "application/pdf", "temp.pdf", "description", "",
+        attachmentService.addAttachment(roomId, attachmentFile, "application/pdf", "temp.pdf", "description", "", null,
           currentUser);
       }
 
@@ -519,7 +519,7 @@ public class AttachmentServiceImplTest {
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         NotFoundException notFoundException = assertThrows(NotFoundException.class,
           () -> attachmentService.addAttachment(roomId, attachmentFile, "application/pdf", "temp.pdf", "description",
-            null,
+            null, null,
             currentUser));
         assertEquals("Not Found - Not Found", notFoundException.getMessage());
       }
@@ -538,7 +538,7 @@ public class AttachmentServiceImplTest {
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         assertThrows(ForbiddenException.class,
           () -> attachmentService.addAttachment(roomId, attachmentFile, "application/pdf", "temp.pdf", "description",
-            null,
+            null, null,
             currentUser));
       }
     }
@@ -550,7 +550,7 @@ public class AttachmentServiceImplTest {
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room2);
       assertThrows(BadRequestException.class,
         () -> attachmentService.addAttachment(roomId, mock(File.class), "application/pdf", "temp.pdf", "description",
-          null,
+          null, null,
           currentUser));
 
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
@@ -563,7 +563,7 @@ public class AttachmentServiceImplTest {
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room3);
       assertThrows(BadRequestException.class,
         () -> attachmentService.addAttachment(roomId, mock(File.class), "application/pdf", "temp.pdf", "description",
-          "messageId",
+          "messageId", null,
           currentUser));
 
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
@@ -588,7 +588,7 @@ public class AttachmentServiceImplTest {
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         assertThrows(InternalErrorException.class,
           () -> attachmentService.addAttachment(roomId, attachmentFile, "application/pdf", "temp.pdf", "description",
-            "", currentUser));
+            "", null, currentUser));
       }
     }
 

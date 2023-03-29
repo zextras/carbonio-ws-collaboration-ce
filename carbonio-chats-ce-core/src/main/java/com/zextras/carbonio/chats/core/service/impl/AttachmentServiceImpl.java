@@ -129,8 +129,10 @@ public class AttachmentServiceImpl implements AttachmentService {
 
   @Override
   @Transactional
-  public IdDto addAttachment(UUID roomId, File file, String mimeType, String fileName, String description,
-    @Nullable String messageId, UserPrincipal currentUser) {
+  public IdDto addAttachment(
+    UUID roomId, File file, String mimeType, String fileName, String description,
+    @Nullable String messageId, @Nullable String replyId, UserPrincipal currentUser
+  ) {
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
     if (List.of(RoomTypeDto.WORKSPACE, RoomTypeDto.CHANNEL).contains(room.getType())) {
       throw new BadRequestException(String.format("Cannot add attachments on %s rooms", room.getType()));
@@ -146,13 +148,29 @@ public class AttachmentServiceImpl implements AttachmentService {
       .roomId(roomId.toString());
     metadata = fileMetadataRepository.save(metadata);
     storagesService.saveFile(file, metadata, currentUser.getId());
-    messageDispatcher.sendAttachment(roomId.toString(), currentUser.getId(), id.toString(), fileName, mimeType, file.length(), description,
-      messageId);
+    messageDispatcher.sendAttachment(roomId.toString(), currentUser.getId(), metadata, description, messageId, replyId);
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       AttachmentAddedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
         .roomId(roomId).attachment(attachmentMapper.ent2dto(metadata)));
     return IdDtoBuilder.create().id(id).build();
+  }
+
+  @Override
+  public FileMetadata copyAttachment(Room destinationRoom, UUID originalAttachmentId, UserPrincipal currentUser) {
+    FileMetadata sourceMetadata = fileMetadataRepository.getById(originalAttachmentId.toString())
+      .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", originalAttachmentId)));
+    roomService.getRoomEntityAndCheckUser(UUID.fromString(sourceMetadata.getRoomId()), currentUser, false);
+    FileMetadata metadata = fileMetadataRepository.save(FileMetadata.create()
+      .id(UUID.randomUUID().toString())
+      .name(sourceMetadata.getName())
+      .originalSize(sourceMetadata.getOriginalSize())
+      .mimeType(sourceMetadata.getMimeType())
+      .type(FileMetadataType.ATTACHMENT)
+      .userId(currentUser.getId())
+      .roomId(destinationRoom.getId()));
+    storagesService.copyFile(sourceMetadata.getId(), sourceMetadata.getUserId(), metadata.getId(), currentUser.getId());
+    return metadata;
   }
 
   @Override
@@ -181,7 +199,8 @@ public class AttachmentServiceImpl implements AttachmentService {
         storagesService.deleteFileList(
           fileMetadataRepository.getIdsByRoomIdAndType(roomId.toString(),
             FileMetadataType.ATTACHMENT), currentUser.getId()));
-    } catch (StorageException ignored) {}
+    } catch (StorageException ignored) {
+    }
 
   }
 }

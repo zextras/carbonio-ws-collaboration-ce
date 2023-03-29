@@ -8,11 +8,15 @@ import com.google.common.net.HostAndPort;
 import com.orbitz.consul.Consul;
 import com.orbitz.consul.cache.ConsulCache;
 import com.orbitz.consul.cache.KVCache;
+import com.orbitz.consul.config.CacheConfig;
+import com.orbitz.consul.config.ClientConfig;
 import com.orbitz.consul.model.kv.Value;
 import com.orbitz.consul.option.ImmutableQueryOptions;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
+import javax.ws.rs.client.Client;
 
 public class ConsulAppConfig extends AppConfig {
 
@@ -57,6 +62,16 @@ public class ConsulAppConfig extends AppConfig {
         Consul.builder()
           .withHostAndPort(HostAndPort.fromParts(consulHost, consulPort))
           .withReadTimeoutMillis(CONSUL_CLIENT_READ_TIMEOUT_SECONDS * 1000)
+          .withClientConfiguration(
+            new ClientConfig(
+              CacheConfig
+                .builder()
+                .withMinDelayBetweenRequests(Duration.ofSeconds(60))
+                .withMinDelayOnEmptyResult(Duration.ofSeconds(30))
+                .withBackOffDelay(Duration.ofSeconds(30))
+                .build()
+            )
+          )
           .build(),
         consulToken);
     } catch (Exception e) {

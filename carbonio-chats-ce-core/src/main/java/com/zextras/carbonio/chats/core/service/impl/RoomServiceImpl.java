@@ -43,6 +43,7 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -555,5 +556,15 @@ public class RoomServiceImpl implements RoomService {
   @Override
   public void setMeetingIntoRoom(Room room, Meeting meeting) {
     roomRepository.update(room.meetingId(meeting.getId()));
+  }
+
+  @Override
+  public void forwardMessages(UUID roomId, List<ForwardMessageDto> forwardMessageDto, UserPrincipal currentUser) {
+    Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
+    forwardMessageDto.forEach(messageToForward ->
+      messageDispatcher.forwardMessage(roomId.toString(), currentUser.getId(), messageToForward,
+        messageDispatcher.getAttachmentIdFromMessage(messageToForward.getOriginalMessage())
+          .map(attachmentId ->
+            attachmentService.copyAttachment(room, UUID.fromString(attachmentId), currentUser)).orElse(null)));
   }
 }

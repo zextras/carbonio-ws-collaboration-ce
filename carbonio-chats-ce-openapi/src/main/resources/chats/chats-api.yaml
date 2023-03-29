@@ -382,6 +382,17 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Retrieves users
+      operationId: getUsers
+      parameters:
+        - $ref: '#/components/parameters/queryUserIds'
+      responses:
+        200:
+          $ref: '#/components/responses/200GetUsersByIdsResponse'
   /users/capabilities:
     get:
       tags:
@@ -489,6 +500,7 @@ paths:
         - $ref: '#/components/parameters/headerMimeType'
         - $ref: '#/components/parameters/headerDescription'
         - $ref: '#/components/parameters/headerMessageId'
+        - $ref: '#/components/parameters/headerReplyId'
       requestBody:
         $ref: '#/components/requestBodies/InsertAttachmentRequest'
       responses:
@@ -496,6 +508,26 @@ paths:
           $ref: '#/components/responses/201InsertAttachmentResponse'
         413:
           $ref: '#/components/responses/413PayloadTooLargeResponse'
+  /rooms/{roomId}/forward:
+    post:
+      tags:
+        - Rooms
+        - Attachments
+      summary: Message forwarding
+      operationId: forwardMessages
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+      requestBody:
+        $ref: '#/components/requestBodies/ForwardMessagesRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204ForwardMessagesResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /attachments/{fileId}:
     delete:
       tags:
@@ -799,6 +831,14 @@ components:
         type: string
       required: false
       allowEmptyValue: true
+    headerReplyId:
+      in: header
+      name: replyId
+      description: identifier of the message being replied to
+      schema:
+        type: string
+      required: false
+      allowEmptyValue: true
     queryPageItemsNumber:
       in: query
       name: itemsNumber
@@ -823,6 +863,16 @@ components:
         items:
           $ref: '#/components/schemas/RoomExtraField'
       required: false
+    queryUserIds:
+      in: query
+      name: userIds
+      description: List of ids (max 10) of the users to retrieve
+      required: true
+      schema:
+        type: array
+        maxItems: 10
+        items:
+          type: string
   requestBodies:
     InsertRoomRequest:
       description: room to insert
@@ -890,6 +940,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/JoinSettingsByRoom'
+    ForwardMessagesRequest:
+      description: Messages forwarding request
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ForwardMessagesList'
   responses:
     200HealthStatusResponse:
       description: General status of the service and its dependencies
@@ -1003,6 +1060,14 @@ components:
           schema:
             type: string
             format: binary
+    200GetUsersByIdsResponse:
+      description: The requested users list
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/User'
     204UpdateUserPictureResponse:
       description: User picture was changed correctly
     204DeleteUserPictureResponse:
@@ -1071,6 +1136,8 @@ components:
             $ref: '../meeting/meeting-api.yaml#/components/schemas/Meeting'
     204JoinRoomMeetingResponse:
       description: The user joined the meeting successfully
+    204ForwardMessagesResponse:
+      description: successfully forwarded the messages
 
     400BadRequestResponse:
       description: The request had wrong or missing parameters
@@ -1515,3 +1582,26 @@ components:
         - Rectangular
       type: string
       description: Class representing all the image shape accepted values
+    ForwardMessagesList:
+      type: array
+      description: Room data
+      items:
+        $ref: '#/components/schemas/ForwardMessage'
+    ForwardMessage:
+      type: object
+      description: Message to forward
+      properties:
+        originalMessage:
+          type: string
+          readOnly: true
+          description: XML message to forward
+        originalMessageSentAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: date and time the original message was sent
+        description:
+          type: string
+          readOnly: true
+          description: description of the forwarded message
+      required: [ originalMessage ]

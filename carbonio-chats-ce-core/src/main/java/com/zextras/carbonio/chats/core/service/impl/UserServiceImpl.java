@@ -30,8 +30,10 @@ import io.ebean.annotation.Transactional;
 import java.io.File;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -78,6 +80,21 @@ public class UserServiceImpl implements UserService {
       partialDto.statusMessage(user.getStatusMessage());
     });
     return partialDto;
+  }
+
+  @Override
+  public List<UserDto> getUsersByIds(List<String> userIds, UserPrincipal currentUser) {
+    List<User> users = userRepository.getByIds(userIds); //10
+    return profilingService.getByIds(currentUser, userIds).stream()
+      .map(p -> UserDto.create().id(UUID.fromString(p.getId())).email(p.getEmail()).name(p.getName()))
+      .map(userDto -> {
+        users.stream().filter(u -> u.getId().equals(userDto.getId().toString())).findFirst().ifPresent(u -> {
+          userDto.pictureUpdatedAt(u.getPictureUpdatedAt());
+          userDto.statusMessage(u.getStatusMessage());
+        });
+        return userDto;
+      })
+      .collect(Collectors.toList());
   }
 
   @Override
