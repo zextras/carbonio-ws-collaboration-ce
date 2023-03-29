@@ -68,7 +68,7 @@ public class UsersApiServiceImpl implements UsersApiService {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
 
-    return userIds.size() > MAX_USER_IDS ? Response.status(Status.BAD_REQUEST).build() : Response
+    return (userIds.isEmpty() || userIds.size() > MAX_USER_IDS) ? Response.status(Status.BAD_REQUEST).build() : Response
       .status(Status.OK)
       .entity(userService.getUsersByIds(userIds, currentUser))
       .build();

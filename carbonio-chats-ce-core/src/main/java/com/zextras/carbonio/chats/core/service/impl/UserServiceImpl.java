@@ -84,7 +84,7 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public List<UserDto> getUsersByIds(List<String> userIds, UserPrincipal currentUser) {
-    List<User> users = userRepository.getByIds(userIds);
+    List<User> users = userRepository.getByIds(userIds); //10
     return profilingService.getByIds(currentUser, userIds).stream()
       .map(p -> UserDto.create().id(UUID.fromString(p.getId())).email(p.getEmail()).name(p.getName()))
       .map(userDto -> {

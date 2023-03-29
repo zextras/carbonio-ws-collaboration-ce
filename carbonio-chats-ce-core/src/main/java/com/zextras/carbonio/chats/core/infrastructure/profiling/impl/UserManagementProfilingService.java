@@ -50,7 +50,7 @@ public class UserManagementProfilingService implements ProfilingService {
     String token = principal.getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN)
       .orElseThrow(ForbiddenException::new);
     return userManagementClient.getUsers(
-        String.format("%s=%s", AUTH_COOKIE, token),
+        String.join("=", AUTH_COOKIE, token),
         userIds.stream().map(UUID::fromString).collect(Collectors.toList())
       ).getOrElseThrow((fail) -> new ProfilingException(fail)).stream()
       .map(u -> UserProfile.create(u.getId()).name(u.getFullName()).email(u.getEmail()).domain(u.getDomain()))
