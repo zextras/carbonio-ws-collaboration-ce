@@ -93,10 +93,6 @@ class PreviewServiceImplTest {
       );
   }
 
-  @BeforeEach
-  public void init() {
-  }
-
   @Test
   @DisplayName("Returns the preview of an image")
   public void getImagePreview() throws IOException {
