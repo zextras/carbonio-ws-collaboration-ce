@@ -8,6 +8,7 @@ import com.zextras.carbonio.chats.core.data.entity.User;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import io.ebean.Database;
 import io.ebean.annotation.Transactional;
+import java.util.List;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -30,6 +31,14 @@ public class EbeanUserRepository implements UserRepository {
       .where()
       .eq("id", id)
       .findOneOrEmpty();
+  }
+
+  @Override
+  public List<User> getByIds(List<String> ids) {
+    return database.find(User.class)
+      .where()
+      .in("id", ids)
+      .findList();
   }
 
   @Override

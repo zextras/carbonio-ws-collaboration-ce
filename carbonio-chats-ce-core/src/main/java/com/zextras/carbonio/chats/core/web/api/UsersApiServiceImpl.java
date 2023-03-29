@@ -14,6 +14,7 @@ import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import java.io.File;
 import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -25,6 +26,7 @@ import javax.ws.rs.core.SecurityContext;
 @Singleton
 public class UsersApiServiceImpl implements UsersApiService {
 
+  private final int               MAX_USER_IDS = 10;
   private final UserService       userService;
   private final CapabilityService capabilityService;
 
@@ -58,6 +60,17 @@ public class UsersApiServiceImpl implements UsersApiService {
       .header("Content-Type", picture.getMetadata().getMimeType())
       .header("Content-Length", picture.getMetadata().getOriginalSize())
       .header("Content-Disposition", String.format("inline; filename=\"%s\"", picture.getMetadata().getName()))
+      .build();
+  }
+
+  @Override
+  public Response getUsers(List<String> userIds, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+
+    return (userIds.isEmpty() || userIds.size() > MAX_USER_IDS) ? Response.status(Status.BAD_REQUEST).build() : Response
+      .status(Status.OK)
+      .entity(userService.getUsersByIds(userIds, currentUser))
       .build();
   }
 

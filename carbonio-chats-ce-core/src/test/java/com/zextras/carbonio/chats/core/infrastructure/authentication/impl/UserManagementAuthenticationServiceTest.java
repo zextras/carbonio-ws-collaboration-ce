@@ -14,7 +14,7 @@ import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.carbonio.usermanagement.entities.UserId;
 import com.zextras.carbonio.usermanagement.exceptions.InternalServerError;
-import com.zextras.carbonio.usermanagement.exceptions.Unauthorized;
+import com.zextras.carbonio.usermanagement.exceptions.UnAuthorized;
 import io.vavr.control.Try;
 import java.util.Map;
 import java.util.Optional;
@@ -54,7 +54,7 @@ class UserManagementAuthenticationServiceTest {
     @DisplayName("Returns an empty optional if the token could not be verified")
     public void validateToken_testFailingToken() {
       when(userManagementClient.validateUserToken("tokenz"))
-        .thenReturn(Try.failure(new Unauthorized()));
+        .thenReturn(Try.failure(new UnAuthorized()));
 
       Map<AuthenticationMethod, String> credentials = Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "tokenz");
       Optional<String> userId = userManagementAuthenticationService.validateCredentials(credentials);
