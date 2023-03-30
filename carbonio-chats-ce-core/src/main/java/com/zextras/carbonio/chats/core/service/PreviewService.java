@@ -22,30 +22,49 @@ public interface PreviewService extends HealthIndicator {
   /**
    * Get the preview of an image
    *
+   * @param user the user trying to access the preview attachment
    * @param fileId identifier of attachment file to preview {@link UUID}
    * @param area area ot preview in format widthXheight
    * @param quality the quality of the preview {@link Quality}
    * @param outputFormat the format of the preview {@link Format}
    * @param crop if true will crop borders, otherwise will fill them
-   * @param user the user trying to access the preview attachment
    * @return the preview requested with necessary data {@link FileResponse}
    */
   FileResponse getImage(UserPrincipal user, UUID fileId, String area, Option<ImageQualityEnumDto> quality, Option<ImageTypeEnumDto> outputFormat, Option<Boolean> crop);
 
   /**
-   * Get the preview of an image
+   * Get the thumbnail of an image
    *
+   * @param user the user trying to access the preview attachment
    * @param fileId identifier of attachment file to preview {@link UUID}
    * @param area area ot preview in format widthXheight
    * @param quality the quality of the preview {@link Quality}
    * @param outputFormat the format of the preview {@link Format}
    * @param shape rounded or rectangular are supported {@link Shape}
-   * @param user the user trying to access the preview attachment
    * @return the preview requested with necessary data {@link FileResponse}
    */
   FileResponse getImageThumbnail(UserPrincipal user, UUID fileId, String area, Option<ImageQualityEnumDto> quality, Option<ImageTypeEnumDto> outputFormat, Option<ImageShapeEnumDto> shape);
 
+  /**
+   * Get the preview of a pdf
+   * @param user the user trying to access the preview attachment
+   * @param fileId identifier of attachment file to preview {@link UUID}
+   * @param firstPage the first page of the pdf to use for the preview
+   * @param lastPage the last page of the pdf to use for the preview, 0 means all remaining pages
+   * @return the preview requested with necessary data {@link FileResponse}
+   */
   FileResponse getPDF(UserPrincipal user, UUID fileId, Integer firstPage, Integer lastPage);
 
+  /**
+   * Get the thumbnail of a pdf
+   *
+   * @param user the user trying to access the preview attachment
+   * @param fileId identifier of attachment file to preview {@link UUID}
+   * @param area area ot preview in format widthXheight
+   * @param quality the quality of the preview {@link Quality}
+   * @param outputFormat the format of the preview {@link Format}
+   * @param shape rounded or rectangular are supported {@link Shape}
+   * @return the preview requested with necessary data {@link FileResponse}
+   */
   FileResponse getPDFThumbnail(UserPrincipal user, UUID fileId, String area, Option<ImageQualityEnumDto> quality, Option<ImageTypeEnumDto> outputFormat, Option<ImageShapeEnumDto> shape);
 }
