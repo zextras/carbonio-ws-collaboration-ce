@@ -73,7 +73,7 @@ public class PreviewServiceImpl implements PreviewService {
       .setFileOwnerId(user.getId())
       .setServiceType(ServiceType.CHATS)
       .setFileId(fileId.toString())
-      .setVersion(1)
+      .setVersion(0)
       .setPreviewArea(area);
     quality.map(q -> parameters.setQuality(q.toString().toUpperCase()));
     outputFormat.map(f -> parameters.setOutputFormat(f.toString().toUpperCase()));
@@ -95,7 +95,7 @@ public class PreviewServiceImpl implements PreviewService {
       .setFileOwnerId(user.getId())
       .setServiceType(ServiceType.CHATS)
       .setFileId(fileId.toString())
-      .setVersion(1)
+      .setVersion(0)
       .setPreviewArea(area);
     quality.map(q -> parameters.setQuality(q.toString().toUpperCase()));
     outputFormat.map(f -> parameters.setOutputFormat(f.toString().toUpperCase()));
@@ -112,7 +112,7 @@ public class PreviewServiceImpl implements PreviewService {
       .setFileOwnerId(user.getId())
       .setServiceType(ServiceType.CHATS)
       .setFileId(fileId.toString())
-      .setVersion(1);
+      .setVersion(0);
     Option.of(firstPage).peek(parameters::setFirstPage);
     Option.of(lastPage).peek(parameters::setLastPage);
 
@@ -132,7 +132,7 @@ public class PreviewServiceImpl implements PreviewService {
       .setFileOwnerId(user.getId())
       .setServiceType(ServiceType.CHATS)
       .setFileId(fileId.toString())
-      .setVersion(1)
+      .setVersion(0)
       .setPreviewArea(area);
     quality.map(q -> parameters.setQuality(q.toString().toUpperCase()));
     outputFormat.map(f -> parameters.setOutputFormat(f.toString().toUpperCase()));

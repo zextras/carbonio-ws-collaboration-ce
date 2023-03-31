@@ -17,6 +17,9 @@ import io.vavr.control.Option;
 import java.io.File;
 import java.util.UUID;
 
+/**
+ * This service is used to retrieve the preview of an attachment
+ */
 public interface PreviewService extends HealthIndicator {
 
   /**
