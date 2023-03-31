@@ -109,7 +109,7 @@ public class PreviewApiIT {
                                             Boolean crop) {
       HttpRequest request = request()
         .withMethod("GET")
-        .withPath("/preview/image/{fileId}/1/{area}/")
+        .withPath("/preview/image/{fileId}/0/{area}/")
         .withPathParameter("fileId", fileId)
         .withPathParameter("area", area)
         .withQueryStringParameter(param("service_type", "chats"));
@@ -149,7 +149,7 @@ public class PreviewApiIT {
       try {
         HttpRequest request = request()
           .withMethod("GET")
-          .withPath("/preview/image/{fileId}/1/{area}/thumbnail/")
+          .withPath("/preview/image/{fileId}/0/{area}/thumbnail/")
           .withPathParameter("fileId", fileId)
           .withPathParameter("area", area)
           .withQueryStringParameter(param("service_type", "chats"));
@@ -186,7 +186,7 @@ public class PreviewApiIT {
       try {
         HttpRequest request = request()
           .withMethod("GET")
-          .withPath("/preview/pdf/{fileId}/1/")
+          .withPath("/preview/pdf/{fileId}/0/")
           .withPathParameter("fileId", fileId)
           .withQueryStringParameter(param("service_type", "chats"));
         if (firstPage != null) request.withQueryStringParameter(param("first_page", firstPage.toString()));
@@ -218,7 +218,7 @@ public class PreviewApiIT {
       try {
         HttpRequest request = request()
           .withMethod("GET")
-          .withPath("/preview/pdf/{fileId}/1/{area}/thumbnail/")
+          .withPath("/preview/pdf/{fileId}/0/{area}/thumbnail/")
           .withPathParameter("fileId", fileId)
           .withPathParameter("area", area)
           .withQueryStringParameter(param("service_type", "chats"));
