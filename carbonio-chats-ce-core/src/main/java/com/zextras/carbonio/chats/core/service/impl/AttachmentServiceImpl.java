@@ -83,14 +83,6 @@ public class AttachmentServiceImpl implements AttachmentService {
   }
 
   @Override
-  public File getAttachmentPreviewById(UUID fileId, UserPrincipal currentUser) {
-    FileMetadata originMetadata = fileMetadataRepository.getById(fileId.toString())
-      .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
-    roomService.getRoomEntityAndCheckUser(UUID.fromString(originMetadata.getRoomId()), currentUser, false);
-    return storagesService.getPreview(originMetadata, originMetadata.getUserId());
-  }
-
-  @Override
   @Transactional
   public AttachmentsPaginationDto getAttachmentInfoByRoomId(
     UUID roomId, Integer itemsNumber, @Nullable String filter, UserPrincipal currentUser

@@ -10,11 +10,11 @@ import com.zextras.carbonio.chats.core.infrastructure.authentication.Authenticat
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
+import com.zextras.carbonio.chats.core.service.PreviewService;
 import com.zextras.carbonio.chats.model.DependencyHealthDto;
 import com.zextras.carbonio.chats.model.DependencyHealthTypeDto;
 import com.zextras.carbonio.chats.model.HealthStatusDto;
@@ -35,7 +35,7 @@ public class HealthcheckServiceImpl implements HealthcheckService {
     DatabaseInfoService databaseInfoService,
     EventDispatcher eventDispatcher,
     StoragesService storagesService,
-    PreviewerService previewerService,
+    PreviewService previewService,
     AuthenticationService authenticationService,
     ProfilingService profilingService,
     VideoServerService videoServerService
@@ -47,7 +47,7 @@ public class HealthcheckServiceImpl implements HealthcheckService {
       HealthDependency.create(messageDispatcher, DependencyType.XMPP_SERVER),
       HealthDependency.create(eventDispatcher, DependencyType.EVENT_DISPATCHER),
       HealthDependency.create(storagesService, DependencyType.STORAGE_SERVICE),
-      HealthDependency.create(previewerService, DependencyType.PREVIEWER_SERVICE),
+      HealthDependency.create(previewService, DependencyType.PREVIEWER_SERVICE),
       HealthDependency.create(videoServerService, DependencyType.VIDEOSERVER_SERVICE)
     );
   }

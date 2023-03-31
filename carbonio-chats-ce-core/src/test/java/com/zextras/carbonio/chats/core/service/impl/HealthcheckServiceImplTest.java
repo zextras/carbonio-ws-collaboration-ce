@@ -15,10 +15,10 @@ import com.zextras.carbonio.chats.core.infrastructure.authentication.Authenticat
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.chats.core.service.PreviewService;
 import com.zextras.carbonio.chats.model.DependencyHealthDto;
 import com.zextras.carbonio.chats.model.DependencyHealthTypeDto;
 import com.zextras.carbonio.chats.model.HealthStatusDto;
@@ -37,7 +37,7 @@ class HealthcheckServiceImplTest {
   private final DatabaseInfoService    databaseInfoService;
   private final EventDispatcher        eventDispatcher;
   private final StoragesService        storagesService;
-  private final PreviewerService       previewerService;
+  private final PreviewService         previewService;
   private final AuthenticationService  authenticationService;
   private final ProfilingService       profilingService;
   private final VideoServerService     videoServerService;
@@ -47,7 +47,7 @@ class HealthcheckServiceImplTest {
     this.databaseInfoService = mock(DatabaseInfoService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.storagesService = mock(StoragesService.class);
-    this.previewerService = mock(PreviewerService.class);
+    this.previewService = mock(PreviewService.class);
     this.authenticationService = mock(AuthenticationService.class);
     this.profilingService = mock(ProfilingService.class);
     this.videoServerService = mock(VideoServerService.class);
@@ -56,7 +56,7 @@ class HealthcheckServiceImplTest {
       this.databaseInfoService,
       this.eventDispatcher,
       this.storagesService,
-      this.previewerService,
+      this.previewService,
       this.authenticationService,
       this.profilingService,
       this.videoServerService
@@ -70,7 +70,7 @@ class HealthcheckServiceImplTest {
       databaseInfoService,
       eventDispatcher,
       storagesService,
-      previewerService,
+      previewService,
       authenticationService
     );
   }
@@ -86,7 +86,7 @@ class HealthcheckServiceImplTest {
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
-      when(previewerService.isAlive()).thenReturn(true);
+      when(previewService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
       when(videoServerService.isAlive()).thenReturn(true);
@@ -101,7 +101,7 @@ class HealthcheckServiceImplTest {
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
-      when(previewerService.isAlive()).thenReturn(true);
+      when(previewService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
       when(videoServerService.isAlive()).thenReturn(true);
@@ -116,7 +116,7 @@ class HealthcheckServiceImplTest {
       when(databaseInfoService.isAlive()).thenReturn(false);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
-      when(previewerService.isAlive()).thenReturn(true);
+      when(previewService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
       when(videoServerService.isAlive()).thenReturn(true);
@@ -131,7 +131,7 @@ class HealthcheckServiceImplTest {
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(false);
       when(storagesService.isAlive()).thenReturn(true);
-      when(previewerService.isAlive()).thenReturn(true);
+      when(previewService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
       when(videoServerService.isAlive()).thenReturn(true);
@@ -146,7 +146,7 @@ class HealthcheckServiceImplTest {
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(false);
-      when(previewerService.isAlive()).thenReturn(true);
+      when(previewService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
       when(videoServerService.isAlive()).thenReturn(true);
@@ -161,7 +161,7 @@ class HealthcheckServiceImplTest {
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
-      when(previewerService.isAlive()).thenReturn(false);
+      when(previewService.isAlive()).thenReturn(false);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
       when(videoServerService.isAlive()).thenReturn(true);
@@ -176,7 +176,7 @@ class HealthcheckServiceImplTest {
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
-      when(previewerService.isAlive()).thenReturn(true);
+      when(previewService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(false);
       when(profilingService.isAlive()).thenReturn(true);
       when(videoServerService.isAlive()).thenReturn(true);
@@ -191,7 +191,7 @@ class HealthcheckServiceImplTest {
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
-      when(previewerService.isAlive()).thenReturn(true);
+      when(previewService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(false);
       when(videoServerService.isAlive()).thenReturn(true);
@@ -206,7 +206,7 @@ class HealthcheckServiceImplTest {
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
-      when(previewerService.isAlive()).thenReturn(true);
+      when(previewService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
       when(videoServerService.isAlive()).thenReturn(false);
@@ -221,7 +221,7 @@ class HealthcheckServiceImplTest {
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
-      when(previewerService.isAlive()).thenReturn(false);
+      when(previewService.isAlive()).thenReturn(false);
       when(authenticationService.isAlive()).thenReturn(false);
       when(profilingService.isAlive()).thenReturn(true);
 
@@ -241,7 +241,7 @@ class HealthcheckServiceImplTest {
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
-      when(previewerService.isAlive()).thenReturn(true);
+      when(previewService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
       when(videoServerService.isAlive()).thenReturn(true);
@@ -269,7 +269,7 @@ class HealthcheckServiceImplTest {
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
-      when(previewerService.isAlive()).thenReturn(true);
+      when(previewService.isAlive()).thenReturn(true);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(false);
       when(videoServerService.isAlive()).thenReturn(true);
@@ -297,7 +297,7 @@ class HealthcheckServiceImplTest {
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
-      when(previewerService.isAlive()).thenReturn(false);
+      when(previewService.isAlive()).thenReturn(false);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(true);
       when(videoServerService.isAlive()).thenReturn(true);
@@ -325,7 +325,7 @@ class HealthcheckServiceImplTest {
       when(databaseInfoService.isAlive()).thenReturn(true);
       when(eventDispatcher.isAlive()).thenReturn(true);
       when(storagesService.isAlive()).thenReturn(true);
-      when(previewerService.isAlive()).thenReturn(false);
+      when(previewService.isAlive()).thenReturn(false);
       when(authenticationService.isAlive()).thenReturn(true);
       when(profilingService.isAlive()).thenReturn(false);
       when(videoServerService.isAlive()).thenReturn(true);

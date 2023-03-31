@@ -18,6 +18,8 @@ import com.zextras.carbonio.chats.api.AuthApi;
 import com.zextras.carbonio.chats.api.AuthApiService;
 import com.zextras.carbonio.chats.api.HealthApi;
 import com.zextras.carbonio.chats.api.HealthApiService;
+import com.zextras.carbonio.chats.api.PreviewApi;
+import com.zextras.carbonio.chats.api.PreviewApiService;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.api.SupportedApi;
@@ -33,8 +35,6 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.MessageDispatcherMongooseIm;
-import com.zextras.carbonio.chats.core.infrastructure.previewer.PreviewerService;
-import com.zextras.carbonio.chats.core.infrastructure.previewer.impl.PreviewerServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagementProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -80,6 +80,7 @@ import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
+import com.zextras.carbonio.chats.core.service.PreviewService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentServiceImpl;
@@ -88,12 +89,14 @@ import com.zextras.carbonio.chats.core.service.impl.HealthcheckServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MeetingServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.ParticipantServiceImpl;
+import com.zextras.carbonio.chats.core.service.impl.PreviewServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AuthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.MeetingsApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.PreviewApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.SupportedApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
@@ -151,6 +154,10 @@ public class CoreModule extends AbstractModule {
     bind(UsersApiService.class).to(UsersApiServiceImpl.class);
     bind(UserService.class).to(UserServiceImpl.class);
 
+    bind(PreviewApi.class);
+    bind(PreviewApiService.class).to(PreviewApiServiceImpl.class);
+    bind(PreviewService.class).to(PreviewServiceImpl.class);
+
     bind(HealthApi.class);
     bind(HealthApiService.class).to(HealthApiServiceImpl.class);
     bind(HealthcheckService.class).to(HealthcheckServiceImpl.class);
@@ -190,7 +197,6 @@ public class CoreModule extends AbstractModule {
     bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
 
     bind(StoragesService.class).to(StoragesServiceImpl.class);
-    bind(PreviewerService.class).to(PreviewerServiceImpl.class);
     bind(ProfilingService.class).to(UserManagementProfilingService.class);
     bind(AuthenticationService.class).to(UserManagementAuthenticationService.class);
 

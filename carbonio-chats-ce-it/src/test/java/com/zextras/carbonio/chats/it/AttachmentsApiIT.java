@@ -20,7 +20,6 @@ import com.zextras.carbonio.chats.it.utils.MockedFiles;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
-import com.zextras.carbonio.chats.it.tools.PreviewerMockServer;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
@@ -46,7 +45,6 @@ public class AttachmentsApiIT {
   private final ObjectMapper              objectMapper;
   private final IntegrationTestUtils      integrationTestUtils;
   private final StorageMockServer         storageMockServer;
-  private final PreviewerMockServer       previewerMockServer;
   private final UserManagementMockServer  userManagementMockServer;
 
   public AttachmentsApiIT(
@@ -54,7 +52,6 @@ public class AttachmentsApiIT {
     ObjectMapper objectMapper, ResteasyRequestDispatcher dispatcher,
     IntegrationTestUtils integrationTestUtils,
     StorageMockServer storageMockServer,
-    PreviewerMockServer previewerMockServer,
     UserManagementMockServer userManagementMockServer
   ) {
     this.fileMetadataRepository = fileMetadataRepository;
@@ -62,7 +59,6 @@ public class AttachmentsApiIT {
     this.dispatcher = dispatcher;
     this.integrationTestUtils = integrationTestUtils;
     this.storageMockServer = storageMockServer;
-    this.previewerMockServer = previewerMockServer;
     this.userManagementMockServer = userManagementMockServer;
     this.dispatcher.getRegistry().addSingletonResource(attachmentsApi);
   }
@@ -91,7 +87,6 @@ public class AttachmentsApiIT {
 
   @AfterEach
   public void afterEach() {
-    previewerMockServer.setIsAliveResponse(true);
     storageMockServer.setIsAliveResponse(true);
   }
 
@@ -169,87 +164,6 @@ public class AttachmentsApiIT {
     @Test
     @DisplayName("Given an attachment identifier, if the attachment doesn't exist then return a status code 404")
     public void getAttachment_testErrorFileNotExists() throws Exception {
-      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), user1Token);
-
-      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-    }
-  }
-
-  @Nested
-  @DisplayName("Gets attachment preview tests")
-  public class GetsAttachmentPreviewTests {
-
-    private String url(String attachmentId) {
-      return String.format("/attachments/%s/preview", attachmentId);
-    }
-
-    @Test
-    @DisplayName("Correctly returns the attachment preview for requested id")
-    public void getAttachmentPreview_testOk() throws Exception {
-      FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
-      integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
-
-      MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user1Token);
-
-      FileMock expectedFile = MockedFiles.getPreview(MockedFileType.SNOOPY_PREVIEW);
-
-      assertEquals(Status.OK.getStatusCode(), response.getStatus());
-      assertArrayEquals(expectedFile.getFileBytes(), response.getOutput());
-      assertEquals("image/jpeg", response.getOutputHeaders().get("Content-Type").get(0).toString());
-      assertEquals(expectedFile.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      previewerMockServer.verify("GET",
-        String.format("/preview/image/%s/1/320x160/", fileMock.getId()),
-        Map.of("service_type", "chats"), 1);
-    }
-
-    @Test
-    @DisplayName("Returns 424 if the Previewer server is down")
-    public void getAttachmentPreview_testExceptionPreviewerKO() throws Exception {
-      previewerMockServer.setIsAliveResponse(false);
-
-      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), null);
-
-      assertEquals(424, response.getStatus());
-    }
-
-    @Test
-    @DisplayName("Given an attachment identifier, if the user is not authenticated return a status code 401")
-    public void getAttachmentPreview_testErrorUnauthenticatedUser() throws Exception {
-      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), null);
-
-      assertEquals(Status.UNAUTHORIZED.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-    }
-
-    @Test
-    @DisplayName("Given an attachment identifier, if authenticated user isn't a room member then return a status code 403")
-    public void getAttachmentPreview_testErrorUserIsNotARoomMember() throws Exception {
-      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
-      integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
-
-      MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user3Token);
-
-      assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
-    }
-
-    @Test
-    @DisplayName("Given an attachment identifier, if the identifier is not an UUID return a status code 404")
-    public void getAttachmentPreview_testErrorIdentifierIsNotUUID() throws Exception {
-      MockHttpResponse response = dispatcher.get(url("not_a_uuid"), user1Token);
-
-      assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-    }
-
-    @Test
-    @DisplayName("Given an attachment identifier, if the attachment doesn't exist then return a status code 404")
-    public void getAttachmentPreview_testErrorFileNotExists() throws Exception {
       MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), user1Token);
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());

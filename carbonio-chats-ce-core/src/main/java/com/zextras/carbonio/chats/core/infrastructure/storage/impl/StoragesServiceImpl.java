@@ -36,12 +36,10 @@ import org.apache.commons.io.FileUtils;
 public class StoragesServiceImpl implements StoragesService {
 
   private final StoragesClient storagesClient;
-  private final PreviewClient  previewClient;
 
   @Inject
-  public StoragesServiceImpl(StoragesClient storagesClient, PreviewClient previewClient) {
+  public StoragesServiceImpl(StoragesClient storagesClient){
     this.storagesClient = storagesClient;
-    this.previewClient = previewClient;
   }
 
   @Override
@@ -55,31 +53,6 @@ public class StoragesServiceImpl implements StoragesService {
     } catch (Exception e) {
       throw new StorageException(String.format("Cannot retrieve the file '%s'", fileId), e);
     }
-  }
-
-  @Override
-  public File getPreview(FileMetadata metadata, String ownerId) {
-    Query query = new QueryBuilder(metadata.getId(), 1, ServiceType.CHATS)
-      .setPreviewArea(ChatsConstant.PREVIEW_AREA)
-      .setOutputFormat(Format.JPEG)
-      .build();
-    Try<BlobResponse> response;
-    if (metadata.getMimeType().startsWith("image/")) {
-      response = previewClient.getPreviewOfImage(query);
-    } else if (metadata.getMimeType().startsWith("application/pdf")) {
-      response = previewClient.getThumbnailOfPdf(query);
-    } else {
-      throw new BadRequestException("MimeType not supported by previewer");
-    }
-    File file;
-    try {
-      file = File.createTempFile(metadata.getId(), ".tmp");
-      FileUtils.copyInputStreamToFile(response.getOrElseThrow(
-        (Supplier<IOException>) IOException::new).getContent(), file);
-    } catch (IOException e) {
-      throw new StorageException("An error occurred getting preview", e);
-    }
-    return file;
   }
 
   @Override

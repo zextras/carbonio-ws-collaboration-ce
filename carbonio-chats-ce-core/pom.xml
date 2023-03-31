@@ -48,7 +48,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Previewer sdk -->
     <dependency>
       <groupId>com.zextras.carbonio.preview</groupId>
-      <artifactId>carbonio-preview-ce-sdk</artifactId>
+      <artifactId>carbonio-preview-sdk</artifactId>
     </dependency>
 
     <!-- Jetty dependencies -->

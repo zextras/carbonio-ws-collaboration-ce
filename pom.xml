@@ -19,22 +19,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <repositories>
     <repository>
-      <id>snapshot-artifactory</id>
-      <name>Zextras snapshot</name>
-      <url>https://zextras.jfrog.io/artifactory/maven-snapshot</url>
-    </repository>
-    <repository>
-      <id>snapshots-repo</id>
-      <url>https://repo.zextras.io/maven/snapshot/</url>
-    </repository>
-    <repository>
-      <id>release-artifactory</id>
-      <name>Zextras releases</name>
-      <url>https://zextras.jfrog.io/artifactory/public-maven-repo</url>
-    </repository>
-    <repository>
-      <id>releases-repo</id>
-      <url>https://repo.zextras.io/maven/release/</url>
+      <id>zextras-java-sdk</id>
+      <name>Zextras public maven repo</name>
+      <url>https://zextras.jfrog.io/artifactory/java-sdk</url>
     </repository>
   </repositories>
 
@@ -61,7 +48,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Storages -->
     <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
     <!-- Previewer -->
-    <preview-sdk.version>0.2.1</preview-sdk.version>
+    <preview-sdk.version>1.0.1</preview-sdk.version>
     <!-- Jetty -->
     <org.eclipse.jetty.version>10.0.6</org.eclipse.jetty.version>
     <jakarta.api.version>1.1.2</jakarta.api.version>
@@ -146,7 +133,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <!-- Previewer sdk -->
       <dependency>
         <groupId>com.zextras.carbonio.preview</groupId>
-        <artifactId>carbonio-preview-ce-sdk</artifactId>
+        <artifactId>carbonio-preview-sdk</artifactId>
         <version>${preview-sdk.version}</version>
       </dependency>
 
