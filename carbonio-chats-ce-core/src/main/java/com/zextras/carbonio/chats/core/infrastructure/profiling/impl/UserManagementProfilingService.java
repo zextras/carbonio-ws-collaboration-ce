@@ -36,8 +36,8 @@ public class UserManagementProfilingService implements ProfilingService {
     String token = principal.getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN)
       .orElseThrow(ForbiddenException::new);
     return Optional.ofNullable(
-      userManagementClient.getUserByUUID(String.format("%s=%s", AUTH_COOKIE, token), userId).map(userInfo ->
-        UserProfile.create(userInfo.getId())
+      userManagementClient.getUserById(String.format("%s=%s", AUTH_COOKIE, token), userId.toString()).map(userInfo ->
+        UserProfile.create(userInfo.getId().getUserId())
           .name(userInfo.getFullName())
           .email(userInfo.getEmail())
           .domain(userInfo.getDomain())
@@ -49,11 +49,9 @@ public class UserManagementProfilingService implements ProfilingService {
   public List<UserProfile> getByIds(UserPrincipal principal, List<String> userIds) {
     String token = principal.getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN)
       .orElseThrow(ForbiddenException::new);
-    return userManagementClient.getUsers(
-        String.join("=", AUTH_COOKIE, token),
-        userIds.stream().map(UUID::fromString).collect(Collectors.toList())
-      ).getOrElseThrow((fail) -> new ProfilingException(fail)).stream()
-      .map(u -> UserProfile.create(u.getId()).name(u.getFullName()).email(u.getEmail()).domain(u.getDomain()))
+    return userManagementClient.getUsers(String.join("=", AUTH_COOKIE, token), userIds)
+      .getOrElseThrow((fail) -> new ProfilingException(fail)).stream().map(
+        u -> UserProfile.create(u.getId().getUserId()).name(u.getFullName()).email(u.getEmail()).domain(u.getDomain()))
       .collect(Collectors.toList());
   }
 

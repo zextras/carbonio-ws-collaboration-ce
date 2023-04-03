@@ -69,7 +69,7 @@ public class UserManagementExtension implements AfterEachCallback, BeforeAllCall
     mockHealthCheck(client);
     for (MockUserProfile mockAccount : MockedAccount.getAccounts()) {
       mockValidateUserToken(client, new UserId(mockAccount.getId()), mockAccount.getToken());
-      UserInfo userInfo = new UserInfo(mockAccount.getId(), mockAccount.getEmail(), mockAccount.getName(),
+      UserInfo userInfo = new UserInfo(new UserId(mockAccount.getId()), mockAccount.getEmail(), mockAccount.getName(),
         mockAccount.getDomain());
       mockGetUserByUUID(client, userInfo);
       mockGetUserByEmail(client, userInfo);
@@ -103,7 +103,7 @@ public class UserManagementExtension implements AfterEachCallback, BeforeAllCall
     client.when(
       request()
         .withMethod("GET")
-        .withPath(String.format("/users/id/%s", userInfo.getId()))
+        .withPath(String.format("/users/id/%s", userInfo.getId().getUserId()))
     ).respond(
       response()
         .withStatusCode(200)

@@ -30,6 +30,7 @@ import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.UserDto;
+import com.zextras.carbonio.usermanagement.entities.UserId;
 import com.zextras.carbonio.usermanagement.entities.UserInfo;
 import java.time.Clock;
 import java.time.Instant;
@@ -134,11 +135,11 @@ public class UsersApiIT {
       );
       integrationTestUtils.generateAndSaveUser(UUID.fromString(userIds.get(0)), "status message 1",
         OffsetDateTime.parse("0001-01-01T00:00:00Z"), "111");
-      UserInfo user1 = new UserInfo("332a9527-3388-4207-be77-6d7e2978a723", "snoopy@peanuts.com", "Snoopy",
+      UserInfo user1 = new UserInfo(new UserId("332a9527-3388-4207-be77-6d7e2978a723"), "snoopy@peanuts.com", "Snoopy",
         "peanuts.com");
-      UserInfo user2 = new UserInfo("82735f6d-4c6c-471e-99d9-4eef91b1ec45", "charlie.brown@peanuts.com",
+      UserInfo user2 = new UserInfo(new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"), "charlie.brown@peanuts.com",
         "Charlie Brown", "peanuts.com");
-      UserInfo user3 = new UserInfo("ea7b9b61-bef5-4cf4-80cb-19612c42593a", "lucy.van.pelt@peanuts.com",
+      UserInfo user3 = new UserInfo(new UserId("ea7b9b61-bef5-4cf4-80cb-19612c42593a"), "lucy.van.pelt@peanuts.com",
         "Lucy van Pelt", "peanuts.com");
       userManagementMockServer.mockUsersBulk(userIds, List.of(user1, user2, user3), true);
 
@@ -168,9 +169,9 @@ public class UsersApiIT {
       );
       integrationTestUtils.generateAndSaveUser(UUID.fromString(userIds.get(0)), "status message 1",
         OffsetDateTime.parse("0001-01-01T00:00:00Z"), "111");
-      UserInfo user1 = new UserInfo("332a9527-3388-4207-be77-6d7e2978a723", "snoopy@peanuts.com", "Snoopy",
+      UserInfo user1 = new UserInfo(new UserId("332a9527-3388-4207-be77-6d7e2978a723"), "snoopy@peanuts.com", "Snoopy",
         "peanuts.com");
-      UserInfo user2 = new UserInfo("82735f6d-4c6c-471e-99d9-4eef91b1ec45", "charlie.brown@peanuts.com",
+      UserInfo user2 = new UserInfo(new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"), "charlie.brown@peanuts.com",
         "Charlie Brown", "peanuts.com");
       userManagementMockServer.mockUsersBulk(userIds, List.of(user1, user2), true);
 

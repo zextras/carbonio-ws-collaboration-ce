@@ -18,6 +18,7 @@ import com.zextras.carbonio.chats.core.exception.ProfilingException;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
+import com.zextras.carbonio.usermanagement.entities.UserId;
 import com.zextras.carbonio.usermanagement.entities.UserInfo;
 import com.zextras.carbonio.usermanagement.exceptions.UserNotFound;
 import io.vavr.control.Try;
@@ -53,10 +54,8 @@ class UserManagementProfilingServiceTest {
     @DisplayName("Returns the requested user correctly mapped")
     public void getById_testOk() {
       UUID randomUUID = UUID.randomUUID();
-      when(userManagementClient.getUserByUUID("ZM_AUTH_TOKEN=cookie", randomUUID))
-        .thenReturn(
-          Try.success(new UserInfo(randomUUID.toString(), "email@test.com", "name hello", "mydomain.com"))
-        );
+      when(userManagementClient.getUserById("ZM_AUTH_TOKEN=cookie", randomUUID.toString())).thenReturn(
+        Try.success(new UserInfo(new UserId(randomUUID.toString()), "email@test.com", "name hello", "mydomain.com")));
       Map<AuthenticationMethod, String> credentials = Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "cookie");
       Optional<UserProfile> userProfile = profilingService.getById(
         UserPrincipal.create(randomUUID).authCredentials(credentials), randomUUID
@@ -73,7 +72,7 @@ class UserManagementProfilingServiceTest {
     @DisplayName("Returns an empty optional if the user was not found")
     public void getById_testNotFound() {
       UUID randomUUID = UUID.randomUUID();
-      when(userManagementClient.getUserByUUID("ZM_AUTH_TOKEN=cookie", randomUUID))
+      when(userManagementClient.getUserById("ZM_AUTH_TOKEN=cookie", randomUUID.toString()))
         .thenReturn(
           Try.failure(new UserNotFound(randomUUID.toString()))
         );
@@ -99,7 +98,7 @@ class UserManagementProfilingServiceTest {
     @DisplayName("Throws an exception when the call fails for any other reason")
     public void getById_testException() {
       UUID randomUUID = UUID.randomUUID();
-      when(userManagementClient.getUserByUUID("ZM_AUTH_TOKEN=cookie", randomUUID))
+      when(userManagementClient.getUserById("ZM_AUTH_TOKEN=cookie", randomUUID.toString()))
         .thenReturn(
           Try.failure(new Exception())
         );
