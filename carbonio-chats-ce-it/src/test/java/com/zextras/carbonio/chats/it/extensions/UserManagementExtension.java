@@ -103,7 +103,7 @@ public class UserManagementExtension implements AfterEachCallback, BeforeAllCall
     client.when(
       request()
         .withMethod("GET")
-        .withPath(String.format("/users/id/%s", userInfo.getId()))
+        .withPath(String.format("/users/id/%s", userInfo.getId().getUserId()))
     ).respond(
       response()
         .withStatusCode(200)
