@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# SPDX-FileCopyrightText: 2023 Zextras <https://www.zextras.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# This script add not existing behavioral configuration values in consul
+
+CONSUL_TOKEN_PATH="/etc/carbonio/ws-collaboration/service-discover/token"
+
+MAIN_SERVICE_NAME="carbonio-ws-collaboration"
+
+BEHAVIORAL_CONFIGURATIONS=(
+  "$MAIN_SERVICE_NAME/configs/can-see-message-reads:true"
+  "$MAIN_SERVICE_NAME/configs/can-see-users-presence:true"
+  "$MAIN_SERVICE_NAME/configs/max-user-image-size-in-kb:512"
+  "$MAIN_SERVICE_NAME/configs/max-room-image-size-in-kb:512"
+  "$MAIN_SERVICE_NAME/configs/edit-message-time-limit-in-minutes:10"
+  "$MAIN_SERVICE_NAME/configs/delete-message-time-limit-in-minutes:10"
+  "$MAIN_SERVICE_NAME/configs/max-group-members:128"
+)
+
+get_consul_kv() {
+    KEY=$1
+    CONSUL_VALUE=$(consul kv get -token-file="$CONSUL_TOKEN_PATH" "${KEY}")
+}
+
+for item in "${BEHAVIORAL_CONFIGURATIONS[@]}"
+do
+    KEY=${item%%:*}
+
+    get_consul_kv "$KEY" >/dev/null 2>&1; CONFIG=$CONSUL_VALUE
+
+    if [[ "$CONFIG" == "" ]]; then
+      consul kv put -token-file="$CONSUL_TOKEN_PATH" "$KEY" "${item##*:}"
+    fi
+done

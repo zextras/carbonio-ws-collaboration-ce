@@ -1,6 +1,6 @@
-# Carbonio Chats CE
+# Carbonio Workstream Collaboration CE
 
-This is the official repository for Carbonio chats CE.
+This is the official repository for Carbonio Workstream Collaboration CE.
 
 ## 🔧 How to Build
 
@@ -53,7 +53,7 @@ instance instead of using the docker image, which is useful for CI pipeline.
 With the generated fat-jar:
 
 ```shell
-java -jar ./boot/target/zextras-chats-ce-fatjar.jar
+java -jar ./boot/target/zextras-ws-collaboration-ce-fatjar.jar
 ```
 
 ## How to change project version
@@ -66,7 +66,7 @@ Where:
 
 # License 📚
 
-Chats-CE backend service for Zextras Carbonio.
+Workstream Collaboration CE backend service for Zextras Carbonio.
 
 Released under the AGPL-3.0-only license as specified here: [COPYING](COPYING).
 

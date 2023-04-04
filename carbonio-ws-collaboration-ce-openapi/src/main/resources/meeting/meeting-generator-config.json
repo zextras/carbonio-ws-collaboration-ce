@@ -1,0 +1,13 @@
+{
+  "title": "Zextras Carbonio Meeting CE",
+  "serverPort": 8080,
+
+  "apiPackage":     "com.zextras.carbonio.meeting.api",
+  "invokerPackage": "com.zextras.carbonio.meeting.api",
+  "modelPackage":   "com.zextras.carbonio.meeting.model",
+  "sourceFolder": "src/main/java",
+
+  "booleanGetterPrefix": "is",
+  "dateLibrary": "java8",
+  "hideGenerationTimestamp": true
+}

@@ -1,6 +1,6 @@
 {
-  "name": "carbonio-chats-ce",
-  "description": "Chats for carbonio CE",
+  "name": "carbonio-ws-collaboration-ce",
+  "description": "Workstream Collaboration for Carbonio CE",
   "build_dir": "/tmp/",
   "output": "artifacts",
   "projects": [

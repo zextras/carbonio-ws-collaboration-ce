@@ -1,6 +1,6 @@
 {
   "Kind": "service-defaults",
-  "Name": "carbonio-chats",
+  "Name": "carbonio-ws-collaboration",
   "Protocol": "http",
   "Websocket": true
 }

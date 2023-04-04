@@ -2,12 +2,12 @@ targets=(
    "centos"
    "ubuntu"
 )
-pkgname="carbonio-chats-ce"
+pkgname="carbonio-ws-collaboration-ce"
 pkgver="0.3.0"
 pkgrel="1"
-pkgdesc="Chats for carbonio CE"
+pkgdesc="Workstream collaboration for carbonio CE"
 pkgdesclong=(
-   "Chats for carbonio CE"
+   "Workstream collaboration for carbonio CE"
 )
 maintainer="Zextras <packages@zextras.com>"
 arch="amd64"
@@ -22,17 +22,17 @@ depends=(
    "jq"
 )
 backup=(
-   "etc/carbonio/chats/config.properties"
-   "etc/carbonio/chats/logback.xml"
-   "etc/zextras/service-discover/carbonio-chats.hcl"
+   "etc/carbonio/ws-collaboration/config.properties"
+   "etc/carbonio/ws-collaboration/logback.xml"
+   "etc/zextras/service-discover/carbonio-ws-collaboration.hcl"
 )
 sources=(
-   "carbonio-chats"
-   "carbonio-chats-configs"
-   "carbonio-chats.service"
-   "carbonio-chats.hcl"
-   "carbonio-chats-sidecar.service"
-   "carbonio-chats-setup.sh"
+   "carbonio-ws-collaboration"
+   "carbonio-ws-collaboration-configs"
+   "carbonio-ws-collaboration.service"
+   "carbonio-ws-collaboration.hcl"
+   "carbonio-ws-collaboration-sidecar.service"
+   "carbonio-ws-collaboration-setup.sh"
    "policies.json"
    "intentions.json"
    "service-protocol.json"
@@ -54,56 +54,56 @@ hashsums=(
 )
 
 package() {
-  cd "${srcdir}"/../../chats
-  install -Dm 644 ./carbonio-chats-ce-boot/target/carbonio-chats-ce-fatjar.jar \
-    "${pkgdir}/usr/bin/carbonio/chats/carbonio-chats.jar"
+  cd "${srcdir}"/../../ws-collaboration
+  install -Dm 644 ./carbonio-ws-collaboration-ce-boot/target/carbonio-ws-collaboration-ce-fatjar.jar \
+    "${pkgdir}/usr/bin/carbonio/ws-collaboration/carbonio-ws-collaboration.jar"
 
   cd "${srcdir}"
-  install -Dm 755 carbonio-chats "${pkgdir}/usr/bin/carbonio-chats"
-  install -Dm 755 carbonio-chats-configs "${pkgdir}/usr/bin/carbonio-chats-configs"
-  install -Dm 644 config.properties "${pkgdir}/etc/carbonio/chats/config.properties"
-  install -Dm 644 logback.xml "${pkgdir}/etc/carbonio/chats/logback.xml"
-  install -Dm 644 carbonio-chats.service "${pkgdir}/lib/systemd/system/carbonio-chats.service"
-  install -Dm 644 carbonio-chats-sidecar.service "${pkgdir}/lib/systemd/system/carbonio-chats-sidecar.service"
-  install -Dm 644 carbonio-chats.hcl "${pkgdir}/etc/zextras/service-discover/carbonio-chats.hcl"
-  install -Dm 644 carbonio-chats-setup.sh "${pkgdir}/etc/zextras/pending-setups.d/carbonio-chats.sh"
-  install -Dm 644 policies.json "${pkgdir}/etc/carbonio/chats/service-discover/policies.json"
-  install -Dm 644 intentions.json "${pkgdir}/etc/carbonio/chats/service-discover/intentions.json"
-  install -Dm 644 service-protocol.json "${pkgdir}/etc/carbonio/chats/service-discover/service-protocol.json"
+  install -Dm 755 carbonio-ws-collaboration "${pkgdir}/usr/bin/carbonio-ws-collaboration"
+  install -Dm 755 carbonio-ws-collaboration-configs "${pkgdir}/usr/bin/carbonio-ws-collaboration-configs"
+  install -Dm 644 config.properties "${pkgdir}/etc/carbonio/ws-collaboration/config.properties"
+  install -Dm 644 logback.xml "${pkgdir}/etc/carbonio/ws-collaboration/logback.xml"
+  install -Dm 644 carbonio-ws-collaboration.service "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration.service"
+  install -Dm 644 carbonio-ws-collaboration-sidecar.service "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration-sidecar.service"
+  install -Dm 644 carbonio-ws-collaboration.hcl "${pkgdir}/etc/zextras/service-discover/carbonio-ws-collaboration.hcl"
+  install -Dm 644 carbonio-ws-collaboration-setup.sh "${pkgdir}/etc/zextras/pending-setups.d/carbonio-ws-collaboration.sh"
+  install -Dm 644 policies.json "${pkgdir}/etc/carbonio/ws-collaboration/service-discover/policies.json"
+  install -Dm 644 intentions.json "${pkgdir}/etc/carbonio/ws-collaboration/service-discover/intentions.json"
+  install -Dm 644 service-protocol.json "${pkgdir}/etc/carbonio/ws-collaboration/service-discover/service-protocol.json"
 }
 
 postinst() {
-  getent group 'carbonio-chats' >/dev/null ||
-    groupadd -r 'carbonio-chats'
-  getent passwd 'carbonio-chats' >/dev/null ||
-    useradd -r -M -g 'carbonio-chats' -s /sbin/nologin 'carbonio-chats'
+  getent group 'carbonio-ws-collaboration' >/dev/null ||
+    groupadd -r 'carbonio-ws-collaboration'
+  getent passwd 'carbonio-ws-collaboration' >/dev/null ||
+    useradd -r -M -g 'carbonio-ws-collaboration' -s /sbin/nologin 'carbonio-ws-collaboration'
 
-  mkdir -p /var/log/carbonio/chats
-  chown carbonio-chats:carbonio-chats /var/log/carbonio/chats
+  mkdir -p /var/log/carbonio/ws-collaboration
+  chown carbonio-ws-collaboration:carbonio-ws-collaboration /var/log/carbonio/ws-collaboration
 
   if [ -d /run/systemd/system ]; then
     systemctl daemon-reload >/dev/null 2>&1 || :
-    systemctl enable carbonio-chats.service >/dev/null 2>&1 || :
-    systemctl enable carbonio-chats-sidecar.service >/dev/null 2>&1 || :
+    systemctl enable carbonio-ws-collaboration.service >/dev/null 2>&1 || :
+    systemctl enable carbonio-ws-collaboration-sidecar.service >/dev/null 2>&1 || :
   fi
 
   echo "======================================================"
-  echo "Carbonio chats installed successfully!"
+  echo "Carbonio Workstream collaboration installed successfully!"
   echo "You must run pending-setups to configure it correctly."
   echo "======================================================"
 }
 
 prerm() {
   if [ -d /run/systemd/system ]; then
-    systemctl --no-reload disable carbonio-chats.service >/dev/null 2>&1 || :
-    systemctl --no-reload disable carbonio-chats-sidecar.service >/dev/null 2>&1 || :
-    systemctl stop carbonio-chats.service >/dev/null 2>&1 || :
-    systemctl stop carbonio-chats-sidecar.service >/dev/null 2>&1 || :
+    systemctl --no-reload disable carbonio-ws-collaboration.service >/dev/null 2>&1 || :
+    systemctl --no-reload disable carbonio-ws-collaboration-sidecar.service >/dev/null 2>&1 || :
+    systemctl stop carbonio-ws-collaboration.service >/dev/null 2>&1 || :
+    systemctl stop carbonio-ws-collaboration-sidecar.service >/dev/null 2>&1 || :
   fi
 }
 
 postrm() {
-  rm -f /etc/carbonio/chats/service-discover/token
+  rm -f /etc/carbonio/ws-collaboration/service-discover/token
   if [ -d /run/systemd/system ]; then
     systemctl daemon-reload >/dev/null 2>&1 || :
   fi
