@@ -14,7 +14,7 @@ import javax.inject.Singleton;
 @Singleton
 public class AppInfoProviderImpl implements AppInfoProvider {
 
-  private static final String VERSION_PROP = "ws.collaboration.version";
+  private static final String VERSION_PROP = "ws-collaboration.version";
 
   private Properties properties;
 

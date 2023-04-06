@@ -1,1 +1,1 @@
-ws.collaboration.version=${project.version}
+ws-collaboration.version=${project.version}
