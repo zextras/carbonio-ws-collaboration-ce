@@ -14,8 +14,8 @@ function build-all-artifacts() {
 
   declare -a distros=(
     #   "DISTRO  | NAME PRE VERSION   | NAME POST VERSION"
-    "rocky-8 | carbonio-chats-ce- | -1.el8.x86_64.rpm"
-    "ubuntu  | carbonio-chats-ce_ | -1_amd64.deb     "
+    "rocky-8 | carbonio-ws-collaboration-ce- | -1.el8.x86_64.rpm"
+    "ubuntu  | carbonio-ws-collaboration-ce_ | -1_amd64.deb     "
   )
   distro_found=false
   for distros_index in "${!distros[@]}"; do
@@ -23,18 +23,18 @@ function build-all-artifacts() {
     if [[ "$distro" == "${distros_item[0]}" || "$distro" == "*" ]]; then
       distro_found=true
       print-banner "Building ${distros_item[0]} package"
-      cp package/carbonio-chats.service package/carbonio-chats.original
+      cp package/carbonio-ws-collaboration.service package/carbonio-ws-collaboration.original
       debug_agent=""
       dev_mode=""
       if [ "$debug_mode" = true ]; then
         debug_agent="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5006"
-        dev_mode="CHATS_ENV=dev"
+        dev_mode="WS_COLLABORATION_ENV=dev"
       fi
-      sed "s/<debug-agent>/$debug_agent/" package/carbonio-chats.service -i
-      sed "s/<dev-mode>/$dev_mode/" package/carbonio-chats.service -i
+      sed "s/<debug-agent>/$debug_agent/" package/carbonio-ws-collaboration.service -i
+      sed "s/<dev-mode>/$dev_mode/" package/carbonio-ws-collaboration.service -i
       eval "build-${distros_item[0]}-artifact"
-      cp package/carbonio-chats.original package/carbonio-chats.service
-      rm package/carbonio-chats.original
+      cp package/carbonio-ws-collaboration.original package/carbonio-ws-collaboration.service
+      rm package/carbonio-ws-collaboration.original
       if [[ "$distro" != "*" && "$deploy_on" != "*" ]]; then
         file_name="${distros_item[1]}$version${distros_item[2]}"
         print-banner "Publishing to $deploy_on"
@@ -85,29 +85,29 @@ EOF
 
 function build-ubuntu-artifact() {
   if [ "$no_docker" = true ]; then
-    mkdir /tmp/chats
-    cp -r ./* /tmp/chats
-    pacur build ubuntu-focal /tmp/chats
+    mkdir /tmp/ws-collaboration
+    cp -r ./* /tmp/ws-collaboration
+    pacur build ubuntu-focal /tmp/ws-collaboration
   else
     docker run \
       --rm --entrypoint "" \
-      -v "$(pwd)":/tmp/chats \
+      -v "$(pwd)":/tmp/ws-collaboration \
       -e VERSION="$1" \
-      registry.dev.zextras.com/jenkins/pacur/ubuntu-20.04:v1 /bin/bash -c 'cd /tmp/chats && pacur build ubuntu'
+      registry.dev.zextras.com/jenkins/pacur/ubuntu-20.04:v1 /bin/bash -c 'cd /tmp/ws-collaboration && pacur build ubuntu'
   fi
 }
 
 function build-rocky-8-artifact() {
   if [ "$no_docker" = true ]; then
-    mkdir /tmp/chats
-    cp -r ./* /tmp/chats
-    pacur build rocky-8 /tmp/chats
+    mkdir /tmp/ws-collaboration
+    cp -r ./* /tmp/ws-collaboration
+    pacur build rocky-8 /tmp/ws-collaboration
   else
     docker run \
       --rm --entrypoint "" \
-      -v "$(pwd)":/tmp/chats \
+      -v "$(pwd)":/tmp/ws-collaboration \
       -e VERSION="$1" \
-      registry.dev.zextras.com/jenkins/pacur/rocky-8:v1 /bin/bash -c 'cd /tmp/chats && pacur build rocky-8'
+      registry.dev.zextras.com/jenkins/pacur/rocky-8:v1 /bin/bash -c 'cd /tmp/ws-collaboration && pacur build rocky-8'
   fi
 }
 

@@ -1,0 +1,20 @@
+[Unit]
+Description=Carbonio Workstream Collaboration daemon
+Documentation=https://docs.zextras.com/zextras-suite-documentation/latest/
+Wants=network.target
+Requires=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/zextras/common/bin/java <debug-agent> -Djava.net.preferIPv4Stack=true -jar /usr/bin/carbonio/ws-collaboration/carbonio-ws-collaboration.jar
+User=carbonio-ws-collaboration
+Group=carbonio-ws-collaboration
+Restart=on-failure
+RestartSec=15
+TimeoutSec=60
+TimeoutStopSec=120
+Environment=<dev-mode>
+
+[Install]
+WantedBy=multi-user.target

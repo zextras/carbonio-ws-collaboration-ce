@@ -1,6 +1,6 @@
 {
   "Kind": "service-intentions",
-  "Name": "carbonio-chats",
+  "Name": "carbonio-ws-collaboration",
   "Sources": [
     {
       "Name": "carbonio-proxy",

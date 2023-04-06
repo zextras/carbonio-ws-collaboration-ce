@@ -63,7 +63,7 @@ pipeline {
       steps {
         sh '''
         ./mvnw -Dmaven.repo.local=$(pwd)/m2 -B --settings settings-jenkins.xml \
-            -Dlogback.configurationFile="$(pwd)"/carbonio-chats-ce-boot/src/main/resources/logback-test-silent.xml \
+            -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-ce-boot/src/main/resources/logback-test-silent.xml \
             verify
         '''
         publishCoverage adapters: [jacocoAdapter('target/site/jacoco-all-tests/jacoco.xml')]
@@ -184,7 +184,7 @@ pipeline {
                 "props": "deb.distribution=focal;deb.component=main;deb.architecture=amd64"
               },
               {
-                "pattern": "artifacts/(carbonio-chats-ce)-(*).rpm",
+                "pattern": "artifacts/(carbonio-ws-collaboration-ce)-(*).rpm",
                 "target": "centos8-playground/zextras/{1}/{1}-{2}.rpm",
                 "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras"
               }
@@ -215,7 +215,7 @@ pipeline {
                 "props": "deb.distribution=focal;deb.component=main;deb.architecture=amd64"
               },
               {
-                "pattern": "artifacts/(carbonio-chats-ce)-(*).rpm",
+                "pattern": "artifacts/(carbonio-ws-collaboration-ce)-(*).rpm",
                 "target": "centos8-devel/zextras/{1}/{1}-{2}.rpm",
                 "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras"
               }
@@ -286,7 +286,7 @@ pipeline {
           uploadSpec = '''{
             "files": [
               {
-                "pattern": "artifacts/(carbonio-chats-ce)-(*).rpm",
+                "pattern": "artifacts/(carbonio-ws-collaboration-ce)-(*).rpm",
                 "target": "centos8-rc/zextras/{1}/{1}-{2}.rpm",
                 "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras"
               }
@@ -334,6 +334,6 @@ void sendFailureEmail(String step) {
     ${commitInfo}<br /><br />
     Check the failing build at the <a href=\"${BUILD_URL}\">following link</a><br />
   """,
-  subject: "[CHATS TRUNK FAILURE] Trunk ${step} step failure",
+  subject: "[WORKSTREAM COLLABORATION TRUNK FAILURE] Trunk ${step} step failure",
   to: FAILURE_EMAIL_RECIPIENTS
 }

@@ -5,26 +5,26 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: carbonio-chats-ce
-  title: Carbonio Chats CE service
+  name: carbonio-ws-collaboration-ce
+  title: Carbonio Workstream Collaboration CE service
   description: |
-    Service containing the business logic of a chat application.
+    Service containing the business logic of the Workstream Collaboration application.
     It allows to chat or video-call with other users.
   tags:
     - java
     - backend
   links:
-    - url: https://github.com/Zextras/carbonio-chats-ce/blob/main/README.md
+    - url: https://github.com/Zextras/carbonio-ws-collaboration-ce/blob/main/README.md
       title: README
 spec:
   type: service
   lifecycle: production
   owner: smoky-beans
   providesApis:
-    - carbonio-chats-ce-rest-api
+    - carbonio-ws-collaboration-ce-rest-api
   dependsOn:
-    - component:carbonio-chats-db
-    - component:carbonio-chats-messaging
+    - component:carbonio-ws-collaboration-db
+    - component:carbonio-message-dispatcher
     - component:carbonio-message-broker
     - component:carbonio-user-management
     - component:carbonio-storages-ce
@@ -36,9 +36,9 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
-  name: carbonio-chats-ce-rest-api
-  title: Carbonio Chats CE REST APIs
-  description: Carbonio Chats Community Edition REST APIs.
+  name: carbonio-ws-collaboration-ce-rest-api
+  title: Carbonio Workstream Collaboration CE REST APIs
+  description: Carbonio Workstream Collaboration Community Edition REST APIs.
   tags:
     - rest
 spec:
@@ -46,4 +46,4 @@ spec:
   lifecycle: production
   owner: smoky-beans
   definition:
-    $text: https://github.com/Zextras/carbonio-chats-ce/blob/main/carbonio-chats-ce-openapi/src/main/resources/chats/chats-api.yaml
+    $text: https://github.com/Zextras/carbonio-ws-collaboration-ce/blob/main/carbonio-ws-collaboration-ce-openapi/src/main/resources/ws-collaboration/ws-collaboration-api.yaml

@@ -9,23 +9,23 @@ SPDX-License-Identifier: AGPL-3.0-only
 <configuration>
 
   <appender name="FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>/var/log/carbonio/chats/chats.log</file>
+    <file>/var/log/carbonio/ws-collaboration/ws-collaboration.log</file>
     <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
       <Pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} %5p %-30.30logger{29} : %m%n</Pattern>
     </encoder>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <FileNamePattern>/var/log/carbonio/chats/chats.%d{yyyy-MM-dd}.log.gz</FileNamePattern>
+      <FileNamePattern>/var/log/carbonio/ws-collaboration/ws-collaboration.%d{yyyy-MM-dd}.log.gz</FileNamePattern>
       <MaxHistory>28</MaxHistory>
     </rollingPolicy>
   </appender>
 
   <appender name="TIMED_CALLS_FILE_APPENDER" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>/var/log/carbonio/chats/chats-timed.log</file>
+    <file>/var/log/carbonio/ws-collaboration/ws-collaboration-timed.log</file>
     <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
       <Pattern>%d{dd-MM-yyyy HH:mm:ss.SSS} %5p %-30.30logger{29} : %m%n</Pattern>
     </encoder>
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <FileNamePattern>/var/log/carbonio/chats/chats-timed.%d{yyyy-MM-dd}.log.gz</FileNamePattern>
+      <FileNamePattern>/var/log/carbonio/ws-collaboration/ws-collaboration-timed.%d{yyyy-MM-dd}.log.gz</FileNamePattern>
       <MaxHistory>28</MaxHistory>
     </rollingPolicy>
   </appender>
