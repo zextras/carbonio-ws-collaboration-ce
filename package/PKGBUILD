@@ -7,7 +7,7 @@ pkgver="0.3.0"
 pkgrel="1"
 pkgdesc="Workstream Collaboration for Carbonio CE"
 pkgdesclong=(
-   "Workstream collaboration for Carbonio CE"
+   "Workstream Collaboration for Carbonio CE"
 )
 maintainer="Zextras <packages@zextras.com>"
 arch="amd64"

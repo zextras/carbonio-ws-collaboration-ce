@@ -8,7 +8,7 @@ metadata:
   name: carbonio-ws-collaboration-ce
   title: Carbonio Workstream Collaboration CE service
   description: |
-    Service containing the business logic of the workstream collaboration application.
+    Service containing the business logic of the Workstream Collaboration application.
     It allows to chat or video-call with other users.
   tags:
     - java
