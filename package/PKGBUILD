@@ -5,9 +5,9 @@ targets=(
 pkgname="carbonio-ws-collaboration-ce"
 pkgver="0.3.0"
 pkgrel="1"
-pkgdesc="Workstream collaboration for carbonio CE"
+pkgdesc="Workstream Collaboration for Carbonio CE"
 pkgdesclong=(
-   "Workstream collaboration for carbonio CE"
+   "Workstream collaboration for Carbonio CE"
 )
 maintainer="Zextras <packages@zextras.com>"
 arch="amd64"
@@ -40,17 +40,17 @@ sources=(
    "logback.xml"
 )
 hashsums=(
-   "16c6f2c6023f5d5237f9c8f56f54c47f22280c49bf81baa7ea90645bb9be4750"
-   "edebf9af07757a7039f8d03854a4295728c8fc5f5ba917650cead4e03dc193d7"
-   "skip"
-   "a64fb33d918a17d343ff8f16ed9124f6c92cf5388c2d0519e1740e4adee5f668"
-   "407d7bdf5c3165b06663b18ccb8634004f8c4fc93775766fe61fdaa94bdf738c"
-   "4e08617f44dc095eeca58944b1b870214914130fdfbdf2f0a26a2154d84da552"
-   "c3cc92f6d1ac5c6625086f5b3bf5a718cb34ca7713b972205e34fcea76e791f1"
-   "0470b9333a8bf2d6b3a0a2bcd6111c63292f5f02a293cc08105c86dcc369de9d"
-   "9a5ac6516f976640b9fb4e0e4f5de03776b4caa9f24b181c4ff898db06be1147"
-   "bee12d4b1e5ebee035f3544c9e0915564609184e42b9cbe45584868b9343a6fe"
-   "a712783931d0f0d8da733e28280394db468a7e1d4e71b54e0bbdf171617fea0e"
+   "0e720e12361340e8e2d9d7fea1752a09cdc771cfe1f00e4979db5bc201956b40"
+   "5b17a36bfc7255d2dddd1c0e8c3588a4286d682cb2b059f293fad4cfdcd85456"
+   "bdcbec07d8c271b94bb8c804458d85a2e8a8d5bc556cb54df0429556dc4a934e"
+   "766f41685994dbc891e9b03011e72edb688d989c5b27d39badbc59966748bb74"
+   "5ab25236c2ba0a9e9c1577a3b6b1bb1497dba3fef40dd6851c3dfac86b685709"
+   "97256a878d94c5239c422049c9360ca18e1c34c74b3e6ac2a93e51ae0419b423"
+   "63e825d819e29df9edda3ae8e2af954176dda0592961ebc0d035508137db540b"
+   "58c69efd45348762b3c603ecb8a7d3df5e4ada730b00a760d02d3f376a455d08"
+   "d3741e4103a786c40a319248258ee5a25a39174a6ba80973b5877bb8a5e2bf72"
+   "62d45c9fad3a1a3680871a9a57131242d9a34ea41b370bb2c78f90914b1dc65e"
+   "a993f63dbfa8273d92f004c6db2886f17d9876d36c65ab757456ab99c0a3f3c3"
 )
 
 package() {
@@ -88,7 +88,7 @@ postinst() {
   fi
 
   echo "======================================================"
-  echo "Carbonio Workstream collaboration installed successfully!"
+  echo "Carbonio Workstream Collaboration installed successfully!"
   echo "You must run pending-setups to configure it correctly."
   echo "======================================================"
 }

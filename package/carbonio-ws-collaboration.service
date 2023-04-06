@@ -1,5 +1,5 @@
 [Unit]
-Description=Carbonio ws-collaboration daemon
+Description=Carbonio Workstream Collaboration daemon
 Documentation=https://docs.zextras.com/zextras-suite-documentation/latest/
 Wants=network.target
 Requires=network-online.target
