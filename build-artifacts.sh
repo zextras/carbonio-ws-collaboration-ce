@@ -10,7 +10,6 @@ function build-all-artifacts() {
   no_docker=$3
   distro=$4
   deploy_on=$5
-  debug_mode=$6
 
   declare -a distros=(
     #   "DISTRO  | NAME PRE VERSION   | NAME POST VERSION"
@@ -24,14 +23,6 @@ function build-all-artifacts() {
       distro_found=true
       print-banner "Building ${distros_item[0]} package"
       cp package/carbonio-ws-collaboration.service package/carbonio-ws-collaboration.original
-      debug_agent=""
-      dev_mode=""
-      if [ "$debug_mode" = true ]; then
-        debug_agent="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5006"
-        dev_mode="WS_COLLABORATION_ENV=dev"
-      fi
-      sed "s/<debug-agent>/$debug_agent/" package/carbonio-ws-collaboration.service -i
-      sed "s/<dev-mode>/$dev_mode/" package/carbonio-ws-collaboration.service -i
       eval "build-${distros_item[0]}-artifact"
       cp package/carbonio-ws-collaboration.original package/carbonio-ws-collaboration.service
       rm package/carbonio-ws-collaboration.original
