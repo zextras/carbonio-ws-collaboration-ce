@@ -117,7 +117,7 @@ pipeline {
             unstash 'project'
             sh '''
               ./mvnw package -Dmaven.main.skip -Dmaven.repo.local=$(pwd)/m2 \
-                -Dmaven.test.skip -P artifacts -D distro=ubuntu -DnoDocker
+                -Dmaven.test.skip -P artifacts -D distro=ubuntu -D noDocker=true
             '''
             stash includes: 'artifacts/', name: 'artifacts-ubuntu-focal'
           }
@@ -144,7 +144,7 @@ pipeline {
             unstash 'project'
             sh '''
               ./mvnw package -Dmaven.main.skip -Dmaven.repo.local=$(pwd)/m2 \
-                -Dmaven.test.skip -P artifacts -D distro=rocky-8 -DnoDocker
+                -Dmaven.test.skip -P artifacts -D distro=rocky-8 -D noDocker=true
             '''
             stash includes: 'artifacts/', name: 'artifacts-rocky-8'
           }
