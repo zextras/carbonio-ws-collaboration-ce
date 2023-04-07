@@ -117,7 +117,7 @@ pipeline {
             unstash 'project'
             sh '''
               mkdir /tmp/ws-collaboration
-              cp -r ./* /tmp/ws-collaboration
+              mv * /tmp/ws-collaboration
               sudo pacur build ubuntu-focal /tmp/ws-collaboration
             '''
             stash includes: 'artifacts/', name: 'artifacts-ubuntu-focal'
@@ -145,7 +145,7 @@ pipeline {
             unstash 'project'
             sh '''
               mkdir /tmp/ws-collaboration
-              cp -r ./* /tmp/ws-collaboration
+              mv * /tmp/ws-collaboration
               sudo pacur build rocky-8 /tmp/ws-collaboration
             '''
             stash includes: 'artifacts/', name: 'artifacts-rocky-8'

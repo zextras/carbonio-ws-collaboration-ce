@@ -77,8 +77,8 @@ EOF
 function build-ubuntu-artifact() {
   if [ "$no_docker" = true ]; then
     mkdir /tmp/ws-collaboration
-    cp -r ./* /tmp/ws-collaboration
-    pacur build ubuntu-focal /tmp/ws-collaboration
+    mv * /tmp/ws-collaboration
+    sudo pacur build ubuntu-focal /tmp/ws-collaboration
   else
     docker run \
       --rm --entrypoint "" \
@@ -91,8 +91,8 @@ function build-ubuntu-artifact() {
 function build-rocky-8-artifact() {
   if [ "$no_docker" = true ]; then
     mkdir /tmp/ws-collaboration
-    cp -r ./* /tmp/ws-collaboration
-    pacur build rocky-8 /tmp/ws-collaboration
+    mv * /tmp/ws-collaboration
+    sudo pacur build rocky-8 /tmp/ws-collaboration
   else
     docker run \
       --rm --entrypoint "" \
@@ -134,4 +134,4 @@ function print-banner() {
   echo "$border_string"
 }
 
-build-all-artifacts "$1" "$2" "$3" "$4" "$5" "$6"
+build-all-artifacts "$1" "$2" "$3" "$4" "$5"
