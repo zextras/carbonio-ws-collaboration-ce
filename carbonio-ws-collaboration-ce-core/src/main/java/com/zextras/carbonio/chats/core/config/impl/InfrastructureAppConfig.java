@@ -6,13 +6,9 @@ package com.zextras.carbonio.chats.core.config.impl;
 
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
-import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 
 public class InfrastructureAppConfig extends AppConfig {
 
@@ -40,7 +36,7 @@ public class InfrastructureAppConfig extends AppConfig {
     configs.put(ConfigName.VIDEO_SERVER_PORT, "20006");
   }
 
-    public static AppConfig create() {
+  public static AppConfig create() {
     return new InfrastructureAppConfig();
   }
 

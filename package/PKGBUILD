@@ -83,10 +83,10 @@ postinst() {
     systemctl enable carbonio-ws-collaboration-sidecar.service >/dev/null 2>&1 || :
   fi
 
-  echo "======================================================"
+  echo "========================================================="
   echo "Carbonio Workstream Collaboration installed successfully!"
-  echo "You must run pending-setups to configure it correctly."
-  echo "======================================================"
+  echo "You must run pending-setups to configure it correctly.   "
+  echo "========================================================="
 }
 
 prerm() {

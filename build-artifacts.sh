@@ -44,23 +44,14 @@ function build-all-artifacts() {
         ssh root@"$deploy_on" /bin/bash << EOF
           dpkg -i ${file_name}
           rm -r ${file_name}
-          tokens=( \$(consul acl token create -format json -policy-name global-management -description \"pending-setup token\") )
-          for (( j=0; j<\${#tokens[@]}; j++ )); do
-            if [[ "\${tokens[\$j]}" == "\"SecretID\":" ]]; then
-              secret_id="\${tokens[\$j+1]}"
-              break
-            fi
-          done
-          secret_id=\$(tr -d '",' <<< "\$secret_id")
-          export SETUP_CONSUL_TOKEN="\$secret_id"
-          pending-setups --execute-all
 EOF
         ret_val=$?
         if [ "$ret_val" -ne 0 ]; then
           echo "[ERROR] Installing package failed !"
           exit 1
         fi
-        echo "Installing package done !"
+        echo "Installing package done"
+        echo "Remember to enter the machine to run the pending-setups"
       fi
     fi
   done
