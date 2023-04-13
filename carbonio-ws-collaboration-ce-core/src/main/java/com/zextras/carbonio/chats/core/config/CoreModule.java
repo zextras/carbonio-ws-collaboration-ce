@@ -27,6 +27,8 @@ import com.zextras.carbonio.chats.api.SupportedApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.config.ChatsConstant.RABBIT_MQ;
+import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
+import com.zextras.carbonio.chats.core.config.impl.InfrastructureAppConfig;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
@@ -132,8 +134,6 @@ public class CoreModule extends AbstractModule {
     bind(JacksonConfig.class);
     bind(ObjectMapper.class).toProvider(JacksonConfig.class);
 
-    bind(AppConfig.class).toProvider(new AppConfigProvider(".", ChatsConstant.CONFIG_PATH)).in(Singleton.class);
-
     bind(AuthenticationFilter.class);
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
     bind(EventsWebSocketEndpoint.class);
@@ -215,6 +215,17 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
+  private AppConfig getAppConfig() {
+    AppConfig appConfig = InfrastructureAppConfig.create().load();
+    Optional.ofNullable(ConsulAppConfig.create(
+      appConfig.get(String.class, ConfigName.CONSUL_HOST).orElseThrow(),
+      appConfig.get(Integer.class, ConfigName.CONSUL_PORT).orElseThrow(),
+      System.getenv("CONSUL_HTTP_TOKEN"))).ifPresent(consulConfig -> appConfig.add(consulConfig.load()));
+    return appConfig;
+  }
+
+  @Singleton
+  @Provides
   private Clock getClock() {
     return Clock.system(ZoneId.systemDefault());
   }
@@ -273,7 +284,7 @@ public class CoreModule extends AbstractModule {
   public DataSource getHikariDataSource(AppConfig appConfig) {
     HikariConfig config = new HikariConfig();
     config.setJdbcUrl(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).orElseThrow());
-    config.setUsername(appConfig.get(String.class, ConfigName.DATABASE_USERNAME).orElse("chats"));
+    config.setUsername(appConfig.get(String.class, ConfigName.DATABASE_USERNAME).orElse("carbonio-ws-collaboration-db"));
     config.setPassword(appConfig.get(String.class, ConfigName.DATABASE_PASSWORD).orElse("password"));
     config.addDataSourceProperty("idleTimeout",
       appConfig.get(Integer.class, ConfigName.HIKARI_IDLE_TIMEOUT).orElse(300));
@@ -282,7 +293,8 @@ public class CoreModule extends AbstractModule {
     config.addDataSourceProperty("maximumPoolSize",
       appConfig.get(Integer.class, ConfigName.HIKARI_MAX_POOL_SIZE).orElse(5));
     config.addDataSourceProperty("poolName", "chats-db-pool");
-    config.addDataSourceProperty("driverClassName", appConfig.get(String.class, ConfigName.JDBC_DRIVER).orElseThrow());
+    config.addDataSourceProperty("driverClassName",
+      appConfig.get(String.class, ConfigName.DATABASE_JDBC_DRIVER).orElseThrow());
     config.addDataSourceProperty("leakDetectionThreshold",
       appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(60000));
     return new HikariDataSource(config);

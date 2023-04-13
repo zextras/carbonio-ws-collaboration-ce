@@ -7,9 +7,7 @@ package com.zextras.carbonio.chats.boot;
 import com.rabbitmq.client.Connection;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ChatsConstant;
-import com.zextras.carbonio.chats.core.config.EnvironmentType;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
-import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
@@ -57,9 +55,6 @@ public class Boot {
   public void boot() throws Exception {
     flyway.migrate();
 
-    if (appConfig.getEnvType().equals(EnvironmentType.DEVELOPMENT)) {
-      ChatsLogger.warn("****** RUNNING IN DEVELOPMENT MODE! DO NOT USE IN PRODUCTION ENVIRONMENTS ******");
-    }
     Server server = new Server(new InetSocketAddress(ChatsConstant.SERVER_HOST, ChatsConstant.SERVER_PORT));
     ContextHandlerCollection handlers = new ContextHandlerCollection();
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);

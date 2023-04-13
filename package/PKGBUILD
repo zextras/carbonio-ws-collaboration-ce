@@ -22,7 +22,6 @@ depends=(
    "jq"
 )
 backup=(
-   "etc/carbonio/ws-collaboration/config.properties"
    "etc/carbonio/ws-collaboration/logback.xml"
    "etc/zextras/service-discover/carbonio-ws-collaboration.hcl"
 )
@@ -36,20 +35,18 @@ sources=(
    "policies.json"
    "intentions.json"
    "service-protocol.json"
-   "config.properties"
    "logback.xml"
 )
 hashsums=(
-   "0e720e12361340e8e2d9d7fea1752a09cdc771cfe1f00e4979db5bc201956b40"
+   "ce7262f2c01e4f6c700265f88892d7572dc546d2ff328506dfd7f5502c6b6b0b"
    "5b17a36bfc7255d2dddd1c0e8c3588a4286d682cb2b059f293fad4cfdcd85456"
-   "bdcbec07d8c271b94bb8c804458d85a2e8a8d5bc556cb54df0429556dc4a934e"
+   "8e4c95a5b8480985c0cf0139f023b803c68056f10bb2460d3b9e343b5c8d237f"
    "766f41685994dbc891e9b03011e72edb688d989c5b27d39badbc59966748bb74"
    "5ab25236c2ba0a9e9c1577a3b6b1bb1497dba3fef40dd6851c3dfac86b685709"
    "97256a878d94c5239c422049c9360ca18e1c34c74b3e6ac2a93e51ae0419b423"
    "63e825d819e29df9edda3ae8e2af954176dda0592961ebc0d035508137db540b"
    "58c69efd45348762b3c603ecb8a7d3df5e4ada730b00a760d02d3f376a455d08"
    "d3741e4103a786c40a319248258ee5a25a39174a6ba80973b5877bb8a5e2bf72"
-   "62d45c9fad3a1a3680871a9a57131242d9a34ea41b370bb2c78f90914b1dc65e"
    "a993f63dbfa8273d92f004c6db2886f17d9876d36c65ab757456ab99c0a3f3c3"
 )
 
@@ -61,7 +58,6 @@ package() {
   cd "${srcdir}"
   install -Dm 755 carbonio-ws-collaboration "${pkgdir}/usr/bin/carbonio-ws-collaboration"
   install -Dm 755 carbonio-ws-collaboration-configs "${pkgdir}/usr/bin/carbonio-ws-collaboration-configs"
-  install -Dm 644 config.properties "${pkgdir}/etc/carbonio/ws-collaboration/config.properties"
   install -Dm 644 logback.xml "${pkgdir}/etc/carbonio/ws-collaboration/logback.xml"
   install -Dm 644 carbonio-ws-collaboration.service "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration.service"
   install -Dm 644 carbonio-ws-collaboration-sidecar.service "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration-sidecar.service"

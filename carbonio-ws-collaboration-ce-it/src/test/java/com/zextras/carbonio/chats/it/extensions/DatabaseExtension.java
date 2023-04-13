@@ -40,7 +40,7 @@ public class DatabaseExtension implements BeforeAllCallback, AfterEachCallback {
           .withPassword(DATABASE_PASSWORD);
         database.start();
         InMemoryConfigStore.set(ConfigName.DATABASE_JDBC_URL, database.getJdbcUrl());
-        InMemoryConfigStore.set(ConfigName.JDBC_DRIVER, DATABASE_DRIVER);
+        InMemoryConfigStore.set(ConfigName.DATABASE_JDBC_DRIVER, DATABASE_DRIVER);
         InMemoryConfigStore.set(ConfigName.DATABASE_USERNAME, DATABASE_USER);
         InMemoryConfigStore.set(ConfigName.DATABASE_PASSWORD, DATABASE_PASSWORD);
         return database;
