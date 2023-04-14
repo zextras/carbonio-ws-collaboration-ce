@@ -28,7 +28,6 @@ import com.orbitz.consul.option.QueryOptions;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
-import com.zextras.carbonio.chats.core.config.EnvironmentType;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Map;
@@ -151,65 +150,6 @@ class ConsulAppConfigTest {
 
       verify(keyValueClient, times(1))
         .getValue(eq("carbonio-ws-collaboration-db/db-password"), any(ImmutableQueryOptions.class));
-      verify(consulClient, times(1)).keyValueClient();
-      verifyNoMoreInteractions(keyValueClient, consulClient);
-    }
-  }
-
-  @Nested
-  @DisplayName("Get env type tests")
-  class GetEnvTypeTests {
-
-    @Test
-    @DisplayName("Correctly retrieves the environment type")
-    public void getEnvType_testOk() {
-      Value mockValue = ImmutableValue.builder()
-        .key("carbonio-ws-collaboration/ws-collaboration-env")
-        .value(Base64.getEncoder().encodeToString("dev".getBytes(StandardCharsets.UTF_8)))
-        .createIndex(0L)
-        .modifyIndex(0L)
-        .lockIndex(0L)
-        .flags(0L)
-        .build();
-      when(keyValueClient.getValue(eq("carbonio-ws-collaboration/ws-collaboration-env"), any(ImmutableQueryOptions.class)))
-        .thenReturn(Optional.of(mockValue));
-
-      EnvironmentType envType = appConfig.getEnvType();
-      assertNotNull(envType);
-      assertEquals(EnvironmentType.DEVELOPMENT, envType);
-
-      verify(keyValueClient, times(1))
-        .getValue(eq("carbonio-ws-collaboration/ws-collaboration-env"), any(ImmutableQueryOptions.class));
-      verify(consulClient, times(1)).keyValueClient();
-      verifyNoMoreInteractions(keyValueClient, consulClient);
-    }
-
-    @Test
-    @DisplayName("Returns default env type if it was not retrieved")
-    public void getEnvType_testNotRetrieved() {
-      when(keyValueClient.getValue(eq("carbonio-ws-collaboration/ws-collaboration-env"), any(ImmutableQueryOptions.class)))
-        .thenReturn(Optional.empty());
-
-      EnvironmentType envType = appConfig.getEnvType();
-      assertEquals(EnvironmentType.PRODUCTION, envType);
-
-      verify(keyValueClient, times(1))
-        .getValue(eq("carbonio-ws-collaboration/ws-collaboration-env"), any(ImmutableQueryOptions.class));
-      verify(consulClient, times(1)).keyValueClient();
-      verifyNoMoreInteractions(keyValueClient, consulClient);
-    }
-
-    @Test
-    @DisplayName("Returns en empty optional if and exception is thrown")
-    public void getEnvType_testException() {
-      when(keyValueClient.getValue(eq("carbonio-ws-collaboration/ws-collaboration-env"), any(ImmutableQueryOptions.class)))
-        .thenThrow(new RuntimeException());
-
-      EnvironmentType envType = appConfig.getEnvType();
-      assertEquals(EnvironmentType.PRODUCTION, envType);
-
-      verify(keyValueClient, times(1))
-        .getValue(eq("carbonio-ws-collaboration/ws-collaboration-env"), any(ImmutableQueryOptions.class));
       verify(consulClient, times(1)).keyValueClient();
       verifyNoMoreInteractions(keyValueClient, consulClient);
     }

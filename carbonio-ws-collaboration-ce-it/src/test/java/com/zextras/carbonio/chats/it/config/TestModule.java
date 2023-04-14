@@ -10,7 +10,6 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.rabbitmq.client.Connection;
 import com.zextras.carbonio.chats.core.config.AppConfig;
-import com.zextras.carbonio.chats.core.config.AppConfigBuilder;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
 import java.time.Clock;
@@ -29,7 +28,7 @@ public class TestModule extends AbstractModule {
   @Provides
   @Singleton
   public AppConfig getAppConfig() {
-    return AppConfigBuilder.create().add(TestAppConfig.create()).getAppConfig();
+    return TestAppConfig.create();
   }
 
   @Provides

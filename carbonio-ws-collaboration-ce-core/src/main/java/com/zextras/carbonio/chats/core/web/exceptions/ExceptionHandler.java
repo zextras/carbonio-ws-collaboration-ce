@@ -4,21 +4,16 @@
 
 package com.zextras.carbonio.chats.core.web.exceptions;
 
-import com.zextras.carbonio.chats.core.config.EnvironmentType;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.model.ErrorDto;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.ExceptionMapper;
-import org.apache.commons.lang3.RandomStringUtils;
 
 
 public abstract class ExceptionHandler<E extends Throwable> implements ExceptionMapper<E> {
@@ -29,22 +24,17 @@ public abstract class ExceptionHandler<E extends Throwable> implements Exception
   @Context
   private UriInfo uriInfo;
 
-  public Response handleException(Exception exception, String msg, int httpStatusCode, String httpStatusPhrase,
-    boolean isToLog) {
+  public Response handleException(
+    Exception exception, String msg, int httpStatusCode, String httpStatusPhrase,
+    boolean isToLog
+  ) {
     if (isToLog) {
       ChatsLogger.error(
         String.format("An error occurred on %s at %s", getRequestUri(), getExceptionPosition(exception)),
         exception
       );
     }
-    ResponseBuilder responseBuilder = Response.status(httpStatusCode, httpStatusPhrase);
-    if (EnvironmentType.DEVELOPMENT.equals(appConfig.getEnvType())) {
-      ErrorDto error = new ErrorDto();
-      error.setTraceId(RandomStringUtils.randomAlphabetic(16));
-      error.setMessage(msg);
-      responseBuilder.entity(error);
-    }
-    return responseBuilder.build();
+    return Response.status(httpStatusCode, httpStatusPhrase).build();
   }
 
 

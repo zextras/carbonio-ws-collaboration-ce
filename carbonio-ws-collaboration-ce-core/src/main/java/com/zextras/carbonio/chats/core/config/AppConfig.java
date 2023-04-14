@@ -54,15 +54,6 @@ public abstract class AppConfig {
   protected abstract <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigName configName);
 
   /**
-   * Retrieves the environment type the application is running in. The default is {@link EnvironmentType#PRODUCTION}
-   *
-   * @return the current {@link EnvironmentType}
-   */
-  public EnvironmentType getEnvType() {
-    return EnvironmentType.getByName(get(String.class, ConfigName.ENV).orElse(EnvironmentType.PRODUCTION.getName()));
-  }
-
-  /**
    * Sets the configuration in the first chain node
    *
    * @param configName configuration key {@link ConfigName}
@@ -97,26 +88,15 @@ public abstract class AppConfig {
    * @param newConfigResolver the new configuration resolver {@link AppConfig}
    * @return itself
    */
-  public AppConfig addToChain(@Nullable AppConfig newConfigResolver) {
+  public AppConfig add(@Nullable AppConfig newConfigResolver) {
     if (newConfigResolver != null && newConfigResolver.isLoaded()) {
       if (next == null) {
         next = newConfigResolver;
       } else {
-        next.addToChain(newConfigResolver);
+        next.add(newConfigResolver);
       }
     }
     return this;
-  }
-
-  public void removeLast() {
-    if (next != null) {
-
-      if (next.next == null) {
-        next = null;
-      } else {
-        next.removeLast();
-      }
-    }
   }
 
   protected <T> T castToGeneric(Class<T> clazz, String stringValue) {

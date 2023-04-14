@@ -116,8 +116,9 @@ pipeline {
           steps {
             unstash 'project'
             sh '''
-              ./mvnw package -Dmaven.main.skip -Dmaven.repo.local=$(pwd)/m2 \
-                -Dmaven.test.skip -P artifacts -D distro=ubuntu -DnoDocker
+              mkdir /tmp/ws-collaboration
+              mv * /tmp/ws-collaboration
+              sudo pacur build ubuntu-focal /tmp/ws-collaboration
             '''
             stash includes: 'artifacts/', name: 'artifacts-ubuntu-focal'
           }
@@ -143,8 +144,9 @@ pipeline {
           steps {
             unstash 'project'
             sh '''
-              ./mvnw package -Dmaven.main.skip -Dmaven.repo.local=$(pwd)/m2 \
-                -Dmaven.test.skip -P artifacts -D distro=rocky-8 -DnoDocker
+              mkdir /tmp/ws-collaboration
+              mv * /tmp/ws-collaboration
+              sudo pacur build rocky-8 /tmp/ws-collaboration
             '''
             stash includes: 'artifacts/', name: 'artifacts-rocky-8'
           }
