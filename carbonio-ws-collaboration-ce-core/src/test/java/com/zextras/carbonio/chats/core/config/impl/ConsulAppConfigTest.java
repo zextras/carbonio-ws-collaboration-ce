@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -67,13 +68,13 @@ class ConsulAppConfigTest {
     public void loadConfigurations_testOk() {
       KVCache kvCache = mock(KVCache.class);
       try (MockedStatic<KVCache> kvCacheMockedStatic = Mockito.mockStatic(KVCache.class)) {
-        kvCacheMockedStatic.when((Verification) KVCache.newCache(eq(keyValueClient), eq("carbonio-ws-collaboration/"), eq(10),
+        kvCacheMockedStatic.when((Verification) KVCache.newCache(eq(keyValueClient), anyString(), eq(10),
           any(ImmutableQueryOptions.class))).thenReturn(kvCache);
         ArgumentCaptor<Listener> listenerArgumentCaptor = ArgumentCaptor.forClass(Listener.class);
 
         appConfig.load();
 
-        verify(kvCache).addListener(listenerArgumentCaptor.capture());
+        verify(kvCache, times(4)).addListener(listenerArgumentCaptor.capture());
         Listener<String, Value> listener = listenerArgumentCaptor.getValue();
         assertNotNull(listener);
         listener.notify(Map.of(
