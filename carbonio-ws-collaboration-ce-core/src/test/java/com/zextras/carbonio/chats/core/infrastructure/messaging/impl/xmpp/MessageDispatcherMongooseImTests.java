@@ -26,7 +26,7 @@ public class MessageDispatcherMongooseImTests {
   public void getAttachmentIdFromMessageTests_ok() {
     UUID attachmentId = UUID.randomUUID();
     String message =
-      "<message from='userJid/roomJid' to='roomJid' id='massageId' type='groupchat' xmlns='jabber:client'>"
+      "<message from='userJid/roomJid' to='roomJid' id='messageId' type='groupchat' xmlns='jabber:client'>"
         + "  <x xmlns='urn:xmpp:muclight:0#configuration'>"
         + "    <operation>attachmentAdded</operation>"
         + "    <attachment-id>" + attachmentId + "</attachment-id>"
@@ -44,7 +44,7 @@ public class MessageDispatcherMongooseImTests {
   @DisplayName("Given a simple XMPP message, it correctly returns an empty Optional")
   public void getAttachmentIdFromMessageTests_simpleMessage() {
     String message =
-      "<message from='userJid/roomJid' to='roomJid' id='massageId' type='groupchat' xmlns='jabber:client'>"
+      "<message from='userJid/roomJid' to='roomJid' id='messageId' type='groupchat' xmlns='jabber:client'>"
         + "  <body>text message</body>"
         + "</message>";
     assertEquals(Optional.empty(), messageDispatcherMongooseIm.getAttachmentIdFromMessage(message));
@@ -53,7 +53,7 @@ public class MessageDispatcherMongooseImTests {
   @Test
   @DisplayName("Given an XMPP message from MAM that contains information about an attachment, it correctly returns its id")
   public void getAttachmentIdFromMessageTests_simpleMessageFromMam() {
-    String message = "<message from='userJid/roomJid' id='massageId' type='groupchat' xmlns='jabber:client'>"
+    String message = "<message from='userJid/roomJid' id='messageId' type='groupchat' xmlns='jabber:client'>"
       + "  <body>text message</body>"
       + "  <x xmlns='http://jabber.org/protocol/muc#user'>"
       + "    <item affiliation='member' jid='userJid/affiliationJid' role='participant'></item>"
@@ -67,7 +67,7 @@ public class MessageDispatcherMongooseImTests {
   public void getAttachmentIdFromMessageTests_ppp() {
     UUID attachmentId = UUID.randomUUID();
     String message =
-      "<message from='userJid/roomJid' to='roomJid' id='massageId' type='groupchat' xmlns='jabber:client'>"
+      "<message from='userJid/roomJid' to='roomJid' id='messageId' type='groupchat' xmlns='jabber:client'>"
         + "  <x xmlns='urn:xmpp:muclight:0#configuration'>"
         + "    <operation>attachmentAdded</operation>"
         + "    <attachment-id></attachment-id>"
