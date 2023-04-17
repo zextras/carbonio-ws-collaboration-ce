@@ -32,6 +32,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.ls.DOMImplementationLS;
 import org.w3c.dom.ls.LSSerializer;
 
@@ -256,9 +257,10 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
       Element x = (Element) node.getElementsByTagName("x").item(0);
       if (x != null) {
         Element op = (Element) x.getElementsByTagName("operation").item(0);
-        if (MessageType.ATTACHMENT_ADDED.getName().equals(op.getFirstChild().getNodeValue())) {
-          Element attachmentId = (Element) x.getElementsByTagName("attachment-id").item(0);
-          return Optional.of(attachmentId.getFirstChild().getNodeValue());
+        if (op != null && MessageType.ATTACHMENT_ADDED.getName().equals(op.getFirstChild().getNodeValue())) {
+          return Optional.ofNullable(x.getElementsByTagName("attachment-id").item(0))
+            .map(Node::getFirstChild)
+            .map(Node::getNodeValue);
         }
       }
     } catch (Exception e) {
