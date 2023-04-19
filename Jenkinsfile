@@ -63,7 +63,7 @@ pipeline {
       steps {
         sh '''
         ./mvnw -Dmaven.repo.local=$(pwd)/m2 -B --settings settings-jenkins.xml \
-            -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-ce-boot/src/main/resources/logback-test-silent.xml \
+            -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
             verify
         '''
         publishCoverage adapters: [jacocoAdapter('target/site/jacoco-all-tests/jacoco.xml')]
@@ -79,15 +79,6 @@ pipeline {
       }
     }
 
-    stage('Publishing') {
-      when {
-        branch "main"
-      }
-      steps {
-        sh 'mvn -B --settings settings-jenkins.xml -D skipTests deploy'
-      }
-    }
-  
     stage('Stashing for packaging') {
       when {
         anyOf {

@@ -14,12 +14,12 @@ SPDX-License-Identifier: AGPL-3.0-only
   <packaging>jar</packaging>
 
   <parent>
-    <groupId>com.zextras.carbonio.ws-collaboration</groupId>
-    <artifactId>carbonio-ws-collaboration-ce</artifactId>
+    <groupId>com.zextras.carbonio.ws-collaboration-ce</groupId>
+    <artifactId>carbonio-ws-collaboration</artifactId>
     <version>0.3.0</version>
   </parent>
 
-  <artifactId>carbonio-ws-collaboration-ce-it</artifactId>
+  <artifactId>carbonio-ws-collaboration-it</artifactId>
 
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
@@ -28,8 +28,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <dependencies>
     <dependency>
-      <groupId>com.zextras.carbonio.ws-collaboration</groupId>
-      <artifactId>carbonio-ws-collaboration-ce-core</artifactId>
+      <groupId>com.zextras.carbonio.ws-collaboration-ce</groupId>
+      <artifactId>carbonio-ws-collaboration-core</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -84,6 +84,8 @@ SPDX-License-Identifier: AGPL-3.0-only
   </dependencies>
 
   <build>
+    <finalName>carbonio-ws-collaboration-ce-it</finalName>
+
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -111,7 +113,7 @@ SPDX-License-Identifier: AGPL-3.0-only
               <outputDirectory>${project.build.directory}/classes</outputDirectory>
               <resources>
                 <resource>
-                  <directory>${project.parent.basedir}/carbonio-ws-collaboration-ce-core/target/classes</directory>
+                  <directory>${project.parent.basedir}/carbonio-ws-collaboration-core/target/classes</directory>
                   <includes>
                     <include>**/*.class</include>
                   </includes>

@@ -107,6 +107,6 @@ function main() {
   echo "    CHECK: check that the version is adequate to the one passed by parameter"
   exit 1
 }
-chats_api_file="carbonio-ws-collaboration-ce-openapi/src/main/resources/chats/chats-api.yaml"
-meeting_api_file="carbonio-ws-collaboration-ce-openapi/src/main/resources/meeting/meeting-api.yaml"
+chats_api_file="carbonio-ws-collaboration-openapi/src/main/resources/chats/chats-api.yaml"
+meeting_api_file="carbonio-ws-collaboration-openapi/src/main/resources/meeting/meeting-api.yaml"
 main "$1" "$2"
