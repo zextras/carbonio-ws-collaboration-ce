@@ -14,12 +14,12 @@ SPDX-License-Identifier: AGPL-3.0-only
   <packaging>jar</packaging>
 
   <parent>
-    <groupId>com.zextras.carbonio.ws-collaboration-ce</groupId>
-    <artifactId>carbonio-ws-collaboration</artifactId>
+    <groupId>com.zextras.carbonio.ws-collaboration</groupId>
+    <artifactId>carbonio-ws-collaboration-ce</artifactId>
     <version>0.3.0</version>
   </parent>
 
-  <artifactId>carbonio-ws-collaboration-core</artifactId>
+  <artifactId>carbonio-ws-collaboration-core-ce</artifactId>
 
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
@@ -28,8 +28,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <dependencies>
     <dependency>
-      <groupId>com.zextras.carbonio.ws-collaboration-ce</groupId>
-      <artifactId>carbonio-ws-collaboration-openapi</artifactId>
+      <groupId>com.zextras.carbonio.ws-collaboration</groupId>
+      <artifactId>carbonio-ws-collaboration-openapi-ce</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -203,7 +203,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   </dependencies>
 
   <build>
-    <finalName>carbonio-ws-collaboration-ce-core</finalName>
+    <finalName>carbonio-ws-collaboration-core-ce</finalName>
 
     <resources>
       <resource>
@@ -219,7 +219,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     </testResources>
 
     <plugins>
-      <plugin>
+      <!--<plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.0.0</version>
@@ -239,7 +239,7 @@ SPDX-License-Identifier: AGPL-3.0-only
             <argument>${project.version}</argument>
           </arguments>
         </configuration>
-      </plugin>
+      </plugin>-->
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

@@ -14,12 +14,12 @@ SPDX-License-Identifier: AGPL-3.0-only
   <packaging>jar</packaging>
 
   <parent>
-    <groupId>com.zextras.carbonio.ws-collaboration-ce</groupId>
-    <artifactId>carbonio-ws-collaboration</artifactId>
+    <groupId>com.zextras.carbonio.ws-collaboration</groupId>
+    <artifactId>carbonio-ws-collaboration-ce</artifactId>
     <version>0.3.0</version>
   </parent>
 
-  <artifactId>carbonio-ws-collaboration-boot</artifactId>
+  <artifactId>carbonio-ws-collaboration-boot-ce</artifactId>
 
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
@@ -141,7 +141,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   </dependencies>
 
   <build>
-    <finalName>carbonio-ws-collaboration-ce</finalName>
+    <finalName>carbonio-ws-collaboration-boot-ce</finalName>
 
     <resources>
       <resource>
