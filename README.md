@@ -56,14 +56,6 @@ With the generated fat-jar:
 java -jar ./boot/target/zextras-ws-collaboration-ce-fatjar.jar
 ```
 
-## How to change project version
-To change the project versions is recommended to use the script;
-```shell
-version.sh set <1>
-```
-Where:
-1. is the desired version
-
 # License 📚
 
 Workstream Collaboration CE backend service for Zextras Carbonio.

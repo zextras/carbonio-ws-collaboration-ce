@@ -141,7 +141,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   </dependencies>
 
   <build>
-    <finalName>carbonio-ws-collaboration-ce</finalName>
+    <finalName>carbonio-ws-collaboration-ce-boot</finalName>
 
     <resources>
       <resource>
@@ -186,7 +186,7 @@ SPDX-License-Identifier: AGPL-3.0-only
                 </filter>
               </filters>
               <createDependencyReducedPom>false</createDependencyReducedPom>
-              <finalName>${project.parent.artifactId}-fatjar</finalName>
+              <finalName>carbonio-ws-collaboration-ce-fatjar</finalName>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>com.zextras.carbonio.chats.boot.Chats</mainClass>

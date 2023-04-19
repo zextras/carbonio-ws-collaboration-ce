@@ -46,4 +46,4 @@ spec:
   lifecycle: production
   owner: smoky-beans
   definition:
-    $text: https://github.com/Zextras/carbonio-ws-collaboration-ce/blob/main/carbonio-ws-collaboration-ce-openapi/src/main/resources/ws-collaboration/ws-collaboration-api.yaml
+    $text: https://github.com/Zextras/carbonio-ws-collaboration-ce/blob/main/carbonio-ws-collaboration-openapi/src/main/resources/ws-collaboration/ws-collaboration-api.yaml
