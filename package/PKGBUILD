@@ -52,7 +52,7 @@ hashsums=(
 
 package() {
   cd "${srcdir}"/../../ws-collaboration
-  install -Dm 644 ./carbonio-ws-collaboration-ce-boot/target/carbonio-ws-collaboration-ce-fatjar.jar \
+  install -Dm 644 ./carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-fatjar.jar \
     "${pkgdir}/usr/bin/carbonio/ws-collaboration/carbonio-ws-collaboration.jar"
 
   cd "${srcdir}"

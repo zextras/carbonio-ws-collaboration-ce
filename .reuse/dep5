@@ -19,38 +19,38 @@ Files: package/*
 Copyright: 2023 Zextras s.r.l
 License: AGPL-3.0-only
 
-Files: carbonio-ws-collaboration-ce-core/src/main/resources/build-information
+Files: carbonio-ws-collaboration-core/src/main/resources/build-information
 Copyright: 2023 Zextras s.r.l
 License: AGPL-3.0-only
 
-Files: carbonio-ws-collaboration-ce-core/src/main/resources/ebean.mf
+Files: carbonio-ws-collaboration-core/src/main/resources/ebean.mf
 Copyright: 2023 Zextras s.r.l
 License: AGPL-3.0-only
 
-Files: carbonio-ws-collaboration-ce-openapi/src/main/resources/chats/chats-generator-config.json
+Files: carbonio-ws-collaboration-openapi/src/main/resources/chats/chats-generator-config.json
 Copyright: 2023 Zextras s.r.l
 License: AGPL-3.0-only
 
-Files: carbonio-ws-collaboration-ce-openapi/src/main/resources/generator-ignore
+Files: carbonio-ws-collaboration-openapi/src/main/resources/generator-ignore
 Copyright: 2023 Zextras s.r.l
 License: AGPL-3.0-only
 
-Files: carbonio-ws-collaboration-ce-openapi/src/main/resources/meeting/meeting-generator-config.json
+Files: carbonio-ws-collaboration-openapi/src/main/resources/meeting/meeting-generator-config.json
 Copyright: 2023 Zextras s.r.l
 License: AGPL-3.0-only
 
-Files: carbonio-ws-collaboration-ce-core/src/test/resources/build-information
+Files: carbonio-ws-collaboration-core/src/test/resources/build-information
 Copyright: 2023 Zextras s.r.l
 License: AGPL-3.0-only
 
-Files: carbonio-ws-collaboration-ce-it/src/test/resources/build-information
+Files: carbonio-ws-collaboration-it/src/test/resources/build-information
 Copyright: 2023 Zextras s.r.l
 License: AGPL-3.0-only
 
-Files: carbonio-ws-collaboration-ce-it/src/test/resources/files/*
+Files: carbonio-ws-collaboration-it/src/test/resources/files/*
 Copyright: 2023 Zextras s.r.l
 License: CC-BY-NC-SA-4.0
 
-Files: carbonio-ws-collaboration-ce-boot/src/main/resources/banner.txt
+Files: carbonio-ws-collaboration-boot/src/main/resources/banner.txt
 Copyright: 2023 Zextras s.r.l
 License: CC0-1.0

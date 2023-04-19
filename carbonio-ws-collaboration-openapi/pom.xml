@@ -91,6 +91,8 @@ SPDX-License-Identifier: AGPL-3.0-only
   </dependencies>
 
   <build>
+    <finalName>carbonio-ws-collaboration-ce-openapi</finalName>
+
     <plugins>
       <plugin>
         <groupId>org.openapitools</groupId>
