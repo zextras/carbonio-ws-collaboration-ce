@@ -13,8 +13,8 @@ function build-all-artifacts() {
 
   declare -a distros=(
     #   "DISTRO  | NAME PRE VERSION   | NAME POST VERSION"
-    "rocky-8 | carbonio-ws-collaboration-ce- | -1.el8.x86_64.rpm"
-    "ubuntu  | carbonio-ws-collaboration-ce_ | -1_amd64.deb     "
+    "rocky-8 | carbonio-ws-collaboration- | -1.el8.x86_64.rpm"
+    "ubuntu  | carbonio-ws-collaboration_ | -1_amd64.deb     "
   )
   distro_found=false
   for distros_index in "${!distros[@]}"; do

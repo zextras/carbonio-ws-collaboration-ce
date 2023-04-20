@@ -2,12 +2,12 @@ targets=(
    "centos"
    "ubuntu"
 )
-pkgname="carbonio-ws-collaboration-ce"
+pkgname="carbonio-ws-collaboration"
 pkgver="0.3.0"
 pkgrel="2"
-pkgdesc="Workstream Collaboration for Carbonio CE"
+pkgdesc="Workstream Collaboration for Carbonio"
 pkgdesclong=(
-   "Workstream Collaboration for Carbonio CE"
+   "Workstream Collaboration for Carbonio"
 )
 maintainer="Zextras <packages@zextras.com>"
 arch="amd64"
@@ -52,7 +52,7 @@ hashsums=(
 
 package() {
   cd "${srcdir}"/../../ws-collaboration
-  install -Dm 644 ./carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-fatjar.jar \
+  install -Dm 644 ./carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-fatjar.jar \
     "${pkgdir}/usr/bin/carbonio/ws-collaboration/carbonio-ws-collaboration.jar"
 
   cd "${srcdir}"
