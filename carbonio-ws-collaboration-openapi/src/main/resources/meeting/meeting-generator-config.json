@@ -1,5 +1,5 @@
 {
-  "title": "Zextras Carbonio Workstream Collaboration Meeting CE",
+  "title": "Zextras Carbonio Workstream Collaboration Meeting",
   "serverPort": 8080,
 
   "apiPackage":     "com.zextras.carbonio.meeting.api",

@@ -14,8 +14,8 @@ SPDX-License-Identifier: AGPL-3.0-only
   <packaging>pom</packaging>
 
   <groupId>com.zextras.carbonio.ws-collaboration</groupId>
-  <artifactId>carbonio-ws-collaboration-ce</artifactId>
-  <version>0.3.0</version>
+  <artifactId>carbonio-ws-collaboration</artifactId>
+  <version>0.1.0</version>
 
   <repositories>
     <repository>
@@ -444,7 +444,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   </dependencyManagement>
 
   <build>
-    <finalName>carbonio-ws-collaboration-ce</finalName>
+    <finalName>carbonio-ws-collaboration</finalName>
 
     <pluginManagement>
       <plugins>
