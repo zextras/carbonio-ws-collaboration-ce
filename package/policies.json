@@ -2,7 +2,7 @@
   "key_prefix": [
     {
       "carbonio-ws-collaboration/": {
-        "policy": "read"
+        "policy": "write"
       },
       "carbonio-ws-collaboration-db/": {
         "policy": "read"
