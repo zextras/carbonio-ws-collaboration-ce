@@ -15,7 +15,6 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
-import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.time.Clock;
@@ -72,7 +71,6 @@ public class IntegrationTestUtils {
       .name(name)
       .description(description)
       .type(type)
-      .hash(Utils.encodeUuidHash(id.toString(), clock))
       .subscriptions(usersIds.stream().map(userId ->
         Subscription.create()
           .id(new SubscriptionId(room.getId(), userId.toString()))
@@ -103,8 +101,7 @@ public class IntegrationTestUtils {
         .id(roomId.toString())
         .name("name")
         .description("description")
-        .type(type)
-        .hash(UUID.randomUUID().toString()), members);
+        .type(type), members);
   }
 
   public Room generateAndSaveRoom(Room room, List<RoomMemberField> members) {
@@ -121,7 +118,7 @@ public class IntegrationTestUtils {
 
       if (member.isMuted()) {
         room.getUserSettings().add(RoomUserSettings.create(room, member.getId().toString())
-          .mutedUntil( OffsetDateTime.parse("0001-01-01T00:00:00Z")));
+          .mutedUntil(OffsetDateTime.parse("0001-01-01T00:00:00Z")));
       }
     });
     return roomRepository.insert(room);
@@ -219,7 +216,6 @@ public class IntegrationTestUtils {
         .id(id.toString())
         .statusMessage(statusMessage)
         .pictureUpdatedAt(pictureUpdatedAt)
-        .hash(hash)
     );
   }
 

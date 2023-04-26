@@ -34,7 +34,6 @@ public class RoomMapperImpl implements RoomMapper {
       .name(room.getName())
       .description(room.getDescription())
       .type(room.getType())
-      .hash(room.getHash())
       .pictureUpdatedAt(room.getPictureUpdatedAt())
       .meetingId(room.getMeetingId() == null ? null : UUID.fromString(room.getMeetingId()))
       .createdAt(room.getCreatedAt())

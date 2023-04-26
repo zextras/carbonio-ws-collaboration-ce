@@ -116,21 +116,21 @@ public class MeetingApiIT {
       UUID meeting1Id = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       UUID meeting2Id = UUID.fromString("4b592aa4-0d04-46d5-8292-953e4ed4247e");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("room1hash").name("room1")
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("room1")
           .description("Room one"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).hash("room2hash").name("room2")
+        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).name("room2")
           .description("Room two"),
         List.of(
           RoomMemberField.create().id(user1Id),
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room3Id.toString()).type(RoomTypeDto.GROUP).hash("room3hash").name("room3")
+        Room.create().id(room3Id.toString()).type(RoomTypeDto.GROUP).name("room3")
           .description("Room three"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
@@ -192,21 +192,21 @@ public class MeetingApiIT {
     @DisplayName("If rooms, which user is member of, hasn't any meetings, it returns an empty list")
     public void listMeeting_testUserRoomsHasNoMeetings() throws Exception {
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("room1hash").name("room1")
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("room1")
           .description("Room one"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).hash("room2hash").name("room2")
+        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).name("room2")
           .description("Room two"),
         List.of(
           RoomMemberField.create().id(user1Id),
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room3Id.toString()).type(RoomTypeDto.GROUP).hash("room3hash").name("room3")
+        Room.create().id(room3Id.toString()).type(RoomTypeDto.GROUP).name("room3")
           .description("Room three"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
@@ -225,13 +225,13 @@ public class MeetingApiIT {
     @DisplayName("If the user is not a member of any room, correctly gets an empty list")
     public void listMeeting_testUserHasNotRooms() throws Exception {
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("room1hash").name("room1")
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("room1")
           .description("Room one"),
         List.of(
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).hash("room2hash").name("room2")
+        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).name("room2")
           .description("Room two"),
         List.of(
           RoomMemberField.create().id(user2Id),
@@ -268,7 +268,7 @@ public class MeetingApiIT {
     public void getMeetingById_testOk() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -308,7 +308,7 @@ public class MeetingApiIT {
     public void getMeetingById_testUserIsNotRoomMember() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
@@ -355,7 +355,7 @@ public class MeetingApiIT {
     public void deleteMeetingById_testOk() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -380,7 +380,7 @@ public class MeetingApiIT {
     public void deleteMeetingById_testUserIsNotRoomMember() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
@@ -430,7 +430,7 @@ public class MeetingApiIT {
     public void joinMeeting_testOk() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -463,7 +463,7 @@ public class MeetingApiIT {
     public void joinMeeting_testOkSameUserAnotherSession() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -496,7 +496,7 @@ public class MeetingApiIT {
     public void joinMeeting_testUserIsNotRoomMember() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
@@ -548,7 +548,7 @@ public class MeetingApiIT {
     public void leaveMeeting_testOk() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -577,7 +577,7 @@ public class MeetingApiIT {
     public void leaveMeeting_testOkLastParticipant() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       Room room = integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -601,7 +601,7 @@ public class MeetingApiIT {
     public void leaveMeeting_testIsNotMeetingParticipant() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -654,7 +654,7 @@ public class MeetingApiIT {
     public void enableVideoStream_testOkEnableWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id,
         List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(false)));
@@ -673,7 +673,7 @@ public class MeetingApiIT {
     public void enableVideoStream_testOkVideoStreamAlreadyOpenWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
@@ -693,7 +693,7 @@ public class MeetingApiIT {
     public void enableVideoStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
@@ -748,7 +748,7 @@ public class MeetingApiIT {
     public void disableVideoStream_testOkDisableWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
@@ -768,7 +768,7 @@ public class MeetingApiIT {
     public void disableVideoStream_testOkVideoStreamAlreadyCloseWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
@@ -788,7 +788,7 @@ public class MeetingApiIT {
     public void disableVideoStream_testOkDisableWithAnotherSession() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
@@ -810,7 +810,7 @@ public class MeetingApiIT {
     public void disableVideoStream_testOkVideoStreamAlreadyCloseWithAnotherSession() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
@@ -832,7 +832,7 @@ public class MeetingApiIT {
     public void disableVideoStream_testErrorCurrentUserNotRoomOwner() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id),
           RoomMemberField.create().id(user2Id).owner(true)));
@@ -852,7 +852,7 @@ public class MeetingApiIT {
     public void disableVideoStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id,
         List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
@@ -897,7 +897,7 @@ public class MeetingApiIT {
     public void enableAudioStream_testOkEnableWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id,
         List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(false).videoStreamOn(true)));
@@ -916,7 +916,7 @@ public class MeetingApiIT {
     public void enableAudioStream_testOkAudioStreamAlreadyOpenWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
@@ -936,7 +936,7 @@ public class MeetingApiIT {
     public void enableAudioStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
@@ -991,7 +991,7 @@ public class MeetingApiIT {
     public void disableAudioStream_testOkDisableWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
@@ -1011,7 +1011,7 @@ public class MeetingApiIT {
     public void disableAudioStream_testOkAudioStreamAlreadyCloseWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
@@ -1031,7 +1031,7 @@ public class MeetingApiIT {
     public void disableAudioStream_testOkDisableWithAnotherSession() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
@@ -1053,7 +1053,7 @@ public class MeetingApiIT {
     public void disableAudioStream_testOkAudioStreamAlreadyCloseWithAnotherSession() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
@@ -1075,7 +1075,7 @@ public class MeetingApiIT {
     public void disableAudioStream_testErrorCurrentUserNotRoomOwner() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id),
           RoomMemberField.create().id(user2Id).owner(true)));
@@ -1095,7 +1095,7 @@ public class MeetingApiIT {
     public void disableAudioStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id,
         List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
@@ -1140,7 +1140,7 @@ public class MeetingApiIT {
     public void enableScreenShareStream_testOkEnableWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id,
         List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(false)));
@@ -1159,7 +1159,7 @@ public class MeetingApiIT {
     public void enableScreenShareStream_testOkScreenShareStreamAlreadyOpenWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
@@ -1179,7 +1179,7 @@ public class MeetingApiIT {
     public void enableScreenShareStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
@@ -1234,7 +1234,7 @@ public class MeetingApiIT {
     public void disableScreenShareStream_testOkDisableWithSessionEqualToCurrent() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
@@ -1255,7 +1255,7 @@ public class MeetingApiIT {
       throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
@@ -1275,7 +1275,7 @@ public class MeetingApiIT {
     public void disableScreenShareStream_testOkDisableWithAnotherSession() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
@@ -1297,7 +1297,7 @@ public class MeetingApiIT {
     public void disableScreenShareStream_testOkScreenShareStreamAlreadyCloseWithAnotherSession() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
@@ -1319,7 +1319,7 @@ public class MeetingApiIT {
     public void disableScreenShareStream_testErrorCurrentUserNotRoomOwner() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id),
           RoomMemberField.create().id(user2Id).owner(true)));
@@ -1339,7 +1339,7 @@ public class MeetingApiIT {
     public void disableScreenShareStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
       meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id,
         List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(true)));

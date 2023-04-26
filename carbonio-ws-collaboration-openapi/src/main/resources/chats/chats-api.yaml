@@ -219,21 +219,6 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /rooms/{roomId}/hash:
-    put:
-      tags:
-        - Rooms
-      summary: Resets the specified room hash
-      operationId: resetRoomHash
-      parameters:
-        - $ref: '#/components/parameters/pathRoomId'
-      responses:
-        200:
-          $ref: '#/components/responses/200ResetRoomHashResponse'
-        403:
-          $ref: '#/components/responses/403ForbiddenResponse'
-        404:
-          $ref: '#/components/responses/404NotFoundResponse'
   /rooms/{roomId}/members:
     get:
       tags:
@@ -964,12 +949,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ClearedDate'
-    200ResetRoomHashResponse:
-      description: Room's hash
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Hash'
     200ListRoomMemberResponse:
       description: The room members list
       content:
@@ -1178,14 +1157,6 @@ components:
           readOnly: true
           description: date since messages were cleared
       required: [ clearedAt ]
-    Hash:
-      type: object
-      description: Hash object
-      properties:
-        hash:
-          type: string
-          description: hash
-      required: [ hash ]
     Capabilities:
       type: object
       properties:
@@ -1309,10 +1280,6 @@ components:
               format: uuid
               readOnly: true
               description: room identifier
-            hash:
-              type: string
-              readOnly: true
-              description: an hash that can be used to compose the room's link
             meetingId:
               type: string
               format: uuid
@@ -1342,7 +1309,7 @@ components:
               description: list of users subscribed to the room
             userSettings:
               $ref: '#/components/schemas/RoomUserSettings'
-      required: [ id, hash, createdAt, updatedAt ]
+      required: [ id, createdAt, updatedAt ]
     RoomUserSettings:
       type: object
       description: Preferences that an user has set for a room

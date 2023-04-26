@@ -7,7 +7,6 @@ package com.zextras.carbonio.chats.it;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -42,7 +41,6 @@ import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.ClearedDateDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
-import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.IdDto;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberInsertedDto;
@@ -1498,62 +1496,6 @@ public class RoomsApiIT {
   }
 
   @Nested
-  @DisplayName("Reset room hash tests")
-  public class ResetRoomHashTests {
-
-    private String url(UUID roomId) {
-      return String.format("/rooms/%s/hash", roomId);
-    }
-
-    @Test
-    @DisplayName("Given a room identifier, correctly reset room hash")
-    public void resetRoomHash_testOk() throws Exception {
-      UUID roomId = UUID.randomUUID();
-      clock.fixTimeAt(Instant.now().minus(Duration.ofDays(1)));
-      String hash = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
-        List.of(user1Id, user2Id, user3Id)).getHash();
-      clock.removeFixTime();
-      MockHttpResponse response = dispatcher.put(url(roomId), null, user1Token);
-
-      assertEquals(200, response.getStatus());
-      assertNotEquals(hash, objectMapper.readValue(response.getContentAsString(), HashDto.class).getHash());
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      // TODO: 23/02/22 verify event dispatcher interactions
-    }
-
-    @Test
-    @DisplayName("Given a room identifier, if the user isn't authenticated returns status code 401")
-    public void resetRoomHash_testErrorUnauthenticatedUser() throws Exception {
-      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()), null, null);
-      assertEquals(401, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-    }
-
-    @Test
-    @DisplayName("Given a room identifier, if the room doesn't exist returns status code 404")
-    public void resetRoomHash_testErrorRoomNotExists() throws Exception {
-      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()), null, user1Token);
-
-      assertEquals(404, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-    }
-
-    @Test
-    @DisplayName("Given a room identifier, if the user is not a member of the room returns status code 403")
-    public void resetRoomHash_testErrorUserIsNotRoomOwner() throws Exception {
-      UUID roomId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
-        List.of(user1Id, user2Id, user3Id));
-      MockHttpResponse response = dispatcher.put(url(roomId), null, user3Token);
-
-      assertEquals(403, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
-    }
-  }
-
-  @Nested
   @DisplayName("Gets list of room members tests")
   public class GetsListOfRoomMembersTests {
 
@@ -2460,7 +2402,7 @@ public class RoomsApiIT {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -2500,7 +2442,7 @@ public class RoomsApiIT {
     public void getMeetingByRoomId_testMeetingNotExists() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id).owner(true),
@@ -2517,7 +2459,7 @@ public class RoomsApiIT {
     public void getMeetingByRoomId_testUserIsNotRoomMember() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
@@ -2562,7 +2504,7 @@ public class RoomsApiIT {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -2600,7 +2542,7 @@ public class RoomsApiIT {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -2652,7 +2594,7 @@ public class RoomsApiIT {
     public void joinRoomMeeting_testErrorUserIsNotARoomMember() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
@@ -2690,7 +2632,7 @@ public class RoomsApiIT {
     public void forwardMessages_textMessage() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -2737,13 +2679,13 @@ public class RoomsApiIT {
       UUID attach2Id = UUID.randomUUID();
 
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("group1").name("group1")
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("group1")
           .description("group one"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).hash("group2").name("group2")
+        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).name("group2")
           .description("group two"),
         List.of(
           RoomMemberField.create().id(user1Id),
@@ -2842,13 +2784,13 @@ public class RoomsApiIT {
       UUID attachId = UUID.randomUUID();
 
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("group1").name("group1")
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("group1")
           .description("group one"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).hash("group2").name("group2")
+        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).name("group2")
           .description("group two"),
         List.of(
           RoomMemberField.create().id(user1Id),
@@ -2891,7 +2833,7 @@ public class RoomsApiIT {
       UUID roomId = UUID.randomUUID();
 
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("group1").name("group1")
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("group1")
           .description("group one"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
@@ -2925,7 +2867,7 @@ public class RoomsApiIT {
       UUID roomId = UUID.randomUUID();
 
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("group").name("group")
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("group")
           .description("group"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
