@@ -31,7 +31,6 @@ import com.zextras.carbonio.chats.core.data.event.AttachmentRemovedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
-import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -56,7 +55,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -102,9 +100,6 @@ public class AttachmentServiceImplTest {
   private static UUID user3Id;
   private static UUID roomId;
   private static Room room1;
-  private static Room room2;
-  private static Room room3;
-
 
   @BeforeAll
   public static void initAll() {
@@ -118,26 +113,6 @@ public class AttachmentServiceImplTest {
       .type(RoomTypeDto.GROUP)
       .name("room1")
       .description("Room one")
-      .subscriptions(List.of(
-        Subscription.create(room1, user1Id.toString()).owner(true),
-        Subscription.create(room1, user2Id.toString()).owner(false),
-        Subscription.create(room1, user3Id.toString()).owner(false)));
-    room2 = Room.create();
-    room2
-      .id(roomId.toString())
-      .type(RoomTypeDto.CHANNEL)
-      .name("room2")
-      .description("Room two")
-      .subscriptions(List.of(
-        Subscription.create(room1, user1Id.toString()).owner(true),
-        Subscription.create(room1, user2Id.toString()).owner(false),
-        Subscription.create(room1, user3Id.toString()).owner(false)));
-    room3 = Room.create();
-    room3
-      .id(roomId.toString())
-      .type(RoomTypeDto.WORKSPACE)
-      .name("room3")
-      .description("Room three")
       .subscriptions(List.of(
         Subscription.create(room1, user1Id.toString()).owner(true),
         Subscription.create(room1, user2Id.toString()).owner(false),
@@ -541,32 +516,6 @@ public class AttachmentServiceImplTest {
             null, null,
             currentUser));
       }
-    }
-
-    @Test
-    @DisplayName("Throws the exception if you can't add attachments on a channel")
-    public void addAttachment_testFailsRoomIsAChannel() {
-      UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room2);
-      assertThrows(BadRequestException.class,
-        () -> attachmentService.addAttachment(roomId, mock(File.class), "application/pdf", "temp.pdf", "description",
-          null, null,
-          currentUser));
-
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
-    }
-
-    @Test
-    @DisplayName("Throws the exception if you can't add attachments on a workspace")
-    public void addAttachment_testFailsRoomIsAWorkspace() {
-      UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room3);
-      assertThrows(BadRequestException.class,
-        () -> attachmentService.addAttachment(roomId, mock(File.class), "application/pdf", "temp.pdf", "description",
-          "messageId", null,
-          currentUser));
-
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
     }
 
     @Test

@@ -68,12 +68,4 @@ public interface RoomRepository {
    */
   void delete(String roomId);
 
-  /**
-   * Calculates the maximum rank of channels into a workspace
-   *
-   * @param workspaceId workspace identifier
-   * @return the maximum rank wrapped in a {@link Optional}
-   */
-  Optional<Integer> getChannelMaxRanksByWorkspace(String workspaceId);
-
 }

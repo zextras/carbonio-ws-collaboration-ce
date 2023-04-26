@@ -8,6 +8,7 @@ import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -127,5 +128,24 @@ public class FileMetadata {
 
   public OffsetDateTime getUpdatedAt() {
     return updatedAt;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    FileMetadata that = (FileMetadata) o;
+    return Objects.equals(id, that.id) && Objects.equals(name, that.name) && Objects.equals(
+      originalSize, that.originalSize) && Objects.equals(mimeType, that.mimeType) && type == that.type
+      && Objects.equals(userId, that.userId) && Objects.equals(roomId, that.roomId);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, name, originalSize, mimeType, type, userId, roomId);
   }
 }
