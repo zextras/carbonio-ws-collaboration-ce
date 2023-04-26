@@ -234,30 +234,6 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /rooms/workspaces/rank:
-    put:
-      tags:
-        - Rooms
-      summary: Updates the workspaces order for the authenticated user
-      operationId: updateWorkspacesRank
-      requestBody:
-        $ref: '#/components/requestBodies/UpdateWorkspacesRankRequest'
-      responses:
-        204:
-          $ref: '#/components/responses/204UpdateWorkspacesRankResponse'
-  /rooms/workspaces/{workspaceId}/channels/rank:
-    put:
-      tags:
-        - Rooms
-      summary: Updates the channels order in the workspace
-      operationId: updateChannelsRank
-      parameters:
-        - $ref: '#/components/parameters/pathWorkspaceId'
-      requestBody:
-        $ref: '#/components/requestBodies/UpdateChannelsRankRequest'
-      responses:
-        204:
-          $ref: '#/components/responses/204UpdateChannelsRankResponse'
   /rooms/{roomId}/members:
     get:
       tags:
@@ -790,15 +766,6 @@ components:
         format: uuid
       required: true
       allowEmptyValue: false
-    pathWorkspaceId:
-      in: path
-      name: workspaceId
-      description: workspace identifier
-      schema:
-        type: string
-        format: uuid
-      required: true
-      allowEmptyValue: false
     headerFileName:
       in: header
       name: fileName
@@ -896,20 +863,6 @@ components:
           schema:
             type: string
             format: binary
-    UpdateWorkspacesRankRequest:
-      description: workspaces list with their rank
-      required: true
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/RoomRanks'
-    UpdateChannelsRankRequest:
-      description: channels list with their rank
-      required: true
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/RoomRanks'
     InsertRoomMemberRequest:
       description: member to add or invite
       required: true
@@ -1017,10 +970,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Hash'
-    204UpdateWorkspacesRankResponse:
-      description: workspaces’s order is updated
-    204UpdateChannelsRankResponse:
-      description: channels’s order is updated
     200ListRoomMemberResponse:
       description: The room members list
       content:
@@ -1316,8 +1265,6 @@ components:
       enum:
         - group
         - one_to_one
-        - workspace
-        - channel
     RoomEditableFields:
       type: object
       description: Room fields that can be updated
@@ -1342,10 +1289,6 @@ components:
           properties:
             type:
               $ref: '#/components/schemas/RoomType'
-            parentId:
-              type: string
-              format: uuid
-              description: identifier of the referenced workspace
       properties:
         membersIds:
           type: array
@@ -1370,10 +1313,6 @@ components:
               type: string
               readOnly: true
               description: an hash that can be used to compose the room's link
-            rank:
-              type: integer
-              description: number that defines the sorting position for workspaces room
-              readOnly: true
             meetingId:
               type: string
               format: uuid
@@ -1396,10 +1335,6 @@ components:
               description: |
                 room profile picture update timestamp,
                 returned only if the room picture was set at least once
-            children:
-              type: array
-              items:
-                $ref: '#/components/schemas/Room'
             members:
               type: array
               items:
@@ -1408,25 +1343,6 @@ components:
             userSettings:
               $ref: '#/components/schemas/RoomUserSettings'
       required: [ id, hash, createdAt, updatedAt ]
-    RoomRank:
-      type: object
-      description: object which defines a room rank
-      properties:
-        roomId:
-          type: string
-          format: uuid
-          description: room identifier
-        rank:
-          type: integer
-          description: room position
-      required:
-        - roomId
-        - rank
-    RoomRanks:
-      type: array
-      description: rank room list
-      items:
-        $ref: '#/components/schemas/RoomRank'
     RoomUserSettings:
       type: object
       description: Preferences that an user has set for a room

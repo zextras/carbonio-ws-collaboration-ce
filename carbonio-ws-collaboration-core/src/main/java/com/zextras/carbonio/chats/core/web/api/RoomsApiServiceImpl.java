@@ -23,7 +23,6 @@ import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
-import com.zextras.carbonio.chats.model.RoomRankDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.io.File;
@@ -199,15 +198,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
-  public Response updateChannelsRank(UUID workspaceId, List<RoomRankDto> roomRankDto, SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
-    roomService.updateChannelsRank(workspaceId, roomRankDto, currentUser);
-    return Response.status(Status.NO_CONTENT).build();
-  }
-
-  @Override
   @TimedCall
   public Response listRoomMember(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
@@ -245,16 +235,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     modifyOwner(roomId, userId, true, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
-
-  @Override
-  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
-  public Response updateWorkspacesRank(List<RoomRankDto> roomRankDto, SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
-    roomService.updateWorkspacesRank(roomRankDto, currentUser);
-    return Response.status(Status.NO_CONTENT).build();
-  }
-
+  
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response deleteOwner(UUID roomId, UUID userId, SecurityContext securityContext) {

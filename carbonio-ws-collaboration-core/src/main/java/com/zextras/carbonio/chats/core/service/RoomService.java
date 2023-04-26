@@ -16,7 +16,6 @@ import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
-import com.zextras.carbonio.chats.model.RoomRankDto;
 import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -163,23 +162,6 @@ public interface RoomService {
    * @param currentUser current authenticated user {@link UserPrincipal}
    */
   void deleteRoomPicture(UUID roomId, UserPrincipal currentUser);
-
-  /**
-   * Updates the workspaces order for the current user
-   *
-   * @param roomRankDto {@link List} of room identifier and room rank {@link RoomRankDto}
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   */
-  void updateWorkspacesRank(List<RoomRankDto> roomRankDto, UserPrincipal currentUser);
-
-  /**
-   * Updates the channels order for the workspace
-   *
-   * @param workspaceId workspace identifier
-   * @param roomRankDto {@link List} of channel identifier and rank {@link RoomRankDto}
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   */
-  void updateChannelsRank(UUID workspaceId, List<RoomRankDto> roomRankDto, UserPrincipal currentUser);
 
   /**
    * Sets the meeting as a reference in the room. This method accepts entities because it's intended to be used only to

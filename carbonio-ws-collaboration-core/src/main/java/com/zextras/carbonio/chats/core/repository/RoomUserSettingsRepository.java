@@ -23,16 +23,6 @@ public interface RoomUserSettingsRepository {
   Optional<RoomUserSettings> getByRoomIdAndUserId(String roomId, String userId);
 
   /**
-   * Returns a map of required rooms settings for the user
-   *
-   * @param roomsIds list of required rooms identifiers
-   * @param userId   user identifier
-   * @return {@link Map} with the room id {@link String} as the key and that room settings {@link RoomUserSettings} as
-   * the value
-   */
-  Map<String, RoomUserSettings> getMapByRoomsIdsAndUserIdGroupedByRoomsIds(List<String> roomsIds, String userId);
-
-  /**
    * Returns a list of every room settings set by the user
    *
    * @param userId user identifier
@@ -77,28 +67,4 @@ public interface RoomUserSettingsRepository {
    * @param roomUserSettingsList collection {@link Collection} of room user settings to save {@link RoomUserSettings}
    */
   void save(Collection<RoomUserSettings> roomUserSettingsList);
-
-  /**
-   * Returns the highest workspace rank for the specified user
-   *
-   * @param userId user identifier
-   * @return the highest workspace rank for the user
-   */
-  Optional<Integer> getWorkspaceMaxRank(String userId);
-
-  /**
-   * Returns the highest workspace rank for the specified users list
-   *
-   * @param userIds users identifiers list
-   * @return {@link Map} with the user id {@link String} as the key and that the highest workspace rank room settings {@link RoomUserSettings} as the value
-   */
-  Map<String, RoomUserSettings> getWorkspaceMaxRanksMapGroupedByUsers(List<String> userIds);
-
-  /**
-   * Returns a map of every workspace settings set by the user
-   *
-   * @param userId user identifier
-   * @return {@link Map} with the workspace id {@link String} as the key and that room settings {@link RoomUserSettings} as the value
-   */
-  Map<String, RoomUserSettings> getWorkspaceMapGroupedByRoomId(String userId);
 }

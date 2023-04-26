@@ -119,10 +119,9 @@ public class IntegrationTestUtils {
           .owner(member.isOwner())
           .joinedAt(OffsetDateTime.now()));
 
-      if (member.isMuted() || member.getRank() != null) {
+      if (member.isMuted()) {
         room.getUserSettings().add(RoomUserSettings.create(room, member.getId().toString())
-          .mutedUntil(member.isMuted() ? OffsetDateTime.parse("0001-01-01T00:00:00Z") : null)
-          .rank(member.getRank()));
+          .mutedUntil( OffsetDateTime.parse("0001-01-01T00:00:00Z")));
       }
     });
     return roomRepository.insert(room);
@@ -137,7 +136,6 @@ public class IntegrationTestUtils {
     private UUID    id;
     private boolean owner = false;
     private boolean muted = false;
-    private Integer rank  = null;
 
     public static RoomMemberField create() {
       return new RoomMemberField();
@@ -167,15 +165,6 @@ public class IntegrationTestUtils {
 
     public RoomMemberField muted(boolean muted) {
       this.muted = muted;
-      return this;
-    }
-
-    public Integer getRank() {
-      return rank;
-    }
-
-    public RoomMemberField rank(Integer rank) {
-      this.rank = rank;
       return this;
     }
   }

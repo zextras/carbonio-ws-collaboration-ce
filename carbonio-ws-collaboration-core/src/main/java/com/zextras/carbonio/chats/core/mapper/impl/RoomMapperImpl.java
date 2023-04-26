@@ -9,7 +9,6 @@ import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.model.RoomDto;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.chats.model.RoomUserSettingsDto;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +39,6 @@ public class RoomMapperImpl implements RoomMapper {
       .meetingId(room.getMeetingId() == null ? null : UUID.fromString(room.getMeetingId()))
       .createdAt(room.getCreatedAt())
       .updatedAt(room.getUpdatedAt())
-      .parentId(room.getParentId() == null ? null : UUID.fromString(room.getParentId()))
       .members(includeMembers ? subscriptionMapper.ent2memberDto(room.getSubscriptions()) : null);
   }
 
@@ -54,31 +52,7 @@ public class RoomMapperImpl implements RoomMapper {
       return null;
     }
     return ent2dto(room, includeMembers)
-      .rank(getRank(room, userSettings))
-      .children(RoomTypeDto.WORKSPACE.equals(room.getType()) ?
-        ent2dto(room.getChildren(), (RoomUserSettings) null, false, includeSettings) :
-        null)
-      .userSettings(includeSettings ? getRoomUserSettingsDto(room, userSettings) : null);
-  }
-
-  @Override
-  @Nullable
-  public RoomDto ent2dto(
-    @Nullable Room room, @Nullable Map<String, RoomUserSettings> settingsMapByRoomId,
-    boolean includeMembers, boolean includeSettings
-  ) {
-    if (room == null) {
-      return null;
-    }
-    return ent2dto(room, includeMembers)
-      .rank(getRank(room, settingsMapByRoomId == null ? null : settingsMapByRoomId.get(room.getId())))
-      .children(RoomTypeDto.WORKSPACE.equals(room.getType()) ?
-        ent2dto(room.getChildren(), settingsMapByRoomId, false,
-          includeSettings) : null)
-      .userSettings(
-        includeSettings ?
-          getRoomUserSettingsDto(room, settingsMapByRoomId == null ? null : settingsMapByRoomId.get(room.getId())) :
-          null);
+      .userSettings(includeSettings ? getRoomUserSettingsDto(userSettings) : null);
   }
 
   @Override
@@ -91,40 +65,27 @@ public class RoomMapperImpl implements RoomMapper {
       .collect(Collectors.toList());
   }
 
-  @Override
   public List<RoomDto> ent2dto(
     List<Room> rooms, @Nullable Map<String, RoomUserSettings> settingsMapByRoomId,
     boolean includeMembers, boolean includeSettings
   ) {
     return rooms == null ? List.of() : rooms.stream()
-      .map(room -> ent2dto(room, settingsMapByRoomId, includeMembers, includeSettings)
-      ).collect(Collectors.toList());
+      .map(room -> ent2dto(room, includeMembers)
+        .userSettings(
+          includeSettings ?
+            getRoomUserSettingsDto(settingsMapByRoomId == null ? null : settingsMapByRoomId.get(room.getId())) :
+            null))
+      .collect(Collectors.toList());
   }
 
-  @Nullable
-  private RoomUserSettingsDto getRoomUserSettingsDto(
-    Room room, @Nullable RoomUserSettings userSettings
-  ) {
-    if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
-      return null;
+  private RoomUserSettingsDto getRoomUserSettingsDto(@Nullable RoomUserSettings userSettings) {
+    RoomUserSettingsDto userSettingsDto = RoomUserSettingsDto.create();
+    if (userSettings == null) {
+      userSettingsDto.muted(false);
     } else {
-      RoomUserSettingsDto userSettingsDto = RoomUserSettingsDto.create();
-      if (userSettings == null) {
-        userSettingsDto.muted(false);
-      } else {
-        userSettingsDto.muted(userSettings.getMutedUntil() != null);
-        userSettingsDto.clearedAt(userSettings.getClearedAt());
-      }
-      return userSettingsDto;
+      userSettingsDto.muted(userSettings.getMutedUntil() != null);
+      userSettingsDto.clearedAt(userSettings.getClearedAt());
     }
-  }
-
-  @Nullable
-  private Integer getRank(Room room, @Nullable RoomUserSettings userSettings) {
-    if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
-      return userSettings == null ? null : userSettings.getRank();
-    } else {
-      return room.getRank();
-    }
+    return userSettingsDto;
   }
 }

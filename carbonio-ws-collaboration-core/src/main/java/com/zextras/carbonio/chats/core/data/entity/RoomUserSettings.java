@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.data.entity;
 import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
 import java.time.OffsetDateTime;
+import java.util.Objects;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
@@ -40,9 +41,6 @@ public class RoomUserSettings {
   @Column(name = "CLEARED_AT")
   @Temporal(TemporalType.TIMESTAMP)
   private OffsetDateTime clearedAt;
-
-  @Column(name = "RANK")
-  private Integer rank;
 
   @Column(name = "CREATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
@@ -117,20 +115,31 @@ public class RoomUserSettings {
     return this;
   }
 
-  public Integer getRank() {
-    return rank;
-  }
-
-  public RoomUserSettings rank(Integer rank) {
-    this.rank = rank;
-    return this;
-  }
-
   public OffsetDateTime getCreatedAt() {
     return createdAt;
   }
 
   public OffsetDateTime getUpdatedAt() {
     return updatedAt;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    RoomUserSettings that = (RoomUserSettings) o;
+    return Objects.equals(id, that.id) && Objects.equals(userId, that.userId)
+      && Objects.equals(room, that.room) && (Objects.equals(mutedUntil, that.mutedUntil)
+      || Objects.equals(mutedUntil.toInstant().toEpochMilli(), that.mutedUntil.toInstant().toEpochMilli()))
+      && Objects.equals(clearedAt, that.clearedAt);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, userId, room, mutedUntil, clearedAt);
   }
 }

@@ -16,7 +16,6 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
@@ -86,7 +85,7 @@ public class MembersServiceImpl implements MembersService {
       throw new BadRequestException("Cannot set owner privileges for itself");
     }
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, true);
-    if (List.of(RoomTypeDto.ONE_TO_ONE, RoomTypeDto.CHANNEL).contains(room.getType())) {
+    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
       throw new BadRequestException(String.format("Cannot set owner privileges on %s rooms", room.getType()));
     }
     Subscription subscription = room.getSubscriptions().stream()
@@ -114,7 +113,7 @@ public class MembersServiceImpl implements MembersService {
       throw new NotFoundException(String.format("User with id '%s' was not found", memberToInsertDto.getUserId()));
     }
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, true);
-    if (List.of(RoomTypeDto.ONE_TO_ONE, RoomTypeDto.CHANNEL).contains(room.getType())) {
+    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
       throw new BadRequestException(String.format("Cannot add members to a %s conversation", room.getType()));
     }
     if (room.getSubscriptions().stream()
@@ -132,32 +131,13 @@ public class MembersServiceImpl implements MembersService {
     );
     room.getSubscriptions().add(subscription);
     RoomUserSettings settings = null;
-    if (memberToInsertDto.isHistoryCleared() || RoomTypeDto.WORKSPACE.equals(room.getType())) {
+    if (memberToInsertDto.isHistoryCleared()) {
       settings = roomUserSettingsRepository
         .getByRoomIdAndUserId(roomId.toString(), memberToInsertDto.getUserId().toString())
         .orElseGet(() -> RoomUserSettings.create(room, memberToInsertDto.getUserId().toString()));
-      if (memberToInsertDto.isHistoryCleared()) {
-        roomUserSettingsRepository.save(settings.clearedAt(OffsetDateTime.now()));
-      }
-      if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
-        roomUserSettingsRepository.save(
-          settings.rank(
-            roomUserSettingsRepository.getWorkspaceMaxRank(memberToInsertDto.getUserId().toString()).orElse(0) + 1));
-      }
+      roomUserSettingsRepository.save(settings.clearedAt(OffsetDateTime.now()));
     }
-    if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
-      room.getChildren().forEach(child -> {
-        try {
-          messageService.addRoomMember(child.getId(), currentUser.getId(), memberToInsertDto.getUserId().toString());
-        } catch (Exception e) {
-          ChatsLogger.warn(String.format(
-            "An error occurred during a room user addition notification to message dispatcher. RoomId: '%s', UserId: '%s'",
-            child.getId(), memberToInsertDto.getUserId()));
-        }
-      });
-    } else {
-      messageService.addRoomMember(room.getId(), currentUser.getId(), memberToInsertDto.getUserId().toString());
-    }
+    messageService.addRoomMember(room.getId(), currentUser.getId(), memberToInsertDto.getUserId().toString());
 
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
@@ -171,7 +151,7 @@ public class MembersServiceImpl implements MembersService {
   @Transactional
   public void deleteRoomMember(UUID roomId, UUID userId, UserPrincipal currentUser) {
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, !currentUser.getUUID().equals(userId));
-    if (List.of(RoomTypeDto.ONE_TO_ONE, RoomTypeDto.CHANNEL).contains(room.getType())) {
+    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
       throw new BadRequestException(String.format("Cannot remove a member from a %s conversation", room.getType()));
     }
     if (!currentUser.getUUID().equals(userId) &&
@@ -192,21 +172,8 @@ public class MembersServiceImpl implements MembersService {
     }
 
     subscriptionRepository.delete(room.getId(), userId.toString());
-    if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
-      roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), userId.toString())
-        .ifPresent(roomUserSettingsRepository::delete);
-      room.getChildren().forEach(child -> {
-        try {
-          messageService.removeRoomMember(child.getId(), currentUser.getId(), userId.toString());
-        } catch (Exception e) {
-          ChatsLogger.warn(String.format(
-            "An error occurred during a room user removal notification to message dispatcher. RoomId: '%s', UserId: '%s'",
-            child.getId(), userId));
-        }
-      });
-    } else {
-      messageService.removeRoomMember(room.getId(), currentUser.getId(), userId.toString());
-    }
+
+    messageService.removeRoomMember(room.getId(), currentUser.getId(), userId.toString());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomMemberRemovedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
@@ -220,13 +187,9 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  @Transactional
   public List<MemberDto> getRoomMembers(UUID roomId, UserPrincipal currentUser) {
-    Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
-    if (RoomTypeDto.CHANNEL.equals(room.getType())) {
-      room = roomService.getRoomEntityWithoutChecks(UUID.fromString(room.getParentId())).orElseThrow();
-    }
-    return subscriptionMapper.ent2memberDto(room.getSubscriptions());
+    return subscriptionMapper.ent2memberDto(
+      roomService.getRoomEntityAndCheckUser(roomId, currentUser, false).getSubscriptions());
   }
 
   @Override
