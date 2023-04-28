@@ -18,11 +18,13 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Base64;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -30,6 +32,20 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.jivesoftware.smack.packet.Message;
+import org.jivesoftware.smack.packet.Message.Type;
+import org.jivesoftware.smack.packet.Stanza;
+import org.jivesoftware.smack.packet.StanzaBuilder;
+import org.jivesoftware.smack.packet.XmlEnvironment;
+import org.jivesoftware.smack.parsing.SmackParsingException;
+import org.jivesoftware.smack.util.PacketParserUtils;
+import org.jivesoftware.smack.util.ParserUtils;
+import org.jivesoftware.smack.util.XmlStringBuilder;
+import org.jivesoftware.smack.xml.XmlPullParserException;
+import org.jivesoftware.smackx.delay.packet.DelayInformation;
+import org.jivesoftware.smackx.forward.packet.Forwarded;
+import org.jxmpp.jid.Jid;
+import org.jxmpp.stringprep.XmppStringprepException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -269,8 +285,50 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     return Optional.empty();
   }
 
+  private Forwarded getForwarded (ForwardMessageDto messageToForward) {
+    Stanza toForward = null;
+    try {
+      toForward = PacketParserUtils.parseStanza(messageToForward.getOriginalMessage());
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    toForward.removeExtension("markable", "urn:xmpp:chat-markers:0");
+    return new Forwarded(toForward,
+      Optional.ofNullable(messageToForward.getOriginalMessageSentAt())
+        .map(sentAt -> new DelayInformation(Date.from(messageToForward.getOriginalMessageSentAt().toInstant())))
+        .orElse(null));
+
+  }
+
   @Override
   public void forwardMessage(
+    String roomId, String senderId, ForwardMessageDto messageToForward, @Nullable FileMetadata fileMetadata
+  ) {
+    try {
+      Message message = StanzaBuilder.buildMessage()
+        .from(userIdToUserDomain(senderId))
+        .to(roomIdToRoomDomain(roomId))
+        .ofType(Type.chat)
+        .addExtension(getForwarded(messageToForward))
+        .build();
+
+      String xml = message.toXML(XmlEnvironment.builder().build()).toString() ;
+      GraphQlResponse result = sendStanza(xml);
+      if (result.errors != null) {
+        try {
+          throw new MessageDispatcherException(
+            String.format("Error while sending forward message: %s", objectMapper.writeValueAsString(result.errors)));
+        } catch (JsonProcessingException e) {
+          throw new InternalErrorException("Error during parsing the json of response error ", e);
+        }
+      }
+    } catch (XmppStringprepException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void forwardMessage1(
     String roomId, String senderId, ForwardMessageDto messageToForward, @Nullable FileMetadata fileMetadata
   ) {
     XmppMessageBuilder xmppMessageBuilder = XmppMessageBuilder
@@ -351,7 +409,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   private GraphQlResponse sendStanza(String message) {
     return executeMutation(GraphQlBody.create(
       "mutation stanza { stanza { sendStanza (" +
-        String.format("stanza: \"%s\") ", message) +
+        String.format("stanza: \"\"\"%s\"\"\") ", message) +
         "{ id } } }", "stanza", Map.of()));
   }
 

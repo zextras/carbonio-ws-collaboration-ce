@@ -166,6 +166,30 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>javax.websocket-api</artifactId>
     </dependency>
 
+    <!-- https://mvnrepository.com/artifact/org.igniterealtime.smack/smack-core -->
+    <dependency>
+      <groupId>org.igniterealtime.smack</groupId>
+      <artifactId>smack-core</artifactId>
+      <version>4.4.6</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/org.igniterealtime.smack/smack-extensions -->
+    <dependency>
+      <groupId>org.igniterealtime.smack</groupId>
+      <artifactId>smack-extensions</artifactId>
+      <version>4.4.6</version>
+    </dependency>
+    <dependency>
+      <groupId>org.igniterealtime.smack</groupId>
+      <artifactId>smack-xmlparser-stax</artifactId>
+      <version>4.4.6</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.igniterealtime.smack</groupId>
+      <artifactId>smack-xmlparser-xpp3</artifactId>
+      <version>4.4.6</version>
+    </dependency>
 
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
