@@ -163,17 +163,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   @TimedCall
-  public Response resetRoomHash(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
-    return Response
-      .status(Status.OK)
-      .entity(roomService.resetRoomHash(roomId, currentUser))
-      .build();
-  }
-
-  @Override
-  @TimedCall
   public Response muteRoom(UUID roomId, SecurityContext securityContext) {
     roomService.muteRoom(roomId, Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new));
@@ -235,7 +224,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     modifyOwner(roomId, userId, true, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
-  
+
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response deleteOwner(UUID roomId, UUID userId, SecurityContext securityContext) {

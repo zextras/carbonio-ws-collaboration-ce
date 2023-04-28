@@ -7,7 +7,6 @@ package com.zextras.carbonio.chats.core.service.impl;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES;
 import com.zextras.carbonio.chats.core.config.ConfigName;
-import com.zextras.carbonio.chats.core.data.builder.HashDtoBuilder;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -40,10 +39,8 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
-import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
-import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
@@ -149,7 +146,6 @@ public class RoomServiceImpl implements RoomService {
       .id(newRoomId.toString())
       .name(roomCreationFields.getName())
       .description(roomCreationFields.getDescription())
-      .hash(Utils.encodeUuidHash(newRoomId.toString(), clock))
       .type(roomCreationFields.getType());
     room = room.subscriptions(
       membersService.initRoomSubscriptions(membersIds, room, currentUser));
@@ -250,15 +246,6 @@ public class RoomServiceImpl implements RoomService {
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomDeletedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(roomId));
-  }
-
-  @Override
-  public HashDto resetRoomHash(UUID roomId, UserPrincipal currentUser) {
-    Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
-    String hash = Utils.encodeUuidHash(roomId.toString(), clock);
-    room.hash(hash);
-    roomRepository.update(room);
-    return HashDtoBuilder.create().hash(hash).build();
   }
 
   @Override

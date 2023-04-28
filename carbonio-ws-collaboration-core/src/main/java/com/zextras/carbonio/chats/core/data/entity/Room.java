@@ -35,9 +35,6 @@ public class Room {
   @Column(name = "DESCRIPTION", length = 256)
   private String description;
 
-  @Column(name = "HASH", length = 256, unique = true, nullable = false)
-  private String hash;
-
   @Column(name = "TYPE", length = 32, nullable = false)
   @Enumerated(EnumType.STRING)
   private RoomTypeDto type;
@@ -94,15 +91,6 @@ public class Room {
 
   public Room description(String description) {
     this.description = description;
-    return this;
-  }
-
-  public String getHash() {
-    return hash;
-  }
-
-  public Room hash(String hash) {
-    this.hash = hash;
     return this;
   }
 

@@ -23,7 +23,6 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.service.UserService;
-import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
 import io.ebean.annotation.Transactional;
@@ -138,7 +137,7 @@ public class UserServiceImpl implements UserService {
     userRepository.save(
       userRepository.getById(userId.toString())
         .orElseGet(() ->
-          User.create().id(userId.toString()).hash(Utils.encodeUuidHash(userId.toString(), clock)))
+          User.create().id(userId.toString()))
         .pictureUpdatedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
     storagesService.saveFile(image, metadata, currentUser.getId());
     eventDispatcher.sendToUserQueue(

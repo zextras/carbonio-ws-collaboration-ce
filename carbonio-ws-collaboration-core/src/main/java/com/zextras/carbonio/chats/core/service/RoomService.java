@@ -11,7 +11,6 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
-import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
@@ -107,15 +106,6 @@ public interface RoomService {
    * @return date since messages were cleared
    */
   OffsetDateTime clearRoomHistory(UUID roomId, UserPrincipal currentUser);
-
-  /**
-   * Resets the specified room hash
-   *
-   * @param roomId      room identifier {@link UUID }
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return Room's hash {@link HashDto }
-   **/
-  HashDto resetRoomHash(UUID roomId, UserPrincipal currentUser);
 
   /**
    * Unmutes notification for the specified room
