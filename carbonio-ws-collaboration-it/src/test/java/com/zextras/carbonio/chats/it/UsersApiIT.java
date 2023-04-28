@@ -91,8 +91,7 @@ public class UsersApiIT {
       UUID userId = UUID.fromString("332a9527-3388-4207-be77-6d7e2978a723");
       OffsetDateTime ofdt = OffsetDateTime.now();
       clock.fixTimeAt(ofdt.toInstant());
-      integrationTestUtils.generateAndSaveUser(userId, "hello",
-        ofdt, "123");
+      integrationTestUtils.generateAndSaveUser(userId, "hello", ofdt);
 
       MockHttpResponse mockHttpResponse = dispatcher.get(url(userId), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
       assertEquals(200, mockHttpResponse.getStatus());
@@ -134,7 +133,7 @@ public class UsersApiIT {
         "ea7b9b61-bef5-4cf4-80cb-19612c42593a"
       );
       integrationTestUtils.generateAndSaveUser(UUID.fromString(userIds.get(0)), "status message 1",
-        OffsetDateTime.parse("0001-01-01T00:00:00Z"), "111");
+        OffsetDateTime.parse("0001-01-01T00:00:00Z"));
       UserInfo user1 = new UserInfo(new UserId("332a9527-3388-4207-be77-6d7e2978a723"), "snoopy@peanuts.com", "Snoopy",
         "peanuts.com");
       UserInfo user2 = new UserInfo(new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"), "charlie.brown@peanuts.com",
@@ -168,7 +167,7 @@ public class UsersApiIT {
         "ea7b9b61-bef5-4cf4-80cb-19612c42593a"
       );
       integrationTestUtils.generateAndSaveUser(UUID.fromString(userIds.get(0)), "status message 1",
-        OffsetDateTime.parse("0001-01-01T00:00:00Z"), "111");
+        OffsetDateTime.parse("0001-01-01T00:00:00Z"));
       UserInfo user1 = new UserInfo(new UserId("332a9527-3388-4207-be77-6d7e2978a723"), "snoopy@peanuts.com", "Snoopy",
         "peanuts.com");
       UserInfo user2 = new UserInfo(new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"), "charlie.brown@peanuts.com",
@@ -409,7 +408,7 @@ public class UsersApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.USER_AVATAR, account.getUUID(), null);
       integrationTestUtils.generateAndSaveUser(account.getUUID(), "hello",
-        OffsetDateTime.ofInstant(clock.instant(), clock.getZone()), "123");
+        OffsetDateTime.ofInstant(clock.instant(), clock.getZone()));
 
       MockHttpResponse response = dispatcher.delete(url(account.getUUID()), account.getToken());
       assertEquals(204, response.getStatus());
