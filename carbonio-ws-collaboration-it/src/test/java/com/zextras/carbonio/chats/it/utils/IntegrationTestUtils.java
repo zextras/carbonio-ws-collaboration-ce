@@ -210,7 +210,7 @@ public class IntegrationTestUtils {
     return userRepository.getById(id.toString());
   }
 
-  public User generateAndSaveUser(UUID id, String statusMessage, OffsetDateTime pictureUpdatedAt, String hash) {
+  public User generateAndSaveUser(UUID id, String statusMessage, OffsetDateTime pictureUpdatedAt) {
     return userRepository.save(
       User.create()
         .id(id.toString())
