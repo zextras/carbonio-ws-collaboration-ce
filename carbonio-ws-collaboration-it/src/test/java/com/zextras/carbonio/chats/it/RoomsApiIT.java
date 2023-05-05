@@ -2835,6 +2835,92 @@ public class RoomsApiIT {
     }
 
     @Test
+    @DisplayName("Forwards a text message with multiple lines")
+    public void forwardMessages_textMessageWithMultipleLines() throws Exception {
+      UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+
+      String hoped = String.format(
+        "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+        user1Id, roomId)
+        + "<body>this is my body !</body>"
+        + "<forwarded xmlns='urn:xmpp:forward:0'>"
+        + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
+        + "<message from='sender-id' to='recipient-id' type='groupchat'>"
+        + "<body>this is\\nthe body\\nof the message\\nto forward!</body>"
+        + "</message>"
+        + "</forwarded>"
+        + "</message>";
+
+      mongooseImMockServer.mockSendStanza(hoped, true);
+
+      String messageToForward =
+        "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\" type=\"groupchat\">"
+          + "<body>this is\nthe body\nof the message\nto forward!</body>"
+          + "</message>";
+      ForwardMessageDto forwardMessageDto = ForwardMessageDto.create()
+        .originalMessage(messageToForward)
+        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
+        .description("this is my body !");
+      MockHttpResponse response = dispatcher.post(url(roomId),
+        objectMapper.writeValueAsString(List.of(forwardMessageDto)), user1Token);
+      assertNotNull(response);
+      assertEquals(204, response.getStatus());
+
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(hoped),
+        VerificationTimes.exactly(1));
+    }
+
+    @Test
+    @DisplayName("Forwards a text message with special characters")
+    public void forwardMessages_textMessageWithSpecialCharacters() throws Exception {
+      UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+
+      String hoped = String.format(
+        "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+        user1Id, roomId)
+        + "<body>a &amp; ' = &agrave;</body>"
+        + "<forwarded xmlns='urn:xmpp:forward:0'>"
+        + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
+        + "<message from='sender-id' to='recipient-id' type='groupchat'>"
+        + "<body>&agrave; &egrave; &eacute; &igrave; &ograve; &ugrave; &amp;</body>"
+        + "</message>"
+        + "</forwarded>"
+        + "</message>";
+
+      mongooseImMockServer.mockSendStanza(hoped, true);
+
+      String messageToForward =
+        "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\" type=\"groupchat\">"
+          + "<body>à è é ì ò ù &</body>"
+          + "</message>";
+      ForwardMessageDto forwardMessageDto = ForwardMessageDto.create()
+        .originalMessage(messageToForward)
+        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
+        .description("a & ' = à");
+      MockHttpResponse response = dispatcher.post(url(roomId),
+        objectMapper.writeValueAsString(List.of(forwardMessageDto)), user1Token);
+      assertNotNull(response);
+      assertEquals(204, response.getStatus());
+
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(hoped),
+        VerificationTimes.exactly(1));
+    }
+
+    @Test
     @DisplayName("If the authenticated user is not a member of the attachment room to forward, correctly returns a status code 403")
     public void forwardMessages_userNotMemberOfAttachmentRoom() throws Exception {
       UUID room1Id = UUID.randomUUID();

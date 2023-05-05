@@ -7,7 +7,6 @@ package com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
-import io.ebeaninternal.server.util.Str;
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -20,7 +19,6 @@ import java.util.Optional;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.text.StringEscapeUtils;
-import org.jivesoftware.smack.util.XmlStringBuilder;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -92,9 +90,7 @@ public class XmppMessageBuilder {
       if (!configurations.isEmpty()) {
         message.appendChild(createConfigurationsElement(document));
       }
-
-      message.appendChild(createTextElement(document, "body", Optional.ofNullable(body).map(
-        StringEscapeUtils::escapeHtml4).orElse("")));
+      message.appendChild(createTextElement(document, "body", Optional.ofNullable(body).orElse("")));
       Optional.ofNullable(replyId).ifPresent(id -> message.appendChild(createReplyElement(document)));
       Optional.ofNullable(messageToForward).ifPresent(m -> message.appendChild(createForwardedElement(document)));
       DOMImplementationLS domImplLS = (DOMImplementationLS) document.getImplementation();
@@ -105,10 +101,27 @@ public class XmppMessageBuilder {
       Writer stringWriter = new StringWriter();
       lsOutput.setCharacterStream(stringWriter);
       serializer.write(document, lsOutput);
-      return stringWriter.toString().replace("\"", "'");
+      return escapeBodyContent(stringWriter.toString().replace("\"", "'"));
     } catch (ParserConfigurationException e) {
       throw new InternalErrorException("Unable to initialize the XMPP message", e);
     }
+  }
+
+  private String escapeBodyContent(String message) {
+    StringBuilder sb = new StringBuilder();
+    String[] tokens = message.split("<body>");
+    if (tokens.length > 0) {
+      sb.append(tokens[0]);
+      for (int i = 1; i < tokens.length; i++) {
+        String body = tokens[i].substring(0, tokens[i].indexOf("</body>"));
+        String newBody = StringEscapeUtils.escapeHtml4(StringEscapeUtils.unescapeXml(body));
+        sb.append("<body>").append(tokens[i].replace(body, newBody));
+      }
+    } else {
+      return message;
+    }
+    return sb.toString();
+
   }
 
   private Element createForwardedElement(Document document) {
@@ -118,21 +131,17 @@ public class XmppMessageBuilder {
       delay.setAttribute("stamp", sentAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
       element.appendChild(delay);
     });
-    Element messageTag = null;
+    if (messageToForward.contains("<body>")) {
+      String body = messageToForward.substring(messageToForward.indexOf("<body>") + 6,
+        messageToForward.indexOf("</body>"));
+      messageToForward = messageToForward.replace(body, StringEscapeUtils.escapeXml10(body));
+    }
+    Element messageTag;
     try {
       messageTag = DocumentBuilderFactory
         .newInstance()
         .newDocumentBuilder()
         .parse(new ByteArrayInputStream(messageToForward.getBytes())).getDocumentElement();
-      Element bodyElement = (Element) messageTag.getElementsByTagName("body").item(0);
-
-      if (bodyElement != null) {
-        String body = bodyElement.getTextContent();
-        if (body.contains("\n")) {
-          body =String.join(System.lineSeparator(), body.split("\n"));
-        }
-        bodyElement.setTextContent(StringEscapeUtils.escapeXml11(body));
-      }
     } catch (Exception e) {
       throw new BadRequestException("Cannot read the message to forward", e);
     }
