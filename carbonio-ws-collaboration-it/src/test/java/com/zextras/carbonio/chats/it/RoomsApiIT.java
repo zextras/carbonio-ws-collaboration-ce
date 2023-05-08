@@ -2781,7 +2781,7 @@ public class RoomsApiIT {
     public void forwardMessages_textMessageWithMultipleLines() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -2824,7 +2824,7 @@ public class RoomsApiIT {
     public void forwardMessages_textMessageWithSpecialCharacters() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
