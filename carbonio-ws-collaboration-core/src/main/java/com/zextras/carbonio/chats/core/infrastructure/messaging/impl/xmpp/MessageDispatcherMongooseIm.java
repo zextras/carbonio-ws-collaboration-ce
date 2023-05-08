@@ -30,11 +30,8 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
-import org.w3c.dom.ls.DOMImplementationLS;
-import org.w3c.dom.ls.LSSerializer;
 
 public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
@@ -248,28 +245,29 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public Optional<String> getAttachmentIdFromMessage(String message) {
-    try {
-      Element node = DocumentBuilderFactory
-        .newInstance()
-        .newDocumentBuilder()
-        .parse(new ByteArrayInputStream(message.getBytes()))
-        .getDocumentElement();
-      Element x = (Element) node.getElementsByTagName("x").item(0);
-      if (x != null) {
-        Element op = (Element) x.getElementsByTagName("operation").item(0);
-        if (op != null && MessageType.ATTACHMENT_ADDED.getName().equals(op.getFirstChild().getNodeValue())) {
-          return Optional.ofNullable(x.getElementsByTagName("attachment-id").item(0))
-            .map(Node::getFirstChild)
-            .map(Node::getNodeValue);
+    if (message.contains("<operation>attachmentAdded</operation>")) {
+      try {
+        Element node = DocumentBuilderFactory
+          .newInstance()
+          .newDocumentBuilder()
+          .parse(new ByteArrayInputStream(message.getBytes()))
+          .getDocumentElement();
+        Element x = (Element) node.getElementsByTagName("x").item(0);
+        if (x != null) {
+          Element op = (Element) x.getElementsByTagName("operation").item(0);
+          if (op != null && MessageType.ATTACHMENT_ADDED.getName().equals(op.getFirstChild().getNodeValue())) {
+            return Optional.ofNullable(x.getElementsByTagName("attachment-id").item(0))
+              .map(Node::getFirstChild)
+              .map(Node::getNodeValue);
+          }
         }
+      } catch (Exception e) {
+        throw new RuntimeException(e);
       }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
     }
     return Optional.empty();
   }
 
-  @Override
   public void forwardMessage(
     String roomId, String senderId, ForwardMessageDto messageToForward, @Nullable FileMetadata fileMetadata
   ) {
@@ -285,7 +283,8 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
         .addConfig("filename", metadata.getName())
         .addConfig("mime-type", metadata.getMimeType())
         .addConfig("size", String.valueOf(metadata.getOriginalSize())));
-    GraphQlResponse result = sendStanza(xmppMessageBuilder.build());
+    String xmppMessage = xmppMessageBuilder.build();
+    GraphQlResponse result = sendStanza(xmppMessage);
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -293,24 +292,6 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
-    }
-  }
-
-  public String cleanMessage(String message) {
-    try {
-      Document document = DocumentBuilderFactory
-        .newInstance()
-        .newDocumentBuilder()
-        .parse(new ByteArrayInputStream(message.getBytes()));
-      Element messageTag = document.getDocumentElement();
-      Optional.ofNullable(messageTag.getElementsByTagName("forwarded").item(0)).ifPresent(messageTag::removeChild);
-      Optional.ofNullable(messageTag.getElementsByTagName("reply").item(0)).ifPresent(messageTag::removeChild);
-      DOMImplementationLS domImplLS = (DOMImplementationLS) document
-        .getImplementation();
-      LSSerializer serializer = domImplLS.createLSSerializer();
-      return serializer.writeToString(messageTag);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
     }
   }
 
@@ -351,7 +332,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   private GraphQlResponse sendStanza(String message) {
     return executeMutation(GraphQlBody.create(
       "mutation stanza { stanza { sendStanza (" +
-        String.format("stanza: \"%s\") ", message) +
+        String.format("stanza: \"\"\"%s\"\"\") ", message) +
         "{ id } } }", "stanza", Map.of()));
   }
 

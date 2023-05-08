@@ -145,8 +145,8 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
   }
 
   public HttpRequest getSendStanzaRequest(String xmppMessage) {
-    return getRequest("POST", "{\"query\":\"mutation stanza { stanza { sendStanza (stanza: \\\"" + xmppMessage
-      + "\\\") { id } } }\",\"operationName\":\"stanza\",\"variables\":{}}");
+    return getRequest("POST", "{\"query\":\"mutation stanza { stanza { sendStanza (stanza: \\\"\\\"\\\""
+      + xmppMessage + "\\\"\\\"\\\") { id } } }\",\"operationName\":\"stanza\",\"variables\":{}}");
   }
 
   public void mockSendStanza(
