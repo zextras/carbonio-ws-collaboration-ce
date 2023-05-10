@@ -41,13 +41,13 @@ pipeline {
         ])
         withCredentials([file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')]) {
           sh 'cp $SETTINGS_PATH settings-jenkins.xml'
-          sh 'sudo mvn -Dmaven.repo.local=$(pwd)/m2 -N wrapper:wrapper'
+          sh 'mvn -Dmaven.repo.local=$(pwd)/m2 -N wrapper:wrapper'
         }
       }
     }
     stage('Compiling') {
       steps {
-        sh 'sudo ./mvnw -Dmaven.repo.local=$(pwd)/m2 -T1C -B -q --settings settings-jenkins.xml compile'
+        sh './mvnw -Dmaven.repo.local=$(pwd)/m2 -T1C -B -q --settings settings-jenkins.xml compile'
       }
       post {
         failure {
@@ -62,7 +62,7 @@ pipeline {
     stage('Testing') {
       steps {
         sh '''
-        sudo ./mvnw -Dmaven.repo.local=$(pwd)/m2 -B --settings settings-jenkins.xml \
+        ./mvnw -Dmaven.repo.local=$(pwd)/m2 -B --settings settings-jenkins.xml \
             -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
             verify
         '''
