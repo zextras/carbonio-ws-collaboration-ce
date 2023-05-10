@@ -62,9 +62,9 @@ pipeline {
     stage('Testing') {
       steps {
         sh '''
-        ./mvnw -Dmaven.repo.local=$(pwd)/m2 -B --settings settings-jenkins.xml \
-            -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
-            verify
+          ./mvnw -Dmaven.repo.local=$(pwd)/m2 -B --settings settings-jenkins.xml \
+          -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
+          verify
         '''
         publishCoverage adapters: [jacocoAdapter('target/site/jacoco-all-tests/jacoco.xml')]
       }
