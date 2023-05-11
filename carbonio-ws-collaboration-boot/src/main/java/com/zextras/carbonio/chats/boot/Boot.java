@@ -28,7 +28,6 @@ import org.jboss.resteasy.plugins.server.servlet.HttpServletDispatcher;
 
 public class Boot {
 
-  private final AppConfig                                    appConfig;
   private final GuiceResteasyBootstrapServletContextListener resteasyListener;
   private final Flyway                                       flyway;
   private final Connection                                   eventDispatcherConnection;
@@ -37,14 +36,12 @@ public class Boot {
 
   @Inject
   public Boot(
-    AppConfig appConfig,
     GuiceResteasyBootstrapServletContextListener resteasyListener,
     Flyway flyway,
     Optional<Connection> eventDispatcherConnection,
     AuthenticationService authenticationService,
     EventsWebSocketEndpoint eventsWebSocketEndpoint
   ) {
-    this.appConfig = appConfig;
     this.resteasyListener = resteasyListener;
     this.flyway = flyway;
     this.eventDispatcherConnection = eventDispatcherConnection.orElse(null);
