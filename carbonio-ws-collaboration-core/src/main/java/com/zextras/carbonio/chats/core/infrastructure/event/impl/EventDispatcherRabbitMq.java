@@ -13,7 +13,6 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -59,7 +58,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
         return;
       }
       Channel channel = connection.createChannel();
-      channel.queueDeclare(userId, true, false, false, Map.of());
+      channel.queueDeclare(userId, true, false, false, null);
       channel.basicPublish("", userId, null, message.getBytes(StandardCharsets.UTF_8));
       channel.close();
     } catch (Exception e) {
