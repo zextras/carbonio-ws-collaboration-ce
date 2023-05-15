@@ -70,7 +70,6 @@ public class EventsWebSocketEndpoint {
   @OnClose
   public void onClose(Session session) throws IOException, EncodeException {
     closeAndRemoveSessionChannel(session);
-    session.getBasicRemote().sendObject("Disconnected");
   }
 
   @OnError
@@ -116,7 +115,7 @@ public class EventsWebSocketEndpoint {
     if (userSessionsMap.containsKey(userId)) {
       Optional<SessionChannel> toRemoveAndClose = userSessionsMap.get(userId).stream()
         .filter(sc -> sc.getSession().getId().equals(session.getId()))
-        .findAny();
+        .findFirst();
       if (toRemoveAndClose.isPresent()) {
         try {
           SessionChannel sessionChannel = toRemoveAndClose.get();
