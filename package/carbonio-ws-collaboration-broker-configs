@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# SPDX-FileCopyrightText: 2023 Zextras <https://www.zextras.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# This script add not existing broker configuration values in consul
+
+CONSUL_TOKEN_PATH="/etc/carbonio/ws-collaboration/service-discover/token"
+
+MAIN_SERVICE_NAME="carbonio-ws-collaboration"
+
+BROKER_CONFIGURATIONS=(
+  "$MAIN_SERVICE_NAME/broker/virtual-host:/"
+  "$MAIN_SERVICE_NAME/broker/requested-heartbeat-in-sec:15"
+  "$MAIN_SERVICE_NAME/broker/connection-timeout-in-milli:40000"
+  "$MAIN_SERVICE_NAME/broker/automatic-recovery-enabled:true"
+  "$MAIN_SERVICE_NAME/broker/topology-recovery-enabled:false"
+  "$MAIN_SERVICE_NAME/broker/network-recovery-interval:20000"
+)
+
+get_consul_kv() {
+    KEY=$1
+    CONSUL_VALUE=$(consul kv get -token-file="$CONSUL_TOKEN_PATH" "${KEY}")
+}
+
+for item in "${BROKER_CONFIGURATIONS[@]}"
+do
+    KEY=${item%%:*}
+
+    get_consul_kv "$KEY" >/dev/null 2>&1; CONFIG=$CONSUL_VALUE
+
+    if [[ "$CONFIG" == "" ]]; then
+      consul kv put -token-file="$CONSUL_TOKEN_PATH" "$KEY" "${item##*:}"
+    fi
+done
