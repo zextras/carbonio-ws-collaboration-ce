@@ -26,7 +26,6 @@ import com.zextras.carbonio.chats.api.SupportedApi;
 import com.zextras.carbonio.chats.api.SupportedApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
-import com.zextras.carbonio.chats.core.config.ChatsConstant.RABBIT_MQ;
 import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
 import com.zextras.carbonio.chats.core.config.impl.InfrastructureAppConfig;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
@@ -284,7 +283,8 @@ public class CoreModule extends AbstractModule {
   public DataSource getHikariDataSource(AppConfig appConfig) {
     HikariConfig config = new HikariConfig();
     config.setJdbcUrl(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).orElseThrow());
-    config.setUsername(appConfig.get(String.class, ConfigName.DATABASE_USERNAME).orElse("carbonio-ws-collaboration-db"));
+    config.setUsername(
+      appConfig.get(String.class, ConfigName.DATABASE_USERNAME).orElse("carbonio-ws-collaboration-db"));
     config.setPassword(appConfig.get(String.class, ConfigName.DATABASE_PASSWORD).orElse("password"));
     config.addDataSourceProperty("idleTimeout",
       appConfig.get(Integer.class, ConfigName.HIKARI_IDLE_TIMEOUT).orElse(300));
@@ -321,11 +321,15 @@ public class CoreModule extends AbstractModule {
       factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
       factory.setUsername(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_USERNAME).orElseThrow());
       factory.setPassword(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_PASSWORD).orElseThrow());
-      factory.setVirtualHost(RABBIT_MQ.VIRTUAL_HOST);
-      factory.setRequestedHeartbeat(RABBIT_MQ.REQUESTED_HEARTBEAT_IN_SEC);
-      factory.setConnectionTimeout(RABBIT_MQ.CONNECTION_TIMEOUT_IN_MILLI);
-      factory.setAutomaticRecoveryEnabled(true);
-      factory.setTopologyRecoveryEnabled(true);
+      factory.setVirtualHost(appConfig.get(String.class, ConfigName.VIRTUAL_HOST).orElse("/"));
+      factory.setRequestedHeartbeat(appConfig.get(Integer.class, ConfigName.REQUESTED_HEARTBEAT_IN_SEC).orElse(15));
+      factory.setNetworkRecoveryInterval(
+        appConfig.get(Integer.class, ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI).orElse(20000));
+      factory.setConnectionTimeout(appConfig.get(Integer.class, ConfigName.CONNECTION_TIMEOUT_IN_MILLI).orElse(30000));
+      factory.setAutomaticRecoveryEnabled(
+        appConfig.get(Boolean.class, ConfigName.AUTOMATIC_RECOVERY_ENABLED).orElse(true));
+      factory.setTopologyRecoveryEnabled(
+        appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(false));
       return Optional.of(factory.newConnection());
     } catch (Exception e) {
       ChatsLogger.error("getRabbitMqConnection", e);

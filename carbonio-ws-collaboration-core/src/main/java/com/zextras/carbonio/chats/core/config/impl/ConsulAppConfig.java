@@ -60,6 +60,17 @@ public class ConsulAppConfig extends AppConfig {
     namesMapping.put(ConfigName.DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES,
       "carbonio-ws-collaboration/configs/delete-message-time-limit-in-minutes");
     namesMapping.put(ConfigName.MAX_GROUP_MEMBERS, "carbonio-ws-collaboration/configs/max-group-members");
+    namesMapping.put(ConfigName.VIRTUAL_HOST, "carbonio-ws-collaboration/broker/virtual-host");
+    namesMapping.put(ConfigName.REQUESTED_HEARTBEAT_IN_SEC,
+      "carbonio-ws-collaboration/broker/requested-heartbeat-in-sec");
+    namesMapping.put(ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI,
+      "carbonio-ws-collaboration/broker/network-recovery-interval-in-milli");
+    namesMapping.put(ConfigName.CONNECTION_TIMEOUT_IN_MILLI,
+      "carbonio-ws-collaboration/broker/connection-timeout-in-milli");
+    namesMapping.put(ConfigName.AUTOMATIC_RECOVERY_ENABLED,
+      "carbonio-ws-collaboration/broker/automatic-recovery-enabled");
+    namesMapping.put(ConfigName.TOPOLOGY_RECOVERY_ENABLED,
+      "carbonio-ws-collaboration/broker/topology-recovery-enabled");
   }
 
   private boolean loaded = false;

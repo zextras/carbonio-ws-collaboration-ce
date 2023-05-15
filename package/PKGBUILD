@@ -3,8 +3,8 @@ targets=(
    "ubuntu"
 )
 pkgname="carbonio-ws-collaboration-ce"
-pkgver="0.3.0"
-pkgrel="2"
+pkgver="0.3.1"
+pkgrel="1"
 pkgdesc="Workstream Collaboration for Carbonio CE"
 pkgdesclong=(
    "Workstream Collaboration for Carbonio CE"
@@ -28,6 +28,7 @@ backup=(
 sources=(
    "carbonio-ws-collaboration"
    "carbonio-ws-collaboration-configs"
+   "carbonio-ws-collaboration-broker-configs"
    "carbonio-ws-collaboration.service"
    "carbonio-ws-collaboration.hcl"
    "carbonio-ws-collaboration-sidecar.service"
@@ -40,6 +41,7 @@ sources=(
 hashsums=(
    "ce7262f2c01e4f6c700265f88892d7572dc546d2ff328506dfd7f5502c6b6b0b"
    "5b17a36bfc7255d2dddd1c0e8c3588a4286d682cb2b059f293fad4cfdcd85456"
+   "dd623ce6475a6e038247cada8365a9965bb0c463ec01aa97ab35e99bb40d234d"
    "8e4c95a5b8480985c0cf0139f023b803c68056f10bb2460d3b9e343b5c8d237f"
    "766f41685994dbc891e9b03011e72edb688d989c5b27d39badbc59966748bb74"
    "5ab25236c2ba0a9e9c1577a3b6b1bb1497dba3fef40dd6851c3dfac86b685709"
@@ -58,6 +60,7 @@ package() {
   cd "${srcdir}"
   install -Dm 755 carbonio-ws-collaboration "${pkgdir}/usr/bin/carbonio-ws-collaboration"
   install -Dm 755 carbonio-ws-collaboration-configs "${pkgdir}/usr/bin/carbonio-ws-collaboration-configs"
+  install -Dm 755 carbonio-ws-collaboration-broker-configs "${pkgdir}/usr/bin/carbonio-ws-collaboration-broker-configs"
   install -Dm 644 logback.xml "${pkgdir}/etc/carbonio/ws-collaboration/logback.xml"
   install -Dm 644 carbonio-ws-collaboration.service "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration.service"
   install -Dm 644 carbonio-ws-collaboration-sidecar.service "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration-sidecar.service"
