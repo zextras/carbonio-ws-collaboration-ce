@@ -52,7 +52,7 @@ public class EventsWebSocketEndpoint {
     session.setMaxIdleTimeout(MAX_IDLE_TIMEOUT);
     session.getBasicRemote().sendObject(objectMapper.writeValueAsString(SessionOutEvent.create(session.getId())));
     userSessionsMap.computeIfAbsent(userId, k -> new ArrayList<>());
-    userSessionsMap.get(userId).add(new SessionChannel().create().session(session));
+    userSessionsMap.get(userId).add(SessionChannel.create().session(session));
     startBridge(userId);
   }
 
@@ -89,7 +89,7 @@ public class EventsWebSocketEndpoint {
   private void startBridge(String userId) {
     try {
       Channel channel = rabbitMqConnection.createChannel();
-      userSessionsMap.get(userId).add(new SessionChannel().create().channel(channel));
+      userSessionsMap.get(userId).add(SessionChannel.create().channel(channel));
       channel.queueDeclare(userId, true, false, false, null);
       DeliverCallback deliverCallback = (consumerTag, delivery) -> {
         String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
@@ -132,12 +132,12 @@ public class EventsWebSocketEndpoint {
     }
   }
 
-  private class SessionChannel {
+  private static class SessionChannel {
 
     private Session session;
     private Channel channel;
 
-    public SessionChannel create() {
+    public static SessionChannel create() {
       return new SessionChannel();
     }
 

@@ -15,7 +15,7 @@ BROKER_CONFIGURATIONS=(
   "$MAIN_SERVICE_NAME/broker/requested-heartbeat-in-sec:15"
   "$MAIN_SERVICE_NAME/broker/connection-timeout-in-milli:40000"
   "$MAIN_SERVICE_NAME/broker/automatic-recovery-enabled:true"
-  "$MAIN_SERVICE_NAME/broker/topology-recovery-enabled:true"
+  "$MAIN_SERVICE_NAME/broker/topology-recovery-enabled:false"
   "$MAIN_SERVICE_NAME/broker/network-recovery-interval:20000"
 )
 
