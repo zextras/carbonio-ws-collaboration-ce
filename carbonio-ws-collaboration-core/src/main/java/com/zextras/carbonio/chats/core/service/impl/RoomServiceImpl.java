@@ -35,11 +35,13 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
+import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -80,6 +82,7 @@ public class RoomServiceImpl implements RoomService {
   private final AttachmentService          attachmentService;
   private final Clock                      clock;
   private final AppConfig                  appConfig;
+  private final CapabilityService          capabilityService;
 
   @Inject
   public RoomServiceImpl(
@@ -92,7 +95,8 @@ public class RoomServiceImpl implements RoomService {
     FileMetadataRepository fileMetadataRepository,
     StoragesService storagesService,
     AttachmentService attachmentService, Clock clock,
-    AppConfig appConfig
+    AppConfig appConfig,
+    CapabilityService capabilityService
   ) {
     this.roomRepository = roomRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
@@ -107,6 +111,7 @@ public class RoomServiceImpl implements RoomService {
     this.attachmentService = attachmentService;
     this.clock = clock;
     this.appConfig = appConfig;
+    this.capabilityService = capabilityService;
   }
 
   @Override
@@ -187,8 +192,11 @@ public class RoomServiceImpl implements RoomService {
         }
         break;
       case GROUP:
+        Integer maxGroupMembers = capabilityService.getCapabilities(currentUser).getMaxGroupMembers();
         if (membersSet.size() < 2) {
           throw new BadRequestException("Too few members (required at least 3)");
+        } else if (membersSet.size() > maxGroupMembers) {
+          throw new BadRequestException("Too much members (required less than " + maxGroupMembers + ")");
         }
         break;
     }
