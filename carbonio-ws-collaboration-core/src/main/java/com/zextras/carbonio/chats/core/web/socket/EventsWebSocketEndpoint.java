@@ -38,7 +38,7 @@ public class EventsWebSocketEndpoint {
 
   private final Connection                        rabbitMqConnection;
   private final ObjectMapper                      objectMapper;
-  private final Map<String, List<SessionChannel>> userSessionsMap = new HashMap<>();
+  private final Map<String, List<SessionChannel>> userSessionChannelsMap = new HashMap<>();
 
   @Inject
   public EventsWebSocketEndpoint(Optional<Connection> rabbitMqConnection, ObjectMapper objectMapper) {
@@ -51,9 +51,9 @@ public class EventsWebSocketEndpoint {
     String userId = getUserIdFromSession(session);
     session.setMaxIdleTimeout(MAX_IDLE_TIMEOUT);
     session.getBasicRemote().sendObject(objectMapper.writeValueAsString(SessionOutEvent.create(session.getId())));
-    userSessionsMap.computeIfAbsent(userId, k -> new ArrayList<>());
-    userSessionsMap.get(userId).add(SessionChannel.create().session(session));
-    startBridge(userId);
+    userSessionChannelsMap.computeIfAbsent(userId, k -> new ArrayList<>());
+    userSessionChannelsMap.get(userId).add(SessionChannel.create().session(session));
+    startBridge(userId, session.getId());
   }
 
   @OnMessage
@@ -85,14 +85,16 @@ public class EventsWebSocketEndpoint {
       new InternalErrorException("Session user not found!"));
   }
 
-  private void startBridge(String userId) {
+  private void startBridge(String userId, String sessionId) {
     try {
       Channel channel = rabbitMqConnection.createChannel();
-      userSessionsMap.get(userId).add(SessionChannel.create().channel(channel));
+      Optional<SessionChannel> sessionChannelOptional = userSessionChannelsMap.get(userId).stream()
+        .filter(sc -> sc.getSession().getId().equals(sessionId)).findFirst();
+      sessionChannelOptional.ifPresent(sessionChannel -> sessionChannel.channel(channel));
       channel.queueDeclare(userId, true, false, false, null);
       DeliverCallback deliverCallback = (consumerTag, delivery) -> {
         String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-        userSessionsMap.get(userId).forEach(sessionChannel -> {
+        userSessionChannelsMap.get(userId).forEach(sessionChannel -> {
             try {
               sessionChannel.getSession().getBasicRemote().sendObject(message);
             } catch (EncodeException | IOException e) {
@@ -112,8 +114,8 @@ public class EventsWebSocketEndpoint {
 
   private void closeAndRemoveSessionChannel(Session session) {
     String userId = getUserIdFromSession(session);
-    if (userSessionsMap.containsKey(userId)) {
-      Optional<SessionChannel> toRemoveAndClose = userSessionsMap.get(userId).stream()
+    if (userSessionChannelsMap.containsKey(userId)) {
+      Optional<SessionChannel> toRemoveAndClose = userSessionChannelsMap.get(userId).stream()
         .filter(sc -> sc.getSession().getId().equals(session.getId()))
         .findFirst();
       if (toRemoveAndClose.isPresent()) {
@@ -123,9 +125,9 @@ public class EventsWebSocketEndpoint {
           sessionChannel.getChannel().close();
         } catch (IOException | TimeoutException ignored) {
         }
-        userSessionsMap.get(userId).remove(toRemoveAndClose.get());
-        if (userSessionsMap.get(userId).isEmpty()) {
-          userSessionsMap.remove(userId);
+        userSessionChannelsMap.get(userId).remove(toRemoveAndClose.get());
+        if (userSessionChannelsMap.get(userId).isEmpty()) {
+          userSessionChannelsMap.remove(userId);
         }
       }
     }
