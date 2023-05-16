@@ -41,7 +41,6 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -94,7 +93,8 @@ public class RoomServiceImpl implements RoomService {
     MeetingService meetingService,
     FileMetadataRepository fileMetadataRepository,
     StoragesService storagesService,
-    AttachmentService attachmentService, Clock clock,
+    AttachmentService attachmentService,
+    Clock clock,
     AppConfig appConfig,
     CapabilityService capabilityService
   ) {
