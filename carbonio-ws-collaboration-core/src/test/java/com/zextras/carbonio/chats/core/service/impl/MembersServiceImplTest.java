@@ -401,12 +401,12 @@ public class MembersServiceImplTest {
         membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user4Id), principal));
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(String.format("Bad Request - Too much members (required less than 3)", user4Id.toString()),
-        exception.getMessage());
+      assertEquals("Bad Request - Cannot add more members to this group", exception.getMessage());
       verify(userService, times(1)).userExists(user4Id, principal);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
+      verify(capabilityService, times(1)).getCapabilities(principal);
 
-      verifyNoMoreInteractions(userService, roomService);
+      verifyNoMoreInteractions(userService, roomService, capabilityService);
       verifyNoInteractions(subscriptionRepository, eventDispatcher, messageDispatcher, roomUserSettingsRepository);
     }
 

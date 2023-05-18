@@ -161,7 +161,6 @@ class RoomServiceImplTest {
     user2Id = UUID.fromString("82735f6d-4c6c-471e-99d9-4eef91b1ec45");
     user3Id = UUID.fromString("ea7b9b61-bef5-4cf4-80cb-19612c42593a");
     user4Id = UUID.fromString("c91f0b6d-220e-408f-8575-5bf3633fc7f7");
-    user4Id = UUID.fromString("ef196327-acf0-4888-b155-d42dcc659e4d");
     user5Id = UUID.fromString("120bbfbe-b97b-44d0-81ac-2f23bc244878");
 
     roomGroup1Id = UUID.fromString("cdc44826-23b0-4e99-bec2-7fb2f00b6b13");

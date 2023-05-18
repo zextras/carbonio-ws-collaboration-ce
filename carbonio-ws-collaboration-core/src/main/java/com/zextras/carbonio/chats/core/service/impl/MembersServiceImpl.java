@@ -123,7 +123,7 @@ public class MembersServiceImpl implements MembersService {
     } else if (RoomTypeDto.GROUP.equals(room.getType())) {
       Integer maxGroupMembers = capabilityService.getCapabilities(currentUser).getMaxGroupMembers();
       if (room.getSubscriptions().size() == maxGroupMembers) {
-        throw new BadRequestException("Too much members (required less than " + maxGroupMembers + ")");
+        throw new BadRequestException(String.format("Cannot add more members to this %s", room.getType()));
       }
     }
     if (room.getSubscriptions().stream()
@@ -160,7 +160,7 @@ public class MembersServiceImpl implements MembersService {
   @Override
   @Transactional
   public void deleteRoomMember(UUID roomId, UUID userId, UserPrincipal currentUser) {
-    Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, !userId.equals(currentUser.getUUID()));
+    Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, !currentUser.getUUID().equals(userId));
     if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
       throw new BadRequestException(String.format("Cannot remove a member from a %s conversation", room.getType()));
     }
