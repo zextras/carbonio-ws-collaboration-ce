@@ -53,11 +53,13 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
+import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -101,6 +103,7 @@ class RoomServiceImplTest {
   private final StoragesService            storagesService;
   private final Clock                      clock;
   private final AppConfig                  appConfig;
+  private final CapabilityService          capabilityService;
 
   public RoomServiceImplTest(RoomMapper roomMapper) {
     this.roomRepository = mock(RoomRepository.class);
@@ -115,6 +118,7 @@ class RoomServiceImplTest {
     this.storagesService = mock(StoragesService.class);
     this.clock = mock(Clock.class);
     this.appConfig = mock(AppConfig.class);
+    this.capabilityService = mock(CapabilityService.class);
     this.roomService = new RoomServiceImpl(
       this.roomRepository,
       this.roomUserSettingsRepository,
@@ -128,13 +132,16 @@ class RoomServiceImplTest {
       this.storagesService,
       this.attachmentService,
       this.clock,
-      this.appConfig
+      this.appConfig,
+      this.capabilityService
     );
   }
 
   private UUID user1Id;
   private UUID user2Id;
   private UUID user3Id;
+  private UUID user4Id;
+  private UUID user5Id;
   private UUID roomGroup1Id;
   private UUID roomGroup2Id;
   private UUID roomOneToOne1Id;
@@ -153,6 +160,8 @@ class RoomServiceImplTest {
     user1Id = UUID.fromString("332a9527-3388-4207-be77-6d7e2978a723");
     user2Id = UUID.fromString("82735f6d-4c6c-471e-99d9-4eef91b1ec45");
     user3Id = UUID.fromString("ea7b9b61-bef5-4cf4-80cb-19612c42593a");
+    user4Id = UUID.fromString("c91f0b6d-220e-408f-8575-5bf3633fc7f7");
+    user5Id = UUID.fromString("120bbfbe-b97b-44d0-81ac-2f23bc244878");
 
     roomGroup1Id = UUID.fromString("cdc44826-23b0-4e99-bec2-7fb2f00b6b13");
     roomGroup2Id = UUID.fromString("0471809c-e0bb-4bfd-85b6-b7b9a1eca597");
@@ -433,6 +442,8 @@ class RoomServiceImplTest {
             Subscription.create(roomGroup1, userId.toString()).owner(userId.equals(user1Id))
           ).collect(Collectors.toList()));
         when(roomRepository.insert(roomGroup1)).thenReturn(roomGroup1);
+        when(capabilityService.getCapabilities(mockUserPrincipal)).thenReturn(
+          CapabilitiesDto.create().maxGroupMembers(128));
 
         RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
           .name("room1")
@@ -471,16 +482,39 @@ class RoomServiceImplTest {
       @Test
       @DisplayName("There are less than two members when creating a group, it throws a 'bad request' exception")
       public void createGroupRoom_errorWhenMembersAreLessThanTwo() {
+        UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
+        when(capabilityService.getCapabilities(mockUserPrincipal)).thenReturn(
+          CapabilitiesDto.create().maxGroupMembers(128));
+
         RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
           .name("room1")
           .description("Room one")
           .type(RoomTypeDto.GROUP)
           .membersIds(List.of(user2Id));
         ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
-          roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
+          roomService.createRoom(creationFields, mockUserPrincipal));
         assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
         assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals("Bad Request - Too few members (required at least 3)", exception.getMessage());
+      }
+
+      @Test
+      @DisplayName("There are more than max group members when creating a group, it throws a 'bad request' exception")
+      public void createGroupRoom_errorWhenMembersAreMoreThanMaxGroupMembers() {
+        UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
+        when(capabilityService.getCapabilities(mockUserPrincipal)).thenReturn(
+          CapabilitiesDto.create().maxGroupMembers(3));
+
+        RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
+          .name("room1")
+          .description("Room one")
+          .type(RoomTypeDto.GROUP)
+          .membersIds(List.of(user2Id, user3Id, user4Id, user5Id));
+        ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+          roomService.createRoom(creationFields, mockUserPrincipal));
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
+        assertEquals("Bad Request - Too much members (required less than 3)", exception.getMessage());
       }
     }
 
@@ -619,8 +653,9 @@ class RoomServiceImplTest {
     @DisplayName("If there is an invitee without account, it throws a 'not found' exception")
     public void createRoom_testInvitedUserWithoutAccount() {
       UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
-      when(userService.userExists(user2Id, mockUserPrincipal))
-        .thenReturn(false);
+      when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(false);
+      when(capabilityService.getCapabilities(mockUserPrincipal)).thenReturn(
+        CapabilitiesDto.create().maxGroupMembers(128));
 
       RoomCreationFieldsDto creationFields = RoomCreationFieldsDto.create()
         .name("room1")
