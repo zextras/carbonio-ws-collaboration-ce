@@ -22,11 +22,6 @@ services {
         local_service_address = "127.78.0.4"
         upstreams             = [
           {
-            destination_name   = "carbonio-storages"
-            local_bind_address = "127.78.0.4"
-            local_bind_port    = 20000
-          },
-          {
             destination_name   = "carbonio-user-management"
             local_bind_address = "127.78.0.4"
             local_bind_port    = 20001

@@ -7,7 +7,6 @@ package com.zextras.carbonio.chats.it;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -42,7 +41,6 @@ import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.ClearedDateDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
-import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.IdDto;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberInsertedDto;
@@ -171,7 +169,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel1")
         .description("Channel one")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspace1Id.toString())
         .rank(2), List.of());
       integrationTestUtils.generateAndSaveRoom(Room.create()
@@ -179,7 +176,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel2")
         .description("Channel two")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspace1Id.toString())
         .rank(1), List.of());
 
@@ -234,7 +230,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel1")
         .description("Channel one")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspace1Id.toString())
         .rank(2), List.of());
       integrationTestUtils.generateAndSaveRoom(Room.create()
@@ -242,7 +237,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel2")
         .description("Channel two")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspace1Id.toString())
         .rank(1), List.of());
 
@@ -297,7 +291,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel1")
         .description("Channel one")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspace1Id.toString())
         .rank(2), List.of());
       integrationTestUtils.generateAndSaveRoom(Room.create()
@@ -305,7 +298,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel2")
         .description("Channel two")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspace1Id.toString())
         .rank(1), List.of());
 
@@ -368,7 +360,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel1")
         .description("Channel one")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspace1Id.toString())
         .rank(2), List.of(
         RoomMemberField.create().id(user1Id).muted(true)));
@@ -377,7 +368,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel2")
         .description("Channel two")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspace1Id.toString())
         .rank(1), List.of(
         RoomMemberField.create().id(user1Id).muted(true)));
@@ -652,7 +642,7 @@ public class RoomsApiIT {
 
         integrationTestUtils.generateAndSaveRoom(
           Room.create().id(UUID.randomUUID().toString()).name("workspace1").description("Workspace one")
-            .type(RoomTypeDto.WORKSPACE).hash("hash"),
+            .type(RoomTypeDto.WORKSPACE),
           List.of(
             RoomMemberField.create().id(user1Id).owner(true).rank(10),
             RoomMemberField.create().id(user2Id).rank(9),
@@ -793,7 +783,6 @@ public class RoomsApiIT {
           .name("channel7")
           .description("Channel seven")
           .type(RoomTypeDto.CHANNEL)
-          .hash(UUID.randomUUID().toString())
           .rank(7)
           .parentId(workspaceId.toString()), List.of());
 
@@ -1063,7 +1052,6 @@ public class RoomsApiIT {
           .type(RoomTypeDto.CHANNEL)
           .name("channel1")
           .description("Channel one")
-          .hash(UUID.randomUUID().toString())
           .parentId(workspaceId.toString())
           .rank(2),
         List.of(
@@ -1074,7 +1062,6 @@ public class RoomsApiIT {
           .type(RoomTypeDto.CHANNEL)
           .name("channel2")
           .description("Channel two")
-          .hash(UUID.randomUUID().toString())
           .parentId(workspaceId.toString())
           .rank(1),
         List.of(RoomMemberField.create().id(user2Id).muted(true)));
@@ -1129,7 +1116,6 @@ public class RoomsApiIT {
           .type(RoomTypeDto.CHANNEL)
           .name("channel1")
           .description("Channel one")
-          .hash(UUID.randomUUID().toString())
           .parentId(workspaceId.toString())
           .rank(8),
         List.of(
@@ -1407,8 +1393,11 @@ public class RoomsApiIT {
         fileMetadataRepository.save(
           FileMetadata.create().id(file2Id).type(FileMetadataType.ATTACHMENT).name("-").userId(user1Id.toString())
             .roomId(roomId.toString()).originalSize(0L).mimeType("-"));
-        storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), List.of(file1Id, file2Id));
         mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+
+        storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
+        storageMockServer.mockDelete(file1Id, user1Id.toString(), true);
+        storageMockServer.mockDelete(file2Id, user1Id.toString(), true);
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
 
@@ -1419,11 +1408,16 @@ public class RoomsApiIT {
         assertTrue(
           fileMetadataRepository.getIdsByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT).isEmpty());
 
-        storageMockServer.verify(
-          storageMockServer.getBulkDeleteRequest(List.of(file1Id, file2Id)), VerificationTimes.exactly(1));
         userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
         mongooseImMockServer.verify(mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
           VerificationTimes.exactly(1));
+
+        storageMockServer.verify(
+          storageMockServer.getNSLookupUrlRequest(user1Id.toString()), VerificationTimes.exactly(2));
+        storageMockServer.verify(
+          storageMockServer.getDeleteRequest(file1Id, user1Id.toString()), VerificationTimes.exactly(1));
+        storageMockServer.verify(
+          storageMockServer.getDeleteRequest(file2Id, user1Id.toString()), VerificationTimes.exactly(1));
       }
 
       @Test
@@ -1443,8 +1437,11 @@ public class RoomsApiIT {
         fileMetadataRepository.save(
           FileMetadata.create().id(file2Id).type(FileMetadataType.ATTACHMENT).name("-").userId(user1Id.toString())
             .roomId(roomId.toString()).originalSize(0L).mimeType("-"));
-        storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), List.of(file1Id));
         mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+
+        storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
+        storageMockServer.mockDelete(file1Id, user1Id.toString(), true);
+        storageMockServer.mockDelete(file2Id, user1Id.toString(), false);
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
 
@@ -1458,11 +1455,15 @@ public class RoomsApiIT {
         assertTrue(snoopy.isPresent());
         assertNull(snoopy.get().getRoomId());
 
-        storageMockServer.verify(
-          storageMockServer.getBulkDeleteRequest(List.of(file1Id, file2Id)), VerificationTimes.exactly(1));
         userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
         mongooseImMockServer.verify(mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
           VerificationTimes.exactly(1));
+        storageMockServer.verify(
+          storageMockServer.getNSLookupUrlRequest(user1Id.toString()), VerificationTimes.exactly(2));
+        storageMockServer.verify(
+          storageMockServer.getDeleteRequest(file1Id, user1Id.toString()), VerificationTimes.exactly(1));
+        storageMockServer.verify(
+          storageMockServer.getDeleteRequest(file2Id, user1Id.toString()), VerificationTimes.exactly(1));
       }
 
       @Test
@@ -1482,8 +1483,10 @@ public class RoomsApiIT {
         fileMetadataRepository.save(
           FileMetadata.create().id(file2Id).type(FileMetadataType.ATTACHMENT).name("-").userId(user1Id.toString())
             .roomId(roomId.toString()).originalSize(0L).mimeType("-"));
-        storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), null);
         mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+        storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
+        storageMockServer.mockDelete(file1Id, user1Id.toString(), false);
+        storageMockServer.mockDelete(file2Id, user1Id.toString(), false);
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
 
@@ -1500,11 +1503,15 @@ public class RoomsApiIT {
         assertTrue(snoopy.isPresent());
         assertNull(snoopy.get().getRoomId());
 
-        storageMockServer.verify(
-          storageMockServer.getBulkDeleteRequest(List.of(file1Id, file2Id)), VerificationTimes.exactly(1));
         userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
         mongooseImMockServer.verify(mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
           VerificationTimes.exactly(1));
+        storageMockServer.verify(
+          storageMockServer.getNSLookupUrlRequest(user1Id.toString()), VerificationTimes.exactly(2));
+        storageMockServer.verify(
+          storageMockServer.getDeleteRequest(file1Id, user1Id.toString()), VerificationTimes.exactly(1));
+        storageMockServer.verify(
+          storageMockServer.getDeleteRequest(file2Id, user1Id.toString()), VerificationTimes.exactly(1));
       }
     }
 
@@ -1545,7 +1552,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel1")
         .description("Channel one")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspaceId.toString())
         .rank(1), List.of());
       integrationTestUtils.generateAndSaveRoom(Room.create()
@@ -1553,7 +1559,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel2")
         .description("Channel two")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspaceId.toString())
         .rank(2), List.of());
       mongooseImMockServer.mockDeleteRoom(channel1Id.toString(), true);
@@ -1588,7 +1593,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("testChannel")
         .description("Channel test")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspaceId.toString())
         .rank(1), List.of());
       mongooseImMockServer.mockDeleteRoom(channelId.toString(), true);
@@ -1652,7 +1656,11 @@ public class RoomsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
-      integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
+      FileMetadata fileMetadata = integrationTestUtils.generateAndSaveFileMetadata(fileMock,
+        FileMetadataType.ROOM_AVATAR, user1Id, roomId);
+
+      storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
+      storageMockServer.mockDownload(fileMetadata.getId(), user1Id.toString(), fileMock, true);
 
       MockHttpResponse response = dispatcher.get(url(roomId), user1Token);
       assertEquals(200, response.getStatus());
@@ -1665,7 +1673,10 @@ public class RoomsApiIT {
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("GET", "/download", fileMock.getId(), 1);
+      storageMockServer.verify(storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
+        VerificationTimes.exactly(1));
+      storageMockServer.verify(storageMockServer.getDownloadRequest(fileMetadata.getId(), user1Id.toString()),
+        VerificationTimes.exactly(1));
     }
 
     @Test
@@ -1732,6 +1743,9 @@ public class RoomsApiIT {
         List.of(
           new SimpleEntry<>("picture-id", roomId.toString()),
           new SimpleEntry<>("picture-name", fileMock.getName())), null, null, null, true);
+      storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
+      storageMockServer.mockUploadPut(user1Id.toString(), user1Id.toString(), true);
+
       Instant now = Instant.now();
       clock.fixTimeAt(now);
       MockHttpResponse response = dispatcher.put(url(roomId), fileMock.getId().getBytes(),
@@ -1746,9 +1760,14 @@ public class RoomsApiIT {
           List.of(
             new SimpleEntry<>("picture-id", roomId.toString()),
             new SimpleEntry<>("picture-name", fileMock.getName())), null, null, null));
+
+      storageMockServer.verify(storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
+        VerificationTimes.exactly(1));
+      storageMockServer.verify(storageMockServer.getUploadPutRequest(user1Id.toString(), user1Id.toString()),
+        VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+
       // TODO: 01/03/22 verify event dispatcher iterations
-      storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
       Optional<Room> room = roomRepository.getById(roomId.toString());
       assertTrue(room.isPresent());
       assertEquals(OffsetDateTime.ofInstant(now, clock.getZone()).toEpochSecond(),
@@ -1888,9 +1907,13 @@ public class RoomsApiIT {
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id),
         List.of(user1Id), null, OffsetDateTime.parse("2022-01-01T00:00:00Z"));
-      integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
+      FileMetadata fileMetadata = integrationTestUtils.generateAndSaveFileMetadata(fileMock,
+        FileMetadataType.ROOM_AVATAR, user1Id, roomId);
       mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomPictureDeleted", List.of(), null,
         null, null, true);
+
+      storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
+      storageMockServer.mockDelete(fileMetadata.getId(), user1Id.toString(), true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -1901,7 +1924,10 @@ public class RoomsApiIT {
         mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomPictureDeleted",
           List.of(), null, null, null), VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("DELETE", "/delete", fileMock.getId(), 1);
+      storageMockServer.verify(storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
+        VerificationTimes.exactly(1));
+      storageMockServer.verify(storageMockServer.getDeleteRequest(fileMetadata.getId(), user1Id.toString()),
+        VerificationTimes.exactly(1));
     }
 
     @Test
@@ -2019,7 +2045,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel")
         .description("Channel test")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspaceId.toString())
         .rank(1), List.of());
 
@@ -2146,7 +2171,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel")
         .description("Channel test")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspaceId.toString())
         .rank(1), List.of(RoomMemberField.create().id(user1Id).muted(true)));
 
@@ -2258,62 +2282,6 @@ public class RoomsApiIT {
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getContentAsString().length());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
-    }
-  }
-
-  @Nested
-  @DisplayName("Reset room hash tests")
-  public class ResetRoomHashTests {
-
-    private String url(UUID roomId) {
-      return String.format("/rooms/%s/hash", roomId);
-    }
-
-    @Test
-    @DisplayName("Given a room identifier, correctly reset room hash")
-    public void resetRoomHash_testOk() throws Exception {
-      UUID roomId = UUID.randomUUID();
-      clock.fixTimeAt(Instant.now().minus(Duration.ofDays(1)));
-      String hash = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
-        List.of(user1Id, user2Id, user3Id)).getHash();
-      clock.removeFixTime();
-      MockHttpResponse response = dispatcher.put(url(roomId), null, user1Token);
-
-      assertEquals(200, response.getStatus());
-      assertNotEquals(hash, objectMapper.readValue(response.getContentAsString(), HashDto.class).getHash());
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      // TODO: 23/02/22 verify event dispatcher interactions
-    }
-
-    @Test
-    @DisplayName("Given a room identifier, if the user isn't authenticated returns status code 401")
-    public void resetRoomHash_testErrorUnauthenticatedUser() throws Exception {
-      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()), null, null);
-      assertEquals(401, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-    }
-
-    @Test
-    @DisplayName("Given a room identifier, if the room doesn't exist returns status code 404")
-    public void resetRoomHash_testErrorRoomNotExists() throws Exception {
-      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()), null, user1Token);
-
-      assertEquals(404, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-    }
-
-    @Test
-    @DisplayName("Given a room identifier, if the user is not a member of the room returns status code 403")
-    public void resetRoomHash_testErrorUserIsNotRoomOwner() throws Exception {
-      UUID roomId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
-        List.of(user1Id, user2Id, user3Id));
-      MockHttpResponse response = dispatcher.put(url(roomId), null, user3Token);
-
-      assertEquals(403, response.getStatus());
-      assertEquals(0, response.getOutput().length);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
     }
   }
@@ -2443,7 +2411,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel1")
         .description("Channel one")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspaceId.toString())
         .rank(2), List.of());
       integrationTestUtils.generateAndSaveRoom(Room.create()
@@ -2451,7 +2418,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel2")
         .description("Channel two")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspaceId.toString())
         .rank(1), List.of());
       integrationTestUtils.generateAndSaveRoom(UUID.randomUUID(), RoomTypeDto.WORKSPACE, List.of(
@@ -2501,7 +2467,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel")
         .description("Channel test")
-        .hash(UUID.randomUUID().toString())
         .parentId(workspaceId.toString())
         .rank(2), List.of());
 
@@ -2763,8 +2728,7 @@ public class RoomsApiIT {
             .id(UUID.randomUUID().toString())
             .name("workspace")
             .description("Workspace")
-            .type(RoomTypeDto.WORKSPACE)
-            .hash("workspace" + index + "Hash"),
+            .type(RoomTypeDto.WORKSPACE),
           List.of(RoomMemberField.create().id(user2Id).owner(true).rank(index))));
 
       UUID roomId = UUID.randomUUID();
@@ -2773,8 +2737,7 @@ public class RoomsApiIT {
           .id(roomId.toString())
           .name("workspace")
           .description("Workspace")
-          .type(RoomTypeDto.WORKSPACE)
-          .hash("workspaceHash"),
+          .type(RoomTypeDto.WORKSPACE),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true).rank(1),
           RoomMemberField.create().id(user2Id).owner(true).rank(3),
@@ -2955,7 +2918,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel")
         .description("Channel test")
-        .hash(UUID.randomUUID().toString())
         .rank(1)
         .parentId(workspaceId.toString()), List.of());
       MockHttpResponse response = dispatcher.put(url(channelId, user2Id), null, user1Token);
@@ -3055,7 +3017,6 @@ public class RoomsApiIT {
         .type(RoomTypeDto.CHANNEL)
         .name("channel")
         .description("Channel test")
-        .hash(UUID.randomUUID().toString())
         .rank(1)
         .parentId(workspaceId.toString()), List.of());
       MockHttpResponse response = dispatcher.delete(url(channelId, user2Id), user1Token);
@@ -3209,6 +3170,9 @@ public class RoomsApiIT {
           new SimpleEntry<>("filename", fileMock.getName()),
           new SimpleEntry<>("mime-type", fileMock.getMimeType()),
           new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))), "", null, null, true);
+      storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
+      storageMockServer.mockUploadPut(fileMock.getId(), user1Id.toString(), true);
+
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
@@ -3234,7 +3198,11 @@ public class RoomsApiIT {
             new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))), "", null, null),
         VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
+      storageMockServer.verify(storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
+        VerificationTimes.exactly(1));
+      storageMockServer.verify(storageMockServer.getUploadPutRequest(fileMock.getId(), user1Id.toString()),
+        VerificationTimes.exactly(1));
+
       IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
 
       assertTrue(
@@ -3259,6 +3227,9 @@ public class RoomsApiIT {
           new SimpleEntry<>("mime-type", fileMock.getMimeType()),
           new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))), description, "the-xmpp-message-id",
         null, true);
+      storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
+      storageMockServer.mockUploadPut(fileMock.getId(), user1Id.toString(), true);
+
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
@@ -3285,7 +3256,11 @@ public class RoomsApiIT {
             new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))), description, "the-xmpp-message-id", null),
         VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
+      storageMockServer.verify(storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
+        VerificationTimes.exactly(1));
+      storageMockServer.verify(storageMockServer.getUploadPutRequest(fileMock.getId(), user1Id.toString()),
+        VerificationTimes.exactly(1));
+
       IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
 
       assertTrue(
@@ -3310,6 +3285,9 @@ public class RoomsApiIT {
           new SimpleEntry<>("mime-type", fileMock.getMimeType()),
           new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))), description, "the-xmpp-message-id",
         "message-id-to-reply", true);
+      storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
+      storageMockServer.mockUploadPut(fileMock.getId(), user1Id.toString(), true);
+
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
@@ -3337,7 +3315,11 @@ public class RoomsApiIT {
           "message-id-to-reply"),
         VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
+      storageMockServer.verify(storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
+        VerificationTimes.exactly(1));
+      storageMockServer.verify(storageMockServer.getUploadPutRequest(fileMock.getId(), user1Id.toString()),
+        VerificationTimes.exactly(1));
+
       IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
 
       assertTrue(
@@ -3570,7 +3552,6 @@ public class RoomsApiIT {
         .name("channel1")
         .description("Channel one")
         .type(RoomTypeDto.CHANNEL)
-        .hash(UUID.randomUUID().toString())
         .rank(11)
         .parentId(workspaceId.toString()), List.of());
       integrationTestUtils.generateAndSaveRoom(Room.create()
@@ -3578,7 +3559,6 @@ public class RoomsApiIT {
         .name("channel2")
         .description("Channel two")
         .type(RoomTypeDto.CHANNEL)
-        .hash(UUID.randomUUID().toString())
         .rank(7)
         .parentId(workspaceId.toString()), List.of());
       integrationTestUtils.generateAndSaveRoom(Room.create()
@@ -3586,7 +3566,6 @@ public class RoomsApiIT {
         .name("channel3")
         .description("Channel three")
         .type(RoomTypeDto.CHANNEL)
-        .hash(UUID.randomUUID().toString())
         .rank(9)
         .parentId(workspaceId.toString()), List.of());
 
@@ -3624,7 +3603,6 @@ public class RoomsApiIT {
         .name("channel1")
         .description("Channel one")
         .type(RoomTypeDto.CHANNEL)
-        .hash(UUID.randomUUID().toString())
         .rank(11)
         .parentId(workspaceId.toString()), List.of());
       integrationTestUtils.generateAndSaveRoom(Room.create()
@@ -3632,7 +3610,6 @@ public class RoomsApiIT {
         .name("channel2")
         .description("Channel two")
         .type(RoomTypeDto.CHANNEL)
-        .hash(UUID.randomUUID().toString())
         .rank(7)
         .parentId(workspaceId.toString()), List.of());
       integrationTestUtils.generateAndSaveRoom(Room.create()
@@ -3640,7 +3617,6 @@ public class RoomsApiIT {
         .name("channel3")
         .description("Channel three")
         .type(RoomTypeDto.CHANNEL)
-        .hash(UUID.randomUUID().toString())
         .rank(9)
         .parentId(workspaceId.toString()), List.of());
 
@@ -3677,7 +3653,6 @@ public class RoomsApiIT {
         .name("channel1")
         .description("Channel one")
         .type(RoomTypeDto.CHANNEL)
-        .hash(UUID.randomUUID().toString())
         .rank(11)
         .parentId(workspaceId.toString()), List.of());
       integrationTestUtils.generateAndSaveRoom(Room.create()
@@ -3685,7 +3660,6 @@ public class RoomsApiIT {
         .name("channel2")
         .description("Channel two")
         .type(RoomTypeDto.CHANNEL)
-        .hash(UUID.randomUUID().toString())
         .rank(7)
         .parentId(workspaceId.toString()), List.of());
 
@@ -3737,7 +3711,7 @@ public class RoomsApiIT {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -3777,7 +3751,7 @@ public class RoomsApiIT {
     public void getMeetingByRoomId_testMeetingNotExists() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id).owner(true),
@@ -3794,7 +3768,7 @@ public class RoomsApiIT {
     public void getMeetingByRoomId_testUserIsNotRoomMember() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
@@ -3839,7 +3813,7 @@ public class RoomsApiIT {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -3877,7 +3851,7 @@ public class RoomsApiIT {
       UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -3929,7 +3903,7 @@ public class RoomsApiIT {
     public void joinRoomMeeting_testErrorUserIsNotARoomMember() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
@@ -3967,7 +3941,7 @@ public class RoomsApiIT {
     public void forwardMessages_textMessage() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("-").name("name").description("description"),
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
@@ -4014,13 +3988,13 @@ public class RoomsApiIT {
       UUID attach2Id = UUID.randomUUID();
 
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("group1").name("group1")
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("group1")
           .description("group one"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).hash("group2").name("group2")
+        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).name("group2")
           .description("group two"),
         List.of(
           RoomMemberField.create().id(user1Id),
@@ -4034,7 +4008,10 @@ public class RoomsApiIT {
         .type(FileMetadataType.ATTACHMENT)
         .userId(user2Id.toString())
         .roomId(room1Id.toString()));
-      storageMockServer.mockCopyFile(attach1Id.toString(), attach2Id.toString(), true);
+//      storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
+      storageMockServer.mockNSLookupUrl(user2Id.toString(), true);
+      storageMockServer.mockCopyFile(attach1Id.toString(), user2Id.toString(), attach2Id.toString(), user1Id.toString(),
+        true);
       String hoped = String.format(
         "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
         user1Id, room2Id)
@@ -4102,9 +4079,100 @@ public class RoomsApiIT {
       assertEquals("mimetype", fileMetadata.getMimeType());
       assertEquals(1024, fileMetadata.getOriginalSize());
 
+//      storageMockServer.verify(
+//        storageMockServer.getNSLookupUrlRequest(user1Id.toString()), VerificationTimes.exactly(1));
       storageMockServer.verify(
-        storageMockServer.getCopyFileRequest(attach1Id.toString(), attach2Id.toString()),
+        storageMockServer.getNSLookupUrlRequest(user2Id.toString()), VerificationTimes.exactly(1));
+      storageMockServer.verify(
+        storageMockServer.getCopyFileRequest(attach1Id.toString(), user2Id.toString(), attach2Id.toString(),
+          user1Id.toString()),
         VerificationTimes.exactly(1));
+
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(hoped),
+        VerificationTimes.exactly(1));
+    }
+
+    @Test
+    @DisplayName("Forwards a text message with multiple lines")
+    public void forwardMessages_textMessageWithMultipleLines() throws Exception {
+      UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+
+      String hoped = String.format(
+        "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+        user1Id, roomId)
+        + "<body>this is my body !</body>"
+        + "<forwarded xmlns='urn:xmpp:forward:0'>"
+        + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
+        + "<message from='sender-id' to='recipient-id' type='groupchat'>"
+        + "<body>this is\\nthe body\\nof the message\\nto forward!</body>"
+        + "</message>"
+        + "</forwarded>"
+        + "</message>";
+
+      mongooseImMockServer.mockSendStanza(hoped, true);
+
+      String messageToForward =
+        "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\" type=\"groupchat\">"
+          + "<body>this is\nthe body\nof the message\nto forward!</body>"
+          + "</message>";
+      ForwardMessageDto forwardMessageDto = ForwardMessageDto.create()
+        .originalMessage(messageToForward)
+        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
+        .description("this is my body !");
+      MockHttpResponse response = dispatcher.post(url(roomId),
+        objectMapper.writeValueAsString(List.of(forwardMessageDto)), user1Token);
+      assertNotNull(response);
+      assertEquals(204, response.getStatus());
+
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(hoped),
+        VerificationTimes.exactly(1));
+    }
+
+    @Test
+    @DisplayName("Forwards a text message with special characters")
+    public void forwardMessages_textMessageWithSpecialCharacters() throws Exception {
+      UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+
+      String hoped = String.format(
+        "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+        user1Id, roomId)
+        + "<body>a &amp; ' = &agrave;</body>"
+        + "<forwarded xmlns='urn:xmpp:forward:0'>"
+        + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
+        + "<message from='sender-id' to='recipient-id' type='groupchat'>"
+        + "<body>&agrave; &egrave; &eacute; &igrave; &ograve; &ugrave; &amp;</body>"
+        + "</message>"
+        + "</forwarded>"
+        + "</message>";
+
+      mongooseImMockServer.mockSendStanza(hoped, true);
+
+      String messageToForward =
+        "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\" type=\"groupchat\">"
+          + "<body>à è é ì ò ù &</body>"
+          + "</message>";
+      ForwardMessageDto forwardMessageDto = ForwardMessageDto.create()
+        .originalMessage(messageToForward)
+        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
+        .description("a & ' = à");
+      MockHttpResponse response = dispatcher.post(url(roomId),
+        objectMapper.writeValueAsString(List.of(forwardMessageDto)), user1Token);
+      assertNotNull(response);
+      assertEquals(204, response.getStatus());
 
       mongooseImMockServer.verify(
         mongooseImMockServer.getSendStanzaRequest(hoped),
@@ -4119,13 +4187,13 @@ public class RoomsApiIT {
       UUID attachId = UUID.randomUUID();
 
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).hash("group1").name("group1")
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("group1")
           .description("group one"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).hash("group2").name("group2")
+        Room.create().id(room2Id.toString()).type(RoomTypeDto.GROUP).name("group2")
           .description("group two"),
         List.of(
           RoomMemberField.create().id(user1Id),
@@ -4168,7 +4236,7 @@ public class RoomsApiIT {
       UUID roomId = UUID.randomUUID();
 
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("group1").name("group1")
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("group1")
           .description("group one"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
@@ -4202,7 +4270,7 @@ public class RoomsApiIT {
       UUID roomId = UUID.randomUUID();
 
       integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).hash("group").name("group")
+        Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("group")
           .description("group"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),

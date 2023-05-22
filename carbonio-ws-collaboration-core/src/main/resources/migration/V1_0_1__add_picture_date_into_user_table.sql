@@ -1,7 +1,0 @@
--- SPDX-FileCopyrightText: 2023 Zextras <https://www.zextras.com>
---
--- SPDX-License-Identifier: AGPL-3.0-only
-
-UPDATE CHATS.CHATS_USER SET LAST_SEEN = NULL;
-ALTER TABLE CHATS.CHATS_USER
-    RENAME COLUMN LAST_SEEN TO PICTURE_UPDATED_AT;

@@ -6,7 +6,6 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -60,7 +59,6 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
-import com.zextras.carbonio.chats.model.HashDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
@@ -1377,65 +1375,6 @@ class RoomServiceImplTest {
       assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, roomGroup1Id),
         exception.getMessage());
-    }
-  }
-
-  @Nested
-  @DisplayName("Reset room hash tests")
-  class ResetRoomHashTests {
-
-    @Test
-    @DisplayName("It changes the room hash and returns it")
-    public void resetRoomHash_testOk() {
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-      String oldHash = roomGroup1.getHash();
-      when(roomRepository.update(roomGroup1)).thenReturn(roomGroup1);
-
-      HashDto hashDto = roomService.resetRoomHash(roomGroup1Id, UserPrincipal.create(user1Id));
-
-      assertNotNull(hashDto);
-      assertNotEquals(oldHash, hashDto.getHash());
-      verifyNoMoreInteractions(eventDispatcher);
-      verifyNoInteractions(messageDispatcher);
-    }
-
-    @Test
-    @DisplayName("If the authenticated user isn't a room member, it throws a 'not found' exception")
-    public void resetRoomHash_testAuthenticatedUserIsNotARoomMember() {
-      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-
-      ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
-        roomService.resetRoomHash(roomGroup2Id, UserPrincipal.create(user1Id)));
-
-      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(String.format("Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
-        exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("If the authenticated user isn't a room owner, it throws a 'not found' exception")
-    public void resetRoomHash_testAuthenticatedUserIsNotARoomOwner() {
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-
-      ChatsHttpException exception = assertThrows(ForbiddenException.class, () ->
-        roomService.resetRoomHash(roomGroup1Id, UserPrincipal.create(user2Id)));
-
-      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, roomGroup1Id),
-        exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("If the room doesn't exist, it throws a 'not found' exception")
-    public void resetRoomHash_testRoomNotExists() {
-      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        roomService.resetRoomHash(roomGroup1Id, UserPrincipal.create(user1Id)));
-
-      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(String.format("Not Found - Room '%s'", roomGroup1Id), exception.getMessage());
     }
   }
 

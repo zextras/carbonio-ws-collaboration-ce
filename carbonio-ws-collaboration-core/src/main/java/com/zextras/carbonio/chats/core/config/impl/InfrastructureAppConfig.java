@@ -22,8 +22,6 @@ public class InfrastructureAppConfig extends AppConfig {
     configs.put(ConfigName.DATABASE_JDBC_URL, "jdbc:postgresql://127.78.0.4:20003/carbonio-ws-collaboration-db");
     configs.put(ConfigName.XMPP_SERVER_HOST, "127.78.0.4");
     configs.put(ConfigName.XMPP_SERVER_HTTP_PORT, "20004");
-    configs.put(ConfigName.STORAGES_HOST, "127.78.0.4");
-    configs.put(ConfigName.STORAGES_PORT, "20000");
     configs.put(ConfigName.USER_MANAGEMENT_HOST, "127.78.0.4");
     configs.put(ConfigName.USER_MANAGEMENT_PORT, "20001");
     configs.put(ConfigName.PREVIEWER_HOST, "127.78.0.4");

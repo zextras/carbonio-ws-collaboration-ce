@@ -164,17 +164,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   @TimedCall
-  public Response resetRoomHash(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
-    return Response
-      .status(Status.OK)
-      .entity(roomService.resetRoomHash(roomId, currentUser))
-      .build();
-  }
-
-  @Override
-  @TimedCall
   public Response muteRoom(UUID roomId, SecurityContext securityContext) {
     roomService.muteRoom(roomId, Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new));

@@ -48,6 +48,7 @@ import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockserver.verify.VerificationTimes;
 
 @ApiIntegrationTest
 public class UsersApiIT {
@@ -91,8 +92,7 @@ public class UsersApiIT {
       UUID userId = UUID.fromString("332a9527-3388-4207-be77-6d7e2978a723");
       OffsetDateTime ofdt = OffsetDateTime.now();
       clock.fixTimeAt(ofdt.toInstant());
-      integrationTestUtils.generateAndSaveUser(userId, "hello",
-        ofdt, "123");
+      integrationTestUtils.generateAndSaveUser(userId, "hello", ofdt);
 
       MockHttpResponse mockHttpResponse = dispatcher.get(url(userId), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
       assertEquals(200, mockHttpResponse.getStatus());
@@ -134,7 +134,7 @@ public class UsersApiIT {
         "ea7b9b61-bef5-4cf4-80cb-19612c42593a"
       );
       integrationTestUtils.generateAndSaveUser(UUID.fromString(userIds.get(0)), "status message 1",
-        OffsetDateTime.parse("0001-01-01T00:00:00Z"), "111");
+        OffsetDateTime.parse("0001-01-01T00:00:00Z"));
       UserInfo user1 = new UserInfo(new UserId("332a9527-3388-4207-be77-6d7e2978a723"), "snoopy@peanuts.com", "Snoopy",
         "peanuts.com");
       UserInfo user2 = new UserInfo(new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"), "charlie.brown@peanuts.com",
@@ -145,7 +145,8 @@ public class UsersApiIT {
 
       MockHttpResponse mockHttpResponse = dispatcher.get(url(userIds), "F2TkzabOK2pu91sL951ofbJ7Ur3zcJKV9gBwdB84");
       assertEquals(200, mockHttpResponse.getStatus());
-      List<UserDto> users = objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
+      List<UserDto> users = objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {
+      });
       assertEquals("332a9527-3388-4207-be77-6d7e2978a723", users.get(0).getId().toString());
       assertEquals("snoopy@peanuts.com", users.get(0).getEmail());
       assertEquals("Snoopy", users.get(0).getName());
@@ -168,7 +169,7 @@ public class UsersApiIT {
         "ea7b9b61-bef5-4cf4-80cb-19612c42593a"
       );
       integrationTestUtils.generateAndSaveUser(UUID.fromString(userIds.get(0)), "status message 1",
-        OffsetDateTime.parse("0001-01-01T00:00:00Z"), "111");
+        OffsetDateTime.parse("0001-01-01T00:00:00Z"));
       UserInfo user1 = new UserInfo(new UserId("332a9527-3388-4207-be77-6d7e2978a723"), "snoopy@peanuts.com", "Snoopy",
         "peanuts.com");
       UserInfo user2 = new UserInfo(new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"), "charlie.brown@peanuts.com",
@@ -177,7 +178,8 @@ public class UsersApiIT {
 
       MockHttpResponse mockHttpResponse = dispatcher.get(url(userIds), "F2TkzabOK2pu91sL951ofbJ7Ur3zcJKV9gBwdB84");
       assertEquals(200, mockHttpResponse.getStatus());
-      List<UserDto> users = objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
+      List<UserDto> users = objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {
+      });
       assertEquals("332a9527-3388-4207-be77-6d7e2978a723", users.get(0).getId().toString());
       assertEquals("snoopy@peanuts.com", users.get(0).getEmail());
       assertEquals("Snoopy", users.get(0).getName());
@@ -195,11 +197,11 @@ public class UsersApiIT {
 
       MockHttpResponse mockHttpResponse = dispatcher.get(url(userIds), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
       userManagementMockServer.mockUsersBulk(userIds, Collections.emptyList(), true);
-      List<UserDto> users = objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
+      List<UserDto> users = objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {
+      });
       assertEquals(200, mockHttpResponse.getStatus());
       assertTrue(users.isEmpty());
     }
-
   }
 
   @Nested
@@ -217,6 +219,8 @@ public class UsersApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
 
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.USER_AVATAR, account.getUUID(), null);
+      storageMockServer.mockNSLookupUrl(account.getId(), true);
+      storageMockServer.mockDownload(account.getId(), account.getId(), fileMock, true);
 
       MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
       assertEquals(200, response.getStatus());
@@ -229,7 +233,10 @@ public class UsersApiIT {
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
-      storageMockServer.verify("GET", "/download", fileMock.getId(), 1);
+      storageMockServer.verify(storageMockServer.getNSLookupUrlRequest(account.getId()),
+        VerificationTimes.exactly(1));
+      storageMockServer.verify(storageMockServer.getDownloadRequest(account.getId(), account.getId()),
+        VerificationTimes.exactly(1));
     }
 
     @Test
@@ -280,7 +287,11 @@ public class UsersApiIT {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       clock.fixTimeAt(Instant.parse("2022-01-01T00:00:00Z"));
 
-      MockHttpResponse response = dispatcher.put(url(account.getUUID()), fileMock.getId().getBytes(),
+      storageMockServer.mockNSLookupUrl(account.getId(), true);
+      storageMockServer.mockUploadPut(account.getId(), account.getId(), true);
+      byte[] fileBytes = fileMock.getFileBytes();
+
+      MockHttpResponse response = dispatcher.put(url(account.getUUID()), fileBytes,
         Map.of(
           "Content-Type",
           "application/octet-stream",
@@ -295,12 +306,13 @@ public class UsersApiIT {
       assertEquals(0, response.getContentAsString().length());
       Optional<User> user = integrationTestUtils.getUserById(account.getUUID());
       assertTrue(user.isPresent());
-      assertEquals(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneOffset.systemDefault()), user.get().getPictureUpdatedAt());
+      assertEquals(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneOffset.systemDefault()),
+        user.get().getPictureUpdatedAt());
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
-      // TODO: 01/03/22 verify event dispatcher iterations
-      storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
-
-
+      storageMockServer.verify(storageMockServer.getNSLookupUrlRequest(account.getId()), VerificationTimes.exactly(1));
+      storageMockServer.verify(storageMockServer.getUploadPutRequest(account.getId(), account.getId()),
+        VerificationTimes.exactly(1));
+      //TODO: 01/03/22 verify event dispatcher iterations
     }
 
     @Test
@@ -409,7 +421,9 @@ public class UsersApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.USER_AVATAR, account.getUUID(), null);
       integrationTestUtils.generateAndSaveUser(account.getUUID(), "hello",
-        OffsetDateTime.ofInstant(clock.instant(), clock.getZone()), "123");
+        OffsetDateTime.ofInstant(clock.instant(), clock.getZone()));
+      storageMockServer.mockNSLookupUrl(account.getId(), true);
+      storageMockServer.mockDelete(account.getId(), account.getId(), true);
 
       MockHttpResponse response = dispatcher.delete(url(account.getUUID()), account.getToken());
       assertEquals(204, response.getStatus());
@@ -420,7 +434,9 @@ public class UsersApiIT {
       assertNull(user.get().getPictureUpdatedAt());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
-      storageMockServer.verify("DELETE", "/delete", fileMock.getId(), 1);
+      storageMockServer.verify(storageMockServer.getNSLookupUrlRequest(account.getId()), VerificationTimes.exactly(1));
+      storageMockServer.verify(storageMockServer.getDeleteRequest(account.getId(), account.getId()),
+        VerificationTimes.exactly(1));
     }
 
     @Test

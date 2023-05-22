@@ -41,7 +41,6 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.service.UserService;
-import com.zextras.carbonio.chats.core.utils.Utils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
 import java.io.File;
@@ -112,7 +111,7 @@ class UserServiceImplTest {
         Optional.of(
           User.create().id(requestedUserId.toString())
             .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
-            .hash("12345").statusMessage("my status!"))
+            .statusMessage("my status!"))
       );
       when(profilingService.getById(currentPrincipal, requestedUserId))
         .thenReturn(Optional.of(
@@ -181,13 +180,13 @@ class UserServiceImplTest {
         Arrays.asList(
           User.create().id(requestedUserId1.toString())
             .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
-            .hash("111").statusMessage("my status 1"),
+            .statusMessage("my status 1"),
           User.create().id(requestedUserId2.toString())
             .pictureUpdatedAt(OffsetDateTime.parse("2022-02-02T00:00:00Z"))
-            .hash("222").statusMessage("my status 2"),
+            .statusMessage("my status 2"),
           User.create().id(requestedUserId3.toString())
             .pictureUpdatedAt(OffsetDateTime.parse("2022-03-03T00:00:00Z"))
-            .hash("333").statusMessage("my status 3")
+            .statusMessage("my status 3")
         )
       );
       when(profilingService.getByIds(currentPrincipal, requestedUserIds))
@@ -231,7 +230,7 @@ class UserServiceImplTest {
         Collections.singletonList(
           User.create().id(requestedUserId1.toString())
             .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
-            .hash("111").statusMessage("my status 1")
+            .statusMessage("my status 1")
         )
       );
       when(profilingService.getByIds(currentPrincipal, requestedUserIds))
@@ -395,10 +394,9 @@ class UserServiceImplTest {
       verify(userRepository, times(1)).save(
         User.create()
           .id(userId.toString())
-          .hash(Utils.encodeUuidHash(userId.toString(), clock))
           .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
-      verify(clock, times(3)).instant();
-      verify(clock, times(3)).getZone();
+      verify(clock, times(1)).instant();
+      verify(clock, times(1)).getZone();
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(contactsIds,
@@ -421,7 +419,7 @@ class UserServiceImplTest {
       when(file.length()).thenReturn(123L);
       List<String> contactsIds = List.of("a", "b", "c");
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contactsIds);
-      User user = User.create().id(userId.toString()).hash("123")
+      User user = User.create().id(userId.toString())
         .pictureUpdatedAt(OffsetDateTime.parse("2000-12-31T00:00:00Z"));
       when(userRepository.getById(userId.toString())).thenReturn(Optional.of(user));
 
@@ -502,7 +500,7 @@ class UserServiceImplTest {
       when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.of(metadata));
       List<String> contacts = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contacts);
-      User user = User.create().id(userId.toString()).hash("1234")
+      User user = User.create().id(userId.toString())
         .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       when(userRepository.getById(userId.toString())).thenReturn(Optional.of(user));
       userService.deleteUserPicture(userId, UserPrincipal.create(userId));

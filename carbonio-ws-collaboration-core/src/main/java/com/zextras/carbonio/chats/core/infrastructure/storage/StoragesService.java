@@ -44,8 +44,9 @@ public interface StoragesService extends HealthIndicator {
    *
    * @param fileId  file identifier
    * @param ownerId identifier of the owner of the file
+   * @return deleted file identifier
    */
-  void deleteFile(String fileId, String ownerId);
+  String deleteFile(String fileId, String ownerId);
 
   /**
    * Deletes file list by their identifiers

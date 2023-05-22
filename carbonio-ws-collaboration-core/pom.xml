@@ -39,10 +39,10 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>carbonio-user-management-sdk</artifactId>
     </dependency>
 
-    <!-- Storages sdk -->
+    <!-- Powerstore sdk -->
     <dependency>
       <groupId>com.zextras</groupId>
-      <artifactId>storages-ce-sdk</artifactId>
+      <artifactId>Powerstore-SDK</artifactId>
     </dependency>
 
     <!-- Previewer sdk -->
@@ -165,7 +165,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <groupId>javax.websocket</groupId>
       <artifactId>javax.websocket-api</artifactId>
     </dependency>
-
 
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->

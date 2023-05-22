@@ -27,8 +27,8 @@ spec:
     - component:carbonio-message-dispatcher
     - component:carbonio-message-broker
     - component:carbonio-user-management
-    - component:carbonio-storages-ce
-    - component:carbonio-preview-ce
+    - component:carbonio-storages
+    - component:carbonio-preview
     - component:carbonio-videoserver
 
 ---

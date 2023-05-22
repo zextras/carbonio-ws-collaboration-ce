@@ -36,6 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockserver.verify.VerificationTimes;
 
 @ApiIntegrationTest
 public class AttachmentsApiIT {
@@ -104,6 +105,8 @@ public class AttachmentsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       FileMetadata fileMetadata = fileMetadataRepository.save(
         integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
+      storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
+      storageMockServer.mockDownload(fileMock.getId(), user1Id.toString(), fileMock, true);
 
       MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user1Token);
 
@@ -115,17 +118,10 @@ public class AttachmentsApiIT {
       assertEquals(fileMock.getMimeType(), response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("GET", "/download", fileMetadata.getId(), 1);
-    }
-
-    @Test
-    @DisplayName("Returns 424 if the Storage server is down")
-    public void getAttachment_testExceptionStorageServerKO() throws Exception {
-      storageMockServer.setIsAliveResponse(false);
-
-      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), null);
-
-      assertEquals(424, response.getStatus());
+      storageMockServer.verify(storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
+        VerificationTimes.exactly(1));
+      storageMockServer.verify(storageMockServer.getDownloadRequest(fileMock.getId(), user1Id.toString()),
+        VerificationTimes.exactly(1));
     }
 
     @Test
@@ -254,12 +250,17 @@ public class AttachmentsApiIT {
         MockedFiles.get(MockedFileType.PEANUTS_IMAGE),
         FileMetadataType.ATTACHMENT, user2Id, roomId);
 
+      storageMockServer.mockNSLookupUrl(user2Id.toString(), true);
+      storageMockServer.mockDelete(fileMetadata.getId(), user2Id.toString(), true);
+
       MockHttpResponse response = dispatcher.delete(url(fileMetadata.getId()),
         user2Token);
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
       assertTrue(fileMetadataRepository.getById(fileMetadata.getId()).isEmpty());
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user2Token), 1);
-      storageMockServer.verify("DELETE", "/delete", fileMetadata.getId(), 1);
+      storageMockServer.verify(storageMockServer.getNSLookupUrlRequest(user2Id.toString()), VerificationTimes.exactly(1));
+      storageMockServer.verify(storageMockServer.getDeleteRequest(fileMetadata.getId(), user2Id.toString()),
+        VerificationTimes.exactly(1));
     }
 
     @Test
@@ -269,12 +270,18 @@ public class AttachmentsApiIT {
         MockedFiles.get(MockedFileType.PEANUTS_IMAGE),
         FileMetadataType.ATTACHMENT, user2Id, roomId);
 
+      storageMockServer.mockNSLookupUrl(user2Id.toString(), true);
+      storageMockServer.mockDelete(fileMetadata.getId(), user2Id.toString(), true);
+
       MockHttpResponse response = dispatcher.delete(url(fileMetadata.getId()),
         user1Token);
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
       assertTrue(fileMetadataRepository.getById(fileMetadata.getId()).isEmpty());
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("DELETE", "/delete", fileMetadata.getId(), 1);
+
+      storageMockServer.verify(storageMockServer.getNSLookupUrlRequest(user2Id.toString()), VerificationTimes.exactly(1));
+      storageMockServer.verify(storageMockServer.getDeleteRequest(fileMetadata.getId(), user2Id.toString()),
+        VerificationTimes.exactly(1));
     }
 
     @Test

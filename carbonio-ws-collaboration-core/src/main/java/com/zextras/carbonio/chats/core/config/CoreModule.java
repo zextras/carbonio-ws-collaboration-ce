@@ -40,7 +40,7 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.Messag
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagementProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
-import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
+import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServicePowerstoreImpl;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceMock;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
@@ -114,11 +114,15 @@ import com.zextras.carbonio.meeting.api.MeetingsApi;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
-import com.zextras.storages.api.StoragesClient;
+import com.zextras.filestore.powerstore.api.Protocol;
+import com.zextras.filestore.powerstore.api.powerstore.PowerstoreClient;
+import com.zextras.filestore.powerstore.api.powerstore.PowerstoreClient.Builder;
+import com.zextras.filestore.powerstore.api.powerstore.SDKHttpClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.config.DatabaseConfig;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.ZoneId;
 import java.util.Optional;
 import javax.inject.Singleton;
@@ -196,7 +200,7 @@ public class CoreModule extends AbstractModule {
     bind(VideoServerMeetingRepository.class).to(EbeanVideoServerMeetingRepository.class);
     bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
 
-    bind(StoragesService.class).to(StoragesServiceImpl.class);
+    bind(StoragesService.class).to(StoragesServicePowerstoreImpl.class);
     bind(ProfilingService.class).to(UserManagementProfilingService.class);
     bind(AuthenticationService.class).to(UserManagementAuthenticationService.class);
 
@@ -232,13 +236,16 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private StoragesClient getStoragesClient(AppConfig appConfig) {
-    return StoragesClient.atUrl(
-      String.format("http://%s:%s",
-        appConfig.get(String.class, ConfigName.STORAGES_HOST).orElseThrow(),
-        appConfig.get(String.class, ConfigName.STORAGES_PORT).orElseThrow()
-      )
-    );
+  private PowerstoreClient getStoragesClient() throws Exception {
+    SDKHttpClient powerStoreHttpClient = SDKHttpClient
+      .builder()
+      .trustAllCertificates()
+      .withTimeout(Duration.ofMinutes(1))
+      .build();
+    return new Builder(powerStoreHttpClient)
+//      .withMemcached(MemcachedOptions::withConsul)
+      .withNSLookup(options -> options.withConsul().withProtocol(Protocol.https))
+      .build();
   }
 
   @Singleton

@@ -45,8 +45,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     <maven.compiler.target>11</maven.compiler.target>
     <!-- Carbonio User Management -->
     <carbonio-user-management-sdk.version>0.2.1</carbonio-user-management-sdk.version>
-    <!-- Storages -->
-    <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
+    <!-- Powerstore -->
+    <powerstore-sdk.version>1.0.3-SNAPSHOT</powerstore-sdk.version>
     <!-- Previewer -->
     <preview-sdk.version>1.0.1</preview-sdk.version>
     <!-- Jetty -->
@@ -123,11 +123,11 @@ SPDX-License-Identifier: AGPL-3.0-only
         <version>${carbonio-user-management-sdk.version}</version>
       </dependency>
 
-      <!-- Storages sdk -->
+      <!-- Powerstore sdk -->
       <dependency>
         <groupId>com.zextras</groupId>
-        <artifactId>storages-ce-sdk</artifactId>
-        <version>${storages-sdk.version}</version>
+        <artifactId>Powerstore-SDK</artifactId>
+        <version>${powerstore-sdk.version}</version>
       </dependency>
 
       <!-- Previewer sdk -->

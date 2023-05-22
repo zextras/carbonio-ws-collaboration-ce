@@ -7,11 +7,10 @@ package com.zextras.carbonio.chats.core.data.entity;
 import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
 import java.time.OffsetDateTime;
-import java.util.Date;
+import java.util.Objects;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
-import javax.persistence.Lob;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -30,9 +29,6 @@ public class User {
 
   @Column(name = "STATUS_MESSAGE", length = 256, nullable = false)
   private String statusMessage = "";
-
-  @Column(name = "HASH", length = 256, unique = true, nullable = false)
-  private String hash;
 
   @Column(name = "CREATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
@@ -66,15 +62,6 @@ public class User {
     return this;
   }
 
-  public String getHash() {
-    return hash;
-  }
-
-  public User hash(String hash) {
-    this.hash = hash;
-    return this;
-  }
-
   public OffsetDateTime getPictureUpdatedAt() {
     return pictureUpdatedAt;
   }
@@ -90,5 +77,24 @@ public class User {
 
   public OffsetDateTime getUpdatedAt() {
     return updatedAt;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    User user = (User) o;
+    return Objects.equals(id, user.id) && (Objects.equals(pictureUpdatedAt, user.pictureUpdatedAt)
+      || Objects.equals(pictureUpdatedAt.toInstant().toEpochMilli(), user.pictureUpdatedAt.toInstant().toEpochMilli()))
+      && Objects.equals(statusMessage, user.statusMessage);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, pictureUpdatedAt, statusMessage);
   }
 }
