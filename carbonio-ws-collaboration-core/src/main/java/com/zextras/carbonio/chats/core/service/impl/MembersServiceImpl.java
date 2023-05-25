@@ -20,6 +20,7 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
+import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
@@ -51,6 +52,7 @@ public class MembersServiceImpl implements MembersService {
   private final MessageDispatcher          messageService;
   private final MeetingService             meetingService;
   private final ParticipantService         participantService;
+  private final CapabilityService          capabilityService;
 
   @Inject
   public MembersServiceImpl(
@@ -60,7 +62,9 @@ public class MembersServiceImpl implements MembersService {
     SubscriptionMapper subscriptionMapper,
     UserService userService,
     MessageDispatcher messageDispatcher,
-    MeetingService meetingService, ParticipantService participantService
+    MeetingService meetingService,
+    ParticipantService participantService,
+    CapabilityService capabilityService
   ) {
     this.roomService = roomService;
     this.subscriptionRepository = subscriptionRepository;
@@ -71,6 +75,7 @@ public class MembersServiceImpl implements MembersService {
     this.messageService = messageDispatcher;
     this.meetingService = meetingService;
     this.participantService = participantService;
+    this.capabilityService = capabilityService;
   }
 
   @Override
@@ -116,6 +121,11 @@ public class MembersServiceImpl implements MembersService {
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (List.of(RoomTypeDto.ONE_TO_ONE, RoomTypeDto.CHANNEL).contains(room.getType())) {
       throw new BadRequestException(String.format("Cannot add members to a %s conversation", room.getType()));
+    } else if (RoomTypeDto.GROUP.equals(room.getType())) {
+      Integer maxGroupMembers = capabilityService.getCapabilities(currentUser).getMaxGroupMembers();
+      if (room.getSubscriptions().size() == maxGroupMembers) {
+        throw new BadRequestException(String.format("Cannot add more members to this %s", room.getType()));
+      }
     }
     if (room.getSubscriptions().stream()
       .anyMatch(member -> memberToInsertDto.getUserId().toString().equals(member.getUserId()))) {

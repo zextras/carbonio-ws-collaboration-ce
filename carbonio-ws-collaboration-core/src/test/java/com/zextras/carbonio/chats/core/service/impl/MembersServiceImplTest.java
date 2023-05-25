@@ -33,12 +33,14 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
+import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
@@ -66,6 +68,7 @@ public class MembersServiceImplTest {
   private final MembersService             membersService;
   private final MeetingService             meetingService;
   private final ParticipantService         participantService;
+  private final CapabilityService          capabilityService;
 
   public MembersServiceImplTest(
     SubscriptionMapper subscriptionMapper
@@ -78,6 +81,7 @@ public class MembersServiceImplTest {
     this.messageDispatcher = mock(MessageDispatcher.class);
     this.meetingService = mock(MeetingService.class);
     this.participantService = mock(ParticipantService.class);
+    this.capabilityService = mock(CapabilityService.class);
     this.membersService = new MembersServiceImpl(
       roomService,
       subscriptionRepository,
@@ -87,12 +91,14 @@ public class MembersServiceImplTest {
       userService,
       messageDispatcher,
       meetingService,
-      participantService);
+      participantService,
+      capabilityService);
   }
 
   private static UUID user1Id;
   private static UUID user2Id;
   private static UUID user3Id;
+  private static UUID user4Id;
   private static UUID roomId;
 
   @BeforeAll
@@ -100,6 +106,7 @@ public class MembersServiceImplTest {
     user1Id = UUID.randomUUID();
     user2Id = UUID.randomUUID();
     user3Id = UUID.randomUUID();
+    user4Id = UUID.randomUUID();
     roomId = UUID.randomUUID();
   }
 
@@ -258,6 +265,7 @@ public class MembersServiceImplTest {
       when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
       when(subscriptionRepository.insert(any(Subscription.class))).thenReturn(
         Subscription.create(room, user2Id.toString()));
+      when(capabilityService.getCapabilities(principal)).thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
 
       MemberInsertedDto member = membersService.insertRoomMember(roomId,
         MemberToInsertDto.create().userId(user2Id).historyCleared(false),
@@ -382,7 +390,7 @@ public class MembersServiceImplTest {
     }
 
     @Test
-    @DisplayName("if user is already a room member, it throws a 'bad request' exception")
+    @DisplayName("If user is already a room member, it throws a 'bad request' exception")
     public void insertRoomMember_userIsAlreadyARoomMember() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(List.of(
@@ -394,6 +402,9 @@ public class MembersServiceImplTest {
 
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(capabilityService.getCapabilities(principal)).thenReturn(
+        CapabilitiesDto.create().maxGroupMembers(128));
+
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
         membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal));
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
@@ -408,7 +419,7 @@ public class MembersServiceImplTest {
     }
 
     @Test
-    @DisplayName("if the user doesn't exist, it throws a 'not found' exception")
+    @DisplayName("If the user doesn't exist, it throws a 'not found' exception")
     public void insertRoomMember_userNotExists() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(List.of(
@@ -446,6 +457,8 @@ public class MembersServiceImplTest {
         Subscription.create(room, user2Id.toString()));
       when(roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), user2Id.toString()))
         .thenReturn(Optional.of(RoomUserSettings.create().clearedAt(OffsetDateTime.now())));
+      when(capabilityService.getCapabilities(principal)).thenReturn(
+        CapabilitiesDto.create().maxGroupMembers(128));
 
       MemberInsertedDto member = membersService.insertRoomMember(roomId,
         MemberToInsertDto.create().userId(user2Id).historyCleared(true), principal);
@@ -464,6 +477,33 @@ public class MembersServiceImplTest {
       verify(messageDispatcher, times(1)).addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
       verifyNoMoreInteractions(userService, roomService, subscriptionRepository, eventDispatcher, messageDispatcher,
         roomUserSettingsRepository);
+    }
+
+    @Test
+    @DisplayName("Reached max group members when inviting a user, it throws a 'bad request' exception")
+    public void insertRoomMember_maxGroupMembers() {
+      Room room = generateRoom(RoomTypeDto.GROUP);
+      room.subscriptions(List.of(
+        Subscription.create(room, user1Id.toString()).owner(true),
+        Subscription.create(room, user2Id.toString()).owner(false),
+        Subscription.create(room, user3Id.toString()).owner(false)
+      ));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+      when(capabilityService.getCapabilities(principal)).thenReturn(CapabilitiesDto.create().maxGroupMembers(3));
+
+      when(userService.userExists(user4Id, principal)).thenReturn(true);
+      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
+        membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user4Id), principal));
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals("Bad Request - Cannot add more members to this group", exception.getMessage());
+      verify(userService, times(1)).userExists(user4Id, principal);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
+      verify(capabilityService, times(1)).getCapabilities(principal);
+
+      verifyNoMoreInteractions(userService, roomService, capabilityService);
+      verifyNoInteractions(subscriptionRepository, eventDispatcher, messageDispatcher, roomUserSettingsRepository);
     }
 
   }
