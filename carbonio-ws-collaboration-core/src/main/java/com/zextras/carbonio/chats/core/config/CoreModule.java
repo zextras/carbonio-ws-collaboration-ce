@@ -298,12 +298,12 @@ public class CoreModule extends AbstractModule {
     config.addDataSourceProperty("minimumIdle",
       appConfig.get(Integer.class, ConfigName.HIKARI_MIN_POOL_SIZE).orElse(1));
     config.addDataSourceProperty("maximumPoolSize",
-      appConfig.get(Integer.class, ConfigName.HIKARI_MAX_POOL_SIZE).orElse(5));
+      appConfig.get(Integer.class, ConfigName.HIKARI_MAX_POOL_SIZE).orElse(2));
     config.addDataSourceProperty("poolName", "chats-db-pool");
     config.addDataSourceProperty("driverClassName",
       appConfig.get(String.class, ConfigName.DATABASE_JDBC_DRIVER).orElseThrow());
     config.addDataSourceProperty("leakDetectionThreshold",
-      appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(60000));
+      appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(2000));
     return new HikariDataSource(config);
   }
 
