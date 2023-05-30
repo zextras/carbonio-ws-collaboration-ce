@@ -74,8 +74,6 @@ fi
 consul reload
 
 carbonio-ws-collaboration-configs
-carbonio-ws-collaboration-broker-configs
-carbonio-ws-collaboration-hikari-configs
 
 # Limit token visibility as much as possible
 export -n CONSUL_HTTP_TOKEN
