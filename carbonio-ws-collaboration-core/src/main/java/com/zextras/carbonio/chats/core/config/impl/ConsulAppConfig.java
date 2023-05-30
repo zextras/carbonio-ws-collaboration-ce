@@ -40,11 +40,11 @@ public class ConsulAppConfig extends AppConfig {
     namesMapping = new HashMap<>();
     namesMapping.put(ConfigName.DATABASE_USERNAME, "carbonio-ws-collaboration-db/db-username");
     namesMapping.put(ConfigName.DATABASE_PASSWORD, "carbonio-ws-collaboration-db/db-password");
-    namesMapping.put(ConfigName.HIKARI_IDLE_TIMEOUT, "carbonio-ws-collaboration/hikari-idle-timeout");
-    namesMapping.put(ConfigName.HIKARI_MIN_POOL_SIZE, "carbonio-ws-collaboration/hikari-min-pool-size");
-    namesMapping.put(ConfigName.HIKARI_MAX_POOL_SIZE, "carbonio-ws-collaboration/hikari-max-pool-size");
+    namesMapping.put(ConfigName.HIKARI_IDLE_TIMEOUT, "carbonio-ws-collaboration/hikari/idle-timeout");
+    namesMapping.put(ConfigName.HIKARI_MIN_POOL_SIZE, "carbonio-ws-collaboration/hikari/min-pool-size");
+    namesMapping.put(ConfigName.HIKARI_MAX_POOL_SIZE, "carbonio-ws-collaboration/hikari/max-pool-size");
     namesMapping.put(ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD,
-      "carbonio-ws-collaboration/hikari-leak-detection-threshold");
+      "carbonio-ws-collaboration/hikari/leak-detection-threshold");
     namesMapping.put(ConfigName.XMPP_SERVER_USERNAME, "carbonio-message-dispatcher/api/username");
     namesMapping.put(ConfigName.XMPP_SERVER_PASSWORD, "carbonio-message-dispatcher/api/password");
     namesMapping.put(ConfigName.EVENT_DISPATCHER_USER_USERNAME, "carbonio-message-broker/username");
