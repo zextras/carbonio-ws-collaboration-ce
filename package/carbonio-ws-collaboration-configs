@@ -24,6 +24,10 @@ CONFIGURATIONS=(
   "$MAIN_SERVICE_NAME/broker/automatic-recovery-enabled:true"
   "$MAIN_SERVICE_NAME/broker/topology-recovery-enabled:false"
   "$MAIN_SERVICE_NAME/broker/network-recovery-interval:20000"
+  "$MAIN_SERVICE_NAME/hikari/min-pool-size:1"
+  "$MAIN_SERVICE_NAME/hikari/max-pool-size:2"
+  "$MAIN_SERVICE_NAME/hikari/idle-timeout:300"
+  "$MAIN_SERVICE_NAME/hikari/leak-detection-threshold:2000"
 )
 
 get_consul_kv() {
