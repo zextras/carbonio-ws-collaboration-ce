@@ -26,8 +26,8 @@ CONFIGURATIONS=(
   "$MAIN_SERVICE_NAME/broker/network-recovery-interval:20000"
   "$MAIN_SERVICE_NAME/hikari/min-pool-size:1"
   "$MAIN_SERVICE_NAME/hikari/max-pool-size:2"
-  "$MAIN_SERVICE_NAME/hikari/idle-timeout:300"
-  "$MAIN_SERVICE_NAME/hikari/leak-detection-threshold:2000"
+  "$MAIN_SERVICE_NAME/hikari/idle-timeout:10000"
+  "$MAIN_SERVICE_NAME/hikari/leak-detection-threshold:5000"
 )
 
 get_consul_kv() {
