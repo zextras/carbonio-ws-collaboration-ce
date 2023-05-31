@@ -283,20 +283,16 @@ public class CoreModule extends AbstractModule {
   public DataSource getHikariDataSource(AppConfig appConfig) {
     HikariConfig config = new HikariConfig();
     config.setJdbcUrl(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).orElseThrow());
+    config.setDriverClassName(appConfig.get(String.class, ConfigName.DATABASE_JDBC_DRIVER).orElseThrow());
+    config.setPoolName("ws-collaboration-db-pool");
     config.setUsername(
       appConfig.get(String.class, ConfigName.DATABASE_USERNAME).orElse("carbonio-ws-collaboration-db"));
     config.setPassword(appConfig.get(String.class, ConfigName.DATABASE_PASSWORD).orElse("password"));
-    config.addDataSourceProperty("idleTimeout",
-      appConfig.get(Integer.class, ConfigName.HIKARI_IDLE_TIMEOUT).orElse(300));
-    config.addDataSourceProperty("minimumIdle",
-      appConfig.get(Integer.class, ConfigName.HIKARI_MIN_POOL_SIZE).orElse(1));
-    config.addDataSourceProperty("maximumPoolSize",
-      appConfig.get(Integer.class, ConfigName.HIKARI_MAX_POOL_SIZE).orElse(2));
-    config.addDataSourceProperty("poolName", "chats-db-pool");
-    config.addDataSourceProperty("driverClassName",
-      appConfig.get(String.class, ConfigName.DATABASE_JDBC_DRIVER).orElseThrow());
-    config.addDataSourceProperty("leakDetectionThreshold",
-      appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(2000));
+    config.setIdleTimeout(appConfig.get(Integer.class, ConfigName.HIKARI_IDLE_TIMEOUT).orElse(10000));
+    config.setMinimumIdle(appConfig.get(Integer.class, ConfigName.HIKARI_MIN_POOL_SIZE).orElse(1));
+    config.setMaximumPoolSize(appConfig.get(Integer.class, ConfigName.HIKARI_MAX_POOL_SIZE).orElse(2));
+    config.setLeakDetectionThreshold(
+      appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(5000));
     return new HikariDataSource(config);
   }
 
