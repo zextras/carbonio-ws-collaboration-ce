@@ -55,7 +55,7 @@ public class DatabaseExtension implements BeforeAllCallback, AfterEachCallback {
         config.setJdbcUrl(postgreDatabase.getJdbcUrl());
         config.setUsername(DATABASE_USER);
         config.setPassword(DATABASE_PASSWORD);
-        config.addDataSourceProperty("driverClassName", DATABASE_DRIVER);
+        config.setDriverClassName(DATABASE_DRIVER);
 
         ChatsLogger.debug("Migrating test DB...");
         Flyway flyway = Flyway.configure()
