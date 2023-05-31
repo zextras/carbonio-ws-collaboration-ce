@@ -121,7 +121,6 @@ public class XmppMessageBuilder {
       return message;
     }
     return sb.toString();
-
   }
 
   private Element createForwardedElement(Document document) {
@@ -136,18 +135,50 @@ public class XmppMessageBuilder {
         messageToForward.indexOf("</body>"));
       messageToForward = messageToForward.replace(body, StringEscapeUtils.escapeXml10(body));
     }
+    Document documentTag;
     Element messageTag;
     try {
-      messageTag = DocumentBuilderFactory
+      documentTag = DocumentBuilderFactory
         .newInstance()
         .newDocumentBuilder()
-        .parse(new ByteArrayInputStream(messageToForward.getBytes())).getDocumentElement();
+        .parse(new ByteArrayInputStream(messageToForward.getBytes()));
     } catch (Exception e) {
       throw new BadRequestException("Cannot read the message to forward", e);
     }
+    messageTag = documentTag.getDocumentElement();
+    Optional<Element> forwardedTag = Optional.ofNullable(
+      Optional.ofNullable((Element) messageTag.getElementsByTagName("forwarded").item(0))
+        .orElse(Optional.ofNullable((Element) messageTag.getElementsByTagName("result").item(0))
+          .map(r -> (Element) r.getElementsByTagName("forwarded").item(0)).orElse(null)));
+    int countAtt;
+    String textBody;
+    if (forwardedTag.isPresent()) {
+      countAtt = forwardedTag
+        .flatMap(f -> Optional.ofNullable(f.getAttributes().getNamedItem("count"))
+          .map(c -> Integer.parseInt(c.getNodeValue()) + 1)).orElse(1);
+      textBody = forwardedTag
+        .flatMap(f -> Optional.ofNullable((Element) f.getElementsByTagName("message").item(0))
+          .flatMap(m -> Optional.ofNullable(m.getElementsByTagName("body").item(0))
+            .map(Node::getTextContent))).orElse("");
+    } else {
+      countAtt = 1;
+      textBody = Optional.ofNullable(messageTag.getElementsByTagName("body").item(0))
+        .map(Node::getTextContent).orElse("");
+    }
+    element.setAttribute("count", String.valueOf(countAtt));
+
+    Optional<Element> bodyTag = Optional.ofNullable((Element) messageTag.getElementsByTagName("body").item(0));
+    if (bodyTag.isPresent()) {
+      bodyTag.get().setTextContent(textBody);
+    } else {
+      messageTag.appendChild(createTextElement(documentTag, "body", textBody));
+    }
+
     Optional.ofNullable(messageTag.getElementsByTagName("markable").item(0)).ifPresent(messageTag::removeChild);
     Optional.ofNullable(messageTag.getElementsByTagName("forwarded").item(0)).ifPresent(messageTag::removeChild);
     Optional.ofNullable(messageTag.getElementsByTagName("reply").item(0)).ifPresent(messageTag::removeChild);
+    Optional.ofNullable(messageTag.getElementsByTagName("stanza-id").item(0)).ifPresent(messageTag::removeChild);
+    Optional.ofNullable(messageTag.getElementsByTagName("x").item(0)).ifPresent(messageTag::removeChild);
     Node messageTagImported = document.importNode(messageTag, true);
     element.appendChild(messageTagImported);
     return element;

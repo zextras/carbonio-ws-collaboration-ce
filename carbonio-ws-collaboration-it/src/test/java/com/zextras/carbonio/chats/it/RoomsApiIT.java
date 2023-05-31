@@ -2641,8 +2641,8 @@ public class RoomsApiIT {
       String hoped = String.format(
         "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
         user1Id, roomId)
-        + "<body>this is my body !</body>"
-        + "<forwarded xmlns='urn:xmpp:forward:0'>"
+        + "<body/>"
+        + "<forwarded xmlns='urn:xmpp:forward:0' count='1'>"
         + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
         + "<message from='sender-id' to='recipient-id' type='groupchat'>"
         + "<body>this is the body of the message to forward!</body>"
@@ -2658,8 +2658,7 @@ public class RoomsApiIT {
           + "</message>";
       ForwardMessageDto forwardMessageDto = ForwardMessageDto.create()
         .originalMessage(messageToForward)
-        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-        .description("this is my body !");
+        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"));
       MockHttpResponse response = dispatcher.post(url(roomId),
         objectMapper.writeValueAsString(List.of(forwardMessageDto)), user1Token);
       assertNotNull(response);
@@ -2710,19 +2709,14 @@ public class RoomsApiIT {
         + "<mime-type>mimetype</mime-type>"
         + "<size>1024</size>"
         + "</x>"
-        + "<body>this is my body !</body>"
-        + "<forwarded xmlns='urn:xmpp:forward:0'>"
+        + "<body/>"
+        + "<forwarded xmlns='urn:xmpp:forward:0' count='1'>"
         + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
         + String.format(
         "<message from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
         user2Id, room1Id)
-        + "<x>"
-        + "<operation>attachmentAdded</operation>"
-        + String.format("<attachment-id>%s</attachment-id>", attach1Id)
-        + "<filename>filename</filename>"
-        + "<mime-type>mimetype</mime-type>"
-        + "<size>1024</size>"
-        + "</x><body/></message>"
+        + "<body/>"
+        + "</message>"
         + "</forwarded>"
         + "</message>";
 
@@ -2741,8 +2735,7 @@ public class RoomsApiIT {
           + "</x><body/></message>";
       ForwardMessageDto forwardMessageDto = ForwardMessageDto.create()
         .originalMessage(messageToForward)
-        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-        .description("this is my body !");
+        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"));
 
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -2790,8 +2783,8 @@ public class RoomsApiIT {
       String hoped = String.format(
         "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
         user1Id, roomId)
-        + "<body>this is my body !</body>"
-        + "<forwarded xmlns='urn:xmpp:forward:0'>"
+        + "<body/>"
+        + "<forwarded xmlns='urn:xmpp:forward:0' count='1'>"
         + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
         + "<message from='sender-id' to='recipient-id' type='groupchat'>"
         + "<body>this is\\nthe body\\nof the message\\nto forward!</body>"
@@ -2807,8 +2800,7 @@ public class RoomsApiIT {
           + "</message>";
       ForwardMessageDto forwardMessageDto = ForwardMessageDto.create()
         .originalMessage(messageToForward)
-        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-        .description("this is my body !");
+        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"));
       MockHttpResponse response = dispatcher.post(url(roomId),
         objectMapper.writeValueAsString(List.of(forwardMessageDto)), user1Token);
       assertNotNull(response);
@@ -2833,8 +2825,8 @@ public class RoomsApiIT {
       String hoped = String.format(
         "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
         user1Id, roomId)
-        + "<body>a &amp; ' = &agrave;</body>"
-        + "<forwarded xmlns='urn:xmpp:forward:0'>"
+        + "<body/>"
+        + "<forwarded xmlns='urn:xmpp:forward:0' count='1'>"
         + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
         + "<message from='sender-id' to='recipient-id' type='groupchat'>"
         + "<body>&agrave; &egrave; &eacute; &igrave; &ograve; &ugrave; &amp;</body>"
@@ -2850,8 +2842,7 @@ public class RoomsApiIT {
           + "</message>";
       ForwardMessageDto forwardMessageDto = ForwardMessageDto.create()
         .originalMessage(messageToForward)
-        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-        .description("a & ' = à");
+        .originalMessageSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"));
       MockHttpResponse response = dispatcher.post(url(roomId),
         objectMapper.writeValueAsString(List.of(forwardMessageDto)), user1Token);
       assertNotNull(response);
