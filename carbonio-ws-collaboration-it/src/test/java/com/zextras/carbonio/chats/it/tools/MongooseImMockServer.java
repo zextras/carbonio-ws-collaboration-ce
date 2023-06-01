@@ -61,15 +61,20 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
     when(request).respond(getResponse(success));
   }
 
-  public HttpRequest getCreateRoomRequest(String roomId, String senderId, String name, String description) {
-    return getRequest("POST",
+  public HttpRequest getCreateRoomRequest(String roomId, String senderId, @Nullable String name,
+    @Nullable String description) {
+    StringBuilder body = new StringBuilder(
       "{\"query\":\"mutation muc_light { muc_light { createRoom (mucDomain: \\\"muclight.carbonio\\\", "
-        + String.format("id: \\\"%s\\\", ", roomId) + String.format("owner: \\\"%s@carbonio\\\", ", senderId)
-        + String.format("name: \\\"%s\\\", ", name) + String.format("subject: \\\"%s\\\") ", description)
-        + "{ jid } } }\",\"operationName\":\"muc_light\",\"variables\":{}}");
+        + String.format("id: \\\"%s\\\", ", roomId) + String.format("owner: \\\"%s@carbonio\\\", ", senderId));
+    Optional.ofNullable(name).ifPresent(n -> body.append(String.format("name: \\\"%s\\\", ", n)));
+    Optional.ofNullable(description).ifPresent(d -> body.append(String.format("subject: \\\"%s\\\"), ", d)));
+    body.append("{ jid } } }\",\"operationName\":\"muc_light\",\"variables\":{}}");
+
+    return getRequest("POST", body.toString());
   }
 
-  public void mockCreateRoom(String roomId, String senderId, String name, String description, boolean success) {
+  public void mockCreateRoom(String roomId, String senderId, @Nullable String name, @Nullable String description,
+    boolean success) {
     HttpRequest request = getCreateRoomRequest(roomId, senderId, name, description);
     clear(request);
     when(request).respond(getResponse(success));

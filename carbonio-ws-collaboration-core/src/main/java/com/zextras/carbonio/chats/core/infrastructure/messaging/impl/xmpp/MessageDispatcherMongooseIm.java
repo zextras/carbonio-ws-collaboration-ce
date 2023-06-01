@@ -61,14 +61,15 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void createRoom(Room room, String senderId) {
-    GraphQlResponse result = executeMutation(GraphQlBody.create(
-      "mutation muc_light { muc_light { createRoom (" +
-        String.format("mucDomain: \"%s\", ", DOMAIN) +
-        String.format("id: \"%s\", ", room.getId()) +
-        String.format("owner: \"%s\", ", userIdToUserDomain(senderId)) +
-        String.format("name: \"%s\", ", room.getName()) +
-        String.format("subject: \"%s\") ", room.getDescription()) +
-        "{ jid } } }", "muc_light", Map.of()));
+    StringBuilder stringBuilder = new StringBuilder(
+      "mutation muc_light { muc_light { createRoom (" + String.format("mucDomain: \"%s\", ", DOMAIN) + String.format(
+        "id: \"%s\", ", room.getId()) + String.format("owner: \"%s\", ", userIdToUserDomain(senderId)));
+    Optional.ofNullable(room.getName()).ifPresent(n -> stringBuilder.append(String.format("name: \\\"%s\\\", ", n)));
+    Optional.ofNullable(room.getDescription())
+      .ifPresent(d -> stringBuilder.append(String.format("subject: \\\"%s\\\"), ", d)));
+    stringBuilder.append("{ jid } } }");
+    GraphQlResponse result = executeMutation(GraphQlBody.create(stringBuilder.toString(), "muc_light", Map.of()));
+
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(

@@ -149,9 +149,9 @@ public class RoomServiceImpl implements RoomService {
     UUID newRoomId = UUID.randomUUID();
     Room room = Room.create()
       .id(newRoomId.toString())
-      .name(roomCreationFields.getName())
-      .description(roomCreationFields.getDescription())
       .type(roomCreationFields.getType());
+    Optional.ofNullable(roomCreationFields.getName()).ifPresent(room::name);
+    Optional.ofNullable(roomCreationFields.getDescription()).ifPresent(room::description);
     room = room.subscriptions(
       membersService.initRoomSubscriptions(membersIds, room, currentUser));
     room = roomRepository.insert(room);

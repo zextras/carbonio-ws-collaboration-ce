@@ -23,6 +23,7 @@ import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
+import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.io.File;
@@ -85,10 +86,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response insertRoom(RoomCreationFieldsDto insertRoomRequestDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    return Response
-      .status(Status.CREATED)
-      .entity(roomService.createRoom(insertRoomRequestDto, currentUser))
-      .build();
+    if (insertRoomRequestDto.getType().equals(RoomTypeDto.ONE_TO_ONE) &&
+      (insertRoomRequestDto.getName() != null || insertRoomRequestDto.getDescription() != null)) {
+      return Response.status(Status.BAD_REQUEST).build();
+    } else {
+      return Response
+        .status(Status.CREATED)
+        .entity(roomService.createRoom(insertRoomRequestDto, currentUser))
+        .build();
+    }
   }
 
   @Override
