@@ -10,7 +10,7 @@ CONSUL_TOKEN_PATH="/etc/carbonio/ws-collaboration/service-discover/token"
 
 MAIN_SERVICE_NAME="carbonio-ws-collaboration"
 
-BEHAVIORAL_CONFIGURATIONS=(
+CONFIGURATIONS=(
   "$MAIN_SERVICE_NAME/configs/can-see-message-reads:true"
   "$MAIN_SERVICE_NAME/configs/can-see-users-presence:true"
   "$MAIN_SERVICE_NAME/configs/max-user-image-size-in-kb:512"
@@ -18,20 +18,30 @@ BEHAVIORAL_CONFIGURATIONS=(
   "$MAIN_SERVICE_NAME/configs/edit-message-time-limit-in-minutes:10"
   "$MAIN_SERVICE_NAME/configs/delete-message-time-limit-in-minutes:10"
   "$MAIN_SERVICE_NAME/configs/max-group-members:128"
+  "$MAIN_SERVICE_NAME/broker/virtual-host:/"
+  "$MAIN_SERVICE_NAME/broker/requested-heartbeat-in-sec:15"
+  "$MAIN_SERVICE_NAME/broker/connection-timeout-in-milli:40000"
+  "$MAIN_SERVICE_NAME/broker/automatic-recovery-enabled:true"
+  "$MAIN_SERVICE_NAME/broker/topology-recovery-enabled:false"
+  "$MAIN_SERVICE_NAME/broker/network-recovery-interval:20000"
+  "$MAIN_SERVICE_NAME/hikari/min-pool-size:1"
+  "$MAIN_SERVICE_NAME/hikari/max-pool-size:2"
+  "$MAIN_SERVICE_NAME/hikari/idle-timeout:10000"
+  "$MAIN_SERVICE_NAME/hikari/leak-detection-threshold:5000"
 )
 
 get_consul_kv() {
-    KEY=$1
-    CONSUL_VALUE=$(consul kv get -token-file="$CONSUL_TOKEN_PATH" "${KEY}")
+  KEY=$1
+  CONSUL_VALUE=$(consul kv get -token-file="$CONSUL_TOKEN_PATH" "${KEY}")
 }
 
-for item in "${BEHAVIORAL_CONFIGURATIONS[@]}"
-do
-    KEY=${item%%:*}
+for item in "${CONFIGURATIONS[@]}"; do
+  KEY=${item%%:*}
 
-    get_consul_kv "$KEY" >/dev/null 2>&1; CONFIG=$CONSUL_VALUE
+  get_consul_kv "$KEY" >/dev/null 2>&1
+  CONFIG=$CONSUL_VALUE
 
-    if [[ "$CONFIG" == "" ]]; then
-      consul kv put -token-file="$CONSUL_TOKEN_PATH" "$KEY" "${item##*:}"
-    fi
+  if [[ "$CONFIG" == "" ]]; then
+    consul kv put -token-file="$CONSUL_TOKEN_PATH" "$KEY" "${item##*:}"
+  fi
 done

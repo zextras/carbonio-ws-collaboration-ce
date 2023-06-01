@@ -40,11 +40,11 @@ public class ConsulAppConfig extends AppConfig {
     namesMapping = new HashMap<>();
     namesMapping.put(ConfigName.DATABASE_USERNAME, "carbonio-ws-collaboration-db/db-username");
     namesMapping.put(ConfigName.DATABASE_PASSWORD, "carbonio-ws-collaboration-db/db-password");
-    namesMapping.put(ConfigName.HIKARI_IDLE_TIMEOUT, "carbonio-ws-collaboration/hikari-idle-timeout");
-    namesMapping.put(ConfigName.HIKARI_MIN_POOL_SIZE, "carbonio-ws-collaboration/hikari-min-pool-size");
-    namesMapping.put(ConfigName.HIKARI_MAX_POOL_SIZE, "carbonio-ws-collaboration/hikari-max-pool-size");
+    namesMapping.put(ConfigName.HIKARI_IDLE_TIMEOUT, "carbonio-ws-collaboration/hikari/idle-timeout");
+    namesMapping.put(ConfigName.HIKARI_MIN_POOL_SIZE, "carbonio-ws-collaboration/hikari/min-pool-size");
+    namesMapping.put(ConfigName.HIKARI_MAX_POOL_SIZE, "carbonio-ws-collaboration/hikari/max-pool-size");
     namesMapping.put(ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD,
-      "carbonio-ws-collaboration/hikari-leak-detection-threshold");
+      "carbonio-ws-collaboration/hikari/leak-detection-threshold");
     namesMapping.put(ConfigName.XMPP_SERVER_USERNAME, "carbonio-message-dispatcher/api/username");
     namesMapping.put(ConfigName.XMPP_SERVER_PASSWORD, "carbonio-message-dispatcher/api/password");
     namesMapping.put(ConfigName.EVENT_DISPATCHER_USER_USERNAME, "carbonio-message-broker/username");
@@ -60,6 +60,17 @@ public class ConsulAppConfig extends AppConfig {
     namesMapping.put(ConfigName.DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES,
       "carbonio-ws-collaboration/configs/delete-message-time-limit-in-minutes");
     namesMapping.put(ConfigName.MAX_GROUP_MEMBERS, "carbonio-ws-collaboration/configs/max-group-members");
+    namesMapping.put(ConfigName.VIRTUAL_HOST, "carbonio-ws-collaboration/broker/virtual-host");
+    namesMapping.put(ConfigName.REQUESTED_HEARTBEAT_IN_SEC,
+      "carbonio-ws-collaboration/broker/requested-heartbeat-in-sec");
+    namesMapping.put(ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI,
+      "carbonio-ws-collaboration/broker/network-recovery-interval-in-milli");
+    namesMapping.put(ConfigName.CONNECTION_TIMEOUT_IN_MILLI,
+      "carbonio-ws-collaboration/broker/connection-timeout-in-milli");
+    namesMapping.put(ConfigName.AUTOMATIC_RECOVERY_ENABLED,
+      "carbonio-ws-collaboration/broker/automatic-recovery-enabled");
+    namesMapping.put(ConfigName.TOPOLOGY_RECOVERY_ENABLED,
+      "carbonio-ws-collaboration/broker/topology-recovery-enabled");
   }
 
   private boolean loaded = false;
