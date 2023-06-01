@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * This abstract class a generic response provided by VideoServer
+ * This class represents a generic response provided by VideoServer
  * <p>
  * It's composed of at least one mandatory field:
  * <ul>
@@ -18,7 +18,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public abstract class VideoServerResponse {
+public class VideoServerResponse {
 
   @JsonProperty("janus")
   private String status;

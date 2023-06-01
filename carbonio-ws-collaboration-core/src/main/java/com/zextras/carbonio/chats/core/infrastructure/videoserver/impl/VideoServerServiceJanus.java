@@ -41,7 +41,8 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 public class VideoServerServiceJanus implements VideoServerService {
 
   private static final String                       JANUS_ENDPOINT           = "/janus";
-  private static final String                       JANUS_INFO               = "info";
+  private static final String                       JANUS_ADMIN_ENDPOINT     = "/admin";
+  private static final String                       JANUS_PING               = "ping";
   private static final String                       JANUS_CREATE             = "create";
   private static final String                       JANUS_MESSAGE            = "message";
   private static final String                       JANUS_ATTACH             = "attach";
@@ -52,6 +53,7 @@ public class VideoServerServiceJanus implements VideoServerService {
   private static final String                       JANUS_AUDIOBRIDGE_PLUGIN = "janus.plugin.audiobridge";
   private final        ObjectMapper                 objectMapper;
   private final        String                       videoServerURL;
+  private final        String                       apiSecret;
   private final        HttpClient                   httpClient;
   private final        VideoServerMeetingRepository videoServerMeetingRepository;
   private final        VideoServerSessionRepository videoServerSessionRepository;
@@ -68,6 +70,7 @@ public class VideoServerServiceJanus implements VideoServerService {
       appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST).orElseThrow(),
       appConfig.get(String.class, ConfigName.VIDEO_SERVER_PORT).orElseThrow()
     );
+    this.apiSecret = appConfig.get(String.class, ConfigName.VIDEO_SERVER_TOKEN).orElseThrow();
     this.objectMapper = objectMapper;
     this.httpClient = httpClient;
     this.videoServerMeetingRepository = videoServerMeetingRepository;
@@ -246,10 +249,16 @@ public class VideoServerServiceJanus implements VideoServerService {
 
   @Override
   public boolean isAlive() {
-    try (CloseableHttpResponse response = httpClient.sendGet(
-      videoServerURL + JANUS_ENDPOINT + "/" + JANUS_INFO,
-      Map.of("content-type", "application/json")
-    )) {
+    try {
+      CloseableHttpResponse response = httpClient.sendPost(
+        videoServerURL + JANUS_ADMIN_ENDPOINT,
+        Map.of("content-type", "application/json"),
+        writeValueAsAString(
+          VideoServerMessageRequest.create()
+            .messageRequest(JANUS_PING)
+            .transactionId(UUID.randomUUID().toString())
+        )
+      );
       return response.getStatusLine().getStatusCode() == HttpStatus.SC_OK;
     } catch (IOException e) {
       throw new VideoServerException("Something went wrong executing request");
@@ -263,11 +272,17 @@ public class VideoServerServiceJanus implements VideoServerService {
    * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
    */
   private VideoServerResponse createConnection() {
-    try (CloseableHttpResponse response = httpClient.sendPost(
-      videoServerURL + JANUS_ENDPOINT,
-      Map.of("content-type", "application/json"),
-      writeValueAsAString(
-        VideoServerMessageRequest.create().messageRequest(JANUS_CREATE).transactionId(UUID.randomUUID().toString())))) {
+    try {
+      CloseableHttpResponse response = httpClient.sendPost(
+        videoServerURL + JANUS_ENDPOINT,
+        Map.of("content-type", "application/json"),
+        writeValueAsAString(
+          VideoServerMessageRequest.create()
+            .messageRequest(JANUS_CREATE)
+            .transactionId(UUID.randomUUID().toString())
+            .apiSecret(apiSecret)
+        )
+      );
       return getVideoServerResponse(response);
     } catch (JsonProcessingException e) {
       throw new VideoServerException("Unable to convert request body to JSON");
@@ -309,12 +324,18 @@ public class VideoServerServiceJanus implements VideoServerService {
    * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
    */
   private VideoServerResponse interactWithConnection(String connectionId, String action, @Nullable String pluginName) {
-    try (CloseableHttpResponse response = httpClient.sendPost(
-      videoServerURL + JANUS_ENDPOINT + "/" + connectionId,
-      Map.of("content-type", "application/json"),
-      writeValueAsAString(
-        VideoServerMessageRequest.create().messageRequest(action).transactionId(UUID.randomUUID().toString())
-          .pluginName(pluginName)))) {
+    try {
+      CloseableHttpResponse response = httpClient.sendPost(
+        videoServerURL + JANUS_ENDPOINT + "/" + connectionId,
+        Map.of("content-type", "application/json"),
+        writeValueAsAString(
+          VideoServerMessageRequest.create()
+            .messageRequest(action)
+            .transactionId(UUID.randomUUID().toString())
+            .pluginName(pluginName)
+            .apiSecret(apiSecret)
+        )
+      );
       return getVideoServerResponse(response);
     } catch (JsonProcessingException e) {
       throw new VideoServerException("Unable to convert request body to JSON");
@@ -335,12 +356,18 @@ public class VideoServerServiceJanus implements VideoServerService {
    */
   private VideoServerPluginResponse sendPluginMessage(String connectionId, String handleId, String messageType,
     @Nullable RoomRequest body) {
-    try (CloseableHttpResponse response = httpClient.sendPost(
-      videoServerURL + JANUS_ENDPOINT + "/" + connectionId + "/" + handleId,
-      Map.of("content-type", "application/json"),
-      writeValueAsAString(
-        VideoServerMessageRequest.create().messageRequest(messageType).transactionId(UUID.randomUUID().toString())
-          .body(body)))) {
+    try {
+      CloseableHttpResponse response = httpClient.sendPost(
+        videoServerURL + JANUS_ENDPOINT + "/" + connectionId + "/" + handleId,
+        Map.of("content-type", "application/json"),
+        writeValueAsAString(
+          VideoServerMessageRequest.create()
+            .messageRequest(messageType)
+            .transactionId(UUID.randomUUID().toString())
+            .body(body)
+            .apiSecret(apiSecret)
+        )
+      );
       return getVideoServerPluginResponse(response);
     } catch (JsonProcessingException e) {
       throw new VideoServerException("Unable to convert request body to JSON");

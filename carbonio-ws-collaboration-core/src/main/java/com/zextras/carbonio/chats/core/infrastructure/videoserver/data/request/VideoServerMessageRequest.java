@@ -16,6 +16,7 @@ import javax.annotation.Nullable;
  *   <li>transaction: a random string as transaction identifier</li>
  *   <li>plugin: (optional) the plugin name you want to interact with</li>
  *   <li>body: (optional) a request body containing info for the message/request/action needed</li>
+ *   <li>apiSecret: (optional) the api secret is required is it's set on VideoServer configuration file</li>
  * </ul>
  *
  * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
@@ -29,6 +30,8 @@ public class VideoServerMessageRequest {
   @JsonProperty("plugin")
   private String      pluginName;
   private RoomRequest body;
+  @JsonProperty("apisecret")
+  private String      apiSecret;
 
   public static VideoServerMessageRequest create() {
     return new VideoServerMessageRequest();
@@ -67,6 +70,15 @@ public class VideoServerMessageRequest {
 
   public VideoServerMessageRequest body(@Nullable RoomRequest body) {
     this.body = body;
+    return this;
+  }
+
+  public String getApiSecret() {
+    return apiSecret;
+  }
+
+  public VideoServerMessageRequest apiSecret(@Nullable String apiSecret) {
+    this.apiSecret = apiSecret;
     return this;
   }
 }

@@ -49,6 +49,7 @@ public class ConsulAppConfig extends AppConfig {
     namesMapping.put(ConfigName.XMPP_SERVER_PASSWORD, "carbonio-message-dispatcher/api/password");
     namesMapping.put(ConfigName.EVENT_DISPATCHER_USER_USERNAME, "carbonio-message-broker/username");
     namesMapping.put(ConfigName.EVENT_DISPATCHER_USER_PASSWORD, "carbonio-message-broker/password");
+    namesMapping.put(ConfigName.VIDEO_SERVER_TOKEN, "carbonio-videoserver/api-secret");
     namesMapping.put(ConfigName.CAN_SEE_MESSAGE_READS, "carbonio-ws-collaboration/configs/can-see-message-reads");
     namesMapping.put(ConfigName.CAN_SEE_USERS_PRESENCE, "carbonio-ws-collaboration/configs/can-see-users-presence");
     namesMapping.put(ConfigName.MAX_USER_IMAGE_SIZE_IN_KB,
