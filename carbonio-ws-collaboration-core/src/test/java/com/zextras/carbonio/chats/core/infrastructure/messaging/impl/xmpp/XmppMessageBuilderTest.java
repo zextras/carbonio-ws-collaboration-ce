@@ -117,8 +117,8 @@ public class XmppMessageBuilderTest {
   @DisplayName("Builds an XMPP message that forwards another")
   public void buildMessageWithForward() {
     String hoped = "<message xmlns='jabber:client' from='sender-id' to='recipient-id' type='groupchat'>"
-      + "<body>this is my body !</body>"
-      + "<forwarded xmlns='urn:xmpp:forward:0'>"
+      + "<body/>"
+      + "<forwarded xmlns='urn:xmpp:forward:0' count='1'>"
       + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
       + "<message from='sender-id' to='recipient-id' type='groupchat'>"
       + "<body>this is the body of the message to forward!</body>"
@@ -129,8 +129,7 @@ public class XmppMessageBuilderTest {
       .messageToForward("<message xmlns='jabber:client' from='sender-id' to='recipient-id' type='groupchat'>"
         + "<body>this is the body of the message to forward!</body>"
         + "</message>")
-      .messageToForwardSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-      .body("this is my body !").build();
+      .messageToForwardSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z")).build();
     assertNotNull(result);
     assertEquals(hoped, result);
   }
@@ -139,8 +138,8 @@ public class XmppMessageBuilderTest {
   @DisplayName("Builds an XMPP message that forwards a replied message")
   public void buildMessageWithForwardOfRepliedMessage() {
     String hoped =  "<message xmlns='jabber:client' from='sender-id' to='recipient-id' type='groupchat'>"
-      + "<body>this is my body !</body>"
-      + "<forwarded xmlns='urn:xmpp:forward:0'>"
+      + "<body/>"
+      + "<forwarded xmlns='urn:xmpp:forward:0' count='1'>"
       + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
       + "<message from='sender-id' to='recipient-id' type='groupchat'>"
       + "<body>this is the body of the message to forward!</body>"
@@ -152,8 +151,7 @@ public class XmppMessageBuilderTest {
         + "<body>this is the body of the message to forward!</body>"
         + "<reply xmlns='urn:xmpp:reply:0' id='reply-id' to='sender-id'/>"
         + "</message>")
-      .messageToForwardSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-      .body("this is my body !").build();
+      .messageToForwardSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z")).build();
     assertNotNull(result);
     assertEquals(hoped, result);
   }
@@ -162,27 +160,26 @@ public class XmppMessageBuilderTest {
   @DisplayName("Builds an XMPP message that forwards a forwarded message")
   public void buildMessageWithForwardOfForwardedMessage() {
     String hoped =  "<message xmlns='jabber:client' from='sender-id' to='recipient-id' type='groupchat'>"
-      + "<body>this is my body !</body>"
-      + "<forwarded xmlns='urn:xmpp:forward:0'>"
+      + "<body/>"
+      + "<forwarded xmlns='urn:xmpp:forward:0' count='2'>"
       + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
       + "<message from='old-sender-id' to='old-recipient-id' type='groupchat'>"
-      + "<body>the forwarded message</body>"
+      + "<body>the first message</body>"
       + "</message>"
       + "</forwarded>"
       + "</message>";
     String result = XmppMessageBuilder.create("recipient-id", "sender-id")
       .messageToForward(
         "<message xmlns='jabber:client' from='old-sender-id' to='old-recipient-id' type='groupchat'>"
-          + "<body>the forwarded message</body>"
-          + "<forwarded xmlns='urn:xmpp:forward:0'>"
+          + "<body/>"
+          + "<forwarded xmlns='urn:xmpp:forward:0' count='1'>"
           + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
           + "<message from='sender-id' to='recipient-id' type='groupchat'>"
           + "<body>the first message</body>"
           + "</message>"
           + "</forwarded>"
           + "</message>")
-      .messageToForwardSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
-      .body("this is my body !").build();
+      .messageToForwardSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z")).build();
     assertNotNull(result);
     assertEquals(hoped, result);
   }
@@ -196,9 +193,9 @@ public class XmppMessageBuilderTest {
       + "<config1>option one</config1>"
       + "<config2>option two</config2>"
       + "</x>"
-      + "<body>this is my body !</body>"
+      + "<body/>"
       + "<reply xmlns='urn:xmpp:reply:0' id='reply-id' to='recipient-id'/>"
-      + "<forwarded xmlns='urn:xmpp:forward:0'>"
+      + "<forwarded xmlns='urn:xmpp:forward:0' count='1'>"
       + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
       + "<message from='sender-id' to='recipient-id' type='groupchat'>"
       + "<body>this is the body of the message to forward!</body>"
@@ -210,7 +207,6 @@ public class XmppMessageBuilderTest {
       .type(MessageType.ROOM_NAME_CHANGED)
       .addConfig("config1", "option one")
       .addConfig("config2", "option two")
-      .body("this is my body !")
       .replyId("reply-id")
       .messageToForward("<message xmlns='jabber:client' from='sender-id' to='recipient-id' type='groupchat'>"
         + "<body>this is the body of the message to forward!</body>"
