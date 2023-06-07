@@ -111,9 +111,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    return Response.status(Status.OK)
-      .entity(roomService.updateRoom(roomId, updateRoomRequestDto, currentUser))
-      .build();
+    if (roomService.getRoomById(roomId, currentUser).getType().equals(RoomTypeDto.ONE_TO_ONE)) {
+      return Response.status(Status.BAD_REQUEST).build();
+    } else {
+      return Response.status(Status.OK)
+        .entity(roomService.updateRoom(roomId, updateRoomRequestDto, currentUser))
+        .build();
+    }
   }
 
   @Override
