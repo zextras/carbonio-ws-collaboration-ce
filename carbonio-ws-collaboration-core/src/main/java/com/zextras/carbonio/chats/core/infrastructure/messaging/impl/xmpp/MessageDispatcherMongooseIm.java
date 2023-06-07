@@ -64,9 +64,9 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     StringBuilder stringBuilder = new StringBuilder(
       "mutation muc_light { muc_light { createRoom (" + String.format("mucDomain: \"%s\", ", DOMAIN) + String.format(
         "id: \"%s\", ", room.getId()) + String.format("owner: \"%s\", ", userIdToUserDomain(senderId)));
-    Optional.ofNullable(room.getName()).ifPresent(n -> stringBuilder.append(String.format("name: \\\"%s\\\", ", n)));
+    Optional.ofNullable(room.getName()).ifPresent(n -> stringBuilder.append(String.format("name: \"%s\", ", n)));
     Optional.ofNullable(room.getDescription())
-      .ifPresent(d -> stringBuilder.append(String.format("subject: \\\"%s\\\"), ", d)));
+      .ifPresent(d -> stringBuilder.append(String.format("subject: \"%s\"), ", d)));
     stringBuilder.append("{ jid } } }");
     GraphQlResponse result = executeMutation(GraphQlBody.create(stringBuilder.toString(), "muc_light", Map.of()));
 
