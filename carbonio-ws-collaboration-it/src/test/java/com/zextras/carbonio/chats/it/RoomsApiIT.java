@@ -388,7 +388,7 @@ public class RoomsApiIT {
           uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
           uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
           response = dispatcher.post(URL,
-            getInsertRoomRequestBody("testOneToOne", "Test room", RoomTypeDto.ONE_TO_ONE, List.of(user2Id)),
+            getInsertRoomRequestBody(null, null, RoomTypeDto.ONE_TO_ONE, List.of(user2Id)),
             user1Token);
         }
         clock.removeFixTime();
@@ -396,8 +396,8 @@ public class RoomsApiIT {
         userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
-        assertEquals("testOneToOne", room.getName());
-        assertEquals("Test room", room.getDescription());
+        assertNull(room.getName());
+        assertNull(room.getDescription());
         assertEquals(RoomTypeDto.ONE_TO_ONE, room.getType());
         assertEquals(2, room.getMembers().size());
         assertTrue(room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
@@ -410,7 +410,7 @@ public class RoomsApiIT {
         assertNull(room.getPictureUpdatedAt());
 
         mongooseImMockServer.verify(
-          mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString(), "testOneToOne", "Test room"),
+          mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString(), null, null),
           VerificationTimes.exactly(1));
         mongooseImMockServer.verify(
           mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user2Id.toString()),
@@ -419,6 +419,32 @@ public class RoomsApiIT {
           mongooseImMockServer.getAddUserToContactsRequest(user2Id.toString(), user1Id.toString()),
           VerificationTimes.exactly(1));
         // TODO: 23/02/22 verify event dispatcher interactions
+      }
+
+      @Test
+      @DisplayName("Given one-to-one creation fields, if name is not null return a status code 400")
+      public void insertOneToOneRoom_testErrorWithName() throws Exception {
+        MockHttpResponse response = dispatcher.post(URL,
+          getInsertRoomRequestBody("testOneToOne", null, RoomTypeDto.ONE_TO_ONE,
+            List.of(user2Id, user3Id)), user1Token);
+
+        assertEquals(400, response.getStatus());
+        assertEquals(0, response.getContentAsString().length());
+        mongooseImMockServer.verifyZeroInteractions();
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      }
+
+      @Test
+      @DisplayName("Given one-to-one creation fields, if description is not null return a status code 400")
+      public void insertOneToOneRoom_testErrorWithDescription() throws Exception {
+        MockHttpResponse response = dispatcher.post(URL,
+          getInsertRoomRequestBody(null, "Test room", RoomTypeDto.ONE_TO_ONE,
+            List.of(user2Id, user3Id)), user1Token);
+
+        assertEquals(400, response.getStatus());
+        assertEquals(0, response.getContentAsString().length());
+        mongooseImMockServer.verifyZeroInteractions();
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       }
 
       @Test
@@ -443,7 +469,7 @@ public class RoomsApiIT {
       @DisplayName("Given one-to-one creation fields, if there are more then one invitation return a ststus code 400")
       public void insertOneToOneRoom_testMoreThenOneInvitation() throws Exception {
         MockHttpResponse response = dispatcher.post(URL,
-          getInsertRoomRequestBody("testOneToOne", "Test room", RoomTypeDto.ONE_TO_ONE,
+          getInsertRoomRequestBody(null, null, RoomTypeDto.ONE_TO_ONE,
             List.of(user2Id, user3Id)), user1Token);
 
         assertEquals(400, response.getStatus());
