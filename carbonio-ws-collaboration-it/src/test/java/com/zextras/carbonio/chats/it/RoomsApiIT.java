@@ -379,7 +379,7 @@ public class RoomsApiIT {
         clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("c9f83f1c-9b96-4731-9404-79e45a5d6d3c");
-        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), "testOneToOne", "Test room", true);
+        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), null, null, true);
         mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString(), true);
         mongooseImMockServer.mockAddUserToContacts(user2Id.toString(), user1Id.toString(), true);
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
