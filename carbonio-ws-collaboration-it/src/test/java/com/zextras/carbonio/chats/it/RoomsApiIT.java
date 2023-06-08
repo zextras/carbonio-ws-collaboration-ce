@@ -671,11 +671,39 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier and update fields, if there isn't the name return a status code 400")
-    public void updateRoom_testErrorUpdateFieldWithoutName() throws Exception {
+    @DisplayName("Given a room identifier, if there isn't any room return a status code 404")
+    public void updateRoom_testErrorUpdateRoomNotExistingRoom() throws Exception {
       UUID roomId = UUID.randomUUID();
       MockHttpResponse response = dispatcher.put(url(roomId),
         getUpdateRoomRequestBody(null, "Updated room"), user1Token);
+      assertEquals(404, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a room identifier, if it is a one to one return status code 400")
+    public void updateRoom_testErrorUpdateRoom1to1() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.ONE_TO_ONE, null, List.of(user1Id, user2Id));
+      MockHttpResponse response = dispatcher.put(url(roomId),
+        getUpdateRoomRequestBody(null, "Updated room"), user1Token);
+      assertEquals(400, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a room identifier, if it is a group and the name and the description are null return status code 400")
+    public void updateRoom_testErrorUpdateRoomWithoutNameAndDescription() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, null, null,
+        List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
+        OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+      MockHttpResponse response = dispatcher.put(url(roomId),
+        getUpdateRoomRequestBody(null, null), user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
@@ -733,14 +761,17 @@ public class RoomsApiIT {
     }
 
     private String getUpdateRoomRequestBody(@Nullable String name, @Nullable String description) {
-      StringBuilder stringBuilder = new StringBuilder();
-      Optional.ofNullable(name).ifPresent(n -> stringBuilder.append(String.format("\"name\": \"%s\",", n)));
-      Optional.ofNullable(description)
-        .ifPresent(d -> stringBuilder.append(String.format("\"description\": \"%s\"", d)));
-      if (',' == stringBuilder.charAt(stringBuilder.length() - 1)) {
-        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+      String strName = Optional.ofNullable(name).map(n -> String.format("\"name\": \"%s\"", n)).orElse(null);
+      String strDescr = Optional.ofNullable(description).map(d -> String.format("\"description\": \"%s\"", d))
+        .orElse(null);
+
+      if (strName != null && strDescr == null) {
+        return String.format("{%s}", strName);
+      } else if (strName == null && strDescr != null) {
+        return String.format("{%s}", strDescr);
+      } else {
+        return String.format("{%s}", String.join(", ", strName, strDescr));
       }
-      return String.format("{%s}", stringBuilder);
     }
   }
 

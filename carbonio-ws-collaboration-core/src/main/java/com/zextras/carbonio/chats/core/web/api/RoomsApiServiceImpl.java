@@ -21,6 +21,7 @@ import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.JoinSettingsByRoomDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
+import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
@@ -111,13 +112,19 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    if (roomService.getRoomById(roomId, currentUser).getType().equals(RoomTypeDto.ONE_TO_ONE)) {
-      return Response.status(Status.BAD_REQUEST).build();
-    } else {
-      return Response.status(Status.OK)
-        .entity(roomService.updateRoom(roomId, updateRoomRequestDto, currentUser))
-        .build();
-    }
+    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    return room.map(r -> {
+      if (room.get().getType().equals(RoomTypeDto.ONE_TO_ONE)) {
+        return Response.status(Status.BAD_REQUEST).build();
+      } else if (room.get().getType().equals(RoomTypeDto.GROUP) &&
+        (updateRoomRequestDto.getName() == null && updateRoomRequestDto.getDescription() == null)) {
+        return Response.status(Status.BAD_REQUEST).build();
+      } else {
+        return Response.status(Status.OK)
+          .entity(roomService.updateRoom(roomId, updateRoomRequestDto, currentUser))
+          .build();
+      }
+    }).orElse(Response.status(Status.NOT_FOUND).build());
   }
 
   @Override
