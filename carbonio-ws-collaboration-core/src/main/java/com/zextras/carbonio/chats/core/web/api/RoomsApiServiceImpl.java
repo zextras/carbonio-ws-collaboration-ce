@@ -105,8 +105,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response deleteRoom(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    roomService.deleteRoom(roomId, currentUser);
-    return Response.status(Status.NO_CONTENT).build();
+    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    return room.map(r -> {
+        if (room.get().getType().equals(RoomTypeDto.ONE_TO_ONE)) {
+          return Response.status(Status.FORBIDDEN).build();
+        } else {
+          roomService.deleteRoom(roomId, currentUser);
+          return Response.status(Status.NO_CONTENT).build();
+        }
+    }).orElse(Response.status(Status.NOT_FOUND).build());
   }
 
   @Override

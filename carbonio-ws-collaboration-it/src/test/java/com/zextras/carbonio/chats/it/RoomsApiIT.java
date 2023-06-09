@@ -810,6 +810,19 @@ public class RoomsApiIT {
     }
 
     @Test
+    @DisplayName("Given a room identifier, if the room is a 1to1 returns a status code 403")
+    public void deleteRoom_testErrorRoomIsA1to1() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.ONE_TO_ONE, "room", List.of(user1Id, user2Id));
+
+      MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
+      assertEquals(403, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
     @DisplayName("Given a group room identifier, correctly deletes the room")
     public void deleteRoom_groupTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
