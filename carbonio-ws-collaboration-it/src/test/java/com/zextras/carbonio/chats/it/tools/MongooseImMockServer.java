@@ -65,10 +65,10 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
     @Nullable String description) {
     StringBuilder body = new StringBuilder(
       "{\"query\":\"mutation muc_light { muc_light { createRoom (mucDomain: \\\"muclight.carbonio\\\", "
-        + String.format("id: \\\"%s\\\", ", roomId) + String.format("owner: \\\"%s@carbonio\\\", ", senderId));
-    Optional.ofNullable(name).ifPresent(n -> body.append(String.format("name: \\\"%s\\\", ", n)));
-    Optional.ofNullable(description).ifPresent(d -> body.append(String.format("subject: \\\"%s\\\"), ", d)));
-    body.append("{ jid } } }\",\"operationName\":\"muc_light\",\"variables\":{}}");
+        + String.format("id: \\\"%s\\\", ", roomId) + String.format("owner: \\\"%s@carbonio\\\"", senderId));
+    Optional.ofNullable(name).ifPresent(n -> body.append(String.format(", name: \\\"%s\\\"", n)));
+    Optional.ofNullable(description).ifPresent(d -> body.append(String.format(", subject: \\\"%s\\\"", d)));
+    body.append(") { jid } } }\",\"operationName\":\"muc_light\",\"variables\":{}}");
 
     return getRequest("POST", body.toString());
   }
