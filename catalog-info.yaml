@@ -21,7 +21,7 @@ spec:
   lifecycle: production
   owner: smoky-beans
   providesApis:
-    - carbonio-ws-collaboration-ce-room-api
+    - carbonio-ws-collaboration-ce-chats-api
     - carbonio-ws-collaboration-ce-meeting-api
   dependsOn:
     - component:carbonio-ws-collaboration-db
@@ -37,9 +37,9 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
-  name: carbonio-ws-collaboration-ce-room-api
-  title: Carbonio Workstream Collaboration CE Room APIs
-  description: Carbonio Workstream Collaboration Community Edition Room APIs.
+  name: carbonio-ws-collaboration-ce-chats-api
+  title: Carbonio Workstream Collaboration CE Chats APIs
+  description: Carbonio Workstream Collaboration Community Edition Chats APIs.
   tags:
     - rest
 spec:
