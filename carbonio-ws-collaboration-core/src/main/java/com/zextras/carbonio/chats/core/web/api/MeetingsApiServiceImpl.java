@@ -10,8 +10,9 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
-import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.MeetingStreamDto;
+import com.zextras.carbonio.meeting.model.StreamsDesiderataDto;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -38,8 +39,8 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * Gets meetings list for authenticated user.
    *
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 200 and the meetings list {@link MeetingDto } of authenticated user
-   * in the body
+   * @return a response
+   * {@link Response) with status 200 and the meetings list {@link MeetingDto} of authenticated user in the body
    */
   @Override
   public Response listMeeting(SecurityContext securityContext) {
@@ -81,19 +82,21 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   /**
    * Allows the authenticated user to join a meeting.
    *
-   * @param meetingId       meeting identifier {@link UUID}
-   * @param joinSettingsDto user requested access settings {@link JoinSettingsDto}
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @param meetingId            meeting identifier {@link UUID}
+   * @param streamsDesiderataDto user requested access settings
+   *                             {@link com.zextras.carbonio.meeting.model.StreamsDesiderataDto}
+   * @param securityContext      security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response joinMeeting(UUID meetingId, JoinSettingsDto joinSettingsDto, SecurityContext securityContext) {
+  public Response joinMeeting(UUID meetingId, StreamsDesiderataDto streamsDesiderataDto,
+    SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
       throw new BadRequestException("Session identifier is mandatory");
     }
-    participantService.insertMeetingParticipant(meetingId, joinSettingsDto, currentUser);
+    participantService.insertMeetingParticipant(meetingId, streamsDesiderataDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -116,105 +119,65 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   }
 
   /**
-   * Opens the video stream in the meeting for the current session
+   * Updates the video stream status in the meeting for the current session
    *
-   * @param meetingId       meeting identifier {@link UUID}
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @param meetingId        meeting identifier {@link UUID}
+   * @param sessionId        identifier of the user session whose video stream status has to updated
+   * @param meetingStreamDto user request to update the video stream status
+   * @param securityContext  security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response openVideoStream(UUID meetingId, SecurityContext securityContext) {
+  public Response updateVideoStream(UUID meetingId, String sessionId, MeetingStreamDto meetingStreamDto,
+    SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
       throw new BadRequestException("Session identifier is mandatory");
     }
-    participantService.enableVideoStream(meetingId, currentUser.getSessionId(), true, currentUser);
+    participantService.updateVideoStream(meetingId, sessionId, meetingStreamDto.isEnabled(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
   /**
-   * Closes the video stream in the meeting for the session
+   * Updates the audio stream status in the meeting for the current session
    *
-   * @param meetingId       meeting identifier {@link UUID}
-   * @param sessionId       identifier of the session to close
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @param meetingId        meeting identifier {@link UUID}
+   * @param sessionId        identifier of the user session whose audio stream status has to updated
+   * @param meetingStreamDto user request to update the audio stream status
+   * @param securityContext  security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response closeVideoStream(UUID meetingId, String sessionId, SecurityContext securityContext) {
-    participantService.enableVideoStream(meetingId, sessionId, false,
-      Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-        .orElseThrow(UnauthorizedException::new));
-    return Response.status(Status.NO_CONTENT).build();
-  }
-
-  /**
-   * Opens the screen share stream in the meeting for the current session
-   *
-   * @param meetingId       meeting identifier {@link UUID}
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 204
-   */
-  @Override
-  public Response openScreenShareStream(UUID meetingId, SecurityContext securityContext) {
+  public Response updateAudioStream(UUID meetingId, String sessionId, MeetingStreamDto meetingStreamDto,
+    SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
       throw new BadRequestException("Session identifier is mandatory");
     }
-    participantService.enableScreenShareStream(meetingId, currentUser.getSessionId(), true, currentUser);
+    participantService.updateAudioStream(meetingId, sessionId, meetingStreamDto.isEnabled(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
   /**
-   * Closes the screen share stream in the meeting for the session
+   * Updates the screen stream status in the meeting for the current session
    *
-   * @param meetingId       meeting identifier {@link UUID}
-   * @param sessionId       identifier of the session to close
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @param meetingId        meeting identifier {@link UUID}
+   * @param sessionId        identifier of the user session whose screen stream status has to updated
+   * @param meetingStreamDto user request to update the screen stream status
+   * @param securityContext  security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response closeScreenShareStream(UUID meetingId, String sessionId, SecurityContext securityContext) {
-    participantService.enableScreenShareStream(meetingId, sessionId, false,
-      Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-        .orElseThrow(UnauthorizedException::new));
-    return Response.status(Status.NO_CONTENT).build();
-  }
-
-  /**
-   * Opens the audio stream in the meeting for the current session
-   *
-   * @param meetingId       meeting identifier {@link UUID}
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 204
-   */
-  @Override
-  public Response openAudioStream(UUID meetingId, SecurityContext securityContext) {
+  public Response updateScreenStream(UUID meetingId, String sessionId, MeetingStreamDto meetingStreamDto,
+    SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
       throw new BadRequestException("Session identifier is mandatory");
     }
-    participantService.enableAudioStream(meetingId, currentUser.getSessionId(), true, currentUser);
+    participantService.updateScreenStream(meetingId, sessionId, meetingStreamDto.isEnabled(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
-
-  /**
-   * Closes the audio stream in the meeting for the session
-   *
-   * @param meetingId       meeting identifier {@link UUID}
-   * @param sessionId       identifier of the session to close
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 204
-   */
-  @Override
-  public Response closeAudioStream(UUID meetingId, String sessionId, SecurityContext securityContext) {
-    participantService.enableAudioStream(meetingId, sessionId, false,
-      Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-        .orElseThrow(UnauthorizedException::new));
-    return Response.status(Status.NO_CONTENT).build();
-  }
-
 }

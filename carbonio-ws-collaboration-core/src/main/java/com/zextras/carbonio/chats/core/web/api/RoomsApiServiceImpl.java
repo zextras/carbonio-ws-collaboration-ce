@@ -23,8 +23,8 @@ import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
-import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.StreamsDesiderataDto;
 import java.io.File;
 import java.util.Base64;
 import java.util.List;
@@ -291,9 +291,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     Optional<MeetingDto> meeting = participantService.insertMeetingParticipantByRoomId(roomId,
-      JoinSettingsDto.create()
-        .videoStreamOn(joinSettingsByRoomDto.isVideoStreamOn())
-        .audioStreamOn(joinSettingsByRoomDto.isAudioStreamOn()),
+      StreamsDesiderataDto.create()
+        .videoStreamEnabled(joinSettingsByRoomDto.isVideoStreamEnabled())
+        .audioStreamEnabled(joinSettingsByRoomDto.isAudioStreamEnabled()),
       currentUser);
     if (meeting.isPresent()) {
       return Response.ok().entity(meeting.get()).build();
@@ -301,6 +301,5 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       return Response.status(Status.NO_CONTENT).build();
     }
   }
-
 
 }

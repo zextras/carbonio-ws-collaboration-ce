@@ -8,14 +8,14 @@ import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantAudioStreamClosed;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantAudioStreamOpened;
+import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamDisabled;
+import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamEnabled;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoinedEvent;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeftEvent;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantScreenStreamClosed;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantScreenStreamOpened;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantVideoStreamClosed;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantVideoStreamOpened;
+import com.zextras.carbonio.chats.core.data.event.MeetingScreenStreamDisabled;
+import com.zextras.carbonio.chats.core.data.event.MeetingScreenStreamEnabled;
+import com.zextras.carbonio.chats.core.data.event.MeetingVideoStreamDisabled;
+import com.zextras.carbonio.chats.core.data.event.MeetingVideoStreamEnabled;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -27,8 +27,8 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.StreamsDesiderataDto;
 import io.ebean.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
@@ -66,17 +66,18 @@ public class ParticipantServiceImpl implements ParticipantService {
   @Override
   @Transactional
   public Optional<MeetingDto> insertMeetingParticipantByRoomId(
-    UUID roomId, JoinSettingsDto joinSettings, UserPrincipal currentUser
+    UUID roomId, StreamsDesiderataDto streamsDesiderata, UserPrincipal currentUser
   ) {
     Meeting meeting = meetingService.getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
-    insertMeetingParticipant(meeting, joinSettings, currentUser);
+    insertMeetingParticipant(meeting, streamsDesiderata, currentUser);
 
     return Optional.ofNullable(meeting.getParticipants().size() > 1 ? null : meetingMapper.ent2dto(meeting));
   }
 
   @Override
   @Transactional
-  public void insertMeetingParticipant(UUID meetingId, JoinSettingsDto joinSettings, UserPrincipal currentUser) {
+  public void insertMeetingParticipant(UUID meetingId, StreamsDesiderataDto streamsDesiderata,
+    UserPrincipal currentUser) {
     Meeting meeting = meetingService.getMeetingEntity(meetingId)
       .orElseThrow(() -> new NotFoundException(String.format("Meeting with id '%s' not found", meetingId)));
     if (meeting.getParticipants().stream().anyMatch(participant ->
@@ -84,19 +85,20 @@ public class ParticipantServiceImpl implements ParticipantService {
         .equals(currentUser.getSessionId()))) {
       throw new ConflictException("Session is already inserted into the meeting");
     }
-    insertMeetingParticipant(meeting, joinSettings, currentUser);
+    insertMeetingParticipant(meeting, streamsDesiderata, currentUser);
   }
 
-  private void insertMeetingParticipant(Meeting meeting, JoinSettingsDto joinSettings, UserPrincipal currentUser) {
+  private void insertMeetingParticipant(Meeting meeting, StreamsDesiderataDto streamsDesiderata,
+    UserPrincipal currentUser) {
     Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     Participant participant = participantRepository.insert(
       Participant.create(meeting, currentUser.getSessionId())
         .userId(currentUser.getId())
-        .audioStreamOn(joinSettings.isAudioStreamOn())
-        .videoStreamOn(joinSettings.isVideoStreamOn()));
+        .audioStreamOn(streamsDesiderata.isAudioStreamEnabled())
+        .videoStreamOn(streamsDesiderata.isVideoStreamEnabled()));
     videoServerService.joinMeeting(currentUser.getSessionId(), meeting.getId(),
-      joinSettings.isVideoStreamOn(),
-      joinSettings.isAudioStreamOn());
+      streamsDesiderata.isVideoStreamEnabled(),
+      streamsDesiderata.isAudioStreamEnabled());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       MeetingParticipantJoinedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
@@ -137,64 +139,36 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   @Override
   @Transactional
-  public void enableVideoStream(UUID meetingId, String sessionId, boolean enable, UserPrincipal currentUser) {
+  public void updateVideoStream(UUID meetingId, String sessionId, boolean enabled, UserPrincipal currentUser) {
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
     Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
       .findAny().orElseThrow(() ->
         new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
     if (!sessionId.equals(currentUser.getSessionId())) {
-      if (enable) {
+      if (enabled) {
         throw new BadRequestException(String.format(
           "User '%s' cannot enable the video stream of the session '%s'", currentUser.getId(), sessionId));
       }
       roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
     }
-    if (enable != participant.hasVideoStreamOn()) {
-      participantRepository.update(participant.videoStreamOn(enable));
+    if (enabled != participant.hasVideoStreamOn()) {
+      participantRepository.update(participant.videoStreamOn(enabled));
       eventDispatcher.sendToUserQueue(
         meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
-        enable ?
-          MeetingParticipantVideoStreamOpened
+        enabled ?
+          MeetingVideoStreamEnabled
             .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId) :
-          MeetingParticipantVideoStreamClosed
+          MeetingVideoStreamDisabled
             .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
-      videoServerService.enableVideoStream(sessionId, meetingId.toString(), enable);
+      videoServerService.updateVideoStream(sessionId, meetingId.toString(), enabled);
     }
   }
 
   @Override
   @Transactional
-  public void enableScreenShareStream(UUID meetingId, String sessionId, boolean enable, UserPrincipal currentUser) {
-    Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
-      new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
-      .findAny().orElseThrow(() ->
-        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
-    if (!sessionId.equals(currentUser.getSessionId())) {
-      if (enable) {
-        throw new BadRequestException(String.format(
-          "User '%s' cannot enable the screen share stream of the session '%s'", currentUser.getId(), sessionId));
-      }
-      roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
-    }
-    if (enable != participant.hasScreenStreamOn()) {
-      participantRepository.update(participant.screenStreamOn(enable));
-      eventDispatcher.sendToUserQueue(
-        meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
-        enable ?
-          MeetingParticipantScreenStreamOpened
-            .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId) :
-          MeetingParticipantScreenStreamClosed
-            .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
-      videoServerService.enableScreenShareStream(sessionId, meetingId.toString(), enable);
-    }
-  }
-
-  @Override
-  @Transactional
-  public void enableAudioStream(
-    UUID meetingId, String sessionId, boolean enable, UserPrincipal currentUser
+  public void updateAudioStream(
+    UUID meetingId, String sessionId, boolean enabled, UserPrincipal currentUser
   ) {
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
@@ -202,23 +176,50 @@ public class ParticipantServiceImpl implements ParticipantService {
       .findAny().orElseThrow(() ->
         new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
     if (!sessionId.equals(currentUser.getSessionId())) {
-      if (enable) {
+      if (enabled) {
         throw new BadRequestException(String.format(
           "User '%s' cannot enable the audio stream of the session '%s'", currentUser.getId(), sessionId));
       }
       roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
     }
-    if (enable != participant.hasAudioStreamOn()) {
-      participantRepository.update(participant.audioStreamOn(enable));
+    if (enabled != participant.hasAudioStreamOn()) {
+      participantRepository.update(participant.audioStreamOn(enabled));
       eventDispatcher.sendToUserQueue(
         meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
-        enable ?
-          MeetingParticipantAudioStreamOpened
+        enabled ?
+          MeetingAudioStreamEnabled
             .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId) :
-          MeetingParticipantAudioStreamClosed
+          MeetingAudioStreamDisabled
             .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
-      videoServerService.enableAudioStream(currentUser.getSessionId(), meetingId.toString(), enable);
+      videoServerService.updateAudioStream(currentUser.getSessionId(), meetingId.toString(), enabled);
     }
   }
 
+  @Override
+  @Transactional
+  public void updateScreenStream(UUID meetingId, String sessionId, boolean enabled, UserPrincipal currentUser) {
+    Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
+      new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
+    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
+      .findAny().orElseThrow(() ->
+        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
+    if (!sessionId.equals(currentUser.getSessionId())) {
+      if (enabled) {
+        throw new BadRequestException(String.format(
+          "User '%s' cannot enable the screen stream of the session '%s'", currentUser.getId(), sessionId));
+      }
+      roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
+    }
+    if (enabled != participant.hasScreenStreamOn()) {
+      participantRepository.update(participant.screenStreamOn(enabled));
+      eventDispatcher.sendToUserQueue(
+        meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
+        enabled ?
+          MeetingScreenStreamEnabled
+            .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId) :
+          MeetingScreenStreamDisabled
+            .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
+      videoServerService.updateScreenStream(sessionId, meetingId.toString(), enabled);
+    }
+  }
 }
