@@ -29,10 +29,10 @@ import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.MeetingStreamDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
-import com.zextras.carbonio.meeting.model.StreamsDesiderataDto;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
@@ -443,7 +443,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(url(meetingId),
         objectMapper.writeValueAsString(
-          StreamsDesiderataDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
+          JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
         Map.of("session-id", user1session1), user1Token);
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -477,7 +477,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(url(meetingId),
         objectMapper.writeValueAsString(
-          StreamsDesiderataDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
+          JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
         Map.of("session-id", user2session2), user2Token);
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -510,7 +510,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(url(meetingId),
         objectMapper.writeValueAsString(
-          StreamsDesiderataDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
+          JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
         Map.of("session-id", user1session1), user1Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -521,7 +521,7 @@ public class MeetingApiIT {
     public void joinMeeting_testMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
         objectMapper.writeValueAsString(
-          StreamsDesiderataDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
+          JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -533,7 +533,7 @@ public class MeetingApiIT {
     public void joinMeeting_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
         objectMapper.writeValueAsString(
-          StreamsDesiderataDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
+          JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
         Map.of("session-id", user1session1), null);
 
       assertEquals(401, response.getStatus());
@@ -629,7 +629,7 @@ public class MeetingApiIT {
     public void leaveMeeting_testMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
         objectMapper.writeValueAsString(
-          StreamsDesiderataDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
+          JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -641,7 +641,7 @@ public class MeetingApiIT {
     public void leaveMeeting_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
         objectMapper.writeValueAsString(
-          StreamsDesiderataDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
+          JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
         Map.of("session-id", user1session1), null);
 
       assertEquals(401, response.getStatus());

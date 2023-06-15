@@ -102,7 +102,7 @@ paths:
         - $ref: '#/components/parameters/pathMeetingId'
         - $ref: '#/components/parameters/pathSessionId'
       requestBody:
-        $ref: '#/components/requestBodies/UpdateStreamRequest'
+        $ref: '#/components/requestBodies/UpdateVideoStreamRequest'
       responses:
         204:
           $ref: '#/components/responses/204VideoStreamResponse'
@@ -122,7 +122,7 @@ paths:
         - $ref: '#/components/parameters/pathMeetingId'
         - $ref: '#/components/parameters/pathSessionId'
       requestBody:
-        $ref: '#/components/requestBodies/UpdateStreamRequest'
+        $ref: '#/components/requestBodies/UpdateAudioStreamRequest'
       responses:
         204:
           $ref: '#/components/responses/204AudioStreamResponse'
@@ -142,7 +142,7 @@ paths:
         - $ref: '#/components/parameters/pathMeetingId'
         - $ref: '#/components/parameters/pathSessionId'
       requestBody:
-        $ref: '#/components/requestBodies/UpdateStreamRequest'
+        $ref: '#/components/requestBodies/UpdateScreenStreamRequest'
       responses:
         204:
           $ref: '#/components/responses/204ScreenStreamResponse'
@@ -180,8 +180,22 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/StreamsDesiderata'
-    UpdateStreamRequest:
+            $ref: '#/components/schemas/JoinSettings'
+    UpdateVideoStreamRequest:
+      description: user request to update a meeting stream status
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MeetingStream'
+    UpdateAudioStreamRequest:
+      description: user request to update a meeting stream status
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MeetingStream'
+    UpdateScreenStreamRequest:
       description: user request to update a meeting stream status
       required: true
       content:
@@ -302,7 +316,7 @@ components:
           format: date-time
           readOnly: true
           description: entity creation date
-    StreamsDesiderata:
+    JoinSettings:
       type: object
       description: user's streams desiderata to join a meeting
       properties:
@@ -310,12 +324,12 @@ components:
           type: boolean
           default: false
           readOnly: true
-          description: indicates if the audio stream has to be enabled
+          description: indicates the status to change the audio stream to
         videoStreamEnabled:
           type: boolean
           default: false
           readOnly: true
-          description: indicates if the video stream has to be enabled
+          description: indicates the status to change the video stream to
       required: [ audioStreamEnabled, videoStreamEnabled ]
     MeetingStream:
       type: object
@@ -324,5 +338,5 @@ components:
         enabled:
           type: boolean
           readOnly: true
-          description: indicates if the meeting stream status has to be enabled or disabled
+          description: indicates the status to change the stream to
       required: [ enabled ]

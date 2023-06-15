@@ -10,9 +10,9 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
+import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.MeetingStreamDto;
-import com.zextras.carbonio.meeting.model.StreamsDesiderataDto;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -82,21 +82,21 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   /**
    * Allows the authenticated user to join a meeting.
    *
-   * @param meetingId            meeting identifier {@link UUID}
-   * @param streamsDesiderataDto user requested access settings
-   *                             {@link com.zextras.carbonio.meeting.model.StreamsDesiderataDto}
-   * @param securityContext      security context created by the authentication filter {@link SecurityContext}
+   * @param meetingId       meeting identifier {@link UUID}
+   * @param joinSettingsDto user requested access settings for meeting
+   *                        {@link com.zextras.carbonio.meeting.model.JoinSettingsDto}
+   * @param securityContext security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response joinMeeting(UUID meetingId, StreamsDesiderataDto streamsDesiderataDto,
+  public Response joinMeeting(UUID meetingId, JoinSettingsDto joinSettingsDto,
     SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
       throw new BadRequestException("Session identifier is mandatory");
     }
-    participantService.insertMeetingParticipant(meetingId, streamsDesiderataDto, currentUser);
+    participantService.insertMeetingParticipant(meetingId, joinSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 

@@ -41,8 +41,8 @@ import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
-import com.zextras.carbonio.meeting.model.StreamsDesiderataDto;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -154,7 +154,7 @@ public class ParticipantServiceImplTest {
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       Optional<MeetingDto> meetingDto = participantService.insertMeetingParticipantByRoomId(roomId,
-        StreamsDesiderataDto.create().audioStreamEnabled(true).videoStreamEnabled(false), currentUser);
+        JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false), currentUser);
       assertTrue(meetingDto.isEmpty());
 
       verify(meetingService, times(1)).getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
@@ -179,7 +179,7 @@ public class ParticipantServiceImplTest {
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       Optional<MeetingDto> meetingDto = participantService.insertMeetingParticipantByRoomId(roomId,
-        StreamsDesiderataDto.create().audioStreamEnabled(true).videoStreamEnabled(false), currentUser);
+        JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false), currentUser);
       assertTrue(meetingDto.isPresent());
 
       verify(meetingService, times(1)).getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
@@ -207,7 +207,7 @@ public class ParticipantServiceImplTest {
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       participantService.insertMeetingParticipant(meeting1Id,
-        StreamsDesiderataDto.create().audioStreamEnabled(true).videoStreamEnabled(false), currentUser);
+        JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false), currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
@@ -229,7 +229,7 @@ public class ParticipantServiceImplTest {
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
       participantService.insertMeetingParticipant(meeting2Id,
-        StreamsDesiderataDto.create().audioStreamEnabled(true).videoStreamEnabled(false), currentUser);
+        JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false), currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting2Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
@@ -251,7 +251,7 @@ public class ParticipantServiceImplTest {
 
       ChatsHttpException exception = assertThrows(ConflictException.class, () ->
         participantService.insertMeetingParticipant(meeting1Id,
-          StreamsDesiderataDto.create().audioStreamEnabled(true).videoStreamEnabled(false), currentUser));
+          JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false), currentUser));
 
       assertEquals(Status.CONFLICT.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.CONFLICT.getReasonPhrase(), exception.getHttpStatusPhrase());

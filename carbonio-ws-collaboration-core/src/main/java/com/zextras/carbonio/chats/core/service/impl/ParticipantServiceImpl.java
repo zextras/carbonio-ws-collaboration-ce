@@ -27,8 +27,8 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
-import com.zextras.carbonio.meeting.model.StreamsDesiderataDto;
 import io.ebean.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
@@ -66,17 +66,17 @@ public class ParticipantServiceImpl implements ParticipantService {
   @Override
   @Transactional
   public Optional<MeetingDto> insertMeetingParticipantByRoomId(
-    UUID roomId, StreamsDesiderataDto streamsDesiderata, UserPrincipal currentUser
+    UUID roomId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser
   ) {
     Meeting meeting = meetingService.getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
-    insertMeetingParticipant(meeting, streamsDesiderata, currentUser);
+    insertMeetingParticipant(meeting, joinSettingsDto, currentUser);
 
     return Optional.ofNullable(meeting.getParticipants().size() > 1 ? null : meetingMapper.ent2dto(meeting));
   }
 
   @Override
   @Transactional
-  public void insertMeetingParticipant(UUID meetingId, StreamsDesiderataDto streamsDesiderata,
+  public void insertMeetingParticipant(UUID meetingId, JoinSettingsDto joinSettingsDto,
     UserPrincipal currentUser) {
     Meeting meeting = meetingService.getMeetingEntity(meetingId)
       .orElseThrow(() -> new NotFoundException(String.format("Meeting with id '%s' not found", meetingId)));
@@ -85,20 +85,20 @@ public class ParticipantServiceImpl implements ParticipantService {
         .equals(currentUser.getSessionId()))) {
       throw new ConflictException("Session is already inserted into the meeting");
     }
-    insertMeetingParticipant(meeting, streamsDesiderata, currentUser);
+    insertMeetingParticipant(meeting, joinSettingsDto, currentUser);
   }
 
-  private void insertMeetingParticipant(Meeting meeting, StreamsDesiderataDto streamsDesiderata,
+  private void insertMeetingParticipant(Meeting meeting, JoinSettingsDto joinSettingsDto,
     UserPrincipal currentUser) {
     Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     Participant participant = participantRepository.insert(
       Participant.create(meeting, currentUser.getSessionId())
         .userId(currentUser.getId())
-        .audioStreamOn(streamsDesiderata.isAudioStreamEnabled())
-        .videoStreamOn(streamsDesiderata.isVideoStreamEnabled()));
+        .audioStreamOn(joinSettingsDto.isAudioStreamEnabled())
+        .videoStreamOn(joinSettingsDto.isVideoStreamEnabled()));
     videoServerService.joinMeeting(currentUser.getSessionId(), meeting.getId(),
-      streamsDesiderata.isVideoStreamEnabled(),
-      streamsDesiderata.isAudioStreamEnabled());
+      joinSettingsDto.isVideoStreamEnabled(),
+      joinSettingsDto.isAudioStreamEnabled());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       MeetingParticipantJoinedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
