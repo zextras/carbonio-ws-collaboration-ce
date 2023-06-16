@@ -27,12 +27,12 @@ public enum EventType implements EventTypeDescription {
   MEETING_DELETED("meetingDeleted"),
   MEETING_PARTICIPANT_JOINED("meetingParticipantJoined"),
   MEETING_PARTICIPANT_LEFT("meetingParticipantLeft"),
-  MEETING_PARTICIPANT_VIDEO_STREAM_OPENED("meetingParticipantVideoStreamOpened"),
-  MEETING_PARTICIPANT_VIDEO_STREAM_CLOSED("meetingParticipantVideoStreamClosed"),
-  MEETING_PARTICIPANT_AUDIO_STREAM_OPENED("meetingParticipantAudioStreamOpened"),
-  MEETING_PARTICIPANT_AUDIO_STREAM_CLOSED("meetingParticipantAudioStreamClosed"),
-  MEETING_PARTICIPANT_SCREEN_STREAM_OPENED("meetingParticipantScreenStreamOpened"),
-  MEETING_PARTICIPANT_SCREEN_STREAM_CLOSED("meetingParticipantScreenStreamClosed");
+  MEETING_VIDEO_STREAM_ENABLED("meetingVideoStreamEnabled"),
+  MEETING_VIDEO_STREAM_DISABLED("meetingVideoStreamDisabled"),
+  MEETING_AUDIO_STREAM_ENABLED("meetingAudioStreamEnabled"),
+  MEETING_AUDIO_STREAM_DISABLED("meetingAudioStreamDisabled"),
+  MEETING_SCREEN_STREAM_ENABLED("meetingScreenStreamEnabled"),
+  MEETING_SCREEN_STREAM_DISABLED("meetingScreenStreamDisabled");
 
   private final String description;
 
