@@ -8,26 +8,26 @@ import java.util.Objects;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
-public class MeetingParticipantAudioStreamOpened extends DomainEvent {
+public class MeetingScreenStreamDisabled extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_AUDIO_STREAM_OPENED;
+  private static final EventType EVENT_TYPE = EventType.MEETING_SCREEN_STREAM_DISABLED;
 
   private UUID   meetingId;
   private String sessionId;
 
-  public MeetingParticipantAudioStreamOpened(UUID from, @Nullable String sessionId) {
+  public MeetingScreenStreamDisabled(UUID from, @Nullable String sessionId) {
     super(EVENT_TYPE, from, sessionId);
   }
 
-  public static MeetingParticipantVideoStreamOpened create(UUID from, @Nullable String sessionId) {
-    return new MeetingParticipantVideoStreamOpened(from, sessionId);
+  public static MeetingScreenStreamDisabled create(UUID from, @Nullable String sessionId) {
+    return new MeetingScreenStreamDisabled(from, sessionId);
   }
 
   public UUID getMeetingId() {
     return meetingId;
   }
 
-  public MeetingParticipantAudioStreamOpened meetingId(UUID meetingId) {
+  public MeetingScreenStreamDisabled meetingId(UUID meetingId) {
     this.meetingId = meetingId;
     return this;
   }
@@ -37,7 +37,7 @@ public class MeetingParticipantAudioStreamOpened extends DomainEvent {
     return sessionId;
   }
 
-  public MeetingParticipantAudioStreamOpened sessionId(String sessionId) {
+  public MeetingScreenStreamDisabled sessionId(String sessionId) {
     this.sessionId = sessionId;
     return this;
   }
@@ -53,7 +53,7 @@ public class MeetingParticipantAudioStreamOpened extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    MeetingParticipantAudioStreamOpened that = (MeetingParticipantAudioStreamOpened) o;
+    MeetingScreenStreamDisabled that = (MeetingScreenStreamDisabled) o;
     return Objects.equals(getMeetingId(), that.getMeetingId()) && Objects.equals(getSessionId(), that.getSessionId());
   }
 

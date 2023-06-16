@@ -363,8 +363,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .orElseThrow(UnauthorizedException::new);
     Optional<MeetingDto> meeting = participantService.insertMeetingParticipantByRoomId(roomId,
       JoinSettingsDto.create()
-        .videoStreamOn(joinSettingsByRoomDto.isVideoStreamOn())
-        .audioStreamOn(joinSettingsByRoomDto.isAudioStreamOn()),
+        .videoStreamEnabled(joinSettingsByRoomDto.isVideoStreamEnabled())
+        .audioStreamEnabled(joinSettingsByRoomDto.isAudioStreamEnabled()),
       currentUser);
     if (meeting.isPresent()) {
       return Response.ok().entity(meeting.get()).build();
@@ -372,6 +372,5 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       return Response.status(Status.NO_CONTENT).build();
     }
   }
-
 
 }
