@@ -862,7 +862,7 @@ components:
             type: string
             format: binary
     JoinRoomMeetingRequest:
-      description: user request containing its streams desiderata to join a meeting
+      description: user request containing its streams settings to join a meeting
       required: true
       content:
         application/json:
@@ -1418,7 +1418,7 @@ components:
           description: ZM token
     JoinSettingsByRoom:
       type: object
-      description: user's streams desiderata to join a meeting by room
+      description: user's streams settings to join a meeting by room
       allOf:
         - $ref: '../meeting/meeting-api.yaml#/components/schemas/JoinSettings'
     ImageQualityEnum:

@@ -10,9 +10,11 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
+import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
-import com.zextras.carbonio.meeting.model.MeetingStreamDto;
+import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
+import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -121,63 +123,63 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   /**
    * Updates the video stream status in the meeting for the current session
    *
-   * @param meetingId        meeting identifier {@link UUID}
-   * @param sessionId        identifier of the user session whose video stream status has to updated
-   * @param meetingStreamDto user request to update the video stream status
-   * @param securityContext  security context created by the authentication filter {@link SecurityContext}
+   * @param meetingId              meeting identifier {@link UUID}
+   * @param sessionId              identifier of the user session whose video stream status has to updated
+   * @param videoStreamSettingsDto user settings request to update the video stream status
+   * @param securityContext        security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response updateVideoStream(UUID meetingId, String sessionId, MeetingStreamDto meetingStreamDto,
+  public Response updateVideoStream(UUID meetingId, String sessionId, VideoStreamSettingsDto videoStreamSettingsDto,
     SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
       throw new BadRequestException("Session identifier is mandatory");
     }
-    participantService.updateVideoStream(meetingId, sessionId, meetingStreamDto.isEnabled(), currentUser);
+    participantService.updateVideoStream(meetingId, sessionId, videoStreamSettingsDto.isEnabled(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
   /**
    * Updates the audio stream status in the meeting for the current session
    *
-   * @param meetingId        meeting identifier {@link UUID}
-   * @param sessionId        identifier of the user session whose audio stream status has to updated
-   * @param meetingStreamDto user request to update the audio stream status
-   * @param securityContext  security context created by the authentication filter {@link SecurityContext}
+   * @param meetingId              meeting identifier {@link UUID}
+   * @param sessionId              identifier of the user session whose audio stream status has to updated
+   * @param audioStreamSettingsDto user settings request to update the audio stream status
+   * @param securityContext        security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response updateAudioStream(UUID meetingId, String sessionId, MeetingStreamDto meetingStreamDto,
+  public Response updateAudioStream(UUID meetingId, String sessionId, AudioStreamSettingsDto audioStreamSettingsDto,
     SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
       throw new BadRequestException("Session identifier is mandatory");
     }
-    participantService.updateAudioStream(meetingId, sessionId, meetingStreamDto.isEnabled(), currentUser);
+    participantService.updateAudioStream(meetingId, sessionId, audioStreamSettingsDto.isEnabled(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
   /**
    * Updates the screen stream status in the meeting for the current session
    *
-   * @param meetingId        meeting identifier {@link UUID}
-   * @param sessionId        identifier of the user session whose screen stream status has to updated
-   * @param meetingStreamDto user request to update the screen stream status
-   * @param securityContext  security context created by the authentication filter {@link SecurityContext}
+   * @param meetingId               meeting identifier {@link UUID}
+   * @param sessionId               identifier of the user session whose screen stream status has to updated
+   * @param screenStreamSettingsDto user settings request to update the screen stream status
+   * @param securityContext         security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response updateScreenStream(UUID meetingId, String sessionId, MeetingStreamDto meetingStreamDto,
+  public Response updateScreenStream(UUID meetingId, String sessionId, ScreenStreamSettingsDto screenStreamSettingsDto,
     SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
       throw new BadRequestException("Session identifier is mandatory");
     }
-    participantService.updateScreenStream(meetingId, sessionId, meetingStreamDto.isEnabled(), currentUser);
+    participantService.updateScreenStream(meetingId, sessionId, screenStreamSettingsDto.isEnabled(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 }

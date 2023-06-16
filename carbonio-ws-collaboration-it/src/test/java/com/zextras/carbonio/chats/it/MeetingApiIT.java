@@ -29,10 +29,12 @@ import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
-import com.zextras.carbonio.meeting.model.MeetingStreamDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
+import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
+import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
@@ -669,7 +671,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -691,7 +693,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -714,7 +716,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -726,7 +728,7 @@ public class MeetingApiIT {
     public void enableVideoStream_testErrorMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true)),
         Map.of("session-id", user1session1), user1Token);
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -737,7 +739,7 @@ public class MeetingApiIT {
     public void enableVideoStream_testErrorCurrentUserWithoutSessionId() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), UUID.randomUUID().toString()),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true)),
         Map.of(), user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -748,7 +750,7 @@ public class MeetingApiIT {
     public void enableVideoStream_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), UUID.randomUUID().toString()),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true)),
         Map.of(), null);
 
       assertEquals(401, response.getStatus());
@@ -777,7 +779,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -799,7 +801,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -823,7 +825,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user2session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -847,7 +849,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user2session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -871,7 +873,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user2session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(403, response.getStatus());
@@ -890,7 +892,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user2session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -902,7 +904,7 @@ public class MeetingApiIT {
     public void disableVideoStream_testErrorMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -914,7 +916,7 @@ public class MeetingApiIT {
     public void disableVideoStream_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), UUID.randomUUID().toString()),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(false)),
         Map.of(), null);
 
       assertEquals(401, response.getStatus());
@@ -942,7 +944,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(true)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -964,7 +966,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(true)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -987,7 +989,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(true)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -999,7 +1001,7 @@ public class MeetingApiIT {
     public void enableAudioStream_testErrorMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), UUID.randomUUID().toString()),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(true)),
         Map.of("session-id", user1session1), user1Token);
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1010,7 +1012,7 @@ public class MeetingApiIT {
     public void enableAudioStream_testErrorCurrentUserWithoutSessionId() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), UUID.randomUUID().toString()),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(true)),
         Map.of(), user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1021,7 +1023,7 @@ public class MeetingApiIT {
     public void enableAudioStream_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), UUID.randomUUID().toString()),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(true)),
         Map.of(), null);
 
       assertEquals(401, response.getStatus());
@@ -1050,7 +1052,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1072,7 +1074,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1096,7 +1098,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user2session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1120,7 +1122,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user2session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1144,7 +1146,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user2session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(403, response.getStatus());
@@ -1163,7 +1165,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user2session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -1175,7 +1177,7 @@ public class MeetingApiIT {
     public void disableAudioStream_testErrorMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -1187,7 +1189,7 @@ public class MeetingApiIT {
     public void disableAudioStream_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), UUID.randomUUID().toString()),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
         Map.of(), null);
 
       assertEquals(401, response.getStatus());
@@ -1215,7 +1217,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1238,7 +1240,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1261,7 +1263,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -1273,7 +1275,7 @@ public class MeetingApiIT {
     public void enableScreenStream_testErrorMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), UUID.randomUUID().toString()),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true)),
         Map.of("session-id", user1session1), user1Token);
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1284,7 +1286,7 @@ public class MeetingApiIT {
     public void enableScreenStream_testErrorCurrentUserWithoutSessionId() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), UUID.randomUUID().toString()),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true)),
         Map.of(), user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1295,7 +1297,7 @@ public class MeetingApiIT {
     public void enableScreenStream_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), UUID.randomUUID().toString()),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(true)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true)),
         Map.of(), null);
 
       assertEquals(401, response.getStatus());
@@ -1324,7 +1326,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1347,7 +1349,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1371,7 +1373,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user2session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1395,7 +1397,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user2session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1419,7 +1421,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user2session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(403, response.getStatus());
@@ -1438,7 +1440,7 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user2session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -1450,7 +1452,7 @@ public class MeetingApiIT {
     public void disableScreenStream_testErrorMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), user1session1),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(false)),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -1462,7 +1464,7 @@ public class MeetingApiIT {
     public void disableScreenStream_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(
         url(UUID.randomUUID(), UUID.randomUUID().toString()),
-        objectMapper.writeValueAsString(MeetingStreamDto.create().enabled(false)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(false)),
         Map.of(), null);
 
       assertEquals(401, response.getStatus());

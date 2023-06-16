@@ -175,7 +175,7 @@ components:
 
   requestBodies:
     JoinMeetingRequest:
-      description: user request containing its streams desiderata to join a meeting
+      description: user request containing its streams settings to join a meeting
       required: true
       content:
         application/json:
@@ -187,21 +187,21 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/MeetingStream'
+            $ref: '#/components/schemas/VideoStreamSettings'
     UpdateAudioStreamRequest:
       description: user request to update a meeting stream status
       required: true
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/MeetingStream'
+            $ref: '#/components/schemas/AudioStreamSettings'
     UpdateScreenStreamRequest:
       description: user request to update a meeting stream status
       required: true
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/MeetingStream'
+            $ref: '#/components/schemas/ScreenStreamSettings'
 
   responses:
     200ListMeetingResponse:
@@ -318,25 +318,43 @@ components:
           description: entity creation date
     JoinSettings:
       type: object
-      description: user's streams desiderata to join a meeting
+      description: user's streams settings to join a meeting
       properties:
         audioStreamEnabled:
           type: boolean
           default: false
           readOnly: true
-          description: indicates the status to change the audio stream to
+          description: indicates the audio stream status to join the meeting
         videoStreamEnabled:
           type: boolean
           default: false
           readOnly: true
-          description: indicates the status to change the video stream to
+          description: indicates the video stream status to join the meeting
       required: [ audioStreamEnabled, videoStreamEnabled ]
-    MeetingStream:
+    VideoStreamSettings:
       type: object
-      description: meeting stream which status can be enabled or disabled
+      description: settings to apply on user's video stream
       properties:
         enabled:
           type: boolean
           readOnly: true
-          description: indicates the status to change the stream to
+          description: indicates the status to change the video stream to
+      required: [ enabled ]
+    AudioStreamSettings:
+      type: object
+      description: settings to apply on user's audio stream
+      properties:
+        enabled:
+          type: boolean
+          readOnly: true
+          description: indicates the status to change the audio stream to
+      required: [ enabled ]
+    ScreenStreamSettings:
+      type: object
+      description: settings to apply on user's screen stream
+      properties:
+        enabled:
+          type: boolean
+          readOnly: true
+          description: indicates the status to change the screen stream to
       required: [ enabled ]
