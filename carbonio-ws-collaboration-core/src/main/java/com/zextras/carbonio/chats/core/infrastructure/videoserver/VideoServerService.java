@@ -41,29 +41,29 @@ public interface VideoServerService extends HealthIndicator {
   void leaveMeeting(String sessionId, String meetingId);
 
   /**
-   * Enable or disable the audio stream for the user's session in the meeting
+   * Updates the audio stream status for the user's session in the meeting
    *
    * @param sessionId participant's session identifier
    * @param meetingId identification of the meeting on which to perform the operation
-   * @param enable    if true the audio stream is enabled, otherwise it is disabled
+   * @param enabled   if true the audio stream is enabled, otherwise it is disabled
    */
-  void enableAudioStream(String sessionId, String meetingId, boolean enable);
+  void updateAudioStream(String sessionId, String meetingId, boolean enabled);
 
   /**
-   * Enable or disable the video stream for the user's session in the meeting
+   * Updates the video stream status for the user's session in the meeting
    *
    * @param sessionId participant's session identifier
    * @param meetingId identification of the meeting on which to perform the operation
-   * @param enable    if true the video stream will be enabled, otherwise it will be disabled
+   * @param enabled   if true the video stream will be enabled, otherwise it will be disabled
    */
-  void enableVideoStream(String sessionId, String meetingId, boolean enable);
+  void updateVideoStream(String sessionId, String meetingId, boolean enabled);
 
   /**
-   * Enable or disable the screen share stream for the user's session in the meeting
+   * Updates the screen stream for the user's session in the meeting
    *
    * @param sessionId participant's session identifier
    * @param meetingId identification of the meeting on which to perform the operation
-   * @param enable    if true the screen share stream will be enabled, otherwise it will be disabled
+   * @param enabled   if true the screen stream will be enabled, otherwise it will be disabled
    */
-  void enableScreenShareStream(String sessionId, String meetingId, boolean enable);
+  void updateScreenStream(String sessionId, String meetingId, boolean enabled);
 }

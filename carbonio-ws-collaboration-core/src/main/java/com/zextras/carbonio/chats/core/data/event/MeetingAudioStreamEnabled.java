@@ -8,26 +8,26 @@ import java.util.Objects;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
-public class MeetingParticipantScreenStreamClosed extends DomainEvent {
+public class MeetingAudioStreamEnabled extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_SCREEN_STREAM_CLOSED;
+  private static final EventType EVENT_TYPE = EventType.MEETING_AUDIO_STREAM_ENABLED;
 
   private UUID   meetingId;
   private String sessionId;
 
-  public MeetingParticipantScreenStreamClosed(UUID from, @Nullable String sessionId) {
+  public MeetingAudioStreamEnabled(UUID from, @Nullable String sessionId) {
     super(EVENT_TYPE, from, sessionId);
   }
 
-  public static MeetingParticipantScreenStreamClosed create(UUID from, @Nullable String sessionId) {
-    return new MeetingParticipantScreenStreamClosed(from, sessionId);
+  public static MeetingVideoStreamEnabled create(UUID from, @Nullable String sessionId) {
+    return new MeetingVideoStreamEnabled(from, sessionId);
   }
 
   public UUID getMeetingId() {
     return meetingId;
   }
 
-  public MeetingParticipantScreenStreamClosed meetingId(UUID meetingId) {
+  public MeetingAudioStreamEnabled meetingId(UUID meetingId) {
     this.meetingId = meetingId;
     return this;
   }
@@ -37,7 +37,7 @@ public class MeetingParticipantScreenStreamClosed extends DomainEvent {
     return sessionId;
   }
 
-  public MeetingParticipantScreenStreamClosed sessionId(String sessionId) {
+  public MeetingAudioStreamEnabled sessionId(String sessionId) {
     this.sessionId = sessionId;
     return this;
   }
@@ -53,7 +53,7 @@ public class MeetingParticipantScreenStreamClosed extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    MeetingParticipantScreenStreamClosed that = (MeetingParticipantScreenStreamClosed) o;
+    MeetingAudioStreamEnabled that = (MeetingAudioStreamEnabled) o;
     return Objects.equals(getMeetingId(), that.getMeetingId()) && Objects.equals(getSessionId(), that.getSessionId());
   }
 

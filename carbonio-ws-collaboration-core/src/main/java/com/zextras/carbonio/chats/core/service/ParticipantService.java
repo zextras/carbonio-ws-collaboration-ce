@@ -22,28 +22,28 @@ public interface ParticipantService {
   /**
    * Inserts a participant into the meeting of the specified room. If the meeting doesn’t exist it will be created
    *
-   * @param roomId       room identifier of the associated meeting in which to insert the participant {@link UUID}
-   * @param joinSettings participation settings {@link JoinSettingsDto}
-   * @param currentUser  current authenticated user {@link UserPrincipal}
+   * @param roomId          room identifier of the associated meeting in which to insert the participant {@link UUID}
+   * @param joinSettingsDto participation join settings for meeting {@link JoinSettingsDto}
+   * @param currentUser     current authenticated user {@link UserPrincipal}
    * @return The newly meeting {@link MeetingDto} wrapped into an {@link Optional} only if it was created
    */
   Optional<MeetingDto> insertMeetingParticipantByRoomId(
-    UUID roomId, JoinSettingsDto joinSettings, UserPrincipal currentUser
+    UUID roomId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser
   );
 
   /**
    * Inserts a participant into the indicated meeting
    *
-   * @param meetingId    identifier of the meeting in which to insert the participant {@link UUID}
-   * @param joinSettings participation settings {@link JoinSettingsDto}
-   * @param currentUser  current authenticated user {@link UserPrincipal}
+   * @param meetingId       identifier of the meeting in which to insert the participant {@link UUID}
+   * @param joinSettingsDto participation join settings for meeting  {@link JoinSettingsDto}
+   * @param currentUser     current authenticated user {@link UserPrincipal}
    * @throws ConflictException  if the session is already inserted into the meeting
    * @throws NotFoundException  if the meeting doesn't exist
    * @throws NotFoundException  if the associated room doesn't exist
    * @throws ForbiddenException if the user isn't an associated room member
    * @throws ForbiddenException if the user isn't an associated room owner and mustBeRoomOwner is true
    */
-  void insertMeetingParticipant(UUID meetingId, JoinSettingsDto joinSettings, UserPrincipal currentUser);
+  void insertMeetingParticipant(UUID meetingId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser);
 
   /**
    * Removes the participant of current user from the indicated meeting
@@ -71,11 +71,11 @@ public interface ParticipantService {
   void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, @Nullable String sessionId);
 
   /**
-   * Sets the video stream enabling in the meeting for the current session
+   * Updates the video stream status in the meeting for the current session
    *
    * @param meetingId   meeting identifier {@link UUID}
-   * @param sessionId   identifier of the session to set video stream enabling
-   * @param enable      indicates whether the video stream must be enabled or not
+   * @param sessionId   identifier of the session whose video stream status has to be updated
+   * @param enabled     indicates whether the video stream must be enabled or not
    * @param currentUser currentUser current authenticated user {@link UserPrincipal}
    * @throws NotFoundException   if the meeting doesn't exist
    * @throws NotFoundException   if the user session for indicated meeting doesn't exist.
@@ -83,24 +83,14 @@ public interface ParticipantService {
    * @throws BadRequestException if another session tries to enable the stream
    * @throws ForbiddenException  if the current user isn't a room owner
    */
-  void enableVideoStream(UUID meetingId, String sessionId, boolean enable, UserPrincipal currentUser);
+  void updateVideoStream(UUID meetingId, String sessionId, boolean enabled, UserPrincipal currentUser);
 
   /**
-   * Sets the audio stream enabling in the meeting for the current session
-   *
-   * @param meetingId        meeting identifier {@link UUID}
-   * @param sessionId        identifier of the session to set video stream enabling
-   * @param enable           indicates whether the audio stream must be enabled or not
-   * @param currentUser      currentUser current authenticated user {@link UserPrincipal}
-   */
-  void enableAudioStream(UUID meetingId, String sessionId, boolean enable, UserPrincipal currentUser);
-
-  /**
-   * Sets the screen share stream enabling in the meeting for the current session
+   * Updates the audio stream status in the meeting for the current session
    *
    * @param meetingId   meeting identifier {@link UUID}
-   * @param sessionId   identifier of the session to set video stream enabling
-   * @param enable      indicates whether the video stream must be enabled or not
+   * @param sessionId   identifier of the session whose audio stream status has to be updated
+   * @param enabled     indicates whether the audio stream must be enabled or not
    * @param currentUser currentUser current authenticated user {@link UserPrincipal}
    * @throws NotFoundException   if the meeting doesn't exist
    * @throws NotFoundException   if the user session for indicated meeting doesn't exist.
@@ -108,5 +98,20 @@ public interface ParticipantService {
    * @throws BadRequestException if another session tries to enable the stream
    * @throws ForbiddenException  if the current user isn't a room owner
    */
-  void enableScreenShareStream(UUID meetingId, String sessionId, boolean enable, UserPrincipal currentUser);
+  void updateAudioStream(UUID meetingId, String sessionId, boolean enabled, UserPrincipal currentUser);
+
+  /**
+   * Updates the screen stream status in the meeting for the current session
+   *
+   * @param meetingId   meeting identifier {@link UUID}
+   * @param sessionId   identifier of the session whose screen stream status has to updated
+   * @param enabled     indicates whether the video stream must be enabled or not
+   * @param currentUser currentUser current authenticated user {@link UserPrincipal}
+   * @throws NotFoundException   if the meeting doesn't exist
+   * @throws NotFoundException   if the user session for indicated meeting doesn't exist.
+   * @throws NotFoundException   if the associated room doesn't exist
+   * @throws BadRequestException if another session tries to enable the stream
+   * @throws ForbiddenException  if the current user isn't a room owner
+   */
+  void updateScreenStream(UUID meetingId, String sessionId, boolean enabled, UserPrincipal currentUser);
 }

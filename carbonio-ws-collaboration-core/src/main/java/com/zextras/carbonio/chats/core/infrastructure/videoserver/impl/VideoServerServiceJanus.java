@@ -233,17 +233,17 @@ public class VideoServerServiceJanus implements VideoServerService {
   }
 
   @Override
-  public void enableVideoStream(String sessionId, String meetingId, boolean enable) {
+  public void updateVideoStream(String sessionId, String meetingId, boolean enabled) {
 
   }
 
   @Override
-  public void enableAudioStream(String sessionId, String meetingId, boolean enable) {
+  public void updateAudioStream(String sessionId, String meetingId, boolean enabled) {
 
   }
 
   @Override
-  public void enableScreenShareStream(String sessionId, String meetingId, boolean enable) {
+  public void updateScreenStream(String sessionId, String meetingId, boolean enabled) {
 
   }
 

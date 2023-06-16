@@ -8,26 +8,26 @@ import java.util.Objects;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
-public class MeetingParticipantVideoStreamClosed extends DomainEvent {
+public class MeetingVideoStreamDisabled extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_VIDEO_STREAM_CLOSED;
+  private static final EventType EVENT_TYPE = EventType.MEETING_VIDEO_STREAM_DISABLED;
 
   private UUID   meetingId;
   private String sessionId;
 
-  public MeetingParticipantVideoStreamClosed(UUID from, @Nullable String sessionId) {
+  public MeetingVideoStreamDisabled(UUID from, @Nullable String sessionId) {
     super(EVENT_TYPE, from, sessionId);
   }
 
-  public static MeetingParticipantVideoStreamClosed create(UUID from, @Nullable String sessionId) {
-    return new MeetingParticipantVideoStreamClosed(from, sessionId);
+  public static MeetingVideoStreamDisabled create(UUID from, @Nullable String sessionId) {
+    return new MeetingVideoStreamDisabled(from, sessionId);
   }
 
   public UUID getMeetingId() {
     return meetingId;
   }
 
-  public MeetingParticipantVideoStreamClosed meetingId(UUID meetingId) {
+  public MeetingVideoStreamDisabled meetingId(UUID meetingId) {
     this.meetingId = meetingId;
     return this;
   }
@@ -37,7 +37,7 @@ public class MeetingParticipantVideoStreamClosed extends DomainEvent {
     return sessionId;
   }
 
-  public MeetingParticipantVideoStreamClosed sessionId(String sessionId) {
+  public MeetingVideoStreamDisabled sessionId(String sessionId) {
     this.sessionId = sessionId;
     return this;
   }
@@ -53,7 +53,7 @@ public class MeetingParticipantVideoStreamClosed extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    MeetingParticipantVideoStreamClosed that = (MeetingParticipantVideoStreamClosed) o;
+    MeetingVideoStreamDisabled that = (MeetingVideoStreamDisabled) o;
     return Objects.equals(getMeetingId(), that.getMeetingId()) && Objects.equals(getSessionId(), that.getSessionId());
   }
 
