@@ -19,8 +19,14 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
+import com.zextras.carbonio.chats.model.RoomDto;
+import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.MeetingUserDto;
 import io.ebean.annotation.Transactional;
+import io.vavr.control.Option;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,6 +58,30 @@ public class MeetingServiceImpl implements MeetingService {
     this.membersService = membersService;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
+  }
+
+  @Override
+  public MeetingDto createMeeting(UserPrincipal user, String name, UUID roomId, List<MeetingUserDto> users) {
+    return meetingMapper.ent2dto(
+      Option.of(roomId).map(rId -> {
+        return Option.of(roomService.getRoomById(roomId, user))
+          .map(room -> {
+            return meetingRepository.insert(Meeting.create()
+              .id(UUID.randomUUID().toString())
+              .roomId(rId.toString()));
+          }).getOrElseThrow(() -> new RuntimeException("Room not found"));
+      }).getOrElse(() -> {
+        RoomDto room = roomService.createRoom(RoomCreationFieldsDto.create()
+          .name(name)
+          .type(RoomTypeDto.GROUP)
+          .membersIds(users.stream().map(MeetingUserDto::getUserId).collect(Collectors.toList()))
+          ,user);
+        return meetingRepository.insert(Meeting.create()
+          .id(UUID.randomUUID().toString())
+          .roomId(room.getId().toString())
+        );
+      })
+    );
   }
 
   @Override

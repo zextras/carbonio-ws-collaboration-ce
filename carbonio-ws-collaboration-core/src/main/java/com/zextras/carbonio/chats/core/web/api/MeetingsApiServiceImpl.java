@@ -10,9 +10,12 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
+import com.zextras.carbonio.meeting.api.NotFoundException;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
+
 import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
 import java.util.Optional;
@@ -36,6 +39,8 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     this.meetingService = meetingService;
     this.participantService = participantService;
   }
+
+
 
   /**
    * Gets meetings list for authenticated user.
@@ -66,6 +71,25 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     return Response.ok().entity(meetingService.getMeetingById(meetingId, currentUser)).build();
   }
 
+
+
+  @Override
+  public Response createMeeting(NewMeetingDataDto newMeetingDataDto, SecurityContext securityContext){
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    if(newMeetingDataDto.getName() == null && newMeetingDataDto.getUsers().isEmpty()){
+      return Response.status(Status.BAD_REQUEST).build();
+    } else {
+      return Response.ok(
+        meetingService.createMeeting(
+          currentUser,
+          newMeetingDataDto.getName(),
+          newMeetingDataDto.getRoomId(),
+          newMeetingDataDto.getUsers()
+        )
+      ).build();
+    }
+  }
   /**
    * Deletes the requested meeting.
    *
@@ -139,6 +163,16 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     }
     participantService.updateVideoStream(meetingId, sessionId, videoStreamSettingsDto.isEnabled(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
+  public Response startMeeting(UUID meetingId, SecurityContext securityContext) throws NotFoundException {
+    return null;
+  }
+
+  @Override
+  public Response stopMeeting(UUID meetingId, SecurityContext securityContext) throws NotFoundException {
+    return null;
   }
 
   /**
