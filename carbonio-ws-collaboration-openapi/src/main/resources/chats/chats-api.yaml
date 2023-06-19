@@ -1230,7 +1230,6 @@ components:
           minLength: 0
           maxLength: 256
           description: room description
-      required: [ name, description ]
     RoomCreationFields:
       type: object
       description: Room fields for its creation
