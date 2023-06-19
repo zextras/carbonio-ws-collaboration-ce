@@ -214,12 +214,12 @@ public class RoomServiceImpl implements RoomService {
   public RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     boolean changed = false;
-    if (!room.getName().equals(updateRoomRequestDto.getName())) {
+    if (updateRoomRequestDto.getName() != null && !room.getName().equals(updateRoomRequestDto.getName())) {
       changed = true;
       room.name(updateRoomRequestDto.getName());
       messageDispatcher.updateRoomName(room.getId(), currentUser.getId(), updateRoomRequestDto.getName());
     }
-    if (!room.getDescription().equals(updateRoomRequestDto.getDescription())) {
+    if (updateRoomRequestDto.getDescription() != null && !room.getDescription().equals(updateRoomRequestDto.getDescription())) {
       changed = true;
       room.description(updateRoomRequestDto.getDescription());
       messageDispatcher.updateRoomDescription(room.getId(), currentUser.getId(), updateRoomRequestDto.getDescription());

@@ -354,6 +354,18 @@ public class RoomsApiIT {
       }
 
       @Test
+      @DisplayName("Given creation fields, if the name is not specified returns a status code 400")
+      public void insertGroupRoom_testErrorWithoutName() throws Exception {
+        MockHttpResponse response = dispatcher.post(URL,
+          getInsertRoomRequestBody(null, "Test room", RoomTypeDto.GROUP, List.of(user2Id, user3Id)),
+          user1Token);
+
+        assertEquals(400, response.getStatus());
+        assertEquals(0, response.getOutput().length);
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      }
+
+      @Test
       @DisplayName("Given creation fields, if there aren't at least two member invitations returns a status code 400")
       public void insertGroupRoom_testErrorRequestWithLessThanTwoMemberInvitations() throws Exception {
         MockHttpResponse response = dispatcher.post(URL,
@@ -691,6 +703,72 @@ public class RoomsApiIT {
       mongooseImMockServer.verify(
         mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomNameChanged",
           List.of(new SimpleEntry<>("value", "updatedRoom")), null, null, null), VerificationTimes.exactly(1));
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomDescriptionChanged",
+          List.of(new SimpleEntry<>("value", "Updated room")), null, null, null), VerificationTimes.exactly(1));
+    }
+
+    @Test
+    @DisplayName("Given a room identifier and update only name, correctly updates the room")
+    public void updateRoom_testOkWithNameAndWithoutDescription() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+      Instant insertRoomInstant = executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
+      clock.fixTimeAt(insertRoomInstant);
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom", "Test room",
+        List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
+        OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomNameChanged",
+        List.of(new SimpleEntry<>("value", "updatedRoom")), null, null, null, true);
+      clock.fixTimeAt(executionInstant);
+      MockHttpResponse response = dispatcher.put(url(roomId),
+        getUpdateRoomRequestBody("updatedRoom", null), user1Token);
+      clock.removeFixTime();
+      assertEquals(200, response.getStatus());
+      RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
+      assertEquals("updatedRoom", room.getName());
+      assertEquals("Test room", room.getDescription());
+      assertEquals(insertRoomInstant, room.getCreatedAt().toInstant());
+      assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+      assertEquals(Duration.ofDays(1L), Duration.between(room.getCreatedAt(), room.getUpdatedAt()));
+      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
+
+      // TODO: 23/02/22 verify event dispatcher interactions
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomNameChanged",
+          List.of(new SimpleEntry<>("value", "updatedRoom")), null, null, null), VerificationTimes.exactly(1));
+    }
+
+    @Test
+    @DisplayName("Given a room identifier and update only description, correctly updates the room")
+    public void updateRoom_testOkWithoutNameAndWithDescription() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+      Instant insertRoomInstant = executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
+      clock.fixTimeAt(insertRoomInstant);
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom", "Test room",
+        List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
+        OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomDescriptionChanged",
+        List.of(new SimpleEntry<>("value", "Updated room")), null, null, null, true);
+      clock.fixTimeAt(executionInstant);
+      MockHttpResponse response = dispatcher.put(url(roomId),
+        getUpdateRoomRequestBody(null, "Updated room"), user1Token);
+      clock.removeFixTime();
+      assertEquals(200, response.getStatus());
+      RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
+      assertEquals("testRoom", room.getName());
+      assertEquals("Updated room", room.getDescription());
+      assertEquals(insertRoomInstant, room.getCreatedAt().toInstant());
+      assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+      assertEquals(Duration.ofDays(1L), Duration.between(room.getCreatedAt(), room.getUpdatedAt()));
+      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
+
+      // TODO: 23/02/22 verify event dispatcher interactions
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       mongooseImMockServer.verify(
         mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomDescriptionChanged",
           List.of(new SimpleEntry<>("value", "Updated room")), null, null, null), VerificationTimes.exactly(1));
