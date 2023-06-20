@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.entity.User;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -20,6 +21,8 @@ import javax.annotation.Nullable;
 public interface MeetingService {
 
   MeetingDto createMeeting(UserPrincipal user, String name, UUID roomId, List<MeetingUserDto> users);
+
+  MeetingDto startMeeting(UserPrincipal user, UUID meetingId);
 
   /**
    * Gets the meetings list of all rooms where the authenticated user is a member

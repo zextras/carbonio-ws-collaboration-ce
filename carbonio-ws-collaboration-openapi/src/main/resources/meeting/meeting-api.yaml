@@ -383,6 +383,9 @@ components:
           format: uuid
           readOnly: true
           description: room identifier
+        started:
+          description: Indicates if the meeting has been started
+          type: boolean
         participants:
           type: array
           items:

@@ -21,6 +21,7 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
+import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.MeetingUserDto;
@@ -64,11 +65,13 @@ public class MeetingServiceImpl implements MeetingService {
   public MeetingDto createMeeting(UserPrincipal user, String name, UUID roomId, List<MeetingUserDto> users) {
     return meetingMapper.ent2dto(
       Option.of(roomId).map(rId -> {
-        return Option.of(roomService.getRoomById(roomId, user))
+        return Option.of(roomService.getRoomEntityAndCheckUser(roomId, user, false))
           .map(room -> {
-            return meetingRepository.insert(Meeting.create()
+            Meeting meeting = meetingRepository.insert(Meeting.create()
               .id(UUID.randomUUID().toString())
               .roomId(rId.toString()));
+            roomService.setMeetingIntoRoom(room, meeting);
+            return meeting;
           }).getOrElseThrow(() -> new RuntimeException("Room not found"));
       }).getOrElse(() -> {
         RoomDto room = roomService.createRoom(RoomCreationFieldsDto.create()
@@ -82,6 +85,15 @@ public class MeetingServiceImpl implements MeetingService {
         );
       })
     );
+  }
+
+  @Override
+  public MeetingDto startMeeting(UserPrincipal user, UUID meetingId) {
+    meetingRepository.getById(meetingId.toString()).map(meeting -> {
+      videoServerService.createMeeting(meeting.getId());
+      meetingRepository.updateMeeting();
+    }).getOrElseThrow(() -> new NotFoundException(
+      String.format("Meeting with id '%s' not found", meetingId)));
   }
 
   @Override

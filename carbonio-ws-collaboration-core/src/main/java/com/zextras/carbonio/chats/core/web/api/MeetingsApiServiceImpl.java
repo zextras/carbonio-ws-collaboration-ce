@@ -15,6 +15,7 @@ import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
+import io.vavr.control.Option;
 
 import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
@@ -90,6 +91,8 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       ).build();
     }
   }
+
+
   /**
    * Deletes the requested meeting.
    *
@@ -104,6 +107,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
         .orElseThrow(UnauthorizedException::new));
     return Response.status(Status.NO_CONTENT).build();
   }
+
 
   /**
    * Allows the authenticated user to join a meeting.
@@ -166,8 +170,12 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   }
 
   @Override
-  public Response startMeeting(UUID meetingId, SecurityContext securityContext) throws NotFoundException {
-    return null;
+  public Response startMeeting(UUID meetingId, SecurityContext securityContext){
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    return Response.status(Status.OK)
+      .entity(meetingService.startMeeting(currentUser, meetingId))
+      .build();
   }
 
   @Override
