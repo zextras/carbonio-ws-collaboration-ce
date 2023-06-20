@@ -489,6 +489,18 @@ public class RoomsApiIT {
       }
 
       @Test
+      @DisplayName("Given creation fields, if the name is not specified returns a status code 400")
+      public void insertGroupRoom_testErrorWithoutName() throws Exception {
+        MockHttpResponse response = dispatcher.post(URL,
+          getInsertRoomRequestBody(null, "Test room", RoomTypeDto.GROUP, List.of(user2Id, user3Id)),
+          user1Token);
+
+        assertEquals(400, response.getStatus());
+        assertEquals(0, response.getOutput().length);
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      }
+
+      @Test
       @DisplayName("Given creation fields, if there aren't at least two member invitations returns a status code 400")
       public void insertGroupRoom_testErrorRequestWithLessThanTwoMemberInvitations() throws Exception {
         MockHttpResponse response = dispatcher.post(URL,
@@ -514,7 +526,7 @@ public class RoomsApiIT {
         clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("c9f83f1c-9b96-4731-9404-79e45a5d6d3c");
-        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), "testOneToOne", "Test room", true);
+        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), null, null, true);
         mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString(), true);
         mongooseImMockServer.mockAddUserToContacts(user2Id.toString(), user1Id.toString(), true);
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -523,16 +535,15 @@ public class RoomsApiIT {
           uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
           uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
           response = dispatcher.post(URL,
-            getInsertRoomRequestBody("testOneToOne", "Test room", RoomTypeDto.ONE_TO_ONE, List.of(user2Id)),
-            user1Token);
+            getInsertRoomRequestBody(null, null, RoomTypeDto.ONE_TO_ONE, List.of(user2Id)), user1Token);
         }
         clock.removeFixTime();
         userManagementMockServer.verify("GET", String.format("/users/id/%s", user2Id), user1Token, 1);
         userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
-        assertEquals("testOneToOne", room.getName());
-        assertEquals("Test room", room.getDescription());
+        assertNull(room.getName());
+        assertNull(room.getDescription());
         assertEquals(RoomTypeDto.ONE_TO_ONE, room.getType());
         assertEquals(2, room.getMembers().size());
         assertTrue(room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
@@ -545,7 +556,7 @@ public class RoomsApiIT {
         assertNull(room.getPictureUpdatedAt());
 
         mongooseImMockServer.verify(
-          mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString(), "testOneToOne", "Test room"),
+          mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString(), null, null),
           VerificationTimes.exactly(1));
         mongooseImMockServer.verify(
           mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user2Id.toString()),
@@ -557,19 +568,44 @@ public class RoomsApiIT {
       }
 
       @Test
+      @DisplayName("Given one-to-one creation fields, if name is not null return a status code 400")
+      public void insertOneToOneRoom_testErrorWithName() throws Exception {
+        MockHttpResponse response = dispatcher.post(URL,
+          getInsertRoomRequestBody("testOneToOne", null, RoomTypeDto.ONE_TO_ONE,
+            List.of(user2Id, user3Id)), user1Token);
+
+        assertEquals(400, response.getStatus());
+        assertEquals(0, response.getContentAsString().length());
+        mongooseImMockServer.verifyZeroInteractions();
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      }
+
+      @Test
+      @DisplayName("Given one-to-one creation fields, if description is not null return a status code 400")
+      public void insertOneToOneRoom_testErrorWithDescription() throws Exception {
+        MockHttpResponse response = dispatcher.post(URL,
+          getInsertRoomRequestBody(null, "Test room", RoomTypeDto.ONE_TO_ONE,
+            List.of(user2Id, user3Id)), user1Token);
+
+        assertEquals(400, response.getStatus());
+        assertEquals(0, response.getContentAsString().length());
+        mongooseImMockServer.verifyZeroInteractions();
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      }
+
+      @Test
       @DisplayName("Given creation fields for a one to one room, if there is a room with those users returns a status code 409")
       public void insertOneToOneRoom_testAlreadyExists() throws Exception {
         UUID roomId = UUID.randomUUID();
-        integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.ONE_TO_ONE, "testOneToOne",
+        integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.ONE_TO_ONE, null,
           List.of(user1Id, user2Id));
-        integrationTestUtils.generateAndSaveRoom(UUID.randomUUID(), RoomTypeDto.ONE_TO_ONE, "testOneToOne",
+        integrationTestUtils.generateAndSaveRoom(UUID.randomUUID(), RoomTypeDto.ONE_TO_ONE, null,
           List.of(user1Id, user3Id));
-        integrationTestUtils.generateAndSaveRoom(UUID.randomUUID(), RoomTypeDto.ONE_TO_ONE, "testOneToOne",
+        integrationTestUtils.generateAndSaveRoom(UUID.randomUUID(), RoomTypeDto.ONE_TO_ONE, null,
           List.of(user2Id, user3Id));
 
         MockHttpResponse response = dispatcher.post(URL,
-          getInsertRoomRequestBody("testOneToOne", "Test room", RoomTypeDto.ONE_TO_ONE, List.of(user2Id)),
-          user1Token);
+          getInsertRoomRequestBody(null, null, RoomTypeDto.ONE_TO_ONE, List.of(user2Id)), user1Token);
         assertEquals(409, response.getStatus());
         assertEquals(0, response.getOutput().length);
         mongooseImMockServer.verifyZeroInteractions();
@@ -580,8 +616,7 @@ public class RoomsApiIT {
       @DisplayName("Given one-to-one creation fields, if there are more then one invitation return a ststus code 400")
       public void insertOneToOneRoom_testMoreThenOneInvitation() throws Exception {
         MockHttpResponse response = dispatcher.post(URL,
-          getInsertRoomRequestBody("testOneToOne", "Test room", RoomTypeDto.ONE_TO_ONE,
-            List.of(user2Id, user3Id)), user1Token);
+          getInsertRoomRequestBody(null, null, RoomTypeDto.ONE_TO_ONE, List.of(user2Id, user3Id)), user1Token);
 
         assertEquals(400, response.getStatus());
         assertEquals(0, response.getContentAsString().length());
@@ -1239,14 +1274,92 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier and update fields, if there isn't the name return a status code 400")
-    public void updateRoom_testErrorUpdateFieldWithoutName() throws Exception {
+    @DisplayName("Given a room identifier and update only name, correctly updates the room")
+    public void updateRoom_testOkWithNameAndWithoutDescription() throws Exception {
       UUID roomId = UUID.randomUUID();
+      Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+      Instant insertRoomInstant = executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
+      clock.fixTimeAt(insertRoomInstant);
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom", "Test room",
+        List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
+        OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomNameChanged",
+        List.of(new SimpleEntry<>("value", "updatedRoom")), null, null, null, true);
+      clock.fixTimeAt(executionInstant);
+      MockHttpResponse response = dispatcher.put(url(roomId),
+        getUpdateRoomRequestBody("updatedRoom", null), user1Token);
+      clock.removeFixTime();
+      assertEquals(200, response.getStatus());
+      RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
+      assertEquals("updatedRoom", room.getName());
+      assertEquals("Test room", room.getDescription());
+      assertEquals(insertRoomInstant, room.getCreatedAt().toInstant());
+      assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+      assertEquals(Duration.ofDays(1L), Duration.between(room.getCreatedAt(), room.getUpdatedAt()));
+      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
+
+      // TODO: 23/02/22 verify event dispatcher interactions
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomNameChanged",
+          List.of(new SimpleEntry<>("value", "updatedRoom")), null, null, null), VerificationTimes.exactly(1));
+    }
+
+    @Test
+    @DisplayName("Given a room identifier and update only description, correctly updates the room")
+    public void updateRoom_testOkWithoutNameAndWithDescription() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+      Instant insertRoomInstant = executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
+      clock.fixTimeAt(insertRoomInstant);
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom", "Test room",
+        List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
+        OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomDescriptionChanged",
+        List.of(new SimpleEntry<>("value", "Updated room")), null, null, null, true);
+      clock.fixTimeAt(executionInstant);
+      MockHttpResponse response = dispatcher.put(url(roomId),
+        getUpdateRoomRequestBody(null, "Updated room"), user1Token);
+      clock.removeFixTime();
+      assertEquals(200, response.getStatus());
+      RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
+      assertEquals("testRoom", room.getName());
+      assertEquals("Updated room", room.getDescription());
+      assertEquals(insertRoomInstant, room.getCreatedAt().toInstant());
+      assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+      assertEquals(Duration.ofDays(1L), Duration.between(room.getCreatedAt(), room.getUpdatedAt()));
+      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
+
+      // TODO: 23/02/22 verify event dispatcher interactions
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomDescriptionChanged",
+          List.of(new SimpleEntry<>("value", "Updated room")), null, null, null), VerificationTimes.exactly(1));
+    }
+
+    @Test
+    @DisplayName("Given a room identifier, if there isn't any room return a status code 404")
+    public void updateRoom_testErrorUpdateRoomNotExistingRoom() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      MockHttpResponse response = dispatcher.put(url(roomId),
+        getUpdateRoomRequestBody(null, "Updated room"), user1Token);
+      assertEquals(404, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a room identifier, if it is a one to one return status code 400")
+    public void updateRoom_testErrorUpdateRoom1to1() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.ONE_TO_ONE, null, List.of(user1Id, user2Id));
       MockHttpResponse response = dispatcher.put(url(roomId),
         getUpdateRoomRequestBody(null, "Updated room"), user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
@@ -1301,14 +1414,17 @@ public class RoomsApiIT {
     }
 
     private String getUpdateRoomRequestBody(@Nullable String name, @Nullable String description) {
-      StringBuilder stringBuilder = new StringBuilder();
-      Optional.ofNullable(name).ifPresent(n -> stringBuilder.append(String.format("\"name\": \"%s\",", n)));
-      Optional.ofNullable(description)
-        .ifPresent(d -> stringBuilder.append(String.format("\"description\": \"%s\"", d)));
-      if (',' == stringBuilder.charAt(stringBuilder.length() - 1)) {
-        stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+      String strName = Optional.ofNullable(name).map(n -> String.format("\"name\": \"%s\"", n)).orElse(null);
+      String strDescr = Optional.ofNullable(description).map(d -> String.format("\"description\": \"%s\"", d))
+        .orElse(null);
+
+      if (strName != null && strDescr == null) {
+        return String.format("{%s}", strName);
+      } else if (strName == null && strDescr != null) {
+        return String.format("{%s}", strDescr);
+      } else {
+        return String.format("{%s}", String.join(", ", strName, strDescr));
       }
-      return String.format("{%s}", stringBuilder);
     }
   }
 
@@ -1318,6 +1434,19 @@ public class RoomsApiIT {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s", roomId);
+    }
+
+    @Test
+    @DisplayName("Given a room identifier, if the room is a 1to1 returns a status code 403")
+    public void deleteRoom_testErrorRoomIsA1to1() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.ONE_TO_ONE, "room", List.of(user1Id, user2Id));
+
+      MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
+      assertEquals(403, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
     @Test
