@@ -78,7 +78,13 @@ pipeline {
         }
       }
     }
-
+    stage('Sonarqube Analysis') {
+      steps {
+        withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
+          sh 'mvn -B --settings settings-jenkins.xml -N sonar:sonar'
+        }
+      }
+    }
     stage('Stashing for packaging') {
       when {
         anyOf {
