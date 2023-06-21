@@ -81,7 +81,7 @@ pipeline {
     stage('Sonarqube Analysis') {
       steps {
         withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
-          sh 'mvn -B --settings settings-jenkins.xml -N sonar:sonar'
+          sh 'mvn -B --settings settings-jenkins.xml sonar:sonar'
         }
       }
     }
