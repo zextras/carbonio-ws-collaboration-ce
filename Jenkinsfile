@@ -81,8 +81,10 @@ pipeline {
     stage('Sonarqube Analysis') {
       steps {
         withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
-          sh 'mvn -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html
-          -B --settings settings-jenkins.xml sonar:sonar'
+          sh '''
+            mvn -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
+            -B --settings settings-jenkins.xml sonar:sonar
+          '''
         }
       }
     }
