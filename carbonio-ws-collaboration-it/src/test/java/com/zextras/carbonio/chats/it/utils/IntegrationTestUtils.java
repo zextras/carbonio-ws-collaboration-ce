@@ -48,22 +48,22 @@ public class IntegrationTestUtils {
     this.clock = clock;
   }
 
-  public Room generateAndSaveRoom(UUID id, RoomTypeDto type, String name, List<UUID> usersIds) {
+  public Room generateAndSaveRoom(UUID id, RoomTypeDto type, @Nullable String name, List<UUID> usersIds) {
     return generateAndSaveRoom(id, type, name, usersIds,
       RoomTypeDto.ONE_TO_ONE.equals(type) ? usersIds : List.of(usersIds.get(0)),
       null, null);
   }
 
   public Room generateAndSaveRoom(
-    UUID id, RoomTypeDto type, String name, List<UUID> usersIds, List<UUID> ownerIds, @Nullable List<UUID> mutedIds,
-    @Nullable OffsetDateTime pictureUpdateTimestamp
+    UUID id, RoomTypeDto type, @Nullable String name, List<UUID> usersIds, List<UUID> ownerIds,
+    @Nullable List<UUID> mutedIds, @Nullable OffsetDateTime pictureUpdateTimestamp
   ) {
     return generateAndSaveRoom(id, type, name, null, usersIds, ownerIds, mutedIds, pictureUpdateTimestamp);
   }
 
   public Room generateAndSaveRoom(
-    UUID id, RoomTypeDto type, String name, @Nullable String description, List<UUID> usersIds, List<UUID> ownerIds,
-    @Nullable List<UUID> mutedIds, @Nullable OffsetDateTime pictureUpdateTimestamp
+    UUID id, RoomTypeDto type, @Nullable String name, @Nullable String description, List<UUID> usersIds,
+    List<UUID> ownerIds, @Nullable List<UUID> mutedIds, @Nullable OffsetDateTime pictureUpdateTimestamp
   ) {
     Room room = Room.create();
     room

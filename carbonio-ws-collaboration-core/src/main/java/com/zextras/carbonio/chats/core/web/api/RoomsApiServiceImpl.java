@@ -21,9 +21,11 @@ import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.JoinSettingsByRoomDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
+import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomRankDto;
+import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.io.File;
@@ -86,10 +88,17 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response insertRoom(RoomCreationFieldsDto insertRoomRequestDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    return Response
-      .status(Status.CREATED)
-      .entity(roomService.createRoom(insertRoomRequestDto, currentUser))
-      .build();
+    if (insertRoomRequestDto.getType().equals(RoomTypeDto.ONE_TO_ONE) &&
+      (insertRoomRequestDto.getName() != null || insertRoomRequestDto.getDescription() != null)) {
+      return Response.status(Status.BAD_REQUEST).build();
+    } else if (insertRoomRequestDto.getType().equals(RoomTypeDto.GROUP) && insertRoomRequestDto.getName() == null) {
+      return Response.status(Status.BAD_REQUEST).build();
+    } else {
+      return Response
+        .status(Status.CREATED)
+        .entity(roomService.createRoom(insertRoomRequestDto, currentUser))
+        .build();
+    }
   }
 
   @Override
@@ -97,8 +106,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response deleteRoom(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    roomService.deleteRoom(roomId, currentUser);
-    return Response.status(Status.NO_CONTENT).build();
+    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    return room.map(r -> {
+      if (room.get().getType().equals(RoomTypeDto.ONE_TO_ONE)) {
+        return Response.status(Status.FORBIDDEN).build();
+      } else {
+        roomService.deleteRoom(roomId, currentUser);
+        return Response.status(Status.NO_CONTENT).build();
+      }
+    }).orElse(Response.status(Status.NOT_FOUND).build());
   }
 
   @Override
@@ -106,9 +122,19 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    return Response.status(Status.OK)
-      .entity(roomService.updateRoom(roomId, updateRoomRequestDto, currentUser))
-      .build();
+    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    return room.map(r -> {
+      if (room.get().getType().equals(RoomTypeDto.ONE_TO_ONE)) {
+        return Response.status(Status.BAD_REQUEST).build();
+      } else if (room.get().getType().equals(RoomTypeDto.GROUP) &&
+        (updateRoomRequestDto.getName() == null && updateRoomRequestDto.getDescription() == null)) {
+        return Response.status(Status.BAD_REQUEST).build();
+      } else {
+        return Response.status(Status.OK)
+          .entity(roomService.updateRoom(roomId, updateRoomRequestDto, currentUser))
+          .build();
+      }
+    }).orElse(Response.status(Status.NOT_FOUND).build());
   }
 
   @Override
