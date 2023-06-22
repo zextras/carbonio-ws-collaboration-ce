@@ -59,20 +59,13 @@ pipeline {
         }
       }
     }
-    stage('Testing and Analysis') {
+    stage('Testing') {
       steps {
         sh '''
-          ./mvnw -Dmaven.repo.local=$(pwd)/m2 -B --settings settings-jenkins.xml \
+          mvn -B --settings settings-jenkins.xml \
           -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
           verify
         '''
-        withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
-          sh '''
-            mvn -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
-            -Dsonar.coverage.jacoco.xmlReportPaths=../target/site/jacoco-all-tests/jacoco.xml \
-            -B --settings settings-jenkins.xml sonar:sonar
-          '''
-          }
         publishCoverage adapters: [jacocoAdapter('target/site/jacoco-all-tests/jacoco.xml')]
       }
       post {
@@ -85,17 +78,22 @@ pipeline {
         }
       }
     }
-    /* stage('Sonarqube Analysis') {
+    stage('Sonarqube Analysis') {
       steps {
+        dependencyCheck additionalArguments: '''
+          -o "./"
+          -s "./"
+          -f "HTML"
+          --prettyPrint''', odcInstallation: 'dependency-check'
         withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
           sh '''
             mvn -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
-            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco-all-tests/jacoco.xml \
+            -Dsonar.coverage.jacoco.xmlReportPaths=../target/site/jacoco-all-tests/jacoco.xml \
             -B --settings settings-jenkins.xml sonar:sonar
           '''
         }
       }
-    } */
+    }
     stage('Stashing for packaging') {
       when {
         anyOf {
