@@ -69,7 +69,7 @@ pipeline {
         withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
           sh '''
             mvn -Dsonar.dependencyCheck.htmlReportPath=target/dependency-check-report.html \
-            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco-all-tests/jacoco.xml \
+            -Dsonar.coverage.jacoco.xmlReportPaths=../target/site/jacoco-all-tests/jacoco.xml \
             -B --settings settings-jenkins.xml sonar:sonar
           '''
           }
