@@ -47,7 +47,7 @@ pipeline {
     }
     stage('Compiling') {
       steps {
-        sh './mvnw -Dmaven.repo.local=$(pwd)/m2 -T1C -B -q --settings settings-jenkins.xml compile'
+        sh 'mvn -T1C -B -q --settings settings-jenkins.xml compile'
       }
       post {
         failure {
@@ -78,13 +78,20 @@ pipeline {
         }
       }
     }
-    stage('Sonarqube Analysis') {
+    stage('Dependency check'){
+      when {
+         branch 'main'
+      }
       steps {
         dependencyCheck additionalArguments: '''
           -o "./"
           -s "./"
           -f "HTML"
           --prettyPrint''', odcInstallation: 'dependency-check'
+      }
+    }
+    stage('Sonarqube Analysis') {
+      steps {
         withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
           sh '''
             mvn -Dsonar.dependencyCheck.htmlReportPath=./dependency-check-report.html \
