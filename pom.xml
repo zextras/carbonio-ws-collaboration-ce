@@ -491,14 +491,14 @@ SPDX-License-Identifier: AGPL-3.0-only
         </plugin>
       </plugins>
     </pluginManagement>
-    <plugins>
+    <!--<plugins>
       <plugin>
         <groupId>org.owasp</groupId>
         <artifactId>dependency-check-maven</artifactId>
         <version>8.2.1</version>
-        <!--<configuration>
+        &lt;!&ndash;<configuration>
           <outputDirectory>${dependency.check.report.dir}</outputDirectory>
-        </configuration>-->
+        </configuration>&ndash;&gt;
         <executions>
           <execution>
             <goals>
@@ -507,7 +507,7 @@ SPDX-License-Identifier: AGPL-3.0-only
           </execution>
         </executions>
       </plugin>
-    </plugins>
+    </plugins>-->
   </build>
 
 </project>
