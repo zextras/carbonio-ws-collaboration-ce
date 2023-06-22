@@ -491,7 +491,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         </plugin>
       </plugins>
     </pluginManagement>
-    <!--<plugins>
+   <!-- <plugins>
       <plugin>
         <groupId>org.owasp</groupId>
         <artifactId>dependency-check-maven</artifactId>
