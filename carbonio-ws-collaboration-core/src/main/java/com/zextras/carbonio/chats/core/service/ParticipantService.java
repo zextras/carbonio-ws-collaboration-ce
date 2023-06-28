@@ -13,6 +13,8 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
+import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nullable;
@@ -114,4 +116,84 @@ public interface ParticipantService {
    * @throws ForbiddenException  if the current user isn't a room owner
    */
   void updateScreenStream(UUID meetingId, String sessionId, boolean enabled, UserPrincipal currentUser);
+
+  /**
+   * Completes WebRTC negotiation with VideoServer for the PeerConnection setup related to screen stream.
+   *
+   * @param meetingId                meeting identifier {@link UUID}
+   * @param sessionId                identifier of the user session who wants to start the WebRTC negotiation
+   * @param rtcSessionDescriptionDto the offer rtc session description
+   * @param currentUser              currentUser current authenticated user {@link UserPrincipal}
+   * @throws NotFoundException   if the meeting doesn't exist
+   * @throws NotFoundException   if the user session for indicated meeting doesn't exist.
+   * @throws NotFoundException   if the associated room doesn't exist
+   * @throws BadRequestException if the rtc session description type is not offer
+   * @throws ForbiddenException  if the current user isn't a room owner
+   */
+  void offerRtcVideoStream(UUID meetingId, String sessionId, RtcSessionDescriptionDto rtcSessionDescriptionDto,
+    UserPrincipal currentUser);
+
+  /**
+   * Completes WebRTC negotiation with VideoServer for the PeerConnection setup related to media stream.
+   *
+   * @param meetingId                meeting identifier {@link UUID}
+   * @param sessionId                identifier of the user session who wants to complete the WebRTC negotiation
+   * @param rtcSessionDescriptionDto the answer rtc session description
+   * @param currentUser              currentUser current authenticated user {@link UserPrincipal}
+   * @throws NotFoundException   if the meeting doesn't exist
+   * @throws NotFoundException   if the user session for indicated meeting doesn't exist.
+   * @throws NotFoundException   if the associated room doesn't exist
+   * @throws BadRequestException if the rtc session description type is not offer
+   * @throws ForbiddenException  if the current user isn't a room owner
+   */
+  void answerRtcMediaStream(UUID meetingId, String sessionId, RtcSessionDescriptionDto rtcSessionDescriptionDto,
+    UserPrincipal currentUser);
+
+  /**
+   * Update subscriptions of the current session to the desired media streams.
+   *
+   * @param meetingId              meeting identifier {@link UUID}
+   * @param sessionId              identifier of the user session who wants to update the subscriptions
+   * @param subscriptionUpdatesDto contains all media streams which user wants to update subscriptions for
+   * @param currentUser            currentUser current authenticated user {@link UserPrincipal}
+   * @throws NotFoundException   if the meeting doesn't exist
+   * @throws NotFoundException   if the user session for indicated meeting doesn't exist.
+   * @throws NotFoundException   if the associated room doesn't exist
+   * @throws BadRequestException if the rtc session description type is not offer
+   * @throws ForbiddenException  if the current user isn't a room owner
+   */
+  void updateSubscriptionsVideoStream(UUID meetingId, String sessionId,
+    SubscriptionUpdatesDto subscriptionUpdatesDto, UserPrincipal currentUser);
+
+  /**
+   * Completes WebRTC negotiation with VideoServer for the PeerConnection setup related to screen stream.
+   *
+   * @param meetingId                meeting identifier {@link UUID}
+   * @param sessionId                identifier of the user session who wants to start the WebRTC negotiation
+   * @param rtcSessionDescriptionDto the offer rtc session description
+   * @param currentUser              currentUser current authenticated user {@link UserPrincipal}
+   * @throws NotFoundException   if the meeting doesn't exist
+   * @throws NotFoundException   if the user session for indicated meeting doesn't exist.
+   * @throws NotFoundException   if the associated room doesn't exist
+   * @throws BadRequestException if the rtc session description type is not offer
+   * @throws ForbiddenException  if the current user isn't a room owner
+   */
+  void offerRtcAudioStream(UUID meetingId, String sessionId, RtcSessionDescriptionDto rtcSessionDescriptionDto,
+    UserPrincipal currentUser);
+
+  /**
+   * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to screen stream.
+   *
+   * @param meetingId                meeting identifier {@link UUID}
+   * @param sessionId                identifier of the user session who wants to start the WebRTC negotiation
+   * @param rtcSessionDescriptionDto the offer rtc session description
+   * @param currentUser              currentUser current authenticated user {@link UserPrincipal}
+   * @throws NotFoundException   if the meeting doesn't exist
+   * @throws NotFoundException   if the user session for indicated meeting doesn't exist.
+   * @throws NotFoundException   if the associated room doesn't exist
+   * @throws BadRequestException if the rtc session description type is not offer
+   * @throws ForbiddenException  if the current user isn't a room owner
+   */
+  void offerRtcScreenStream(UUID meetingId, String sessionId, RtcSessionDescriptionDto rtcSessionDescriptionDto,
+    UserPrincipal currentUser);
 }

@@ -29,6 +29,9 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
+import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto.TypeEnum;
+import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import io.ebean.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
@@ -221,5 +224,76 @@ public class ParticipantServiceImpl implements ParticipantService {
             .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
       videoServerService.updateScreenStream(sessionId, meetingId.toString(), enabled);
     }
+  }
+
+  @Override
+  public void offerRtcVideoStream(UUID meetingId, String sessionId, RtcSessionDescriptionDto rtcSessionDescriptionDto,
+    UserPrincipal currentUser) {
+    Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
+      new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
+    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
+      .findAny().orElseThrow(() ->
+        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
+    if (!TypeEnum.OFFER.equals(rtcSessionDescriptionDto.getType())) {
+      throw new BadRequestException("Rtc session description type must be offer");
+    }
+    videoServerService.offerRtcVideoStream(currentUser.getSessionId(), meetingId.toString(), rtcSessionDescriptionDto);
+  }
+
+  @Override
+  public void answerRtcMediaStream(UUID meetingId, String sessionId, RtcSessionDescriptionDto rtcSessionDescriptionDto,
+    UserPrincipal currentUser) {
+    Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
+      new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
+    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
+      .findAny().orElseThrow(() ->
+        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
+    if (!TypeEnum.ANSWER.equals(rtcSessionDescriptionDto.getType())) {
+      throw new BadRequestException("Rtc session description type must be offer");
+    }
+    videoServerService.answerRtcMediaStream(currentUser.getSessionId(), meetingId.toString(), rtcSessionDescriptionDto);
+  }
+
+  @Override
+  public void updateSubscriptionsVideoStream(UUID meetingId, String sessionId,
+    SubscriptionUpdatesDto subscriptionUpdatesDto, UserPrincipal currentUser) {
+    Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
+      new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
+    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
+      .findAny().orElseThrow(() ->
+        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
+    if (subscriptionUpdatesDto.getSubscribe().isEmpty() || subscriptionUpdatesDto.getUnsubscribe().isEmpty()) {
+      throw new BadRequestException("Subscription list and Unsubscription list must not be empty");
+    }
+    videoServerService.updateSubscriptionsMediaStream(currentUser.getSessionId(), meetingId.toString(),
+      subscriptionUpdatesDto);
+  }
+
+  @Override
+  public void offerRtcAudioStream(UUID meetingId, String sessionId, RtcSessionDescriptionDto rtcSessionDescriptionDto,
+    UserPrincipal currentUser) {
+    Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
+      new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
+    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
+      .findAny().orElseThrow(() ->
+        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
+    if (!TypeEnum.OFFER.equals(rtcSessionDescriptionDto.getType())) {
+      throw new BadRequestException("Rtc session description type must be offer");
+    }
+    videoServerService.offerRtcAudioStream(currentUser.getSessionId(), meetingId.toString(), rtcSessionDescriptionDto);
+  }
+
+  @Override
+  public void offerRtcScreenStream(UUID meetingId, String sessionId, RtcSessionDescriptionDto rtcSessionDescriptionDto,
+    UserPrincipal currentUser) {
+    Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
+      new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
+    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
+      .findAny().orElseThrow(() ->
+        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
+    if (!TypeEnum.OFFER.equals(rtcSessionDescriptionDto.getType())) {
+      throw new BadRequestException("Rtc session description type must be offer");
+    }
+    videoServerService.offerRtcScreenStream(currentUser.getSessionId(), meetingId.toString(), rtcSessionDescriptionDto);
   }
 }

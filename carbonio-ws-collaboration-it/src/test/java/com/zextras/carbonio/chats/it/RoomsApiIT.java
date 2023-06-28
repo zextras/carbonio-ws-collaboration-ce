@@ -2579,8 +2579,8 @@ public class RoomsApiIT {
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
       assertEquals("user1session1", participant1.get().getSessionId());
-      assertTrue(participant1.get().isVideoStreamOn());
-      assertTrue(participant1.get().isAudioStreamOn());
+      assertTrue(participant1.get().isVideoStreamEnabled());
+      assertTrue(participant1.get().isAudioStreamEnabled());
     }
 
     @Test
@@ -2717,8 +2717,8 @@ public class RoomsApiIT {
       assertNotNull(meetingDto.getParticipants());
       assertEquals(1, meetingDto.getParticipants().size());
       assertEquals(user1Id, meetingDto.getParticipants().get(0).getUserId());
-      assertTrue(meetingDto.getParticipants().get(0).isAudioStreamOn());
-      assertFalse(meetingDto.getParticipants().get(0).isVideoStreamOn());
+      assertTrue(meetingDto.getParticipants().get(0).isAudioStreamEnabled());
+      assertFalse(meetingDto.getParticipants().get(0).isVideoStreamEnabled());
       assertEquals("86cc37de-1217-4056-8c95-69997a6bccce",
         integrationTestUtils.getRoomById(roomId).orElseThrow().getMeetingId());
 

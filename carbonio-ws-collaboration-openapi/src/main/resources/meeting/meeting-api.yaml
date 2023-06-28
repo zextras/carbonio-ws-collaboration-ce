@@ -60,7 +60,7 @@ paths:
     put:
       tags:
         - Meetings
-      summary: adds the current user to the specified meeting
+      summary: Adds the current user to the specified meeting
       operationId: joinMeeting
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
@@ -79,7 +79,7 @@ paths:
     put:
       tags:
         - Meetings
-      summary: remove the current user to the specified meeting
+      summary: Remove the current user to the specified meeting
       operationId: leaveMeeting
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
@@ -96,7 +96,7 @@ paths:
     put:
       tags:
         - Meetings
-      summary: update video stream status for the current session
+      summary: Update video stream status for the current session
       operationId: updateVideoStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
@@ -112,11 +112,71 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/sessions/{sessionId}/video/offer:
+    put:
+      tags:
+        - Meetings
+      summary: Start WebRTC negotiation for video stream for the current session
+      operationId: offerRtcVideoStream
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: '#/components/parameters/pathSessionId'
+      requestBody:
+        $ref: '#/components/requestBodies/RtcMediaStreamRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204OfferVideoStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/sessions/{sessionId}/media/answer:
+    put:
+      tags:
+        - Meetings
+      summary: Complete WebRTC negotiation for media stream for the current session
+      operationId: answerRtcMediaStream
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: '#/components/parameters/pathSessionId'
+      requestBody:
+        $ref: '#/components/requestBodies/RtcMediaStreamRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204AnswerMediaStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/sessions/{sessionId}/media/subscribe:
+    put:
+      tags:
+        - Meetings
+      summary: Update subscriptions of the current session to the desired media streams
+      operationId: updateSubscriptionsMediaStream
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: '#/components/parameters/pathSessionId'
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateMediaStreamSubscriptionsRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204SubscribeVideoStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /meetings/{meetingId}/sessions/{sessionId}/audio:
     put:
       tags:
         - Meetings
-      summary: update audio stream status for the current session
+      summary: Update audio stream status for the current session
       operationId: updateAudioStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
@@ -132,12 +192,32 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/sessions/{sessionId}/audio/offer:
+    put:
+      tags:
+        - Meetings
+      summary: Start WebRTC negotiation for audio stream for the current session
+      operationId: offerRtcAudioStream
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: '#/components/parameters/pathSessionId'
+      requestBody:
+        $ref: '#/components/requestBodies/RtcMediaStreamRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204OfferAudioStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /meetings/{meetingId}/sessions/{sessionId}/screen:
     put:
       tags:
         - Meetings
-      summary: update screen stream status for the current session
-      operationId: updateScreenStream
+      summary: Update screen stream status for the current session
+      operationId: UpdateScreenStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
         - $ref: '#/components/parameters/pathSessionId'
@@ -146,6 +226,26 @@ paths:
       responses:
         204:
           $ref: '#/components/responses/204ScreenStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/sessions/{sessionId}/screen/offer:
+    put:
+      tags:
+        - Meetings
+      summary: Start WebRTC negotiation for screen stream for the current session
+      operationId: offerRtcScreenStream
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: '#/components/parameters/pathSessionId'
+      requestBody:
+        $ref: '#/components/requestBodies/RtcMediaStreamRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204OfferScreenStreamResponse'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
         403:
@@ -195,6 +295,20 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/AudioStreamSettings'
+    RtcMediaStreamRequest:
+      description: user request to send a rtc session description related to media stream for WebRTC negotiation
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RtcSessionDescription'
+    UpdateMediaStreamSubscriptionsRequest:
+      description: user request to update subscriptions to the desired media stream
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SubscriptionUpdates'
     UpdateScreenStreamRequest:
       description: user request to update a meeting stream status
       required: true
@@ -232,10 +346,20 @@ components:
       description: The user exited the meeting successfully
     204AudioStreamResponse:
       description: The status of audio stream changed successfully
+    204OfferAudioStreamResponse:
+      description: The offer related to the audio stream has been processed and sent successfully
     204VideoStreamResponse:
       description: The status of video stream changed successfully
+    204OfferVideoStreamResponse:
+      description: The offer related to the video stream has been processed and sent successfully
+    204AnswerMediaStreamResponse:
+      description: The answer related to the media stream has been processed and sent successfully
+    204SubscribeVideoStreamResponse:
+      description: The user subscribed to media streams successfully
     204ScreenStreamResponse:
       description: The status of screen stream changed successfully
+    204OfferScreenStreamResponse:
+      description: The offer related to the screen stream has been processed successfully
 
     400BadRequestResponse:
       description: The request had wrong or missing parameters
@@ -249,25 +373,6 @@ components:
       description: The request conflict with the current state
 
   schemas:
-    Room:
-      type: object
-      description: Room data for a meeting
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-          description: room identifier
-        type:
-          $ref: "../chats/chats-api.yaml#/components/schemas/RoomType"
-        name:
-          type: string
-          readOnly: true
-          description: room name
-        description:
-          type: string
-          description: room description
-          readOnly: true
     Participant:
       type: object
       description: Meeting participant data
@@ -281,18 +386,18 @@ components:
           type: string
           readOnly: true
           description: VideoServer session id
-        audioStreamOn:
+        audioStreamEnabled:
           type: boolean
           readOnly: true
-          description: indicates if the audio stream is on
-        videoStreamOn:
+          description: indicates the audio stream status
+        videoStreamEnabled:
           type: boolean
           readOnly: true
-          description: indicates if the video stream is on
-        screenStreamOn:
+          description: indicates the video stream status
+        screenStreamEnabled:
           type: boolean
           readOnly: true
-          description: indicates if the screen stream is on
+          description: indicates the screen stream status
     Meeting:
       type: object
       description: Meeting data
@@ -323,12 +428,10 @@ components:
         audioStreamEnabled:
           type: boolean
           default: false
-          readOnly: true
           description: indicates the audio stream status to join the meeting
         videoStreamEnabled:
           type: boolean
           default: false
-          readOnly: true
           description: indicates the video stream status to join the meeting
       required: [ audioStreamEnabled, videoStreamEnabled ]
     VideoStreamSettings:
@@ -337,7 +440,6 @@ components:
       properties:
         enabled:
           type: boolean
-          readOnly: true
           description: indicates the status to change the video stream to
       required: [ enabled ]
     AudioStreamSettings:
@@ -346,15 +448,57 @@ components:
       properties:
         enabled:
           type: boolean
-          readOnly: true
           description: indicates the status to change the audio stream to
       required: [ enabled ]
+    RtcSessionDescription:
+      type: object
+      description: contains description type and sdp descriptor needed for a media stream to perform WebRTC negotiation
+      properties:
+        type:
+          type: string
+          description: indicates the description type
+          enum:
+            - offer
+            - answer
+        sdp:
+          type: string
+          description: indicates the descriptor of the session
+      required: [ type, sdp ]
+    SubscriptionUpdates:
+      type: object
+      description: subscriptions updates related to media streams
+      properties:
+        subscribe:
+          type: array
+          description: indicates the media streams which user wants to subscribe to
+          items:
+            $ref: '#/components/schemas/MediaStream'
+        unsubscribe:
+          type: array
+          description: indicates the media streams which user wants to unsubscribe to
+          items:
+            $ref: '#/components/schemas/MediaStream'
+      required: [ subscribe, unsubscribe ]
+    MediaStream:
+      type: object
+      description: representation of meeting media stream
+      properties:
+        session_id:
+          type: string
+          description: session identifier which owns the related media stream
+        type:
+          type: string
+          description: indicates the media stream type
+          enum:
+            - video
+            - screen
+      required: [ session_id, type ]
+
     ScreenStreamSettings:
       type: object
       description: settings to apply on user's screen stream
       properties:
         enabled:
           type: boolean
-          readOnly: true
           description: indicates the status to change the screen stream to
       required: [ enabled ]

@@ -5,6 +5,8 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.impl;
 
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
+import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import javax.inject.Singleton;
 
 @Singleton
@@ -45,6 +47,35 @@ public class VideoServerServiceMock implements VideoServerService {
 
   }
 
+  @Override
+  public void offerRtcVideoStream(String sessionId, String meetingId,
+    RtcSessionDescriptionDto rtcSessionDescriptionDto) {
+
+  }
+
+  @Override
+  public void answerRtcMediaStream(String sessionId, String meetingId,
+    RtcSessionDescriptionDto rtcSessionDescriptionDto) {
+
+  }
+
+  @Override
+  public void updateSubscriptionsMediaStream(String sessionId, String meetingId,
+    SubscriptionUpdatesDto subscriptionUpdatesDto) {
+
+  }
+
+  @Override
+  public void offerRtcAudioStream(String sessionId, String meetingId,
+    RtcSessionDescriptionDto rtcSessionDescriptionDto) {
+
+  }
+
+  @Override
+  public void offerRtcScreenStream(String sessionId, String meetingId,
+    RtcSessionDescriptionDto rtcSessionDescriptionDto) {
+
+  }
 
   @Override
   public boolean isAlive() {

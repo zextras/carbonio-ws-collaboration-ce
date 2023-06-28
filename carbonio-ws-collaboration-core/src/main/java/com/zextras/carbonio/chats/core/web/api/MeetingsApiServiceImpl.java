@@ -10,10 +10,13 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
+import com.zextras.carbonio.meeting.api.NotFoundException;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
 import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
+import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
 import java.util.Optional;
 import java.util.UUID;
@@ -180,6 +183,111 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       throw new BadRequestException("Session identifier is mandatory");
     }
     participantService.updateScreenStream(meetingId, sessionId, screenStreamSettingsDto.isEnabled(), currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  /**
+   * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to video stream.
+   *
+   * @param meetingId                meeting identifier {@link UUID}
+   * @param sessionId                identifier of the user session who wants to start the WebRTC negotiation
+   * @param rtcSessionDescriptionDto the offer rtc session description
+   * @param securityContext          security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 204
+   */
+  @Override
+  public Response offerRtcVideoStream(UUID meetingId, String sessionId,
+    RtcSessionDescriptionDto rtcSessionDescriptionDto, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
+      throw new BadRequestException("Session identifier is mandatory");
+    }
+    participantService.offerRtcVideoStream(meetingId, sessionId, rtcSessionDescriptionDto, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  /**
+   * Update subscriptions of the current session to the desired media streams
+   *
+   * @param meetingId              meeting identifier {@link UUID}
+   * @param sessionId              identifier of the user session who wants to update the subscriptions
+   * @param subscriptionUpdatesDto contains all media streams which user wants to update subscriptions for
+   * @param securityContext        security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 204
+   */
+  @Override
+  public Response updateSubscriptionsMediaStream(UUID meetingId, String sessionId,
+    SubscriptionUpdatesDto subscriptionUpdatesDto, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
+      throw new BadRequestException("Session identifier is mandatory");
+    }
+    participantService.updateSubscriptionsVideoStream(meetingId, sessionId, subscriptionUpdatesDto, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  /**
+   * Completes WebRTC negotiation with VideoServer for the PeerConnection setup related to media stream.
+   *
+   * @param meetingId                meeting identifier {@link UUID}
+   * @param sessionId                identifier of the user session who wants to complete the WebRTC negotiation
+   * @param rtcSessionDescriptionDto the answer rtc session description
+   * @param securityContext          security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 204
+   */
+  @Override
+  public Response answerRtcMediaStream(UUID meetingId, String sessionId,
+    RtcSessionDescriptionDto rtcSessionDescriptionDto, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
+      throw new BadRequestException("Session identifier is mandatory");
+    }
+    participantService.answerRtcMediaStream(meetingId, sessionId, rtcSessionDescriptionDto, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  /**
+   * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to audio stream.
+   *
+   * @param meetingId                meeting identifier {@link UUID}
+   * @param sessionId                identifier of the user session who wants to start the WebRTC negotiation
+   * @param rtcSessionDescriptionDto the offer rtc session description
+   * @param securityContext          security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 204
+   */
+  @Override
+  public Response offerRtcAudioStream(UUID meetingId, String sessionId,
+    RtcSessionDescriptionDto rtcSessionDescriptionDto, SecurityContext securityContext) {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
+      throw new BadRequestException("Session identifier is mandatory");
+    }
+    participantService.offerRtcAudioStream(meetingId, sessionId, rtcSessionDescriptionDto, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  /**
+   * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to screen stream.
+   *
+   * @param meetingId                meeting identifier {@link UUID}
+   * @param sessionId                identifier of the user session who wants to start the WebRTC negotiation
+   * @param rtcSessionDescriptionDto the offer rtc session description
+   * @param securityContext          security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 204
+   */
+  @Override
+  public Response offerRtcScreenStream(UUID meetingId, String sessionId,
+    RtcSessionDescriptionDto rtcSessionDescriptionDto, SecurityContext securityContext) throws NotFoundException {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
+      throw new BadRequestException("Session identifier is mandatory");
+    }
+    participantService.offerRtcScreenStream(meetingId, sessionId, rtcSessionDescriptionDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 }

@@ -5,6 +5,8 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver;
 
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
+import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
+import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 
 public interface VideoServerService extends HealthIndicator {
 
@@ -66,4 +68,50 @@ public interface VideoServerService extends HealthIndicator {
    * @param enabled   if true the screen stream will be enabled, otherwise it will be disabled
    */
   void updateScreenStream(String sessionId, String meetingId, boolean enabled);
+
+  /**
+   * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to video stream.
+   *
+   * @param sessionId                participant's session identifier
+   * @param meetingId                identification of the meeting on which to perform the operation
+   * @param rtcSessionDescriptionDto the offer rtc session description
+   */
+  void offerRtcVideoStream(String sessionId, String meetingId, RtcSessionDescriptionDto rtcSessionDescriptionDto);
+
+  /**
+   * Completes WebRTC negotiation with VideoServer for the PeerConnection setup related to media stream.
+   *
+   * @param sessionId                participant's session identifier
+   * @param meetingId                identification of the meeting on which to perform the operation
+   * @param rtcSessionDescriptionDto the offer rtc session description
+   */
+  void answerRtcMediaStream(String sessionId, String meetingId, RtcSessionDescriptionDto rtcSessionDescriptionDto);
+
+  /**
+   * Update subscriptions of the current session to the desired media streams
+   *
+   * @param sessionId              participant's session identifier
+   * @param meetingId              identification of the meeting on which to perform the operation
+   * @param subscriptionUpdatesDto contains all media streams which user wants to update subscriptions for
+   */
+  void updateSubscriptionsMediaStream(String sessionId, String meetingId,
+    SubscriptionUpdatesDto subscriptionUpdatesDto);
+
+  /**
+   * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to audio stream.
+   *
+   * @param sessionId                participant's session identifier
+   * @param meetingId                identification of the meeting on which to perform the operation
+   * @param rtcSessionDescriptionDto the offer rtc session description
+   */
+  void offerRtcAudioStream(String sessionId, String meetingId, RtcSessionDescriptionDto rtcSessionDescriptionDto);
+
+  /**
+   * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to screen stream.
+   *
+   * @param sessionId                participant's session identifier
+   * @param meetingId                identification of the meeting on which to perform the operation
+   * @param rtcSessionDescriptionDto the answer rtc session description
+   */
+  void offerRtcScreenStream(String sessionId, String meetingId, RtcSessionDescriptionDto rtcSessionDescriptionDto);
 }
