@@ -7,13 +7,15 @@ package com.zextras.carbonio.chats.core.infrastructure.storage.impl;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
-import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.filestore.model.BulkDeleteRequestItem;
+import com.zextras.filestore.model.BulkDeleteResponseItem;
 import com.zextras.filestore.model.ChatsIdentifier;
+import com.zextras.filestore.model.IdentifierType;
 import com.zextras.filestore.powerstore.api.powerstore.PowerstoreClient;
 import java.io.File;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import org.apache.commons.io.FileUtils;
@@ -75,15 +77,10 @@ public class StoragesServicePowerstoreImpl implements StoragesService {
   @Override
   public List<String> deleteFileList(List<String> fileIds, String currentUserId) {
     try {
-      List<String> deletedFilesIds = new ArrayList<>();
-      fileIds.forEach(fileId -> {
-        try {
-          deletedFilesIds.add(deleteFile(fileId, currentUserId));
-        } catch (StorageException e) {
-          // intentionally left blank
-        }
-      });
-      return deletedFilesIds;
+      return fileIds.size() == 0 ? List.of() :
+        powerstoreClient.bulkDelete(IdentifierType.chats, currentUserId, fileIds.stream()
+            .map(BulkDeleteRequestItem::chatsItem).collect(Collectors.toList()))
+          .stream().map(BulkDeleteResponseItem::getNode).collect(Collectors.toList());
     } catch (Exception e) {
       throw new StorageException("An error occurred while deleting files list", e);
     }

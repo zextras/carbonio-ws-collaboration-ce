@@ -1525,8 +1525,8 @@ public class RoomsApiIT {
         mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
 
         storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
-        storageMockServer.mockDelete(file1Id, user1Id.toString(), true);
-        storageMockServer.mockDelete(file2Id, user1Id.toString(), true);
+        storageMockServer.mockBulkDelete(List.of(file1Id, file2Id), user1Id.toString(), List.of(file1Id, file2Id),
+          true);
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
 
@@ -1542,11 +1542,10 @@ public class RoomsApiIT {
           VerificationTimes.exactly(1));
 
         storageMockServer.verify(
-          storageMockServer.getNSLookupUrlRequest(user1Id.toString()), VerificationTimes.exactly(2));
+          storageMockServer.getNSLookupUrlRequest(user1Id.toString()), VerificationTimes.exactly(1));
         storageMockServer.verify(
-          storageMockServer.getDeleteRequest(file1Id, user1Id.toString()), VerificationTimes.exactly(1));
-        storageMockServer.verify(
-          storageMockServer.getDeleteRequest(file2Id, user1Id.toString()), VerificationTimes.exactly(1));
+          storageMockServer.getBulkDeleteRequest(List.of(file1Id, file2Id), user1Id.toString()),
+          VerificationTimes.exactly(1));
       }
 
       @Test
@@ -1566,11 +1565,11 @@ public class RoomsApiIT {
         fileMetadataRepository.save(
           FileMetadata.create().id(file2Id).type(FileMetadataType.ATTACHMENT).name("-").userId(user1Id.toString())
             .roomId(roomId.toString()).originalSize(0L).mimeType("-"));
-        mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
 
+        mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
         storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
-        storageMockServer.mockDelete(file1Id, user1Id.toString(), true);
-        storageMockServer.mockDelete(file2Id, user1Id.toString(), false);
+        storageMockServer.mockBulkDelete(List.of(file1Id, file2Id), user1Id.toString(), List.of(file1Id),
+          true);
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
 
@@ -1588,11 +1587,10 @@ public class RoomsApiIT {
         mongooseImMockServer.verify(mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
           VerificationTimes.exactly(1));
         storageMockServer.verify(
-          storageMockServer.getNSLookupUrlRequest(user1Id.toString()), VerificationTimes.exactly(2));
+          storageMockServer.getNSLookupUrlRequest(user1Id.toString()), VerificationTimes.exactly(1));
         storageMockServer.verify(
-          storageMockServer.getDeleteRequest(file1Id, user1Id.toString()), VerificationTimes.exactly(1));
-        storageMockServer.verify(
-          storageMockServer.getDeleteRequest(file2Id, user1Id.toString()), VerificationTimes.exactly(1));
+          storageMockServer.getBulkDeleteRequest(List.of(file1Id, file2Id), user1Id.toString()),
+          VerificationTimes.exactly(1));
       }
 
       @Test
@@ -1614,8 +1612,7 @@ public class RoomsApiIT {
             .roomId(roomId.toString()).originalSize(0L).mimeType("-"));
         mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
         storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
-        storageMockServer.mockDelete(file1Id, user1Id.toString(), false);
-        storageMockServer.mockDelete(file2Id, user1Id.toString(), false);
+        storageMockServer.mockBulkDelete(List.of(file1Id, file2Id), user1Id.toString(), null, false);
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
 
@@ -1636,11 +1633,10 @@ public class RoomsApiIT {
         mongooseImMockServer.verify(mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
           VerificationTimes.exactly(1));
         storageMockServer.verify(
-          storageMockServer.getNSLookupUrlRequest(user1Id.toString()), VerificationTimes.exactly(2));
+          storageMockServer.getNSLookupUrlRequest(user1Id.toString()), VerificationTimes.exactly(1));
         storageMockServer.verify(
-          storageMockServer.getDeleteRequest(file1Id, user1Id.toString()), VerificationTimes.exactly(1));
-        storageMockServer.verify(
-          storageMockServer.getDeleteRequest(file2Id, user1Id.toString()), VerificationTimes.exactly(1));
+          storageMockServer.getBulkDeleteRequest(List.of(file1Id, file2Id), user1Id.toString()),
+          VerificationTimes.exactly(1));
       }
     }
 
