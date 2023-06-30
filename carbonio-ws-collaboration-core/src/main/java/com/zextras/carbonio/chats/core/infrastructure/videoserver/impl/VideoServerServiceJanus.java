@@ -17,43 +17,19 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.Feed.Type
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.Jsep;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.Stream;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.VideoCodec;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeAllowedRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeChangeRoomRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeConfigureRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeCreateRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeDestroyRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeEditRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeEnableMjrsRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeEnableRecordingRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeExistsRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeJoinRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeKickRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeLeaveRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeListParticipantsRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeListRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeMuteRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgePlayFileRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomAllowedRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomConfigurePublisherRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomConfigureSubscriberRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomCreateRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomDestroyRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomEditRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomEnableRecordingRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomExistsRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomJoinPublisherRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomJoinSubscriberRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomKickRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomLeavePublisherRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomLeaveSubscriberRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomListParticipantsRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomListRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomModerateRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomPauseVideoInRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomPublishRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomStartVideoInRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomSwitchRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomUnpublishRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomUpdateSubscriptionsRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerMessageRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.AudioBridgeResponse;
@@ -74,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -329,12 +306,72 @@ public class VideoServerServiceJanus implements VideoServerService {
     }
     VideoServerResponse videoServerResponse = createNewConnection(meetingId);
     String connectionId = videoServerResponse.getDataId();
+    videoServerResponse = attachToPlugin(connectionId, JANUS_VIDEOROOM_PLUGIN, meetingId);
+    String videoInHandleId = videoServerResponse.getDataId();
+    joinVideoRoomAsSubscriber(connectionId, sessionId, videoInHandleId, videoServerMeeting.getVideoRoomId());
+    videoServerResponse = attachToPlugin(connectionId, JANUS_VIDEOROOM_PLUGIN, meetingId);
+    String videoOutHandleId = videoServerResponse.getDataId();
+    joinVideoRoomAsPublisher(connectionId, sessionId, videoOutHandleId, videoServerMeeting.getVideoRoomId(),
+      Type.VIDEO);
+    videoServerResponse = attachToPlugin(connectionId, JANUS_VIDEOROOM_PLUGIN, meetingId);
+    String screenHandleId = videoServerResponse.getDataId();
+    joinVideoRoomAsPublisher(connectionId, sessionId, screenHandleId, videoServerMeeting.getVideoRoomId(), Type.SCREEN);
     videoServerSessionRepository.insert(
-      VideoServerSession.create(sessionId, videoServerMeeting)
-        .connectionId(connectionId)
-        .videoOutStreamOn(false)
-        .audioStreamOn(false)
+      VideoServerSession.create(sessionId, videoServerMeeting).connectionId(connectionId)
+        .videoInHandleId(videoInHandleId).videoOutHandleId(videoOutHandleId).screenHandleId(screenHandleId)
     );
+  }
+
+  private void joinVideoRoomAsSubscriber(String connectionId, String sessionId, String videoInHandleId,
+    String videoRoomId) {
+    VideoRoomResponse videoRoomResponse;
+    try {
+      videoRoomResponse = sendVideoRoomPluginMessage(
+        connectionId,
+        videoInHandleId,
+        writeValueAsAString(
+          VideoRoomJoinSubscriberRequest.create()
+            .request(VideoRoomJoinSubscriberRequest.JOIN)
+            .ptype(VideoRoomJoinSubscriberRequest.SUBSCRIBER)
+            .room(videoRoomId)
+            .streams(List.of())
+        ),
+        null
+      );
+    } catch (JsonProcessingException e) {
+      throw new VideoServerException("Unable to convert request body to JSON");
+    }
+    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getVideoRoom())) {
+      throw new VideoServerException(
+        "An error occured while session " + sessionId + " with connection id " + connectionId
+          + " is joining the video room as subscriber");
+    }
+  }
+
+  private void joinVideoRoomAsPublisher(String connectionId, String sessionId, String videoHandleId,
+    String videoRoomId, Type feedType) {
+    VideoRoomResponse videoRoomResponse;
+    try {
+      videoRoomResponse = sendVideoRoomPluginMessage(
+        connectionId,
+        videoHandleId,
+        writeValueAsAString(
+          VideoRoomJoinPublisherRequest.create()
+            .request(VideoRoomJoinPublisherRequest.JOIN)
+            .ptype(VideoRoomJoinPublisherRequest.PUBLISHER)
+            .room(videoRoomId)
+            .id(Feed.create().type(feedType).sessionId(sessionId).toString())
+        ),
+        null
+      );
+    } catch (JsonProcessingException e) {
+      throw new VideoServerException("Unable to convert request body to JSON");
+    }
+    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getVideoRoom())) {
+      throw new VideoServerException(
+        "An error occured while session " + sessionId + " with connection id " + connectionId
+          + " is joining video room as publisher");
+    }
   }
 
   @Override
@@ -348,22 +385,16 @@ public class VideoServerServiceJanus implements VideoServerService {
         "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
     leaveAudioBridgeRoom(videoServerSession.getConnectionId(), videoServerSession.getAudioHandleId(),
       videoServerSession.getSessionId());
-    if (videoServerSession.getVideoInHandleId() != null) {
-      leaveVideoRoomAsSubscriber(videoServerSession.getConnectionId(), videoServerSession.getSessionId(),
-        videoServerSession.getVideoInHandleId());
-      destroyPluginHandle(videoServerSession.getConnectionId(), videoServerSession.getVideoInHandleId());
-    }
-    if (videoServerSession.getVideoOutHandleId() != null) {
-      leaveVideoRoomAsPublisher(videoServerSession.getConnectionId(), videoServerSession.getSessionId(),
-        videoServerSession.getVideoOutHandleId());
-      destroyPluginHandle(videoServerSession.getConnectionId(), videoServerSession.getVideoOutHandleId());
-    }
-    if (videoServerSession.getScreenHandleId() != null) {
-      leaveVideoRoomAsPublisher(videoServerSession.getConnectionId(), videoServerSession.getSessionId(),
-        videoServerSession.getScreenHandleId());
-      destroyPluginHandle(videoServerSession.getConnectionId(), videoServerSession.getScreenHandleId());
-    }
     destroyPluginHandle(videoServerSession.getConnectionId(), videoServerSession.getAudioHandleId());
+    leaveVideoRoomAsSubscriber(videoServerSession.getConnectionId(), videoServerSession.getSessionId(),
+      videoServerSession.getVideoInHandleId());
+    destroyPluginHandle(videoServerSession.getConnectionId(), videoServerSession.getVideoInHandleId());
+    leaveVideoRoomAsPublisher(videoServerSession.getConnectionId(), videoServerSession.getSessionId(),
+      videoServerSession.getVideoOutHandleId());
+    destroyPluginHandle(videoServerSession.getConnectionId(), videoServerSession.getVideoOutHandleId());
+    leaveVideoRoomAsPublisher(videoServerSession.getConnectionId(), videoServerSession.getSessionId(),
+      videoServerSession.getScreenHandleId());
+    destroyPluginHandle(videoServerSession.getConnectionId(), videoServerSession.getScreenHandleId());
     destroyConnection(videoServerSession.getConnectionId(), meetingId);
     videoServerSessionRepository.remove(videoServerSession);
   }
@@ -514,27 +545,28 @@ public class VideoServerServiceJanus implements VideoServerService {
       .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
       .findAny().orElseThrow(() -> new VideoServerException(
         "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
-      JANUS_VIDEOROOM_PLUGIN, meetingId);
-    String videoOutHandleId = videoServerResponse.getDataId();
-    joinVideoRoomAsPublisher(videoServerSession.getConnectionId(), sessionId, videoOutHandleId,
-      videoServerMeeting.getVideoRoomId(), Type.VIDEO, rtcSessionDescriptionDto);
-    videoServerSessionRepository.update(videoServerSession.videoOutHandleId(videoOutHandleId).videoOutStreamOn(true));
+    AtomicReference<String> videoOutHandleId = new AtomicReference<>();
+    Optional.ofNullable(videoServerSession.getVideoOutHandleId()).ifPresentOrElse(videoOutHandleId::set, () -> {
+      VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
+        JANUS_VIDEOROOM_PLUGIN, meetingId);
+      videoOutHandleId.set(videoServerResponse.getDataId());
+      videoServerSession.videoOutHandleId(videoOutHandleId.get());
+    });
+    publishStreamOnVideoRoom(videoServerSession.getConnectionId(), sessionId, videoOutHandleId.get(),
+      rtcSessionDescriptionDto);
+    videoServerSessionRepository.update(videoServerSession.videoOutStreamOn(true));
   }
 
-  private void joinVideoRoomAsPublisher(String connectionId, String sessionId, String videoOutHandleId,
-    String videoRoomId, Type feedType, RtcSessionDescriptionDto rtcSessionDescriptionDto) {
+  private void publishStreamOnVideoRoom(String connectionId, String sessionId, String videoHandleId,
+    RtcSessionDescriptionDto rtcSessionDescriptionDto) {
     VideoRoomResponse videoRoomResponse;
     try {
       videoRoomResponse = sendVideoRoomPluginMessage(
         connectionId,
-        videoOutHandleId,
+        videoHandleId,
         writeValueAsAString(
-          VideoRoomJoinPublisherRequest.create()
-            .request(VideoRoomJoinPublisherRequest.JOIN_AND_CONFIGURE)
-            .ptype(VideoRoomJoinPublisherRequest.PUBLISHER)
-            .room(videoRoomId)
-            .id(Feed.create().type(feedType).sessionId(sessionId).toString())
+          VideoRoomPublishRequest.create()
+            .request(VideoRoomPublishRequest.PUBLISH)
         ),
         rtcSessionDescriptionDto
       );
@@ -557,11 +589,15 @@ public class VideoServerServiceJanus implements VideoServerService {
       .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
       .findAny().orElseThrow(() -> new VideoServerException(
         "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
-      JANUS_VIDEOROOM_PLUGIN, meetingId);
-    String videoInHandleId = videoServerResponse.getDataId();
-    startVideoIn(videoServerSession.getConnectionId(), sessionId, videoInHandleId, rtcSessionDescriptionDto);
-    videoServerSessionRepository.update(videoServerSession.videoInHandleId(videoInHandleId).videoInStreamOn(true));
+    AtomicReference<String> videoInHandleId = new AtomicReference<>();
+    Optional.ofNullable(videoServerSession.getVideoInHandleId()).ifPresentOrElse(videoInHandleId::set, () -> {
+      VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
+        JANUS_VIDEOROOM_PLUGIN, meetingId);
+      videoInHandleId.set(videoServerResponse.getDataId());
+      videoServerSession.videoInHandleId(videoInHandleId.get());
+    });
+    startVideoIn(videoServerSession.getConnectionId(), sessionId, videoInHandleId.get(), rtcSessionDescriptionDto);
+    videoServerSessionRepository.update(videoServerSession.videoInStreamOn(true));
   }
 
   private void startVideoIn(String connectionId, String sessionId, String videoInHandleId,
@@ -596,11 +632,14 @@ public class VideoServerServiceJanus implements VideoServerService {
       .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
       .findAny().orElseThrow(() -> new VideoServerException(
         "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
-      JANUS_VIDEOROOM_PLUGIN, meetingId);
-    String videoInHandleId = videoServerResponse.getDataId();
-    updateSubscriptions(videoServerSession.getConnectionId(), sessionId, videoInHandleId, subscriptionUpdatesDto);
-    videoServerSessionRepository.update(videoServerSession.videoInHandleId(videoInHandleId));
+    AtomicReference<String> videoInHandleId = new AtomicReference<>();
+    Optional.ofNullable(videoServerSession.getVideoInHandleId()).ifPresentOrElse(videoInHandleId::set, () -> {
+      VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
+        JANUS_VIDEOROOM_PLUGIN, meetingId);
+      videoInHandleId.set(videoServerResponse.getDataId());
+      videoServerSession.videoInHandleId(videoInHandleId.get());
+    });
+    updateSubscriptions(videoServerSession.getConnectionId(), sessionId, videoInHandleId.get(), subscriptionUpdatesDto);
   }
 
   private void updateSubscriptions(String connectionId, String sessionId, String videoInHandleId,
@@ -641,12 +680,16 @@ public class VideoServerServiceJanus implements VideoServerService {
       .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
       .findAny().orElseThrow(() -> new VideoServerException(
         "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
-      JANUS_AUDIOBRIDGE_PLUGIN, meetingId);
-    String audioHandleId = videoServerResponse.getDataId();
-    joinAudioBridgeRoom(sessionId, videoServerSession.getConnectionId(), audioHandleId,
+    AtomicReference<String> audioHandleId = new AtomicReference<>();
+    Optional.ofNullable(videoServerSession.getAudioHandleId()).ifPresentOrElse(audioHandleId::set, () -> {
+      VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
+        JANUS_AUDIOBRIDGE_PLUGIN, meetingId);
+      audioHandleId.set(videoServerResponse.getDataId());
+      videoServerSession.audioHandleId(audioHandleId.get());
+    });
+    joinAudioBridgeRoom(sessionId, videoServerSession.getConnectionId(), audioHandleId.get(),
       videoServerMeeting.getAudioRoomId(), rtcSessionDescriptionDto);
-    videoServerSessionRepository.update(videoServerSession.audioHandleId(audioHandleId).audioStreamOn(true));
+    videoServerSessionRepository.update(videoServerSession.audioStreamOn(true));
   }
 
   private void joinAudioBridgeRoom(String sessionId, String connectionId, String audioHandleId, String audioRoomId,
@@ -685,12 +728,16 @@ public class VideoServerServiceJanus implements VideoServerService {
       .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
       .findAny().orElseThrow(() -> new VideoServerException(
         "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
-      JANUS_VIDEOROOM_PLUGIN, meetingId);
-    String screenHandleId = videoServerResponse.getDataId();
-    joinVideoRoomAsPublisher(videoServerSession.getConnectionId(), sessionId, screenHandleId,
-      videoServerMeeting.getVideoRoomId(), Type.SCREEN, rtcSessionDescriptionDto);
-    videoServerSessionRepository.update(videoServerSession.screenHandleId(screenHandleId).screenStreamOn(true));
+    AtomicReference<String> screenHandleId = new AtomicReference<>();
+    Optional.ofNullable(videoServerSession.getScreenHandleId()).ifPresentOrElse(screenHandleId::set, () -> {
+      VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
+        JANUS_VIDEOROOM_PLUGIN, meetingId);
+      screenHandleId.set(videoServerResponse.getDataId());
+      videoServerSession.screenHandleId(screenHandleId.get());
+    });
+    publishStreamOnVideoRoom(videoServerSession.getConnectionId(), sessionId, screenHandleId.get(),
+      rtcSessionDescriptionDto);
+    videoServerSessionRepository.update(videoServerSession.screenStreamOn(true));
   }
 
   @Override
@@ -943,725 +990,6 @@ public class VideoServerServiceJanus implements VideoServerService {
       throw new VideoServerException("Unable to convert request body to JSON");
     } catch (IOException e) {
       throw new VideoServerException("Something went wrong executing request");
-    }
-  }
-
-  //Methods which will be used by future implementations
-
-  private AudioBridgeResponse editAudioBridgeRoom(String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    try {
-      return sendAudioBridgePluginMessage(
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getAudioHandleId(),
-        writeValueAsAString(
-          AudioBridgeEditRequest.create()
-            .request(AudioBridgeEditRequest.EDIT)
-            .room(videoServerMeeting.getAudioRoomId()) //TODO remove or update me
-            .newDescription("new description")
-        ),
-        null
-      );
-      //TODO check audiobridge = success
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private AudioBridgeResponse existsAudioBridgeRoom(String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    try {
-      return sendAudioBridgePluginMessage(
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getAudioHandleId(),
-        writeValueAsAString(
-          AudioBridgeExistsRequest.create()
-            .request(AudioBridgeExistsRequest.EXISTS)
-            .room(videoServerMeeting.getAudioRoomId())
-        ),
-        null
-      );
-      //TODO check exists = true in response
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private AudioBridgeResponse changeACLAudioBridgeRoom(String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    try {
-      return sendAudioBridgePluginMessage(
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getAudioHandleId(),
-        writeValueAsAString(
-          AudioBridgeAllowedRequest.create()
-            .request(AudioBridgeAllowedRequest.ALLOWED)
-            .action(AudioBridgeAllowedRequest.ADD) //TODO update me
-            .room(videoServerMeeting.getAudioRoomId())
-            .allowed(List.of()) //TODO update me
-        ),
-        null
-      );
-      //TODO check audiobridge = success
-      //TODO info: these ACL can be used as token in join request
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private AudioBridgeResponse enableAudioBridgeRoomRecording(String meetingId, boolean enabled) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    try {
-      return sendAudioBridgePluginMessage(
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getAudioHandleId(),
-        writeValueAsAString(
-          AudioBridgeEnableRecordingRequest.create()
-            .request(AudioBridgeEnableRecordingRequest.ENABLE_RECORDING)
-            .room(videoServerMeeting.getAudioRoomId())
-            .record(enabled)
-            .recordFile("file") //TODO update me
-            .recordDir("dir") //TODO update me
-        ),
-        null
-      );
-      //TODO check audiobridge = success
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private AudioBridgeResponse enableMjrsAudioBridgeRoomRecording(String meetingId, boolean enabled) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    try {
-      return sendAudioBridgePluginMessage(
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getAudioHandleId(),
-        writeValueAsAString(
-          AudioBridgeEnableMjrsRequest.create()
-            .request(AudioBridgeEnableMjrsRequest.ENABLE_MJRS)
-            .room(videoServerMeeting.getAudioRoomId())
-            .mjrs(enabled)
-            .mjrsDir("dir")
-        ),
-        null
-      );
-      //TODO check audiobridge = success
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private AudioBridgeResponse listAudioBridgeRooms() {
-    VideoServerResponse videoServerResponse = createConnection();
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
-      throw new VideoServerException(
-        "An error occurred when creating a videoserver connection while listing audio bridge rooms");
-    }
-    String connectionId = videoServerResponse.getDataId();
-    videoServerResponse = interactWithConnection(connectionId, JANUS_ATTACH, JANUS_AUDIOBRIDGE_PLUGIN);
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
-      throw new VideoServerException(
-        "An error occurred when attaching to the audiobridge plugin for the connection " + connectionId
-          + " while listing rooms");
-    }
-    try {
-      return sendAudioBridgePluginMessage(
-        connectionId,
-        videoServerResponse.getDataId(),
-        writeValueAsAString(
-          AudioBridgeListRequest.create()
-            .request(AudioBridgeListRequest.LIST)
-        ),
-        null
-      );
-      //TODO check audiobridge = success
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private AudioBridgeResponse listParticipantsAudioBridgeRoom(String audioRoomId) {
-    VideoServerResponse videoServerResponse = createConnection();
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
-      throw new VideoServerException(
-        "An error occurred when creating a videoserver connection while listing audio bridge rooms participants");
-    }
-    String connectionId = videoServerResponse.getDataId();
-    videoServerResponse = interactWithConnection(connectionId, JANUS_ATTACH, JANUS_AUDIOBRIDGE_PLUGIN);
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
-      throw new VideoServerException(
-        "An error occurred when attaching to the audiobridge plugin for the connection " + connectionId
-          + " while listing rooms participants");
-    }
-    try {
-      return sendAudioBridgePluginMessage(
-        connectionId,
-        videoServerResponse.getDataId(),
-        writeValueAsAString(
-          AudioBridgeListParticipantsRequest.create()
-            .request(AudioBridgeListParticipantsRequest.LIST_PARTICIPANTS)
-            .room(audioRoomId)
-        ),
-        null
-      );
-      //TODO check audiobridge = participants
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private AudioBridgeResponse playFileAudioBridgeRoom(String meetingId, boolean played) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    try {
-      AudioBridgePlayFileRequest audioBridgePlayFileRequest = AudioBridgePlayFileRequest.create();
-      if (played) {
-        audioBridgePlayFileRequest
-          .request(AudioBridgePlayFileRequest.PLAY_FILE)
-          .room(videoServerMeeting.getAudioRoomId())
-          .fileId("file id") //TODO update me
-          .filename("file name") //TODO update me
-          .loop(true);
-      } else {
-        audioBridgePlayFileRequest
-          .request(AudioBridgePlayFileRequest.STOP_FILE)
-          .room(videoServerMeeting.getAudioRoomId())
-          .fileId("file id"); //TODO update me
-      }
-      return sendAudioBridgePluginMessage(
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getAudioHandleId(),
-        writeValueAsAString(
-          audioBridgePlayFileRequest
-        ),
-        null
-      );
-      //TODO check audiobridge = success
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private void kickParticipantFromAudioBridgeRoom(String sessionId, String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    AudioBridgeResponse audioBridgeResponse;
-    try {
-      audioBridgeResponse = sendAudioBridgePluginMessage(
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getAudioHandleId(),
-        writeValueAsAString(
-          AudioBridgeKickRequest.create()
-            .request(AudioBridgeKickRequest.KICK)
-            .room(videoServerMeeting.getAudioRoomId())
-            .id(videoServerSession.getConnectionId())
-        ),
-        null
-      );
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-    if (!AudioBridgeResponse.SUCCESS.equals(audioBridgeResponse.getAudioBridge())) {
-      throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + videoServerSession.getConnectionId()
-          + " is being kicked from the audio room");
-    }
-    videoServerSessionRepository.update(
-      videoServerSession
-        .audioStreamOn(false)
-        .audioHandleId(null)
-    );
-    //TODO nullable audiohandle id
-  }
-
-  private void kickAllParticipantsFromAudioBridgeRoom(String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    AudioBridgeResponse audioBridgeResponse;
-    try {
-      audioBridgeResponse = sendAudioBridgePluginMessage(
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getAudioHandleId(),
-        writeValueAsAString(
-          AudioBridgeKickRequest.create()
-            .request(AudioBridgeKickRequest.KICK_ALL)
-            .room(videoServerMeeting.getAudioRoomId())
-        ),
-        null
-      );
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-    if (!AudioBridgeResponse.SUCCESS.equals(audioBridgeResponse.getAudioBridge())) {
-      throw new VideoServerException(
-        "An error occured while kicking all sessions from audio room in the videoserver meeting " + meetingId);
-    }
-    videoServerMeeting.getVideoServerSessions().forEach(videoServerSession -> {
-      videoServerSessionRepository.update(
-        videoServerSession
-          .audioStreamOn(false)
-          .audioHandleId(null)
-      );
-    });
-    //TODO nullable audiohandle id
-  }
-
-  private void configureAudioBridgeRoom(String sessionId, String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    AudioBridgeResponse audioBridgeResponse;
-    try {
-      audioBridgeResponse = sendAudioBridgePluginMessage(
-        videoServerSession.getConnectionId(),
-        videoServerSession.getAudioHandleId(),
-        writeValueAsAString(
-          AudioBridgeConfigureRequest.create()
-            .request(AudioBridgeConfigureRequest.CONFIGURE)
-            .muted(false) //TODO update me
-            .record(true) //TODO update me
-        ),
-        null
-      );
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-    if (!AudioBridgeResponse.SUCCESS.equals(audioBridgeResponse.getAudioBridge())) {
-      throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + videoServerSession.getConnectionId()
-          + " is being kicked from the audio room");
-    }
-  }
-
-  private void changeAudioBridgeRoom(String sessionId, String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    AudioBridgeResponse audioBridgeResponse;
-    try {
-      audioBridgeResponse = sendAudioBridgePluginMessage(
-        videoServerSession.getConnectionId(),
-        videoServerSession.getAudioHandleId(),
-        writeValueAsAString(
-          AudioBridgeKickRequest.create()
-            .request(AudioBridgeChangeRoomRequest.CHANGE_ROOM)
-            .room(videoServerMeeting.getAudioRoomId()) //TODO update me
-            .id(videoServerSession.getConnectionId())
-        ),
-        null
-      );
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-    if (!AudioBridgeResponse.ACK.equals(audioBridgeResponse.getAudioBridge())) {
-      throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + videoServerSession.getConnectionId()
-          + " is being kicked from the audio room");
-    }
-    videoServerMeetingRepository.insert(
-      VideoServerMeeting.create()
-        .meetingId(meetingId)
-        .connectionId(videoServerMeeting.getConnectionId())
-        .audioHandleId(videoServerMeeting.getVideoHandleId())
-        .videoHandleId(videoServerMeeting.getVideoHandleId())
-        .audioRoomId(videoServerMeeting.getVideoRoomId()) //TODO update me
-    );
-    //TODO id meeting id + video room id + audio room id
-    //TODO meeting id + video room id + audio room id exposed to clients
-  }
-
-  private VideoRoomResponse editVideoRoom(String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    try {
-      return sendVideoRoomPluginMessage(
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getVideoHandleId(),
-        writeValueAsAString(
-          VideoRoomEditRequest.create()
-            .request(VideoRoomEditRequest.EDIT)
-            .room(videoServerMeeting.getVideoRoomId()) //TODO remove or update me
-            .newDescription("new description")
-        ),
-        null
-      );
-      //TODO check videoroom = success
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private VideoRoomResponse existsVideoRoom(String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    try {
-      return sendVideoRoomPluginMessage(
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getVideoHandleId(),
-        writeValueAsAString(
-          VideoRoomExistsRequest.create()
-            .request(VideoRoomExistsRequest.EXISTS)
-            .room(videoServerMeeting.getVideoRoomId())
-        ),
-        null
-      );
-      //TODO check exists = true in response
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private VideoRoomResponse changeACLVideoRoom(String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    try {
-      return sendVideoRoomPluginMessage(
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getVideoHandleId(),
-        writeValueAsAString(
-          VideoRoomAllowedRequest.create()
-            .request(VideoRoomAllowedRequest.ALLOWED)
-            .action(VideoRoomAllowedRequest.ADD) //TODO update me
-            .room(videoServerMeeting.getVideoRoomId())
-            .allowed(List.of()) //TODO update me
-        ),
-        null
-      );
-      //TODO check audiobridge = success
-      //TODO info: these ACL can be used as token in join request
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private void kickParticipantFromVideoRoom(String sessionId, String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    VideoRoomResponse videoRoomResponse;
-    try {
-      videoRoomResponse = sendVideoRoomPluginMessage(
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getVideoHandleId(),
-        writeValueAsAString(
-          VideoRoomKickRequest.create()
-            .request(VideoRoomKickRequest.KICK)
-            .room(videoServerMeeting.getVideoRoomId())
-            .id(videoServerSession.getConnectionId())
-        ),
-        null
-      );
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-    if (!AudioBridgeResponse.SUCCESS.equals(videoRoomResponse.getVideoRoom())) {
-      throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + videoServerSession.getConnectionId()
-          + " is being kicked from the video room");
-    }
-    videoServerSessionRepository.update(
-      videoServerSession
-        .videoOutStreamOn(false)
-        .videoOutHandleId(null)
-    );
-    //TODO nullable videohandle id
-  }
-
-  private VideoRoomResponse listVideoRooms() {
-    VideoServerResponse videoServerResponse = createConnection();
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
-      throw new VideoServerException(
-        "An error occurred when creating a videoserver connection while listing video rooms");
-    }
-    String connectionId = videoServerResponse.getDataId();
-    videoServerResponse = interactWithConnection(connectionId, JANUS_ATTACH, JANUS_AUDIOBRIDGE_PLUGIN);
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
-      throw new VideoServerException(
-        "An error occurred when attaching to the videoroom plugin for the connection " + connectionId
-          + " while listing rooms");
-    }
-    try {
-      return sendVideoRoomPluginMessage(
-        connectionId,
-        videoServerResponse.getDataId(),
-        writeValueAsAString(
-          VideoRoomListRequest.create()
-            .request(VideoRoomListRequest.LIST)
-        ),
-        null
-      );
-      //TODO check videoroom = success
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private VideoRoomResponse listParticipantsVideoRoom(String videoRoomId) {
-    VideoServerResponse videoServerResponse = createConnection();
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
-      throw new VideoServerException(
-        "An error occurred when creating a videoserver connection while listing video rooms participants");
-    }
-    String connectionId = videoServerResponse.getDataId();
-    videoServerResponse = interactWithConnection(connectionId, JANUS_ATTACH, JANUS_AUDIOBRIDGE_PLUGIN);
-    if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
-      throw new VideoServerException(
-        "An error occurred when attaching to the videoroom plugin for the connection " + connectionId
-          + " while listing rooms participants");
-    }
-    try {
-      return sendVideoRoomPluginMessage(
-        connectionId,
-        videoServerResponse.getDataId(),
-        writeValueAsAString(
-          VideoRoomListParticipantsRequest.create()
-            .request(VideoRoomListParticipantsRequest.LIST_PARTICIPANTS)
-            .room(videoRoomId)
-        ),
-        null
-      );
-      //TODO check videoroom = participants
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private VideoRoomResponse moderateVideoRoom(String sessionId, String meetingId, String mediaId, boolean enabled) {
-    //TODO unmute a stream does not unmute it only removes the block and user can unmute itself
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    try {
-      return sendVideoRoomPluginMessage(
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getVideoHandleId(),
-        writeValueAsAString(
-          VideoRoomModerateRequest.create()
-            .request(VideoRoomModerateRequest.MODERATE)
-            .room(videoServerMeeting.getVideoRoomId())
-            .id(videoServerSession.getConnectionId())
-            .mid(mediaId)
-            .mute(enabled)
-        ),
-        null
-      );
-      //TODO check videoroom = success
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private VideoRoomResponse publishStreamOnVideoRoom(String sessionId, String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    try {
-      return sendVideoRoomPluginMessage(
-        videoServerSession.getConnectionId(),
-        videoServerSession.getVideoOutHandleId(),
-        writeValueAsAString(
-          VideoRoomPublishRequest.create()
-            .request(VideoRoomPublishRequest.PUBLISH)
-            .display(videoServerSession.getSessionId()) //TODO update me
-        ),
-        null
-      );
-      //TODO check videoroom = ack
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private VideoRoomResponse unpublishStreamOnVideoRoom(String sessionId, String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    try {
-      return sendVideoRoomPluginMessage(
-        videoServerSession.getConnectionId(),
-        videoServerSession.getVideoOutHandleId(),
-        writeValueAsAString(
-          VideoRoomUnpublishRequest.create()
-            .request(VideoRoomUnpublishRequest.UNPUBLISH)
-        ),
-        null
-      );
-      //TODO check videoroom = ack
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private VideoRoomResponse configureVideoRoomAsPublisher(String sessionId, String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    try {
-      return sendVideoRoomPluginMessage(
-        videoServerSession.getConnectionId(),
-        videoServerSession.getVideoOutHandleId(),
-        writeValueAsAString(
-          VideoRoomConfigurePublisherRequest.create()
-            .request(VideoRoomConfigurePublisherRequest.CONFIGURE)
-            .record(true) //TODO
-        ),
-        null
-      );
-      //TODO check videoroom = ack
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private VideoRoomResponse enableVideoRoomRecording(String meetingId, boolean enabled) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    try {
-      return sendVideoRoomPluginMessage(
-        videoServerMeeting.getConnectionId(),
-        videoServerMeeting.getVideoHandleId(),
-        writeValueAsAString(
-          VideoRoomEnableRecordingRequest.create()
-            .request(VideoRoomEnableRecordingRequest.ENABLE_RECORDING)
-            .room(videoServerMeeting.getVideoRoomId())
-            .record(enabled)
-        ),
-        null
-      );
-      //TODO check videoroom = success
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private VideoRoomResponse joinVideoRoomAsSubscriber(String connectionId, String sessionId, String videoInHandleId,
-    String videoRoomId) {
-    VideoRoomResponse videoRoomResponse;
-    try {
-      videoRoomResponse = sendVideoRoomPluginMessage(
-        connectionId,
-        videoInHandleId,
-        writeValueAsAString(
-          VideoRoomJoinSubscriberRequest.create()
-            .request(VideoRoomJoinSubscriberRequest.JOIN)
-            .ptype(VideoRoomJoinSubscriberRequest.SUBSCRIBER)
-            .room(videoRoomId)
-            .useMsid(true)
-            .autoupdate(true)
-            .streams(List.of())
-        ),
-        null
-      );
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getVideoRoom())) {
-      throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + connectionId
-          + " is joining the video room as subscriber");
-    }
-    return videoRoomResponse;
-  }
-
-  private VideoRoomResponse pauseVideoIn(String sessionId, String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    try {
-      return sendVideoRoomPluginMessage(
-        videoServerSession.getConnectionId(),
-        videoServerSession.getVideoOutHandleId(),
-        writeValueAsAString(
-          VideoRoomPauseVideoInRequest.create()
-            .request(VideoRoomPauseVideoInRequest.PAUSE)
-        ),
-        null
-      );
-      //TODO check videoroom = ack
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private VideoRoomResponse configureVideoRoomAsSubscriber(String sessionId, String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    try {
-      return sendVideoRoomPluginMessage(
-        videoServerSession.getConnectionId(),
-        videoServerSession.getVideoOutHandleId(),
-        writeValueAsAString(
-          VideoRoomConfigureSubscriberRequest.create()
-            .request(VideoRoomConfigureSubscriberRequest.CONFIGURE)
-            .streams(List.of())
-        ),
-        null
-      );
-      //TODO check videoroom = ack
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-  }
-
-  private VideoRoomResponse switchStreams(String sessionId, String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    try {
-      return sendVideoRoomPluginMessage(
-        videoServerSession.getConnectionId(),
-        videoServerSession.getVideoOutHandleId(),
-        writeValueAsAString(
-          VideoRoomSwitchRequest.create()
-            .request(VideoRoomSwitchRequest.SWITCH)
-            .streams(List.of())
-        ),
-        null
-      );
-      //TODO check videoroom = ack
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
     }
   }
 }

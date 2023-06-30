@@ -132,11 +132,11 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/sessions/{sessionId}/media/answer:
+  /meetings/{meetingId}/sessions/{sessionId}/video/answer:
     put:
       tags:
         - Meetings
-      summary: Complete WebRTC negotiation for media stream for the current session
+      summary: Complete WebRTC negotiation for media streams for the current session
       operationId: answerRtcMediaStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
@@ -152,7 +152,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/sessions/{sessionId}/media/subscribe:
+  /meetings/{meetingId}/sessions/{sessionId}/video/subscribe:
     put:
       tags:
         - Meetings
