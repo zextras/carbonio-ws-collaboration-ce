@@ -23,6 +23,7 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingCreatedEvent;
 import com.zextras.carbonio.chats.core.data.event.MeetingDeletedEvent;
+import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -174,7 +175,7 @@ public class MeetingServiceImplTest {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals(session1User1Id, participant1.get().getSessionId());
+      assertEquals(session1User1Id, participant1.get().getUserId().toString());
       assertTrue(participant1.get().isVideoStreamOn());
       assertTrue(participant1.get().isAudioStreamOn());
 
@@ -191,7 +192,7 @@ public class MeetingServiceImplTest {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals(session1User1Id, participant1.get().getSessionId());
+      assertEquals(session1User1Id, participant1.get().getUserId().toString());
       assertTrue(participant1.get().isVideoStreamOn());
       assertTrue(participant1.get().isAudioStreamOn());
 
@@ -269,7 +270,7 @@ public class MeetingServiceImplTest {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals(session1User1Id, participant1.get().getSessionId());
+      assertEquals(session1User1Id, participant1.get().getUserId().toString());
       assertTrue(participant1.get().isVideoStreamOn());
       assertTrue(participant1.get().isAudioStreamOn());
 
@@ -402,7 +403,7 @@ public class MeetingServiceImplTest {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals(session1User1Id, participant1.get().getSessionId());
+      assertEquals(session1User1Id, participant1.get().getUserId().toString());
       assertTrue(participant1.get().isVideoStreamOn());
       assertTrue(participant1.get().isAudioStreamOn());
 
@@ -463,7 +464,11 @@ public class MeetingServiceImplTest {
       UserPrincipal userPrincipal = UserPrincipal.create(user1Id);
       when(roomService.getRoomEntityAndCheckUser(room1Id, userPrincipal, false)).thenReturn(room1);
       when(meetingRepository.getByRoomId(room1Id.toString())).thenReturn(Optional.empty());
-      when(meetingRepository.insert(meeting)).thenReturn(meeting);
+      when(meetingRepository.insert(room1.getName(),
+        MeetingType.PERMANENT,
+        room1Id,
+        null)
+      ).thenReturn(meeting);
 
       Meeting meetingEntity;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -480,8 +485,11 @@ public class MeetingServiceImplTest {
       verify(roomService, times(1)).getRoomEntityAndCheckUser(room1Id, userPrincipal, false);
       verify(roomService, times(1)).setMeetingIntoRoom(room1, meetingEntity);
       verify(meetingRepository, times(1)).getByRoomId(room1Id.toString());
-      verify(meetingRepository, times(1)).insert(meeting);
-      verify(videoServerService, times(1)).createMeeting(meetingId.toString());
+      verify(meetingRepository, times(1)).insert(room1.getName(),
+        MeetingType.PERMANENT,
+        room1Id,
+        null);
+      verify(videoServerService, times(1)).startMeeting(meetingId.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         MeetingCreatedEvent.create(user1Id, null).meetingId(meetingId).roomId(room1Id));
@@ -506,7 +514,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(meetingRepository, times(1)).delete(meeting1);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(room1Id, UserPrincipal.create(user1Id), false);
-      verify(videoServerService, times(1)).deleteMeeting(meeting1Id.toString());
+      verify(videoServerService, times(1)).stopMeeting(meeting1Id.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         MeetingDeletedEvent.create(user1Id, null).meetingId(meeting1Id));

@@ -315,6 +315,15 @@ components:
         roomId:
           type: string
           format: uuid
+        meetingType:
+          description: 'Defines the type of meeting, if permanent it will never be automatically deleted,
+          if scheduled it will be removed after the expiration is passed'
+          $ref: '#/components/schemas/MeetingType'
+        expiration:
+          description: 'This field is only used for scheduled meetings to indicate when the meeting will
+            no more be necessary'
+          type: string
+          format: date-time
       required:
         - name
     Room:
@@ -346,6 +355,11 @@ components:
           description: user identifier
         userType:
           $ref: '#/components/schemas/MeetingUserType'
+    MeetingType:
+      type: string
+      enum:
+        - permanent
+        - scheduled
     MeetingUserType:
       type: string
       enum:

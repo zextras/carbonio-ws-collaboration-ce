@@ -15,7 +15,6 @@ import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
-import io.vavr.control.Option;
 
 import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
@@ -85,8 +84,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
         meetingService.createMeeting(
           currentUser,
           newMeetingDataDto.getName(),
+          newMeetingDataDto.getMeetingType(),
           newMeetingDataDto.getRoomId(),
-          newMeetingDataDto.getUsers()
+          newMeetingDataDto.getUsers(),
+          newMeetingDataDto.getExpiration()
         )
       ).build();
     }
@@ -174,13 +175,17 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response.status(Status.OK)
-      .entity(meetingService.startMeeting(currentUser, meetingId))
+      .entity(meetingService.updateMeeting(currentUser, meetingId, true))
       .build();
   }
 
   @Override
   public Response stopMeeting(UUID meetingId, SecurityContext securityContext) throws NotFoundException {
-    return null;
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    return Response.status(Status.OK)
+      .entity(meetingService.updateMeeting(currentUser, meetingId, false))
+      .build();
   }
 
   /**
