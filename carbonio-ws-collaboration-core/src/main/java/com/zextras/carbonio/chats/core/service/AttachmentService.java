@@ -56,6 +56,7 @@ public interface AttachmentService {
    * @param file        file to save {@link File}
    * @param mimeType    file mime type
    * @param fileName    file name
+   * @param area        attachment's area
    * @param description file description
    * @param messageId   identifier of XMPP message to create
    * @param replyId     identifier of the message being replied to
@@ -63,8 +64,8 @@ public interface AttachmentService {
    * @return The added file identifier {@link IdDto}
    */
   IdDto addAttachment(
-    UUID roomId, File file, String mimeType, String fileName, String description, @Nullable String messageId,
-    @Nullable String replyId, UserPrincipal currentUser
+    UUID roomId, File file, String mimeType, String fileName, @Nullable String area, String description,
+    @Nullable String messageId, @Nullable String replyId, UserPrincipal currentUser
   );
 
   /**

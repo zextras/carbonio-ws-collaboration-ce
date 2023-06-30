@@ -285,7 +285,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response insertAttachment(
     UUID roomId, String fileName, String mimeType, File body, String description, String messageId, String replyId,
-    SecurityContext securityContext
+    String area, SecurityContext securityContext
   ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -311,7 +311,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
         name,
         desc,
         "".equals(messageId) ? null : messageId,
-        "".equals(replyId) ? null : replyId, currentUser))
+        "".equals(replyId) ? null : replyId,
+        "".equals(area) ? null : area,
+        currentUser))
       .build();
   }
 

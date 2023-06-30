@@ -2525,6 +2525,56 @@ public class RoomsApiIT {
     }
 
     @Test
+    @DisplayName("Given a room identifier and an attachment, correctly inserts the attachment with an area")
+    public void insertAttachment_testOkWithArea() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+      String description = "peanuts image";
+
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "attachmentAdded",
+        List.of(
+          new SimpleEntry<>("attachment-id", fileMock.getId()),
+          new SimpleEntry<>("filename", fileMock.getName()),
+          new SimpleEntry<>("mime-type", fileMock.getMimeType()),
+          new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))), description, "the-xmpp-message-id",
+        null, true);
+      MockHttpResponse response;
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        response = dispatcher.post(url(roomId), fileMock.getFileBytes(),
+          Map.of(
+            "Content-Type", "application/octet-stream",
+            "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            "mimeType", fileMock.getMimeType(),
+            "messageId", "the-xmpp-message-id",
+            "area", "15x20"),
+          user1Token);
+      }
+
+      assertEquals(201, response.getStatus());
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "attachmentAdded",
+          List.of(
+            new SimpleEntry<>("attachment-id", fileMock.getId()),
+            new SimpleEntry<>("filename", fileMock.getName()),
+            new SimpleEntry<>("mime-type", fileMock.getMimeType()),
+            new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))), description, "the-xmpp-message-id", null),
+        VerificationTimes.exactly(1));
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
+      IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
+
+      assertTrue(
+        integrationTestUtils.getFileMetadataByRoomIdAndType(roomId, FileMetadataType.ATTACHMENT)
+          .stream().anyMatch(attach ->
+            attach.getId().equals(id.getId().toString())));
+      // TODO: 28/02/22 verify event dispatcher interactions
+    }
+
+    @Test
     @DisplayName("Given a room identifier and an attachment, if there isn't an authenticated user returns a status code 401")
     public void insertAttachment_testErrorUnauthenticatedUser() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
