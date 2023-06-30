@@ -477,6 +477,9 @@ public class VideoServerServiceJanus implements VideoServerService {
       throw new VideoServerException(
         "Audio stream status is already updated for session " + sessionId + " for the meeting " + meetingId);
     }
+    if (!enabled) {
+      videoServerSession.videoOutHandleId(null);
+    }
     videoServerSessionRepository.update(videoServerSession.videoOutStreamOn(enabled));
   }
 
@@ -532,6 +535,9 @@ public class VideoServerServiceJanus implements VideoServerService {
     if (enabled == videoServerSession.hasScreenStreamOn()) {
       throw new VideoServerException(
         "Audio stream status is already updated for session " + sessionId + " for the meeting " + meetingId);
+    }
+    if (!enabled) {
+      videoServerSession.screenHandleId(null);
     }
     videoServerSessionRepository.update(videoServerSession.screenStreamOn(enabled));
   }

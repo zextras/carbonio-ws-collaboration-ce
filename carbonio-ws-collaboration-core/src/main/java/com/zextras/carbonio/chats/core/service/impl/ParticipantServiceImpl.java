@@ -170,9 +170,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   @Override
   @Transactional
-  public void updateAudioStream(
-    UUID meetingId, String sessionId, boolean enabled, UserPrincipal currentUser
-  ) {
+  public void updateAudioStream(UUID meetingId, String sessionId, boolean enabled, UserPrincipal currentUser) {
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
     Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
@@ -234,9 +232,14 @@ public class ParticipantServiceImpl implements ParticipantService {
     Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
       .findAny().orElseThrow(() ->
         new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
+    if (!sessionId.equals(currentUser.getSessionId())) {
+      throw new BadRequestException(String.format(
+        "User '%s' cannot send rtc offer for the session '%s'", currentUser.getId(), sessionId));
+    }
     if (!TypeEnum.OFFER.equals(rtcSessionDescriptionDto.getType())) {
       throw new BadRequestException("Rtc session description type must be offer");
     }
+    roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.offerRtcVideoStream(currentUser.getSessionId(), meetingId.toString(), rtcSessionDescriptionDto);
   }
 
@@ -248,9 +251,14 @@ public class ParticipantServiceImpl implements ParticipantService {
     Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
       .findAny().orElseThrow(() ->
         new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
+    if (!sessionId.equals(currentUser.getSessionId())) {
+      throw new BadRequestException(String.format(
+        "User '%s' cannot send rtc answer for the session '%s'", currentUser.getId(), sessionId));
+    }
     if (!TypeEnum.ANSWER.equals(rtcSessionDescriptionDto.getType())) {
       throw new BadRequestException("Rtc session description type must be offer");
     }
+    roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.answerRtcMediaStream(currentUser.getSessionId(), meetingId.toString(), rtcSessionDescriptionDto);
   }
 
@@ -262,9 +270,14 @@ public class ParticipantServiceImpl implements ParticipantService {
     Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
       .findAny().orElseThrow(() ->
         new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
+    if (!sessionId.equals(currentUser.getSessionId())) {
+      throw new BadRequestException(String.format(
+        "User '%s' cannot update subscriptions for the session '%s'", currentUser.getId(), sessionId));
+    }
     if (subscriptionUpdatesDto.getSubscribe().isEmpty() || subscriptionUpdatesDto.getUnsubscribe().isEmpty()) {
       throw new BadRequestException("Subscription list and Unsubscription list must not be empty");
     }
+    roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.updateSubscriptionsMediaStream(currentUser.getSessionId(), meetingId.toString(),
       subscriptionUpdatesDto);
   }
@@ -277,9 +290,14 @@ public class ParticipantServiceImpl implements ParticipantService {
     Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
       .findAny().orElseThrow(() ->
         new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
+    if (!sessionId.equals(currentUser.getSessionId())) {
+      throw new BadRequestException(String.format(
+        "User '%s' cannot send rtc offer for the session '%s'", currentUser.getId(), sessionId));
+    }
     if (!TypeEnum.OFFER.equals(rtcSessionDescriptionDto.getType())) {
       throw new BadRequestException("Rtc session description type must be offer");
     }
+    roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.offerRtcAudioStream(currentUser.getSessionId(), meetingId.toString(), rtcSessionDescriptionDto);
   }
 
@@ -291,9 +309,14 @@ public class ParticipantServiceImpl implements ParticipantService {
     Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
       .findAny().orElseThrow(() ->
         new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
+    if (!sessionId.equals(currentUser.getSessionId())) {
+      throw new BadRequestException(String.format(
+        "User '%s' cannot send rtc answer for the session '%s'", currentUser.getId(), sessionId));
+    }
     if (!TypeEnum.OFFER.equals(rtcSessionDescriptionDto.getType())) {
       throw new BadRequestException("Rtc session description type must be offer");
     }
+    roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.offerRtcScreenStream(currentUser.getSessionId(), meetingId.toString(), rtcSessionDescriptionDto);
   }
 }
