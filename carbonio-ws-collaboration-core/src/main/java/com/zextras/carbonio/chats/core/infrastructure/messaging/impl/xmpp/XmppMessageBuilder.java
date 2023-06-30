@@ -7,17 +7,23 @@ package com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import io.ebeaninternal.server.util.Str;
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -167,6 +173,7 @@ public class XmppMessageBuilder {
     }
     element.setAttribute("count", String.valueOf(countAtt));
 
+    textBody = isEncodedForXmpp(textBody) ? textBody : encodeStringForXmpp(textBody);
     Optional<Element> bodyTag = Optional.ofNullable((Element) messageTag.getElementsByTagName("body").item(0));
     if (bodyTag.isPresent()) {
       bodyTag.get().setTextContent(textBody);
@@ -213,5 +220,49 @@ public class XmppMessageBuilder {
     Element element = document.createElement(name);
     element.appendChild(document.createTextNode(value));
     return element;
+  }
+
+  public static String encodeStringForXmpp(String toEncode) {
+    if (toEncode == null || toEncode.length() == 0) {
+      return toEncode;
+    }
+    StringBuilder result = new StringBuilder();
+    for (int i = 0; i < toEncode.length(); i++) {
+      String c = "";
+      try {
+        c = encodeCharForXmpp(toEncode.substring(i, i + 1));
+      } catch (UnsupportedEncodingException ignored) {
+      }
+      result.append(c);
+    }
+    return result.toString();
+  }
+
+  private static String encodeCharForXmpp(String toEncode) throws UnsupportedEncodingException {
+    if (toEncode == null || toEncode.length() != 1) {
+      throw new UnsupportedEncodingException();
+    }
+    byte[] bytes = toEncode.getBytes(StandardCharsets.UTF_8);
+    ArrayList<String> binaryList = new ArrayList<>();
+    for (byte b : bytes) {
+      binaryList.add(StringUtils.leftPad(Integer.toBinaryString(b & 0xFF), 8, "0"));
+    }
+    String filter = StringUtils.leftPad("0", binaryList.size() > 1 ? binaryList.size() + 1 : 0, "1");
+
+    StringBuilder binary = new StringBuilder();
+    for (String b : binaryList) {
+      if (!b.startsWith(filter)) {
+        ChatsLogger.warn(XmppMessageBuilder.class, String.format("Connot encode character '%s'", toEncode));
+        throw new UnsupportedEncodingException(String.format("Connot encode character '%s'", toEncode));
+      }
+      binary.append(b.substring(filter.length()));
+      filter = "10";
+    }
+    return String.format("\\\\u%4s", Integer.toHexString(Integer.parseInt(binary.toString(), 2)))
+      .replace(' ', '0');
+  }
+
+  public static boolean isEncodedForXmpp(String text) {
+    return Pattern.matches("[\\\\[uU][a-fA-F0-9]{4}]+", text);
   }
 }

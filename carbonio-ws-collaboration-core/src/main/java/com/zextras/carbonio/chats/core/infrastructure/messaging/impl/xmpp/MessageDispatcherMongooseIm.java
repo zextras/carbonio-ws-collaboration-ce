@@ -64,9 +64,9 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     StringBuilder stringBuilder = new StringBuilder(
       "mutation muc_light { muc_light { createRoom (" + String.format("mucDomain: \"%s\", ", DOMAIN) + String.format(
         "id: \"%s\", ", room.getId()) + String.format("owner: \"%s\"", userIdToUserDomain(senderId)));
-    Optional.ofNullable(room.getName()).ifPresent(n -> stringBuilder.append(String.format(", name: \"%s\"", n)));
+    Optional.ofNullable(room.getName()).ifPresent(n -> stringBuilder.append(String.format(", name: \"%s\"", XmppMessageBuilder.encodeStringForXmpp(n))));
     Optional.ofNullable(room.getDescription())
-      .ifPresent(d -> stringBuilder.append(String.format(", subject: \"%s\"", d)));
+      .ifPresent(d -> stringBuilder.append(String.format(", subject: \"%s\"", XmppMessageBuilder.encodeStringForXmpp(d))));
     stringBuilder.append(") { jid } } }");
     GraphQlResponse result = executeMutation(GraphQlBody.create(stringBuilder.toString(), "muc_light", Map.of()));
 
@@ -104,7 +104,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     GraphQlResponse result = sendStanza(
       XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
         .type(MessageType.ROOM_NAME_CHANGED)
-        .addConfig("value", name).build());
+        .addConfig("value", XmppMessageBuilder.encodeStringForXmpp(name)).build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -120,7 +120,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     GraphQlResponse result = sendStanza(
       XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
         .type(MessageType.ROOM_DESCRIPTION_CHANGED)
-        .addConfig("value", description).build());
+        .addConfig("value", XmppMessageBuilder.encodeStringForXmpp(description)).build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -138,7 +138,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
       XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
         .type(MessageType.ROOM_PICTURE_UPDATED)
         .addConfig("picture-id", pictureId)
-        .addConfig("picture-name", pictureName).build());
+        .addConfig("picture-name", XmppMessageBuilder.encodeStringForXmpp(pictureName)).build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -227,10 +227,10 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
       XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
         .type(MessageType.ATTACHMENT_ADDED)
         .addConfig("attachment-id", metadata.getId())
-        .addConfig("filename", metadata.getName())
+        .addConfig("filename", XmppMessageBuilder.encodeStringForXmpp(metadata.getName()))
         .addConfig("mime-type", metadata.getMimeType())
         .addConfig("size", String.valueOf(metadata.getOriginalSize()))
-        .body(description)
+        .body(XmppMessageBuilder.encodeStringForXmpp(description))
         .messageId(messageId)
         .replyId(replyId)
         .build());
@@ -276,12 +276,12 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
       .create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
       .messageToForward(messageToForward.getOriginalMessage())
       .messageToForwardSentAt(messageToForward.getOriginalMessageSentAt())
-      .body(messageToForward.getDescription());
+      .body(XmppMessageBuilder.encodeStringForXmpp(messageToForward.getDescription()));
     Optional.ofNullable(fileMetadata).ifPresent(metadata ->
       xmppMessageBuilder
         .type(MessageType.ATTACHMENT_ADDED)
         .addConfig("attachment-id", metadata.getId())
-        .addConfig("filename", metadata.getName())
+        .addConfig("filename", XmppMessageBuilder.encodeStringForXmpp(metadata.getName()))
         .addConfig("mime-type", metadata.getMimeType())
         .addConfig("size", String.valueOf(metadata.getOriginalSize())));
     String xmppMessage = xmppMessageBuilder.build();
