@@ -1398,7 +1398,7 @@ components:
         area:
           type: string
           readOnly: true
-          description: image area
+          description: attachment's area
       required: [ id, name, size, mimeType, userId, roomId ]
     AttachmentsPagination:
       type: object
