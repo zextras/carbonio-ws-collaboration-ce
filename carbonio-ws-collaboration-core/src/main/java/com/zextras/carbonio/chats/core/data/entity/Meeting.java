@@ -33,7 +33,7 @@ public class Meeting {
   @Column(name = "ID", length = 64, nullable = false)
   private String id;
 
-  @Column(name = "name", length = 128)
+  @Column(name = "NAME", length = 128)
   private String name;
 
   @Column(name = "ROOM_ID", length = 64, nullable = false)
@@ -55,7 +55,7 @@ public class Meeting {
   @Temporal(TemporalType.TIMESTAMP)
   private OffsetDateTime expiration;
 
-  @Column(name= "ACTIVe", nullable = false)
+  @Column(name= "ACTIVE", nullable = false)
   private Boolean active;
 
   public String getId() {

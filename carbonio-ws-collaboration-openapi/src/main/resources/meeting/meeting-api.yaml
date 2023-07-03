@@ -371,6 +371,9 @@ components:
         - $ref: '#/components/schemas/MeetingUser'
         - type: object
           properties:
+            sessionId:
+              type: string
+              format: UUID
             audioStreamOn:
               type: boolean
               readOnly: true

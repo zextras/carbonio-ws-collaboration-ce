@@ -71,8 +71,12 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     return Response.ok().entity(meetingService.getMeetingById(meetingId, currentUser)).build();
   }
 
-
-
+  /**
+   *
+   * @param newMeetingDataDto data form creating a new meeting
+   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 200 and the requested meeting {@link MeetingDto} in the body
+   */
   @Override
   public Response createMeeting(NewMeetingDataDto newMeetingDataDto, SecurityContext securityContext){
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
@@ -93,7 +97,6 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     }
   }
 
-
   /**
    * Deletes the requested meeting.
    *
@@ -108,7 +111,6 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
         .orElseThrow(UnauthorizedException::new));
     return Response.status(Status.NO_CONTENT).build();
   }
-
 
   /**
    * Allows the authenticated user to join a meeting.
@@ -170,6 +172,13 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     return Response.status(Status.NO_CONTENT).build();
   }
 
+  /**
+   * Starts the meeting on the videoserver
+   *
+   * @param meetingId meeting identifier {@link UUID}
+   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 200 and the updated meeting {@link MeetingDto} in the body
+   */
   @Override
   public Response startMeeting(UUID meetingId, SecurityContext securityContext){
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
@@ -179,6 +188,13 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       .build();
   }
 
+  /**
+   * Stops the meeting on the videoserver
+   *
+   * @param meetingId meeting identifier {@link UUID}
+   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 200 and the updated meeting {@link MeetingDto} in the body
+   */
   @Override
   public Response stopMeeting(UUID meetingId, SecurityContext securityContext) throws NotFoundException {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
