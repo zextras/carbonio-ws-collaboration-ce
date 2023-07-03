@@ -129,7 +129,7 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
 
   public HttpRequest getSendStanzaRequest(
     String roomId, String senderId, @Nullable String type, List<SimpleEntry<String, String>> content,
-    @Nullable String body, @Nullable String messageId, @Nullable String replyId
+    @Nullable String body, @Nullable String messageId, @Nullable String replyId, @Nullable String area
   ) {
     return getSendStanzaRequest(
       "<message xmlns='jabber:client' " + String.format("from='%s@carbonio' ", senderId) + (messageId == null ? ""
@@ -137,10 +137,10 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
         + "type='groupchat'>" + Optional.ofNullable(content.isEmpty() && type == null ? null : content).map(
         list -> "<x xmlns='urn:xmpp:muclight:0#configuration'>" + Optional.ofNullable(type)
           .map(t -> String.format("<operation>%s</operation>", t)).orElse("") + list.stream()
-          .map(c -> "<" + c.getKey() + ">" + c.getValue() + "</" + c.getKey() + ">").collect(Collectors.joining())
-          + "</x>").orElse("") + Optional.ofNullable("".equals(body) ? null : body)
-        .map(b -> String.format("<body>%s</body>", b)).orElse("<body/>") + (replyId == null ? ""
-        : "<reply xmlns='urn:xmpp:reply:0' " + String.format("id='%s' ", replyId) + String.format(
+          .map(c -> "<" + c.getKey() + ">" + c.getValue() + "</" + c.getKey() + ">").collect(Collectors.joining()) + (
+          area == null ? "" : String.format("<area>%s</area>", area)) + "</x>").orElse("") + Optional.ofNullable(
+        "".equals(body) ? null : body).map(b -> String.format("<body>%s</body>", b)).orElse("<body/>") + (
+        replyId == null ? "" : "<reply xmlns='urn:xmpp:reply:0' " + String.format("id='%s' ", replyId) + String.format(
           "to='%s@muclight.carbonio'", roomId) + "/>") + "</message>");
   }
 
@@ -151,9 +151,9 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
 
   public void mockSendStanza(
     String roomId, String senderId, @Nullable String type, List<SimpleEntry<String, String>> content,
-    @Nullable String body, @Nullable String messageId, @Nullable String replyId, boolean success
+    @Nullable String body, @Nullable String messageId, @Nullable String replyId, @Nullable String area, boolean success
   ) {
-    HttpRequest request = getSendStanzaRequest(roomId, senderId, type, content, body, messageId, replyId);
+    HttpRequest request = getSendStanzaRequest(roomId, senderId, type, content, body, messageId, replyId, area);
     clear(request);
     when(request).respond(getResponse(success));
   }
