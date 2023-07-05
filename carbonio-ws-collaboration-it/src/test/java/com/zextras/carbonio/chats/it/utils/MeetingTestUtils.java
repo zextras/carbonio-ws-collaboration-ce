@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.it.utils;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
+import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
@@ -32,13 +33,14 @@ public class MeetingTestUtils {
   }
 
   public Meeting generateAndSaveMeeting(UUID meetingId, UUID roomId, List<ParticipantBuilder> participantBuilders) {
-    Meeting meeting = Meeting.create()
-      .id(meetingId.toString())
-      .roomId(roomId.toString());
+    Meeting meeting = meetingRepository.insert("Test Meeting",
+      MeetingType.PERMANENT,
+      roomId,
+      null);
     meeting.participants(participantBuilders.stream().map(participantBuilder ->
         participantBuilder.build(meeting))
       .collect(Collectors.toList()));
-    return meetingRepository.insert(meeting);
+    return meeting;
   }
 
   public Optional<Meeting> getMeetingById(UUID meetingId) {

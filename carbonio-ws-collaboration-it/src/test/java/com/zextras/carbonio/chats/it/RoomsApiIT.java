@@ -2578,7 +2578,6 @@ public class RoomsApiIT {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals("user1session1", participant1.get().getSessionId());
       assertTrue(participant1.get().isVideoStreamOn());
       assertTrue(participant1.get().isAudioStreamOn());
     }

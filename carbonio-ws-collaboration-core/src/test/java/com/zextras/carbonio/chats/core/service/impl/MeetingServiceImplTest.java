@@ -175,7 +175,6 @@ public class MeetingServiceImplTest {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals(session1User1Id, participant1.get().getSessionId().toString());
       assertTrue(participant1.get().isVideoStreamOn());
       assertTrue(participant1.get().isAudioStreamOn());
 
@@ -192,7 +191,6 @@ public class MeetingServiceImplTest {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals(session1User1Id, participant1.get().getSessionId().toString());
       assertTrue(participant1.get().isVideoStreamOn());
       assertTrue(participant1.get().isAudioStreamOn());
 
@@ -270,7 +268,6 @@ public class MeetingServiceImplTest {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals(session1User1Id, participant1.get().getSessionId().toString());
       assertTrue(participant1.get().isVideoStreamOn());
       assertTrue(participant1.get().isAudioStreamOn());
 
@@ -403,7 +400,6 @@ public class MeetingServiceImplTest {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals(session1User1Id, participant1.get().getSessionId().toString());
       assertTrue(participant1.get().isVideoStreamOn());
       assertTrue(participant1.get().isAudioStreamOn());
 
