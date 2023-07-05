@@ -2575,6 +2575,39 @@ public class RoomsApiIT {
     }
 
     @Test
+    @DisplayName("Given a room identifier and an attachment, correctly inserts the attachment with an area")
+    public void insertAttachment_testErrorWithAreaWrongFormat() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+
+      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "attachmentAdded",
+        List.of(
+          new SimpleEntry<>("attachment-id", fileMock.getId()),
+          new SimpleEntry<>("filename", fileMock.getName()),
+          new SimpleEntry<>("mime-type", fileMock.getMimeType()),
+          new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))
+        ), null, "the-xmpp-message-id", null, "wrong_format", true);
+      MockHttpResponse response;
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        response = dispatcher.post(url(roomId), fileMock.getFileBytes(),
+          Map.of(
+            "Content-Type", "application/octet-stream",
+            "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            "mimeType", fileMock.getMimeType(),
+            "messageId", "the-xmpp-message-id",
+            "area", "wrong_format"),
+          user1Token);
+      }
+
+      assertEquals(400, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
     @DisplayName("Given a room identifier and an attachment, if there isn't an authenticated user returns a status code 401")
     public void insertAttachment_testErrorUnauthenticatedUser() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
