@@ -33,6 +33,8 @@ import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
+import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
+import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto.TypeEnum;
 import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
 import java.time.Clock;
@@ -671,7 +673,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true)
+          .rtcSessionDescription(RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp"))),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -693,7 +696,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true).rtcSessionDescription(
+          RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp"))),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -716,7 +720,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true).rtcSessionDescription(
+          RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp"))),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -1217,7 +1222,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true)
+          .rtcSessionDescription(RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp"))),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1240,7 +1246,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true).rtcSessionDescription(
+          RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp"))),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1263,7 +1270,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true).rtcSessionDescription(
+          RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp"))),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());

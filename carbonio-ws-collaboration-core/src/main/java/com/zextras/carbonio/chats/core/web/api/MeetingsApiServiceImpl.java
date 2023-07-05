@@ -10,7 +10,6 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
-import com.zextras.carbonio.meeting.api.NotFoundException;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
@@ -124,7 +123,8 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   }
 
   /**
-   * Updates the video stream status in the meeting for the current session
+   * Updates the video stream status in the meeting for the current session and starts WebRTC negotiation with
+   * VideoServer for the PeerConnection setup related to video stream when it has to be enabled.
    *
    * @param meetingId              meeting identifier {@link UUID}
    * @param sessionId              identifier of the user session whose video stream status has to updated
@@ -140,7 +140,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
       throw new BadRequestException("Session identifier is mandatory");
     }
-    participantService.updateVideoStream(meetingId, sessionId, videoStreamSettingsDto.isEnabled(), currentUser);
+    participantService.updateVideoStream(meetingId, sessionId, videoStreamSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -166,7 +166,8 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   }
 
   /**
-   * Updates the screen stream status in the meeting for the current session
+   * Updates the screen stream status in the meeting for the current session and starts WebRTC negotiation with
+   * VideoServer for the PeerConnection setup related to screen stream when it has to be enabled.
    *
    * @param meetingId               meeting identifier {@link UUID}
    * @param sessionId               identifier of the user session whose screen stream status has to updated
@@ -182,28 +183,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
       throw new BadRequestException("Session identifier is mandatory");
     }
-    participantService.updateScreenStream(meetingId, sessionId, screenStreamSettingsDto.isEnabled(), currentUser);
-    return Response.status(Status.NO_CONTENT).build();
-  }
-
-  /**
-   * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to video stream.
-   *
-   * @param meetingId                meeting identifier {@link UUID}
-   * @param sessionId                identifier of the user session who wants to start the WebRTC negotiation
-   * @param rtcSessionDescriptionDto the offer rtc session description
-   * @param securityContext          security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 204
-   */
-  @Override
-  public Response offerRtcVideoStream(UUID meetingId, String sessionId,
-    RtcSessionDescriptionDto rtcSessionDescriptionDto, SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
-    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
-      throw new BadRequestException("Session identifier is mandatory");
-    }
-    participantService.offerRtcVideoStream(meetingId, sessionId, rtcSessionDescriptionDto, currentUser);
+    participantService.updateScreenStream(meetingId, sessionId, screenStreamSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -267,27 +247,6 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       throw new BadRequestException("Session identifier is mandatory");
     }
     participantService.offerRtcAudioStream(meetingId, sessionId, rtcSessionDescriptionDto, currentUser);
-    return Response.status(Status.NO_CONTENT).build();
-  }
-
-  /**
-   * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to screen stream.
-   *
-   * @param meetingId                meeting identifier {@link UUID}
-   * @param sessionId                identifier of the user session who wants to start the WebRTC negotiation
-   * @param rtcSessionDescriptionDto the offer rtc session description
-   * @param securityContext          security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 204
-   */
-  @Override
-  public Response offerRtcScreenStream(UUID meetingId, String sessionId,
-    RtcSessionDescriptionDto rtcSessionDescriptionDto, SecurityContext securityContext) throws NotFoundException {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
-    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
-      throw new BadRequestException("Session identifier is mandatory");
-    }
-    participantService.offerRtcScreenStream(meetingId, sessionId, rtcSessionDescriptionDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 }

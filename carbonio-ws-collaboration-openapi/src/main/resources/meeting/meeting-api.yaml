@@ -112,26 +112,6 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/sessions/{sessionId}/video/offer:
-    put:
-      tags:
-        - Meetings
-      summary: Start WebRTC negotiation for video stream for the current session
-      operationId: offerRtcVideoStream
-      parameters:
-        - $ref: '#/components/parameters/pathMeetingId'
-        - $ref: '#/components/parameters/pathSessionId'
-      requestBody:
-        $ref: '#/components/requestBodies/RtcMediaStreamRequest'
-      responses:
-        204:
-          $ref: '#/components/responses/204OfferVideoStreamResponse'
-        401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
-        403:
-          $ref: '#/components/responses/403ForbiddenResponse'
-        404:
-          $ref: '#/components/responses/404NotFoundResponse'
   /meetings/{meetingId}/sessions/{sessionId}/video/answer:
     put:
       tags:
@@ -226,26 +206,6 @@ paths:
       responses:
         204:
           $ref: '#/components/responses/204ScreenStreamResponse'
-        401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
-        403:
-          $ref: '#/components/responses/403ForbiddenResponse'
-        404:
-          $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/sessions/{sessionId}/screen/offer:
-    put:
-      tags:
-        - Meetings
-      summary: Start WebRTC negotiation for screen stream for the current session
-      operationId: offerRtcScreenStream
-      parameters:
-        - $ref: '#/components/parameters/pathMeetingId'
-        - $ref: '#/components/parameters/pathSessionId'
-      requestBody:
-        $ref: '#/components/requestBodies/RtcMediaStreamRequest'
-      responses:
-        204:
-          $ref: '#/components/responses/204OfferScreenStreamResponse'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
         403:
@@ -441,6 +401,8 @@ components:
         enabled:
           type: boolean
           description: indicates the status to change the video stream to
+        rtcSessionDescription:
+          $ref: '#/components/schemas/RtcSessionDescription'
       required: [ enabled ]
     AudioStreamSettings:
       type: object
@@ -493,7 +455,6 @@ components:
             - video
             - screen
       required: [ session_id, type ]
-
     ScreenStreamSettings:
       type: object
       description: settings to apply on user's screen stream
@@ -501,4 +462,6 @@ components:
         enabled:
           type: boolean
           description: indicates the status to change the screen stream to
+        rtcSessionDescription:
+          $ref: '#/components/schemas/RtcSessionDescription'
       required: [ enabled ]

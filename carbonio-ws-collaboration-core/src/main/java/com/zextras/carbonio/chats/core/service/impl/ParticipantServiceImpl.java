@@ -31,7 +31,9 @@ import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
 import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto.TypeEnum;
+import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
+import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
 import io.ebean.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
@@ -142,29 +144,35 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   @Override
   @Transactional
-  public void updateVideoStream(UUID meetingId, String sessionId, boolean enabled, UserPrincipal currentUser) {
+  public void updateVideoStream(UUID meetingId, String sessionId, VideoStreamSettingsDto videoStreamSettingsDto,
+    UserPrincipal currentUser) {
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
     Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
       .findAny().orElseThrow(() ->
         new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
     if (!sessionId.equals(currentUser.getSessionId())) {
-      if (enabled) {
+      if (videoStreamSettingsDto.isEnabled()) {
         throw new BadRequestException(String.format(
           "User '%s' cannot enable the video stream of the session '%s'", currentUser.getId(), sessionId));
       }
       roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
     }
-    if (enabled != participant.hasVideoStreamOn()) {
-      participantRepository.update(participant.videoStreamOn(enabled));
+    if (videoStreamSettingsDto.isEnabled() && videoStreamSettingsDto.getRtcSessionDescription() == null) {
+      throw new BadRequestException(String.format(
+        "User '%s' cannot enable the video stream of the session '%s' without sending an rtc offer",
+        currentUser.getId(), sessionId));
+    }
+    if (videoStreamSettingsDto.isEnabled() != participant.hasVideoStreamOn()) {
+      participantRepository.update(participant.videoStreamOn(videoStreamSettingsDto.isEnabled()));
       eventDispatcher.sendToUserQueue(
         meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
-        enabled ?
+        videoStreamSettingsDto.isEnabled() ?
           MeetingVideoStreamEnabled
             .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId) :
           MeetingVideoStreamDisabled
             .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
-      videoServerService.updateVideoStream(sessionId, meetingId.toString(), enabled);
+      videoServerService.updateVideoStream(sessionId, meetingId.toString(), videoStreamSettingsDto);
     }
   }
 
@@ -198,34 +206,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   @Override
   @Transactional
-  public void updateScreenStream(UUID meetingId, String sessionId, boolean enabled, UserPrincipal currentUser) {
-    Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
-      new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
-      .findAny().orElseThrow(() ->
-        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
-    if (!sessionId.equals(currentUser.getSessionId())) {
-      if (enabled) {
-        throw new BadRequestException(String.format(
-          "User '%s' cannot enable the screen stream of the session '%s'", currentUser.getId(), sessionId));
-      }
-      roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
-    }
-    if (enabled != participant.hasScreenStreamOn()) {
-      participantRepository.update(participant.screenStreamOn(enabled));
-      eventDispatcher.sendToUserQueue(
-        meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
-        enabled ?
-          MeetingScreenStreamEnabled
-            .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId) :
-          MeetingScreenStreamDisabled
-            .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
-      videoServerService.updateScreenStream(sessionId, meetingId.toString(), enabled);
-    }
-  }
-
-  @Override
-  public void offerRtcVideoStream(UUID meetingId, String sessionId, RtcSessionDescriptionDto rtcSessionDescriptionDto,
+  public void updateScreenStream(UUID meetingId, String sessionId, ScreenStreamSettingsDto screenStreamSettingsDto,
     UserPrincipal currentUser) {
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
@@ -233,14 +214,28 @@ public class ParticipantServiceImpl implements ParticipantService {
       .findAny().orElseThrow(() ->
         new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
     if (!sessionId.equals(currentUser.getSessionId())) {
+      if (screenStreamSettingsDto.isEnabled()) {
+        throw new BadRequestException(String.format(
+          "User '%s' cannot enable the screen stream of the session '%s'", currentUser.getId(), sessionId));
+      }
+      roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
+    }
+    if (screenStreamSettingsDto.isEnabled() && screenStreamSettingsDto.getRtcSessionDescription() == null) {
       throw new BadRequestException(String.format(
-        "User '%s' cannot send rtc offer for the session '%s'", currentUser.getId(), sessionId));
+        "User '%s' cannot enable the video stream of the session '%s' without sending an rtc offer",
+        currentUser.getId(), sessionId));
     }
-    if (!TypeEnum.OFFER.equals(rtcSessionDescriptionDto.getType())) {
-      throw new BadRequestException("Rtc session description type must be offer");
+    if (screenStreamSettingsDto.isEnabled() != participant.hasScreenStreamOn()) {
+      participantRepository.update(participant.screenStreamOn(screenStreamSettingsDto.isEnabled()));
+      eventDispatcher.sendToUserQueue(
+        meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
+        screenStreamSettingsDto.isEnabled() ?
+          MeetingScreenStreamEnabled
+            .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId) :
+          MeetingScreenStreamDisabled
+            .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
+      videoServerService.updateScreenStream(sessionId, meetingId.toString(), screenStreamSettingsDto);
     }
-    roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
-    videoServerService.offerRtcVideoStream(currentUser.getSessionId(), meetingId.toString(), rtcSessionDescriptionDto);
   }
 
   @Override
@@ -248,9 +243,6 @@ public class ParticipantServiceImpl implements ParticipantService {
     UserPrincipal currentUser) {
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
-      .findAny().orElseThrow(() ->
-        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
     if (!sessionId.equals(currentUser.getSessionId())) {
       throw new BadRequestException(String.format(
         "User '%s' cannot send rtc answer for the session '%s'", currentUser.getId(), sessionId));
@@ -267,9 +259,6 @@ public class ParticipantServiceImpl implements ParticipantService {
     SubscriptionUpdatesDto subscriptionUpdatesDto, UserPrincipal currentUser) {
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
-      .findAny().orElseThrow(() ->
-        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
     if (!sessionId.equals(currentUser.getSessionId())) {
       throw new BadRequestException(String.format(
         "User '%s' cannot update subscriptions for the session '%s'", currentUser.getId(), sessionId));
@@ -287,9 +276,6 @@ public class ParticipantServiceImpl implements ParticipantService {
     UserPrincipal currentUser) {
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
-      .findAny().orElseThrow(() ->
-        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
     if (!sessionId.equals(currentUser.getSessionId())) {
       throw new BadRequestException(String.format(
         "User '%s' cannot send rtc offer for the session '%s'", currentUser.getId(), sessionId));
@@ -299,24 +285,5 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
     roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.offerRtcAudioStream(currentUser.getSessionId(), meetingId.toString(), rtcSessionDescriptionDto);
-  }
-
-  @Override
-  public void offerRtcScreenStream(UUID meetingId, String sessionId, RtcSessionDescriptionDto rtcSessionDescriptionDto,
-    UserPrincipal currentUser) {
-    Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
-      new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
-      .findAny().orElseThrow(() ->
-        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
-    if (!sessionId.equals(currentUser.getSessionId())) {
-      throw new BadRequestException(String.format(
-        "User '%s' cannot send rtc answer for the session '%s'", currentUser.getId(), sessionId));
-    }
-    if (!TypeEnum.OFFER.equals(rtcSessionDescriptionDto.getType())) {
-      throw new BadRequestException("Rtc session description type must be offer");
-    }
-    roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
-    videoServerService.offerRtcScreenStream(currentUser.getSessionId(), meetingId.toString(), rtcSessionDescriptionDto);
   }
 }

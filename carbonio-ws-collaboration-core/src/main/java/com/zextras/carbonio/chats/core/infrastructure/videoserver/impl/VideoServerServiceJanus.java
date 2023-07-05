@@ -40,7 +40,9 @@ import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
+import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
+import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
 import io.ebean.annotation.Transactional;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -466,21 +468,45 @@ public class VideoServerServiceJanus implements VideoServerService {
   }
 
   @Override
-  public void updateVideoStream(String sessionId, String meetingId, boolean enabled) {
+  public void updateVideoStream(String sessionId, String meetingId, VideoStreamSettingsDto videoStreamSettingsDto) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
       .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
       .findAny().orElseThrow(() -> new VideoServerException(
         "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    if (enabled == videoServerSession.hasVideoOutStreamOn()) {
+    if (videoStreamSettingsDto.isEnabled() == videoServerSession.hasVideoOutStreamOn()) {
       throw new VideoServerException(
         "Audio stream status is already updated for session " + sessionId + " for the meeting " + meetingId);
     }
-    if (!enabled) {
-      videoServerSession.videoOutHandleId(null);
+    if (videoStreamSettingsDto.isEnabled()) {
+      publishStreamOnVideoRoom(videoServerSession.getConnectionId(), sessionId,
+        videoServerSession.getVideoOutHandleId(), videoStreamSettingsDto.getRtcSessionDescription());
     }
-    videoServerSessionRepository.update(videoServerSession.videoOutStreamOn(enabled));
+    videoServerSessionRepository.update(videoServerSession.videoOutStreamOn(videoStreamSettingsDto.isEnabled()));
+  }
+
+  private void publishStreamOnVideoRoom(String connectionId, String sessionId, String videoHandleId,
+    RtcSessionDescriptionDto rtcSessionDescriptionDto) {
+    VideoRoomResponse videoRoomResponse;
+    try {
+      videoRoomResponse = sendVideoRoomPluginMessage(
+        connectionId,
+        videoHandleId,
+        writeValueAsAString(
+          VideoRoomPublishRequest.create()
+            .request(VideoRoomPublishRequest.PUBLISH)
+        ),
+        rtcSessionDescriptionDto
+      );
+    } catch (JsonProcessingException e) {
+      throw new VideoServerException("Unable to convert request body to JSON");
+    }
+    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getVideoRoom())) {
+      throw new VideoServerException(
+        "An error occured while session " + sessionId + " with connection id " + connectionId
+          + " is joining video room as publisher");
+    }
   }
 
   @Override
@@ -525,65 +551,23 @@ public class VideoServerServiceJanus implements VideoServerService {
   }
 
   @Override
-  public void updateScreenStream(String sessionId, String meetingId, boolean enabled) {
+  public void updateScreenStream(String sessionId, String meetingId, ScreenStreamSettingsDto screenStreamSettingsDto) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
       .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
       .findAny().orElseThrow(() -> new VideoServerException(
         "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    if (enabled == videoServerSession.hasScreenStreamOn()) {
+    if (screenStreamSettingsDto.isEnabled() == videoServerSession.hasScreenStreamOn()) {
       throw new VideoServerException(
         "Audio stream status is already updated for session " + sessionId + " for the meeting " + meetingId);
     }
-    if (!enabled) {
-      videoServerSession.screenHandleId(null);
+    if (screenStreamSettingsDto.isEnabled()) {
+      publishStreamOnVideoRoom(videoServerSession.getConnectionId(), sessionId, videoServerSession.getScreenHandleId(),
+        screenStreamSettingsDto.getRtcSessionDescription());
+      videoServerSessionRepository.update(videoServerSession.screenStreamOn(true));
     }
-    videoServerSessionRepository.update(videoServerSession.screenStreamOn(enabled));
-  }
-
-  @Override
-  public void offerRtcVideoStream(String sessionId, String meetingId,
-    RtcSessionDescriptionDto rtcSessionDescriptionDto) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    AtomicReference<String> videoOutHandleId = new AtomicReference<>();
-    Optional.ofNullable(videoServerSession.getVideoOutHandleId()).ifPresentOrElse(videoOutHandleId::set, () -> {
-      VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
-        JANUS_VIDEOROOM_PLUGIN, meetingId);
-      videoOutHandleId.set(videoServerResponse.getDataId());
-      videoServerSession.videoOutHandleId(videoOutHandleId.get());
-    });
-    publishStreamOnVideoRoom(videoServerSession.getConnectionId(), sessionId, videoOutHandleId.get(),
-      rtcSessionDescriptionDto);
-    videoServerSessionRepository.update(videoServerSession.videoOutStreamOn(true));
-  }
-
-  private void publishStreamOnVideoRoom(String connectionId, String sessionId, String videoHandleId,
-    RtcSessionDescriptionDto rtcSessionDescriptionDto) {
-    VideoRoomResponse videoRoomResponse;
-    try {
-      videoRoomResponse = sendVideoRoomPluginMessage(
-        connectionId,
-        videoHandleId,
-        writeValueAsAString(
-          VideoRoomPublishRequest.create()
-            .request(VideoRoomPublishRequest.PUBLISH)
-        ),
-        rtcSessionDescriptionDto
-      );
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    }
-    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getVideoRoom())) {
-      throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + connectionId
-          + " is joining video room as publisher");
-    }
+    videoServerSessionRepository.update(videoServerSession.screenStreamOn(screenStreamSettingsDto.isEnabled()));
   }
 
   @Override
@@ -723,27 +707,6 @@ public class VideoServerServiceJanus implements VideoServerService {
         "An error occured while session " + sessionId + " with connection id " + connectionId
           + " is joining the audio room");
     }
-  }
-
-  @Override
-  public void offerRtcScreenStream(String sessionId, String meetingId,
-    RtcSessionDescriptionDto rtcSessionDescriptionDto) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
-    AtomicReference<String> screenHandleId = new AtomicReference<>();
-    Optional.ofNullable(videoServerSession.getScreenHandleId()).ifPresentOrElse(screenHandleId::set, () -> {
-      VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
-        JANUS_VIDEOROOM_PLUGIN, meetingId);
-      screenHandleId.set(videoServerResponse.getDataId());
-      videoServerSession.screenHandleId(screenHandleId.get());
-    });
-    publishStreamOnVideoRoom(videoServerSession.getConnectionId(), sessionId, screenHandleId.get(),
-      rtcSessionDescriptionDto);
-    videoServerSessionRepository.update(videoServerSession.screenStreamOn(true));
   }
 
   @Override
