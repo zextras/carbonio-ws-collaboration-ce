@@ -8,6 +8,7 @@ import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
+import javax.validation.constraints.Null;
 import javax.ws.rs.core.MediaType;
 import org.jboss.resteasy.core.SynchronousDispatcher;
 import org.jboss.resteasy.core.SynchronousExecutionContext;
@@ -57,9 +58,11 @@ public class ResteasyRequestDispatcher {
   }
 
   public MockHttpResponse post(
-    String path, String requestBody, Map<String, String> requestHeaders, @Nullable String userToken
+    String path, @Nullable String requestBody, Map<String, String> requestHeaders, @Nullable String userToken
   ) throws URISyntaxException {
-    return sendRequest(preparePost(path, requestHeaders, userToken).content(requestBody.getBytes()));
+    MockHttpRequest request = preparePost(path, requestHeaders, userToken);
+    Optional.ofNullable(requestBody).ifPresent(body -> request.content(requestBody.getBytes()));
+    return sendRequest(request);
   }
 
   public MockHttpResponse post(

@@ -32,15 +32,16 @@ public class MeetingTestUtils {
     this.participantRepository = participantRepository;
   }
 
-  public Meeting generateAndSaveMeeting(UUID meetingId, UUID roomId, List<ParticipantBuilder> participantBuilders) {
-    Meeting meeting = meetingRepository.insert("Test Meeting",
+  public UUID generateAndSaveMeeting(UUID roomId, List<ParticipantBuilder> participantBuilders) {
+    Meeting meeting = meetingRepository.insert("Test Meeting for " + roomId.toString(),
       MeetingType.PERMANENT,
       roomId,
       null);
     meeting.participants(participantBuilders.stream().map(participantBuilder ->
         participantBuilder.build(meeting))
       .collect(Collectors.toList()));
-    return meeting;
+    meetingRepository.update(meeting);
+    return UUID.fromString(meeting.getId());
   }
 
   public Optional<Meeting> getMeetingById(UUID meetingId) {

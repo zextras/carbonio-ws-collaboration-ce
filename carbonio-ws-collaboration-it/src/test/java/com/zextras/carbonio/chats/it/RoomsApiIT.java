@@ -928,13 +928,12 @@ public class RoomsApiIT {
     @DisplayName("Given a group room identifier, correctly deletes the room and the associated meeting")
     public void deleteRoom_groupWithMeetingTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
-      UUID meetingId = UUID.randomUUID();
       Room room = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP,
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id).muted(true),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(roomId, List.of(
         ParticipantBuilder.create(user1Id, "user3session1").audioStreamOn(false).videoStreamOn(false)));
       integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
       mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
@@ -1927,10 +1926,9 @@ public class RoomsApiIT {
       "correctly leaves all user sessions from the associated meeting and removes the user from room members")
     public void deleteRoomMember_memberIsMeetingParticipantTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
-      UUID meetingId = UUID.randomUUID();
       Room roomEntity = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
         List.of(user1Id, user2Id, user3Id));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(roomId, List.of(
         ParticipantBuilder.create(user1Id, "user1session1"),
         ParticipantBuilder.create(user2Id, "user2session1"),
         ParticipantBuilder.create(user2Id, "user2session2"),
@@ -1965,10 +1963,9 @@ public class RoomsApiIT {
       "removes the meeting because the user session was the last and removes the user from room members")
     public void deleteRoomMember_memberIsLastMeetingParticipantTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
-      UUID meetingId = UUID.randomUUID();
       Room roomEntity = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
         List.of(user1Id, user2Id, user3Id));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(roomId, List.of(
         ParticipantBuilder.create(user2Id, "user2session1")));
       integrationTestUtils.updateRoom(roomEntity.meetingId(meetingId.toString()));
 
@@ -2545,7 +2542,6 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Given a room identifier, correctly returns the room meeting information with participants")
     public void getMeetingByRoomId_testOk() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
@@ -2553,7 +2549,7 @@ public class RoomsApiIT {
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(roomId, List.of(
         ParticipantBuilder.create(user1Id, "user1session1").audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, "user2session1").audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, "user2session2").audioStreamOn(true).videoStreamOn(false),
@@ -2646,7 +2642,6 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Given a room identifier, if the room meeting exists the authenticated user correctly joins the meeting")
     public void joinRoomMeeting_testOkMeetingExists() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
@@ -2654,7 +2649,7 @@ public class RoomsApiIT {
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, roomId, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(roomId, List.of(
         ParticipantBuilder.create(user2Id, "user2session1").audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, "user2session2").audioStreamOn(true).videoStreamOn(false),
         ParticipantBuilder.create(user3Id, "user3session1").audioStreamOn(false).videoStreamOn(false)));
