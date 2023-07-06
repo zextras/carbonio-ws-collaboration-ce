@@ -36,10 +36,15 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
+import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
+import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.MeetingUserDto;
+import com.zextras.carbonio.meeting.model.MeetingTypeDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
 import java.time.OffsetDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -141,6 +146,76 @@ public class MeetingServiceImplTest {
           .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z")).build(),
         ParticipantBuilder.create(meeting1, session1User3Id).userId(user3Id).createdAt(
           OffsetDateTime.parse("2022-01-01T13:15:00Z")).build()));
+  }
+
+  @Nested
+  @DisplayName("Create Meeting tests")
+  class CreateMeetingTests {
+
+    @Test
+    @DisplayName("Create meeting from room test")
+    void createMeetingFromRoom_testOk() {
+      UserPrincipal user = UserPrincipal.create(user1Id);
+      String meetingName = "test";
+      MeetingType meetingType = MeetingType.PERMANENT;
+      UUID meetingId = UUID.randomUUID();
+      Meeting meeting = Meeting.create()
+        .roomId(room1Id.toString())
+        .meetingType(meetingType)
+        .active(false)
+        .id(meetingId.toString());
+      when(roomService.getRoomEntityAndCheckUser(room1Id, user, false))
+        .thenReturn(room1);
+      when(meetingRepository.insert(meetingName, meetingType, room1Id, null)).thenReturn(meeting);
+
+      MeetingDto createdMeeting = meetingService.createMeeting(
+        user,
+        meetingName,
+        MeetingTypeDto.PERMANENT,
+        room1Id,
+        null,
+        null
+      );
+      assertEquals(createdMeeting.getId(), meetingId);
+      assertEquals(createdMeeting.getRoomId(), room1Id);
+    }
+
+
+    @Test
+    @DisplayName("Create meeting from users")
+    void createMeetingFromUsers_testOk() {
+      UserPrincipal user = UserPrincipal.create(user1Id);
+      String meetingName = "test";
+      MeetingType meetingType = MeetingType.SCHEDULED;
+      UUID meetingId = UUID.randomUUID();
+      UUID user1Id = UUID.randomUUID();
+      UUID user2Id = UUID.randomUUID();
+      UUID newRoomId = UUID.randomUUID();
+      List<MeetingUserDto> users = List.of(
+        MeetingUserDto.create().userId(user1Id),
+        MeetingUserDto.create().userId(user2Id)
+      );
+      Meeting meeting = Meeting.create()
+        .roomId(newRoomId.toString())
+        .meetingType(meetingType)
+        .active(false)
+        .id(meetingId.toString());
+      when(roomService.createRoom(RoomCreationFieldsDto
+        .create().name(meetingName).type(RoomTypeDto.GROUP).membersIds(List.of(user1Id,user2Id)),user))
+        .thenReturn(RoomDto.create().id(newRoomId).name(meetingName));
+      when(meetingRepository.insert(meetingName, meetingType, newRoomId, null)).thenReturn(meeting);
+
+      MeetingDto createdMeeting = meetingService.createMeeting(
+        user,
+        meetingName,
+        MeetingTypeDto.SCHEDULED,
+        null,
+        users,
+        null
+      );
+      assertEquals(createdMeeting.getId(), meetingId);
+      assertEquals(createdMeeting.getRoomId(), newRoomId);
+    }
   }
 
   @Nested

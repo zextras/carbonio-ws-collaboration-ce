@@ -12,12 +12,12 @@ public class VideoServerServiceMock implements VideoServerService {
 
   @Override
   public void startMeeting(String meetingId) {
-
+    //Mock class with empty method
   }
 
   @Override
   public void stopMeeting(String meetingId) {
-
+    //Mock class with empty method
   }
 
   @Override

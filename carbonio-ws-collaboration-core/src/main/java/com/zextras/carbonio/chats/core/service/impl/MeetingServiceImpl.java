@@ -10,7 +10,6 @@ import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingCreatedEvent;
 import com.zextras.carbonio.chats.core.data.event.MeetingDeletedEvent;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
-import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -72,24 +71,24 @@ public class MeetingServiceImpl implements MeetingService {
                                   List<MeetingUserDto> users,
                                   OffsetDateTime expiration) {
     return meetingMapper.ent2dto(
-      Option.of(roomId).map(rId -> {
-        return Option.of(roomService.getRoomEntityAndCheckUser(roomId, user, false))
+      Option.of(roomId).map(rId ->
+        Option.of(roomService.getRoomEntityAndCheckUser(roomId, user, false))
           .map(room -> {
             Meeting meeting = meetingRepository.insert(name,
-              MeetingType.valueOf(meetingType.toString()),
+              MeetingType.valueOf(meetingType.toString().toUpperCase()),
               rId,
               null);
             roomService.setMeetingIntoRoom(room, meeting);
             return meeting;
-          }).getOrElseThrow(() -> new RuntimeException("Room not found"));
-      }).getOrElse(() -> {
+          }).getOrElseThrow(() -> new RuntimeException("Room not found"))
+      ).getOrElse(() -> {
         RoomDto room = roomService.createRoom(RoomCreationFieldsDto.create()
           .name(name)
           .type(RoomTypeDto.GROUP)
           .membersIds(users.stream().map(MeetingUserDto::getUserId).collect(Collectors.toList()))
           ,user);
         return meetingRepository.insert(name,
-          MeetingType.valueOf(meetingType.toString()),
+          MeetingType.valueOf(meetingType.toString().toUpperCase()),
           room.getId(),
           expiration);
       })
@@ -99,8 +98,8 @@ public class MeetingServiceImpl implements MeetingService {
   @Override
   public MeetingDto updateMeeting(UserPrincipal user, UUID meetingId, Boolean active) {
     return meetingMapper.ent2dto(meetingRepository.getById(meetingId.toString()).map(meeting -> {
-      Option.of(active).forEach(s -> {
-          if (s) {
+      Option.of(active).peek(s -> {
+          if (Boolean.TRUE.equals(s)) {
             videoServerService.startMeeting(meeting.getId());
           } else {
             videoServerService.stopMeeting(meeting.getId());
