@@ -9,6 +9,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.mockserver.client.MockServerClient;
+
+import static org.mockserver.model.HttpRequest.request;
+import static org.mockserver.model.HttpResponse.response;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,9 +22,11 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
+import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
+import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
@@ -32,6 +38,9 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.MeetingTypeDto;
+import com.zextras.carbonio.meeting.model.MeetingUserDto;
+import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
 import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
@@ -40,17 +49,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+
+import org.apache.http.HttpStatus;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockserver.model.Header;
+import org.mockserver.model.HttpRequest;
 
 @ApiIntegrationTest
 public class MeetingApiIT {
 
   private final ResteasyRequestDispatcher dispatcher;
   private final MeetingRepository         meetingRepository;
+
+  private final RoomRepository roomRepository;
+  private final MongooseImMockServer mongooseImMockServer;
   private final ParticipantRepository     participantRepository;
   private final MeetingTestUtils          meetingTestUtils;
   private final ObjectMapper              objectMapper;
@@ -60,16 +76,20 @@ public class MeetingApiIT {
 
   public MeetingApiIT(
     RoomsApi roomsApi, ResteasyRequestDispatcher dispatcher,
+    MongooseImMockServer mongooseImMockServer,
     MeetingRepository meetingRepository,
     ParticipantRepository participantRepository,
+    RoomRepository roomRepository,
     MeetingTestUtils meetingTestUtils,
     ObjectMapper objectMapper,
     IntegrationTestUtils integrationTestUtils,
     UserManagementMockServer userManagementMockServer, Clock clock
   ) {
     this.dispatcher = dispatcher;
+    this.mongooseImMockServer = mongooseImMockServer;
     this.meetingRepository = meetingRepository;
     this.participantRepository = participantRepository;
+    this.roomRepository = roomRepository;
     this.meetingTestUtils = meetingTestUtils;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
@@ -106,6 +126,70 @@ public class MeetingApiIT {
     room2Id = UUID.fromString("0367dedb-a5d8-451f-bbc8-22e70d8a777a");
     room3Id = UUID.fromString("e110c21d-8c73-4096-b449-166264399ac8");
   }
+
+  @Nested
+  @DisplayName("Create meeting tests")
+  class CreateMeetingTests{
+    private static final String URL = "/meetings";
+
+    @Test
+    @DisplayName("Create a meeting from a roomId")
+    void createMeetingRoom_testOk() throws Exception{
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("room1")
+          .description("Room one"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+
+
+      MockHttpResponse response = dispatcher.post(URL,
+        objectMapper.writeValueAsString(
+          NewMeetingDataDto.create()
+            .name("test")
+            .meetingType(MeetingTypeDto.PERMANENT)
+            .roomId(room1Id)),
+        user1Token);
+      assertEquals(200, response.getStatus());
+      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(room1Id, meeting.getRoomId());
+      assertEquals(false, meeting.isActive());
+      assertEquals(MeetingTypeDto.PERMANENT, meeting.getMeetingType());
+      assertEquals("test", meeting.getName());
+    }
+    @Test
+    @DisplayName("Create a meeting from a list of Users")
+    void createMeetingUsers_testOk() throws Exception{
+      mongooseImMockServer
+        .when(request().withMethod("POST").withPath("/api/graphql")
+          .withHeaders(Header.header("Authorization", "Basic dXNlcm5hbWU6cGFzc3dvcmQ="))
+        )
+        .respond(response()
+          .withStatusCode(200)
+          .withBody("{ \"data\": { \"mock\": \"success\" } }")
+          .withHeaders(Header.header("Authorization", "Basic dXNlcm5hbWU6cGFzc3dvcmQ="),
+          Header.header("Accept", "application/json"))
+        );
+      MockHttpResponse response = dispatcher.post(URL,
+        objectMapper.writeValueAsString(
+          NewMeetingDataDto.create()
+            .name("test")
+            .meetingType(MeetingTypeDto.SCHEDULED)
+            .users(List.of(
+              MeetingUserDto.create().userId(user2Id),
+              MeetingUserDto.create().userId(user3Id)
+            ))
+            ),
+        user1Token);
+      assertEquals(200, response.getStatus());
+      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(false, meeting.isActive());
+      assertEquals(MeetingTypeDto.SCHEDULED, meeting.getMeetingType());
+      assertEquals("test", meeting.getName());
+    }
+  }
+
 
   @Nested
   @DisplayName("List meetings tests")

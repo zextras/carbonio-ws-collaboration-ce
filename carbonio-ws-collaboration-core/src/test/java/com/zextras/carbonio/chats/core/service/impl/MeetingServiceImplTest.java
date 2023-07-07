@@ -219,6 +219,60 @@ public class MeetingServiceImplTest {
   }
 
   @Nested
+  @DisplayName("Update meeting tests")
+  class UpdateMeetingTests {
+    @Test
+    @DisplayName("Activate a meeting")
+    void updateMeetingStart_testOk(){
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UUID meetingId = UUID.randomUUID();
+      UUID roomId = UUID.randomUUID();
+      Meeting meeting = Meeting.create()
+        .roomId(roomId.toString())
+        .name("test")
+        .id(meetingId.toString())
+        .active(false);
+      Meeting updatedMeeting = Meeting.create()
+        .roomId(roomId.toString())
+        .name("test")
+        .id(meetingId.toString())
+        .active(true);
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
+      MeetingDto meetingDto = meetingService.updateMeeting(currentUser,
+        meetingId,
+        true);
+      verify(videoServerService, times(1)).startMeeting(meetingId.toString());
+      verify(videoServerService, times(0)).stopMeeting(meetingId.toString());
+    }
+
+    @Test
+    @DisplayName("Deactivate a meeting")
+    void updateMeetingStop_testOk(){
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UUID meetingId = UUID.randomUUID();
+      UUID roomId = UUID.randomUUID();
+      Meeting meeting = Meeting.create()
+        .roomId(roomId.toString())
+        .name("test")
+        .id(meetingId.toString())
+        .active(true);
+      Meeting updatedMeeting = Meeting.create()
+        .roomId(roomId.toString())
+        .name("test")
+        .id(meetingId.toString())
+        .active(false);
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
+      MeetingDto meetingDto = meetingService.updateMeeting(currentUser,
+        meetingId,
+        false);
+      verify(videoServerService, times(0)).startMeeting(meetingId.toString());
+      verify(videoServerService, times(1)).stopMeeting(meetingId.toString());
+    }
+  }
+
+  @Nested
   @DisplayName("List meetings tests")
   public class ListMeetingTests {
 

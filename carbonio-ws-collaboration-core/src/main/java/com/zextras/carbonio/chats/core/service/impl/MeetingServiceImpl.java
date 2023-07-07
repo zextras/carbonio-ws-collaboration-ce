@@ -31,6 +31,7 @@ import io.vavr.control.Option;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -99,12 +100,14 @@ public class MeetingServiceImpl implements MeetingService {
   public MeetingDto updateMeeting(UserPrincipal user, UUID meetingId, Boolean active) {
     return meetingMapper.ent2dto(meetingRepository.getById(meetingId.toString()).map(meeting -> {
       Option.of(active).peek(s -> {
+        if(!Objects.equals(s, meeting.getActive())){
           if (Boolean.TRUE.equals(s)) {
             videoServerService.startMeeting(meeting.getId());
           } else {
             videoServerService.stopMeeting(meeting.getId());
           }
-        meeting.active(s);
+          meeting.active(s);
+        }
       });
       return meetingRepository.update(meeting);
     }).orElseThrow(() -> new NotFoundException(

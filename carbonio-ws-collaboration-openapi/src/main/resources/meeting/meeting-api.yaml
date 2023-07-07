@@ -392,13 +392,16 @@ components:
           format: uuid
           readOnly: true
           description: meeting identifier
+        name:
+          type: string
+          description: The meeting name
         roomId:
           type: string
           format: uuid
           readOnly: true
           description: room identifier
-        started:
-          description: Indicates if the meeting has been started
+        active:
+          description: Indicates if the meeting is active
           type: boolean
         participants:
           type: array
@@ -409,6 +412,8 @@ components:
           format: date-time
           readOnly: true
           description: entity creation date
+        meetingType:
+          $ref: '#/components/schemas/MeetingType'
     JoinSettings:
       type: object
       description: user's streams settings to join a meeting

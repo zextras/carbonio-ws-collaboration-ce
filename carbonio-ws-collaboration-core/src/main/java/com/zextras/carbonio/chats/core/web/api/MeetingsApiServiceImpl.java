@@ -81,7 +81,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   public Response createMeeting(NewMeetingDataDto newMeetingDataDto, SecurityContext securityContext){
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    if(newMeetingDataDto.getName() == null && newMeetingDataDto.getUsers().isEmpty()){
+    if(newMeetingDataDto.getRoomId() == null && newMeetingDataDto.getUsers().isEmpty()){
       return Response.status(Status.BAD_REQUEST).build();
     } else {
       return Response.ok(
