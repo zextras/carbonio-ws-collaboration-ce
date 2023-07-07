@@ -127,6 +127,7 @@ public class MeetingServiceImplTest {
     meeting1
       .id(meeting1Id.toString())
       .roomId(room1Id.toString())
+      .meetingType(MeetingType.PERMANENT)
       .participants(List.of(
         ParticipantBuilder.create(meeting1, session1User1Id).userId(user1Id).audioStreamOn(true).videoStreamOn(true)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z")).build(),
@@ -141,6 +142,7 @@ public class MeetingServiceImplTest {
     meeting2
       .id(meeting2Id.toString())
       .roomId(room2Id.toString())
+      .meetingType(MeetingType.SCHEDULED)
       .participants(List.of(
         ParticipantBuilder.create(meeting1, session1User1Id).userId(user1Id).audioStreamOn(true).videoStreamOn(true)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z")).build(),
@@ -230,11 +232,13 @@ public class MeetingServiceImplTest {
       Meeting meeting = Meeting.create()
         .roomId(roomId.toString())
         .name("test")
+        .meetingType(MeetingType.PERMANENT)
         .id(meetingId.toString())
         .active(false);
       Meeting updatedMeeting = Meeting.create()
         .roomId(roomId.toString())
         .name("test")
+        .meetingType(MeetingType.PERMANENT)
         .id(meetingId.toString())
         .active(true);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
@@ -255,11 +259,13 @@ public class MeetingServiceImplTest {
       Meeting meeting = Meeting.create()
         .roomId(roomId.toString())
         .name("test")
+        .meetingType(MeetingType.PERMANENT)
         .id(meetingId.toString())
         .active(true);
       Meeting updatedMeeting = Meeting.create()
         .roomId(roomId.toString())
         .name("test")
+        .meetingType(MeetingType.PERMANENT)
         .id(meetingId.toString())
         .active(false);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
