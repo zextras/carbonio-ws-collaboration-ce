@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AudioBridgePlayFileRequest {
+public class AudioBridgePlayFileRequest extends AudioBridgeRequest {
 
   public static final String PLAY_FILE = "play_file";
   public static final String STOP_FILE = "stop_file";
@@ -26,7 +26,7 @@ public class AudioBridgePlayFileRequest {
   private String  group;
   private String  fileId;
   private String  filename;
-  private boolean loop;
+  private Boolean loop;
 
   public static AudioBridgePlayFileRequest create() {
     return new AudioBridgePlayFileRequest();
@@ -86,7 +86,7 @@ public class AudioBridgePlayFileRequest {
     return this;
   }
 
-  public boolean isLoop() {
+  public Boolean isLoop() {
     return loop;
   }
 

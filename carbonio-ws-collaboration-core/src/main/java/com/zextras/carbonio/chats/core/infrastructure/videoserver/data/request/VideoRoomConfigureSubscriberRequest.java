@@ -16,13 +16,13 @@ import java.util.List;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomConfigureSubscriberRequest {
+public class VideoRoomConfigureSubscriberRequest extends VideoRoomRequest {
 
   public static final String CONFIGURE = "configure";
 
   private String       request;
   private List<Stream> streams;
-  private boolean      restart;
+  private Boolean      restart;
 
   public static VideoRoomConfigureSubscriberRequest create() {
     return new VideoRoomConfigureSubscriberRequest();
@@ -41,7 +41,7 @@ public class VideoRoomConfigureSubscriberRequest {
     return this;
   }
 
-  public boolean isRestart() {
+  public Boolean isRestart() {
     return restart;
   }
 
@@ -80,7 +80,7 @@ public class VideoRoomConfigureSubscriberRequest {
       return this;
     }
 
-    public boolean isSend() {
+    public Boolean isSend() {
       return send;
     }
 
@@ -89,7 +89,7 @@ public class VideoRoomConfigureSubscriberRequest {
       return this;
     }
 
-    public int getSubstream() {
+    public Integer getSubstream() {
       return substream;
     }
 
@@ -98,7 +98,7 @@ public class VideoRoomConfigureSubscriberRequest {
       return this;
     }
 
-    public int getTemporal() {
+    public Integer getTemporal() {
       return temporal;
     }
 
@@ -107,7 +107,7 @@ public class VideoRoomConfigureSubscriberRequest {
       return this;
     }
 
-    public long getFallback() {
+    public Long getFallback() {
       return fallback;
     }
 
@@ -116,7 +116,7 @@ public class VideoRoomConfigureSubscriberRequest {
       return this;
     }
 
-    public int getSpatialLayer() {
+    public Integer getSpatialLayer() {
       return spatialLayer;
     }
 
@@ -125,7 +125,7 @@ public class VideoRoomConfigureSubscriberRequest {
       return this;
     }
 
-    public int getTemporalLayer() {
+    public Integer getTemporalLayer() {
       return temporalLayer;
     }
 
@@ -134,7 +134,7 @@ public class VideoRoomConfigureSubscriberRequest {
       return this;
     }
 
-    public int getAudioLevelAverage() {
+    public Integer getAudioLevelAverage() {
       return audioLevelAverage;
     }
 
@@ -143,7 +143,7 @@ public class VideoRoomConfigureSubscriberRequest {
       return this;
     }
 
-    public long getAudioActivePackets() {
+    public Long getAudioActivePackets() {
       return audioActivePackets;
     }
 
@@ -152,7 +152,7 @@ public class VideoRoomConfigureSubscriberRequest {
       return this;
     }
 
-    public int getMinDelay() {
+    public Integer getMinDelay() {
       return minDelay;
     }
 
@@ -161,7 +161,7 @@ public class VideoRoomConfigureSubscriberRequest {
       return this;
     }
 
-    public int getMaxDelay() {
+    public Integer getMaxDelay() {
       return maxDelay;
     }
 

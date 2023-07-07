@@ -16,14 +16,14 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AudioBridgeEnableMjrsRequest {
+public class AudioBridgeEnableMjrsRequest extends AudioBridgeRequest {
 
   public static final String ENABLE_MJRS = "enable_mjrs";
 
   private String  request;
   private String  room;
   private String  secret;
-  private boolean mjrs;
+  private Boolean mjrs;
   private String  mjrsDir;
 
   public static AudioBridgeEnableMjrsRequest create() {
@@ -57,7 +57,7 @@ public class AudioBridgeEnableMjrsRequest {
     return this;
   }
 
-  public boolean isMjrs() {
+  public Boolean isMjrs() {
     return mjrs;
   }
 

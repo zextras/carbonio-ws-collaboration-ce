@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AudioBridgeLeaveRequest {
+public class AudioBridgeLeaveRequest extends AudioBridgeRequest {
 
   public static final String LEAVE = "leave";
 

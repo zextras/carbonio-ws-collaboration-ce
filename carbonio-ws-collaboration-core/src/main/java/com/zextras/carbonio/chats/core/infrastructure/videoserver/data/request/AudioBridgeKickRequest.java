@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AudioBridgeKickRequest {
+public class AudioBridgeKickRequest extends AudioBridgeRequest {
 
   public static final String KICK     = "kick";
   public static final String KICK_ALL = "kick_all";

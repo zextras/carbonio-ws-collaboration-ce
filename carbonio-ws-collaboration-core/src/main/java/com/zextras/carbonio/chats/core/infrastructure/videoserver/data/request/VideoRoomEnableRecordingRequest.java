@@ -15,14 +15,14 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomEnableRecordingRequest {
+public class VideoRoomEnableRecordingRequest extends VideoRoomRequest {
 
   public static final String ENABLE_RECORDING = "enable_recording";
 
   private String  request;
   private String  room;
   private String  secret;
-  private boolean record;
+  private Boolean record;
 
   public static VideoRoomEnableRecordingRequest create() {
     return new VideoRoomEnableRecordingRequest();
@@ -55,7 +55,7 @@ public class VideoRoomEnableRecordingRequest {
     return this;
   }
 
-  public boolean isRecord() {
+  public Boolean isRecord() {
     return record;
   }
 

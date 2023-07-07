@@ -17,7 +17,7 @@ import java.util.List;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AudioBridgeCreateRequest {
+public class AudioBridgeCreateRequest extends AudioBridgeRequest {
 
   public static final String CREATE                       = "create";
   public static final String ROOM_DEFAULT                 = "audio_";
@@ -28,30 +28,30 @@ public class AudioBridgeCreateRequest {
 
   private String       request;
   private String       room;
-  private boolean      permanent;
+  private Boolean      permanent;
   private String       description;
   private String       secret;
   private String       pin;
-  private boolean      isPrivate;
+  private Boolean      isPrivate;
   private List<String> allowed;
-  private long         samplingRate;
-  private boolean      spatialAudio;
+  private Long         samplingRate;
+  private Boolean      spatialAudio;
   @JsonProperty("audiolevel_ext")
-  private boolean      audioLevelExt;
+  private Boolean      audioLevelExt;
   @JsonProperty("audiolevel_event")
-  private boolean      audioLevelEvent;
-  private long         audioActivePackets;
-  private int          audioLevelAverage;
-  private long         defaultPreBuffering;
+  private Boolean      audioLevelEvent;
+  private Long         audioActivePackets;
+  private Integer      audioLevelAverage;
+  private Long         defaultPreBuffering;
   @JsonProperty("default_expectedloss")
-  private int          defaultExpectedLoss;
-  private long         defaultBitrate;
-  private boolean      record;
+  private Integer      defaultExpectedLoss;
+  private Long         defaultBitrate;
+  private Boolean      record;
   private String       recordFile;
   private String       recordDir;
-  private boolean      mjrs;
+  private Boolean      mjrs;
   private String       mjrsDir;
-  private boolean      allowRtpParticipants;
+  private Boolean      allowRtpParticipants;
   private List<String> groups;
 
   public static AudioBridgeCreateRequest create() {
@@ -76,7 +76,7 @@ public class AudioBridgeCreateRequest {
     return this;
   }
 
-  public boolean isPermanent() {
+  public Boolean isPermanent() {
     return permanent;
   }
 
@@ -112,7 +112,7 @@ public class AudioBridgeCreateRequest {
     return this;
   }
 
-  public boolean isPrivate() {
+  public Boolean isPrivate() {
     return isPrivate;
   }
 
@@ -130,7 +130,7 @@ public class AudioBridgeCreateRequest {
     return this;
   }
 
-  public long getSamplingRate() {
+  public Long getSamplingRate() {
     return samplingRate;
   }
 
@@ -139,7 +139,7 @@ public class AudioBridgeCreateRequest {
     return this;
   }
 
-  public boolean isSpatialAudio() {
+  public Boolean isSpatialAudio() {
     return spatialAudio;
   }
 
@@ -148,7 +148,7 @@ public class AudioBridgeCreateRequest {
     return this;
   }
 
-  public boolean getAudioLevelExt() {
+  public Boolean getAudioLevelExt() {
     return audioLevelExt;
   }
 
@@ -157,7 +157,7 @@ public class AudioBridgeCreateRequest {
     return this;
   }
 
-  public boolean getAudioLevelEvent() {
+  public Boolean getAudioLevelEvent() {
     return audioLevelEvent;
   }
 
@@ -166,7 +166,7 @@ public class AudioBridgeCreateRequest {
     return this;
   }
 
-  public long getAudioActivePackets() {
+  public Long getAudioActivePackets() {
     return audioActivePackets;
   }
 
@@ -175,7 +175,7 @@ public class AudioBridgeCreateRequest {
     return this;
   }
 
-  public int getAudioLevelAverage() {
+  public Integer getAudioLevelAverage() {
     return audioLevelAverage;
   }
 
@@ -184,7 +184,7 @@ public class AudioBridgeCreateRequest {
     return this;
   }
 
-  public long getDefaultPreBuffering() {
+  public Long getDefaultPreBuffering() {
     return defaultPreBuffering;
   }
 
@@ -193,7 +193,7 @@ public class AudioBridgeCreateRequest {
     return this;
   }
 
-  public int getDefaultExpectedLoss() {
+  public Integer getDefaultExpectedLoss() {
     return defaultExpectedLoss;
   }
 
@@ -202,7 +202,7 @@ public class AudioBridgeCreateRequest {
     return this;
   }
 
-  public long getDefaultBitrate() {
+  public Long getDefaultBitrate() {
     return defaultBitrate;
   }
 
@@ -211,7 +211,7 @@ public class AudioBridgeCreateRequest {
     return this;
   }
 
-  public boolean isRecord() {
+  public Boolean isRecord() {
     return record;
   }
 
@@ -238,7 +238,7 @@ public class AudioBridgeCreateRequest {
     return this;
   }
 
-  public boolean isMjrs() {
+  public Boolean isMjrs() {
     return mjrs;
   }
 
@@ -256,7 +256,7 @@ public class AudioBridgeCreateRequest {
     return this;
   }
 
-  public boolean isAllowRtpParticipants() {
+  public Boolean isAllowRtpParticipants() {
     return allowRtpParticipants;
   }
 

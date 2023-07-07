@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AudioBridgeEditRequest {
+public class AudioBridgeEditRequest extends AudioBridgeRequest {
 
   public static final String EDIT = "edit";
 
@@ -25,10 +25,10 @@ public class AudioBridgeEditRequest {
   private String  newDescription;
   private String  newSecret;
   private String  newPin;
-  private boolean newIsPrivate;
+  private Boolean newIsPrivate;
   private String  newRecordDir;
   private String  newMjrsDir;
-  private boolean permanent;
+  private Boolean permanent;
 
   public static AudioBridgeEditRequest create() {
     return new AudioBridgeEditRequest();
@@ -88,7 +88,7 @@ public class AudioBridgeEditRequest {
     return this;
   }
 
-  public boolean isNewIsPrivate() {
+  public Boolean isNewIsPrivate() {
     return newIsPrivate;
   }
 
@@ -115,7 +115,7 @@ public class AudioBridgeEditRequest {
     return this;
   }
 
-  public boolean isPermanent() {
+  public Boolean isPermanent() {
     return permanent;
   }
 

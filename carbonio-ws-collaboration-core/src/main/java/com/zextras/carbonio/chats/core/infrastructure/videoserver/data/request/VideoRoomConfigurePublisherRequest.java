@@ -16,18 +16,18 @@ import java.util.List;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomConfigurePublisherRequest {
+public class VideoRoomConfigurePublisherRequest extends VideoRoomRequest {
 
   public static final String CONFIGURE = "configure";
 
   private String            request;
-  private long              bitrate;
-  private boolean           keyframe;
-  private boolean           record;
+  private Long              bitrate;
+  private Boolean           keyframe;
+  private Boolean           record;
   private String            filename;
   private String            display;
-  private long              audioActivePackets;
-  private int               audioLevelAverage;
+  private Long              audioActivePackets;
+  private Integer           audioLevelAverage;
   private List<Stream>      streams;
   private List<Description> descriptions;
 
@@ -44,7 +44,7 @@ public class VideoRoomConfigurePublisherRequest {
     return this;
   }
 
-  public long getBitrate() {
+  public Long getBitrate() {
     return bitrate;
   }
 
@@ -53,7 +53,7 @@ public class VideoRoomConfigurePublisherRequest {
     return this;
   }
 
-  public boolean isKeyframe() {
+  public Boolean isKeyframe() {
     return keyframe;
   }
 
@@ -62,7 +62,7 @@ public class VideoRoomConfigurePublisherRequest {
     return this;
   }
 
-  public boolean isRecord() {
+  public Boolean isRecord() {
     return record;
   }
 
@@ -89,7 +89,7 @@ public class VideoRoomConfigurePublisherRequest {
     return this;
   }
 
-  public long getAudioActivePackets() {
+  public Long getAudioActivePackets() {
     return audioActivePackets;
   }
 
@@ -98,7 +98,7 @@ public class VideoRoomConfigurePublisherRequest {
     return this;
   }
 
-  public int getAudioLevelAverage() {
+  public Integer getAudioLevelAverage() {
     return audioLevelAverage;
   }
 
@@ -157,7 +157,7 @@ public class VideoRoomConfigurePublisherRequest {
       return this;
     }
 
-    public boolean isSend() {
+    public Boolean isSend() {
       return send;
     }
 
@@ -166,7 +166,7 @@ public class VideoRoomConfigurePublisherRequest {
       return this;
     }
 
-    public int getMinDelay() {
+    public Integer getMinDelay() {
       return minDelay;
     }
 
@@ -175,7 +175,7 @@ public class VideoRoomConfigurePublisherRequest {
       return this;
     }
 
-    public int getMaxDelay() {
+    public Integer getMaxDelay() {
       return maxDelay;
     }
 

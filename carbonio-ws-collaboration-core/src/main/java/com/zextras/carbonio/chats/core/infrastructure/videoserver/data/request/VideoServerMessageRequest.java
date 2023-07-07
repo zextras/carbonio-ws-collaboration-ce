@@ -31,15 +31,16 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.Jsep;
 public class VideoServerMessageRequest {
 
   @JsonProperty("janus")
-  private String messageRequest;
+  private String                   messageRequest;
   @JsonProperty("transaction")
-  private String transactionId;
+  private String                   transactionId;
   @JsonProperty("plugin")
-  private String pluginName;
-  private String body;
+  private String                   pluginName;
+  @JsonProperty("body")
+  private VideoServerPluginRequest videoServerPluginRequest;
   @JsonProperty("apisecret")
-  private String apiSecret;
-  private Jsep   jsep;
+  private String                   apiSecret;
+  private Jsep                     jsep;
 
   public static VideoServerMessageRequest create() {
     return new VideoServerMessageRequest();
@@ -72,12 +73,12 @@ public class VideoServerMessageRequest {
     return this;
   }
 
-  public String getBody() {
-    return body;
+  public VideoServerPluginRequest getVideoServerPluginRequest() {
+    return videoServerPluginRequest;
   }
 
-  public VideoServerMessageRequest body(String body) {
-    this.body = body;
+  public VideoServerMessageRequest videoServerPluginRequest(VideoServerPluginRequest videoServerPluginRequest) {
+    this.videoServerPluginRequest = videoServerPluginRequest;
     return this;
   }
 

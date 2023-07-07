@@ -51,6 +51,9 @@ public class VideoServerResponse {
 
   private Error error;
 
+  public VideoServerResponse() {
+  }
+
   public String getStatus() {
     return status;
   }
@@ -76,9 +79,12 @@ public class VideoServerResponse {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  private class Data {
+  private static class Data {
 
     private String id;
+
+    public Data() {
+    }
 
     public String getId() {
       return id;
@@ -86,10 +92,13 @@ public class VideoServerResponse {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  private class Error {
+  private static class Error {
 
-    private long   code;
+    private Long   code;
     private String reason;
+
+    public Error() {
+    }
 
     public long getCode() {
       return code;

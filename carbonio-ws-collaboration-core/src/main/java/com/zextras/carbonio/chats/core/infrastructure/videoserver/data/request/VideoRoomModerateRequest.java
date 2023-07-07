@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomModerateRequest {
+public class VideoRoomModerateRequest extends VideoRoomRequest {
 
   public static final String MODERATE = "moderate";
 
@@ -24,7 +24,7 @@ public class VideoRoomModerateRequest {
   private String  room;
   private String  id;
   private String  mid;
-  private boolean mute;
+  private Boolean mute;
 
   public static VideoRoomModerateRequest create() {
     return new VideoRoomModerateRequest();
@@ -75,7 +75,7 @@ public class VideoRoomModerateRequest {
     return this;
   }
 
-  public boolean isMute() {
+  public Boolean isMute() {
     return mute;
   }
 

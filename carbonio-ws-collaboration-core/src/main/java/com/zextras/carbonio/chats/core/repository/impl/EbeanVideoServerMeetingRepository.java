@@ -24,7 +24,7 @@ public class EbeanVideoServerMeetingRepository implements VideoServerMeetingRepo
   @Override
   public Optional<VideoServerMeeting> getById(String meetingId) {
     return db.find(VideoServerMeeting.class)
-      .fetch("videoServerSessionUsers")
+      .fetch("videoServerSessions")
       .where()
       .eq("meetingId", meetingId)
       .findOneOrEmpty();

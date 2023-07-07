@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomExistsRequest {
+public class VideoRoomExistsRequest extends VideoRoomRequest {
 
   public static final String EXISTS = "exists";
 

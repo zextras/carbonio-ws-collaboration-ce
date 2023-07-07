@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomKickRequest {
+public class VideoRoomKickRequest extends VideoRoomRequest {
 
   public static final String KICK = "kick";
 

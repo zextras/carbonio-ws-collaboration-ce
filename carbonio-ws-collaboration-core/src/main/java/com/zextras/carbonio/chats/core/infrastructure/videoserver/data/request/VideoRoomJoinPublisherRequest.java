@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomJoinPublisherRequest {
+public class VideoRoomJoinPublisherRequest extends VideoRoomRequest {
 
   public static final String JOIN               = "join";
   public static final String JOIN_AND_CONFIGURE = "joinandconfigure";

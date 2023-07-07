@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomUnpublishRequest {
+public class VideoRoomUnpublishRequest extends VideoRoomRequest {
 
   public static final String UNPUBLISH = "unpublish";
 

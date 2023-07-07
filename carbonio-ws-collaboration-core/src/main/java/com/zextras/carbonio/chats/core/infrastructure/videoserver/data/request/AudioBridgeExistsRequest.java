@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AudioBridgeExistsRequest {
+public class AudioBridgeExistsRequest extends AudioBridgeRequest {
 
   public static final String EXISTS = "exists";
 

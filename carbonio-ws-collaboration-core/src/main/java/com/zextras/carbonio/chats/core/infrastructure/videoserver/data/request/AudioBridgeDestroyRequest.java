@@ -15,14 +15,14 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AudioBridgeDestroyRequest {
+public class AudioBridgeDestroyRequest extends AudioBridgeRequest {
 
   public static final String DESTROY = "destroy";
 
   private String  request;
   private String  room;
   private String  secret;
-  private boolean permanent;
+  private Boolean permanent;
 
   public static AudioBridgeDestroyRequest create() {
     return new AudioBridgeDestroyRequest();
@@ -55,7 +55,7 @@ public class AudioBridgeDestroyRequest {
     return this;
   }
 
-  public boolean isPermanent() {
+  public Boolean isPermanent() {
     return permanent;
   }
 

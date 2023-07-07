@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomLeaveSubscriberRequest {
+public class VideoRoomLeaveSubscriberRequest extends VideoRoomRequest {
 
   public static final String LEAVE = "leave";
 

@@ -16,21 +16,21 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AudioBridgeConfigureRequest {
+public class AudioBridgeConfigureRequest extends AudioBridgeRequest {
 
   public static final String CONFIGURE = "configure";
 
   private String  request;
-  private boolean muted;
+  private Boolean muted;
   private String  display;
   @JsonProperty("prebuffer")
-  private long    preBuffer;
-  private long    bitrate;
-  private int     quality;
-  private int     expectedLoss;
-  private int     volume;
-  private int     spatialPosition;
-  private boolean record;
+  private Long    preBuffer;
+  private Long    bitrate;
+  private Integer quality;
+  private Integer expectedLoss;
+  private Integer volume;
+  private Integer spatialPosition;
+  private Boolean record;
   private String  filename;
   private String  group;
 
@@ -47,7 +47,7 @@ public class AudioBridgeConfigureRequest {
     return this;
   }
 
-  public boolean isMuted() {
+  public Boolean isMuted() {
     return muted;
   }
 
@@ -65,7 +65,7 @@ public class AudioBridgeConfigureRequest {
     return this;
   }
 
-  public long getPreBuffer() {
+  public Long getPreBuffer() {
     return preBuffer;
   }
 
@@ -74,7 +74,7 @@ public class AudioBridgeConfigureRequest {
     return this;
   }
 
-  public long getBitrate() {
+  public Long getBitrate() {
     return bitrate;
   }
 
@@ -83,7 +83,7 @@ public class AudioBridgeConfigureRequest {
     return this;
   }
 
-  public int getQuality() {
+  public Integer getQuality() {
     return quality;
   }
 
@@ -92,7 +92,7 @@ public class AudioBridgeConfigureRequest {
     return this;
   }
 
-  public int getExpectedLoss() {
+  public Integer getExpectedLoss() {
     return expectedLoss;
   }
 
@@ -101,7 +101,7 @@ public class AudioBridgeConfigureRequest {
     return this;
   }
 
-  public int getVolume() {
+  public Integer getVolume() {
     return volume;
   }
 
@@ -110,7 +110,7 @@ public class AudioBridgeConfigureRequest {
     return this;
   }
 
-  public int getSpatialPosition() {
+  public Integer getSpatialPosition() {
     return spatialPosition;
   }
 
@@ -119,7 +119,7 @@ public class AudioBridgeConfigureRequest {
     return this;
   }
 
-  public boolean isRecord() {
+  public Boolean isRecord() {
     return record;
   }
 

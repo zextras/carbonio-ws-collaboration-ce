@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.Stream;
 import java.util.List;
 
 /**
@@ -16,7 +17,7 @@ import java.util.List;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomJoinSubscriberRequest {
+public class VideoRoomJoinSubscriberRequest extends VideoRoomRequest {
 
   public static final String JOIN       = "join";
   public static final String SUBSCRIBER = "subscriber";
@@ -24,8 +25,8 @@ public class VideoRoomJoinSubscriberRequest {
   private String       request;
   private String       ptype;
   private String       room;
-  private boolean      useMsid;
-  private boolean      autoupdate;
+  private Boolean      useMsid;
+  private Boolean      autoupdate;
   private String       privateId;
   private List<Stream> streams;
 
@@ -60,7 +61,7 @@ public class VideoRoomJoinSubscriberRequest {
     return this;
   }
 
-  public boolean isUseMsid() {
+  public Boolean isUseMsid() {
     return useMsid;
   }
 
@@ -69,7 +70,7 @@ public class VideoRoomJoinSubscriberRequest {
     return this;
   }
 
-  public boolean isAutoupdate() {
+  public Boolean isAutoupdate() {
     return autoupdate;
   }
 
@@ -94,45 +95,5 @@ public class VideoRoomJoinSubscriberRequest {
   public VideoRoomJoinSubscriberRequest streams(List<Stream> streams) {
     this.streams = streams;
     return this;
-  }
-
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-  private class Stream {
-
-    private String feed;
-    private String mid;
-    private String crossrefid;
-
-    public Stream create() {
-      return new Stream();
-    }
-
-    public String getFeed() {
-      return feed;
-    }
-
-    public Stream feed(String feed) {
-      this.feed = feed;
-      return this;
-    }
-
-    public String getMid() {
-      return mid;
-    }
-
-    public Stream mid(String mid) {
-      this.mid = mid;
-      return this;
-    }
-
-    public String getCrossrefid() {
-      return crossrefid;
-    }
-
-    public Stream crossrefid(String crossrefid) {
-      this.crossrefid = crossrefid;
-      return this;
-    }
   }
 }

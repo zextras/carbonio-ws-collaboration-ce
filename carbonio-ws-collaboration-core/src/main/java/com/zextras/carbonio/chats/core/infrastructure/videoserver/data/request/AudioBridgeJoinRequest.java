@@ -17,7 +17,7 @@ import java.util.List;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AudioBridgeJoinRequest {
+public class AudioBridgeJoinRequest extends AudioBridgeRequest {
 
   public static final String JOIN = "join";
 
@@ -30,19 +30,19 @@ public class AudioBridgeJoinRequest {
   private String       pin;
   private String       display;
   private String       token;
-  private boolean      muted;
+  private Boolean      muted;
   private List<String> codec;
   @JsonProperty("prebuffer")
-  private long         preBuffer;
-  private long         bitrate;
-  private int          quality;
-  private int          expectedLoss;
-  private int          volume;
-  private int          spatialPosition;
+  private Long         preBuffer;
+  private Long         bitrate;
+  private Integer      quality;
+  private Integer      expectedLoss;
+  private Integer      volume;
+  private Integer      spatialPosition;
   private String       secret;
-  private int          audioLevelAverage;
-  private long         audioActivePackets;
-  private boolean      record;
+  private Integer      audioLevelAverage;
+  private Long         audioActivePackets;
+  private Boolean      record;
   private String       filename;
 
   public static AudioBridgeJoinRequest create() {
@@ -112,7 +112,7 @@ public class AudioBridgeJoinRequest {
     return this;
   }
 
-  public boolean getMuted() {
+  public Boolean getMuted() {
     return muted;
   }
 
@@ -130,7 +130,7 @@ public class AudioBridgeJoinRequest {
     return this;
   }
 
-  public long getPreBuffer() {
+  public Long getPreBuffer() {
     return preBuffer;
   }
 
@@ -139,7 +139,7 @@ public class AudioBridgeJoinRequest {
     return this;
   }
 
-  public long getBitrate() {
+  public Long getBitrate() {
     return bitrate;
   }
 
@@ -148,7 +148,7 @@ public class AudioBridgeJoinRequest {
     return this;
   }
 
-  public int getQuality() {
+  public Integer getQuality() {
     return quality;
   }
 
@@ -157,7 +157,7 @@ public class AudioBridgeJoinRequest {
     return this;
   }
 
-  public int getExpectedLoss() {
+  public Integer getExpectedLoss() {
     return expectedLoss;
   }
 
@@ -166,7 +166,7 @@ public class AudioBridgeJoinRequest {
     return this;
   }
 
-  public int getVolume() {
+  public Integer getVolume() {
     return volume;
   }
 
@@ -175,7 +175,7 @@ public class AudioBridgeJoinRequest {
     return this;
   }
 
-  public int getSpatialPosition() {
+  public Integer getSpatialPosition() {
     return spatialPosition;
   }
 
@@ -193,7 +193,7 @@ public class AudioBridgeJoinRequest {
     return this;
   }
 
-  public int getAudioLevelAverage() {
+  public Integer getAudioLevelAverage() {
     return audioLevelAverage;
   }
 
@@ -202,7 +202,7 @@ public class AudioBridgeJoinRequest {
     return this;
   }
 
-  public long getAudioActivePackets() {
+  public Long getAudioActivePackets() {
     return audioActivePackets;
   }
 
@@ -211,7 +211,7 @@ public class AudioBridgeJoinRequest {
     return this;
   }
 
-  public boolean getRecord() {
+  public Boolean getRecord() {
     return record;
   }
 

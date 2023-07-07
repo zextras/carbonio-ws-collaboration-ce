@@ -17,7 +17,7 @@ import java.util.List;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomCreateRequest {
+public class VideoRoomCreateRequest extends VideoRoomRequest {
 
   public static final String CREATE                 = "create";
   public static final String ROOM_DEFAULT           = "video_";
@@ -27,43 +27,43 @@ public class VideoRoomCreateRequest {
 
   private String       request;
   private String       room;
-  private boolean      permanent;
+  private Boolean      permanent;
   private String       description;
   private String       secret;
   private String       pin;
-  private boolean      isPrivate;
+  private Boolean      isPrivate;
   private List<String> allowed;
   @JsonProperty("require_pvtid")
-  private boolean      requirePvtId;
-  private boolean      signedTokens;
-  private int          publishers;
-  private long         bitrate;
-  private boolean      bitrateCap;
-  private int          firFreq;
+  private Boolean      requirePvtId;
+  private Boolean      signedTokens;
+  private Integer      publishers;
+  private Long         bitrate;
+  private Boolean      bitrateCap;
+  private Integer      firFreq;
   @JsonProperty("audiocodec")
   private String       audioCodec;
   @JsonProperty("videocodec")
   private String       videoCodec;
-  private int          vp9Profile;
-  private int          h264Profile;
-  private boolean      opusFec;
-  private boolean      opusDtx;
+  private String       vp9Profile;
+  private String       h264Profile;
+  private Boolean      opusFec;
+  private Boolean      opusDtx;
   @JsonProperty("audiolevel_ext")
-  private boolean      audioLevelExt;
+  private Boolean      audioLevelExt;
   @JsonProperty("audiolevel_event")
-  private boolean      audioLevelEvent;
-  private int          audioLevelAverage;
+  private Boolean      audioLevelEvent;
+  private Integer      audioLevelAverage;
   @JsonProperty("videoorient_ext")
-  private boolean      videoOrientExt;
+  private Boolean      videoOrientExt;
   @JsonProperty("playoutdelay_ext")
-  private boolean      playOutDelayExt;
-  private boolean      transportWideCcExt;
-  private boolean      record;
+  private Boolean      playOutDelayExt;
+  private Boolean      transportWideCcExt;
+  private Boolean      record;
   private String       recordDir;
-  private boolean      lockRecord;
-  private boolean      notifyJoining;
-  private boolean      requireE2ee;
-  private boolean      dummyPublisher;
+  private Boolean      lockRecord;
+  private Boolean      notifyJoining;
+  private Boolean      requireE2ee;
+  private Boolean      dummyPublisher;
   private List<String> dummyStreams;
 
   public static VideoRoomCreateRequest create() {
@@ -88,7 +88,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean isPermanent() {
+  public Boolean isPermanent() {
     return permanent;
   }
 
@@ -124,7 +124,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean isPrivate() {
+  public Boolean isPrivate() {
     return isPrivate;
   }
 
@@ -142,7 +142,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean getRequirePvtId() {
+  public Boolean getRequirePvtId() {
     return requirePvtId;
   }
 
@@ -151,7 +151,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean isSignedTokens() {
+  public Boolean isSignedTokens() {
     return signedTokens;
   }
 
@@ -160,7 +160,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public int getPublishers() {
+  public Integer getPublishers() {
     return publishers;
   }
 
@@ -169,7 +169,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public long getBitrate() {
+  public Long getBitrate() {
     return bitrate;
   }
 
@@ -178,7 +178,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean getBitrateCap() {
+  public Boolean getBitrateCap() {
     return bitrateCap;
   }
 
@@ -187,7 +187,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public int getFirFreq() {
+  public Integer getFirFreq() {
     return firFreq;
   }
 
@@ -214,25 +214,25 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public int getVp9Profile() {
+  public String getVp9Profile() {
     return vp9Profile;
   }
 
-  public VideoRoomCreateRequest vp9Profile(int vp9Profile) {
+  public VideoRoomCreateRequest vp9Profile(String vp9Profile) {
     this.vp9Profile = vp9Profile;
     return this;
   }
 
-  public int getH264Profile() {
+  public String getH264Profile() {
     return h264Profile;
   }
 
-  public VideoRoomCreateRequest h264Profile(int h264Profile) {
+  public VideoRoomCreateRequest h264Profile(String h264Profile) {
     this.h264Profile = h264Profile;
     return this;
   }
 
-  public boolean getOpusFec() {
+  public Boolean getOpusFec() {
     return opusFec;
   }
 
@@ -241,7 +241,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean isOpusDtx() {
+  public Boolean isOpusDtx() {
     return opusDtx;
   }
 
@@ -250,7 +250,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean getAudioLevelExt() {
+  public Boolean getAudioLevelExt() {
     return audioLevelExt;
   }
 
@@ -259,7 +259,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean getAudioLevelEvent() {
+  public Boolean getAudioLevelEvent() {
     return audioLevelEvent;
   }
 
@@ -268,7 +268,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public int getAudioLevelAverage() {
+  public Integer getAudioLevelAverage() {
     return audioLevelAverage;
   }
 
@@ -277,7 +277,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean getVideoOrientExt() {
+  public Boolean getVideoOrientExt() {
     return videoOrientExt;
   }
 
@@ -286,7 +286,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean getPlayOutDelayExt() {
+  public Boolean getPlayOutDelayExt() {
     return playOutDelayExt;
   }
 
@@ -295,7 +295,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean getTransportWideCcExt() {
+  public Boolean getTransportWideCcExt() {
     return transportWideCcExt;
   }
 
@@ -304,7 +304,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean getRecord() {
+  public Boolean getRecord() {
     return record;
   }
 
@@ -322,7 +322,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean getLockRecord() {
+  public Boolean getLockRecord() {
     return lockRecord;
   }
 
@@ -331,7 +331,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean getNotifyJoining() {
+  public Boolean getNotifyJoining() {
     return notifyJoining;
   }
 
@@ -340,7 +340,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean getRequireE2ee() {
+  public Boolean getRequireE2ee() {
     return requireE2ee;
   }
 
@@ -349,7 +349,7 @@ public class VideoRoomCreateRequest {
     return this;
   }
 
-  public boolean isDummyPublisher() {
+  public Boolean isDummyPublisher() {
     return dummyPublisher;
   }
 

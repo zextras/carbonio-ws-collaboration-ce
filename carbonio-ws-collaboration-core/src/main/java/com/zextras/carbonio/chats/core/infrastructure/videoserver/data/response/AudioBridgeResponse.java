@@ -35,9 +35,13 @@ public class AudioBridgeResponse {
   private String     transactionId;
   @JsonProperty("sender")
   private String     handleId;
+  @JsonProperty("plugindata")
   private PluginData pluginData;
 
   private Error error;
+
+  public AudioBridgeResponse() {
+  }
 
   public String getStatus() {
     return status;
@@ -72,10 +76,13 @@ public class AudioBridgeResponse {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  private class PluginData {
+  private static class PluginData {
 
     private String plugin;
     private Data   data;
+
+    public PluginData() {
+    }
 
     public String getPlugin() {
       return plugin;
@@ -87,13 +94,13 @@ public class AudioBridgeResponse {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  private class Data {
+  private static class Data {
 
     @JsonProperty("audiobridge")
     private String            audioBridge;
     private String            room;
     private String            permanent;
-    private boolean           exists;
+    private Boolean           exists;
     private List<String>      allowed;
     @JsonProperty("list")
     private List<Room>        rooms;
@@ -101,6 +108,9 @@ public class AudioBridgeResponse {
 
     private String errorCode;
     private String error;
+
+    public Data() {
+    }
 
     public String getAudioBridge() {
       return audioBridge;
@@ -141,14 +151,17 @@ public class AudioBridgeResponse {
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-  private class Participant {
+  private static class Participant {
 
     private String  id;
     private String  display;
-    private boolean setup;
-    private boolean muted;
-    private boolean talking;
-    private int     spatialPosition;
+    private Boolean setup;
+    private Boolean muted;
+    private Boolean talking;
+    private Integer spatialPosition;
+
+    public Participant() {
+    }
 
     public String getId() {
       return id;
@@ -177,16 +190,19 @@ public class AudioBridgeResponse {
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-  private class Room {
+  private static class Room {
 
     private String  room;
     private String  description;
-    private boolean pinRequired;
-    private long    samplingRate;
-    private boolean spatialAudio;
-    private boolean record;
-    private boolean muted;
-    private int     numParticipants;
+    private Boolean pinRequired;
+    private Long    samplingRate;
+    private Boolean spatialAudio;
+    private Boolean record;
+    private Boolean muted;
+    private Integer numParticipants;
+
+    public Room() {
+    }
 
     public String getRoom() {
       return room;
@@ -222,10 +238,13 @@ public class AudioBridgeResponse {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  private class Error {
+  private static class Error {
 
-    private long   code;
+    private Long   code;
     private String reason;
+
+    public Error() {
+    }
 
     public long getCode() {
       return code;

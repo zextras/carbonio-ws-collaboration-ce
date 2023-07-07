@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomPauseVideoInRequest {
+public class VideoRoomPauseVideoInRequest extends VideoRoomRequest {
 
   public static final String PAUSE = "pause";
 

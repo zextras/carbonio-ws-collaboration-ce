@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AudioBridgeChangeRoomRequest {
+public class AudioBridgeChangeRoomRequest extends AudioBridgeRequest {
 
   public static final String CHANGE_ROOM = "changeroom";
 
@@ -25,10 +25,10 @@ public class AudioBridgeChangeRoomRequest {
   private String  group;
   private String  display;
   private String  token;
-  private boolean muted;
-  private long    bitrate;
-  private int     quality;
-  private int     expectedLoss;
+  private Boolean muted;
+  private Long    bitrate;
+  private Integer quality;
+  private Integer expectedLoss;
 
   public static AudioBridgeChangeRoomRequest create() {
     return new AudioBridgeChangeRoomRequest();
@@ -88,7 +88,7 @@ public class AudioBridgeChangeRoomRequest {
     return this;
   }
 
-  public boolean isMuted() {
+  public Boolean isMuted() {
     return muted;
   }
 
@@ -97,7 +97,7 @@ public class AudioBridgeChangeRoomRequest {
     return this;
   }
 
-  public long getBitrate() {
+  public Long getBitrate() {
     return bitrate;
   }
 
@@ -106,7 +106,7 @@ public class AudioBridgeChangeRoomRequest {
     return this;
   }
 
-  public int getQuality() {
+  public Integer getQuality() {
     return quality;
   }
 
@@ -115,7 +115,7 @@ public class AudioBridgeChangeRoomRequest {
     return this;
   }
 
-  public int getExpectedLoss() {
+  public Integer getExpectedLoss() {
     return expectedLoss;
   }
 

@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AudioBridgeMuteRequest {
+public class AudioBridgeMuteRequest extends AudioBridgeRequest {
 
   public static final String MUTE        = "mute";
   public static final String UNMUTE      = "unmute";

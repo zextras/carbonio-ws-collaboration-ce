@@ -18,7 +18,7 @@ import java.util.List;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomUpdateSubscriptionsRequest {
+public class VideoRoomUpdateSubscriptionsRequest extends VideoRoomRequest {
 
   public static final String UPDATE = "update";
 

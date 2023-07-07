@@ -17,7 +17,7 @@ import java.util.List;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomPublishRequest {
+public class VideoRoomPublishRequest extends VideoRoomRequest {
 
   public static final String PUBLISH = "publish";
 
@@ -26,12 +26,12 @@ public class VideoRoomPublishRequest {
   private String            audioCodec;
   @JsonProperty("videocodec")
   private String            videoCodec;
-  private long              bitrate;
-  private boolean           record;
+  private Long              bitrate;
+  private Boolean           record;
   private String            fileName;
   private String            display;
-  private int               audioLevelAverage;
-  private long              audioActivePackets;
+  private Integer           audioLevelAverage;
+  private Long              audioActivePackets;
   private List<Description> descriptions;
 
   public static VideoRoomPublishRequest create() {
@@ -65,7 +65,7 @@ public class VideoRoomPublishRequest {
     return this;
   }
 
-  public long getBitrate() {
+  public Long getBitrate() {
     return bitrate;
   }
 
@@ -74,7 +74,7 @@ public class VideoRoomPublishRequest {
     return this;
   }
 
-  public boolean isRecord() {
+  public Boolean isRecord() {
     return record;
   }
 
@@ -101,7 +101,7 @@ public class VideoRoomPublishRequest {
     return this;
   }
 
-  public int getAudioLevelAverage() {
+  public Integer getAudioLevelAverage() {
     return audioLevelAverage;
   }
 
@@ -110,7 +110,7 @@ public class VideoRoomPublishRequest {
     return this;
   }
 
-  public long getAudioActivePackets() {
+  public Long getAudioActivePackets() {
     return audioActivePackets;
   }
 

@@ -32,9 +32,13 @@ public class VideoRoomResponse {
   private String     transactionId;
   @JsonProperty("sender")
   private String     handleId;
+  @JsonProperty("plugindata")
   private PluginData pluginData;
 
   private Error error;
+
+  public VideoRoomResponse() {
+  }
 
   public String getStatus() {
     return status;
@@ -69,10 +73,13 @@ public class VideoRoomResponse {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  private class PluginData {
+  private static class PluginData {
 
     private String plugin;
     private Data   data;
+
+    public PluginData() {
+    }
 
     public String getPlugin() {
       return plugin;
@@ -84,13 +91,13 @@ public class VideoRoomResponse {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  private class Data {
+  private static class Data {
 
     @JsonProperty("videoroom")
     private String            videoRoom;
     private String            room;
     private String            permanent;
-    private boolean           exists;
+    private Boolean           exists;
     private List<String>      allowed;
     @JsonProperty("list")
     private List<Room>        rooms;
@@ -98,6 +105,9 @@ public class VideoRoomResponse {
 
     private String errorCode;
     private String error;
+
+    public Data() {
+    }
 
     public String getVideoRoom() {
       return videoRoom;
@@ -137,12 +147,15 @@ public class VideoRoomResponse {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  private class Participant {
+  private static class Participant {
 
     private String  id;
     private String  display;
-    private boolean publisher;
-    private boolean talking;
+    private Boolean publisher;
+    private Boolean talking;
+
+    public Participant() {
+    }
 
     public String getId() {
       return id;
@@ -163,40 +176,43 @@ public class VideoRoomResponse {
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-  private class Room {
+  private static class Room {
 
     private String       room;
     private String       description;
-    private boolean      pinRequired;
-    private boolean      isPrivate;
-    private int          maxPublishers;
-    private long         bitrate;
-    private boolean      bitrateCap;
-    private int          firFreq;
+    private Boolean      pinRequired;
+    private Boolean      isPrivate;
+    private Integer      maxPublishers;
+    private Long         bitrate;
+    private Boolean      bitrateCap;
+    private Integer      firFreq;
     @JsonProperty("require_pvtid")
-    private boolean      requirePvtId;
-    private boolean      requireE2ee;
-    private boolean      dummyPublisher;
-    private boolean      notifyJoining;
+    private Boolean      requirePvtId;
+    private Boolean      requireE2ee;
+    private Boolean      dummyPublisher;
+    private Boolean      notifyJoining;
     private List<String> audioCodec;
     private List<String> videoCodec;
-    private boolean      opusFec;
-    private boolean      opusDtx;
-    private boolean      record;
+    private Boolean      opusFec;
+    private Boolean      opusDtx;
+    private Boolean      record;
     private String       recDir;
-    private boolean      lockRecord;
-    private int          numParticipants;
+    private Boolean      lockRecord;
+    private Integer      numParticipants;
     @JsonProperty("audiolevel_ext")
-    private boolean      audioLevelExt;
+    private Boolean      audioLevelExt;
     @JsonProperty("audiolevel_event")
-    private boolean      audioLevelEvent;
-    private long         audioActivePackets;
-    private long         audioLevelAverage;
+    private Boolean      audioLevelEvent;
+    private Long         audioActivePackets;
+    private Long         audioLevelAverage;
     @JsonProperty("videoorient_ext")
-    private boolean      videoOrientExt;
+    private Boolean      videoOrientExt;
     @JsonProperty("playoutdelay_ext")
-    private boolean      playOutDelayExt;
-    private boolean      transportWideCcExt;
+    private Boolean      playOutDelayExt;
+    private Boolean      transportWideCcExt;
+
+    public Room() {
+    }
 
     public String getRoom() {
       return room;
@@ -308,10 +324,13 @@ public class VideoRoomResponse {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  private class Error {
+  private static class Error {
 
-    private long   code;
+    private Long   code;
     private String reason;
+
+    public Error() {
+    }
 
     public long getCode() {
       return code;

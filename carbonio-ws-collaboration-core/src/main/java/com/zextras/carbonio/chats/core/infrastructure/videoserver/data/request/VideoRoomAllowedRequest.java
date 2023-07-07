@@ -16,7 +16,7 @@ import java.util.List;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomAllowedRequest {
+public class VideoRoomAllowedRequest extends VideoRoomRequest {
 
   public static final String ALLOWED = "allowed";
   public static final String ENABLE  = "enable";

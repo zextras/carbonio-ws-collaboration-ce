@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AudioBridgeListParticipantsRequest {
+public class AudioBridgeListParticipantsRequest extends AudioBridgeRequest {
 
   public static final String LIST_PARTICIPANTS = "listparticipants";
 

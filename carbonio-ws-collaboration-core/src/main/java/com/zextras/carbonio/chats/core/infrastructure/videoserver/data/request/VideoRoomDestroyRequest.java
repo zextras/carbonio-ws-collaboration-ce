@@ -15,14 +15,14 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomDestroyRequest {
+public class VideoRoomDestroyRequest extends VideoRoomRequest {
 
   public static final String DESTROY = "destroy";
 
   private String  request;
   private String  room;
   private String  secret;
-  private boolean permanent;
+  private Boolean permanent;
 
   public static VideoRoomDestroyRequest create() {
     return new VideoRoomDestroyRequest();
@@ -55,7 +55,7 @@ public class VideoRoomDestroyRequest {
     return this;
   }
 
-  public boolean isPermanent() {
+  public Boolean isPermanent() {
     return permanent;
   }
 

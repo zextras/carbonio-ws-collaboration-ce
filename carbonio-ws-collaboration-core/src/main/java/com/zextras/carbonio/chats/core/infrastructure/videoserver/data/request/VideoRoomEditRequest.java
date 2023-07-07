@@ -16,7 +16,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class VideoRoomEditRequest {
+public class VideoRoomEditRequest extends VideoRoomRequest {
 
   public static final String EDIT = "edit";
 
@@ -25,14 +25,14 @@ public class VideoRoomEditRequest {
   private String  secret;
   private String  newDescription;
   private String  newPin;
-  private boolean newIsPrivate;
+  private Boolean newIsPrivate;
   @JsonProperty("new_require_pvtid")
-  private boolean newRequirePvtId;
-  private long    newBitrate;
-  private int     newFirFreq;
-  private int     newPublishers;
+  private Boolean newRequirePvtId;
+  private Long    newBitrate;
+  private Integer newFirFreq;
+  private Integer newPublishers;
   private String  newRecDir;
-  private boolean permanent;
+  private Boolean permanent;
 
   public static VideoRoomEditRequest create() {
     return new VideoRoomEditRequest();
@@ -83,7 +83,7 @@ public class VideoRoomEditRequest {
     return this;
   }
 
-  public boolean isNewIsPrivate() {
+  public Boolean isNewIsPrivate() {
     return newIsPrivate;
   }
 
@@ -92,7 +92,7 @@ public class VideoRoomEditRequest {
     return this;
   }
 
-  public boolean isNewRequirePvtId() {
+  public Boolean isNewRequirePvtId() {
     return newRequirePvtId;
   }
 
@@ -101,7 +101,7 @@ public class VideoRoomEditRequest {
     return this;
   }
 
-  public long getNewBitrate() {
+  public Long getNewBitrate() {
     return newBitrate;
   }
 
@@ -110,7 +110,7 @@ public class VideoRoomEditRequest {
     return this;
   }
 
-  public int getNewFirFreq() {
+  public Integer getNewFirFreq() {
     return newFirFreq;
   }
 
@@ -119,7 +119,7 @@ public class VideoRoomEditRequest {
     return this;
   }
 
-  public int getNewPublishers() {
+  public Integer getNewPublishers() {
     return newPublishers;
   }
 
@@ -137,7 +137,7 @@ public class VideoRoomEditRequest {
     return this;
   }
 
-  public boolean isPermanent() {
+  public Boolean isPermanent() {
     return permanent;
   }
 
