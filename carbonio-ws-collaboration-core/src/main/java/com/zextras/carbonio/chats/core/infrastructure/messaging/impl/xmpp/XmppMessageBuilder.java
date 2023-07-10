@@ -109,28 +109,11 @@ public class XmppMessageBuilder {
       Writer stringWriter = new StringWriter();
       lsOutput.setCharacterStream(stringWriter);
       serializer.write(document, lsOutput);
-//      return escapeBodyContent(stringWriter.toString().replace("\"", "'"));
       return stringWriter.toString().replace("\"", "'");
     } catch (ParserConfigurationException e) {
       throw new InternalErrorException("Unable to initialize the XMPP message", e);
     }
   }
-
-//  private String escapeBodyContent(String message) {
-//    StringBuilder sb = new StringBuilder();
-//    String[] tokens = message.split("<body>");
-//    if (tokens.length > 0) {
-//      sb.append(tokens[0]);
-//      for (int i = 1; i < tokens.length; i++) {
-//        String body = tokens[i].substring(0, tokens[i].indexOf("</body>"));
-//        String newBody = StringEscapeUtils.escapeHtml4(StringEscapeUtils.unescapeXml(body));
-//        sb.append("<body>").append(tokens[i].replace(body, newBody));
-//      }
-//    } else {
-//      return message;
-//    }
-//    return sb.toString();
-//  }
 
   private Element createForwardedElement(Document document) {
     Element element = document.createElementNS("urn:xmpp:forward:0", "forwarded");
