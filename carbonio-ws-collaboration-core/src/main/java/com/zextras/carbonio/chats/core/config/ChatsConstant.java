@@ -6,13 +6,13 @@ package com.zextras.carbonio.chats.core.config;
 
 public class ChatsConstant {
 
-  public static final String SERVER_HOST                 = "127.78.0.4";
-  public static final int    SERVER_PORT                 = 10000;
-  public static final String LOGGER_CONFIG_PATH          = "/etc/carbonio/ws-collaboration/logback.xml";
-  public static final String MONGOOSEIM_GRAPHQL_ENDPOINT = "api/graphql";
+  public static final  String SERVER_HOST                 = "127.78.0.4";
+  public static final  int    SERVER_PORT                 = 10000;
+  public static final  String LOGGER_CONFIG_PATH          = "/etc/carbonio/ws-collaboration/logback.xml";
+  public static final  String MONGOOSEIM_GRAPHQL_ENDPOINT = "api/graphql";
+  public static final String IS_UNICODE_FORMAT_REGEX     = "[\\\\[uU][a-fA-F0-9]{4}]+";
 
   public static class CONFIGURATIONS_DEFAULT_VALUES {
-
     public static final boolean CAN_SEE_MESSAGE_READS                = true;
     public static final boolean CAN_SEE_USERS_PRESENCE               = true;
     public static final int     MAX_USER_IMAGE_SIZE_IN_KB            = 512;

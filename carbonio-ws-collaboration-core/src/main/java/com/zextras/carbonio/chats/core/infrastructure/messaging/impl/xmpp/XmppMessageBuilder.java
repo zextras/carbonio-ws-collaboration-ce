@@ -7,20 +7,15 @@ package com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
-import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import io.ebeaninternal.server.util.Str;
+import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
-import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.lang3.StringUtils;
@@ -34,14 +29,14 @@ import org.w3c.dom.ls.LSSerializer;
 
 public class XmppMessageBuilder {
 
-  private final String                            to;
-  private final String                            from;
-  private final List<SimpleEntry<String, String>> configurations;
-  private       String                            messageId;
-  private       String                            body;
-  private       String                            replyId;
-  private       String                            messageToForward;
-  private       OffsetDateTime                    messageToForwardSentAt;
+  private final String                  to;
+  private final String                  from;
+  private final List<XmppConfiguration> configurations;
+  private       String                  messageId;
+  private       String                  body;
+  private       String                  replyId;
+  private       String                  messageToForward;
+  private       OffsetDateTime          messageToForwardSentAt;
 
   public XmppMessageBuilder(String to, String from) {
     this.to = to;
@@ -79,12 +74,17 @@ public class XmppMessageBuilder {
   }
 
   public XmppMessageBuilder type(MessageType type) {
-    configurations.add(0, new SimpleEntry<>("operation", type.getName()));
+    configurations.add(0, XmppConfiguration.create("operation", type.getName(), false));
     return this;
   }
 
-  public XmppMessageBuilder addConfig(String name, String value) {
-    configurations.add(new SimpleEntry<>(name, value));
+  public XmppMessageBuilder addConfig(String key, String value, boolean enabled) {
+    configurations.add(XmppConfiguration.create(key, value, enabled));
+    return this;
+  }
+
+  public XmppMessageBuilder addConfig(String key, String value) {
+    configurations.add(XmppConfiguration.create(key, value, false));
     return this;
   }
 
@@ -96,7 +96,9 @@ public class XmppMessageBuilder {
       if (!configurations.isEmpty()) {
         message.appendChild(createConfigurationsElement(document));
       }
-      message.appendChild(createTextElement(document, "body", Optional.ofNullable(body).orElse("")));
+      message.appendChild(
+        createTextElement(document, "body",
+          Optional.ofNullable(StringFormatUtils.encodeToUtf8(body)).orElse(""), !StringUtils.isEmpty(body)));
       Optional.ofNullable(replyId).ifPresent(id -> message.appendChild(createReplyElement(document)));
       Optional.ofNullable(messageToForward).ifPresent(m -> message.appendChild(createForwardedElement(document)));
       DOMImplementationLS domImplLS = (DOMImplementationLS) document.getImplementation();
@@ -107,27 +109,28 @@ public class XmppMessageBuilder {
       Writer stringWriter = new StringWriter();
       lsOutput.setCharacterStream(stringWriter);
       serializer.write(document, lsOutput);
-      return escapeBodyContent(stringWriter.toString().replace("\"", "'"));
+//      return escapeBodyContent(stringWriter.toString().replace("\"", "'"));
+      return stringWriter.toString().replace("\"", "'");
     } catch (ParserConfigurationException e) {
       throw new InternalErrorException("Unable to initialize the XMPP message", e);
     }
   }
 
-  private String escapeBodyContent(String message) {
-    StringBuilder sb = new StringBuilder();
-    String[] tokens = message.split("<body>");
-    if (tokens.length > 0) {
-      sb.append(tokens[0]);
-      for (int i = 1; i < tokens.length; i++) {
-        String body = tokens[i].substring(0, tokens[i].indexOf("</body>"));
-        String newBody = StringEscapeUtils.escapeHtml4(StringEscapeUtils.unescapeXml(body));
-        sb.append("<body>").append(tokens[i].replace(body, newBody));
-      }
-    } else {
-      return message;
-    }
-    return sb.toString();
-  }
+//  private String escapeBodyContent(String message) {
+//    StringBuilder sb = new StringBuilder();
+//    String[] tokens = message.split("<body>");
+//    if (tokens.length > 0) {
+//      sb.append(tokens[0]);
+//      for (int i = 1; i < tokens.length; i++) {
+//        String body = tokens[i].substring(0, tokens[i].indexOf("</body>"));
+//        String newBody = StringEscapeUtils.escapeHtml4(StringEscapeUtils.unescapeXml(body));
+//        sb.append("<body>").append(tokens[i].replace(body, newBody));
+//      }
+//    } else {
+//      return message;
+//    }
+//    return sb.toString();
+//  }
 
   private Element createForwardedElement(Document document) {
     Element element = document.createElementNS("urn:xmpp:forward:0", "forwarded");
@@ -165,20 +168,26 @@ public class XmppMessageBuilder {
       textBody = forwardedTag
         .flatMap(f -> Optional.ofNullable((Element) f.getElementsByTagName("message").item(0))
           .flatMap(m -> Optional.ofNullable(m.getElementsByTagName("body").item(0))
-            .map(Node::getTextContent))).orElse("");
+            .map(b -> StringEscapeUtils.unescapeXml(b.getTextContent())))).orElse("");
     } else {
       countAtt = 1;
-      textBody = Optional.ofNullable(messageTag.getElementsByTagName("body").item(0))
-        .map(Node::getTextContent).orElse("");
+      textBody = Optional.ofNullable((Element) messageTag.getElementsByTagName("body").item(0))
+        .map(b -> {
+          String text = StringEscapeUtils.unescapeXml(b.getTextContent());
+          return b.hasAttribute("encoded") ? text : StringFormatUtils.encodeToUtf8(text);
+        }).orElse("");
     }
     element.setAttribute("count", String.valueOf(countAtt));
 
-    textBody = isEncodedForXmpp(textBody) ? textBody : encodeStringForXmpp(textBody);
     Optional<Element> bodyTag = Optional.ofNullable((Element) messageTag.getElementsByTagName("body").item(0));
     if (bodyTag.isPresent()) {
+      if (!StringUtils.isEmpty(textBody) && !bodyTag.get().hasAttribute("encoded")) {
+        bodyTag.get().setAttribute("encoded", "UTF-8");
+      }
       bodyTag.get().setTextContent(textBody);
     } else {
-      messageTag.appendChild(createTextElement(documentTag, "body", textBody));
+      messageTag.appendChild(
+        createTextElement(documentTag, "body", textBody, true));
     }
 
     Optional.ofNullable(messageTag.getElementsByTagName("markable").item(0)).ifPresent(messageTag::removeChild);
@@ -212,57 +221,46 @@ public class XmppMessageBuilder {
   private Element createConfigurationsElement(Document document) {
     Element element = document.createElementNS("urn:xmpp:muclight:0#configuration", "x");
     configurations.forEach(
-      config -> element.appendChild(createTextElement(document, config.getKey(), config.getValue())));
+      config -> element.appendChild(
+        createTextElement(document, config.getKey(), config.getValue(), config.isEnabled())));
     return element;
   }
 
-  private Element createTextElement(Document document, String name, String value) {
+  private Element createTextElement(Document document, String name, String value, boolean isEncoded) {
     Element element = document.createElement(name);
+    if (isEncoded && !StringUtils.isEmpty(value)) {
+      element.setAttribute("encoded", "UTF-8");
+    }
     element.appendChild(document.createTextNode(value));
     return element;
   }
 
-  public static String encodeStringForXmpp(String toEncode) {
-    if (toEncode == null || toEncode.length() == 0) {
-      return toEncode;
-    }
-    StringBuilder result = new StringBuilder();
-    for (int i = 0; i < toEncode.length(); i++) {
-      String c = "";
-      try {
-        c = encodeCharForXmpp(toEncode.substring(i, i + 1));
-      } catch (UnsupportedEncodingException ignored) {
-      }
-      result.append(c);
-    }
-    return result.toString();
-  }
+  private static class XmppConfiguration {
 
-  private static String encodeCharForXmpp(String toEncode) throws UnsupportedEncodingException {
-    if (toEncode == null || toEncode.length() != 1) {
-      throw new UnsupportedEncodingException();
-    }
-    byte[] bytes = toEncode.getBytes(StandardCharsets.UTF_8);
-    ArrayList<String> binaryList = new ArrayList<>();
-    for (byte b : bytes) {
-      binaryList.add(StringUtils.leftPad(Integer.toBinaryString(b & 0xFF), 8, "0"));
-    }
-    String filter = StringUtils.leftPad("0", binaryList.size() > 1 ? binaryList.size() + 1 : 0, "1");
+    private final String  key;
+    private final String  value;
+    private final boolean enabled;
 
-    StringBuilder binary = new StringBuilder();
-    for (String b : binaryList) {
-      if (!b.startsWith(filter)) {
-        ChatsLogger.warn(XmppMessageBuilder.class, String.format("Connot encode character '%s'", toEncode));
-        throw new UnsupportedEncodingException(String.format("Connot encode character '%s'", toEncode));
-      }
-      binary.append(b.substring(filter.length()));
-      filter = "10";
+    public XmppConfiguration(String key, String value, boolean enabled) {
+      this.key = key;
+      this.value = value;
+      this.enabled = enabled;
     }
-    return String.format("\\\\u%4s", Integer.toHexString(Integer.parseInt(binary.toString(), 2)))
-      .replace(' ', '0');
-  }
 
-  public static boolean isEncodedForXmpp(String text) {
-    return Pattern.matches("[\\\\[uU][a-fA-F0-9]{4}]+", text);
+    public static XmppConfiguration create(String key, String value, boolean enabled) {
+      return new XmppConfiguration(key, value, enabled);
+    }
+
+    public String getKey() {
+      return key;
+    }
+
+    public String getValue() {
+      return value;
+    }
+
+    public boolean isEnabled() {
+      return enabled;
+    }
   }
 }

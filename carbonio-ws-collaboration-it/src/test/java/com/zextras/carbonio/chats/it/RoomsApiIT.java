@@ -55,7 +55,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -308,9 +307,7 @@ public class RoomsApiIT {
         clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
-        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(),
-          "\\u0074\\u0065\\u0073\\u0074\\u0052\\u006f\\u006f\\u006d".replace("\\", "\\\\\\\\"),
-          "\\u0054\\u0065\\u0073\\u0074\\u0020\\u0072\\u006f\\u006f\\u006d".replace("\\", "\\\\\\\\"), true);
+        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
         mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString(), true);
         mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user3Id.toString(), true);
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -343,10 +340,7 @@ public class RoomsApiIT {
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
 
-        mongooseImMockServer.verify(
-          mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString(),
-            "\\u0074\\u0065\\u0073\\u0074\\u0052\\u006f\\u006f\\u006d".replace("\\", "\\\\\\\\"),
-            "\\u0054\\u0065\\u0073\\u0074\\u0020\\u0072\\u006f\\u006f\\u006d".replace("\\", "\\\\\\\\")),
+        mongooseImMockServer.verify(mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString()),
           VerificationTimes.exactly(1));
         mongooseImMockServer.verify(
           mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user2Id.toString()),
@@ -395,7 +389,7 @@ public class RoomsApiIT {
         clock.fixTimeAt(executionInstant);
         MockHttpResponse response;
         UUID roomId = UUID.fromString("c9f83f1c-9b96-4731-9404-79e45a5d6d3c");
-        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), null, null, true);
+        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
         mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString(), true);
         mongooseImMockServer.mockAddUserToContacts(user2Id.toString(), user1Id.toString(), true);
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -426,7 +420,7 @@ public class RoomsApiIT {
         assertNull(room.getPictureUpdatedAt());
 
         mongooseImMockServer.verify(
-          mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString(), null, null),
+          mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString()),
           VerificationTimes.exactly(1));
         mongooseImMockServer.verify(
           mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user2Id.toString()),
@@ -684,16 +678,26 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom", "Test room",
         List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
         OffsetDateTime.parse("2022-01-01T00:00:00Z"));
-
-      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomNameChanged",
-        List.of(new SimpleEntry<>("value",
-          "\\u0075\\u0070\\u0064\\u0061\\u0074\\u0065\\u0064\\u0052\\u006f\\u006f\\u006d".replace("\\", "\\\\\\\\"))),
-        null, null, null, true);
-      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomDescriptionChanged",
-        List.of(new SimpleEntry<>("value",
-          "\\u0055\\u0070\\u0064\\u0061\\u0074\\u0065\\u0064\\u0020\\u0072\\u006f\\u006f\\u006d".replace("\\",
-            "\\\\\\\\"))),
-        null, null, null, true);
+      String hopedXmppMessage1 =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>roomNameChanged</operation>"
+          + "<value encoded='UTF-8'>\\\\u0075\\\\u0070\\\\u0064\\\\u0061\\\\u0074\\\\u0065\\\\u0064\\\\u0052\\\\u006f\\\\u006f\\\\u006d</value>"
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      String hopedXmppMessage2 =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>roomDescriptionChanged</operation>"
+          + "<value encoded='UTF-8'>\\\\u0055\\\\u0070\\\\u0064\\\\u0061\\\\u0074\\\\u0065\\\\u0064\\\\u0020\\\\u0072\\\\u006f\\\\u006f\\\\u006d</value>"
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      mongooseImMockServer.mockSendStanza(hopedXmppMessage1, true);
+      mongooseImMockServer.mockSendStanza(hopedXmppMessage2, true);
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response = dispatcher.put(url(roomId),
         getUpdateRoomRequestBody("updatedRoom", "Updated room"), user1Token);
@@ -710,16 +714,9 @@ public class RoomsApiIT {
       // TODO: 23/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       mongooseImMockServer.verify(
-        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomNameChanged",
-          List.of(new SimpleEntry<>("value",
-            "\\u0075\\u0070\\u0064\\u0061\\u0074\\u0065\\u0064\\u0052\\u006f\\u006f\\u006d".replace("\\", "\\\\\\\\"))),
-          null, null, null), VerificationTimes.exactly(1));
+        mongooseImMockServer.getSendStanzaRequest(hopedXmppMessage1), VerificationTimes.exactly(1));
       mongooseImMockServer.verify(
-        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomDescriptionChanged",
-          List.of(new SimpleEntry<>("value",
-            "\\u0055\\u0070\\u0064\\u0061\\u0074\\u0065\\u0064\\u0020\\u0072\\u006f\\u006f\\u006d"
-              .replace("\\", "\\\\\\\\"))),
-          null, null, null), VerificationTimes.exactly(1));
+        mongooseImMockServer.getSendStanzaRequest(hopedXmppMessage2), VerificationTimes.exactly(1));
     }
 
     @Test
@@ -733,10 +730,17 @@ public class RoomsApiIT {
         List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
         OffsetDateTime.parse("2022-01-01T00:00:00Z"));
 
-      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomNameChanged",
-        List.of(new SimpleEntry<>("value",
-          "\\u0075\\u0070\\u0064\\u0061\\u0074\\u0065\\u0064\\u0052\\u006f\\u006f\\u006d".replace("\\", "\\\\\\\\"))),
-        null, null, null, true);
+      String hopedXmppMessage =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>roomNameChanged</operation>"
+          + "<value encoded='UTF-8'>\\\\u0075\\\\u0070\\\\u0064\\\\u0061\\\\u0074\\\\u0065\\\\u0064\\\\u0052\\\\u006f\\\\u006f\\\\u006d</value>"
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+
+      mongooseImMockServer.mockSendStanza(hopedXmppMessage, true);
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response = dispatcher.put(url(roomId),
         getUpdateRoomRequestBody("updatedRoom", null), user1Token);
@@ -753,10 +757,7 @@ public class RoomsApiIT {
       // TODO: 23/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       mongooseImMockServer.verify(
-        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomNameChanged",
-          List.of(new SimpleEntry<>("value",
-            "\\u0075\\u0070\\u0064\\u0061\\u0074\\u0065\\u0064\\u0052\\u006f\\u006f\\u006d".replace("\\", "\\\\\\\\"))),
-          null, null, null), VerificationTimes.exactly(1));
+        mongooseImMockServer.getSendStanzaRequest(hopedXmppMessage), VerificationTimes.exactly(1));
     }
 
     @Test
@@ -769,11 +770,16 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "testRoom", "Test room",
         List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
         OffsetDateTime.parse("2022-01-01T00:00:00Z"));
-
-      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomDescriptionChanged",
-        List.of(new SimpleEntry<>("value",
-          "\\u0055\\u0070\\u0064\\u0061\\u0074\\u0065\\u0064\\u0020\\u0072\\u006f\\u006f\\u006d".replace("\\", "\\\\\\\\"))),
-        null, null, null, true);
+      String hopedXmppMessage =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>roomDescriptionChanged</operation>"
+          + "<value encoded='UTF-8'>\\\\u0055\\\\u0070\\\\u0064\\\\u0061\\\\u0074\\\\u0065\\\\u0064\\\\u0020\\\\u0072\\\\u006f\\\\u006f\\\\u006d</value>"
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      mongooseImMockServer.mockSendStanza(hopedXmppMessage, true);
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response = dispatcher.put(url(roomId),
         getUpdateRoomRequestBody(null, "Updated room"), user1Token);
@@ -790,10 +796,7 @@ public class RoomsApiIT {
       // TODO: 23/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       mongooseImMockServer.verify(
-        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomDescriptionChanged",
-          List.of(new SimpleEntry<>("value",
-            "\\u0055\\u0070\\u0064\\u0061\\u0074\\u0065\\u0064\\u0020\\u0072\\u006f\\u006f\\u006d".replace("\\", "\\\\\\\\"))),
-          null, null, null), VerificationTimes.exactly(1));
+        mongooseImMockServer.getSendStanzaRequest(hopedXmppMessage), VerificationTimes.exactly(1));
     }
 
     @Test
@@ -1219,28 +1222,28 @@ public class RoomsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
-      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomPictureUpdated",
-        List.of(
-          new SimpleEntry<>("picture-id", roomId.toString()),
-          new SimpleEntry<>("picture-name",
-            "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067".replace("\\", "\\\\\\\\"))),
-        null, null, null, true);
+      String hoped =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>roomPictureUpdated</operation>"
+          + String.format("<picture-id>%s</picture-id>", roomId)
+          + "<picture-name encoded='UTF-8'>\\\\u0073\\\\u006e\\\\u006f\\\\u006f\\\\u0070\\\\u0079\\\\u002e\\\\u006a\\\\u0070\\\\u0067</picture-name>"
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      mongooseImMockServer.mockSendStanza(hoped, true);
       Instant now = Instant.now();
       clock.fixTimeAt(now);
       MockHttpResponse response = dispatcher.put(url(roomId), fileMock.getId().getBytes(),
         Map.of(
           "Content-Type",
           "application/octet-stream",
-          "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+          "fileName", "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067",
           "mimeType", fileMock.getMimeType()
         ), user1Token);
       mongooseImMockServer.verify(
-        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomPictureUpdated",
-          List.of(
-            new SimpleEntry<>("picture-id", roomId.toString()),
-            new SimpleEntry<>("picture-name",
-              "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067".replace("\\", "\\\\\\\\"))),
-          null, null, null));
+        mongooseImMockServer.getSendStanzaRequest(hoped));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       // TODO: 01/03/22 verify event dispatcher iterations
       storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
@@ -1292,7 +1295,7 @@ public class RoomsApiIT {
         Map.of(
           "Content-Type",
           "application/octet-stream",
-          "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+          "fileName", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
           "mimeType", fileMock.getMimeType()
         ), user3Token);
       assertEquals(403, response.getStatus());
@@ -1311,7 +1314,7 @@ public class RoomsApiIT {
         Map.of(
           "Content-Type",
           "application/octet-stream",
-          "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+          "fileName", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
           "mimeType", fileMock.getMimeType()
         ), user3Token);
       assertEquals(403, response.getStatus());
@@ -2376,13 +2379,20 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
 
-      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "attachmentAdded",
-        List.of(
-          new SimpleEntry<>("attachment-id", fileMock.getId()),
-          new SimpleEntry<>("filename", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067"
-            .replace("\\", "\\\\\\\\")),
-          new SimpleEntry<>("mime-type", fileMock.getMimeType()),
-          new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))), "", null, null, true);
+      String hoped =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>attachmentAdded</operation>"
+          + "<attachment-id>" + fileMock.getId() + "</attachment-id>"
+          + "<filename encoded='UTF-8'>\\\\u0070\\\\u0065\\\\u0061\\\\u006e\\\\u0075\\\\u0074\\\\u0073\\\\u002e\\\\u006a\\\\u0070\\\\u0067</filename>"
+          + "<mime-type>image/jpg</mime-type>"
+          + "<size>33786</size>"
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      mongooseImMockServer.mockSendStanza(hoped, true);
+
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
@@ -2391,7 +2401,7 @@ public class RoomsApiIT {
         response = dispatcher.post(url(roomId), fileMock.getFileBytes(),
           Map.of(
             "Content-Type", "application/octet-stream",
-            "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            "fileName", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
             "mimeType", fileMock.getMimeType(),
             "messageId", ""
           ),
@@ -2400,15 +2410,7 @@ public class RoomsApiIT {
 
       assertEquals(201, response.getStatus());
       mongooseImMockServer.verify(
-        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "attachmentAdded",
-          List.of(
-            new SimpleEntry<>("attachment-id", fileMock.getId()),
-            new SimpleEntry<>("filename",
-              "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067"
-                .replace("\\", "\\\\\\\\")),
-            new SimpleEntry<>("mime-type", fileMock.getMimeType()),
-            new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))), "", null, null),
-        VerificationTimes.exactly(1));
+        mongooseImMockServer.getSendStanzaRequest(hoped), VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
       IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
@@ -2427,15 +2429,20 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
 
-      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "attachmentAdded",
-        List.of(
-          new SimpleEntry<>("attachment-id", fileMock.getId()),
-          new SimpleEntry<>("filename",
-            "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067".replace("\\", "\\\\\\\\")),
-          new SimpleEntry<>("mime-type", fileMock.getMimeType()),
-          new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))),
-        "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073".replace("\\", "\\\\\\\\"),
-        "the-xmpp-message-id", null, true);
+      String hoped = String.format(
+        "<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id' to='%s@muclight.carbonio' type='groupchat'>",
+        user1Id, roomId)
+        + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+        + "<operation>attachmentAdded</operation>"
+        + "<attachment-id>" + fileMock.getId() + "</attachment-id>"
+        + "<filename encoded='UTF-8'>\\\\u0070\\\\u0065\\\\u0061\\\\u006e\\\\u0075\\\\u0074\\\\u0073\\\\u002e\\\\u006a\\\\u0070\\\\u0067</filename>"
+        + "<mime-type>image/jpg</mime-type>"
+        + "<size>33786</size>"
+        + "</x>"
+        + "<body encoded='UTF-8'>\\\\u0070\\\\u0065\\\\u0061\\\\u006e\\\\u0075\\\\u0074\\\\u0073</body>"
+        + "</message>";
+
+      mongooseImMockServer.mockSendStanza(hoped, true);
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
@@ -2444,9 +2451,9 @@ public class RoomsApiIT {
         response = dispatcher.post(url(roomId), fileMock.getFileBytes(),
           Map.of(
             "Content-Type", "application/octet-stream",
-            "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            "fileName", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
             "mimeType", fileMock.getMimeType(),
-            "description", Base64.getEncoder().encodeToString("peanuts".getBytes()),
+            "description", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073",
             "messageId", "the-xmpp-message-id",
             "replyId", ""),
           user1Token);
@@ -2454,16 +2461,7 @@ public class RoomsApiIT {
 
       assertEquals(201, response.getStatus());
       mongooseImMockServer.verify(
-        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "attachmentAdded",
-          List.of(
-            new SimpleEntry<>("attachment-id", fileMock.getId()),
-            new SimpleEntry<>("filename",
-              "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067".replace("\\",
-                "\\\\\\\\")),
-            new SimpleEntry<>("mime-type", fileMock.getMimeType()),
-            new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))),
-          "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073".replace("\\", "\\\\\\\\"),
-          "the-xmpp-message-id", null),
+        mongooseImMockServer.getSendStanzaRequest(hoped),
         VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
@@ -2483,16 +2481,20 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
 
-      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "attachmentAdded",
-        List.of(
-          new SimpleEntry<>("attachment-id", fileMock.getId()),
-          new SimpleEntry<>("filename",
-            "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067".replace("\\", "\\\\\\\\")),
-          new SimpleEntry<>("mime-type", fileMock.getMimeType()),
-          new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))),
-        "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073".replace("\\", "\\\\\\\\"),
-        "the-xmpp-message-id",
-        "message-id-to-reply", true);
+      String hoped = String.format(
+        "<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id' to='%s@muclight.carbonio' type='groupchat'>",
+        user1Id, roomId)
+        + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+        + "<operation>attachmentAdded</operation>"
+        + String.format("<attachment-id>%s</attachment-id>", fileMock.getId())
+        + "<filename encoded='UTF-8'>\\\\u0070\\\\u0065\\\\u0061\\\\u006e\\\\u0075\\\\u0074\\\\u0073\\\\u002e\\\\u006a\\\\u0070\\\\u0067</filename>"
+        + "<mime-type>image/jpg</mime-type>"
+        + "<size>33786</size>"
+        + "</x>"
+        + "<body encoded='UTF-8'>\\\\u0070\\\\u0065\\\\u0061\\\\u006e\\\\u0075\\\\u0074\\\\u0073</body>"
+        + String.format("<reply xmlns='urn:xmpp:reply:0' id='message-id-to-reply' to='%s@muclight.carbonio'/>", roomId)
+        + "</message>";
+      mongooseImMockServer.mockSendStanza(hoped, true);
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
@@ -2501,28 +2503,16 @@ public class RoomsApiIT {
         response = dispatcher.post(url(roomId), fileMock.getFileBytes(),
           Map.of(
             "Content-Type", "application/octet-stream",
-            "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            "fileName", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
             "mimeType", fileMock.getMimeType(),
-            "description", Base64.getEncoder().encodeToString("peanuts".getBytes()),
+            "description", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073",
             "messageId", "the-xmpp-message-id",
             "replyId", "message-id-to-reply"),
           user1Token);
       }
 
       assertEquals(201, response.getStatus());
-      mongooseImMockServer.verify(
-        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "attachmentAdded",
-          List.of(
-            new SimpleEntry<>("attachment-id", fileMock.getId()),
-            new SimpleEntry<>("filename",
-              "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067"
-                .replace("\\", "\\\\\\\\")),
-            new SimpleEntry<>("mime-type", fileMock.getMimeType()),
-            new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))),
-          "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073".replace("\\", "\\\\\\\\"),
-          "the-xmpp-message-id",
-          "message-id-to-reply"),
-        VerificationTimes.exactly(1));
+      mongooseImMockServer.verify(mongooseImMockServer.getSendStanzaRequest(hoped), VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
       IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
@@ -2542,7 +2532,7 @@ public class RoomsApiIT {
         Map.of(
           "Content-Type",
           "application/octet-stream",
-          "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+          "fileName", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
           "mimeType", fileMock.getMimeType()
         ),
         null);
@@ -2563,7 +2553,7 @@ public class RoomsApiIT {
         Map.of(
           "Content-Type",
           "application/octet-stream",
-          "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+          "fileName", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
           "mimeType", fileMock.getMimeType()
         ),
         user3Token);
@@ -2836,8 +2826,7 @@ public class RoomsApiIT {
         + "<forwarded xmlns='urn:xmpp:forward:0' count='1'>"
         + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
         + "<message from='sender-id' to='recipient-id' type='groupchat'>"
-        + "<body>\\u0074\\u006f\\u0020\\u0066\\u006f\\u0072\\u0077\\u0061\\u0072\\u0064</body>".replace("\\",
-        "\\\\\\\\")
+        + "<body encoded='UTF-8'>\\\\u0074\\\\u006f\\\\u0020\\\\u0066\\\\u006f\\\\u0072\\\\u0077\\\\u0061\\\\u0072\\\\u0064</body>"
         + "</message>"
         + "</forwarded>"
         + "</message>";
@@ -2897,7 +2886,7 @@ public class RoomsApiIT {
         + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
         + "<operation>attachmentAdded</operation>"
         + String.format("<attachment-id>%s</attachment-id>", attach2Id)
-        + "<filename>\\u0066\\u0069\\u006c\\u0065\\u006e\\u0061\\u006d\\u0065</filename>".replace("\\", "\\\\\\\\")
+        + "<filename encoded='UTF-8'>\\\\u0066\\\\u0069\\\\u006c\\\\u0065\\\\u006e\\\\u0061\\\\u006d\\\\u0065</filename>"
         + "<mime-type>mimetype</mime-type>"
         + "<size>1024</size>"
         + "</x>"
@@ -2979,8 +2968,7 @@ public class RoomsApiIT {
         + "<forwarded xmlns='urn:xmpp:forward:0' count='1'>"
         + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
         + "<message from='sender-id' to='recipient-id' type='groupchat'>"
-        + "<body>\\u0061\\u000a\\u0065\\u000a\\u0069\\u000a\\u006f\\u000a\\u0075\\u000a\\u0079</body>".replace("\\",
-        "\\\\\\\\")
+        + "<body encoded='UTF-8'>\\\\u0061\\\\u000a\\\\u0065\\\\u000a\\\\u0069\\\\u000a\\\\u006f\\\\u000a\\\\u0075\\\\u000a\\\\u0079</body>"
         + "</message>"
         + "</forwarded>"
         + "</message>";
@@ -3022,7 +3010,7 @@ public class RoomsApiIT {
         + "<forwarded xmlns='urn:xmpp:forward:0' count='1'>"
         + "<delay xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/>"
         + "<message from='sender-id' to='recipient-id' type='groupchat'>"
-        + "<body>\\u00e0\\u00e8\\u00e9\\u00ec\\u00f2\\u00f9\\u0026</body>".replace("\\", "\\\\\\\\")
+        + "<body encoded='UTF-8'>\\\\u00e0\\\\u00e8\\\\u00e9\\\\u00ec\\\\u00f2\\\\u00f9\\\\u0026</body>"
         + "</message>"
         + "</forwarded>"
         + "</message>";

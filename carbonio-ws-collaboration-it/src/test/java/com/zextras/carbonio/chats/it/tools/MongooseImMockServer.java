@@ -61,21 +61,18 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
     when(request).respond(getResponse(success));
   }
 
-  public HttpRequest getCreateRoomRequest(String roomId, String senderId, @Nullable String name,
-    @Nullable String description) {
+  public HttpRequest getCreateRoomRequest(String roomId, String senderId) {
     StringBuilder body = new StringBuilder(
       "{\"query\":\"mutation muc_light { muc_light { createRoom (mucDomain: \\\"muclight.carbonio\\\", "
         + String.format("id: \\\"%s\\\", ", roomId) + String.format("owner: \\\"%s@carbonio\\\"", senderId));
-    Optional.ofNullable(name).ifPresent(n -> body.append(String.format(", name: \\\"%s\\\"", n)));
-    Optional.ofNullable(description).ifPresent(d -> body.append(String.format(", subject: \\\"%s\\\"", d)));
     body.append(") { jid } } }\",\"operationName\":\"muc_light\",\"variables\":{}}");
 
     return getRequest("POST", body.toString());
   }
 
-  public void mockCreateRoom(String roomId, String senderId, @Nullable String name, @Nullable String description,
+  public void mockCreateRoom(String roomId, String senderId,
     boolean success) {
-    HttpRequest request = getCreateRoomRequest(roomId, senderId, name, description);
+    HttpRequest request = getCreateRoomRequest(roomId, senderId);
     clear(request);
     when(request).respond(getResponse(success));
   }

@@ -11,9 +11,9 @@ import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.UserService;
+import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import java.io.File;
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -84,7 +84,7 @@ public class UsersApiServiceImpl implements UsersApiService {
       userId,
       body,
       Optional.of(headerMimeType).orElseThrow(() -> new BadRequestException("Mime type not found")),
-      Optional.of(new String(Base64.getDecoder().decode(headerFileName)))
+      Optional.of(headerFileName).map(StringFormatUtils::decodeFromUtf8)
         .orElseThrow(() -> new BadRequestException("File name not found")),
       currentUser
     );
