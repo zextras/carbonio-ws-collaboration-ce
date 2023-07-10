@@ -40,10 +40,10 @@ public class ResteasyRequestDispatcher {
     return sendRequest(request);
   }
 
-  private MockHttpRequest preparePost(String path, Map<String, String> requestHeaders, @Nullable String userToken)
+  private MockHttpRequest preparePost(String path, @Nullable Map<String, String> requestHeaders, @Nullable String userToken)
     throws URISyntaxException {
     MockHttpRequest request = MockHttpRequest.post(path);
-    requestHeaders.forEach(request::header);
+    Optional.ofNullable(requestHeaders).ifPresent(r -> r.forEach(request::header));
     Optional.ofNullable(userToken).ifPresent(token -> {
       request.cookie("ZM_AUTH_TOKEN", token);
       request.header("Cookie", token);
@@ -51,6 +51,10 @@ public class ResteasyRequestDispatcher {
     request.accept(MediaType.APPLICATION_JSON);
     request.contentType(MediaType.APPLICATION_JSON_TYPE);
     return request;
+  }
+
+  public MockHttpResponse post(String path, String userToken) throws URISyntaxException {
+    return post(path, (String)null, Map.of(), userToken);
   }
 
   public MockHttpResponse post(String path, String requestBody, @Nullable String userToken) throws URISyntaxException {

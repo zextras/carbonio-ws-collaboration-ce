@@ -188,8 +188,79 @@ public class MeetingApiIT {
       assertEquals(MeetingTypeDto.SCHEDULED, meeting.getMeetingType());
       assertEquals("test", meeting.getName());
     }
+
+    @Test
+    @DisplayName("Create a meeting Bad Request")
+    void createMeeting_testKO() throws Exception{
+      MockHttpResponse response = dispatcher.post(URL,
+        objectMapper.writeValueAsString(
+          NewMeetingDataDto.create()
+            .name("test")
+            .meetingType(MeetingTypeDto.SCHEDULED)
+        ),
+        user1Token);
+      assertEquals(400, response.getStatus());
+    }
   }
 
+  @Nested
+  @DisplayName("Update meeting status")
+  class UpdateMeetingTests{
+    private String url(UUID meetingId) {
+      return String.format("/meetings/%s", meetingId);
+    }
+
+    @Test
+    @DisplayName("Start a meeting")
+    //TODO FIX this after removing the mock for video server
+    void startMeeting_testOk() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("room1")
+          .description("Room one"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+      UUID meeting1Id = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
+      MockHttpResponse response = dispatcher.post(url(meeting1Id)+"/start",
+        user1Token);
+      assertEquals(200, response.getStatus());
+      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(meeting1Id, meeting.getId());
+      assertEquals(true, meeting.isActive());
+    }
+
+    @Test
+    @DisplayName("Stop a meeting")
+    //TODO FIX this after removing the mock for video server
+    void stopMeeting_testOk() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("room1")
+          .description("Room one"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+      UUID meeting1Id = meetingTestUtils.generateAndSaveMeeting(room1Id,
+        List.of(
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)),
+        true,
+        null);
+      MockHttpResponse response = dispatcher.post(url(meeting1Id)+"/stop",
+        user1Token);
+      assertEquals(200, response.getStatus());
+      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(meeting1Id, meeting.getId());
+      assertEquals(false, meeting.isActive());
+    }
+  }
 
   @Nested
   @DisplayName("List meetings tests")

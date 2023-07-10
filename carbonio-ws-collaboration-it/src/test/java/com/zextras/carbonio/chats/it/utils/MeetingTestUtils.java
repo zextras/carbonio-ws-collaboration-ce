@@ -10,10 +10,13 @@ import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
+
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -33,13 +36,21 @@ public class MeetingTestUtils {
   }
 
   public UUID generateAndSaveMeeting(UUID roomId, List<ParticipantBuilder> participantBuilders) {
+    return generateAndSaveMeeting(roomId, participantBuilders, false, null);
+  }
+
+  public UUID generateAndSaveMeeting(UUID roomId,
+                                     List<ParticipantBuilder> participantBuilders,
+                                     Boolean active,
+                                     OffsetDateTime expiration){
     Meeting meeting = meetingRepository.insert("Test Meeting for " + roomId.toString(),
       MeetingType.PERMANENT,
       roomId,
-      null);
+      expiration);
     meeting.participants(participantBuilders.stream().map(participantBuilder ->
         participantBuilder.build(meeting))
       .collect(Collectors.toList()));
+    meeting.active(active);
     meetingRepository.update(meeting);
     return UUID.fromString(meeting.getId());
   }
