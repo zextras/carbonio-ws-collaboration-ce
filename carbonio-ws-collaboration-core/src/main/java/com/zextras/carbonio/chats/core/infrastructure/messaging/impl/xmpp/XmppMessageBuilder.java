@@ -205,7 +205,7 @@ public class XmppMessageBuilder {
     Element element = document.createElementNS("urn:xmpp:muclight:0#configuration", "x");
     configurations.forEach(
       config -> element.appendChild(
-        createTextElement(document, config.getKey(), config.getValue(), config.isEnabled())));
+        createTextElement(document, config.getKey(), config.getValue(), config.isEncoded())));
     return element;
   }
 
@@ -222,16 +222,16 @@ public class XmppMessageBuilder {
 
     private final String  key;
     private final String  value;
-    private final boolean enabled;
+    private final boolean encoded;
 
-    public XmppConfiguration(String key, String value, boolean enabled) {
+    public XmppConfiguration(String key, String value, boolean encoded) {
       this.key = key;
       this.value = value;
-      this.enabled = enabled;
+      this.encoded = encoded;
     }
 
-    public static XmppConfiguration create(String key, String value, boolean enabled) {
-      return new XmppConfiguration(key, value, enabled);
+    public static XmppConfiguration create(String key, String value, boolean encoded) {
+      return new XmppConfiguration(key, value, encoded);
     }
 
     public String getKey() {
@@ -242,8 +242,8 @@ public class XmppMessageBuilder {
       return value;
     }
 
-    public boolean isEnabled() {
-      return enabled;
+    public boolean isEncoded() {
+      return encoded;
     }
   }
 }

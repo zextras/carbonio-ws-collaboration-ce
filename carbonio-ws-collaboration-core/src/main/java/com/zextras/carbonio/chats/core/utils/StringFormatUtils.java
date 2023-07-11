@@ -5,8 +5,8 @@
 package com.zextras.carbonio.chats.core.utils;
 
 import com.zextras.carbonio.chats.core.config.ChatsConstant;
-import com.zextras.carbonio.chats.core.exception.EncodingException;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
@@ -22,15 +22,15 @@ public class StringFormatUtils {
     for (int i = 0; i < toEncode.length(); i++) {
       try {
         result.append(encodeSingleCharToUtf8(toEncode.substring(i, i + 1)));
-      } catch (EncodingException ignored) {
+      } catch (UnsupportedEncodingException ignored) {
       }
     }
     return result.toString();
   }
 
-  private static String encodeSingleCharToUtf8(String toEncode) {
+  private static String encodeSingleCharToUtf8(String toEncode) throws UnsupportedEncodingException {
     if (toEncode == null || toEncode.length() != 1) {
-      throw new EncodingException();
+      throw new UnsupportedEncodingException();
     }
     byte[] bytes = toEncode.getBytes(StandardCharsets.UTF_8);
     ArrayList<String> binaryList = new ArrayList<>();
@@ -44,7 +44,7 @@ public class StringFormatUtils {
     for (String b : binaryList) {
       if (!b.startsWith(filter)) {
         ChatsLogger.warn(StringFormatUtils.class, String.format("Connot encode character '%s'", toEncode));
-        throw new EncodingException(String.format("Connot encode character '%s'", toEncode));
+        throw new UnsupportedEncodingException(String.format("Connot encode character '%s'", toEncode));
       }
       binary.append(b.substring(filter.length()));
       filter = "10";
@@ -53,9 +53,9 @@ public class StringFormatUtils {
       .replace(' ', '0');
   }
 
-  public static String decodeFromUtf8(String toDecode) {
+  public static String decodeFromUtf8(String toDecode) throws UnsupportedEncodingException {
     if (!isEncodedInUtf8(toDecode)) {
-      throw new EncodingException(String.format("'%s' is not encoded to UTF-8 format", toDecode));
+      throw new UnsupportedEncodingException(String.format("'%s' is not encoded to UTF-8 format", toDecode));
     }
     return StringEscapeUtils.unescapeJava(toDecode);
   }
