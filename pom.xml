@@ -48,7 +48,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Storages -->
     <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
     <!-- Previewer -->
-    <preview-sdk.version>1.0.1</preview-sdk.version>
+    <preview-sdk.version>1.0.2</preview-sdk.version>
     <!-- Jetty -->
     <org.eclipse.jetty.version>10.0.6</org.eclipse.jetty.version>
     <jakarta.api.version>1.1.2</jakarta.api.version>
