@@ -11,9 +11,10 @@ import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.UserService;
+import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import java.io.File;
-import java.util.Base64;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -80,12 +81,18 @@ public class UsersApiServiceImpl implements UsersApiService {
   ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
+    String fileName;
+    try {
+      fileName = StringFormatUtils.decodeFromUtf8(Optional.of(headerFileName)
+        .orElseThrow(() -> new BadRequestException("File name not found")));
+    } catch (UnsupportedEncodingException e) {
+      throw new BadRequestException("Unable to decode the file name", e);
+    }
     userService.setUserPicture(
       userId,
       body,
       Optional.of(headerMimeType).orElseThrow(() -> new BadRequestException("Mime type not found")),
-      Optional.of(new String(Base64.getDecoder().decode(headerFileName)))
-        .orElseThrow(() -> new BadRequestException("File name not found")),
+      fileName,
       currentUser
     );
     return Response.status(Status.NO_CONTENT).build();

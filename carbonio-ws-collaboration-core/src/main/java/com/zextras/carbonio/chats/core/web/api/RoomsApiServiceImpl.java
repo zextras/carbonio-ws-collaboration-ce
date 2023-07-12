@@ -15,6 +15,7 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ClearedDateDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
@@ -28,7 +29,7 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.io.File;
-import java.util.Base64;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -107,12 +108,12 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .orElseThrow(UnauthorizedException::new);
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(r -> {
-        if (room.get().getType().equals(RoomTypeDto.ONE_TO_ONE)) {
-          return Response.status(Status.FORBIDDEN).build();
-        } else {
-          roomService.deleteRoom(roomId, currentUser);
-          return Response.status(Status.NO_CONTENT).build();
-        }
+      if (room.get().getType().equals(RoomTypeDto.ONE_TO_ONE)) {
+        return Response.status(Status.FORBIDDEN).build();
+      } else {
+        roomService.deleteRoom(roomId, currentUser);
+        return Response.status(Status.NO_CONTENT).build();
+      }
     }).orElse(Response.status(Status.NOT_FOUND).build());
   }
 
@@ -158,12 +159,18 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
+    String filename;
+    try {
+      filename = StringFormatUtils.decodeFromUtf8(Optional.of(headerFileName)
+        .orElseThrow(() -> new BadRequestException("File name not found")));
+    } catch (UnsupportedEncodingException e) {
+      throw new BadRequestException("Unable to decode the file name", e);
+    }
     roomService.setRoomPicture(
       roomId,
       body,
       Optional.of(headerMimeType).orElseThrow(() -> new BadRequestException("Mime type not found")),
-      Optional.of(new String(Base64.getDecoder().decode(headerFileName)))
-        .orElseThrow(() -> new BadRequestException("File name not found")),
+      filename,
       currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -282,15 +289,27 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
+    String name;
+    try {
+      name = StringFormatUtils.decodeFromUtf8(Optional.of(fileName)
+        .orElseThrow(() -> new BadRequestException("File name not found")));
+    } catch (UnsupportedEncodingException e) {
+      throw new BadRequestException("Unable to decode the file name", e);
+    }
+    String desc;
+    try {
+      desc = StringFormatUtils.decodeFromUtf8(Optional.ofNullable(description).orElse(""));
+    } catch (UnsupportedEncodingException e) {
+      throw new BadRequestException("Unable to decode the description", e);
+    }
     return Response
       .status(Status.CREATED)
       .entity(attachmentService.addAttachment(
         roomId,
         body,
         Optional.of(mimeType).orElseThrow(() -> new BadRequestException("Mime type not found")),
-        Optional.of(new String(Base64.getDecoder().decode(fileName)))
-          .orElseThrow(() -> new BadRequestException("File name not found")),
-        Optional.ofNullable(description).map(d -> new String(Base64.getDecoder().decode(d))).orElse(""),
+        name,
+        desc,
         "".equals(messageId) ? null : messageId,
         "".equals(replyId) ? null : replyId, currentUser))
       .build();

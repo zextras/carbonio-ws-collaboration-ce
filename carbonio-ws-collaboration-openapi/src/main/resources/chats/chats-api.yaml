@@ -744,7 +744,7 @@ components:
     headerFileName:
       in: header
       name: fileName
-      description: file name
+      description: file name encoded to unicode
       schema:
         type: string
       required: true
@@ -760,7 +760,7 @@ components:
     headerDescription:
       in: header
       name: description
-      description: description
+      description: description encoded to unicode
       schema:
         type: string
       required: false
