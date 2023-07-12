@@ -55,6 +55,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
@@ -1388,7 +1389,7 @@ public class RoomsApiIT {
         List.of(user1Id), null, OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
       mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomPictureDeleted", List.of(), null,
-        null, null, true);
+        null, null, null, true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -1397,7 +1398,7 @@ public class RoomsApiIT {
 
       mongooseImMockServer.verify(
         mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomPictureDeleted",
-          List.of(), null, null, null), VerificationTimes.exactly(1));
+          List.of(), null, null, null, null), VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       storageMockServer.verify("DELETE", "/delete", fileMock.getId(), 1);
     }
@@ -2538,7 +2539,7 @@ public class RoomsApiIT {
           new SimpleEntry<>("filename", fileMock.getName()),
           new SimpleEntry<>("mime-type", fileMock.getMimeType()),
           new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))), description, "the-xmpp-message-id",
-        null, true);
+        null, null, true);
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
@@ -2561,7 +2562,7 @@ public class RoomsApiIT {
             new SimpleEntry<>("attachment-id", fileMock.getId()),
             new SimpleEntry<>("filename", fileMock.getName()),
             new SimpleEntry<>("mime-type", fileMock.getMimeType()),
-            new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))), description, "the-xmpp-message-id", null),
+            new SimpleEntry<>("size", String.valueOf(fileMock.getSize()))), description, "the-xmpp-message-id", null, null),
         VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);

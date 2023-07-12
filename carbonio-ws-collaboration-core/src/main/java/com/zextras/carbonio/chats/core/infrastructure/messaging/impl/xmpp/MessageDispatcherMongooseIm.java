@@ -221,19 +221,22 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   @Override
   public void sendAttachment(
     String roomId, String senderId, FileMetadata metadata, String description, @Nullable String messageId,
-    @Nullable String replyId
+    @Nullable String replyId, @Nullable String area
   ) {
-    GraphQlResponse result = sendStanza(
-      XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-        .type(MessageType.ATTACHMENT_ADDED)
-        .addConfig("attachment-id", metadata.getId())
-        .addConfig("filename", StringFormatUtils.encodeToUtf8(metadata.getName()), true)
-        .addConfig("mime-type", metadata.getMimeType())
-        .addConfig("size", String.valueOf(metadata.getOriginalSize()))
-        .body(description)
-        .messageId(messageId)
-        .replyId(replyId)
-        .build());
+    XmppMessageBuilder xmppMsgBuilder = XmppMessageBuilder.create(roomIdToRoomDomain(roomId),
+        userIdToUserDomain(senderId))
+      .type(MessageType.ATTACHMENT_ADDED)
+      .addConfig("attachment-id", metadata.getId())
+      .addConfig("filename", StringFormatUtils.encodeToUtf8(metadata.getName()), true)
+      .addConfig("mime-type", metadata.getMimeType())
+      .addConfig("size", String.valueOf(metadata.getOriginalSize()))
+      .body(description)
+      .messageId(messageId)
+      .replyId(replyId);
+    if (area != null) {
+      xmppMsgBuilder.addConfig("area", area);
+    }
+    GraphQlResponse result = sendStanza(xmppMsgBuilder.build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
