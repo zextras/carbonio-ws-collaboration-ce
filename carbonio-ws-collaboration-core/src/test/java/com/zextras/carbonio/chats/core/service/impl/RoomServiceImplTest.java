@@ -79,7 +79,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.ws.rs.core.Response.Status;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -209,21 +208,6 @@ class RoomServiceImplTest {
       .subscriptions(List.of(
         Subscription.create(roomOneToOne2, user1Id.toString()).owner(true),
         Subscription.create(roomOneToOne2, user2Id.toString()).owner(true)));
-  }
-
-  @AfterEach
-  public void afterEach() {
-    reset(
-      this.roomRepository,
-      this.roomUserSettingsRepository,
-      this.userService,
-      this.membersService,
-      this.eventDispatcher,
-      this.messageDispatcher,
-      this.fileMetadataRepository,
-      this.storagesService
-    );
-
   }
 
   @Nested
