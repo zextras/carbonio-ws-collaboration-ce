@@ -295,7 +295,7 @@ public class UsersApiIT {
         Map.of(
           "Content-Type",
           "application/octet-stream",
-          "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+          "fileName", "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067",
           "mimeType", fileMock.getMimeType()
         ),
         account.getToken()
@@ -356,7 +356,7 @@ public class UsersApiIT {
         Map.of(
           "Content-Type",
           "application/octet-stream",
-          "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+          "fileName", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
           "mimeType", fileMock.getMimeType()
         ),
         account2.getToken()
