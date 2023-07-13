@@ -86,7 +86,7 @@ class RoomsApiServiceImplTest {
 
     @Test
     @DisplayName("Insert attachment with area, correct format")
-    public void insertAttachment_areaCorrectFormat() throws Exception {
+    void insertAttachment_areaCorrectFormat() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(UserPrincipal.create(user1Id));
 
       Response response = roomsApiService.insertAttachment(roomOneToOne1Id, StringFormatUtils.encodeToUtf8("fileName"), "image/jpeg",
@@ -101,7 +101,7 @@ class RoomsApiServiceImplTest {
 
     @Test
     @DisplayName("Insert attachment with area, wrong format")
-    public void insertAttachment_areaWrongFormat() throws Exception {
+    void insertAttachment_areaWrongFormat() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(UserPrincipal.create(user1Id));
 
       Response response = roomsApiService.insertAttachment(roomOneToOne1Id, StringFormatUtils.encodeToUtf8("fileName"), "image/jpeg",

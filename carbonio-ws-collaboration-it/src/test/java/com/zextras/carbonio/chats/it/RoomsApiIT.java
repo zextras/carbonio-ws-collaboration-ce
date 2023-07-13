@@ -2532,7 +2532,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier and an attachment, correctly inserts the attachment with an area")
-    public void insertAttachment_testOkWithArea() throws Exception {
+    void insertAttachment_testOkWithArea() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
@@ -2582,7 +2582,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier and an attachment, if the area has a wrong format return a status code 400")
-    public void insertAttachment_testErrorWithAreaWrongFormat() throws Exception {
+    void insertAttachment_testErrorWithAreaWrongFormat() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);

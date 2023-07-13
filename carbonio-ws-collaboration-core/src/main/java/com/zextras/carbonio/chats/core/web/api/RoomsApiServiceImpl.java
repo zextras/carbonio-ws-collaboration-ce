@@ -303,7 +303,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     } catch (UnsupportedEncodingException e) {
       throw new BadRequestException("Unable to decode the description", e);
     }
-    if (area == null || Pattern.compile("^(\\s)|^\\w|^[0-9]*+x+[0-9]*").matcher(area).matches()) {
+    if (area == null || Pattern.compile("^(\\s)|^\\w|^\\d*+x+\\d*").matcher(area).matches()) {
       return Response
         .status(Status.CREATED)
         .entity(attachmentService.addAttachment(
