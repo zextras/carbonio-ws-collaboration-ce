@@ -225,6 +225,7 @@ class RoomServiceImplTest {
     );
 
   }
+
   @Nested
   @DisplayName("Get rooms tests")
   class GetRoomTests {
