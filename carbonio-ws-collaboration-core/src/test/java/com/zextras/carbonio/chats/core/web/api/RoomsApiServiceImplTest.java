@@ -100,6 +100,21 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Insert attachment without area")
+    void insertAttachment_areaNull() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(UserPrincipal.create(user1Id));
+
+      Response response = roomsApiService.insertAttachment(roomOneToOne1Id, StringFormatUtils.encodeToUtf8("fileName"), "image/jpeg",
+        attachment, null, "message-id", "reply-id", null, securityContext);
+
+      verify(attachmentService, times(1)).addAttachment(roomOneToOne1Id, attachment, "image/jpeg",
+        "fileName", "", "message-id", "reply-id", null,
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal()).get());
+
+      assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
+    }
+
+    @Test
     @DisplayName("Insert attachment with area, wrong format")
     void insertAttachment_areaWrongFormat() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(UserPrincipal.create(user1Id));
