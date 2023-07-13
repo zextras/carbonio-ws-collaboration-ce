@@ -1535,6 +1535,7 @@ components:
       enum:
         - Jpeg
         - Png
+        - Gif
       type: string
       description: Class representing all the image type accepted values
     ImageShapeEnum:
