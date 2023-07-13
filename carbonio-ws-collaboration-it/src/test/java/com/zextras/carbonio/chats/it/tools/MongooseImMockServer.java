@@ -8,11 +8,6 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import java.util.AbstractMap.SimpleEntry;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.Header;
@@ -62,12 +57,11 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
   }
 
   public HttpRequest getCreateRoomRequest(String roomId, String senderId) {
-    StringBuilder body = new StringBuilder(
-      "{\"query\":\"mutation muc_light { muc_light { createRoom (mucDomain: \\\"muclight.carbonio\\\", "
-        + String.format("id: \\\"%s\\\", ", roomId) + String.format("owner: \\\"%s@carbonio\\\"", senderId));
-    body.append(") { jid } } }\",\"operationName\":\"muc_light\",\"variables\":{}}");
+    String body = "{\"query\":\"mutation muc_light { muc_light { createRoom (mucDomain: \\\"muclight.carbonio\\\", "
+      + String.format("id: \\\"%s\\\", ", roomId) + String.format("owner: \\\"%s@carbonio\\\"", senderId)
+      + ") { jid } } }\",\"operationName\":\"muc_light\",\"variables\":{}}";
 
-    return getRequest("POST", body.toString());
+    return getRequest("POST", body);
   }
 
   public void mockCreateRoom(String roomId, String senderId,
@@ -127,37 +121,9 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
     when(request).respond(getResponse(success));
   }
 
-  public HttpRequest getSendStanzaRequest(
-    String roomId, String senderId, @Nullable String type, List<SimpleEntry<String, String>> content,
-    @Nullable String body, @Nullable String messageId, @Nullable String replyId
-  ) {
-    return getSendStanzaRequest(
-      "<message xmlns='jabber:client' " + String.format(
-        "from='%s@carbonio' ", senderId) + (messageId == null ? "" : String.format("id='%s' ", messageId))
-        + String.format("to='%s@muclight.carbonio' ", roomId) + "type='groupchat'>"
-        + Optional.ofNullable(content.isEmpty() && type == null ? null : content).map(
-        list -> "<x xmlns='urn:xmpp:muclight:0#configuration'>" + Optional.ofNullable(type)
-          .map(t -> String.format("<operation>%s</operation>", t)).orElse("") + list.stream()
-          .map(c -> "<" + c.getKey() + ">" + c.getValue() + "</" + c.getKey() + ">").collect(Collectors.joining())
-          + "</x>").orElse("") + Optional.ofNullable("".equals(body) ? null : body)
-        .map(b -> String.format("<body>%s</body>", b))
-        .orElse("<body/>") + (replyId == null ? ""
-        : "<reply xmlns='urn:xmpp:reply:0' " + String.format("id='%s' ", replyId) + String.format(
-          "to='%s@muclight.carbonio'", roomId) + "/>") + "</message>");
-  }
-
   public HttpRequest getSendStanzaRequest(String xmppMessage) {
     return getRequest("POST", "{\"query\":\"mutation stanza { stanza { sendStanza (stanza: \\\"\\\"\\\""
       + xmppMessage + "\\\"\\\"\\\") { id } } }\",\"operationName\":\"stanza\",\"variables\":{}}");
-  }
-
-  public void mockSendStanza(
-    String roomId, String senderId, @Nullable String type, List<SimpleEntry<String, String>> content,
-    @Nullable String body, @Nullable String messageId, @Nullable String replyId, boolean success
-  ) {
-    HttpRequest request = getSendStanzaRequest(roomId, senderId, type, content, body, messageId, replyId);
-    clear(request);
-    when(request).respond(getResponse(success));
   }
 
   public void mockSendStanza(String xmppMessage, boolean success) {

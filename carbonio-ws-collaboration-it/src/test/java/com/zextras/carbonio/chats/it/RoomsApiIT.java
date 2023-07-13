@@ -1387,17 +1387,23 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id),
         List.of(user1Id), null, OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
-      mongooseImMockServer.mockSendStanza(roomId.toString(), user1Id.toString(), "roomPictureDeleted", List.of(), null,
-        null, null, true);
+
+      String hoped =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>roomPictureDeleted</operation>"
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      mongooseImMockServer.mockSendStanza(hoped, true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
       assertTrue(integrationTestUtils.getFileMetadataById(fileMock.getUUID()).isEmpty());
       assertNull(integrationTestUtils.getRoomById(roomId).orElseThrow().getPictureUpdatedAt());
 
-      mongooseImMockServer.verify(
-        mongooseImMockServer.getSendStanzaRequest(roomId.toString(), user1Id.toString(), "roomPictureDeleted",
-          List.of(), null, null, null), VerificationTimes.exactly(1));
+      mongooseImMockServer.verify(mongooseImMockServer.getSendStanzaRequest(hoped), VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       storageMockServer.verify("DELETE", "/delete", fileMock.getId(), 1);
     }
@@ -2525,6 +2531,97 @@ public class RoomsApiIT {
     }
 
     @Test
+    @DisplayName("Given a room identifier and an attachment, correctly inserts the attachment with an area")
+    void insertAttachment_testOkWithArea() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+
+      String hoped =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>attachmentAdded</operation>"
+          + "<attachment-id>" + fileMock.getId() + "</attachment-id>"
+          + "<filename encoded='UTF-8'>\\\\u0070\\\\u0065\\\\u0061\\\\u006e\\\\u0075\\\\u0074\\\\u0073\\\\u002e\\\\u006a\\\\u0070\\\\u0067</filename>"
+          + "<mime-type>image/jpg</mime-type>"
+          + "<size>33786</size>"
+          + "<area>15x20</area>"
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      mongooseImMockServer.mockSendStanza(hoped, true);
+
+      MockHttpResponse response;
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        response = dispatcher.post(url(roomId), fileMock.getFileBytes(),
+          Map.of(
+            "Content-Type", "application/octet-stream",
+            "fileName", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
+            "mimeType", fileMock.getMimeType(),
+            "messageId", "the-xmpp-message-id",
+            "area", "15x20"),
+          user1Token);
+      }
+
+      assertEquals(201, response.getStatus());
+      mongooseImMockServer.verify(mongooseImMockServer.getSendStanzaRequest(hoped), VerificationTimes.exactly(1));
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
+      IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
+
+      assertTrue(
+        integrationTestUtils.getFileMetadataByRoomIdAndType(roomId, FileMetadataType.ATTACHMENT)
+          .stream().anyMatch(attach ->
+            attach.getId().equals(id.getId().toString())));
+      // TODO: 28/02/22 verify event dispatcher interactions
+    }
+
+    @Test
+    @DisplayName("Given a room identifier and an attachment, if the area has a wrong format return a status code 400")
+    void insertAttachment_testErrorWithAreaWrongFormat() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
+      FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+
+      String hoped =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>attachmentAdded</operation>"
+          + "<attachment-id>" + fileMock.getId() + "</attachment-id>"
+          + "<filename encoded='UTF-8'>\\\\u0070\\\\u0065\\\\u0061\\\\u006e\\\\u0075\\\\u0074\\\\u0073\\\\u002e\\\\u006a\\\\u0070\\\\u0067</filename>"
+          + "<mime-type>image/jpg</mime-type>"
+          + "<size>33786</size>"
+          + "<area>wrong_format</area>"
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      mongooseImMockServer.mockSendStanza(hoped, true);
+
+      MockHttpResponse response;
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        response = dispatcher.post(url(roomId), fileMock.getFileBytes(),
+          Map.of(
+            "Content-Type", "application/octet-stream",
+            "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+            "mimeType", fileMock.getMimeType(),
+            "messageId", "the-xmpp-message-id",
+            "area", "wrong_format"),
+          user1Token);
+      }
+
+      assertEquals(400, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
     @DisplayName("Given a room identifier and an attachment, if there isn't an authenticated user returns a status code 401")
     public void insertAttachment_testErrorUnauthenticatedUser() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
@@ -3019,7 +3116,7 @@ public class RoomsApiIT {
 
       String messageToForward =
         "<message xmlns=\"jabber:client\" from=\"sender-id\" to=\"recipient-id\" type=\"groupchat\">"
-          + "<body>àèéìòù&</body>".replace("\\", "\\\\\\\\")
+          + "<body>àèéìòù&</body>"
           + "</message>";
       ForwardMessageDto forwardMessageDto = ForwardMessageDto.create()
         .originalMessage(messageToForward)
