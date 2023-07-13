@@ -17,6 +17,7 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.io.File;
@@ -88,11 +89,11 @@ class RoomsApiServiceImplTest {
     public void insertAttachment_areaCorrectFormat() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(UserPrincipal.create(user1Id));
 
-      Response response = roomsApiService.insertAttachment(roomOneToOne1Id, "aW1nLWF0dGFjaG1lbnQ=", "image/jpeg",
+      Response response = roomsApiService.insertAttachment(roomOneToOne1Id, StringFormatUtils.encodeToUtf8("fileName"), "image/jpeg",
         attachment, null, "message-id", "reply-id", "10x5", securityContext);
 
       verify(attachmentService, times(1)).addAttachment(roomOneToOne1Id, attachment, "image/jpeg",
-        "img-attachment", "", "message-id", "reply-id", "10x5",
+        "fileName", "", "message-id", "reply-id", "10x5",
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal()).get());
 
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
@@ -103,7 +104,7 @@ class RoomsApiServiceImplTest {
     public void insertAttachment_areaWrongFormat() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(UserPrincipal.create(user1Id));
 
-      Response response = roomsApiService.insertAttachment(roomOneToOne1Id, "aW1nLWF0dGFjaG1lbnQ=", "image/jpeg",
+      Response response = roomsApiService.insertAttachment(roomOneToOne1Id, StringFormatUtils.encodeToUtf8("fileName"), "image/jpeg",
         attachment, null, "message-id", "reply-id", "wrong_format", securityContext);
 
       verifyNoInteractions(attachmentService);

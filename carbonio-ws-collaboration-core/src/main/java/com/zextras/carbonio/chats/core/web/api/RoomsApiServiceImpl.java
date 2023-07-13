@@ -33,6 +33,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.core.Response;
@@ -302,19 +303,23 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     } catch (UnsupportedEncodingException e) {
       throw new BadRequestException("Unable to decode the description", e);
     }
-    return Response
-      .status(Status.CREATED)
-      .entity(attachmentService.addAttachment(
-        roomId,
-        body,
-        Optional.of(mimeType).orElseThrow(() -> new BadRequestException("Mime type not found")),
-        name,
-        desc,
-        "".equals(messageId) ? null : messageId,
-        "".equals(replyId) ? null : replyId,
-        "".equals(area) ? null : area,
-        currentUser))
-      .build();
+    if (area == null || Pattern.compile("^(\\s)|^\\w|^[0-9]*+x+[0-9]*").matcher(area).matches()) {
+      return Response
+        .status(Status.CREATED)
+        .entity(attachmentService.addAttachment(
+          roomId,
+          body,
+          Optional.of(mimeType).orElseThrow(() -> new BadRequestException("Mime type not found")),
+          name,
+          desc,
+          "".equals(messageId) ? null : messageId,
+          "".equals(replyId) ? null : replyId,
+          "".equals(area) ? null : area,
+          currentUser))
+        .build();
+    } else {
+      return Response.status(Status.BAD_REQUEST).build();
+    }
   }
 
   /**
