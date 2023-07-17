@@ -13,27 +13,26 @@ import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.Feed;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.Feed.Type;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.Jsep;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.Stream;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.VideoCodec;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeCreateRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeDestroyRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeJoinRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeLeaveRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.AudioBridgeMuteRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomCreateRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomDestroyRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomJoinPublisherRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomJoinSubscriberRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomLeavePublisherRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomLeaveSubscriberRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomPublishRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomStartVideoInRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRoomUpdateSubscriptionsRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.Ptype;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.codec.VideoCodec;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed.Type;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Jsep;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Stream;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerMessageRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerPluginRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeCreateRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeDestroyRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeJoinRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeLeaveRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeMuteRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomCreateRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomDestroyRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomJoinRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomLeaveRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomPublishRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomStartVideoInRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomUpdateSubscriptionsRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.AudioBridgeResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.PongResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.VideoRoomResponse;
@@ -80,6 +79,7 @@ public class VideoServerServiceJanus implements VideoServerService {
   private static final String                       JANUS_AUDIOBRIDGE_PLUGIN = "janus.plugin.audiobridge";
   private final        ObjectMapper                 objectMapper;
   private final        String                       videoServerURL;
+  private final        String                       videoServerAdminURL;
   private final        String                       apiSecret;
   private final        HttpClient                   httpClient;
   private final        VideoServerMeetingRepository videoServerMeetingRepository;
@@ -96,6 +96,10 @@ public class VideoServerServiceJanus implements VideoServerService {
     this.videoServerURL = String.format("http://%s:%s",
       appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST).orElseThrow(),
       appConfig.get(String.class, ConfigName.VIDEO_SERVER_PORT).orElseThrow()
+    );
+    this.videoServerAdminURL = String.format("http://%s:%s",
+      appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST).orElseThrow(),
+      appConfig.get(String.class, ConfigName.VIDEO_SERVER_ADMIN_PORT).orElseThrow()
     );
     this.apiSecret = appConfig.get(String.class, ConfigName.VIDEO_SERVER_TOKEN).orElseThrow();
     this.objectMapper = objectMapper;
@@ -126,13 +130,12 @@ public class VideoServerServiceJanus implements VideoServerService {
     String videoHandleId = videoServerResponse.getDataId();
     VideoRoomResponse videoRoomResponse = createVideoRoom(meetingId, connectionId, videoHandleId);
     videoServerMeetingRepository.insert(
-      VideoServerMeeting.create()
-        .meetingId(meetingId)
-        .connectionId(connectionId)
-        .audioHandleId(audioHandleId)
-        .videoHandleId(videoHandleId)
-        .audioRoomId(audioBridgeResponse.getRoom())
-        .videoRoomId(videoRoomResponse.getRoom())
+      meetingId,
+      connectionId,
+      audioHandleId,
+      videoHandleId,
+      audioBridgeResponse.getRoom(),
+      videoRoomResponse.getRoom()
     );
   }
 
@@ -296,34 +299,44 @@ public class VideoServerServiceJanus implements VideoServerService {
     String connectionId = videoServerResponse.getDataId();
     videoServerResponse = attachToPlugin(connectionId, JANUS_VIDEOROOM_PLUGIN, meetingId);
     String videoOutHandleId = videoServerResponse.getDataId();
-    joinVideoRoomAsPublisher(connectionId, sessionId, videoOutHandleId, videoServerMeeting.getVideoRoomId(),
-      Type.VIDEO);
+    joinVideoRoom(connectionId, sessionId, videoOutHandleId, videoServerMeeting.getVideoRoomId(), Ptype.PUBLISHER,
+      Type.VIDEO, null);
     videoServerResponse = attachToPlugin(connectionId, JANUS_VIDEOROOM_PLUGIN, meetingId);
     String screenHandleId = videoServerResponse.getDataId();
-    joinVideoRoomAsPublisher(connectionId, sessionId, screenHandleId, videoServerMeeting.getVideoRoomId(), Type.SCREEN);
+    joinVideoRoom(connectionId, sessionId, screenHandleId, videoServerMeeting.getVideoRoomId(), Ptype.PUBLISHER,
+      Type.SCREEN, null);
     videoServerSessionRepository.insert(
-      VideoServerSession.create(sessionId, videoServerMeeting).connectionId(connectionId)
-        .videoOutHandleId(videoOutHandleId).screenHandleId(screenHandleId)
+      videoServerMeeting, sessionId, connectionId, videoOutHandleId, screenHandleId
     );
   }
 
-  private void joinVideoRoomAsPublisher(String connectionId, String sessionId, String videoHandleId,
-    String videoRoomId, Type feedType) {
+  private void joinVideoRoom(String connectionId, String sessionId, String videoHandleId, String videoRoomId,
+    Ptype ptype, @Nullable Type feedType, @Nullable List<MediaStreamDto> mediaStreamDtos) {
     VideoRoomResponse videoRoomResponse;
+    VideoRoomJoinRequest videoRoomJoinRequest = VideoRoomJoinRequest.create()
+      .request(VideoRoomJoinRequest.JOIN)
+      .ptype(ptype.toString().toLowerCase())
+      .room(videoRoomId);
+    if (Ptype.PUBLISHER.equals(ptype) && feedType != null) {
+      videoRoomJoinRequest.id(Feed.create().type(feedType).sessionId(sessionId).toString());
+    }
+    if (Ptype.SUBSCRIBER.equals(ptype) && mediaStreamDtos != null) {
+      videoRoomJoinRequest.streams(mediaStreamDtos.stream().map(
+        mediaStreamDto ->
+          Stream.create().feed(Feed.create().type(Type.valueOf(mediaStreamDto.getType().toString()))
+            .sessionId(mediaStreamDto.getSessionId()))
+      ).collect(Collectors.toList()));
+    }
     videoRoomResponse = sendVideoRoomPluginMessage(
       connectionId,
       videoHandleId,
-      VideoRoomJoinPublisherRequest.create()
-        .request(VideoRoomJoinPublisherRequest.JOIN)
-        .ptype(VideoRoomJoinPublisherRequest.PUBLISHER)
-        .room(videoRoomId)
-        .id(Feed.create().type(feedType).sessionId(sessionId).toString()),
+      videoRoomJoinRequest,
       null
     );
     if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
       throw new VideoServerException(
         "An error occured while session " + sessionId + " with connection id " + connectionId
-          + " is joining video room as publisher");
+          + " is joining video room as " + ptype.toString().toLowerCase());
     }
   }
 
@@ -342,17 +355,17 @@ public class VideoServerServiceJanus implements VideoServerService {
       destroyPluginHandle(videoServerSession.getConnectionId(), videoServerSession.getAudioHandleId());
     }
     if (videoServerSession.getVideoInHandleId() != null) {
-      leaveVideoRoomAsSubscriber(videoServerSession.getConnectionId(), videoServerSession.getSessionId(),
+      leaveVideoRoom(videoServerSession.getConnectionId(), videoServerSession.getSessionId(),
         videoServerSession.getVideoInHandleId());
       destroyPluginHandle(videoServerSession.getConnectionId(), videoServerSession.getVideoInHandleId());
     }
     if (videoServerSession.getVideoOutHandleId() != null) {
-      leaveVideoRoomAsPublisher(videoServerSession.getConnectionId(), videoServerSession.getSessionId(),
+      leaveVideoRoom(videoServerSession.getConnectionId(), videoServerSession.getSessionId(),
         videoServerSession.getVideoOutHandleId());
       destroyPluginHandle(videoServerSession.getConnectionId(), videoServerSession.getVideoOutHandleId());
     }
     if (videoServerSession.getScreenHandleId() != null) {
-      leaveVideoRoomAsPublisher(videoServerSession.getConnectionId(), videoServerSession.getSessionId(),
+      leaveVideoRoom(videoServerSession.getConnectionId(), videoServerSession.getSessionId(),
         videoServerSession.getScreenHandleId());
       destroyPluginHandle(videoServerSession.getConnectionId(), videoServerSession.getScreenHandleId());
     }
@@ -376,35 +389,19 @@ public class VideoServerServiceJanus implements VideoServerService {
     }
   }
 
-  private void leaveVideoRoomAsSubscriber(String connectionId, String sessionId, String videoInHandleId) {
+  private void leaveVideoRoom(String connectionId, String sessionId, String videoHandleId) {
     VideoRoomResponse videoRoomResponse;
     videoRoomResponse = sendVideoRoomPluginMessage(
       connectionId,
-      videoInHandleId,
-      VideoRoomLeaveSubscriberRequest.create()
-        .request(VideoRoomLeaveSubscriberRequest.LEAVE),
+      videoHandleId,
+      VideoRoomLeaveRequest.create()
+        .request(VideoRoomLeaveRequest.LEAVE),
       null
     );
     if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
       throw new VideoServerException(
         "An error occured while session " + sessionId + " with connection id " + connectionId
-          + " is leaving the video room as subscriber");
-    }
-  }
-
-  private void leaveVideoRoomAsPublisher(String connectionId, String sessionId, String videoOutHandleId) {
-    VideoRoomResponse videoRoomResponse;
-    videoRoomResponse = sendVideoRoomPluginMessage(
-      connectionId,
-      videoOutHandleId,
-      VideoRoomLeavePublisherRequest.create()
-        .request(VideoRoomLeavePublisherRequest.LEAVE),
-      null
-    );
-    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
-      throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + connectionId
-          + " is leaving the video room as publisher");
+          + " is leaving the video room");
     }
   }
 
@@ -418,7 +415,7 @@ public class VideoServerServiceJanus implements VideoServerService {
         "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
     if (videoStreamSettingsDto.isEnabled() == videoServerSession.hasVideoOutStreamOn()) {
       throw new VideoServerException(
-        "Audio stream status is already updated for session " + sessionId + " for the meeting " + meetingId);
+        "Video stream status is already updated for session " + sessionId + " for the meeting " + meetingId);
     }
     if (videoStreamSettingsDto.isEnabled()) {
       publishStreamOnVideoRoom(videoServerSession.getConnectionId(), sessionId,
@@ -489,7 +486,7 @@ public class VideoServerServiceJanus implements VideoServerService {
         "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
     if (screenStreamSettingsDto.isEnabled() == videoServerSession.hasScreenStreamOn()) {
       throw new VideoServerException(
-        "Audio stream status is already updated for session " + sessionId + " for the meeting " + meetingId);
+        "Screen stream status is already updated for session " + sessionId + " for the meeting " + meetingId);
     }
     if (screenStreamSettingsDto.isEnabled()) {
       publishStreamOnVideoRoom(videoServerSession.getConnectionId(), sessionId, videoServerSession.getScreenHandleId(),
@@ -551,36 +548,12 @@ public class VideoServerServiceJanus implements VideoServerService {
         VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
           JANUS_VIDEOROOM_PLUGIN, meetingId);
         videoInHandleId.set(videoServerResponse.getDataId());
-        joinVideoRoomAsSubscriber(videoServerSession.getConnectionId(), sessionId, videoInHandleId.get(),
-          videoServerMeeting.getVideoRoomId(), subscriptionUpdatesDto.getSubscribe());
+        joinVideoRoom(videoServerSession.getConnectionId(), sessionId, videoInHandleId.get(),
+          videoServerMeeting.getVideoRoomId(), Ptype.SUBSCRIBER, null, subscriptionUpdatesDto.getSubscribe());
         videoServerSessionRepository.update(videoServerSession.videoInHandleId(videoInHandleId.get()));
       });
     updateSubscriptions(videoServerSession.getConnectionId(), sessionId, videoServerSession.getVideoInHandleId(),
       subscriptionUpdatesDto);
-  }
-
-  private void joinVideoRoomAsSubscriber(String connectionId, String sessionId, String videoInHandleId,
-    String videoRoomId, List<MediaStreamDto> mediaStreamDtos) {
-    VideoRoomResponse videoRoomResponse;
-    videoRoomResponse = sendVideoRoomPluginMessage(
-      connectionId,
-      videoInHandleId,
-      VideoRoomJoinSubscriberRequest.create()
-        .request(VideoRoomJoinSubscriberRequest.JOIN)
-        .ptype(VideoRoomJoinSubscriberRequest.SUBSCRIBER)
-        .room(videoRoomId)
-        .streams(mediaStreamDtos.stream().map(
-          mediaStreamDto ->
-            Stream.create().feed(Feed.create().type(Type.valueOf(mediaStreamDto.getType().toString()))
-              .sessionId(mediaStreamDto.getSessionId()))
-        ).collect(Collectors.toList())),
-      null
-    );
-    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
-      throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + connectionId
-          + " is joining the video room as subscriber");
-    }
   }
 
   private void updateSubscriptions(String connectionId, String sessionId, String videoInHandleId,
@@ -652,7 +625,7 @@ public class VideoServerServiceJanus implements VideoServerService {
   public boolean isAlive() {
     try {
       CloseableHttpResponse response = httpClient.sendPost(
-        "http://127.0.0.1:7088" + JANUS_ADMIN_ENDPOINT,
+        videoServerAdminURL + JANUS_ADMIN_ENDPOINT,
         Map.of("content-type", "application/json"),
         writeValueAsAString(
           VideoServerMessageRequest.create()

@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.Jsep;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Jsep;
 
 /**
  * This class represents a single message/request/action sent to the VideoServer.

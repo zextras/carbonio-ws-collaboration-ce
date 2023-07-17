@@ -31,7 +31,15 @@ public class EbeanVideoServerMeetingRepository implements VideoServerMeetingRepo
   }
 
   @Override
-  public VideoServerMeeting insert(VideoServerMeeting videoServerMeeting) {
+  public VideoServerMeeting insert(String meetingId, String connectionId, String audioHandleId, String videoHandleId,
+    String audioRoomId, String videoRoomId) {
+    VideoServerMeeting videoServerMeeting = VideoServerMeeting.create()
+      .meetingId(meetingId)
+      .connectionId(connectionId)
+      .audioHandleId(audioHandleId)
+      .videoHandleId(videoHandleId)
+      .audioRoomId(audioRoomId)
+      .videoRoomId(videoRoomId);
     db.insert(videoServerMeeting);
     return videoServerMeeting;
   }

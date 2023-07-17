@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.repository.impl;
 
+import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import io.ebean.Database;
@@ -30,7 +31,11 @@ public class EbeanVideoServerSessionRepository implements VideoServerSessionRepo
   }
 
   @Override
-  public VideoServerSession insert(VideoServerSession videoServerSession) {
+  public VideoServerSession insert(VideoServerMeeting videoServerMeeting, String sessionId, String connectionId,
+    String videoOutHandleId, String screenHandleId) {
+    VideoServerSession videoServerSession = VideoServerSession.create(sessionId, videoServerMeeting)
+      .connectionId(connectionId)
+      .videoOutHandleId(videoOutHandleId).screenHandleId(screenHandleId);
     db.insert(videoServerSession);
     return videoServerSession;
   }

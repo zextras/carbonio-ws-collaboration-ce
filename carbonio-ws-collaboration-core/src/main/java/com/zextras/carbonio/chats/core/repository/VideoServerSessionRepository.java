@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.repository;
 
+import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import java.util.List;
 
@@ -20,10 +21,15 @@ public interface VideoServerSessionRepository {
   /**
    * Inserts a new {@link VideoServerSession}
    *
-   * @param videoServerSession {@link VideoServerSession} to insert
+   * @param videoServerMeeting the associated video server meeting
+   * @param sessionId          the session identifier
+   * @param connectionId       the connection identifier related to videoserver
+   * @param videoOutHandleId   the video handle identifier related to video room plugin
+   * @param screenHandleId     the screen handle identifier related to video room plugin
    * @return {@link VideoServerSession} inserted
    */
-  VideoServerSession insert(VideoServerSession videoServerSession);
+  VideoServerSession insert(VideoServerMeeting videoServerMeeting, String sessionId, String connectionId,
+    String videoOutHandleId, String screenHandleId);
 
   /**
    * Removes a {@link VideoServerSession}

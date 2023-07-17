@@ -20,10 +20,16 @@ public interface VideoServerMeetingRepository {
   /**
    * Inserts a new {@link VideoServerMeeting}
    *
-   * @param videoServerMeeting {@link VideoServerMeeting} to insert
+   * @param meetingId     meeting identifier
+   * @param connectionId  connection identifier related to videoserver
+   * @param audioHandleId audio handle identifier related to audiobridge plugin
+   * @param videoHandleId video handle identifier related to videoroom plugin
+   * @param audioRoomId   audio room identifier related to audiobridge plugin
+   * @param videoRoomId   video room identifier related to videoroom plugin
    * @return {@link VideoServerMeeting} inserted
    */
-  VideoServerMeeting insert(VideoServerMeeting videoServerMeeting);
+  VideoServerMeeting insert(String meetingId, String connectionId, String audioHandleId, String videoHandleId,
+    String audioRoomId, String videoRoomId);
 
   /**
    * Deletes a {@link VideoServerMeeting} by meeting identifier
