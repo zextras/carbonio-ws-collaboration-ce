@@ -80,9 +80,9 @@ public class VideoServerServiceJanus implements VideoServerService {
 
   @Override
   @Transactional
-  public void createMeeting(String meetingId) {
+  public void startMeeting(String meetingId) {
     if (videoServerMeetingRepository.getById(meetingId).isPresent()) {
-      throw new VideoServerException("Videoserver meeting " + meetingId + " is already present");
+      throw new VideoServerException("Videoserver meeting " + meetingId + " is already active");
     }
     VideoServerResponse videoServerResponse = createConnection();
     if (!JANUS_SUCCESS.equals(videoServerResponse.getStatus())) {
@@ -145,7 +145,7 @@ public class VideoServerServiceJanus implements VideoServerService {
 
   @Override
   @Transactional
-  public void deleteMeeting(String meetingId) {
+  public void stopMeeting(String meetingId) {
     VideoServerMeeting videoServerMeetingToRemove = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerPluginResponse videoServerPluginResponse = destroyPluginHandle(

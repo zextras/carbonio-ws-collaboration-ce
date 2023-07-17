@@ -6,13 +6,17 @@ package com.zextras.carbonio.chats.it.utils;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
+import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
+
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -31,14 +35,24 @@ public class MeetingTestUtils {
     this.participantRepository = participantRepository;
   }
 
-  public Meeting generateAndSaveMeeting(UUID meetingId, UUID roomId, List<ParticipantBuilder> participantBuilders) {
-    Meeting meeting = Meeting.create()
-      .id(meetingId.toString())
-      .roomId(roomId.toString());
+  public UUID generateAndSaveMeeting(UUID roomId, List<ParticipantBuilder> participantBuilders) {
+    return generateAndSaveMeeting(roomId, participantBuilders, false, null);
+  }
+
+  public UUID generateAndSaveMeeting(UUID roomId,
+                                     List<ParticipantBuilder> participantBuilders,
+                                     Boolean active,
+                                     OffsetDateTime expiration){
+    Meeting meeting = meetingRepository.insert("Test Meeting for " + roomId.toString(),
+      MeetingType.PERMANENT,
+      roomId,
+      expiration);
     meeting.participants(participantBuilders.stream().map(participantBuilder ->
         participantBuilder.build(meeting))
       .collect(Collectors.toList()));
-    return meetingRepository.insert(meeting);
+    meeting.active(active);
+    meetingRepository.update(meeting);
+    return UUID.fromString(meeting.getId());
   }
 
   public Optional<Meeting> getMeetingById(UUID meetingId) {

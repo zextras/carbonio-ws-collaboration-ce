@@ -8,6 +8,8 @@ import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.mapper.ParticipantMapper;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.MeetingTypeDto;
+
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -34,7 +36,10 @@ public class MeetingMapperImpl implements MeetingMapper {
     return MeetingDto.create()
       .id(UUID.fromString(meeting.getId()))
       .roomId(UUID.fromString(meeting.getRoomId()))
+      .meetingType(MeetingTypeDto.fromString(meeting.getMeetingType().toString()))
+      .name(meeting.getName())
       .createdAt(meeting.getCreatedAt())
+      .active(meeting.getActive())
       .participants(participantMapper.ent2dto(meeting.getParticipants()));
   }
 
