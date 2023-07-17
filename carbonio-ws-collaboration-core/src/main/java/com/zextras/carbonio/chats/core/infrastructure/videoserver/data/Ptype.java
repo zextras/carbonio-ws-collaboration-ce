@@ -5,13 +5,9 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data;
 
 /**
- * This enum represents all possible values for the audio codec usable on the VideoServer.
+ * This enum represents the two possible ways to join a video room.
  */
-public enum AudioCodec {
-  OPUS,
-  G722,
-  PCMU,
-  PCMA,
-  ISAC32,
-  ISAC16
+public enum Ptype {
+  PUBLISHER,
+  SUBSCRIBER
 }

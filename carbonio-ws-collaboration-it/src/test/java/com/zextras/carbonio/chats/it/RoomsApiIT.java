@@ -2535,7 +2535,8 @@ public class RoomsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
 
       String hoped =
-        String.format("<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id' to='%s@muclight.carbonio' type='groupchat'>",
+        String.format(
+          "<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id' to='%s@muclight.carbonio' type='groupchat'>",
           user1Id, roomId)
           + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
           + "<operation>attachmentAdded</operation>"
@@ -2585,7 +2586,8 @@ public class RoomsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
 
       String hoped =
-        String.format("<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id' to='%s@muclight.carbonio' type='groupchat'>",
+        String.format(
+          "<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id' to='%s@muclight.carbonio' type='groupchat'>",
           user1Id, roomId)
           + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
           + "<operation>attachmentAdded</operation>"
@@ -2701,8 +2703,9 @@ public class RoomsApiIT {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertTrue(participant1.get().isVideoStreamOn());
-      assertTrue(participant1.get().isAudioStreamOn());
+      assertEquals("user1session1", participant1.get().getSessionId());
+      assertTrue(participant1.get().isVideoStreamEnabled());
+      assertTrue(participant1.get().isAudioStreamEnabled());
     }
 
     @Test
@@ -2838,8 +2841,8 @@ public class RoomsApiIT {
       assertNotNull(meetingDto.getParticipants());
       assertEquals(1, meetingDto.getParticipants().size());
       assertEquals(user1Id, meetingDto.getParticipants().get(0).getUserId());
-      assertTrue(meetingDto.getParticipants().get(0).isAudioStreamOn());
-      assertFalse(meetingDto.getParticipants().get(0).isVideoStreamOn());
+      assertTrue(meetingDto.getParticipants().get(0).isAudioStreamEnabled());
+      assertFalse(meetingDto.getParticipants().get(0).isVideoStreamEnabled());
       assertEquals("86cc37de-1217-4056-8c95-69997a6bccce",
         integrationTestUtils.getRoomById(roomId).orElseThrow().getMeetingId());
 

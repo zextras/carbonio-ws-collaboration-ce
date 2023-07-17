@@ -31,17 +31,26 @@ public class VideoServerSession {
   @Column(name = "CONNECTION_ID", length = 64, nullable = false)
   private String connectionId;
 
-  @Column(name = "AUDIO_HANDLE_ID", length = 64, nullable = false)
+  @Column(name = "AUDIO_HANDLE_ID", length = 64)
   private String audioHandleId;
 
-  @Column(name = "VIDEO_HANDLE_ID", length = 64, nullable = false)
-  private String videoHandleId;
+  @Column(name = "VIDEOOUT_HANDLE_ID", length = 64)
+  private String videoOutHandleId;
+
+  @Column(name = "VIDEOIN_HANDLE_ID", length = 64)
+  private String videoInHandleId;
+
+  @Column(name = "SCREEN_HANDLE_ID", length = 64)
+  private String screenHandleId;
 
   @Column(name = "AUDIO_STREAM_ON")
   private Boolean audioStreamOn = false;
 
-  @Column(name = "VIDEO_STREAM_ON")
-  private Boolean videoStreamOn = false;
+  @Column(name = "VIDEO_OUT_STREAM_ON")
+  private Boolean videoOutStreamOn = false;
+
+  @Column(name = "VIDEO_IN_STREAM_ON")
+  private Boolean videoInStreamOn = false;
 
   @Column(name = "SCREEN_STREAM_ON")
   private Boolean screenStreamOn = false;
@@ -106,12 +115,30 @@ public class VideoServerSession {
     return this;
   }
 
-  public String getVideoHandleId() {
-    return videoHandleId;
+  public String getVideoOutHandleId() {
+    return videoOutHandleId;
   }
 
-  public VideoServerSession videoHandleId(String videoHandleId) {
-    this.videoHandleId = videoHandleId;
+  public VideoServerSession videoOutHandleId(String videoOutHandleId) {
+    this.videoOutHandleId = videoOutHandleId;
+    return this;
+  }
+
+  public String getVideoInHandleId() {
+    return videoInHandleId;
+  }
+
+  public VideoServerSession videoInHandleId(String videoInHandleId) {
+    this.videoInHandleId = videoInHandleId;
+    return this;
+  }
+
+  public String getScreenHandleId() {
+    return screenHandleId;
+  }
+
+  public VideoServerSession screenHandleId(String screenHandleId) {
+    this.screenHandleId = screenHandleId;
     return this;
   }
 
@@ -124,12 +151,21 @@ public class VideoServerSession {
     return this;
   }
 
-  public Boolean hasVideoStreamOn() {
-    return videoStreamOn;
+  public Boolean hasVideoOutStreamOn() {
+    return videoOutStreamOn;
   }
 
-  public VideoServerSession videoStreamOn(Boolean videoStreamOn) {
-    this.videoStreamOn = videoStreamOn;
+  public VideoServerSession videoOutStreamOn(Boolean videoOutStreamOn) {
+    this.videoOutStreamOn = videoOutStreamOn;
+    return this;
+  }
+
+  public Boolean hasVideoInStreamOn() {
+    return videoInStreamOn;
+  }
+
+  public VideoServerSession videoInStreamOn(Boolean videoInStreamOn) {
+    this.videoInStreamOn = videoInStreamOn;
     return this;
   }
 

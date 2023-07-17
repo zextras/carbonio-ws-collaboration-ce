@@ -34,6 +34,7 @@ public class InfrastructureAppConfig extends AppConfig {
     configs.put(ConfigName.EVENT_DISPATCHER_PORT, "20005");
     configs.put(ConfigName.VIDEO_SERVER_HOST, "127.78.0.4");
     configs.put(ConfigName.VIDEO_SERVER_PORT, "20006");
+    configs.put(ConfigName.VIDEO_SERVER_ADMIN_PORT, "7088");
   }
 
   public static AppConfig create() {

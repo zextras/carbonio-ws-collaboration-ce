@@ -6,24 +6,106 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 /**
- * This abstract class a generic response provided by VideoServer
+ * This class represents a response provided by VideoServer when interacting with session or plugin
  * <p>
- * It's composed of at least one mandatory field:
+ * The successful response is composed of:
  * <ul>
- *   <li>janus: indicates the status/error of the response</li>
+ *   <li>janus: "success"</li>
+ *   <li>session_id: the session identifier related to the session previously created</li>
+ *   <li>transaction: the transaction identifier related to the request previously sent</li>
+ *   <li>data: a JSON object containing one field</li>
+ *     <ul>
+ *       <li>id: the unique session identifier</li>
+ *     </ul>
+ * </ul>
+ * <p>
+ * The error response is composed of:
+ * <ul>
+ *   <li>janus: "error"</li>
+ *   <li>session_id: the session identifier of the failed request</li>
+ *   <li>transaction: the transaction identifier of the failed request</li>
+ *   <li>error: a JSON object containing two fields</li>
+ *     <ul>
+ *       <li>code: a numeric error code</li>
+ *       <li>reason: a verbose string describing the cause of the failure</li>
+ *     </ul>
  * </ul>
  *
  * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public abstract class VideoServerResponse {
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class VideoServerResponse {
 
   @JsonProperty("janus")
   private String status;
+  @JsonProperty("sessionId")
+  private String connectionId;
+  @JsonProperty("transaction")
+  private String transactionId;
+  private Data   data;
+
+  private Error error;
+
+  public VideoServerResponse() {
+  }
 
   public String getStatus() {
     return status;
+  }
+
+  public String getConnectionId() {
+    return connectionId;
+  }
+
+  public String getTransactionId() {
+    return transactionId;
+  }
+
+  public Data getData() {
+    return data;
+  }
+
+  public Error getError() {
+    return error;
+  }
+
+  public String getDataId() {
+    return getData().getId();
+  }
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  private static class Data {
+
+    private String id;
+
+    public Data() {
+    }
+
+    public String getId() {
+      return id;
+    }
+  }
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  private static class Error {
+
+    private Long   code;
+    private String reason;
+
+    public Error() {
+    }
+
+    public long getCode() {
+      return code;
+    }
+
+    public String getReason() {
+      return reason;
+    }
   }
 }

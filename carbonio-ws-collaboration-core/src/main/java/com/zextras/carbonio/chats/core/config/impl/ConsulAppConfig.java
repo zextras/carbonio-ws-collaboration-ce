@@ -71,6 +71,7 @@ public class ConsulAppConfig extends AppConfig {
       "carbonio-ws-collaboration/broker/automatic-recovery-enabled");
     namesMapping.put(ConfigName.TOPOLOGY_RECOVERY_ENABLED,
       "carbonio-ws-collaboration/broker/topology-recovery-enabled");
+    namesMapping.put(ConfigName.VIDEO_SERVER_TOKEN, "carbonio-videoserver/api-secret");
   }
 
   private boolean loaded = false;
