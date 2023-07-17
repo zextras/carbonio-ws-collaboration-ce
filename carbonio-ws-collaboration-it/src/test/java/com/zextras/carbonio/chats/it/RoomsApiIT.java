@@ -1431,6 +1431,21 @@ public class RoomsApiIT {
     }
 
     @Test
+    @DisplayName("Given a room identifier, if it is a group and the name and the description are null return status code 400")
+    public void updateRoom_testErrorUpdateRoomWithoutNameAndDescription() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, null, null,
+        List.of(user1Id, user2Id, user3Id), List.of(user1Id), List.of(user1Id),
+        OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+      MockHttpResponse response = dispatcher.put(url(roomId),
+        getUpdateRoomRequestBody(null, null), user1Token);
+      assertEquals(400, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
     @DisplayName("Given a room identifier and update fields, if the user is not authenticated return a status code 401")
     public void updateRoom_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
@@ -4109,8 +4124,9 @@ public class RoomsApiIT {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertTrue(participant1.get().isVideoStreamOn());
-      assertTrue(participant1.get().isAudioStreamOn());
+      assertEquals("user1session1", participant1.get().getSessionId());
+      assertTrue(participant1.get().isVideoStreamEnabled());
+      assertTrue(participant1.get().isAudioStreamEnabled());
     }
 
     @Test
@@ -4246,8 +4262,8 @@ public class RoomsApiIT {
       assertNotNull(meetingDto.getParticipants());
       assertEquals(1, meetingDto.getParticipants().size());
       assertEquals(user1Id, meetingDto.getParticipants().get(0).getUserId());
-      assertTrue(meetingDto.getParticipants().get(0).isAudioStreamOn());
-      assertFalse(meetingDto.getParticipants().get(0).isVideoStreamOn());
+      assertTrue(meetingDto.getParticipants().get(0).isAudioStreamEnabled());
+      assertFalse(meetingDto.getParticipants().get(0).isVideoStreamEnabled());
       assertEquals("86cc37de-1217-4056-8c95-69997a6bccce",
         integrationTestUtils.getRoomById(roomId).orElseThrow().getMeetingId());
 

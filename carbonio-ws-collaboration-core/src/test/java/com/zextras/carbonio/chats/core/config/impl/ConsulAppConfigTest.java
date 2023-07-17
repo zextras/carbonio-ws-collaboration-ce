@@ -74,7 +74,7 @@ class ConsulAppConfigTest {
 
         appConfig.load();
 
-        verify(kvCache, times(4)).addListener(listenerArgumentCaptor.capture());
+        verify(kvCache, times(5)).addListener(listenerArgumentCaptor.capture());
         Listener<String, Value> listener = listenerArgumentCaptor.getValue();
         assertNotNull(listener);
         listener.notify(Map.of(
@@ -123,7 +123,7 @@ class ConsulAppConfigTest {
 
       verify(keyValueClient, times(1))
         .getValue(eq("carbonio-ws-collaboration-db/db-password"), any(ImmutableQueryOptions.class));
-      verify(consulClient, times(5)).keyValueClient();
+      verify(consulClient, times(6)).keyValueClient();
     }
 
     @Test

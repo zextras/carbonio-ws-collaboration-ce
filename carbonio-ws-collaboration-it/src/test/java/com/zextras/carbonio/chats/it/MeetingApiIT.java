@@ -9,8 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.mockserver.client.MockServerClient;
-
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
@@ -42,6 +40,8 @@ import com.zextras.carbonio.meeting.model.MeetingTypeDto;
 import com.zextras.carbonio.meeting.model.MeetingUserDto;
 import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
+import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
+import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto.TypeEnum;
 import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
 import java.time.Clock;
@@ -49,30 +49,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-
-import org.apache.http.HttpStatus;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockserver.model.Header;
-import org.mockserver.model.HttpRequest;
 
 @ApiIntegrationTest
 public class MeetingApiIT {
 
   private final ResteasyRequestDispatcher dispatcher;
   private final MeetingRepository         meetingRepository;
-
-  private final RoomRepository roomRepository;
-  private final MongooseImMockServer mongooseImMockServer;
   private final ParticipantRepository     participantRepository;
   private final MeetingTestUtils          meetingTestUtils;
   private final ObjectMapper              objectMapper;
   private final IntegrationTestUtils      integrationTestUtils;
   private final UserManagementMockServer  userManagementMockServer;
   private final AppClock                  clock;
+  private final MongooseImMockServer      mongooseImMockServer;
+  private final RoomRepository            roomRepository;
 
   public MeetingApiIT(
     RoomsApi roomsApi, ResteasyRequestDispatcher dispatcher,
@@ -129,12 +125,13 @@ public class MeetingApiIT {
 
   @Nested
   @DisplayName("Create meeting tests")
-  class CreateMeetingTests{
+  class CreateMeetingTests {
+
     private static final String URL = "/meetings";
 
     @Test
     @DisplayName("Create a meeting from a roomId")
-    void createMeetingRoom_testOk() throws Exception{
+    void createMeetingRoom_testOk() throws Exception {
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("room1")
           .description("Room one"),
@@ -142,7 +139,6 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
-
 
       MockHttpResponse response = dispatcher.post(URL,
         objectMapper.writeValueAsString(
@@ -152,15 +148,17 @@ public class MeetingApiIT {
             .roomId(room1Id)),
         user1Token);
       assertEquals(200, response.getStatus());
-      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
+      });
       assertEquals(room1Id, meeting.getRoomId());
       assertEquals(false, meeting.isActive());
       assertEquals(MeetingTypeDto.PERMANENT, meeting.getMeetingType());
       assertEquals("test", meeting.getName());
     }
+
     @Test
     @DisplayName("Create a meeting from a list of Users")
-    void createMeetingUsers_testOk() throws Exception{
+    void createMeetingUsers_testOk() throws Exception {
       mongooseImMockServer
         .when(request().withMethod("POST").withPath("/api/graphql")
           .withHeaders(Header.header("Authorization", "Basic dXNlcm5hbWU6cGFzc3dvcmQ="))
@@ -169,7 +167,7 @@ public class MeetingApiIT {
           .withStatusCode(200)
           .withBody("{ \"data\": { \"mock\": \"success\" } }")
           .withHeaders(Header.header("Authorization", "Basic dXNlcm5hbWU6cGFzc3dvcmQ="),
-          Header.header("Accept", "application/json"))
+            Header.header("Accept", "application/json"))
         );
       MockHttpResponse response = dispatcher.post(URL,
         objectMapper.writeValueAsString(
@@ -180,10 +178,11 @@ public class MeetingApiIT {
               MeetingUserDto.create().userId(user2Id),
               MeetingUserDto.create().userId(user3Id)
             ))
-            ),
+        ),
         user1Token);
       assertEquals(200, response.getStatus());
-      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
+      });
       assertEquals(false, meeting.isActive());
       assertEquals(MeetingTypeDto.SCHEDULED, meeting.getMeetingType());
       assertEquals("test", meeting.getName());
@@ -191,7 +190,7 @@ public class MeetingApiIT {
 
     @Test
     @DisplayName("Create a meeting Bad Request")
-    void createMeeting_testKO() throws Exception{
+    void createMeeting_testKO() throws Exception {
       MockHttpResponse response = dispatcher.post(URL,
         objectMapper.writeValueAsString(
           NewMeetingDataDto.create()
@@ -205,14 +204,15 @@ public class MeetingApiIT {
 
   @Nested
   @DisplayName("Update meeting status")
-  class UpdateMeetingTests{
+  class UpdateMeetingTests {
+
     private String url(UUID meetingId) {
       return String.format("/meetings/%s", meetingId);
     }
 
     @Test
     @DisplayName("Start a meeting")
-    //TODO FIX this after removing the mock for video server
+      //TODO FIX this after removing the mock for video server
     void startMeeting_testOk() throws Exception {
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("room1")
@@ -226,17 +226,18 @@ public class MeetingApiIT {
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
         ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
-      MockHttpResponse response = dispatcher.post(url(meeting1Id)+"/start",
+      MockHttpResponse response = dispatcher.post(url(meeting1Id) + "/start",
         user1Token);
       assertEquals(200, response.getStatus());
-      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
+      });
       assertEquals(meeting1Id, meeting.getId());
       assertEquals(true, meeting.isActive());
     }
 
     @Test
     @DisplayName("Stop a meeting")
-    //TODO FIX this after removing the mock for video server
+      //TODO FIX this after removing the mock for video server
     void stopMeeting_testOk() throws Exception {
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("room1")
@@ -247,16 +248,17 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user3Id)));
       UUID meeting1Id = meetingTestUtils.generateAndSaveMeeting(room1Id,
         List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)),
+          ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
+          ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
+          ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
+          ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)),
         true,
         null);
-      MockHttpResponse response = dispatcher.post(url(meeting1Id)+"/stop",
+      MockHttpResponse response = dispatcher.post(url(meeting1Id) + "/stop",
         user1Token);
       assertEquals(200, response.getStatus());
-      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
+      });
       assertEquals(meeting1Id, meeting.getId());
       assertEquals(false, meeting.isActive());
     }
@@ -322,8 +324,8 @@ public class MeetingApiIT {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant.isPresent());
       assertEquals(user1Id, participant.get().getUserId());
-      assertTrue(participant.get().isVideoStreamOn());
-      assertTrue(participant.get().isAudioStreamOn());
+      assertTrue(participant.get().isVideoStreamEnabled());
+      assertTrue(participant.get().isAudioStreamEnabled());
 
       MeetingDto meeting2Dto = meetings.stream().filter(m -> m.getId().equals(meeting2Id)).findAny().orElseThrow();
       assertEquals(meeting2Id, meeting2Dto.getId());
@@ -338,8 +340,8 @@ public class MeetingApiIT {
         .filter(p -> user2Id.equals(p.getUserId())).findAny();
       assertTrue(participant.isPresent());
       assertEquals(user2Id, participant.get().getUserId());
-      assertFalse(participant.get().isVideoStreamOn());
-      assertTrue(participant.get().isAudioStreamOn());
+      assertFalse(participant.get().isVideoStreamEnabled());
+      assertTrue(participant.get().isAudioStreamEnabled());
     }
 
     @Test
@@ -451,8 +453,8 @@ public class MeetingApiIT {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertTrue(participant1.get().isVideoStreamOn());
-      assertTrue(participant1.get().isAudioStreamOn());
+      assertTrue(participant1.get().isVideoStreamEnabled());
+      assertTrue(participant1.get().isAudioStreamEnabled());
     }
 
     @Test
@@ -810,7 +812,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true)
+          .rtcSessionDescription(RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp"))),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -831,7 +834,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true).rtcSessionDescription(
+          RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp"))),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -853,7 +857,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true)),
+        objectMapper.writeValueAsString(VideoStreamSettingsDto.create().enabled(true).rtcSessionDescription(
+          RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp"))),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -1338,7 +1343,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true)
+          .rtcSessionDescription(RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp"))),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1360,7 +1366,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true).rtcSessionDescription(
+          RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp"))),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1382,7 +1389,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId, user1session1),
-        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true)),
+        objectMapper.writeValueAsString(ScreenStreamSettingsDto.create().enabled(true).rtcSessionDescription(
+          RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp"))),
         Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
