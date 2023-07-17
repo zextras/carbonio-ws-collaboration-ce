@@ -15,13 +15,13 @@ import javax.inject.Singleton;
 public class VideoServerServiceMock implements VideoServerService {
 
   @Override
-  public void createMeeting(String meetingId) {
-
+  public void startMeeting(String meetingId) {
+    //Mock class with empty method
   }
 
   @Override
-  public void deleteMeeting(String meetingId) {
-
+  public void stopMeeting(String meetingId) {
+    //Mock class with empty method
   }
 
   @Override

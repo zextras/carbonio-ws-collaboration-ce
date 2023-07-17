@@ -9,6 +9,7 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingCreatedEvent;
 import com.zextras.carbonio.chats.core.data.event.MeetingDeletedEvent;
+import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -19,9 +20,18 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
+import com.zextras.carbonio.chats.model.RoomDto;
+import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.MeetingTypeDto;
+import com.zextras.carbonio.meeting.model.MeetingUserDto;
 import io.ebean.annotation.Transactional;
+import io.vavr.control.Option;
+
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -52,6 +62,57 @@ public class MeetingServiceImpl implements MeetingService {
     this.membersService = membersService;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
+  }
+
+  @Override
+  public MeetingDto createMeeting(UserPrincipal user,
+                                  String name,
+                                  MeetingTypeDto meetingType,
+                                  UUID roomId,
+                                  List<MeetingUserDto> users,
+                                  OffsetDateTime expiration) {
+    return meetingMapper.ent2dto(
+      Option.of(roomId).map(rId ->
+        Option.of(roomService.getRoomEntityAndCheckUser(roomId, user, false))
+          .map(room -> {
+            Meeting meeting = meetingRepository.insert(name,
+              MeetingType.valueOf(meetingType.toString().toUpperCase()),
+              rId,
+              null);
+            roomService.setMeetingIntoRoom(room, meeting);
+            return meeting;
+          }).getOrElseThrow(() -> new RuntimeException("Room not found"))
+      ).getOrElse(() -> {
+        RoomDto room = roomService.createRoom(RoomCreationFieldsDto.create()
+          .name(name)
+          .type(RoomTypeDto.GROUP)
+          .membersIds(users.stream().map(MeetingUserDto::getUserId).collect(Collectors.toList()))
+          ,user);
+        return meetingRepository.insert(name,
+          MeetingType.valueOf(meetingType.toString().toUpperCase()),
+          room.getId(),
+          expiration);
+      })
+    );
+  }
+
+  @Override
+  public MeetingDto updateMeeting(UserPrincipal user, UUID meetingId, Boolean active) {
+    return meetingMapper.ent2dto(meetingRepository.getById(meetingId.toString()).map(meeting -> {
+      Option.of(active).peek(s -> {
+        if(!Objects.equals(s, meeting.getActive())){
+          if (Boolean.TRUE.equals(s)) {
+            videoServerService.startMeeting(meeting.getId());
+          } else {
+            videoServerService.stopMeeting(meeting.getId());
+          }
+          meeting.active(s);
+        }
+      });
+      return meetingRepository.update(meeting);
+    }).orElseThrow(() -> new NotFoundException(
+      String.format("Meeting with id '%s' not found", meetingId)))
+    );
   }
 
   @Override
@@ -96,11 +157,13 @@ public class MeetingServiceImpl implements MeetingService {
   public Meeting getsOrCreatesMeetingEntityByRoomId(UUID roomId, UserPrincipal currentUser) {
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
     return meetingRepository.getByRoomId(roomId.toString()).orElseGet(() -> {
-      Meeting meeting = meetingRepository.insert(Meeting.create()
-        .id(UUID.randomUUID().toString())
-        .roomId(roomId.toString()));
+      Meeting meeting = meetingRepository.insert(room.getName(),
+        MeetingType.PERMANENT,
+        roomId,
+        null
+      );
       roomService.setMeetingIntoRoom(room, meeting);
-      videoServerService.createMeeting(meeting.getId());
+      videoServerService.startMeeting(meeting.getId());
       eventDispatcher.sendToUserQueue(
         room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
         MeetingCreatedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
@@ -124,7 +187,7 @@ public class MeetingServiceImpl implements MeetingService {
   @Override
   public void deleteMeeting(Meeting meeting, Room room, UUID userId, @Nullable String sessionId) {
     meetingRepository.delete(meeting);
-    videoServerService.deleteMeeting(meeting.getId());
+    videoServerService.stopMeeting(meeting.getId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       MeetingDeletedEvent.create(userId, sessionId)

@@ -459,6 +459,7 @@ paths:
         - $ref: '#/components/parameters/headerDescription'
         - $ref: '#/components/parameters/headerMessageId'
         - $ref: '#/components/parameters/headerReplyId'
+        - $ref: '#/components/parameters/headerArea'
       requestBody:
         $ref: '#/components/requestBodies/InsertAttachmentRequest'
       responses:
@@ -667,7 +668,6 @@ components:
         type: string
         format: uuid
       required: true
-      allowEmptyValue: false
     pathFileId:
       in: path
       name: fileId
@@ -676,7 +676,6 @@ components:
         type: string
         format: uuid
       required: true
-      allowEmptyValue: false
     pathPreviewArea:
       in: path
       name: area
@@ -738,15 +737,13 @@ components:
         type: string
         format: uuid
       required: true
-      allowEmptyValue: false
     headerFileName:
       in: header
       name: fileName
-      description: file name
+      description: file name encoded to unicode
       schema:
         type: string
       required: true
-      allowEmptyValue: false
     headerMimeType:
       in: header
       name: mimeType
@@ -754,15 +751,13 @@ components:
       schema:
         type: string
       required: true
-      allowEmptyValue: false
     headerDescription:
       in: header
       name: description
-      description: description
+      description: description encoded to unicode
       schema:
         type: string
       required: false
-      allowEmptyValue: true
     headerMessageId:
       in: header
       name: messageId
@@ -770,7 +765,6 @@ components:
       schema:
         type: string
       required: false
-      allowEmptyValue: true
     headerReplyId:
       in: header
       name: replyId
@@ -778,7 +772,13 @@ components:
       schema:
         type: string
       required: false
-      allowEmptyValue: true
+    headerArea:
+      in: header
+      name: area
+      description: attachment's area
+      schema:
+        type: string
+      required: false
     queryPageItemsNumber:
       in: query
       name: itemsNumber
@@ -1393,6 +1393,10 @@ components:
           format: date-time
           readOnly: true
           description: creation date
+        area:
+          type: string
+          readOnly: true
+          description: attachment's area
       required: [ id, name, size, mimeType, userId, roomId ]
     AttachmentsPagination:
       type: object
@@ -1433,6 +1437,7 @@ components:
       enum:
         - Jpeg
         - Png
+        - Gif
       type: string
       description: Class representing all the image type accepted values
     ImageShapeEnum:

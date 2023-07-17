@@ -13,6 +13,7 @@ import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.MessageDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
+import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -61,14 +62,12 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
   @Override
   public void createRoom(Room room, String senderId) {
-    StringBuilder stringBuilder = new StringBuilder(
-      "mutation muc_light { muc_light { createRoom (" + String.format("mucDomain: \"%s\", ", DOMAIN) + String.format(
-        "id: \"%s\", ", room.getId()) + String.format("owner: \"%s\"", userIdToUserDomain(senderId)));
-    Optional.ofNullable(room.getName()).ifPresent(n -> stringBuilder.append(String.format(", name: \"%s\"", n)));
-    Optional.ofNullable(room.getDescription())
-      .ifPresent(d -> stringBuilder.append(String.format(", subject: \"%s\"", d)));
-    stringBuilder.append(") { jid } } }");
-    GraphQlResponse result = executeMutation(GraphQlBody.create(stringBuilder.toString(), "muc_light", Map.of()));
+    String query = "mutation muc_light { muc_light { createRoom ("
+      + String.format("mucDomain: \"%s\", ", DOMAIN)
+      + String.format("id: \"%s\", ", room.getId())
+      + String.format("owner: \"%s\"", userIdToUserDomain(senderId))
+      + ") { jid } } }";
+    GraphQlResponse result = executeMutation(GraphQlBody.create(query, "muc_light", Map.of()));
 
     if (result.errors != null) {
       try {
@@ -104,7 +103,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     GraphQlResponse result = sendStanza(
       XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
         .type(MessageType.ROOM_NAME_CHANGED)
-        .addConfig("value", name).build());
+        .addConfig("value", StringFormatUtils.encodeToUtf8(name), true).build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -120,7 +119,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
     GraphQlResponse result = sendStanza(
       XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
         .type(MessageType.ROOM_DESCRIPTION_CHANGED)
-        .addConfig("value", description).build());
+        .addConfig("value", StringFormatUtils.encodeToUtf8(description), true).build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -138,7 +137,8 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
       XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
         .type(MessageType.ROOM_PICTURE_UPDATED)
         .addConfig("picture-id", pictureId)
-        .addConfig("picture-name", pictureName).build());
+        .addConfig("picture-name", StringFormatUtils.encodeToUtf8(pictureName), true)
+        .build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -221,19 +221,22 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   @Override
   public void sendAttachment(
     String roomId, String senderId, FileMetadata metadata, String description, @Nullable String messageId,
-    @Nullable String replyId
+    @Nullable String replyId, @Nullable String area
   ) {
-    GraphQlResponse result = sendStanza(
-      XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-        .type(MessageType.ATTACHMENT_ADDED)
-        .addConfig("attachment-id", metadata.getId())
-        .addConfig("filename", metadata.getName())
-        .addConfig("mime-type", metadata.getMimeType())
-        .addConfig("size", String.valueOf(metadata.getOriginalSize()))
-        .body(description)
-        .messageId(messageId)
-        .replyId(replyId)
-        .build());
+    XmppMessageBuilder xmppMsgBuilder = XmppMessageBuilder.create(roomIdToRoomDomain(roomId),
+        userIdToUserDomain(senderId))
+      .type(MessageType.ATTACHMENT_ADDED)
+      .addConfig("attachment-id", metadata.getId())
+      .addConfig("filename", StringFormatUtils.encodeToUtf8(metadata.getName()), true)
+      .addConfig("mime-type", metadata.getMimeType())
+      .addConfig("size", String.valueOf(metadata.getOriginalSize()))
+      .body(description)
+      .messageId(messageId)
+      .replyId(replyId);
+    if (area != null) {
+      xmppMsgBuilder.addConfig("area", area);
+    }
+    GraphQlResponse result = sendStanza(xmppMsgBuilder.build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
@@ -281,7 +284,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
       xmppMessageBuilder
         .type(MessageType.ATTACHMENT_ADDED)
         .addConfig("attachment-id", metadata.getId())
-        .addConfig("filename", metadata.getName())
+        .addConfig("filename", StringFormatUtils.encodeToUtf8(metadata.getName()), true)
         .addConfig("mime-type", metadata.getMimeType())
         .addConfig("size", String.valueOf(metadata.getOriginalSize())));
     String xmppMessage = xmppMessageBuilder.build();
@@ -361,10 +364,6 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
 
     public List<Object> getErrors() {
       return errors;
-    }
-
-    public void setErrors(List<Object> errors) {
-      this.errors = errors;
     }
   }
 }

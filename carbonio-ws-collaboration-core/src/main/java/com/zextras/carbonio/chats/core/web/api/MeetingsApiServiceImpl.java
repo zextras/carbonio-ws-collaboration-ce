@@ -10,9 +10,12 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
+import com.zextras.carbonio.meeting.api.NotFoundException;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
+
 import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
 import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
@@ -66,6 +69,32 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     return Response.ok().entity(meetingService.getMeetingById(meetingId, currentUser)).build();
+  }
+
+  /**
+   *
+   * @param newMeetingDataDto data form creating a new meeting
+   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 200 and the requested meeting {@link MeetingDto} in the body
+   */
+  @Override
+  public Response createMeeting(NewMeetingDataDto newMeetingDataDto, SecurityContext securityContext){
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    if(newMeetingDataDto.getRoomId() == null && newMeetingDataDto.getUsers().isEmpty()){
+      return Response.status(Status.BAD_REQUEST).build();
+    } else {
+      return Response.ok(
+        meetingService.createMeeting(
+          currentUser,
+          newMeetingDataDto.getName(),
+          newMeetingDataDto.getMeetingType(),
+          newMeetingDataDto.getRoomId(),
+          newMeetingDataDto.getUsers(),
+          newMeetingDataDto.getExpiration()
+        )
+      ).build();
+    }
   }
 
   /**
@@ -142,6 +171,38 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     }
     participantService.updateVideoStream(meetingId, sessionId, videoStreamSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
+  }
+
+  /**
+   * Starts the meeting on the videoserver
+   *
+   * @param meetingId meeting identifier {@link UUID}
+   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 200 and the updated meeting {@link MeetingDto} in the body
+   */
+  @Override
+  public Response startMeeting(UUID meetingId, SecurityContext securityContext){
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    return Response.status(Status.OK)
+      .entity(meetingService.updateMeeting(currentUser, meetingId, true))
+      .build();
+  }
+
+  /**
+   * Stops the meeting on the videoserver
+   *
+   * @param meetingId meeting identifier {@link UUID}
+   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @return a response {@link Response) with status 200 and the updated meeting {@link MeetingDto} in the body
+   */
+  @Override
+  public Response stopMeeting(UUID meetingId, SecurityContext securityContext) throws NotFoundException {
+    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+      .orElseThrow(UnauthorizedException::new);
+    return Response.status(Status.OK)
+      .entity(meetingService.updateMeeting(currentUser, meetingId, false))
+      .build();
   }
 
   /**

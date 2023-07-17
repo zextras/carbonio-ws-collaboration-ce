@@ -10,12 +10,25 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.MeetingTypeDto;
+import com.zextras.carbonio.meeting.model.MeetingUserDto;
+
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
 public interface MeetingService {
+
+  MeetingDto createMeeting(UserPrincipal user,
+                           String name,
+                           MeetingTypeDto meetingType,
+                           UUID roomId,
+                           List<MeetingUserDto> users,
+                           OffsetDateTime expiration);
+
+  MeetingDto updateMeeting(UserPrincipal user, UUID meetingId, Boolean started);
 
   /**
    * Gets the meetings list of all rooms where the authenticated user is a member

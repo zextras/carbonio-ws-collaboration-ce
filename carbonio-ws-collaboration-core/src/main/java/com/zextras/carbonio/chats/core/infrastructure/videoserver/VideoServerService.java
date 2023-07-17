@@ -17,14 +17,14 @@ public interface VideoServerService extends HealthIndicator {
    *
    * @param meetingId meeting identifier
    */
-  void createMeeting(String meetingId);
+  void startMeeting(String meetingId);
 
   /**
    * Performs all the actions necessary to delete a 'meeting' on the VideoServer
    *
    * @param meetingId meeting identifier
    */
-  void deleteMeeting(String meetingId);
+  void stopMeeting(String meetingId);
 
   /**
    * Performs all the actions necessary to join a 'participant' in a 'meeting' on the VideoServer

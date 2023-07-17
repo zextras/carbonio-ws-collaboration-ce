@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockserver.model.HttpRequest.request;
+import static org.mockserver.model.HttpResponse.response;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,9 +20,11 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
+import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
+import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
@@ -32,6 +36,9 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
+import com.zextras.carbonio.meeting.model.MeetingTypeDto;
+import com.zextras.carbonio.meeting.model.MeetingUserDto;
+import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
 import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
 import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto.TypeEnum;
@@ -47,6 +54,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockserver.model.Header;
 
 @ApiIntegrationTest
 public class MeetingApiIT {
@@ -59,19 +67,25 @@ public class MeetingApiIT {
   private final IntegrationTestUtils      integrationTestUtils;
   private final UserManagementMockServer  userManagementMockServer;
   private final AppClock                  clock;
+  private final MongooseImMockServer      mongooseImMockServer;
+  private final RoomRepository            roomRepository;
 
   public MeetingApiIT(
     RoomsApi roomsApi, ResteasyRequestDispatcher dispatcher,
+    MongooseImMockServer mongooseImMockServer,
     MeetingRepository meetingRepository,
     ParticipantRepository participantRepository,
+    RoomRepository roomRepository,
     MeetingTestUtils meetingTestUtils,
     ObjectMapper objectMapper,
     IntegrationTestUtils integrationTestUtils,
     UserManagementMockServer userManagementMockServer, Clock clock
   ) {
     this.dispatcher = dispatcher;
+    this.mongooseImMockServer = mongooseImMockServer;
     this.meetingRepository = meetingRepository;
     this.participantRepository = participantRepository;
+    this.roomRepository = roomRepository;
     this.meetingTestUtils = meetingTestUtils;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
@@ -110,6 +124,147 @@ public class MeetingApiIT {
   }
 
   @Nested
+  @DisplayName("Create meeting tests")
+  class CreateMeetingTests {
+
+    private static final String URL = "/meetings";
+
+    @Test
+    @DisplayName("Create a meeting from a roomId")
+    void createMeetingRoom_testOk() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("room1")
+          .description("Room one"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+
+      MockHttpResponse response = dispatcher.post(URL,
+        objectMapper.writeValueAsString(
+          NewMeetingDataDto.create()
+            .name("test")
+            .meetingType(MeetingTypeDto.PERMANENT)
+            .roomId(room1Id)),
+        user1Token);
+      assertEquals(200, response.getStatus());
+      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
+      });
+      assertEquals(room1Id, meeting.getRoomId());
+      assertEquals(false, meeting.isActive());
+      assertEquals(MeetingTypeDto.PERMANENT, meeting.getMeetingType());
+      assertEquals("test", meeting.getName());
+    }
+
+    @Test
+    @DisplayName("Create a meeting from a list of Users")
+    void createMeetingUsers_testOk() throws Exception {
+      mongooseImMockServer
+        .when(request().withMethod("POST").withPath("/api/graphql")
+          .withHeaders(Header.header("Authorization", "Basic dXNlcm5hbWU6cGFzc3dvcmQ="))
+        )
+        .respond(response()
+          .withStatusCode(200)
+          .withBody("{ \"data\": { \"mock\": \"success\" } }")
+          .withHeaders(Header.header("Authorization", "Basic dXNlcm5hbWU6cGFzc3dvcmQ="),
+            Header.header("Accept", "application/json"))
+        );
+      MockHttpResponse response = dispatcher.post(URL,
+        objectMapper.writeValueAsString(
+          NewMeetingDataDto.create()
+            .name("test")
+            .meetingType(MeetingTypeDto.SCHEDULED)
+            .users(List.of(
+              MeetingUserDto.create().userId(user2Id),
+              MeetingUserDto.create().userId(user3Id)
+            ))
+        ),
+        user1Token);
+      assertEquals(200, response.getStatus());
+      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
+      });
+      assertEquals(false, meeting.isActive());
+      assertEquals(MeetingTypeDto.SCHEDULED, meeting.getMeetingType());
+      assertEquals("test", meeting.getName());
+    }
+
+    @Test
+    @DisplayName("Create a meeting Bad Request")
+    void createMeeting_testKO() throws Exception {
+      MockHttpResponse response = dispatcher.post(URL,
+        objectMapper.writeValueAsString(
+          NewMeetingDataDto.create()
+            .name("test")
+            .meetingType(MeetingTypeDto.SCHEDULED)
+        ),
+        user1Token);
+      assertEquals(400, response.getStatus());
+    }
+  }
+
+  @Nested
+  @DisplayName("Update meeting status")
+  class UpdateMeetingTests {
+
+    private String url(UUID meetingId) {
+      return String.format("/meetings/%s", meetingId);
+    }
+
+    @Test
+    @DisplayName("Start a meeting")
+      //TODO FIX this after removing the mock for video server
+    void startMeeting_testOk() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("room1")
+          .description("Room one"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+      UUID meeting1Id = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
+        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
+      MockHttpResponse response = dispatcher.post(url(meeting1Id) + "/start",
+        user1Token);
+      assertEquals(200, response.getStatus());
+      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
+      });
+      assertEquals(meeting1Id, meeting.getId());
+      assertEquals(true, meeting.isActive());
+    }
+
+    @Test
+    @DisplayName("Stop a meeting")
+      //TODO FIX this after removing the mock for video server
+    void stopMeeting_testOk() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("room1")
+          .description("Room one"),
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id),
+          RoomMemberField.create().id(user3Id)));
+      UUID meeting1Id = meetingTestUtils.generateAndSaveMeeting(room1Id,
+        List.of(
+          ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
+          ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
+          ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
+          ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)),
+        true,
+        null);
+      MockHttpResponse response = dispatcher.post(url(meeting1Id) + "/stop",
+        user1Token);
+      assertEquals(200, response.getStatus());
+      MeetingDto meeting = objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {
+      });
+      assertEquals(meeting1Id, meeting.getId());
+      assertEquals(false, meeting.isActive());
+    }
+  }
+
+  @Nested
   @DisplayName("List meetings tests")
   public class ListMeetingTests {
 
@@ -118,8 +273,6 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Correctly gets the meetings of authenticated user")
     public void listMeeting_testOk() throws Exception {
-      UUID meeting1Id = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
-      UUID meeting2Id = UUID.fromString("4b592aa4-0d04-46d5-8292-953e4ed4247e");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("room1")
           .description("Room one"),
@@ -141,12 +294,12 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meeting1Id, room1Id, List.of(
+      UUID meeting1Id = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
         ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
-      meetingTestUtils.generateAndSaveMeeting(meeting2Id, room2Id, List.of(
+      UUID meeting2Id = meetingTestUtils.generateAndSaveMeeting(room2Id, List.of(
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(true).videoStreamOn(false),
         ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(true)));
 
@@ -171,7 +324,6 @@ public class MeetingApiIT {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant.isPresent());
       assertEquals(user1Id, participant.get().getUserId());
-      assertEquals(user1session1, participant.get().getSessionId());
       assertTrue(participant.get().isVideoStreamEnabled());
       assertTrue(participant.get().isAudioStreamEnabled());
 
@@ -188,7 +340,6 @@ public class MeetingApiIT {
         .filter(p -> user2Id.equals(p.getUserId())).findAny();
       assertTrue(participant.isPresent());
       assertEquals(user2Id, participant.get().getUserId());
-      assertEquals(user2session1, participant.get().getSessionId());
       assertFalse(participant.get().isVideoStreamEnabled());
       assertTrue(participant.get().isAudioStreamEnabled());
     }
@@ -271,14 +422,13 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Given a meeting identifier, correctly returns the meeting information with participants")
     public void getMeetingById_testOk() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
@@ -303,7 +453,6 @@ public class MeetingApiIT {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals(user1session1, participant1.get().getSessionId());
       assertTrue(participant1.get().isVideoStreamEnabled());
       assertTrue(participant1.get().isAudioStreamEnabled());
     }
@@ -311,13 +460,12 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Given a meeting identifier, if the user doesn't have an associated room member then it returns a status code 403")
     public void getMeetingById_testUserIsNotRoomMember() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
         ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
@@ -358,14 +506,13 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Given a meeting identifier, correctly deletes the meeting and the participants")
     public void deleteMeetingById_testOk() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
@@ -383,13 +530,12 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Given a meeting identifier, if the user doesn't have an associated room member then it returns a status code 403")
     public void deleteMeetingById_testUserIsNotRoomMember() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
         ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
@@ -433,19 +579,18 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Given a meeting identifier, the authenticated user correctly joins to the meeting")
     public void joinMeeting_testOk() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
         ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
-      MockHttpResponse response = dispatcher.put(url(meetingId),
+      MockHttpResponse response = dispatcher.post(url(meetingId),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
         Map.of("session-id", user1session1), user1Token);
@@ -467,19 +612,18 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Given a meeting identifier, the authenticated user correctly joins to the meeting with another session")
     public void joinMeeting_testOkSameUserAnotherSession() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(true).videoStreamOn(false),
         ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
-      MockHttpResponse response = dispatcher.put(url(meetingId),
+      MockHttpResponse response = dispatcher.post(url(meetingId),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
         Map.of("session-id", user2session2), user2Token);
@@ -501,18 +645,17 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Given a meeting identifier, if the user doesn't have an associated room member then it returns a status code 403")
     public void joinMeeting_testUserIsNotRoomMember() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
         ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
-      MockHttpResponse response = dispatcher.put(url(meetingId),
+      MockHttpResponse response = dispatcher.post(url(meetingId),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
         Map.of("session-id", user1session1), user1Token);
@@ -523,7 +666,7 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Given a meeting identifier, if the meeting doesn't exist then it returns a status code 404")
     public void joinMeeting_testMeetingNotExists() throws Exception {
-      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
+      MockHttpResponse response = dispatcher.post(url(UUID.randomUUID()),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
         Map.of("session-id", user1session1), user1Token);
@@ -535,7 +678,7 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Given a meeting identifier, if the user isn’t authenticated then it returns a status code 401")
     public void joinMeeting_testErrorUnauthenticatedUser() throws Exception {
-      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
+      MockHttpResponse response = dispatcher.post(url(UUID.randomUUID()),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
         Map.of("session-id", user1session1), null);
@@ -556,21 +699,20 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Given a meeting identifier, the authenticated user correctly leaves the meeting")
     public void leaveMeeting_testOk() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
         ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher
-        .put(url(meetingId), (String) null, Map.of("session-id", user2session2), user2Token);
+        .post(url(meetingId), (String) null, Map.of("session-id", user2session2), user2Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -585,18 +727,17 @@ public class MeetingApiIT {
     @DisplayName("Given a meeting identifier, " +
       "the authenticated user correctly leaves the meeting as last participant and the meeting is closed")
     public void leaveMeeting_testOkLastParticipant() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       Room room = integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
       integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
       MockHttpResponse response = dispatcher
-        .put(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);
+        .post(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);
 
       assertTrue(meetingTestUtils.getMeetingById(meetingId).isEmpty());
       assertNull(integrationTestUtils.getRoomById(room1Id).orElseThrow().getMeetingId());
@@ -609,20 +750,19 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Given a meeting identifier, if the authenticated user isn't a meeting participant then it returns a status code 404")
     public void leaveMeeting_testIsNotMeetingParticipant() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
         ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher
-        .put(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);
+        .post(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -631,7 +771,7 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Given a meeting identifier, if the meeting doesn't exist then it returns a status code 404")
     public void leaveMeeting_testMeetingNotExists() throws Exception {
-      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
+      MockHttpResponse response = dispatcher.post(url(UUID.randomUUID()),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
         Map.of("session-id", user1session1), user1Token);
@@ -643,7 +783,7 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Given a meeting identifier, if the user isn’t authenticated then it returns a status code 401")
     public void leaveMeeting_testErrorUnauthenticatedUser() throws Exception {
-      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()),
+      MockHttpResponse response = dispatcher.post(url(UUID.randomUUID()),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
         Map.of("session-id", user1session1), null);
@@ -664,11 +804,10 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Video stream correctly enabled for the current session and it returns a status code 204")
     public void enableVideoStream_testOkEnableWithSessionEqualToCurrent() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id,
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id,
         List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
@@ -686,12 +825,11 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If video stream is already enabled for the current session, correctly it ignores and returns a status code 204")
     public void enableVideoStream_testOkVideoStreamAlreadyEnabledWithSessionEqualToCurrent() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
@@ -709,13 +847,12 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If the requested session isn't in the meeting participants, it returns a status code 404")
     public void enableVideoStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
@@ -774,12 +911,11 @@ public class MeetingApiIT {
     @Test
     @DisplayName("It disables the video stream for the current session and returns a status code 204")
     public void disableVideoStream_testOkDisableWithSessionEqualToCurrent() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
@@ -796,12 +932,11 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If video stream is already disabled for the current session, correctly it ignores and returns a status code 204")
     public void disableVideoStream_testOkVideoStreamAlreadyDisabledWithSessionEqualToCurrent() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
@@ -818,13 +953,12 @@ public class MeetingApiIT {
     @Test
     @DisplayName("It disables the video stream for another session and returns a status code 204")
     public void disableVideoStream_testOkDisableWithAnotherSession() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true)));
 
@@ -842,13 +976,12 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If video stream is already disabled for another session, correctly it ignores and it returns a status code 204")
     public void disableVideoStream_testOkVideoStreamAlreadyDisabledWithAnotherSession() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(false)));
 
@@ -866,13 +999,12 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If current user isn't a room owner, it returns a status code 403")
     public void disableVideoStream_testErrorCurrentUserNotRoomOwner() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id),
           RoomMemberField.create().id(user2Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(false)));
 
@@ -888,11 +1020,10 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If the requested session isn't in the meeting participants, it returns a status code 404")
     public void disableVideoStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id,
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id,
         List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
@@ -940,11 +1071,10 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Audio stream correctly enabled for the current session and it returns a status code 204")
     public void enableAudioStream_testOkEnableWithSessionEqualToCurrent() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id,
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id,
         List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(false).videoStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
@@ -961,12 +1091,11 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If audio stream is already enabled for the current session, correctly it ignores and returns a status code 204")
     public void enableAudioStream_testOkAudioStreamAlreadyEnabledWithSessionEqualToCurrent() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
@@ -983,13 +1112,12 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If the requested session isn't in the meeting participants, it returns a status code 404")
     public void enableAudioStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
@@ -1047,12 +1175,11 @@ public class MeetingApiIT {
     @Test
     @DisplayName("It disables the audio stream for the current session and returns a status code 204")
     public void disableAudioStream_testOkDisableWithSessionEqualToCurrent() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
@@ -1069,12 +1196,11 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If audio stream is already disabled for the current session, correctly it ignores and returns a status code 204")
     public void disableAudioStream_testOkAudioStreamAlreadyDisabledWithSessionEqualToCurrent() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
@@ -1091,13 +1217,12 @@ public class MeetingApiIT {
     @Test
     @DisplayName("It disables the audio stream for another session and returns a status code 204")
     public void disableAudioStream_testOkDisableWithAnotherSession() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(true).videoStreamOn(false)));
 
@@ -1115,13 +1240,12 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If audio stream is already disabled for another session, correctly it ignores and it returns a status code 204")
     public void disableAudioStream_testOkAudioStreamAlreadyDisabledWithAnotherSession() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(false)));
 
@@ -1139,13 +1263,12 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If current user isn't a room owner, it returns a status code 403")
     public void disableAudioStream_testErrorCurrentUserNotRoomOwner() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id),
           RoomMemberField.create().id(user2Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(false)));
 
@@ -1161,11 +1284,10 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If the requested session isn't in the meeting participants, it returns a status code 404")
     public void disableAudioStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id,
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id,
         List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
@@ -1213,11 +1335,10 @@ public class MeetingApiIT {
     @Test
     @DisplayName("Screen stream correctly enabled for the current session and it returns a status code 204")
     public void enableScreenStream_testOkEnableWithSessionEqualToCurrent() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id,
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id,
         List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
@@ -1236,12 +1357,11 @@ public class MeetingApiIT {
     @DisplayName("If screen stream is already enabled for the current session, correctly it ignores and returns a status code 204")
     public void enableScreenStream_testOkScreenStreamAlreadyEnabledWithSessionEqualToCurrent()
       throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
@@ -1259,13 +1379,12 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If the requested session isn't in the meeting participants, it returns a status code 404")
     public void enableScreenStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).screenStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
@@ -1324,12 +1443,11 @@ public class MeetingApiIT {
     @Test
     @DisplayName("It disables the screen stream for the current session and returns a status code 204")
     public void disableScreenStream_testOkDisableWithSessionEqualToCurrent() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
@@ -1347,12 +1465,11 @@ public class MeetingApiIT {
     @DisplayName("If screen stream is already disabled for the current session, correctly it ignores and returns a status code 204")
     public void disableScreenStream_testOkScreenStreamAlreadyDisabledWithSessionEqualToCurrent()
       throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
@@ -1369,13 +1486,12 @@ public class MeetingApiIT {
     @Test
     @DisplayName("It disables the screen stream for another session and returns a status code 204")
     public void disableScreenStream_testOkDisableWithAnotherSession() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).screenStreamOn(true)));
 
@@ -1393,13 +1509,12 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If screen stream is already disabled for another session, correctly it ignores and it returns a status code 204")
     public void disableScreenStream_testOkScreenStreamAlreadyDisabledWithAnotherSession() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).screenStreamOn(false)));
 
@@ -1417,13 +1532,12 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If current user isn't a room owner, it returns a status code 403")
     public void disableScreenStream_testErrorCurrentUserNotRoomOwner() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
           RoomMemberField.create().id(user1Id),
           RoomMemberField.create().id(user2Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id, List.of(
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
         ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).screenStreamOn(false)));
 
@@ -1439,11 +1553,10 @@ public class MeetingApiIT {
     @Test
     @DisplayName("If the requested session isn't in the meeting participants, it returns a status code 404")
     public void disableScreenStream_testErrorSessionNotFoundInMeetingParticipants() throws Exception {
-      UUID meetingId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
-      meetingTestUtils.generateAndSaveMeeting(meetingId, room1Id,
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id,
         List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
