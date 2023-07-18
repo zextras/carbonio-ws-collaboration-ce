@@ -103,7 +103,7 @@ public interface MessageDispatcher extends HealthIndicator {
    */
   void sendAttachment(
     String roomId, String senderId, FileMetadata metadata, String description, @Nullable String messageId,
-    @Nullable String replyId
+    @Nullable String replyId, @Nullable String area
   );
 
   /**

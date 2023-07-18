@@ -34,6 +34,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.core.Response;
@@ -153,7 +154,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .build();
   }
 
-  @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response updateRoomPicture(
     UUID roomId, String headerFileName, String headerMimeType, File body, SecurityContext securityContext
@@ -301,10 +301,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       .entity(attachmentService.getAttachmentInfoByRoomId(roomId, itemsNumber, filter, currentUser)).build();
   }
 
+  @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response insertAttachment(
     UUID roomId, String fileName, String mimeType, File body, String description, String messageId, String replyId,
-    SecurityContext securityContext
+    String area, SecurityContext securityContext
   ) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
@@ -321,17 +322,23 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     } catch (UnsupportedEncodingException e) {
       throw new BadRequestException("Unable to decode the description", e);
     }
-    return Response
-      .status(Status.CREATED)
-      .entity(attachmentService.addAttachment(
-        roomId,
-        body,
-        Optional.of(mimeType).orElseThrow(() -> new BadRequestException("Mime type not found")),
-        name,
-        desc,
-        "".equals(messageId) ? null : messageId,
-        "".equals(replyId) ? null : replyId, currentUser))
-      .build();
+    if (area == null || Pattern.compile("^(\\s)|^\\w|^\\d*+x+\\d*").matcher(area).matches()) {
+      return Response
+        .status(Status.CREATED)
+        .entity(attachmentService.addAttachment(
+          roomId,
+          body,
+          Optional.of(mimeType).orElseThrow(() -> new BadRequestException("Mime type not found")),
+          name,
+          desc,
+          "".equals(messageId) ? null : messageId,
+          "".equals(replyId) ? null : replyId,
+          "".equals(area) ? null : area,
+          currentUser))
+        .build();
+    } else {
+      return Response.status(Status.BAD_REQUEST).build();
+    }
   }
 
   /**

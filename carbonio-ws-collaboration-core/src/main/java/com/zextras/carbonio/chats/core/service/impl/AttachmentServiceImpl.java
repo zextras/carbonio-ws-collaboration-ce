@@ -131,7 +131,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   @Transactional
   public IdDto addAttachment(
     UUID roomId, File file, String mimeType, String fileName, String description,
-    @Nullable String messageId, @Nullable String replyId, UserPrincipal currentUser
+    @Nullable String messageId, @Nullable String replyId,  @Nullable String area, UserPrincipal currentUser
   ) {
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
     if (List.of(RoomTypeDto.WORKSPACE, RoomTypeDto.CHANNEL).contains(room.getType())) {
@@ -148,7 +148,8 @@ public class AttachmentServiceImpl implements AttachmentService {
       .roomId(roomId.toString());
     metadata = fileMetadataRepository.save(metadata);
     storagesService.saveFile(file, metadata, currentUser.getId());
-    messageDispatcher.sendAttachment(roomId.toString(), currentUser.getId(), metadata, description, messageId, replyId);
+    messageDispatcher.sendAttachment(roomId.toString(), currentUser.getId(), metadata, description, messageId, replyId,
+      area);
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       AttachmentAddedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
