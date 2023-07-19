@@ -76,7 +76,7 @@ paths:
         - $ref: '#/components/parameters/pathMeetingId'
       responses:
         204:
-          $ref: '#/components/responses/204StartMeetingResponse'
+          $ref: '#/components/responses/200StartMeetingResponse'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
         403:
@@ -93,7 +93,7 @@ paths:
         - $ref: '#/components/parameters/pathMeetingId'
       responses:
         204:
-          $ref: '#/components/responses/204StopMeetingResponse'
+          $ref: '#/components/responses/200StopMeetingResponse'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
         403:
@@ -349,10 +349,18 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Meeting'
-    204StartMeetingResponse:
+    200StartMeetingResponse:
       description: The meeting was started successfully
-    204StopMeetingResponse:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Meeting'
+    200StopMeetingResponse:
       description: The meeting was stopped successfully
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Meeting'
     204DeleteMeetingResponse:
       description: The meeting was deleted successfully
     204JoinMeetingResponse:
