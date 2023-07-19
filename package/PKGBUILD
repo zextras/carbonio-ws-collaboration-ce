@@ -4,7 +4,7 @@ targets=(
 )
 pkgname="carbonio-ws-collaboration-ce"
 pkgver="0.3.2"
-pkgrel="2"
+pkgrel="1"
 pkgdesc="Workstream Collaboration for Carbonio CE"
 pkgdesclong=(
    "Workstream Collaboration for Carbonio CE"
