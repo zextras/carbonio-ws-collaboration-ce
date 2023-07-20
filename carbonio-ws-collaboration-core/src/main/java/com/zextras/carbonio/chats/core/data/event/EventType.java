@@ -32,7 +32,8 @@ public enum EventType implements EventTypeDescription {
   MEETING_AUDIO_STREAM_ENABLED("meetingAudioStreamEnabled"),
   MEETING_AUDIO_STREAM_DISABLED("meetingAudioStreamDisabled"),
   MEETING_SCREEN_STREAM_ENABLED("meetingScreenStreamEnabled"),
-  MEETING_SCREEN_STREAM_DISABLED("meetingScreenStreamDisabled");
+  MEETING_SCREEN_STREAM_DISABLED("meetingScreenStreamDisabled"),
+  MEETING_MEDIA_STREAM_CHANGED("meetingMediaStreamChanged");
 
   private final String description;
 

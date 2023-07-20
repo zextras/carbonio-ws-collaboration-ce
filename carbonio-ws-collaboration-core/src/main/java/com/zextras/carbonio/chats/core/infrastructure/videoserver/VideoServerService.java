@@ -5,10 +5,8 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver;
 
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
-import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
-import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
+import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
-import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
 
 public interface VideoServerService extends HealthIndicator {
 
@@ -54,31 +52,22 @@ public interface VideoServerService extends HealthIndicator {
   void updateAudioStream(String sessionId, String meetingId, boolean enabled);
 
   /**
-   * Updates the video stream status for the user's session in the meeting
+   * Updates the media stream status for the user's session in the meeting
    *
    * @param sessionId              participant's session identifier
    * @param meetingId              identification of the meeting on which to perform the operation
-   * @param videoStreamSettingsDto user settings request to update the video stream status
+   * @param mediaStreamSettingsDto user settings request to update the media stream status
    */
-  void updateVideoStream(String sessionId, String meetingId, VideoStreamSettingsDto videoStreamSettingsDto);
-
-  /**
-   * Updates the screen stream for the user's session in the meeting
-   *
-   * @param sessionId               participant's session identifier
-   * @param meetingId               identification of the meeting on which to perform the operation
-   * @param screenStreamSettingsDto user settings request to update the screen stream status
-   */
-  void updateScreenStream(String sessionId, String meetingId, ScreenStreamSettingsDto screenStreamSettingsDto);
+  void updateMediaStream(String sessionId, String meetingId, MediaStreamSettingsDto mediaStreamSettingsDto);
 
   /**
    * Completes WebRTC negotiation with VideoServer for the PeerConnection setup related to media stream.
    *
-   * @param sessionId                participant's session identifier
-   * @param meetingId                identification of the meeting on which to perform the operation
-   * @param rtcSessionDescriptionDto the offer rtc session description
+   * @param sessionId participant's session identifier
+   * @param meetingId identification of the meeting on which to perform the operation
+   * @param sdp       the offer rtc session description
    */
-  void answerRtcMediaStream(String sessionId, String meetingId, RtcSessionDescriptionDto rtcSessionDescriptionDto);
+  void answerRtcMediaStream(String sessionId, String meetingId, String sdp);
 
   /**
    * Update subscriptions of the current session to the desired media streams
@@ -93,9 +82,9 @@ public interface VideoServerService extends HealthIndicator {
   /**
    * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to audio stream.
    *
-   * @param sessionId                participant's session identifier
-   * @param meetingId                identification of the meeting on which to perform the operation
-   * @param rtcSessionDescriptionDto the offer rtc session description
+   * @param sessionId participant's session identifier
+   * @param meetingId identification of the meeting on which to perform the operation
+   * @param sdp       the offer rtc session description
    */
-  void offerRtcAudioStream(String sessionId, String meetingId, RtcSessionDescriptionDto rtcSessionDescriptionDto);
+  void offerRtcAudioStream(String sessionId, String meetingId, String sdp);
 }
