@@ -7,43 +7,23 @@ package com.zextras.carbonio.chats.core.data.event;
 
 import java.time.OffsetDateTime;
 import java.util.Objects;
-import java.util.UUID;
-import javax.annotation.Nullable;
 
 public class DomainEvent {
 
-  private UUID                 id;
-  private EventTypeDescription eventTypeDescription;
-  private UUID                 from;
-  private String               sessionId;
+  private EventType eventType;
   private OffsetDateTime       sentDate;
 
-  public DomainEvent(EventTypeDescription eventTypeDescription, UUID from, @Nullable String sessionId) {
-    this.id = UUID.randomUUID();
-    this.eventTypeDescription = eventTypeDescription;
-    this.sessionId = sessionId;
+  public DomainEvent(EventType eventType) {
+    this.eventType = eventType;
     this.sentDate = OffsetDateTime.now();
-    this.from = from;
   }
 
-  public UUID getId() {
-    return id;
-  }
-
-  public EventTypeDescription getType() {
-    return eventTypeDescription;
+  public EventType getType() {
+    return eventType;
   }
 
   public OffsetDateTime getSentDate() {
     return sentDate;
-  }
-
-  public UUID getFrom() {
-    return from;
-  }
-
-  public String getSessionId() {
-    return sessionId;
   }
 
   @Override
@@ -55,13 +35,11 @@ public class DomainEvent {
       return false;
     }
     DomainEvent that = (DomainEvent) o;
-    return Objects.equals(getType(), that.getType()) &&
-      Objects.equals(getFrom(), that.getFrom()) &&
-      Objects.equals(getSessionId(), that.getSessionId());
+    return Objects.equals(getType(), that.getType());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getType(), getFrom(), getSessionId());
+    return Objects.hash(getType());
   }
 }
