@@ -22,12 +22,10 @@ import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamEnabled;
+import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoinedEvent;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeftEvent;
-import com.zextras.carbonio.chats.core.data.event.MeetingScreenStreamDisabled;
-import com.zextras.carbonio.chats.core.data.event.MeetingScreenStreamEnabled;
 import com.zextras.carbonio.chats.core.data.event.MeetingVideoStreamDisabled;
-import com.zextras.carbonio.chats.core.data.event.MeetingVideoStreamEnabled;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
@@ -35,6 +33,7 @@ import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
@@ -43,11 +42,9 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
+import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
+import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
 import com.zextras.carbonio.meeting.model.MeetingDto;
-import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
-import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto.TypeEnum;
-import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -370,9 +367,8 @@ public class ParticipantServiceImplTest {
     public void enableVideoStream_testOkEnableWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      participantService.updateVideoStream(meeting1Id, user1Session1,
-        VideoStreamSettingsDto.create().enabled(true).rtcSessionDescription(
-          RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp")),
+      participantService.updateMediaStream(meeting1Id, user1Session1,
+        MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp"),
         UserPrincipal.create(user1Id).sessionId(user1Session1));
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
@@ -380,11 +376,10 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user1Session1).userId(user1Id).videoStreamOn(true)
           .screenStreamOn(false).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingVideoStreamEnabled.create(user1Id, user1Session1).meetingId(meeting1Id)
-          .sessionId(user1Session1));
-      verify(videoServerService, times(1)).updateVideoStream(user1Session1, meeting1Id.toString(),
-        VideoStreamSettingsDto.create().enabled(true)
-          .rtcSessionDescription(RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp")));
+        MeetingMediaStreamChanged.create(user1Id, user1Session1).meetingId(meeting1Id).sessionId(user1Session1)
+          .mediaType(MediaType.VIDEO).active(true));
+      verify(videoServerService, times(1)).updateMediaStream(user1Session1, meeting1Id.toString(),
+        MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp"));
 
       verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
       verifyNoInteractions(roomService);
@@ -395,9 +390,8 @@ public class ParticipantServiceImplTest {
     public void enableVideoStream_testOkVideoStreamAlreadyEnabledWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      participantService.updateVideoStream(meeting1Id, user2Session2,
-        VideoStreamSettingsDto.create().enabled(true).rtcSessionDescription(
-          RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp")),
+      participantService.updateMediaStream(meeting1Id, user2Session2,
+        MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp"),
         UserPrincipal.create(user2Id).sessionId(user2Session2));
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
@@ -411,15 +405,14 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
-        participantService.updateVideoStream(meeting1Id, user2Session2,
-          VideoStreamSettingsDto.create().enabled(true).rtcSessionDescription(
-            RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp")),
+        participantService.updateMediaStream(meeting1Id, user2Session2,
+          MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp"),
           UserPrincipal.create(user1Id).sessionId(user1Session1)));
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
-        String.format("Bad Request - User '%s' cannot enable the video stream of the session '%s'", user1Id,
+        String.format("Bad Request - User '%s' cannot enable the media stream of the session '%s'", user1Id,
           user2Session2),
         exception.getMessage());
 
@@ -434,9 +427,8 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        participantService.updateVideoStream(meeting1Id, user3Session1,
-          VideoStreamSettingsDto.create().enabled(true).rtcSessionDescription(
-            RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp")),
+        participantService.updateMediaStream(meeting1Id, user3Session1,
+          MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp"),
           UserPrincipal.create(user1Id).sessionId(user1Session1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
@@ -456,9 +448,8 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.empty());
 
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        participantService.updateVideoStream(meeting1Id, user3Session1,
-          VideoStreamSettingsDto.create().enabled(true).rtcSessionDescription(
-            RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp")),
+        participantService.updateMediaStream(meeting1Id, user3Session1,
+          MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp"),
           UserPrincipal.create(user1Id).sessionId(user1Session1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
@@ -482,18 +473,19 @@ public class ParticipantServiceImplTest {
     public void disableVideoStream_testOkDisableWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      participantService.updateVideoStream(meeting1Id, user2Session2,
-        VideoStreamSettingsDto.create().enabled(false), UserPrincipal.create(user2Id).sessionId(user2Session2));
+      participantService.updateMediaStream(meeting1Id, user2Session2,
+        MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false),
+        UserPrincipal.create(user2Id).sessionId(user2Session2));
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(participantRepository, times(1)).update(
         ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id).videoStreamOn(false)
           .audioStreamOn(true).screenStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingVideoStreamDisabled.create(user2Id, user2Session2).meetingId(meeting1Id)
-          .sessionId(user2Session2));
-      verify(videoServerService, times(1)).updateVideoStream(user2Session2, meeting1Id.toString(),
-        VideoStreamSettingsDto.create().enabled(false));
+        MeetingMediaStreamChanged.create(user2Id, user2Session2).meetingId(meeting1Id).sessionId(user2Session2)
+          .mediaType(MediaType.VIDEO).active(false));
+      verify(videoServerService, times(1)).updateMediaStream(user2Session2, meeting1Id.toString(),
+        MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false));
       verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
       verifyNoInteractions(roomService);
     }
@@ -503,8 +495,9 @@ public class ParticipantServiceImplTest {
     public void disableVideoStream_testOkVideoStreamAlreadyDisabledWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      participantService.updateVideoStream(meeting1Id, user1Session1,
-        VideoStreamSettingsDto.create().enabled(false), UserPrincipal.create(user1Id).sessionId(user1Session1));
+      participantService.updateMediaStream(meeting1Id, user1Session1,
+        MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false),
+        UserPrincipal.create(user1Id).sessionId(user1Session1));
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verifyNoMoreInteractions(meetingService);
@@ -517,8 +510,8 @@ public class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).sessionId(user1Session1);
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      participantService.updateVideoStream(meeting1Id, user2Session2, VideoStreamSettingsDto.create().enabled(false),
-        currentUser);
+      participantService.updateMediaStream(meeting1Id, user2Session2,
+        MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false), currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, true);
@@ -526,10 +519,10 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id).videoStreamOn(false)
           .audioStreamOn(true).screenStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingVideoStreamDisabled.create(user1Id, user1Session1).meetingId(meeting1Id)
-          .sessionId(user2Session2));
-      verify(videoServerService, times(1)).updateVideoStream(user2Session2, meeting1Id.toString(),
-        VideoStreamSettingsDto.create().enabled(false));
+        MeetingMediaStreamChanged.create(user1Id, user1Session1).meetingId(meeting1Id).sessionId(user2Session2)
+          .mediaType(MediaType.VIDEO).active(false));
+      verify(videoServerService, times(1)).updateMediaStream(user2Session2, meeting1Id.toString(),
+        MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false));
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, eventDispatcher, videoServerService);
     }
 
@@ -539,8 +532,8 @@ public class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).sessionId(user1Session1);
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      participantService.updateVideoStream(meeting1Id, user2Session1, VideoStreamSettingsDto.create().enabled(false),
-        currentUser);
+      participantService.updateMediaStream(meeting1Id, user2Session1,
+        MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false), currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, true);
@@ -554,8 +547,9 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        participantService.updateVideoStream(meeting1Id, user3Session1,
-          VideoStreamSettingsDto.create().enabled(false), UserPrincipal.create(user1Id).sessionId(user1Session1)));
+        participantService.updateMediaStream(meeting1Id, user3Session1,
+          MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false),
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -574,8 +568,9 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.empty());
 
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        participantService.updateVideoStream(meeting1Id, user3Session1,
-          VideoStreamSettingsDto.create().enabled(false), UserPrincipal.create(user1Id).sessionId(user1Session1)));
+        participantService.updateMediaStream(meeting1Id, user3Session1,
+          MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false),
+          UserPrincipal.create(user1Id).sessionId(user1Session1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -814,8 +809,8 @@ public class ParticipantServiceImplTest {
     public void enableScreenStream_testOkEnableWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      participantService.updateScreenStream(meeting1Id, user1Session1, ScreenStreamSettingsDto.create().enabled(true)
-          .rtcSessionDescription(RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp")),
+      participantService.updateMediaStream(meeting1Id, user1Session1,
+        MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp"),
         UserPrincipal.create(user1Id).sessionId(user1Session1));
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
@@ -823,11 +818,10 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user1Session1).userId(user1Id).screenStreamOn(true)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingScreenStreamEnabled.create(user1Id, user1Session1).meetingId(meeting1Id)
-          .sessionId(user1Session1));
-      verify(videoServerService, times(1)).updateScreenStream(user1Session1, meeting1Id.toString(),
-        ScreenStreamSettingsDto.create().enabled(true)
-          .rtcSessionDescription(RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp")));
+        MeetingMediaStreamChanged.create(user1Id, user1Session1).meetingId(meeting1Id).sessionId(user1Session1)
+          .mediaType(MediaType.SCREEN).active(true));
+      verify(videoServerService, times(1)).updateMediaStream(user1Session1, meeting1Id.toString(),
+        MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp"));
 
       verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
       verifyNoInteractions(roomService);
@@ -838,8 +832,8 @@ public class ParticipantServiceImplTest {
     public void enableScreenStream_testOkScreenStreamAlreadyEnabledWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      participantService.updateScreenStream(meeting1Id, user2Session2, ScreenStreamSettingsDto.create().enabled(true)
-          .rtcSessionDescription(RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp")),
+      participantService.updateMediaStream(meeting1Id, user2Session2,
+        MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp"),
         UserPrincipal.create(user2Id).sessionId(user2Session2));
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
@@ -853,14 +847,14 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
-        participantService.updateScreenStream(meeting1Id, user2Session2, ScreenStreamSettingsDto.create().enabled(true)
-            .rtcSessionDescription(RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp")),
+        participantService.updateMediaStream(meeting1Id, user2Session2,
+          MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp"),
           UserPrincipal.create(user1Id).sessionId(user1Session1)));
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
-        String.format("Bad Request - User '%s' cannot enable the screen stream of the session '%s'", user1Id,
+        String.format("Bad Request - User '%s' cannot enable the media stream of the session '%s'", user1Id,
           user2Session2),
         exception.getMessage());
 
@@ -875,8 +869,8 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        participantService.updateScreenStream(meeting1Id, user3Session1, ScreenStreamSettingsDto.create().enabled(true)
-            .rtcSessionDescription(RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp")),
+        participantService.updateMediaStream(meeting1Id, user3Session1,
+          MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp"),
           UserPrincipal.create(user1Id).sessionId(user1Session1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
@@ -896,8 +890,8 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.empty());
 
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        participantService.updateScreenStream(meeting1Id, user3Session1, ScreenStreamSettingsDto.create().enabled(true)
-            .rtcSessionDescription(RtcSessionDescriptionDto.create().type(TypeEnum.OFFER).sdp("sdp")),
+        participantService.updateMediaStream(meeting1Id, user3Session1,
+          MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp"),
           UserPrincipal.create(user1Id).sessionId(user1Session1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
@@ -921,7 +915,8 @@ public class ParticipantServiceImplTest {
     public void disableScreenStream_testOkDisableWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      participantService.updateScreenStream(meeting1Id, user2Session2, ScreenStreamSettingsDto.create().enabled(false),
+      participantService.updateMediaStream(meeting1Id, user2Session2,
+        MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false),
         UserPrincipal.create(user2Id).sessionId(user2Session2));
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
@@ -929,10 +924,10 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id).screenStreamOn(false)
           .audioStreamOn(true).videoStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingScreenStreamDisabled.create(user2Id, user2Session2).meetingId(meeting1Id)
-          .sessionId(user2Session2));
-      verify(videoServerService, times(1)).updateScreenStream(user2Session2, meeting1Id.toString(),
-        ScreenStreamSettingsDto.create().enabled(false));
+        MeetingMediaStreamChanged.create(user2Id, user2Session2).meetingId(meeting1Id).sessionId(user2Session2)
+          .mediaType(MediaType.SCREEN).active(false));
+      verify(videoServerService, times(1)).updateMediaStream(user2Session2, meeting1Id.toString(),
+        MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false));
       verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
       verifyNoInteractions(roomService);
     }
@@ -942,7 +937,8 @@ public class ParticipantServiceImplTest {
     public void disableScreenStream_testOkScreenStreamAlreadyDisabledWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      participantService.updateScreenStream(meeting1Id, user1Session1, ScreenStreamSettingsDto.create().enabled(false),
+      participantService.updateMediaStream(meeting1Id, user1Session1,
+        MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false),
         UserPrincipal.create(user1Id).sessionId(user1Session1));
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
@@ -956,8 +952,8 @@ public class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).sessionId(user1Session1);
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      participantService.updateScreenStream(meeting1Id, user2Session2, ScreenStreamSettingsDto.create().enabled(false),
-        currentUser);
+      participantService.updateMediaStream(meeting1Id, user2Session2,
+        MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false), currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, true);
@@ -965,10 +961,10 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id).screenStreamOn(false)
           .audioStreamOn(true).videoStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingScreenStreamDisabled.create(user1Id, user1Session1).meetingId(meeting1Id)
-          .sessionId(user2Session2));
-      verify(videoServerService, times(1)).updateScreenStream(user2Session2, meeting1Id.toString(),
-        ScreenStreamSettingsDto.create().enabled(false));
+        MeetingMediaStreamChanged.create(user1Id, user1Session1).meetingId(meeting1Id).sessionId(user2Session2)
+          .mediaType(MediaType.SCREEN).active(false));
+      verify(videoServerService, times(1)).updateMediaStream(user2Session2, meeting1Id.toString(),
+        MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false));
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, eventDispatcher, videoServerService);
     }
 
@@ -978,8 +974,8 @@ public class ParticipantServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).sessionId(user1Session1);
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      participantService.updateScreenStream(meeting1Id, user2Session1, ScreenStreamSettingsDto.create().enabled(false),
-        currentUser);
+      participantService.updateMediaStream(meeting1Id, user2Session1,
+        MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false), currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, true);
@@ -993,8 +989,8 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        participantService.updateScreenStream(meeting1Id, user3Session1,
-          ScreenStreamSettingsDto.create().enabled(false),
+        participantService.updateMediaStream(meeting1Id, user3Session1,
+          MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false),
           UserPrincipal.create(user1Id).sessionId(user1Session1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
@@ -1014,8 +1010,8 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.empty());
 
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        participantService.updateScreenStream(meeting1Id, user3Session1,
-          ScreenStreamSettingsDto.create().enabled(false),
+        participantService.updateMediaStream(meeting1Id, user3Session1,
+          MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false),
           UserPrincipal.create(user1Id).sessionId(user1Session1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());

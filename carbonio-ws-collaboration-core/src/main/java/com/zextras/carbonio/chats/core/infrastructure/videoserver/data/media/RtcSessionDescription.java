@@ -10,20 +10,20 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class Jsep {
+public class RtcSessionDescription {
 
-  private String type;
-  private String sdp;
+  private RtcType type;
+  private String  sdp;
 
-  public static Jsep create() {
-    return new Jsep();
+  public static RtcSessionDescription create() {
+    return new RtcSessionDescription();
   }
 
-  public String getType() {
+  public RtcType getType() {
     return type;
   }
 
-  public Jsep type(String type) {
+  public RtcSessionDescription type(RtcType type) {
     this.type = type;
     return this;
   }
@@ -32,7 +32,7 @@ public class Jsep {
     return sdp;
   }
 
-  public Jsep sdp(String sdp) {
+  public RtcSessionDescription sdp(String sdp) {
     this.sdp = sdp;
     return this;
   }

@@ -12,22 +12,18 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class Feed {
 
-  private Type   type;
-  private String sessionId;
+  private MediaType type;
+  private String    sessionId;
 
   public static Feed create() {
     return new Feed();
   }
 
-  public enum Type {
-    VIDEO, SCREEN
-  }
-
-  public Type getType() {
+  public MediaType getType() {
     return type;
   }
 
-  public Feed type(Type type) {
+  public Feed type(MediaType type) {
     this.type = type;
     return this;
   }

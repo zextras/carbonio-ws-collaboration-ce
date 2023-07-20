@@ -5,10 +5,8 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.impl;
 
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
-import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
+import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
-import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
 import javax.inject.Singleton;
 
 @Singleton
@@ -40,18 +38,12 @@ public class VideoServerServiceMock implements VideoServerService {
   }
 
   @Override
-  public void updateVideoStream(String sessionId, String meetingId, VideoStreamSettingsDto videoStreamSettingsDto) {
+  public void updateMediaStream(String sessionId, String meetingId, MediaStreamSettingsDto videoStreamSettingsDto) {
 
   }
 
   @Override
-  public void updateScreenStream(String sessionId, String meetingId, ScreenStreamSettingsDto screenStreamSettingsDto) {
-
-  }
-
-  @Override
-  public void answerRtcMediaStream(String sessionId, String meetingId,
-    RtcSessionDescriptionDto rtcSessionDescriptionDto) {
+  public void answerRtcMediaStream(String sessionId, String meetingId, String sdp) {
 
   }
 
@@ -62,8 +54,7 @@ public class VideoServerServiceMock implements VideoServerService {
   }
 
   @Override
-  public void offerRtcAudioStream(String sessionId, String meetingId,
-    RtcSessionDescriptionDto rtcSessionDescriptionDto) {
+  public void offerRtcAudioStream(String sessionId, String meetingId, String sdp) {
 
   }
 

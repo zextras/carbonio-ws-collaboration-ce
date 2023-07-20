@@ -12,11 +12,9 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
+import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
-import com.zextras.carbonio.meeting.model.RtcSessionDescriptionDto;
-import com.zextras.carbonio.meeting.model.ScreenStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
-import com.zextras.carbonio.meeting.model.VideoStreamSettingsDto;
 import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nullable;
@@ -75,12 +73,12 @@ public interface ParticipantService {
   void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, @Nullable String sessionId);
 
   /**
-   * Updates the video stream status in the meeting for the current session and starts WebRTC negotiation with
+   * Updates the media stream status in the meeting for the current session and starts WebRTC negotiation with
    * VideoServer for the PeerConnection setup related to video stream when it has to be enabled.
    *
    * @param meetingId              meeting identifier {@link UUID}
-   * @param sessionId              identifier of the session whose video stream status has to be updated
-   * @param videoStreamSettingsDto user settings request to update the video stream status
+   * @param sessionId              identifier of the session whose media stream status has to be updated
+   * @param mediaStreamSettingsDto user settings request to update the media stream status
    * @param currentUser            currentUser current authenticated user {@link UserPrincipal}
    * @throws NotFoundException   if the meeting doesn't exist
    * @throws NotFoundException   if the user session for indicated meeting doesn't exist.
@@ -88,7 +86,7 @@ public interface ParticipantService {
    * @throws BadRequestException if another session tries to enable the stream
    * @throws ForbiddenException  if the current user isn't a room owner
    */
-  void updateVideoStream(UUID meetingId, String sessionId, VideoStreamSettingsDto videoStreamSettingsDto,
+  void updateMediaStream(UUID meetingId, String sessionId, MediaStreamSettingsDto mediaStreamSettingsDto,
     UserPrincipal currentUser);
 
   /**
@@ -107,37 +105,19 @@ public interface ParticipantService {
   void updateAudioStream(UUID meetingId, String sessionId, boolean enabled, UserPrincipal currentUser);
 
   /**
-   * Updates the screen stream status in the meeting for the current session and starts WebRTC negotiation with
-   * VideoServer for the PeerConnection setup related to screen stream when it has to be enabled.
-   *
-   * @param meetingId               meeting identifier {@link UUID}
-   * @param sessionId               identifier of the session whose screen stream status has to updated
-   * @param screenStreamSettingsDto user settings request to update the screen stream status
-   * @param currentUser             currentUser current authenticated user {@link UserPrincipal}
-   * @throws NotFoundException   if the meeting doesn't exist
-   * @throws NotFoundException   if the user session for indicated meeting doesn't exist.
-   * @throws NotFoundException   if the associated room doesn't exist
-   * @throws BadRequestException if another session tries to enable the stream
-   * @throws ForbiddenException  if the current user isn't a room owner
-   */
-  void updateScreenStream(UUID meetingId, String sessionId, ScreenStreamSettingsDto screenStreamSettingsDto,
-    UserPrincipal currentUser);
-
-  /**
    * Completes WebRTC negotiation with VideoServer for the PeerConnection setup related to media stream.
    *
-   * @param meetingId                meeting identifier {@link UUID}
-   * @param sessionId                identifier of the user session who wants to complete the WebRTC negotiation
-   * @param rtcSessionDescriptionDto the answer rtc session description
-   * @param currentUser              currentUser current authenticated user {@link UserPrincipal}
+   * @param meetingId   meeting identifier {@link UUID}
+   * @param sessionId   identifier of the user session who wants to complete the WebRTC negotiation
+   * @param sdp         the answer rtc session description
+   * @param currentUser currentUser current authenticated user {@link UserPrincipal}
    * @throws NotFoundException   if the meeting doesn't exist
    * @throws NotFoundException   if the user session for indicated meeting doesn't exist.
    * @throws NotFoundException   if the associated room doesn't exist
    * @throws BadRequestException if the rtc session description type is not offer
    * @throws ForbiddenException  if the current user isn't a room owner
    */
-  void answerRtcMediaStream(UUID meetingId, String sessionId, RtcSessionDescriptionDto rtcSessionDescriptionDto,
-    UserPrincipal currentUser);
+  void answerRtcMediaStream(UUID meetingId, String sessionId, String sdp, UserPrincipal currentUser);
 
   /**
    * Update subscriptions of the current session to the desired media streams.
@@ -158,16 +138,15 @@ public interface ParticipantService {
   /**
    * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to audio stream.
    *
-   * @param meetingId                meeting identifier {@link UUID}
-   * @param sessionId                identifier of the user session who wants to start the WebRTC negotiation
-   * @param rtcSessionDescriptionDto the offer rtc session description
-   * @param currentUser              currentUser current authenticated user {@link UserPrincipal}
+   * @param meetingId   meeting identifier {@link UUID}
+   * @param sessionId   identifier of the user session who wants to start the WebRTC negotiation
+   * @param sdp         the offer rtc session description
+   * @param currentUser currentUser current authenticated user {@link UserPrincipal}
    * @throws NotFoundException   if the meeting doesn't exist
    * @throws NotFoundException   if the user session for indicated meeting doesn't exist.
    * @throws NotFoundException   if the associated room doesn't exist
    * @throws BadRequestException if the rtc session description type is not offer
    * @throws ForbiddenException  if the current user isn't a room owner
    */
-  void offerRtcAudioStream(UUID meetingId, String sessionId, RtcSessionDescriptionDto rtcSessionDescriptionDto,
-    UserPrincipal currentUser);
+  void offerRtcAudioStream(UUID meetingId, String sessionId, String sdp, UserPrincipal currentUser);
 }
