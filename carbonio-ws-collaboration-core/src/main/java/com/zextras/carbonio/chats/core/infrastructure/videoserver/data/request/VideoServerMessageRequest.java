@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Jsep;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
 
 /**
  * This class represents a single message/request/action sent to the VideoServer.
@@ -40,7 +40,8 @@ public class VideoServerMessageRequest {
   private VideoServerPluginRequest videoServerPluginRequest;
   @JsonProperty("apisecret")
   private String                   apiSecret;
-  private Jsep                     jsep;
+  @JsonProperty("jsep")
+  private RtcSessionDescription    rtcSessionDescription;
 
   public static VideoServerMessageRequest create() {
     return new VideoServerMessageRequest();
@@ -91,12 +92,12 @@ public class VideoServerMessageRequest {
     return this;
   }
 
-  public Jsep getJsep() {
-    return jsep;
+  public RtcSessionDescription getRtcSessionDescription() {
+    return rtcSessionDescription;
   }
 
-  public VideoServerMessageRequest jsep(Jsep jsep) {
-    this.jsep = jsep;
+  public VideoServerMessageRequest rtcSessionDescription(RtcSessionDescription rtcSessionDescription) {
+    this.rtcSessionDescription = rtcSessionDescription;
     return this;
   }
 }
