@@ -309,7 +309,27 @@ public class RoomsApiIT {
         UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
         mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
         mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString(), true);
+        String hopedXmppAffiliationMessage1 =
+          String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+            user1Id, roomId)
+            + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+            + "<operation>memberAdded</operation>"
+            + String.format("<user-id>%s</user-id>", user2Id)
+            + "</x>"
+            + "<body/>"
+            + "</message>";
+        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage1, true);
         mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user3Id.toString(), true);
+        String hopedXmppAffiliationMessage2 =
+          String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+            user1Id, roomId)
+            + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+            + "<operation>memberAdded</operation>"
+            + String.format("<user-id>%s</user-id>", user3Id)
+            + "</x>"
+            + "<body/>"
+            + "</message>";
+        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage2, true);
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
           uuid.when(UUID::randomUUID).thenReturn(roomId);
           uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
@@ -346,7 +366,13 @@ public class RoomsApiIT {
           mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user2Id.toString()),
           VerificationTimes.exactly(1));
         mongooseImMockServer.verify(
+          mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage1),
+          VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
           mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user3Id.toString()),
+          VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+          mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage2),
           VerificationTimes.exactly(1));
         // TODO: 23/02/22 verify event dispatcher interactions
       }
@@ -391,6 +417,16 @@ public class RoomsApiIT {
         UUID roomId = UUID.fromString("c9f83f1c-9b96-4731-9404-79e45a5d6d3c");
         mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
         mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString(), true);
+        String hopedXmppAffiliationMessage =
+          String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+            user1Id, roomId)
+            + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+            + "<operation>memberAdded</operation>"
+            + String.format("<user-id>%s</user-id>", user2Id)
+            + "</x>"
+            + "<body/>"
+            + "</message>";
+        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
         mongooseImMockServer.mockAddUserToContacts(user2Id.toString(), user1Id.toString(), true);
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
           uuid.when(UUID::randomUUID).thenReturn(roomId);
@@ -424,6 +460,9 @@ public class RoomsApiIT {
           VerificationTimes.exactly(1));
         mongooseImMockServer.verify(
           mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user2Id.toString()),
+          VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+          mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
           VerificationTimes.exactly(1));
         mongooseImMockServer.verify(
           mongooseImMockServer.getAddUserToContactsRequest(user2Id.toString(), user1Id.toString()),
@@ -1749,7 +1788,16 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
         List.of(user1Id, user2Id));
       mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user4Id.toString(), true);
-
+      String hopedXmppAffiliationMessage =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>memberAdded</operation>"
+          + String.format("<user-id>%s</user-id>", user4Id)
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
       MemberToInsertDto requestMember = MemberToInsertDto.create().userId(user4Id).historyCleared(false);
       MockHttpResponse response = dispatcher.post(url(roomId),
         getInsertRoomMemberRequestBody(requestMember), user1Token);
@@ -1765,6 +1813,9 @@ public class RoomsApiIT {
 
       mongooseImMockServer.verify(
         mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user4Id.toString()),
+        VerificationTimes.exactly(1));
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
         VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/users/id/%s", user4Id), user1Token, 1);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
@@ -1791,7 +1842,16 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
         List.of(user1Id, user2Id));
       mongooseImMockServer.mockAddRoomMember(roomId.toString(), user1Id.toString(), user4Id.toString(), true);
-
+      String hopedXmppAffiliationMessage =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>memberAdded</operation>"
+          + String.format("<user-id>%s</user-id>", user4Id)
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
       MemberToInsertDto requestMember = MemberToInsertDto.create().userId(user4Id).historyCleared(true);
       MockHttpResponse response = dispatcher.post(url(roomId),
         getInsertRoomMemberRequestBody(requestMember), user1Token);
@@ -1812,7 +1872,9 @@ public class RoomsApiIT {
       mongooseImMockServer.verify(
         mongooseImMockServer.getAddRoomMemberRequest(roomId.toString(), user1Id.toString(), user4Id.toString()),
         VerificationTimes.exactly(1));
-
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
+        VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/users/id/%s", user4Id), user1Token, 1);
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -1940,6 +2002,17 @@ public class RoomsApiIT {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+      String hopedXmppAffiliationMessage =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>memberRemoved</operation>"
+          + String.format("<user-id>%s</user-id>", user2Id)
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
+
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1952,6 +2025,9 @@ public class RoomsApiIT {
       // TODO: 25/02/22 verify event dispatcher
       mongooseImMockServer.verify(
         mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user2Id.toString()),
+        VerificationTimes.exactly(1));
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
         VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -1970,7 +2046,16 @@ public class RoomsApiIT {
         ParticipantBuilder.create(user3Id, "user3session1")));
       integrationTestUtils.updateRoom(roomEntity.meetingId(meetingId.toString()));
       mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
-
+      String hopedXmppAffiliationMessage =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>memberRemoved</operation>"
+          + String.format("<user-id>%s</user-id>", user2Id)
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1989,6 +2074,10 @@ public class RoomsApiIT {
       mongooseImMockServer.verify(
         mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user2Id.toString()),
         VerificationTimes.exactly(1));
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
+        VerificationTimes.exactly(1)
+      );
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
@@ -2005,7 +2094,16 @@ public class RoomsApiIT {
       integrationTestUtils.updateRoom(roomEntity.meetingId(meetingId.toString()));
 
       mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
-
+      String hopedXmppAffiliationMessage =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>memberRemoved</operation>"
+          + String.format("<user-id>%s</user-id>", user2Id)
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -2019,6 +2117,9 @@ public class RoomsApiIT {
       // TODO: 25/02/22 verify event dispatcher
       mongooseImMockServer.verify(
         mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user2Id.toString()),
+        VerificationTimes.exactly(1));
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
         VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -2073,6 +2174,16 @@ public class RoomsApiIT {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
+      String hopedXmppAffiliationMessage =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+          user3Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>memberRemoved</operation>"
+          + String.format("<user-id>%s</user-id>", user3Id)
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
       MockHttpResponse response = dispatcher.delete(url(roomId, user3Id), user3Token);
 
       assertEquals(204, response.getStatus());
@@ -2084,7 +2195,11 @@ public class RoomsApiIT {
 
       // TODO: 25/02/22 verify event dispatcher
       mongooseImMockServer.verify(
-        mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user3Id.toString()));
+        mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user3Id.toString()),
+        VerificationTimes.exactly(1));
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
+        VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
     }
   }
