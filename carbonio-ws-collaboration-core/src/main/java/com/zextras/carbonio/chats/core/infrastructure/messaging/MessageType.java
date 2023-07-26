@@ -10,7 +10,9 @@ public enum MessageType {
   ROOM_DESCRIPTION_CHANGED("roomDescriptionChanged"),
   ROOM_PICTURE_UPDATED("roomPictureUpdated"),
   ROOM_PICTURE_DELETED("roomPictureDeleted"),
-  ATTACHMENT_ADDED("attachmentAdded");
+  ATTACHMENT_ADDED("attachmentAdded"),
+  MEMBER_ADDED("memberAdded"),
+  MEMBER_REMOVED("memberRemoved");
 
   private final String name;
 
