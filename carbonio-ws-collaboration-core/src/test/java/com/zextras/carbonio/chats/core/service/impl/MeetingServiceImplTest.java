@@ -21,8 +21,8 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.MeetingCreatedEvent;
-import com.zextras.carbonio.chats.core.data.event.MeetingDeletedEvent;
+import com.zextras.carbonio.chats.core.data.event.MeetingCreated;
+import com.zextras.carbonio.chats.core.data.event.MeetingDeleted;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
@@ -44,7 +44,6 @@ import com.zextras.carbonio.meeting.model.MeetingUserDto;
 import com.zextras.carbonio.meeting.model.MeetingTypeDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
 import java.time.OffsetDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -627,7 +626,7 @@ public class MeetingServiceImplTest {
       verify(videoServerService, times(1)).startMeeting(meetingId.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        MeetingCreatedEvent.create(user1Id, null).meetingId(meetingId).roomId(room1Id));
+        MeetingCreated.create().meetingId(meetingId).roomId(room1Id));
       verifyNoMoreInteractions(roomService, meetingRepository, videoServerService, eventDispatcher);
       verifyNoInteractions(membersService);
     }
@@ -652,7 +651,7 @@ public class MeetingServiceImplTest {
       verify(videoServerService, times(1)).stopMeeting(meeting1Id.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        MeetingDeletedEvent.create(user1Id, null).meetingId(meeting1Id));
+        MeetingDeleted.create().meetingId(meeting1Id));
       verifyNoMoreInteractions(meetingRepository, roomService, videoServerService, eventDispatcher);
       verifyNoInteractions(membersService);
     }

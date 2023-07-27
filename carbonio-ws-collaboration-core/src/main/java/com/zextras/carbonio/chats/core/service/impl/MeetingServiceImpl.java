@@ -7,8 +7,8 @@ package com.zextras.carbonio.chats.core.service.impl;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.MeetingCreatedEvent;
-import com.zextras.carbonio.chats.core.data.event.MeetingDeletedEvent;
+import com.zextras.carbonio.chats.core.data.event.MeetingCreated;
+import com.zextras.carbonio.chats.core.data.event.MeetingDeleted;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -166,7 +166,7 @@ public class MeetingServiceImpl implements MeetingService {
       videoServerService.startMeeting(meeting.getId());
       eventDispatcher.sendToUserQueue(
         room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-        MeetingCreatedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
+        MeetingCreated.create()
           .meetingId(UUID.fromString(meeting.getId()))
           .roomId(roomId));
       return meeting;
@@ -190,7 +190,7 @@ public class MeetingServiceImpl implements MeetingService {
     videoServerService.stopMeeting(meeting.getId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      MeetingDeletedEvent.create(userId, sessionId)
+      MeetingDeleted.create()
         .meetingId(UUID.fromString(meeting.getId())));
   }
 }

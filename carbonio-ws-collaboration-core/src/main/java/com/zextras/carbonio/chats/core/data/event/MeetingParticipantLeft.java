@@ -6,28 +6,38 @@ package com.zextras.carbonio.chats.core.data.event;
 
 import java.util.Objects;
 import java.util.UUID;
-import org.jetbrains.annotations.Nullable;
 
-public class MeetingParticipantLeftEvent extends DomainEvent {
+public class MeetingParticipantLeft extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_LEFT;
 
   private UUID meetingId;
 
-  public MeetingParticipantLeftEvent(UUID from, @Nullable String sessionId) {
-    super(EVENT_TYPE, from, sessionId);
+  private UUID userId;
+
+  public MeetingParticipantLeft() {
+    super(EVENT_TYPE);
   }
 
-  public static MeetingParticipantLeftEvent create(UUID from, @Nullable String sessionId) {
-    return new MeetingParticipantLeftEvent(from, sessionId);
+  public static MeetingParticipantLeft create() {
+    return new MeetingParticipantLeft();
   }
 
   public UUID getMeetingId() {
     return meetingId;
   }
 
-  public MeetingParticipantLeftEvent meetingId(UUID meetingId) {
+  public MeetingParticipantLeft meetingId(UUID meetingId) {
     this.meetingId = meetingId;
+    return this;
+  }
+
+  public UUID getUserId() {
+    return userId;
+  }
+
+  public MeetingParticipantLeft userId(UUID userId) {
+    this.userId = userId;
     return this;
   }
 
@@ -42,8 +52,9 @@ public class MeetingParticipantLeftEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    MeetingParticipantLeftEvent that = (MeetingParticipantLeftEvent) o;
-    return Objects.equals(getMeetingId(), that.getMeetingId());
+    MeetingParticipantJoined that = (MeetingParticipantJoined) o;
+    return Objects.equals(getMeetingId(), that.getMeetingId()) &&
+      Objects.equals(getUserId(), that.getUserId());
   }
 
   @Override

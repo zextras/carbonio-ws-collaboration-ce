@@ -6,27 +6,26 @@ package com.zextras.carbonio.chats.core.data.event;
 
 import java.util.Objects;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
-public class UserPictureDeletedEvent extends DomainEvent {
+public class UserPictureDeleted extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.USER_PICTURE_DELETED;
 
   private UUID userId;
 
-  public UserPictureDeletedEvent(UUID from, @Nullable String sessionId) {
-    super(EVENT_TYPE, from, sessionId);
+  public UserPictureDeleted() {
+    super(EVENT_TYPE);
   }
 
-  public static UserPictureDeletedEvent create(UUID from, @Nullable String sessionId) {
-    return new UserPictureDeletedEvent(from, sessionId);
+  public static UserPictureDeleted create() {
+    return new UserPictureDeleted();
   }
 
   public UUID getUserId() {
     return userId;
   }
 
-  public UserPictureDeletedEvent userId(UUID userId) {
+  public UserPictureDeleted userId(UUID userId) {
     this.userId = userId;
     return this;
   }
@@ -42,7 +41,7 @@ public class UserPictureDeletedEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    return Objects.equals(getUserId(), ((UserPictureDeletedEvent) o).getUserId());
+    return Objects.equals(getUserId(), ((UserPictureDeleted) o).getUserId());
   }
 
   @Override

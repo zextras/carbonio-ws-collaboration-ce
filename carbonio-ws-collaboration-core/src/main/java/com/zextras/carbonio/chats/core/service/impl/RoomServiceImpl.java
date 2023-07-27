@@ -12,14 +12,14 @@ import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.RoomCreatedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomDeletedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomHistoryClearedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomMutedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomPictureChangedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomPictureDeletedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomUnmutedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomUpdatedEvent;
+import com.zextras.carbonio.chats.core.data.event.RoomCreated;
+import com.zextras.carbonio.chats.core.data.event.RoomDeleted;
+import com.zextras.carbonio.chats.core.data.event.RoomHistoryCleared;
+import com.zextras.carbonio.chats.core.data.event.RoomMuted;
+import com.zextras.carbonio.chats.core.data.event.RoomPictureChanged;
+import com.zextras.carbonio.chats.core.data.event.RoomPictureDeleted;
+import com.zextras.carbonio.chats.core.data.event.RoomUnmuted;
+import com.zextras.carbonio.chats.core.data.event.RoomUpdated;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -165,7 +165,7 @@ public class RoomServiceImpl implements RoomService {
     UUID finalId = UUID.fromString(room.getId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomCreatedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(finalId));
+      RoomCreated.create().roomId(finalId));
     return roomMapper.ent2dto(room,
       room.getUserSettings().stream().filter(userSettings -> userSettings.getUserId().equals(currentUser.getId()))
         .findAny().orElse(null), true, true);
@@ -228,7 +228,7 @@ public class RoomServiceImpl implements RoomService {
       roomRepository.update(room);
       eventDispatcher.sendToUserQueue(
         room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-        RoomUpdatedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
+        RoomUpdated.create()
           .roomId(roomId).name(room.getName()).description(room.getDescription()));
     }
     return roomMapper.ent2dto(room,
@@ -253,7 +253,7 @@ public class RoomServiceImpl implements RoomService {
     messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomDeletedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(roomId));
+      RoomDeleted.create().roomId(roomId));
   }
 
   @Override
@@ -265,7 +265,7 @@ public class RoomServiceImpl implements RoomService {
     if (settings.getMutedUntil() == null) {
       roomUserSettingsRepository.save(settings.mutedUntil(MUTED_TO_INFINITY));
       eventDispatcher.sendToUserQueue(
-        currentUser.getId(), RoomMutedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(roomId));
+        currentUser.getId(), RoomMuted.create().roomId(roomId));
     }
   }
 
@@ -277,7 +277,7 @@ public class RoomServiceImpl implements RoomService {
     settings = roomUserSettingsRepository.save(
       settings.clearedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
     eventDispatcher.sendToUserQueue(currentUser.getId(),
-      RoomHistoryClearedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(roomId)
+      RoomHistoryCleared.create().roomId(roomId)
         .clearedAt(settings.getClearedAt()));
     return settings.getClearedAt();
   }
@@ -292,7 +292,7 @@ public class RoomServiceImpl implements RoomService {
           roomUserSettingsRepository.save(settings.mutedUntil(null));
           eventDispatcher.sendToUserQueue(
             currentUser.getId(),
-            RoomUnmutedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).roomId(roomId));
+            RoomUnmuted.create().roomId(roomId));
         }
       });
   }
@@ -379,8 +379,10 @@ public class RoomServiceImpl implements RoomService {
     messageDispatcher.updateRoomPicture(room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomPictureChangedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
-        .roomId(UUID.fromString(room.getId())));
+      RoomPictureChanged.create()
+        .roomId(UUID.fromString(room.getId()))
+        .updatedAt(room.getPictureUpdatedAt())
+      );
   }
 
   @Override
@@ -395,7 +397,7 @@ public class RoomServiceImpl implements RoomService {
     messageDispatcher.deleteRoomPicture(room.getId(), currentUser.getId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomPictureDeletedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
+      RoomPictureDeleted.create()
         .roomId(UUID.fromString(room.getId())));
   }
 

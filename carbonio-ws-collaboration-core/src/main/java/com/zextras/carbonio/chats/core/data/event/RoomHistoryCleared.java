@@ -9,26 +9,26 @@ import java.util.Objects;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
-public class RoomHistoryClearedEvent extends DomainEvent {
+public class RoomHistoryCleared extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_HISTORY_CLEARED;
 
   private UUID           roomId;
   private OffsetDateTime clearedAt;
 
-  public RoomHistoryClearedEvent(UUID from, @Nullable String sessionId) {
-    super(EVENT_TYPE, from, sessionId);
+  public RoomHistoryCleared() {
+    super(EVENT_TYPE);
   }
 
-  public static RoomHistoryClearedEvent create(UUID from, @Nullable String sessionId) {
-    return new RoomHistoryClearedEvent(from, sessionId);
+  public static RoomHistoryCleared create() {
+    return new RoomHistoryCleared();
   }
 
   public UUID getRoomId() {
     return roomId;
   }
 
-  public RoomHistoryClearedEvent roomId(UUID roomId) {
+  public RoomHistoryCleared roomId(UUID roomId) {
     this.roomId = roomId;
     return this;
   }
@@ -37,7 +37,7 @@ public class RoomHistoryClearedEvent extends DomainEvent {
     return clearedAt;
   }
 
-  public RoomHistoryClearedEvent clearedAt(OffsetDateTime clearedAt) {
+  public RoomHistoryCleared clearedAt(OffsetDateTime clearedAt) {
     this.clearedAt = clearedAt;
     return this;
   }
@@ -53,7 +53,7 @@ public class RoomHistoryClearedEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    RoomHistoryClearedEvent that = (RoomHistoryClearedEvent) o;
+    RoomHistoryCleared that = (RoomHistoryCleared) o;
     return Objects.equals(getRoomId(), that.getRoomId()) && Objects.equals(getClearedAt(), that.getClearedAt());
   }
 
