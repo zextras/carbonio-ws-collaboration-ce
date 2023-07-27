@@ -9,7 +9,6 @@ import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import io.ebean.Database;
 import io.vavr.control.Option;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -68,10 +67,11 @@ public class EbeanMeetingRepository implements MeetingRepository {
   }
 
   @Override
-  public Meeting update(Meeting meeting){
+  public Meeting update(Meeting meeting) {
     db.update(meeting);
     return meeting;
   }
+
   @Override
   public void delete(Meeting meeting) {
     db.delete(meeting);

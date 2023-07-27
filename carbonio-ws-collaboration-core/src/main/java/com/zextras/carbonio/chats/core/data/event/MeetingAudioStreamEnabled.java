@@ -19,8 +19,8 @@ public class MeetingAudioStreamEnabled extends DomainEvent {
     super(EVENT_TYPE, from, sessionId);
   }
 
-  public static MeetingVideoStreamEnabled create(UUID from, @Nullable String sessionId) {
-    return new MeetingVideoStreamEnabled(from, sessionId);
+  public static MeetingAudioStreamEnabled create(UUID from, @Nullable String sessionId) {
+    return new MeetingAudioStreamEnabled(from, sessionId);
   }
 
   public UUID getMeetingId() {

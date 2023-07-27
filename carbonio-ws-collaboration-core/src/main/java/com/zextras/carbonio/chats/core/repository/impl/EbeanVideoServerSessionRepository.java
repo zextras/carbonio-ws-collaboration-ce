@@ -9,6 +9,7 @@ import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import io.ebean.Database;
 import java.util.List;
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -20,6 +21,14 @@ public class EbeanVideoServerSessionRepository implements VideoServerSessionRepo
   @Inject
   public EbeanVideoServerSessionRepository(Database db) {
     this.db = db;
+  }
+
+  @Override
+  public Optional<VideoServerSession> getByConnectionId(String connectionId) {
+    return db.find(VideoServerSession.class)
+      .where()
+      .eq("connection_id", connectionId)
+      .findOneOrEmpty();
   }
 
   @Override

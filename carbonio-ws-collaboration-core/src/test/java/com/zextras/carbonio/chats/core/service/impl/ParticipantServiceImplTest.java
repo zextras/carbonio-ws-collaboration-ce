@@ -21,6 +21,7 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamDisabled;
 import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamEnabled;
 import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoinedEvent;
@@ -705,7 +706,7 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id).audioStreamOn(hasAudioStreamOn)
           .videoStreamOn(true).screenStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingVideoStreamDisabled.create(user2Id, user2Session2).meetingId(meeting1Id)
+        MeetingAudioStreamDisabled.create(user2Id, user2Session2).meetingId(meeting1Id)
           .sessionId(user2Session2));
       verify(videoServerService, times(1)).updateAudioStream(user2Session2, meeting1Id.toString(), false);
       verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
@@ -739,7 +740,7 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id).audioStreamOn(false)
           .videoStreamOn(true).screenStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingVideoStreamDisabled.create(user1Id, user1Session1).meetingId(meeting1Id)
+        MeetingAudioStreamDisabled.create(user1Id, user1Session1).meetingId(meeting1Id)
           .sessionId(user2Session2));
       verify(videoServerService, times(1)).updateAudioStream(user1Session1, meeting1Id.toString(), false);
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, eventDispatcher, videoServerService);
