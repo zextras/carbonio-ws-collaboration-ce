@@ -4,12 +4,10 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
-
 import java.util.Objects;
 import java.util.UUID;
 
-public class MeetingAudioAnswer extends DomainEvent {
+public class MeetingAudioAnswered extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.MEETING_AUDIO_ANSWERED;
 
@@ -17,17 +15,17 @@ public class MeetingAudioAnswer extends DomainEvent {
   private UUID      userId;
   private String    sdp;
 
-  public MeetingAudioAnswer(){super(EVENT_TYPE);}
+  public MeetingAudioAnswered(){super(EVENT_TYPE);}
 
-  public static MeetingAudioAnswer create() {
-    return new MeetingAudioAnswer();
+  public static MeetingAudioAnswered create() {
+    return new MeetingAudioAnswered();
   }
 
   public UUID getMeetingId() {
     return meetingId;
   }
 
-  public MeetingAudioAnswer meetingId(UUID meetingId) {
+  public MeetingAudioAnswered meetingId(UUID meetingId) {
     this.meetingId = meetingId;
     return this;
   }
@@ -36,7 +34,7 @@ public class MeetingAudioAnswer extends DomainEvent {
     return userId;
   }
 
-  public MeetingAudioAnswer userId(UUID userId) {
+  public MeetingAudioAnswered userId(UUID userId) {
     this.userId = userId;
     return this;
   }
@@ -45,7 +43,7 @@ public class MeetingAudioAnswer extends DomainEvent {
     return sdp;
   }
 
-  public MeetingAudioAnswer sdp(String sdp) {
+  public MeetingAudioAnswered sdp(String sdp) {
     this.sdp = sdp;
     return this;
   }
@@ -55,13 +53,13 @@ public class MeetingAudioAnswer extends DomainEvent {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof MeetingAudioAnswer)) {
+    if (!(o instanceof MeetingAudioAnswered)) {
       return false;
     }
     if (!super.equals(o)) {
       return false;
     }
-    MeetingAudioAnswer that = (MeetingAudioAnswer) o;
+    MeetingAudioAnswered that = (MeetingAudioAnswered) o;
     return Objects.equals(getMeetingId(), that.getMeetingId()) &&
       Objects.equals(getUserId(), that.getUserId()) &&
       Objects.equals(getSdp(), that.getSdp());
