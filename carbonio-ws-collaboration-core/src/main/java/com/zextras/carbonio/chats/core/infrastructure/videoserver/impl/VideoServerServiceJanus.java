@@ -164,9 +164,9 @@ public class VideoServerServiceJanus implements VideoServerService {
       audioHandleId,
       AudioBridgeCreateRequest.create()
         .request(AudioBridgeCreateRequest.CREATE)
-        .room(AudioBridgeCreateRequest.ROOM_DEFAULT + UUID.randomUUID())
+        .room(AudioBridgeCreateRequest.ROOM_DEFAULT + meetingId)
         .permanent(false)
-        .description(AudioBridgeCreateRequest.DESCRIPTION_DEFAULT + UUID.randomUUID())
+        .description(AudioBridgeCreateRequest.DESCRIPTION_DEFAULT + meetingId)
         .isPrivate(false)
         .record(false)
         .samplingRate(AudioBridgeCreateRequest.SAMPLING_RATE_DEFAULT)
@@ -190,9 +190,9 @@ public class VideoServerServiceJanus implements VideoServerService {
       videoHandleId,
       VideoRoomCreateRequest.create()
         .request(VideoRoomCreateRequest.CREATE)
-        .room(VideoRoomCreateRequest.ROOM_DEFAULT + UUID.randomUUID())
+        .room(VideoRoomCreateRequest.ROOM_DEFAULT + meetingId)
         .permanent(false)
-        .description(VideoRoomCreateRequest.DESCRIPTION_DEFAULT + UUID.randomUUID())
+        .description(VideoRoomCreateRequest.DESCRIPTION_DEFAULT + meetingId)
         .isPrivate(false)
         .record(false)
         .publishers(VideoRoomCreateRequest.MAX_PUBLISHERS_DEFAULT)

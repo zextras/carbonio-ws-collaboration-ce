@@ -88,7 +88,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
     return this;
   }
 
-  public Boolean isPermanent() {
+  public Boolean getPermanent() {
     return permanent;
   }
 
@@ -124,7 +124,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
     return this;
   }
 
-  public Boolean isPrivate() {
+  public Boolean getIsPrivate() {
     return isPrivate;
   }
 
@@ -151,7 +151,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
     return this;
   }
 
-  public Boolean isSignedTokens() {
+  public Boolean getSignedTokens() {
     return signedTokens;
   }
 
@@ -241,7 +241,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
     return this;
   }
 
-  public Boolean isOpusDtx() {
+  public Boolean getOpusDtx() {
     return opusDtx;
   }
 
@@ -349,7 +349,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
     return this;
   }
 
-  public Boolean isDummyPublisher() {
+  public Boolean getDummyPublisher() {
     return dummyPublisher;
   }
 

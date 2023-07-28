@@ -76,7 +76,7 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public Boolean isPermanent() {
+  public Boolean getPermanent() {
     return permanent;
   }
 
@@ -112,7 +112,7 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public Boolean isPrivate() {
+  public Boolean getIsPrivate() {
     return isPrivate;
   }
 
@@ -139,7 +139,7 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public Boolean isSpatialAudio() {
+  public Boolean getSpatialAudio() {
     return spatialAudio;
   }
 
@@ -211,7 +211,7 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public Boolean isRecord() {
+  public Boolean getRecord() {
     return record;
   }
 
@@ -238,7 +238,7 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public Boolean isMjrs() {
+  public Boolean getMjrs() {
     return mjrs;
   }
 
@@ -256,7 +256,7 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public Boolean isAllowRtpParticipants() {
+  public Boolean getAllowRtpParticipants() {
     return allowRtpParticipants;
   }
 

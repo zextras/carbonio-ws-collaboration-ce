@@ -4,6 +4,9 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "@type")
 public class VideoServerPluginRequest {
 
   public VideoServerPluginRequest() {
