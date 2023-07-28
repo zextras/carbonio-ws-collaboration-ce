@@ -52,7 +52,7 @@ public class MeetingParticipantLeft extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    MeetingParticipantJoined that = (MeetingParticipantJoined) o;
+    MeetingParticipantLeft that = (MeetingParticipantLeft) o;
     return Objects.equals(getMeetingId(), that.getMeetingId()) &&
       Objects.equals(getUserId(), that.getUserId());
   }

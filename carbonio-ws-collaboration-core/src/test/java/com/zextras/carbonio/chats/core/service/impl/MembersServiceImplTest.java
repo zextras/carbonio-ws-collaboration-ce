@@ -262,7 +262,7 @@ public class MembersServiceImplTest {
         List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
         RoomMemberAdded.create()
           .roomId(UUID.fromString(room.getId()))
-          .userId(principal.getUUID()));
+          .userId(user2Id));
       verify(messageDispatcher, times(1)).addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
       verifyNoMoreInteractions(userService, roomService, subscriptionRepository, eventDispatcher, messageDispatcher);
       verifyNoInteractions(roomUserSettingsRepository);
@@ -365,7 +365,7 @@ public class MembersServiceImplTest {
         CapabilitiesDto.create().maxGroupMembers(128));
 
       MemberInsertedDto member = membersService.insertRoomMember(roomId,
-        MemberToInsertDto.create().userId(user2Id).historyCleared(true), principal);
+        MemberToInsertDto.create().userId(user2Id).historyCleared(true).owner(false), principal);
       assertNotNull(member);
       assertEquals(user2Id, member.getUserId());
 
@@ -376,8 +376,10 @@ public class MembersServiceImplTest {
       verify(roomUserSettingsRepository, times(1)).save(any(RoomUserSettings.class));
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
-        RoomMemberAdded.create().roomId(UUID.fromString(room.getId()))
+        RoomMemberAdded.create()
+          .roomId(UUID.fromString(room.getId()))
           .userId(user2Id)
+          .isOwner(false)
         );
       verify(messageDispatcher, times(1)).addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
       verifyNoMoreInteractions(userService, roomService, subscriptionRepository, eventDispatcher, messageDispatcher,

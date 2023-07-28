@@ -72,12 +72,15 @@ public class MeetingMediaStreamChanged extends DomainEvent {
       return false;
     }
     MeetingMediaStreamChanged that = (MeetingMediaStreamChanged) o;
-    return Objects.equals(getMeetingId(), that.getMeetingId()) && Objects.equals(getUserId(),
-      that.getUserId()) && getMediaType() == that.getMediaType();
+    return Objects.equals(getMeetingId(), that.getMeetingId()) &&
+      Objects.equals(getUserId(), that.getUserId()) &&
+      getMediaType() == that.getMediaType() &&
+      getActive() == that.getActive();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getMeetingId(), getUserId(), getMediaType());
+    return
+      Objects.hash(super.hashCode(), getMeetingId(), getUserId(), getMediaType(), getActive());
   }
 }

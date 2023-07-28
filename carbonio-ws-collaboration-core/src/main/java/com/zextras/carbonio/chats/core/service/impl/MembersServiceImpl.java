@@ -154,7 +154,10 @@ public class MembersServiceImpl implements MembersService {
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomMemberAdded
-        .create().roomId(UUID.fromString(room.getId())).userId(currentUser.getUUID())
+        .create()
+        .roomId(UUID.fromString(room.getId()))
+        .userId(memberToInsertDto.getUserId())
+        .isOwner(memberToInsertDto.isOwner())
     );
     return subscriptionMapper.ent2memberInsertedDto(subscription, settings);
   }

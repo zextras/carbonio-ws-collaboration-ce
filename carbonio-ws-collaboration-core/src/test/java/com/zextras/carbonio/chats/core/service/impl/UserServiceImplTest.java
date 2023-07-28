@@ -381,6 +381,10 @@ class UserServiceImplTest {
       List<String> contactsIds = List.of("a", "b", "c");
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contactsIds);
       when(userRepository.getById(userId.toString())).thenReturn(Optional.empty());
+      when(userRepository.save( User.create()
+        .id(userId.toString())
+        .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")))).thenReturn(User.create()
+        .id(userId.toString()).pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
 
       userService.setUserPicture(userId, file, "image/jpeg", "picture", UserPrincipal.create(userId));
 
@@ -426,6 +430,10 @@ class UserServiceImplTest {
       User user = User.create().id(userId.toString())
         .pictureUpdatedAt(OffsetDateTime.parse("2000-12-31T00:00:00Z"));
       when(userRepository.getById(userId.toString())).thenReturn(Optional.of(user));
+      when(userRepository.save( User.create()
+        .id(userId.toString())
+        .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")))).thenReturn(User.create()
+        .id(userId.toString()).pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
 
       userService.setUserPicture(userId, file, "image/jpeg", "picture", UserPrincipal.create(userId));
 
