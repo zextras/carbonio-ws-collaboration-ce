@@ -59,6 +59,6 @@ public class MeetingStarted extends DomainEvent {
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getMeetingId());
+    return Objects.hash(super.hashCode(), getMeetingId(), getStarterUser());
   }
 }
