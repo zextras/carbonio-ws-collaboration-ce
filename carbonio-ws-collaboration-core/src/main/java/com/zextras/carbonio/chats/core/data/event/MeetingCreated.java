@@ -6,28 +6,27 @@ package com.zextras.carbonio.chats.core.data.event;
 
 import java.util.Objects;
 import java.util.UUID;
-import org.jetbrains.annotations.Nullable;
 
-public class MeetingCreatedEvent extends DomainEvent {
+public class MeetingCreated extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.MEETING_CREATED;
 
   private UUID meetingId;
   private UUID roomId;
 
-  public MeetingCreatedEvent(UUID from, @Nullable String sessionId) {
-    super(EVENT_TYPE, from, sessionId);
+  public MeetingCreated() {
+    super(EVENT_TYPE);
   }
 
-  public static MeetingCreatedEvent create(UUID from, @Nullable String sessionId) {
-    return new MeetingCreatedEvent(from, sessionId);
+  public static MeetingCreated create() {
+    return new MeetingCreated();
   }
 
   public UUID getMeetingId() {
     return meetingId;
   }
 
-  public MeetingCreatedEvent meetingId(UUID meetingId) {
+  public MeetingCreated meetingId(UUID meetingId) {
     this.meetingId = meetingId;
     return this;
   }
@@ -36,7 +35,7 @@ public class MeetingCreatedEvent extends DomainEvent {
     return roomId;
   }
 
-  public MeetingCreatedEvent roomId(UUID roomId) {
+  public MeetingCreated roomId(UUID roomId) {
     this.roomId = roomId;
     return this;
   }
@@ -52,7 +51,7 @@ public class MeetingCreatedEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    MeetingCreatedEvent that = (MeetingCreatedEvent) o;
+    MeetingCreated that = (MeetingCreated) o;
     return Objects.equals(getMeetingId(), that.getMeetingId()) && Objects.equals(getRoomId(), that.getRoomId());
   }
 

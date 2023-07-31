@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class VideoServerEvent {
 
-  private String    meetingId;
   private String    emitter;
   private Integer   type;
   private Integer   subtype;
@@ -30,15 +29,6 @@ public class VideoServerEvent {
   private EventInfo eventInfo;
 
   public VideoServerEvent() {
-  }
-
-  public VideoServerEvent meetingId(String meetingId) {
-    this.meetingId = meetingId;
-    return this;
-  }
-
-  public String getMeetingId() {
-    return meetingId;
   }
 
   public String getEmitter() {

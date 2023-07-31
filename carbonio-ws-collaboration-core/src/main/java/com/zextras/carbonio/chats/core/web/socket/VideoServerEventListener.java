@@ -9,8 +9,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DeliverCallback;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantTalking;
+import com.zextras.carbonio.chats.core.data.event.MeetingSdpAnswered;
+import com.zextras.carbonio.chats.core.data.event.MeetingSdpOffered;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.VideoServerEvent;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
@@ -18,6 +22,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -33,7 +38,9 @@ public class VideoServerEventListener implements ServletContextListener {
   private static final String       LOCAL               = "local";
   private static final int          JSEP_TYPE           = 8;
   private static final int          PLUGIN_TYPE         = 64;
-  private static final List<String> TALKING_TYPE_EVENTS = List.of("talking", "stopped-talking");
+  private static final String       TALKING             = "talking";
+  private static final String       STOPPED_TALKING     = "stopped-talking";
+  private static final List<String> TALKING_TYPE_EVENTS = List.of(TALKING, STOPPED_TALKING);
 
   private final Connection                   rabbitMqConnection;
   private final ObjectMapper                 objectMapper;
@@ -64,8 +71,6 @@ public class VideoServerEventListener implements ServletContextListener {
       channel.queueDeclare(JANUS_EVENTS, true, false, false, null);
       DeliverCallback deliverCallback = (consumerTag, delivery) -> {
         String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-        //TODO remove log
-        ChatsLogger.debug("Videoserver event: " + message);
         VideoServerEvent videoServerEvent = objectMapper.readValue(message, VideoServerEvent.class);
         switch (videoServerEvent.getType()) {
           case JSEP_TYPE:
@@ -76,8 +81,26 @@ public class VideoServerEventListener implements ServletContextListener {
                     videoServerSession -> participantRepository.getBySessionId(videoServerSession.getSessionId()))
                   .ifPresent(participant -> {
                     try {
-                      send(channel, participant.getUserId(), objectMapper.writeValueAsString(
-                        videoServerEvent.meetingId(participant.getMeeting().getId())));
+                      RtcSessionDescription rtcSessionDescription = videoServerEvent.getEventInfo()
+                        .getRtcSessionDescription();
+                      switch (rtcSessionDescription.getType()) {
+                        case OFFER:
+                          send(channel, participant.getUserId(), objectMapper.writeValueAsString(
+                            MeetingSdpOffered.create()
+                              .meetingId(UUID.fromString(participant.getMeeting().getId()))
+                              .userId(UUID.fromString(participant.getUserId()))
+                              .sdp(rtcSessionDescription.getSdp())));
+                          break;
+                        case ANSWER:
+                          send(channel, participant.getUserId(), objectMapper.writeValueAsString(
+                            MeetingSdpAnswered.create()
+                              .meetingId(UUID.fromString(participant.getMeeting().getId()))
+                              .userId(UUID.fromString(participant.getUserId()))
+                              .sdp(rtcSessionDescription.getSdp())));
+                          break;
+                        default:
+                          break;
+                      }
                     } catch (JsonProcessingException e) {
                       ChatsLogger.debug("Error during serialization of " + videoServerEvent);
                     }
@@ -92,9 +115,12 @@ public class VideoServerEventListener implements ServletContextListener {
                   Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getId())
                     .flatMap(participantRepository::getBySessionId).ifPresent(participant -> {
                       try {
-                        send(channel, participant.getUserId(),
-                          objectMapper.writeValueAsString(
-                            videoServerEvent.meetingId(participant.getMeeting().getId())));
+                        send(channel, participant.getUserId(), objectMapper.writeValueAsString(
+                          MeetingParticipantTalking.create()
+                            .meetingId(UUID.fromString(participant.getMeeting().getId()))
+                            .userId(UUID.fromString(participant.getUserId()))
+                            .isTalking(TALKING.equals(videoServerEvent.getEventInfo().getEventData().getAudioBridge()))
+                        ));
                       } catch (JsonProcessingException e) {
                         ChatsLogger.debug("Error during serialization of " + videoServerEvent);
                       }
@@ -103,7 +129,6 @@ public class VideoServerEventListener implements ServletContextListener {
               });
             break;
           default:
-            ChatsLogger.debug("Skip videoserver event: " + message);
             break;
         }
       };
@@ -138,10 +163,6 @@ public class VideoServerEventListener implements ServletContextListener {
 
   @Override
   public void contextDestroyed(ServletContextEvent sce) {
-    try {
-      rabbitMqConnection.close();
-    } catch (IOException e) {
-      ChatsLogger.warn("Unable to close RabbitMQ connection due to " + e);
-    }
+
   }
 }

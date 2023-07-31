@@ -6,27 +6,26 @@ package com.zextras.carbonio.chats.core.data.event;
 
 import java.util.Objects;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
-public class RoomPictureDeletedEvent extends DomainEvent {
+public class RoomCreated extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.ROOM_PICTURE_DELETED;
+  private static final EventType EVENT_TYPE = EventType.ROOM_CREATED;
 
   private UUID roomId;
 
-  public RoomPictureDeletedEvent(UUID from, @Nullable String sessionId) {
-    super(EVENT_TYPE, from, sessionId);
+  public RoomCreated() {
+    super(EVENT_TYPE);
   }
 
-  public static RoomPictureDeletedEvent create(UUID from, @Nullable String sessionId) {
-    return new RoomPictureDeletedEvent(from, sessionId);
+  public static RoomCreated create() {
+    return new RoomCreated();
   }
 
   public UUID getRoomId() {
     return roomId;
   }
 
-  public RoomPictureDeletedEvent roomId(UUID roomId) {
+  public RoomCreated roomId(UUID roomId) {
     this.roomId = roomId;
     return this;
   }
@@ -42,7 +41,7 @@ public class RoomPictureDeletedEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    return Objects.equals(getRoomId(), ((RoomPictureDeletedEvent) o).getRoomId());
+    return Objects.equals(getRoomId(), ((RoomCreated) o).getRoomId());
   }
 
   @Override

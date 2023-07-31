@@ -6,28 +6,27 @@ package com.zextras.carbonio.chats.core.data.event;
 
 import java.util.Objects;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
-public class RoomMemberRemovedEvent extends DomainEvent {
+public class RoomMemberRemoved extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_MEMBER_REMOVED;
 
   private UUID roomId;
   private UUID userId;
 
-  public RoomMemberRemovedEvent(UUID from, @Nullable String sessionId) {
-    super(EVENT_TYPE, from, sessionId);
+  public RoomMemberRemoved() {
+    super(EVENT_TYPE);
   }
 
-  public static RoomMemberRemovedEvent create(UUID from, @Nullable String sessionId) {
-    return new RoomMemberRemovedEvent(from, sessionId);
+  public static RoomMemberRemoved create() {
+    return new RoomMemberRemoved();
   }
 
   public UUID getRoomId() {
     return roomId;
   }
 
-  public RoomMemberRemovedEvent roomId(UUID roomId) {
+  public RoomMemberRemoved roomId(UUID roomId) {
     this.roomId = roomId;
     return this;
   }
@@ -36,7 +35,7 @@ public class RoomMemberRemovedEvent extends DomainEvent {
     return userId;
   }
 
-  public RoomMemberRemovedEvent userId(UUID userId) {
+  public RoomMemberRemoved userId(UUID userId) {
     this.userId = userId;
     return this;
   }
@@ -52,7 +51,7 @@ public class RoomMemberRemovedEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    RoomMemberRemovedEvent that = (RoomMemberRemovedEvent) o;
+    RoomMemberRemoved that = (RoomMemberRemoved) o;
     return Objects.equals(getRoomId(), that.getRoomId()) &&
       Objects.equals(getUserId(), that.getUserId());
   }

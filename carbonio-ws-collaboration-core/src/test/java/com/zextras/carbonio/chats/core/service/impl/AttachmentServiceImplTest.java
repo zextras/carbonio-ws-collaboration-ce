@@ -26,8 +26,6 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.AttachmentAddedEvent;
-import com.zextras.carbonio.chats.core.data.event.AttachmentRemovedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
@@ -466,18 +464,6 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(fileMetadataRepository);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
-      verify(eventDispatcher, times(1)).sendToUserQueue(
-        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        AttachmentAddedEvent.create(user1Id, null).roomId(roomId).attachment(
-          AttachmentDto.create()
-            .id(attachmentUuid)
-            .name("temp.pdf")
-            .size(attachmentFile.length())
-            .mimeType("application/pdf")
-            .userId(user1Id)
-            .roomId(roomId)
-            .createdAt(attachmentDate)
-        ));
       verifyNoMoreInteractions(eventDispatcher);
     }
 
@@ -563,9 +549,6 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(fileMetadataRepository);
       verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
       verifyNoMoreInteractions(storagesService);
-      verify(eventDispatcher, times(1)).sendToUserQueue(
-        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        AttachmentRemovedEvent.create(user2Id, null).roomId(roomId));
     }
 
     @Test
@@ -586,9 +569,7 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(fileMetadataRepository);
       verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
       verifyNoMoreInteractions(storagesService);
-      verify(eventDispatcher, times(1)).sendToUserQueue(
-        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        AttachmentRemovedEvent.create(user1Id, null).roomId(roomId));
+
     }
 
     @Test

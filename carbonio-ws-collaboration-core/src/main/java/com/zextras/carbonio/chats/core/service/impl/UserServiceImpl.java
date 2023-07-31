@@ -9,8 +9,8 @@ import com.zextras.carbonio.chats.core.config.ChatsConstant.CONFIGURATIONS_DEFAU
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.User;
-import com.zextras.carbonio.chats.core.data.event.UserPictureChangedEvent;
-import com.zextras.carbonio.chats.core.data.event.UserPictureDeletedEvent;
+import com.zextras.carbonio.chats.core.data.event.UserPictureChanged;
+import com.zextras.carbonio.chats.core.data.event.UserPictureDeleted;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -134,7 +134,7 @@ public class UserServiceImpl implements UserService {
       .mimeType(mimeType)
       .userId(currentUser.getId());
     fileMetadataRepository.save(metadata);
-    userRepository.save(
+    User savedUser = userRepository.save(
       userRepository.getById(userId.toString())
         .orElseGet(() ->
           User.create().id(userId.toString()))
@@ -142,7 +142,10 @@ public class UserServiceImpl implements UserService {
     storagesService.saveFile(image, metadata, currentUser.getId());
     eventDispatcher.sendToUserQueue(
       subscriptionRepository.getContacts(userId.toString()),
-      UserPictureChangedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).userId(userId));
+      UserPictureChanged.create()
+        .userId(userId)
+        .imageId(UUID.fromString(metadata.getId()))
+        .updatedAt(savedUser.getPictureUpdatedAt()));
   }
 
   @Override
@@ -159,6 +162,6 @@ public class UserServiceImpl implements UserService {
     storagesService.deleteFile(metadata.getId(), metadata.getUserId());
     eventDispatcher.sendToUserQueue(
       subscriptionRepository.getContacts(userId.toString()),
-      UserPictureDeletedEvent.create(currentUser.getUUID(), currentUser.getSessionId()).userId(userId));
+      UserPictureDeleted.create().userId(userId));
   }
 }

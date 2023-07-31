@@ -6,29 +6,28 @@ package com.zextras.carbonio.chats.core.data.event;
 
 import java.util.Objects;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
-public class RoomOwnerChangedEvent extends DomainEvent {
+public class RoomMemberAdded extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.ROOM_OWNER_CHANGED;
+  private static final EventType EVENT_TYPE = EventType.ROOM_MEMBER_ADDED;
 
   private UUID    roomId;
   private UUID    userId;
   private boolean isOwner;
 
-  public RoomOwnerChangedEvent(UUID from, @Nullable String sessionId) {
-    super(EVENT_TYPE, from, sessionId);
+  public RoomMemberAdded() {
+    super(EVENT_TYPE);
   }
 
-  public static RoomOwnerChangedEvent create(UUID from, @Nullable String sessionId) {
-    return new RoomOwnerChangedEvent(from, sessionId);
+  public static RoomMemberAdded create() {
+    return new RoomMemberAdded();
   }
 
   public UUID getRoomId() {
     return roomId;
   }
 
-  public RoomOwnerChangedEvent roomId(UUID roomId) {
+  public RoomMemberAdded roomId(UUID roomId) {
     this.roomId = roomId;
     return this;
   }
@@ -37,17 +36,17 @@ public class RoomOwnerChangedEvent extends DomainEvent {
     return userId;
   }
 
-  public RoomOwnerChangedEvent userId(UUID userId) {
+  public RoomMemberAdded userId(UUID userId) {
     this.userId = userId;
     return this;
   }
 
-  public boolean isOwner() {
+  public boolean getIsOwner() {
     return isOwner;
   }
 
-  public RoomOwnerChangedEvent isOwner(boolean owner) {
-    isOwner = owner;
+  public RoomMemberAdded isOwner(boolean isOwner) {
+    this.isOwner = isOwner;
     return this;
   }
 
@@ -62,14 +61,13 @@ public class RoomOwnerChangedEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    RoomOwnerChangedEvent that = (RoomOwnerChangedEvent) o;
+    RoomMemberAdded that = (RoomMemberAdded) o;
     return Objects.equals(getRoomId(), that.getRoomId()) &&
-      Objects.equals(getUserId(), that.getUserId()) &&
-      isOwner() == that.isOwner();
+      Objects.equals(getUserId(), that.getUserId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getRoomId(), getUserId(), isOwner());
+    return Objects.hash(super.hashCode(), getRoomId(), getUserId());
   }
 }
