@@ -182,6 +182,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
     }
+    sendAffiliationMessage(roomId, senderId, recipientId, true);
   }
 
   @Override
@@ -195,6 +196,23 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
       try {
         throw new MessageDispatcherException(
           String.format("Error while removing a room member: %s", objectMapper.writeValueAsString(result.errors)));
+      } catch (JsonProcessingException e) {
+        throw new InternalErrorException("Error during parsing the json of response error ", e);
+      }
+    }
+    sendAffiliationMessage(roomId, senderId, idToRemove, false);
+  }
+
+  private void sendAffiliationMessage(String roomId, String senderId, String memberId, boolean isAdded) {
+    GraphQlResponse result = sendStanza(
+      XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+        .type(isAdded ? MessageType.MEMBER_ADDED : MessageType.MEMBER_REMOVED)
+        .addConfig("user-id", memberId).build());
+    if (result.errors != null) {
+      try {
+        throw new MessageDispatcherException(
+          String.format("Error while sending affiliation message: %s",
+            objectMapper.writeValueAsString(result.errors)));
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
