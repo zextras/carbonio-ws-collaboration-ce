@@ -7,8 +7,10 @@ package com.zextras.carbonio.chats.core.service.impl;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.MeetingCreatedEvent;
-import com.zextras.carbonio.chats.core.data.event.MeetingDeletedEvent;
+import com.zextras.carbonio.chats.core.data.event.MeetingCreated;
+import com.zextras.carbonio.chats.core.data.event.MeetingDeleted;
+import com.zextras.carbonio.chats.core.data.event.MeetingStarted;
+import com.zextras.carbonio.chats.core.data.event.MeetingStopped;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -80,18 +82,30 @@ public class MeetingServiceImpl implements MeetingService {
               rId,
               null);
             roomService.setMeetingIntoRoom(room, meeting);
+            eventDispatcher.sendToUserQueue(
+              room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+              MeetingCreated.create()
+                .meetingId(UUID.fromString(meeting.getId()))
+                .roomId(roomId));
             return meeting;
           }).getOrElseThrow(() -> new RuntimeException("Room not found"))
       ).getOrElse(() -> {
+        List<UUID> userIds = users.stream().map(MeetingUserDto::getUserId).collect(Collectors.toList());
         RoomDto room = roomService.createRoom(RoomCreationFieldsDto.create()
           .name(name)
           .type(RoomTypeDto.GROUP)
-          .membersIds(users.stream().map(MeetingUserDto::getUserId).collect(Collectors.toList()))
+          .membersIds(userIds)
           ,user);
-        return meetingRepository.insert(name,
+        Meeting meeting = meetingRepository.insert(name,
           MeetingType.valueOf(meetingType.toString().toUpperCase()),
           room.getId(),
           expiration);
+        eventDispatcher.sendToUserQueue(
+          userIds.stream().map(UUID::toString).collect(Collectors.toList()),
+          MeetingCreated.create()
+            .meetingId(UUID.fromString(meeting.getId()))
+            .roomId(roomId));
+        return meeting;
       })
     );
   }
@@ -109,7 +123,17 @@ public class MeetingServiceImpl implements MeetingService {
           meeting.active(s);
         }
       });
-      return meetingRepository.update(meeting);
+      Meeting updatedMeeting = meetingRepository.update(meeting);
+        eventDispatcher.sendToUserQueue(
+          roomService.getRoomById(UUID.fromString(meeting.getRoomId()), user)
+            .getMembers().stream().map(m -> m.getUserId().toString()).collect(Collectors.toList()),
+          Boolean.TRUE.equals(active) ?
+            MeetingStarted.create()
+                .meetingId(UUID.fromString(updatedMeeting.getId())).starterUser(user.getUUID())
+            : MeetingStopped.create()
+                .meetingId(UUID.fromString(updatedMeeting.getId()))
+          );
+      return updatedMeeting;
     }).orElseThrow(() -> new NotFoundException(
       String.format("Meeting with id '%s' not found", meetingId)))
     );
@@ -166,7 +190,7 @@ public class MeetingServiceImpl implements MeetingService {
       videoServerService.startMeeting(meeting.getId());
       eventDispatcher.sendToUserQueue(
         room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-        MeetingCreatedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
+        MeetingCreated.create()
           .meetingId(UUID.fromString(meeting.getId()))
           .roomId(roomId));
       return meeting;
@@ -190,7 +214,7 @@ public class MeetingServiceImpl implements MeetingService {
     videoServerService.stopMeeting(meeting.getId());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      MeetingDeletedEvent.create(userId, sessionId)
+      MeetingDeleted.create()
         .meetingId(UUID.fromString(meeting.getId())));
   }
 }

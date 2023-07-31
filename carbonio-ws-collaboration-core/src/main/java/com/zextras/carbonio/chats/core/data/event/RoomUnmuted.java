@@ -8,25 +8,25 @@ import java.util.Objects;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
-public class RoomUnmutedEvent extends DomainEvent {
+public class RoomUnmuted extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_UNMUTED;
 
   private UUID roomId;
 
-  public RoomUnmutedEvent(UUID from, @Nullable String sessionId) {
-    super(EVENT_TYPE, from, sessionId);
+  public RoomUnmuted() {
+    super(EVENT_TYPE);
   }
 
-  public static RoomUnmutedEvent create(UUID from, @Nullable String sessionId) {
-    return new RoomUnmutedEvent(from, sessionId);
+  public static RoomUnmuted create() {
+    return new RoomUnmuted();
   }
 
   public UUID getRoomId() {
     return roomId;
   }
 
-  public RoomUnmutedEvent roomId(UUID roomId) {
+  public RoomUnmuted roomId(UUID roomId) {
     this.roomId = roomId;
     return this;
   }
@@ -42,7 +42,7 @@ public class RoomUnmutedEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    return Objects.equals(getRoomId(), ((RoomUnmutedEvent) o).getRoomId());
+    return Objects.equals(getRoomId(), ((RoomUnmuted) o).getRoomId());
   }
 
   @Override

@@ -4,30 +4,34 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
+import com.zextras.carbonio.chats.model.MemberDto;
 import java.util.Objects;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
-public class RoomMemberRemovedEvent extends DomainEvent {
+public class RoomMemberAdded extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.ROOM_MEMBER_REMOVED;
+  private static final EventType EVENT_TYPE = EventType.ROOM_MEMBER_ADDED;
 
-  private UUID roomId;
-  private UUID userId;
+  private UUID      roomId;
 
-  public RoomMemberRemovedEvent(UUID from, @Nullable String sessionId) {
-    super(EVENT_TYPE, from, sessionId);
+  private UUID      userId;
+
+  private boolean   isOwner;
+
+  public RoomMemberAdded() {
+    super(EVENT_TYPE);
   }
 
-  public static RoomMemberRemovedEvent create(UUID from, @Nullable String sessionId) {
-    return new RoomMemberRemovedEvent(from, sessionId);
+  public static RoomMemberAdded create() {
+    return new RoomMemberAdded();
   }
 
   public UUID getRoomId() {
     return roomId;
   }
 
-  public RoomMemberRemovedEvent roomId(UUID roomId) {
+  public RoomMemberAdded roomId(UUID roomId) {
     this.roomId = roomId;
     return this;
   }
@@ -36,8 +40,15 @@ public class RoomMemberRemovedEvent extends DomainEvent {
     return userId;
   }
 
-  public RoomMemberRemovedEvent userId(UUID userId) {
+  public RoomMemberAdded userId(UUID userId) {
     this.userId = userId;
+    return this;
+  }
+
+  public boolean getIsOwner(){return isOwner;}
+
+  public RoomMemberAdded isOwner(boolean isOwner){
+    this.isOwner = isOwner;
     return this;
   }
 
@@ -52,9 +63,9 @@ public class RoomMemberRemovedEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    RoomMemberRemovedEvent that = (RoomMemberRemovedEvent) o;
+    RoomMemberAdded that = (RoomMemberAdded) o;
     return Objects.equals(getRoomId(), that.getRoomId()) &&
-      Objects.equals(getUserId(), that.getUserId());
+      Objects.equals(getUserId(), that.getUserId()) ;
   }
 
   @Override

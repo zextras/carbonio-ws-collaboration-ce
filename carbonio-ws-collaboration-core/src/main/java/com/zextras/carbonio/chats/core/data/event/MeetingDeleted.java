@@ -8,25 +8,25 @@ import java.util.Objects;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
-public class MeetingParticipantJoinedEvent extends DomainEvent {
+public class MeetingDeleted extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_JOINED;
+  private static final EventType EVENT_TYPE = EventType.MEETING_DELETED;
 
   private UUID meetingId;
 
-  public MeetingParticipantJoinedEvent(UUID from, @Nullable String sessionId) {
-    super(EVENT_TYPE, from, sessionId);
+  public MeetingDeleted() {
+    super(EVENT_TYPE);
   }
 
-  public static MeetingParticipantJoinedEvent create(UUID from, @Nullable String sessionId) {
-    return new MeetingParticipantJoinedEvent(from, sessionId);
+  public static MeetingDeleted create() {
+    return new MeetingDeleted();
   }
 
   public UUID getMeetingId() {
     return meetingId;
   }
 
-  public MeetingParticipantJoinedEvent meetingId(UUID meetingId) {
+  public MeetingDeleted meetingId(UUID meetingId) {
     this.meetingId = meetingId;
     return this;
   }
@@ -42,7 +42,7 @@ public class MeetingParticipantJoinedEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    MeetingParticipantJoinedEvent that = (MeetingParticipantJoinedEvent) o;
+    MeetingDeleted that = (MeetingDeleted) o;
     return Objects.equals(getMeetingId(), that.getMeetingId());
   }
 

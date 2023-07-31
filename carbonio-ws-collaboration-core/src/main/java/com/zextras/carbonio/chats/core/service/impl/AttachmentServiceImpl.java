@@ -11,9 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.data.builder.IdDtoBuilder;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
-import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.AttachmentAddedEvent;
-import com.zextras.carbonio.chats.core.data.event.AttachmentRemovedEvent;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
@@ -40,7 +37,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -146,10 +142,6 @@ public class AttachmentServiceImpl implements AttachmentService {
     storagesService.saveFile(file, metadata, currentUser.getId());
     messageDispatcher.sendAttachment(roomId.toString(), currentUser.getId(), metadata, description, messageId, replyId,
       area);
-    eventDispatcher.sendToUserQueue(
-      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      AttachmentAddedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
-        .roomId(roomId).attachment(attachmentMapper.ent2dto(metadata)));
     return IdDtoBuilder.create().id(id).build();
   }
 
@@ -183,10 +175,6 @@ public class AttachmentServiceImpl implements AttachmentService {
         String.format("User '%s' can not delete attachment '%s'", currentUser.getId(), fileId)));
     fileMetadataRepository.delete(metadata);
     storagesService.deleteFile(fileId.toString(), metadata.getUserId());
-    eventDispatcher.sendToUserQueue(
-      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      AttachmentRemovedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
-        .roomId(UUID.fromString(room.getId())));
   }
 
   @Override

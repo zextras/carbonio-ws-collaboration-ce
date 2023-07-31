@@ -14,16 +14,14 @@ public class MeetingMediaStreamChanged extends DomainEvent {
   private static final EventType EVENT_TYPE = EventType.MEETING_MEDIA_STREAM_CHANGED;
 
   private UUID      meetingId;
-  private String    sessionId;
+  private UUID      userId;
   private MediaType mediaType;
   private Boolean   active;
 
-  public MeetingMediaStreamChanged(UUID from, @Nullable String sessionId) {
-    super(EVENT_TYPE, from, sessionId);
-  }
+  public MeetingMediaStreamChanged(){super(EVENT_TYPE);}
 
-  public static MeetingMediaStreamChanged create(UUID from, @Nullable String sessionId) {
-    return new MeetingMediaStreamChanged(from, sessionId);
+  public static MeetingMediaStreamChanged create() {
+    return new MeetingMediaStreamChanged();
   }
 
   public UUID getMeetingId() {
@@ -35,13 +33,12 @@ public class MeetingMediaStreamChanged extends DomainEvent {
     return this;
   }
 
-  @Override
-  public String getSessionId() {
-    return sessionId;
+  public UUID getUserId() {
+    return userId;
   }
 
-  public MeetingMediaStreamChanged sessionId(String sessionId) {
-    this.sessionId = sessionId;
+  public MeetingMediaStreamChanged userId(UUID userId) {
+    this.userId = userId;
     return this;
   }
 
@@ -75,12 +72,15 @@ public class MeetingMediaStreamChanged extends DomainEvent {
       return false;
     }
     MeetingMediaStreamChanged that = (MeetingMediaStreamChanged) o;
-    return Objects.equals(getMeetingId(), that.getMeetingId()) && Objects.equals(getSessionId(),
-      that.getSessionId()) && getMediaType() == that.getMediaType();
+    return Objects.equals(getMeetingId(), that.getMeetingId()) &&
+      Objects.equals(getUserId(), that.getUserId()) &&
+      getMediaType() == that.getMediaType() &&
+      getActive() == that.getActive();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getMeetingId(), getSessionId(), getMediaType());
+    return
+      Objects.hash(super.hashCode(), getMeetingId(), getUserId(), getMediaType(), getActive());
   }
 }

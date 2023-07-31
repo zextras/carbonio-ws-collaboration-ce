@@ -21,11 +21,10 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamEnabled;
+import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoinedEvent;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeftEvent;
-import com.zextras.carbonio.chats.core.data.event.MeetingVideoStreamDisabled;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoined;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
@@ -167,7 +166,7 @@ public class ParticipantServiceImplTest {
         .joinMeeting(user3Session1, meeting1Id.toString(), false, true);
       verify(eventDispatcher, times(1))
         .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-          MeetingParticipantJoinedEvent.create(user3Id, user3Session1).meetingId(meeting1Id));
+          MeetingParticipantJoined.create().meetingId(meeting1Id).userId(user3Id));
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
 
@@ -195,7 +194,10 @@ public class ParticipantServiceImplTest {
         .joinMeeting(user3Session1, meeting.getId(), false, true);
       verify(eventDispatcher, times(1))
         .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-          MeetingParticipantJoinedEvent.create(user3Id, user3Session1).meetingId(UUID.fromString(meeting.getId())));
+          MeetingParticipantJoined.create()
+            .meetingId(UUID.fromString(meeting.getId()))
+            .userId(user3Id)
+        );
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
   }
@@ -222,7 +224,10 @@ public class ParticipantServiceImplTest {
         false, true);
       verify(eventDispatcher, times(1))
         .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-          MeetingParticipantJoinedEvent.create(user3Id, user3Session1).meetingId(meeting1Id));
+          MeetingParticipantJoined.create()
+            .meetingId(meeting1Id)
+            .userId(user3Id)
+        );
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
 
@@ -244,7 +249,10 @@ public class ParticipantServiceImplTest {
         false, true);
       verify(eventDispatcher, times(1))
         .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-          MeetingParticipantJoinedEvent.create(user2Id, user2Session2).meetingId(meeting2Id));
+          MeetingParticipantJoined.create()
+            .meetingId(meeting2Id)
+            .userId(user2Id)
+        );
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
 
@@ -287,7 +295,8 @@ public class ParticipantServiceImplTest {
       verify(videoServerService, times(1)).leaveMeeting(user2Session2, meeting1Id.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        MeetingParticipantLeftEvent.create(user2Id, user2Session2).meetingId(meeting1Id));
+        MeetingParticipantLeft.create().meetingId(meeting1Id).userId(user2Id)
+      );
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
 
@@ -307,7 +316,7 @@ public class ParticipantServiceImplTest {
       verify(videoServerService, times(1)).leaveMeeting(user2Session1, meeting2Id.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        MeetingParticipantLeftEvent.create(user2Id, user2Session1).meetingId(meeting2Id));
+        MeetingParticipantLeft.create().meetingId(meeting2Id).userId(user2Id));
       verify(meetingService, times(1)).deleteMeeting(meeting2, room, user2Id, user2Session1);
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
@@ -329,12 +338,9 @@ public class ParticipantServiceImplTest {
         .leaveMeeting(user2Session1, meeting1Id.toString());
       verify(videoServerService, times(1))
         .leaveMeeting(user2Session2, meeting1Id.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(
+      verify(eventDispatcher, times(2)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        MeetingParticipantLeftEvent.create(user2Id, user2Session1).meetingId(meeting1Id));
-      verify(eventDispatcher, times(1)).sendToUserQueue(
-        List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        MeetingParticipantLeftEvent.create(user2Id, user2Session2).meetingId(meeting1Id));
+        MeetingParticipantLeft.create().meetingId(meeting1Id).userId(user2Id));
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
 
@@ -376,8 +382,11 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user1Session1).userId(user1Id).videoStreamOn(true)
           .screenStreamOn(false).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingMediaStreamChanged.create(user1Id, user1Session1).meetingId(meeting1Id).sessionId(user1Session1)
-          .mediaType(MediaType.VIDEO).active(true));
+        MeetingMediaStreamChanged.create()
+          .meetingId(meeting1Id)
+          .userId(user1Id)
+          .mediaType(MediaType.VIDEO)
+          .active(true));
       verify(videoServerService, times(1)).updateMediaStream(user1Session1, meeting1Id.toString(),
         MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp"));
 
@@ -482,8 +491,11 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id).videoStreamOn(false)
           .audioStreamOn(true).screenStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingMediaStreamChanged.create(user2Id, user2Session2).meetingId(meeting1Id).sessionId(user2Session2)
-          .mediaType(MediaType.VIDEO).active(false));
+        MeetingMediaStreamChanged.create()
+          .meetingId(meeting1Id)
+          .userId(user2Id)
+          .mediaType(MediaType.VIDEO)
+          .active(false));
       verify(videoServerService, times(1)).updateMediaStream(user2Session2, meeting1Id.toString(),
         MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false));
       verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
@@ -519,7 +531,9 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id).videoStreamOn(false)
           .audioStreamOn(true).screenStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingMediaStreamChanged.create(user1Id, user1Session1).meetingId(meeting1Id).sessionId(user2Session2)
+        MeetingMediaStreamChanged.create()
+          .meetingId(meeting1Id)
+          .userId(user1Id)
           .mediaType(MediaType.VIDEO).active(false));
       verify(videoServerService, times(1)).updateMediaStream(user2Session2, meeting1Id.toString(),
         MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false));
@@ -603,8 +617,11 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user1Session1).userId(user1Id).audioStreamOn(hasAudioStreamOn)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingAudioStreamEnabled.create(user1Id, user1Session1).meetingId(meeting1Id)
-          .sessionId(user1Session1));
+        MeetingAudioStreamChanged.create()
+          .meetingId(meeting1Id)
+          .userId(user1Id)
+          .active(true)
+      );
       verify(videoServerService, times(1)).updateAudioStream(user1Session1, meeting1Id.toString(), true);
 
       verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
@@ -705,8 +722,7 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id).audioStreamOn(hasAudioStreamOn)
           .videoStreamOn(true).screenStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingVideoStreamDisabled.create(user2Id, user2Session2).meetingId(meeting1Id)
-          .sessionId(user2Session2));
+        MeetingAudioStreamChanged.create().meetingId(meeting1Id).userId(user2Id));
       verify(videoServerService, times(1)).updateAudioStream(user2Session2, meeting1Id.toString(), false);
       verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
       verifyNoInteractions(roomService);
@@ -739,8 +755,7 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id).audioStreamOn(false)
           .videoStreamOn(true).screenStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingVideoStreamDisabled.create(user1Id, user1Session1).meetingId(meeting1Id)
-          .sessionId(user2Session2));
+        MeetingAudioStreamChanged.create().meetingId(meeting1Id).userId(user1Id));
       verify(videoServerService, times(1)).updateAudioStream(user1Session1, meeting1Id.toString(), false);
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, eventDispatcher, videoServerService);
     }
@@ -818,8 +833,12 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user1Session1).userId(user1Id).screenStreamOn(true)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingMediaStreamChanged.create(user1Id, user1Session1).meetingId(meeting1Id).sessionId(user1Session1)
-          .mediaType(MediaType.SCREEN).active(true));
+        MeetingMediaStreamChanged.create()
+          .meetingId(meeting1Id)
+          .userId(user1Id)
+          .mediaType(MediaType.SCREEN)
+          .active(true)
+      );
       verify(videoServerService, times(1)).updateMediaStream(user1Session1, meeting1Id.toString(),
         MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp"));
 
@@ -924,8 +943,12 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id).screenStreamOn(false)
           .audioStreamOn(true).videoStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingMediaStreamChanged.create(user2Id, user2Session2).meetingId(meeting1Id).sessionId(user2Session2)
-          .mediaType(MediaType.SCREEN).active(false));
+        MeetingMediaStreamChanged.create()
+          .meetingId(meeting1Id)
+          .userId(user2Id)
+          .mediaType(MediaType.SCREEN)
+          .active(false)
+      );
       verify(videoServerService, times(1)).updateMediaStream(user2Session2, meeting1Id.toString(),
         MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false));
       verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
@@ -961,8 +984,12 @@ public class ParticipantServiceImplTest {
         ParticipantBuilder.create(Meeting.create(), user2Session2).userId(user2Id).screenStreamOn(false)
           .audioStreamOn(true).videoStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(), user2Id.toString()),
-        MeetingMediaStreamChanged.create(user1Id, user1Session1).meetingId(meeting1Id).sessionId(user2Session2)
-          .mediaType(MediaType.SCREEN).active(false));
+        MeetingMediaStreamChanged.create()
+          .meetingId(meeting1Id)
+          .userId(user1Id)
+          .mediaType(MediaType.SCREEN)
+          .active(false)
+      );
       verify(videoServerService, times(1)).updateMediaStream(user2Session2, meeting1Id.toString(),
         MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false));
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, eventDispatcher, videoServerService);
