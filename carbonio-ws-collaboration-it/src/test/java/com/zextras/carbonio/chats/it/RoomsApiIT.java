@@ -30,6 +30,7 @@ import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
+import com.zextras.carbonio.chats.it.tools.VideoServerMockServer;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils.RoomMemberField;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
@@ -85,8 +86,8 @@ public class RoomsApiIT {
   private final RoomRepository             roomRepository;
   private final FileMetadataRepository     fileMetadataRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
-
-  private final AppClock clock;
+  private final VideoServerMockServer      videoServerMockServer;
+  private final AppClock                   clock;
 
   public RoomsApiIT(
     RoomsApi roomsApi, ResteasyRequestDispatcher dispatcher, ObjectMapper objectMapper,
@@ -96,7 +97,8 @@ public class RoomsApiIT {
     MongooseImMockServer mongooseImMockServer, StorageMockServer storageMockServer,
     FileMetadataRepository fileMetadataRepository, Clock clock,
     RoomRepository roomRepository,
-    RoomUserSettingsRepository roomUserSettingsRepository
+    RoomUserSettingsRepository roomUserSettingsRepository,
+    VideoServerMockServer videoServerMockServer
   ) {
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;
@@ -108,6 +110,7 @@ public class RoomsApiIT {
     this.fileMetadataRepository = fileMetadataRepository;
     this.roomRepository = roomRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
+    this.videoServerMockServer = videoServerMockServer;
     this.dispatcher.getRegistry().addSingletonResource(roomsApi);
     this.clock = (AppClock) clock;
   }
@@ -2104,6 +2107,7 @@ public class RoomsApiIT {
           + "<body/>"
           + "</message>";
       mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
+
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -2898,8 +2902,38 @@ public class RoomsApiIT {
         ParticipantBuilder.create(user2Id, "user2session1").audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, "user2session2").audioStreamOn(true).videoStreamOn(false),
         ParticipantBuilder.create(user3Id, "user3session1").audioStreamOn(false).videoStreamOn(false)));
+      meetingTestUtils.insertVideoServerMeeting(
+        meetingId.toString(),
+        "connectionId",
+        "audioHandleId",
+        "videoHandleId",
+        "audioRoomId",
+        "videoRoomId");
+      videoServerMockServer.mockRequestedResponse("POST", "/janus",
+        "{\"janus\":\"create\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+        "{\"janus\":\"success\",\"data\":{\"id\":\"connectionId\"}}", true);
+      videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId",
+        "{\"janus\":\"attach\",\"transaction\":\"${json-unit.ignore-element}\",\"plugin\":\"janus.plugin.audiobridge\",\"apisecret\":\"secret\"}",
+        "{\"janus\":\"success\",\"data\":{\"id\":\"audioHandleId\"}}", true);
+      videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/audioHandleId",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\",\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\",\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"audiobridge\":\"created\",\"room\":\"audioRoomId\"}}}",
+        true);
+      videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId",
+        "{\"janus\":\"attach\",\"transaction\":\"${json-unit.ignore-element}\",\"plugin\":\"janus.plugin.videoroom\",\"apisecret\":\"secret\"}",
+        "{\"janus\":\"success\",\"data\":{\"id\":\"videoHandleId\"}}", true);
+      videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\",\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\",\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"videoroom\":\"created\",\"room\":\"videoRoomId\"}}}", true);
+      videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"user1session1/video\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"ack\"}", true);
+      videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"user1session1/screen\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"ack\"}", true);
       Instant executionInstant = Instant.parse("2022-01-01T00:00:00Z");
       clock.fixTimeAt(executionInstant);
+
       MockHttpResponse response = dispatcher.put(url(roomId),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
@@ -2934,6 +2968,29 @@ public class RoomsApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       Instant executionInstant = Instant.parse("2022-01-01T00:00:00Z");
+      videoServerMockServer.mockRequestedResponse("POST", "/janus",
+        "{\"janus\":\"create\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+        "{\"janus\":\"success\",\"data\":{\"id\":\"connectionId\"}}", true);
+      videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId",
+        "{\"janus\":\"attach\",\"transaction\":\"${json-unit.ignore-element}\",\"plugin\":\"janus.plugin.audiobridge\",\"apisecret\":\"secret\"}",
+        "{\"janus\":\"success\",\"data\":{\"id\":\"audioHandleId\"}}", true);
+      videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/audioHandleId",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\",\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\",\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"audiobridge\":\"created\",\"room\":\"audioRoomId\"}}}",
+        true);
+      videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId",
+        "{\"janus\":\"attach\",\"transaction\":\"${json-unit.ignore-element}\",\"plugin\":\"janus.plugin.videoroom\",\"apisecret\":\"secret\"}",
+        "{\"janus\":\"success\",\"data\":{\"id\":\"videoHandleId\"}}", true);
+      videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\",\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\",\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"videoroom\":\"created\",\"room\":\"videoRoomId\"}}}", true);
+      videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"user1session1/video\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"ack\"}", true);
+      videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"user1session1/screen\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"ack\"}", true);
+
       clock.fixTimeAt(executionInstant);
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
