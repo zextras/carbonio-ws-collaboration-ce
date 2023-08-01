@@ -43,18 +43,18 @@ import static io.vavr.API.Match;
 @WebListener
 public class VideoServerEventListener implements ServletContextListener {
 
-  private static final String       JANUS_EVENTS        = "janus-events";
-  private static final String       LOCAL               = "local";
-  private static final int          JSEP_TYPE           = 8;
-  private static final int          PLUGIN_TYPE         = 64;
-  private static final String       TALKING             = "talking";
-  private static final String       STOPPED_TALKING     = "stopped-talking";
+  private static final String JANUS_EVENTS = "janus-events";
+  private static final String LOCAL = "local";
+  private static final int JSEP_TYPE = 8;
+  private static final int PLUGIN_TYPE = 64;
+  private static final String TALKING = "talking";
+  private static final String STOPPED_TALKING = "stopped-talking";
   private static final List<String> TALKING_TYPE_EVENTS = List.of(TALKING, STOPPED_TALKING);
 
-  private final Connection                   rabbitMqConnection;
-  private final ObjectMapper                 objectMapper;
+  private final Connection rabbitMqConnection;
+  private final ObjectMapper objectMapper;
   private final VideoServerSessionRepository videoServerSessionRepository;
-  private final ParticipantRepository        participantRepository;
+  private final ParticipantRepository participantRepository;
 
   private enum EventType {
     AUDIO,
@@ -62,9 +62,10 @@ public class VideoServerEventListener implements ServletContextListener {
     VIDEOOUT,
     SCREEN
   }
+
   @Inject
   public VideoServerEventListener(Optional<Connection> rabbitMqConnection, ObjectMapper objectMapper,
-    VideoServerSessionRepository videoServerSessionRepository, ParticipantRepository participantRepository) {
+                                  VideoServerSessionRepository videoServerSessionRepository, ParticipantRepository participantRepository) {
     this.rabbitMqConnection = rabbitMqConnection.orElse(null);
     this.objectMapper = objectMapper;
     this.videoServerSessionRepository = videoServerSessionRepository;
@@ -76,9 +77,7 @@ public class VideoServerEventListener implements ServletContextListener {
     if (Optional.ofNullable(rabbitMqConnection).isEmpty()) {
       throw new InternalErrorException("RabbitMQ connection is not up!");
     }
-
-    try (Channel channel = rabbitMqConnection.createChannel()){
-
+    try (Channel channel = rabbitMqConnection.createChannel()) {
       channel.queueDeclare(JANUS_EVENTS, true, false, false, null);
       DeliverCallback deliverCallback = (consumerTag, delivery) -> {
         String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
@@ -110,7 +109,7 @@ public class VideoServerEventListener implements ServletContextListener {
                                   .sdp(rtcSessionDescription.getSdp())));
                               break;
                             case ANSWER:
-                              switch(eventType) {
+                              switch (eventType) {
                                 case AUDIO:
                                   send(channel, participant.getUserId(), objectMapper.writeValueAsString(
                                     MeetingAudioAnswered.create()
@@ -132,7 +131,7 @@ public class VideoServerEventListener implements ServletContextListener {
                             default:
                               break;
                           }
-                        } catch (MatchError m){
+                        } catch (MatchError m) {
                           ChatsLogger.error("Invalid event handle id: " + m.getObject());
                         } catch (JsonProcessingException e) {
                           ChatsLogger.debug("Error during serialization of " + videoServerEvent);
