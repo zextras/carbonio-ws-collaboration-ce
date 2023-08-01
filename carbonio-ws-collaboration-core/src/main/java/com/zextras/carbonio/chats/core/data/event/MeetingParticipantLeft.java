@@ -12,7 +12,6 @@ public class MeetingParticipantLeft extends DomainEvent {
   private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_LEFT;
 
   private UUID meetingId;
-
   private UUID userId;
 
   public MeetingParticipantLeft() {

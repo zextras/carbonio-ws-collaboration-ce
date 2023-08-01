@@ -30,7 +30,6 @@ import com.zextras.carbonio.meeting.model.MeetingTypeDto;
 import com.zextras.carbonio.meeting.model.MeetingUserDto;
 import io.ebean.annotation.Transactional;
 import io.vavr.control.Option;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -68,11 +67,11 @@ public class MeetingServiceImpl implements MeetingService {
 
   @Override
   public MeetingDto createMeeting(UserPrincipal user,
-                                  String name,
-                                  MeetingTypeDto meetingType,
-                                  UUID roomId,
-                                  List<MeetingUserDto> users,
-                                  OffsetDateTime expiration) {
+    String name,
+    MeetingTypeDto meetingType,
+    UUID roomId,
+    List<MeetingUserDto> users,
+    OffsetDateTime expiration) {
     return meetingMapper.ent2dto(
       Option.of(roomId).map(rId ->
         Option.of(roomService.getRoomEntityAndCheckUser(roomId, user, false))
@@ -92,10 +91,10 @@ public class MeetingServiceImpl implements MeetingService {
       ).getOrElse(() -> {
         List<UUID> userIds = users.stream().map(MeetingUserDto::getUserId).collect(Collectors.toList());
         RoomDto room = roomService.createRoom(RoomCreationFieldsDto.create()
-          .name(name)
-          .type(RoomTypeDto.GROUP)
-          .membersIds(userIds)
-          ,user);
+            .name(name)
+            .type(RoomTypeDto.GROUP)
+            .membersIds(userIds)
+          , user);
         Meeting meeting = meetingRepository.insert(name,
           MeetingType.valueOf(meetingType.toString().toUpperCase()),
           room.getId(),
@@ -113,29 +112,29 @@ public class MeetingServiceImpl implements MeetingService {
   @Override
   public MeetingDto updateMeeting(UserPrincipal user, UUID meetingId, Boolean active) {
     return meetingMapper.ent2dto(meetingRepository.getById(meetingId.toString()).map(meeting -> {
-      Option.of(active).peek(s -> {
-        if(!Objects.equals(s, meeting.getActive())){
-          if (Boolean.TRUE.equals(s)) {
-            videoServerService.startMeeting(meeting.getId());
-          } else {
-            videoServerService.stopMeeting(meeting.getId());
+        Option.of(active).peek(s -> {
+          if (!Objects.equals(s, meeting.getActive())) {
+            if (Boolean.TRUE.equals(s)) {
+              videoServerService.startMeeting(meeting.getId());
+            } else {
+              videoServerService.stopMeeting(meeting.getId());
+            }
+            meeting.active(s);
           }
-          meeting.active(s);
-        }
-      });
-      Meeting updatedMeeting = meetingRepository.update(meeting);
+        });
+        Meeting updatedMeeting = meetingRepository.update(meeting);
         eventDispatcher.sendToUserQueue(
           roomService.getRoomById(UUID.fromString(meeting.getRoomId()), user)
             .getMembers().stream().map(m -> m.getUserId().toString()).collect(Collectors.toList()),
           Boolean.TRUE.equals(active) ?
             MeetingStarted.create()
-                .meetingId(UUID.fromString(updatedMeeting.getId())).starterUser(user.getUUID())
+              .meetingId(UUID.fromString(updatedMeeting.getId())).starterUser(user.getUUID())
             : MeetingStopped.create()
-                .meetingId(UUID.fromString(updatedMeeting.getId()))
-          );
-      return updatedMeeting;
-    }).orElseThrow(() -> new NotFoundException(
-      String.format("Meeting with id '%s' not found", meetingId)))
+              .meetingId(UUID.fromString(updatedMeeting.getId()))
+        );
+        return updatedMeeting;
+      }).orElseThrow(() -> new NotFoundException(
+        String.format("Meeting with id '%s' not found", meetingId)))
     );
   }
 

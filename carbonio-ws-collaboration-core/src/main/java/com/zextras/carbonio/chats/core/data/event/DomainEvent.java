@@ -10,8 +10,8 @@ import java.util.Objects;
 
 public class DomainEvent {
 
-  private EventType eventType;
-  private OffsetDateTime       sentDate;
+  private EventType      eventType;
+  private OffsetDateTime sentDate;
 
   public DomainEvent(EventType eventType) {
     this.eventType = eventType;

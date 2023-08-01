@@ -11,9 +11,11 @@ import com.rabbitmq.client.Connection;
 import com.zextras.carbonio.chats.core.data.event.DomainEvent;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeoutException;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -53,16 +55,28 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   }
 
   private void send(String userId, String message) {
+    if (Optional.ofNullable(connection).isEmpty()) {
+      ChatsLogger.warn("RabbitMQ connection is not up!");
+      return;
+    }
+    Channel channel;
     try {
-      if (Optional.ofNullable(connection).isEmpty()) {
-        return;
-      }
-      Channel channel = connection.createChannel();
-      channel.queueDeclare(userId, true, false, false, null);
-      channel.basicPublish("", userId, null, message.getBytes(StandardCharsets.UTF_8));
+      channel = connection.createChannel();
+    } catch (IOException e) {
+      ChatsLogger.warn(String.format("Error creating RabbitMQ connection channel for user '%s'", userId), e);
+      return;
+    }
+    try {
+      channel.exchangeDeclare(userId, "direct");
+      channel.basicPublish(userId, "", null, message.getBytes(StandardCharsets.UTF_8));
       channel.close();
     } catch (Exception e) {
-      ChatsLogger.warn(String.format("Unable to send message to %s", userId), e);
+      ChatsLogger.warn(String.format("Unable to send message to user '%s'", userId), e);
+      try {
+        channel.close();
+      } catch (IOException | TimeoutException ignored) {
+        ChatsLogger.warn(String.format("Error closing RabbitMQ connection channel for user '%s'", userId));
+      }
     }
   }
 

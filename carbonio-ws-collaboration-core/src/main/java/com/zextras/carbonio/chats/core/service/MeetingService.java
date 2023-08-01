@@ -12,7 +12,6 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.MeetingTypeDto;
 import com.zextras.carbonio.meeting.model.MeetingUserDto;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -21,13 +20,32 @@ import javax.annotation.Nullable;
 
 public interface MeetingService {
 
+  /**
+   * Creates a new meeting
+   *
+   * @param user
+   * @param name
+   * @param meetingType
+   * @param roomId
+   * @param users
+   * @param expiration
+   * @return {@link MeetingDto}
+   */
   MeetingDto createMeeting(UserPrincipal user,
-                           String name,
-                           MeetingTypeDto meetingType,
-                           UUID roomId,
-                           List<MeetingUserDto> users,
-                           OffsetDateTime expiration);
+    String name,
+    MeetingTypeDto meetingType,
+    UUID roomId,
+    List<MeetingUserDto> users,
+    OffsetDateTime expiration);
 
+  /**
+   * Updates a meeting
+   *
+   * @param user
+   * @param meetingId
+   * @param started
+   * @return {@link MeetingDto}
+   */
   MeetingDto updateMeeting(UserPrincipal user, UUID meetingId, Boolean started);
 
   /**

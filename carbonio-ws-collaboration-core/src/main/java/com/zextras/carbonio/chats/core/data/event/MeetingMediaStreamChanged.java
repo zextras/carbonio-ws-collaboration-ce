@@ -7,7 +7,6 @@ package com.zextras.carbonio.chats.core.data.event;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
 import java.util.Objects;
 import java.util.UUID;
-import org.jetbrains.annotations.Nullable;
 
 public class MeetingMediaStreamChanged extends DomainEvent {
 
@@ -18,7 +17,9 @@ public class MeetingMediaStreamChanged extends DomainEvent {
   private MediaType mediaType;
   private Boolean   active;
 
-  public MeetingMediaStreamChanged(){super(EVENT_TYPE);}
+  public MeetingMediaStreamChanged() {
+    super(EVENT_TYPE);
+  }
 
   public static MeetingMediaStreamChanged create() {
     return new MeetingMediaStreamChanged();

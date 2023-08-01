@@ -11,6 +11,14 @@ import java.util.Optional;
 public interface ParticipantRepository {
 
   /**
+   * Retrieves a participant by its session identifier
+   *
+   * @param sessionId session identifier
+   * @return required {@link Participant} wrapped in a {@link Optional}
+   */
+  Optional<Participant> getBySessionId(String sessionId);
+
+  /**
    * Retrieves a participant by its row identifier
    *
    * @param meetingId meeting identifier

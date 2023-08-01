@@ -4,20 +4,16 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
-import com.zextras.carbonio.chats.model.MemberDto;
 import java.util.Objects;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
 public class RoomMemberAdded extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_MEMBER_ADDED;
 
-  private UUID      roomId;
-
-  private UUID      userId;
-
-  private boolean   isOwner;
+  private UUID    roomId;
+  private UUID    userId;
+  private boolean isOwner;
 
   public RoomMemberAdded() {
     super(EVENT_TYPE);
@@ -45,9 +41,11 @@ public class RoomMemberAdded extends DomainEvent {
     return this;
   }
 
-  public boolean getIsOwner(){return isOwner;}
+  public boolean getIsOwner() {
+    return isOwner;
+  }
 
-  public RoomMemberAdded isOwner(boolean isOwner){
+  public RoomMemberAdded isOwner(boolean isOwner) {
     this.isOwner = isOwner;
     return this;
   }
@@ -65,7 +63,7 @@ public class RoomMemberAdded extends DomainEvent {
     }
     RoomMemberAdded that = (RoomMemberAdded) o;
     return Objects.equals(getRoomId(), that.getRoomId()) &&
-      Objects.equals(getUserId(), that.getUserId()) ;
+      Objects.equals(getUserId(), that.getUserId());
   }
 
   @Override

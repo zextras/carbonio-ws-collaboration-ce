@@ -7,7 +7,6 @@ package com.zextras.carbonio.chats.core.data.event;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
 public class RoomPictureChanged extends DomainEvent {
 
@@ -16,6 +15,7 @@ public class RoomPictureChanged extends DomainEvent {
   private UUID roomId;
 
   private OffsetDateTime updatedAt;
+
   public RoomPictureChanged() {
     super(EVENT_TYPE);
   }
@@ -33,9 +33,11 @@ public class RoomPictureChanged extends DomainEvent {
     return this;
   }
 
-  public OffsetDateTime getUpdatedAt(){ return updatedAt;}
+  public OffsetDateTime getUpdatedAt() {
+    return updatedAt;
+  }
 
-  public RoomPictureChanged updatedAt(OffsetDateTime updatedAt){
+  public RoomPictureChanged updatedAt(OffsetDateTime updatedAt) {
     this.updatedAt = updatedAt;
     return this;
   }

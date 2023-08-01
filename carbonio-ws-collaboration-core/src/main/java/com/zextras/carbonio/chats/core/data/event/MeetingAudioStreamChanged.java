@@ -12,11 +12,11 @@ public class MeetingAudioStreamChanged extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.MEETING_AUDIO_STREAM_CHANGED;
 
-  private UUID   meetingId;
+  private UUID meetingId;
   private UUID userId;
 
   @Nullable
-  private UUID moderatorId;
+  private UUID    moderatorId;
   private boolean active;
 
   public MeetingAudioStreamChanged() {
@@ -45,8 +45,11 @@ public class MeetingAudioStreamChanged extends DomainEvent {
     return this;
   }
 
-  public UUID getModeratorId(){ return moderatorId;}
-  public MeetingAudioStreamChanged moderatorId(UUID moderatorId){
+  public UUID getModeratorId() {
+    return moderatorId;
+  }
+
+  public MeetingAudioStreamChanged moderatorId(UUID moderatorId) {
     this.moderatorId = moderatorId;
     return this;
   }

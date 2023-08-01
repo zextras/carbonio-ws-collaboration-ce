@@ -219,7 +219,8 @@ public class RoomServiceImpl implements RoomService {
       room.name(updateRoomRequestDto.getName());
       messageDispatcher.updateRoomName(room.getId(), currentUser.getId(), updateRoomRequestDto.getName());
     }
-    if (updateRoomRequestDto.getDescription() != null && !room.getDescription().equals(updateRoomRequestDto.getDescription())) {
+    if (updateRoomRequestDto.getDescription() != null && !room.getDescription()
+      .equals(updateRoomRequestDto.getDescription())) {
       changed = true;
       room.description(updateRoomRequestDto.getDescription());
       messageDispatcher.updateRoomDescription(room.getId(), currentUser.getId(), updateRoomRequestDto.getDescription());

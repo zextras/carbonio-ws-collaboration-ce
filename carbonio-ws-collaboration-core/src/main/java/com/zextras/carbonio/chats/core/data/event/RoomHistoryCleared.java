@@ -7,7 +7,6 @@ package com.zextras.carbonio.chats.core.data.event;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
 public class RoomHistoryCleared extends DomainEvent {
 
