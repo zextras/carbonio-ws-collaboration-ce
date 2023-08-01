@@ -7,16 +7,13 @@ package com.zextras.carbonio.chats.core.data.event;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
 public class UserPictureChanged extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.USER_PICTURE_CHANGED;
 
-  private UUID userId;
-
-  private UUID imageId;
-
+  private UUID           userId;
+  private UUID           imageId;
   private OffsetDateTime updatedAt;
 
   public UserPictureChanged() {
@@ -36,16 +33,20 @@ public class UserPictureChanged extends DomainEvent {
     return this;
   }
 
-  public UUID getImageId(){ return imageId;}
+  public UUID getImageId() {
+    return imageId;
+  }
 
-  public UserPictureChanged imageId(UUID imageId){
+  public UserPictureChanged imageId(UUID imageId) {
     this.imageId = imageId;
     return this;
   }
 
-  public OffsetDateTime getUpdatedAt(){ return updatedAt;}
+  public OffsetDateTime getUpdatedAt() {
+    return updatedAt;
+  }
 
-  public UserPictureChanged updatedAt(OffsetDateTime updatedAt){
+  public UserPictureChanged updatedAt(OffsetDateTime updatedAt) {
     this.updatedAt = updatedAt;
     return this;
   }

@@ -42,8 +42,8 @@ import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
-import com.zextras.carbonio.meeting.model.MeetingUserDto;
 import com.zextras.carbonio.meeting.model.MeetingTypeDto;
+import com.zextras.carbonio.meeting.model.MeetingUserDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -204,7 +204,7 @@ public class MeetingServiceImplTest {
         .active(false)
         .id(meetingId.toString());
       when(roomService.createRoom(RoomCreationFieldsDto
-        .create().name(meetingName).type(RoomTypeDto.GROUP).membersIds(List.of(user1Id,user2Id)),user))
+        .create().name(meetingName).type(RoomTypeDto.GROUP).membersIds(List.of(user1Id, user2Id)), user))
         .thenReturn(RoomDto.create().id(newRoomId).name(meetingName));
       when(meetingRepository.insert(meetingName, meetingType, newRoomId, null)).thenReturn(meeting);
 
@@ -224,9 +224,10 @@ public class MeetingServiceImplTest {
   @Nested
   @DisplayName("Update meeting tests")
   class UpdateMeetingTests {
+
     @Test
     @DisplayName("Activate a meeting")
-    void updateMeetingStart_testOk(){
+    void updateMeetingStart_testOk() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       UUID meetingId = UUID.randomUUID();
       UUID roomId = UUID.randomUUID();
@@ -244,7 +245,7 @@ public class MeetingServiceImplTest {
         .active(true);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
-      when(roomService.getRoomById(roomId,currentUser)).thenReturn(RoomDto
+      when(roomService.getRoomById(roomId, currentUser)).thenReturn(RoomDto
         .create()
         .members(List.of(MemberDto.create().userId(user1Id)))
       );
@@ -260,7 +261,7 @@ public class MeetingServiceImplTest {
 
     @Test
     @DisplayName("Deactivate a meeting")
-    void updateMeetingStop_testOk(){
+    void updateMeetingStop_testOk() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       UUID meetingId = UUID.randomUUID();
       UUID roomId = UUID.randomUUID();
@@ -278,7 +279,7 @@ public class MeetingServiceImplTest {
         .active(false);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
-      when(roomService.getRoomById(roomId,currentUser)).thenReturn(RoomDto
+      when(roomService.getRoomById(roomId, currentUser)).thenReturn(RoomDto
         .create()
         .members(List.of(MemberDto.create().userId(user1Id)))
       );

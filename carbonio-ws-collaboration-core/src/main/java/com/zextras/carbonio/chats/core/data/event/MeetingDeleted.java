@@ -6,7 +6,6 @@ package com.zextras.carbonio.chats.core.data.event;
 
 import java.util.Objects;
 import java.util.UUID;
-import org.jetbrains.annotations.Nullable;
 
 public class MeetingDeleted extends DomainEvent {
 

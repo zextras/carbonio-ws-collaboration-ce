@@ -11,8 +11,8 @@ public class RoomOwnerDemoted extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_OWNER_DEMOTED;
 
-  private UUID    roomId;
-  private UUID    userId;
+  private UUID roomId;
+  private UUID userId;
 
   public RoomOwnerDemoted() {
     super(EVENT_TYPE);

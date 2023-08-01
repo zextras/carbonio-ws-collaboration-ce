@@ -11,11 +11,13 @@ public class MeetingAudioAnswered extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.MEETING_AUDIO_ANSWERED;
 
-  private UUID      meetingId;
-  private UUID      userId;
-  private String    sdp;
+  private UUID   meetingId;
+  private UUID   userId;
+  private String sdp;
 
-  public MeetingAudioAnswered(){super(EVENT_TYPE);}
+  public MeetingAudioAnswered() {
+    super(EVENT_TYPE);
+  }
 
   public static MeetingAudioAnswered create() {
     return new MeetingAudioAnswered();

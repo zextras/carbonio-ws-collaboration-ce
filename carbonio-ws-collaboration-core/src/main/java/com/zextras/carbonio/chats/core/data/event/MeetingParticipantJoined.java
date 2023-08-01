@@ -6,14 +6,12 @@ package com.zextras.carbonio.chats.core.data.event;
 
 import java.util.Objects;
 import java.util.UUID;
-import org.jetbrains.annotations.Nullable;
 
 public class MeetingParticipantJoined extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_JOINED;
 
   private UUID meetingId;
-
   private UUID userId;
 
   public MeetingParticipantJoined() {

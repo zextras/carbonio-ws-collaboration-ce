@@ -4,8 +4,6 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
-import org.antlr.v4.runtime.misc.ObjectEqualityComparator;
-
 import java.util.Objects;
 import java.util.UUID;
 
@@ -13,10 +11,8 @@ public class MeetingParticipantTalking extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_TALKING;
 
-  private UUID meetingId;
-
-  private UUID userId;
-
+  private UUID    meetingId;
+  private UUID    userId;
   private boolean isTalking;
 
   public MeetingParticipantTalking() {
@@ -73,6 +69,6 @@ public class MeetingParticipantTalking extends DomainEvent {
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getMeetingId(),getUserId(), getIsTalking());
+    return Objects.hash(super.hashCode(), getMeetingId(), getUserId(), getIsTalking());
   }
 }

@@ -11,8 +11,8 @@ public class RoomOwnerPromoted extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_OWNER_PROMOTED;
 
-  private UUID    roomId;
-  private UUID    userId;
+  private UUID roomId;
+  private UUID userId;
 
   public RoomOwnerPromoted() {
     super(EVENT_TYPE);

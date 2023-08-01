@@ -12,7 +12,6 @@ public class MeetingStarted extends DomainEvent {
   private static final EventType EVENT_TYPE = EventType.MEETING_STARTED;
 
   private UUID meetingId;
-
   private UUID starterUser;
 
   public MeetingStarted() {

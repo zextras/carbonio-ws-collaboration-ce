@@ -7,8 +7,17 @@ package com.zextras.carbonio.chats.core.repository;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import java.util.List;
+import java.util.Optional;
 
 public interface VideoServerSessionRepository {
+
+  /**
+   * Returns the {@link VideoServerSession} associated to the given connectionId.
+   *
+   * @param connectionId connection identifier related to videoserver
+   * @return the {@link List} of the video server sessions {@link VideoServerSession}
+   */
+  Optional<VideoServerSession> getByConnectionId(String connectionId);
 
   /**
    * Retrieves the list of {@link VideoServerSession} for the required meeting

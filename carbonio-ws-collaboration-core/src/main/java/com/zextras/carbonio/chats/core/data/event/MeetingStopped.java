@@ -12,6 +12,7 @@ public class MeetingStopped extends DomainEvent {
   private static final EventType EVENT_TYPE = EventType.MEETING_STOPPED;
 
   private UUID meetingId;
+
   public MeetingStopped() {
     super(EVENT_TYPE);
   }
@@ -28,6 +29,7 @@ public class MeetingStopped extends DomainEvent {
     this.meetingId = meetingId;
     return this;
   }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {

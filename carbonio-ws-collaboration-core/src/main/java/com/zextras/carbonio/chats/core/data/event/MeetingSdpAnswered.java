@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.core.data.event;
 
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
-
 import java.util.Objects;
 import java.util.UUID;
 
@@ -16,9 +15,11 @@ public class MeetingSdpAnswered extends DomainEvent {
   private UUID      meetingId;
   private UUID      userId;
   private MediaType mediaType;
-  private String sdp;
+  private String    sdp;
 
-  public MeetingSdpAnswered(){super(EVENT_TYPE);}
+  public MeetingSdpAnswered() {
+    super(EVENT_TYPE);
+  }
 
   public static MeetingSdpAnswered create() {
     return new MeetingSdpAnswered();
@@ -51,9 +52,11 @@ public class MeetingSdpAnswered extends DomainEvent {
     return this;
   }
 
-  public String getSdp(){ return sdp;}
+  public String getSdp() {
+    return sdp;
+  }
 
-  public MeetingSdpAnswered sdp(String sdp){
+  public MeetingSdpAnswered sdp(String sdp) {
     this.sdp = sdp;
     return this;
   }

@@ -24,7 +24,8 @@ public class JacksonConfig implements javax.inject.Provider<ObjectMapper>, Conte
       .build()
       .registerModule(new JavaTimeModule())
       .setDateFormat(new RFC3339DateFormat())
-      .setDefaultPropertyInclusion(Include.NON_NULL);
+      .setDefaultPropertyInclusion(Include.NON_NULL)
+      .setSerializationInclusion(Include.NON_NULL);
   }
 
   public ObjectMapper getContext(Class<?> arg0) {
