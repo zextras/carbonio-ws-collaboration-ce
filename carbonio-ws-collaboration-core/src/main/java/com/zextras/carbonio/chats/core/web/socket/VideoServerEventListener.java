@@ -4,6 +4,10 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
+import static io.vavr.API.$;
+import static io.vavr.API.Case;
+import static io.vavr.API.Match;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
@@ -21,8 +25,6 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import io.vavr.MatchError;
-
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -35,26 +37,22 @@ import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import javax.servlet.annotation.WebListener;
 
-import static io.vavr.API.$;
-import static io.vavr.API.Case;
-import static io.vavr.API.Match;
-
 @Singleton
 @WebListener
 public class VideoServerEventListener implements ServletContextListener {
 
-  private static final String JANUS_EVENTS = "janus-events";
-  private static final String LOCAL = "local";
-  private static final int JSEP_TYPE = 8;
-  private static final int PLUGIN_TYPE = 64;
-  private static final String TALKING = "talking";
-  private static final String STOPPED_TALKING = "stopped-talking";
+  private static final String       JANUS_EVENTS        = "janus-events";
+  private static final String       LOCAL               = "local";
+  private static final int          JSEP_TYPE           = 8;
+  private static final int          PLUGIN_TYPE         = 64;
+  private static final String       TALKING             = "talking";
+  private static final String       STOPPED_TALKING     = "stopped-talking";
   private static final List<String> TALKING_TYPE_EVENTS = List.of(TALKING, STOPPED_TALKING);
 
-  private final Connection rabbitMqConnection;
-  private final ObjectMapper objectMapper;
+  private final Connection                   rabbitMqConnection;
+  private final ObjectMapper                 objectMapper;
   private final VideoServerSessionRepository videoServerSessionRepository;
-  private final ParticipantRepository participantRepository;
+  private final ParticipantRepository        participantRepository;
 
   private enum EventType {
     AUDIO,
@@ -65,7 +63,7 @@ public class VideoServerEventListener implements ServletContextListener {
 
   @Inject
   public VideoServerEventListener(Optional<Connection> rabbitMqConnection, ObjectMapper objectMapper,
-                                  VideoServerSessionRepository videoServerSessionRepository, ParticipantRepository participantRepository) {
+    VideoServerSessionRepository videoServerSessionRepository, ParticipantRepository participantRepository) {
     this.rabbitMqConnection = rabbitMqConnection.orElse(null);
     this.objectMapper = objectMapper;
     this.videoServerSessionRepository = videoServerSessionRepository;
