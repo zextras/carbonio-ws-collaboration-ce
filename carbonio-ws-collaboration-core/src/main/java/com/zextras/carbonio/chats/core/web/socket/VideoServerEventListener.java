@@ -9,11 +9,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DeliverCallback;
+import com.zextras.carbonio.chats.core.data.event.MeetingAudioAnswered;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantTalking;
 import com.zextras.carbonio.chats.core.data.event.MeetingSdpAnswered;
 import com.zextras.carbonio.chats.core.data.event.MeetingSdpOffered;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.VideoServerEvent;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
@@ -77,34 +79,52 @@ public class VideoServerEventListener implements ServletContextListener {
             Optional.ofNullable(videoServerEvent.getEventInfo().getOwner()).ifPresent(owner -> {
               if (LOCAL.equalsIgnoreCase(owner)) {
                 videoServerSessionRepository.getByConnectionId(String.valueOf(videoServerEvent.getSessionId()))
-                  .flatMap(
-                    videoServerSession -> participantRepository.getBySessionId(videoServerSession.getSessionId()))
-                  .ifPresent(participant -> {
-                    try {
-                      RtcSessionDescription rtcSessionDescription = videoServerEvent.getEventInfo()
-                        .getRtcSessionDescription();
-                      switch (rtcSessionDescription.getType()) {
-                        case OFFER:
-                          send(channel, participant.getUserId(), objectMapper.writeValueAsString(
-                            MeetingSdpOffered.create()
-                              .meetingId(UUID.fromString(participant.getMeeting().getId()))
-                              .userId(UUID.fromString(participant.getUserId()))
-                              .sdp(rtcSessionDescription.getSdp())));
-                          break;
-                        case ANSWER:
-                          send(channel, participant.getUserId(), objectMapper.writeValueAsString(
-                            MeetingSdpAnswered.create()
-                              .meetingId(UUID.fromString(participant.getMeeting().getId()))
-                              .userId(UUID.fromString(participant.getUserId()))
-                              .sdp(rtcSessionDescription.getSdp())));
-                          break;
-                        default:
-                          break;
-                      }
-                    } catch (JsonProcessingException e) {
-                      ChatsLogger.debug("Error during serialization of " + videoServerEvent);
-                    }
-                  });
+                  .ifPresent(
+                    videoServerSession -> participantRepository.getBySessionId(videoServerSession.getSessionId())
+                      .ifPresent(participant -> {
+                        try {
+                          MediaType mediaType = null;
+                          boolean audioType = videoServerSession.getAudioHandleId()
+                            .equals(String.valueOf(videoServerEvent.getHandleId()));
+                          if (!audioType) {
+                            mediaType = videoServerSession.getScreenHandleId()
+                              .equals(String.valueOf(videoServerEvent.getHandleId())) ?
+                              MediaType.SCREEN : MediaType.VIDEO;
+                          }
+                          RtcSessionDescription rtcSessionDescription = videoServerEvent.getEventInfo()
+                            .getRtcSessionDescription();
+                          switch (rtcSessionDescription.getType()) {
+                            case OFFER:
+                              send(channel, participant.getUserId(), objectMapper.writeValueAsString(
+                                MeetingSdpOffered.create()
+                                  .meetingId(UUID.fromString(participant.getMeeting().getId()))
+                                  .userId(UUID.fromString(participant.getUserId()))
+                                  .mediaType(mediaType)
+                                  .sdp(rtcSessionDescription.getSdp())));
+                              break;
+                            case ANSWER:
+                              if (audioType) {
+                                send(channel, participant.getUserId(), objectMapper.writeValueAsString(
+                                  MeetingAudioAnswered.create()
+                                    .meetingId(UUID.fromString(participant.getMeeting().getId()))
+                                    .userId(UUID.fromString(participant.getUserId()))
+                                    .sdp(rtcSessionDescription.getSdp())));
+                              } else {
+                                send(channel, participant.getUserId(), objectMapper.writeValueAsString(
+                                  MeetingSdpAnswered.create()
+                                    .meetingId(UUID.fromString(participant.getMeeting().getId()))
+                                    .userId(UUID.fromString(participant.getUserId()))
+                                    .mediaType(mediaType)
+                                    .sdp(rtcSessionDescription.getSdp())));
+                              }
+                              break;
+                            default:
+                              break;
+                          }
+                        } catch (JsonProcessingException e) {
+                          ChatsLogger.debug("Error during serialization of " + videoServerEvent);
+                        }
+                      }));
               }
             });
             break;
