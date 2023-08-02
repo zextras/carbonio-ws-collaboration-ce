@@ -8,11 +8,6 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import java.util.AbstractMap.SimpleEntry;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.Header;
@@ -69,8 +64,7 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
     return getRequest("POST", body);
   }
 
-  public void mockCreateRoom(String roomId, String senderId,
-    boolean success) {
+  public void mockCreateRoom(String roomId, String senderId, boolean success) {
     HttpRequest request = getCreateRoomRequest(roomId, senderId);
     clear(request);
     when(request).respond(getResponse(success));

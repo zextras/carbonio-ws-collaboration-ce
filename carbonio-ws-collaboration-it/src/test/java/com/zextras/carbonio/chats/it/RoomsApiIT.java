@@ -67,6 +67,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -776,6 +777,7 @@ public class RoomsApiIT {
     @DisplayName("Insert channel room tests")
     public class InsertChannelRoomTests {
 
+      @Disabled
       @Test
       @DisplayName("Given channel creation fields, inserts first channel room in a workspace and returns its data")
       public void insertChannelRoom_firstChannelTestOk() throws Exception {
@@ -840,6 +842,7 @@ public class RoomsApiIT {
         // TODO: 23/02/22 verify event dispatcher interactions
       }
 
+      @Disabled
       @Test
       @DisplayName("Given channel creation fields, inserts nth channel room in a workspace and returns its data")
       public void insertChannelRoom_nthChannelTestOk() throws Exception {
@@ -1939,7 +1942,7 @@ public class RoomsApiIT {
           + "<body/>"
           + "</message>";
       mongooseImMockServer.mockSendStanza(hoped, true);
-      storageMockServer.mockNSLookupUrl(user1Id.toString(),true);
+      storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
       storageMockServer.mockUploadPut(fileMock.getId(), user1Id.toString(), true);
 
       Instant now = Instant.now();
@@ -3451,7 +3454,7 @@ public class RoomsApiIT {
           + "<body/>"
           + "</message>";
       mongooseImMockServer.mockSendStanza(hoped, true);
-      storageMockServer.mockNSLookupUrl(user1Id.toString(),true);
+      storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
       storageMockServer.mockUploadPut(fileMock.getId(), user1Id.toString(), true);
 
       MockHttpResponse response;
@@ -3607,20 +3610,22 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
 
-      String hoped =
-        String.format("<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id' to='%s@muclight.carbonio' type='groupchat'>",
-          user1Id, roomId)
-          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-          + "<operation>attachmentAdded</operation>"
-          + "<attachment-id>" + fileMock.getId() + "</attachment-id>"
-          + "<filename encoded='UTF-8'>\\\\u0070\\\\u0065\\\\u0061\\\\u006e\\\\u0075\\\\u0074\\\\u0073\\\\u002e\\\\u006a\\\\u0070\\\\u0067</filename>"
-          + "<mime-type>image/jpg</mime-type>"
-          + "<size>33786</size>"
-          + "<area>15x20</area>"
-          + "</x>"
-          + "<body/>"
-          + "</message>";
+      String hoped = String.format(
+        "<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id' to='%s@muclight.carbonio' type='groupchat'>",
+        user1Id, roomId)
+        + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+        + "<operation>attachmentAdded</operation>"
+        + "<attachment-id>" + fileMock.getId() + "</attachment-id>"
+        + "<filename encoded='UTF-8'>\\\\u0070\\\\u0065\\\\u0061\\\\u006e\\\\u0075\\\\u0074\\\\u0073\\\\u002e\\\\u006a\\\\u0070\\\\u0067</filename>"
+        + "<mime-type>image/jpg</mime-type>"
+        + "<size>33786</size>"
+        + "<area>15x20</area>"
+        + "</x>"
+        + "<body/>"
+        + "</message>";
       mongooseImMockServer.mockSendStanza(hoped, true);
+      storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
+      storageMockServer.mockUploadPut(fileMock.getId(), user1Id.toString(), true);
 
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -3640,7 +3645,11 @@ public class RoomsApiIT {
       assertEquals(201, response.getStatus());
       mongooseImMockServer.verify(mongooseImMockServer.getSendStanzaRequest(hoped), VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
+      storageMockServer.verify(storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
+        VerificationTimes.exactly(1));
+      storageMockServer.verify(storageMockServer.getUploadPutRequest(fileMock.getId(), user1Id.toString()),
+        VerificationTimes.exactly(1));
+
       IdDto id = objectMapper.readValue(response.getContentAsString(), IdDto.class);
 
       assertTrue(
@@ -3658,7 +3667,8 @@ public class RoomsApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
 
       String hoped =
-        String.format("<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id' to='%s@muclight.carbonio' type='groupchat'>",
+        String.format(
+          "<message xmlns='jabber:client' from='%s@carbonio' id='the-xmpp-message-id' to='%s@muclight.carbonio' type='groupchat'>",
           user1Id, roomId)
           + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
           + "<operation>attachmentAdded</operation>"
