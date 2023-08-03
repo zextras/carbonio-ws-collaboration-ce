@@ -106,6 +106,7 @@ import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHan
 import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
+import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.meeting.api.MeetingsApi;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
@@ -198,6 +199,8 @@ public class CoreModule extends AbstractModule {
     bindInterceptor(Matchers.any(), Matchers.annotatedWith(TimedCall.class), new TimedCallInterceptor());
 
     bindExceptionMapper();
+
+    bind(VideoServerEventListener.class);
   }
 
   private void bindExceptionMapper() {
