@@ -39,7 +39,6 @@ import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagem
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceJanus;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceMock;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
@@ -188,7 +187,7 @@ public class CoreModule extends AbstractModule {
     bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
 
     bind(HttpClient.class);
-    bind(VideoServerService.class).to(VideoServerServiceJanus.class);
+    bind(VideoServerService.class).to(VideoServerServiceMock.class);
     bind(VideoServerMeetingRepository.class).to(EbeanVideoServerMeetingRepository.class);
     bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
 

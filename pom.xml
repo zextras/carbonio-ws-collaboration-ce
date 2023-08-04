@@ -95,12 +95,12 @@ SPDX-License-Identifier: AGPL-3.0-only
     <org.junit-pioneer.version>1.7.0</org.junit-pioneer.version>
 
     <!-- Mockito -->
-    <org.mockito.version>4.3.0</org.mockito.version>
+    <org.mockito.version>5.0.0</org.mockito.version>
 
     <!-- Integration Tests dependency -->
-    <org.testcontainers.version>1.16.2</org.testcontainers.version>
+    <org.testcontainers.version>1.18.0</org.testcontainers.version>
     <org.mock-server.version>5.11.2</org.mock-server.version>
-    <com.github.fridujo-rabbitmq-mock.version>1.1.1</com.github.fridujo-rabbitmq-mock.version>
+    <com.github.fridujo-rabbitmq-mock.version>1.2.0</com.github.fridujo-rabbitmq-mock.version>
 
 
     <!-- Plugins -->

@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.it.extensions;
 
+import static org.mockserver.mock.Expectation.when;
 import static org.mockserver.model.BinaryBody.binary;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
