@@ -136,7 +136,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/sessions/{sessionId}/media:
+  /meetings/{meetingId}/media:
     put:
       tags:
         - Meetings
@@ -144,7 +144,6 @@ paths:
       operationId: updateMediaStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
-        - $ref: '#/components/parameters/pathSessionId'
       requestBody:
         $ref: '#/components/requestBodies/UpdateMediaStreamRequest'
       responses:
@@ -156,7 +155,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/sessions/{sessionId}/media/answer:
+  /meetings/{meetingId}/media/answer:
     put:
       tags:
         - Meetings
@@ -164,7 +163,6 @@ paths:
       operationId: answerRtcMediaStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
-        - $ref: '#/components/parameters/pathSessionId'
       requestBody:
         $ref: '#/components/requestBodies/RtcMediaStreamRequest'
       responses:
@@ -176,7 +174,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/sessions/{sessionId}/media/subscribe:
+  /meetings/{meetingId}/media/subscribe:
     put:
       tags:
         - Meetings
@@ -184,7 +182,6 @@ paths:
       operationId: updateSubscriptionsMediaStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
-        - $ref: '#/components/parameters/pathSessionId'
       requestBody:
         $ref: '#/components/requestBodies/UpdateMediaStreamSubscriptionsRequest'
       responses:
@@ -196,7 +193,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/sessions/{sessionId}/audio:
+  /meetings/{meetingId}/audio:
     put:
       tags:
         - Meetings
@@ -204,7 +201,6 @@ paths:
       operationId: updateAudioStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
-        - $ref: '#/components/parameters/pathSessionId'
       requestBody:
         $ref: '#/components/requestBodies/UpdateAudioStreamRequest'
       responses:
@@ -216,7 +212,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/sessions/{sessionId}/audio/offer:
+  /meetings/{meetingId}/audio/offer:
     put:
       tags:
         - Meetings
@@ -224,7 +220,6 @@ paths:
       operationId: offerRtcAudioStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
-        - $ref: '#/components/parameters/pathSessionId'
       requestBody:
         $ref: '#/components/requestBodies/RtcMediaStreamRequest'
       responses:
