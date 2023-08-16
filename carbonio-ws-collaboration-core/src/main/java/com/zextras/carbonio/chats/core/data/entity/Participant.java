@@ -31,11 +31,11 @@ public class Participant {
   @JoinColumn(name = "MEETING_ID")
   private Meeting meeting;
 
-  @MapsId("sessionId")
-  private String sessionId;
-
   @Column(name = "USER_ID", length = 64, nullable = false)
   private String userId;
+
+  @Column(name = "QUEUE_ID", length = 64, nullable = false)
+  private String queueId;
 
   @Column(name = "AUDIO_STREAM_ON")
   private Boolean audioStreamOn = false;
@@ -60,18 +60,18 @@ public class Participant {
     this.id = ParticipantId.create();
   }
 
-  public Participant(Meeting meeting, String sessionId) {
-    this.id = ParticipantId.create(meeting.getId(), sessionId);
+  public Participant(Meeting meeting, String userId) {
+    this.id = ParticipantId.create(meeting.getId(), userId);
     this.meeting = meeting;
-    this.sessionId = sessionId;
+    this.userId = userId;
   }
 
   public static Participant create() {
     return new Participant();
   }
 
-  public static Participant create(Meeting meeting, String sessionId) {
-    return new Participant(meeting, sessionId);
+  public static Participant create(Meeting meeting, String userId) {
+    return new Participant(meeting, userId);
   }
 
   public String getUserId() {
@@ -83,6 +83,15 @@ public class Participant {
     return this;
   }
 
+  public String getQueueId() {
+    return queueId;
+  }
+
+  public Participant queueId(String queueId) {
+    this.queueId = queueId;
+    return this;
+  }
+
   public Meeting getMeeting() {
     return meeting;
   }
@@ -90,16 +99,6 @@ public class Participant {
   public Participant meeting(Meeting meeting) {
     this.meeting = meeting;
     this.id.meetingId(meeting.getId());
-    return this;
-  }
-
-  public String getSessionId() {
-    return sessionId;
-  }
-
-  public Participant sessionId(String sessionId) {
-    this.sessionId = sessionId;
-    this.id.sessionId(sessionId);
     return this;
   }
 
@@ -148,7 +147,7 @@ public class Participant {
     }
     Participant that = (Participant) o;
     return Objects.equals(id, that.id) && Objects.equals(meeting, that.meeting)
-      && Objects.equals(sessionId, that.sessionId) && Objects.equals(userId, that.userId)
+      && Objects.equals(queueId, that.queueId) && Objects.equals(userId, that.userId)
       && Objects.equals(audioStreamOn, that.audioStreamOn) && Objects.equals(videoStreamOn,
       that.videoStreamOn) && Objects.equals(screenStreamOn, that.screenStreamOn) && Objects.equals(
       createdAt, that.createdAt) && Objects.equals(updatedAt, that.updatedAt);
@@ -156,7 +155,7 @@ public class Participant {
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, meeting.getId(), sessionId, userId, audioStreamOn, videoStreamOn, screenStreamOn, createdAt,
+    return Objects.hash(id, meeting.getId(), queueId, userId, audioStreamOn, videoStreamOn, screenStreamOn, createdAt,
       updatedAt);
   }
 }

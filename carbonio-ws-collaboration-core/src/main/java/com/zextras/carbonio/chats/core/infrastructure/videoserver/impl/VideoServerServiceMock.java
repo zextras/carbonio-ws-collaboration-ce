@@ -23,7 +23,7 @@ public class VideoServerServiceMock implements VideoServerService {
   }
 
   @Override
-  public void joinMeeting(String sessionId, String meetingId, boolean videoStreamOn, boolean audioStreamOn) {
+  public void joinMeeting(String userId, String queueId, String meetingId, boolean videoStreamOn, boolean audioStreamOn) {
 
   }
 

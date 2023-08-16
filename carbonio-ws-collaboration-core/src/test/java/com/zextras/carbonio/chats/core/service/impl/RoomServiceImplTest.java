@@ -430,7 +430,7 @@ class RoomServiceImplTest {
       @Test
       @DisplayName("It creates the room and returns it")
       public void createGroupRoom_testOk() {
-        UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id).sessionId("fake-session-id");
+        UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id).queueId(UUID.randomUUID());
         when(userService.userExists(user2Id, mockUserPrincipal))
           .thenReturn(true);
         when(userService.userExists(user3Id, mockUserPrincipal))
@@ -791,7 +791,7 @@ class RoomServiceImplTest {
       roomService.deleteRoom(roomGroup1Id, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meetingId);
-      verify(meetingService, times(1)).deleteMeeting(meeting, roomGroup1, user1Id, null);
+      verify(meetingService, times(1)).deleteMeeting(meeting, roomGroup1, user1Id);
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         RoomDeleted.create().roomId(roomGroup1Id));

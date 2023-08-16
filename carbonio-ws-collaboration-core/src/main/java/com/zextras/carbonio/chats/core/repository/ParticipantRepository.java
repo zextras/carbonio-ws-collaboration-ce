@@ -16,7 +16,7 @@ public interface ParticipantRepository {
    * @param sessionId session identifier
    * @return required {@link Participant} wrapped in a {@link Optional}
    */
-  Optional<Participant> getBySessionId(String sessionId);
+  Optional<Participant> getByUserId(String sessionId);
 
   /**
    * Retrieves a participant by its row identifier

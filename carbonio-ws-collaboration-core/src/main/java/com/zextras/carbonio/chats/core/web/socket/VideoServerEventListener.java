@@ -86,7 +86,7 @@ public class VideoServerEventListener implements ServletContextListener {
               if (LOCAL.equalsIgnoreCase(owner)) {
                 videoServerSessionRepository.getByConnectionId(String.valueOf(videoServerEvent.getSessionId()))
                   .ifPresent(
-                    videoServerSession -> participantRepository.getBySessionId(videoServerSession.getSessionId())
+                    videoServerSession -> participantRepository.getByUserId(videoServerSession.getUserId())
                       .ifPresent(participant -> {
                         try {
                           EventType eventType = Match(videoServerEvent.getHandleId().toString()).of(
@@ -143,7 +143,7 @@ public class VideoServerEventListener implements ServletContextListener {
               .ifPresent(eventType -> {
                 if (TALKING_TYPE_EVENTS.contains(eventType)) {
                   Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getId())
-                    .flatMap(participantRepository::getBySessionId).ifPresent(participant -> {
+                    .flatMap(participantRepository::getByUserId).ifPresent(participant -> {
                       try {
                         send(channel, participant.getUserId(), objectMapper.writeValueAsString(
                           MeetingParticipantTalking.create()

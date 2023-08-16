@@ -24,10 +24,10 @@ public class EbeanParticipantRepository implements ParticipantRepository {
   }
 
   @Override
-  public Optional<Participant> getBySessionId(String sessionId) {
+  public Optional<Participant> getByUserId(String userId) {
     return db.find(Participant.class)
       .where()
-      .eq("session_id", sessionId)
+      .eq("id.userId", userId)
       .findOneOrEmpty();
   }
 

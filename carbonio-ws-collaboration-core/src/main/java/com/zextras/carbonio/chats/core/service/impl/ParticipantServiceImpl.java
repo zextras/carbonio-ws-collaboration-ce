@@ -80,9 +80,9 @@ public class ParticipantServiceImpl implements ParticipantService {
     Meeting meeting = meetingService.getMeetingEntity(meetingId)
       .orElseThrow(() -> new NotFoundException(String.format("Meeting with id '%s' not found", meetingId)));
     if (meeting.getParticipants().stream().anyMatch(participant ->
-      participant.getUserId().equals(currentUser.getId()) && participant.getSessionId()
-        .equals(currentUser.getSessionId()))) {
-      throw new ConflictException("Session is already inserted into the meeting");
+      participant.getUserId().equals(currentUser.getId()) && participant.getQueueId()
+        .equals(currentUser.getQueueId().toString()))) {
+      throw new ConflictException("User is already inserted into the meeting");
     }
     insertMeetingParticipant(meeting, joinSettingsDto, currentUser);
   }
@@ -90,12 +90,14 @@ public class ParticipantServiceImpl implements ParticipantService {
   private void insertMeetingParticipant(Meeting meeting, JoinSettingsDto joinSettingsDto,
     UserPrincipal currentUser) {
     Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
-    Participant participant = participantRepository.insert(
-      Participant.create(meeting, currentUser.getSessionId())
-        .userId(currentUser.getId())
+    participantRepository.insert(
+      Participant.create(meeting, currentUser.getId())
+        .queueId(currentUser.getQueueId().toString())
         .audioStreamOn(joinSettingsDto.isAudioStreamEnabled())
         .videoStreamOn(joinSettingsDto.isVideoStreamEnabled()));
-    videoServerService.joinMeeting(currentUser.getSessionId(), meeting.getId(),
+    videoServerService.joinMeeting(currentUser.getId(),
+      currentUser.getQueueId().toString(),
+      meeting.getId(),
       joinSettingsDto.isVideoStreamEnabled(),
       joinSettingsDto.isAudioStreamEnabled());
     eventDispatcher.sendToUserQueue(
@@ -104,7 +106,6 @@ public class ParticipantServiceImpl implements ParticipantService {
         .meetingId(UUID.fromString(meeting.getId()))
         .userId(currentUser.getUUID())
     );
-    meeting.getParticipants().add(participant);
   }
 
   @Override
@@ -113,52 +114,47 @@ public class ParticipantServiceImpl implements ParticipantService {
     Meeting meeting = meetingService.getMeetingEntity(meetingId)
       .orElseThrow(() -> new NotFoundException(String.format("Meeting with id '%s' not found", meetingId)));
     Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
-    removeMeetingParticipant(meeting, room, currentUser.getUUID(), currentUser.getSessionId());
+    removeMeetingParticipant(meeting, room, currentUser.getUUID(), currentUser.getId());
   }
 
   @Override
-  public void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, @Nullable String sessionId) {
+  public void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, String queueId) {
     List<Participant> participants = meeting.getParticipants().stream()
-      .filter(p -> userId.toString().equals(p.getUserId()) && (sessionId == null || sessionId.equals(p.getSessionId())))
+      .filter(p -> userId.toString().equals(p.getUserId()) )
       .collect(Collectors.toList());
-    if (sessionId != null && participants.isEmpty()) {
+    if (participants.isEmpty()) {
       throw new NotFoundException("Session not found");
     }
     participants.forEach(participant -> {
       participantRepository.remove(participant);
-      videoServerService.leaveMeeting(participant.getSessionId(), meeting.getId());
+      videoServerService.leaveMeeting(participant.getUserId(), meeting.getId());
+      meeting.getParticipants().remove(participant);
       eventDispatcher.sendToUserQueue(
         room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
         MeetingParticipantLeft.create().meetingId(UUID.fromString(meeting.getId())).userId(userId));
-      meeting.getParticipants().remove(participant);
       if (meeting.getParticipants().isEmpty()) {
-        meetingService.deleteMeeting(meeting, room, userId, participant.getSessionId());
+        meetingService.deleteMeeting(meeting, room, userId);
       }
     });
   }
 
   @Override
   @Transactional
-  public void updateMediaStream(UUID meetingId, String sessionId, MediaStreamSettingsDto mediaStreamSettingsDto,
+  public void updateMediaStream(UUID meetingId, MediaStreamSettingsDto mediaStreamSettingsDto,
     UserPrincipal currentUser) {
+    String userId = currentUser.getId();
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
+    Participant participant = meeting.getParticipants().stream().filter(p -> userId.equals(p.getUserId()))
       .findAny().orElseThrow(() ->
-        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
-    if (!sessionId.equals(currentUser.getSessionId())) {
-      if (mediaStreamSettingsDto.isEnabled()) {
-        throw new BadRequestException(String.format(
-          "User '%s' cannot enable the media stream of the session '%s'", currentUser.getId(), sessionId));
-      }
-      roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
-    }
+        new NotFoundException(String.format("User '%s' not found into meeting '%s'", userId, meetingId)));
     boolean isVideoStream = MediaType.VIDEO.toString().equalsIgnoreCase(mediaStreamSettingsDto.getType().toString());
     boolean mediaStreamEnabled = isVideoStream ? participant.hasVideoStreamOn() : participant.hasScreenStreamOn();
     if (mediaStreamSettingsDto.isEnabled() != mediaStreamEnabled) {
       Participant participantToUpdate = isVideoStream ? participant.videoStreamOn(mediaStreamSettingsDto.isEnabled())
         : participant.screenStreamOn(mediaStreamSettingsDto.isEnabled());
       participantRepository.update(participantToUpdate);
+      videoServerService.updateMediaStream(userId, meetingId.toString(), mediaStreamSettingsDto);
       eventDispatcher.sendToUserQueue(
         meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
         MeetingMediaStreamChanged
@@ -167,70 +163,61 @@ public class ParticipantServiceImpl implements ParticipantService {
           .userId(UUID.fromString(currentUser.getId()))
           .mediaType(MediaType.valueOf(mediaStreamSettingsDto.getType().toString().toUpperCase()))
           .active(mediaStreamSettingsDto.isEnabled()));
-      videoServerService.updateMediaStream(sessionId, meetingId.toString(), mediaStreamSettingsDto);
+
     }
   }
 
   @Override
   @Transactional
-  public void updateAudioStream(UUID meetingId, String sessionId, boolean enabled, UserPrincipal currentUser) {
+  public void updateAudioStream(UUID meetingId, String userId, boolean enabled, UserPrincipal currentUser) {
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    Participant participant = meeting.getParticipants().stream().filter(p -> sessionId.equals(p.getSessionId()))
+    Participant participant = meeting.getParticipants().stream().filter(p -> userId.equals(p.getUserId()))
       .findAny().orElseThrow(() ->
-        new NotFoundException(String.format("Session '%s' not found into meeting '%s'", sessionId, meetingId)));
-    if (!sessionId.equals(currentUser.getSessionId())) {
+        new NotFoundException(String.format("User '%s' not found into meeting '%s'", userId, meetingId)));
+    if (!userId.equals(currentUser.getId())) {
       if (enabled) {
         throw new BadRequestException(String.format(
-          "User '%s' cannot enable the audio stream of the session '%s'", currentUser.getId(), sessionId));
+          "User '%s' cannot enable the audio stream of the user '%s'", currentUser.getId(), userId));
       }
       roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
     }
-    if (enabled != participant.hasAudioStreamOn()) {
+    if (enabled != Boolean.TRUE.equals(participant.hasAudioStreamOn())) {
       participantRepository.update(participant.audioStreamOn(enabled));
+      videoServerService.updateAudioStream(userId, meetingId.toString(), enabled);
       eventDispatcher.sendToUserQueue(
         meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
         MeetingAudioStreamChanged.create().userId(currentUser.getUUID()).meetingId(meetingId).active(enabled)
       );
-      videoServerService.updateAudioStream(currentUser.getSessionId(), meetingId.toString(), enabled);
     }
   }
 
   @Override
-  public void answerRtcMediaStream(UUID meetingId, String sessionId, String sdp, UserPrincipal currentUser) {
+  public void answerRtcMediaStream(UUID meetingId, String sdp, UserPrincipal currentUser) {
+    String userId = currentUser.getId();
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    if (!sessionId.equals(currentUser.getSessionId())) {
-      throw new BadRequestException(String.format(
-        "User '%s' cannot send rtc answer for the session '%s'", currentUser.getId(), sessionId));
-    }
     roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
-    videoServerService.answerRtcMediaStream(currentUser.getSessionId(), meetingId.toString(), sdp);
+    videoServerService.answerRtcMediaStream(userId, meetingId.toString(), sdp);
   }
 
   @Override
-  public void updateSubscriptionsVideoStream(UUID meetingId, String sessionId,
+  public void updateSubscriptionsVideoStream(UUID meetingId,
     SubscriptionUpdatesDto subscriptionUpdatesDto, UserPrincipal currentUser) {
+    String userId = currentUser.getId();
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    if (!sessionId.equals(currentUser.getSessionId())) {
-      throw new BadRequestException(String.format(
-        "User '%s' cannot update subscriptions for the session '%s'", currentUser.getId(), sessionId));
-    }
     roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
-    videoServerService.updateSubscriptionsMediaStream(currentUser.getSessionId(), meetingId.toString(),
+    videoServerService.updateSubscriptionsMediaStream(userId, meetingId.toString(),
       subscriptionUpdatesDto);
   }
 
   @Override
-  public void offerRtcAudioStream(UUID meetingId, String sessionId, String sdp, UserPrincipal currentUser) {
+  public void offerRtcAudioStream(UUID meetingId, String sdp, UserPrincipal currentUser) {
+
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    if (!sessionId.equals(currentUser.getSessionId())) {
-      throw new BadRequestException(String.format(
-        "User '%s' cannot send rtc offer for the session '%s'", currentUser.getId(), sessionId));
-    }
     roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
-    videoServerService.offerRtcAudioStream(currentUser.getSessionId(), meetingId.toString(), sdp);
+    videoServerService.offerRtcAudioStream(currentUser.getId(), meetingId.toString(), sdp);
   }
 }

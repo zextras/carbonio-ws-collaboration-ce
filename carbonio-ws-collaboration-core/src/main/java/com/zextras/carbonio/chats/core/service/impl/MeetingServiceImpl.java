@@ -204,11 +204,11 @@ public class MeetingServiceImpl implements MeetingService {
 
     deleteMeeting(meeting,
       roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false),
-      currentUser.getUUID(), currentUser.getSessionId());
+      currentUser.getUUID());
   }
 
   @Override
-  public void deleteMeeting(Meeting meeting, Room room, UUID userId, @Nullable String sessionId) {
+  public void deleteMeeting(Meeting meeting, Room room, UUID userId) {
     videoServerService.stopMeeting(meeting.getId());
     meetingRepository.delete(meeting);
     eventDispatcher.sendToUserQueue(

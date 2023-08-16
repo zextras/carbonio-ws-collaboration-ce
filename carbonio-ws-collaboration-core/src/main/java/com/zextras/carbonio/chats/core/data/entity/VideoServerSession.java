@@ -20,13 +20,16 @@ public class VideoServerSession {
   @EmbeddedId
   private VideoServerSessionId id;
 
-  @MapsId("sessionId")
-  private String sessionId;
+  @MapsId("userId")
+  private String userId;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @MapsId("meetingId")
   @JoinColumn(name = "MEETING_ID")
   private VideoServerMeeting videoServerMeeting;
+
+  @Column(name = "QUEUE_ID", length = 64, nullable = false)
+  private String queueId;
 
   @Column(name = "CONNECTION_ID", length = 64, nullable = false)
   private String connectionId;
@@ -59,9 +62,10 @@ public class VideoServerSession {
     this.id = VideoServerSessionId.create();
   }
 
-  public VideoServerSession(String sessionId, VideoServerMeeting videoServerMeeting) {
-    this.id = VideoServerSessionId.create(sessionId, videoServerMeeting.getMeetingId());
-    this.sessionId = sessionId;
+  public VideoServerSession(String userId, String queueId, VideoServerMeeting videoServerMeeting) {
+    this.id = VideoServerSessionId.create(userId, videoServerMeeting.getMeetingId());
+    this.userId = userId;
+    this.queueId = queueId;
     this.videoServerMeeting = videoServerMeeting;
   }
 
@@ -69,21 +73,21 @@ public class VideoServerSession {
     return new VideoServerSession();
   }
 
-  public static VideoServerSession create(String sessionId, VideoServerMeeting videoServerMeeting) {
-    return new VideoServerSession(sessionId, videoServerMeeting);
+  public static VideoServerSession create(String userId, String queueId, VideoServerMeeting videoServerMeeting) {
+    return new VideoServerSession(userId, queueId, videoServerMeeting);
   }
 
   public VideoServerSessionId getId() {
     return id;
   }
 
-  public String getSessionId() {
-    return sessionId;
+  public String getUserId() {
+    return userId;
   }
 
-  public VideoServerSession sessionId(String sessionId) {
-    this.id.sessionId(sessionId);
-    this.sessionId = sessionId;
+  public VideoServerSession userId(String userId) {
+    this.id.userId(userId);
+    this.userId = userId;
     return this;
   }
 
@@ -103,6 +107,15 @@ public class VideoServerSession {
 
   public VideoServerSession connectionId(String connectionId) {
     this.connectionId = connectionId;
+    return this;
+  }
+
+  public String getQueueId() {
+    return queueId;
+  }
+
+  public VideoServerSession queueId(String queueId) {
+    this.queueId = queueId;
     return this;
   }
 

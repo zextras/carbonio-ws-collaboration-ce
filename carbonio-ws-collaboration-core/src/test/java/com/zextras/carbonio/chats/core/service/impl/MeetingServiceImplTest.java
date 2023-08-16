@@ -83,12 +83,12 @@ public class MeetingServiceImplTest {
   }
 
   private UUID   user1Id;
-  private String session1User1Id;
+  private UUID session1User1Id;
   private UUID   user2Id;
-  private String session1User2Id;
-  private String session2User2Id;
+  private UUID session1User2Id;
+  private UUID session2User2Id;
   private UUID   user3Id;
-  private String session1User3Id;
+  private UUID session1User3Id;
 
   private UUID room1Id;
   private UUID room2Id;
@@ -103,12 +103,12 @@ public class MeetingServiceImplTest {
   @BeforeEach
   public void init() {
     user1Id = UUID.randomUUID();
-    session1User1Id = "session1User1Id";
+    session1User1Id = UUID.randomUUID();
     user2Id = UUID.randomUUID();
-    session1User2Id = "session1User2Id";
-    session2User2Id = "session2User2Id";
+    session1User2Id = UUID.randomUUID();
+    session2User2Id = UUID.randomUUID();
     user3Id = UUID.randomUUID();
-    session1User3Id = "session3User2Id";
+    session1User3Id = UUID.randomUUID();
 
     room1Id = UUID.randomUUID();
     room1 = Room.create();
@@ -130,13 +130,13 @@ public class MeetingServiceImplTest {
       .roomId(room1Id.toString())
       .meetingType(MeetingType.PERMANENT)
       .participants(List.of(
-        ParticipantBuilder.create(meeting1, session1User1Id).userId(user1Id).audioStreamOn(true).videoStreamOn(true)
+        ParticipantBuilder.create(meeting1, user1Id.toString()).queueId(session1User1Id).audioStreamOn(true).videoStreamOn(true)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z")).build(),
-        ParticipantBuilder.create(meeting1, session1User2Id).userId(user2Id).audioStreamOn(false).videoStreamOn(true)
+        ParticipantBuilder.create(meeting1, user2Id.toString()).queueId(session1User2Id).audioStreamOn(false).videoStreamOn(true)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:30:00Z")).build(),
-        ParticipantBuilder.create(meeting1, session2User2Id).userId(user2Id).audioStreamOn(true).videoStreamOn(false)
+        ParticipantBuilder.create(meeting1, user2Id.toString()).queueId(session2User2Id).audioStreamOn(true).videoStreamOn(false)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build(),
-        ParticipantBuilder.create(meeting1, session1User3Id).userId(user3Id).createdAt(
+        ParticipantBuilder.create(meeting1, user3Id.toString()).queueId(session1User3Id).createdAt(
           OffsetDateTime.parse("2022-01-01T13:15:00Z")).build()));
     meeting2Id = UUID.randomUUID();
     meeting2 = Meeting.create();
@@ -145,9 +145,9 @@ public class MeetingServiceImplTest {
       .roomId(room2Id.toString())
       .meetingType(MeetingType.SCHEDULED)
       .participants(List.of(
-        ParticipantBuilder.create(meeting1, session1User1Id).userId(user1Id).audioStreamOn(true).videoStreamOn(true)
+        ParticipantBuilder.create(meeting1, user1Id.toString()).queueId(session1User1Id).audioStreamOn(true).videoStreamOn(true)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z")).build(),
-        ParticipantBuilder.create(meeting1, session1User3Id).userId(user3Id).createdAt(
+        ParticipantBuilder.create(meeting1, user3Id.toString()).queueId(session1User3Id).createdAt(
           OffsetDateTime.parse("2022-01-01T13:15:00Z")).build()));
   }
 
@@ -326,7 +326,7 @@ public class MeetingServiceImplTest {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals(session1User1Id, participant1.get().getSessionId());
+      assertEquals(session1User1Id.toString(), participant1.get().getQueueId());
       assertTrue(participant1.get().isVideoStreamEnabled());
       assertTrue(participant1.get().isAudioStreamEnabled());
 
@@ -343,7 +343,7 @@ public class MeetingServiceImplTest {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals(session1User1Id, participant1.get().getSessionId());
+      assertEquals(session1User1Id.toString(), participant1.get().getQueueId());
       assertTrue(participant1.get().isVideoStreamEnabled());
       assertTrue(participant1.get().isAudioStreamEnabled());
 
@@ -421,7 +421,7 @@ public class MeetingServiceImplTest {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals(session1User1Id, participant1.get().getSessionId());
+      assertEquals(session1User1Id.toString(), participant1.get().getQueueId());
       assertTrue(participant1.get().isVideoStreamEnabled());
       assertTrue(participant1.get().isAudioStreamEnabled());
 
@@ -497,7 +497,7 @@ public class MeetingServiceImplTest {
         .filter(p -> user1Id.toString().equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id.toString(), participant1.get().getUserId());
-      assertEquals(session1User1Id, participant1.get().getSessionId());
+      assertEquals(session1User1Id.toString(), participant1.get().getQueueId());
       assertTrue(participant1.get().hasVideoStreamOn());
       assertTrue(participant1.get().hasAudioStreamOn());
 
@@ -554,7 +554,7 @@ public class MeetingServiceImplTest {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals(session1User1Id, participant1.get().getSessionId());
+      assertEquals(session1User1Id.toString(), participant1.get().getQueueId());
       assertTrue(participant1.get().isVideoStreamEnabled());
       assertTrue(participant1.get().isAudioStreamEnabled());
 
@@ -594,7 +594,7 @@ public class MeetingServiceImplTest {
     @Test
     @DisplayName("If meeting exists, correctly returns it")
     public void getsOrCreatesMeetingEntityByRoomId_textOkMeetingExists() {
-      UserPrincipal userPrincipal = UserPrincipal.create(user1Id).sessionId(session1User1Id);
+      UserPrincipal userPrincipal = UserPrincipal.create(user1Id).queueId(session1User1Id);
       when(roomService.getRoomEntityAndCheckUser(room1Id, userPrincipal, false)).thenReturn(room1);
       when(meetingRepository.getByRoomId(room1Id.toString())).thenReturn(Optional.of(meeting1));
 

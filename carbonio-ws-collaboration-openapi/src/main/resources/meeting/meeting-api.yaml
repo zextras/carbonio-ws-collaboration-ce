@@ -197,7 +197,7 @@ paths:
     put:
       tags:
         - Meetings
-      summary: Update audio stream status for the current session
+      summary: Update audio stream status for a user, a moderator can disable audio for another user
       operationId: updateAudioStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
@@ -241,14 +241,6 @@ components:
       schema:
         type: string
         format: uuid
-      required: true
-      allowEmptyValue: false
-    pathSessionId:
-      in: path
-      name: sessionId
-      description: session identifier
-      schema:
-        type: string
       required: true
       allowEmptyValue: false
 
@@ -425,10 +417,10 @@ components:
         - $ref: '#/components/schemas/MeetingUser'
         - type: object
           properties:
-            sessionId:
+            queueId:
               type: string
               readOnly: true
-              description: VideoServer session id
+              description: Reference to the user queue of the user
             audioStreamEnabled:
               type: boolean
               readOnly: true
@@ -509,6 +501,9 @@ components:
         enabled:
           type: boolean
           description: indicates the status to change the audio stream to
+        userToModerate:
+          type: string
+          description: optional user to mute if i'm a moderator, only works if enabled is false
       required: [ enabled ]
     SessionDescriptionProtocol:
       type: object
@@ -537,13 +532,13 @@ components:
       type: object
       description: representation of meeting media stream
       properties:
-        session_id:
+        user_id:
           type: string
-          description: session identifier which owns the related media stream
+          description: user identifier which owns the related media stream
         type:
           type: string
           description: indicates the media stream type
           enum:
             - video
             - screen
-      required: [ session_id, type ]
+      required: [ user_id, type ]

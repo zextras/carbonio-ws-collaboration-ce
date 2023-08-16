@@ -12,18 +12,24 @@ public class ParticipantBuilder {
 
   private final Participant participant;
 
-  public ParticipantBuilder(Meeting meeting, String sessionId) {
-    this.participant = Participant.create(meeting, sessionId);
+  public ParticipantBuilder(Meeting meeting, String userId) {
+    this.participant = Participant.create(meeting, userId);
   }
 
-  public static ParticipantBuilder create(Meeting meeting, String sessionId) {
-    return new ParticipantBuilder(meeting, sessionId);
+  public static ParticipantBuilder create(Meeting meeting, String userId) {
+    return new ParticipantBuilder(meeting, userId);
   }
 
   public ParticipantBuilder userId(UUID userId) {
     this.participant.userId(userId.toString());
     return this;
   }
+
+  public ParticipantBuilder queueId(UUID queueId) {
+    this.participant.queueId(queueId.toString());
+    return this;
+  }
+
 
   public ParticipantBuilder audioStreamOn(Boolean audioStreamOn) {
     this.participant.audioStreamOn(audioStreamOn);

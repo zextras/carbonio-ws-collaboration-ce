@@ -754,7 +754,7 @@ public class MeetingApiIT {
       assertEquals(room1Id.toString(), meeting.getRoomId());
       assertEquals(4, meeting.getParticipants().size());
       Participant newParticipant = meeting.getParticipants().stream().filter(participant ->
-        user1Id.toString().equals(participant.getUserId()) && user1session1.equals(participant.getSessionId())
+        user1Id.toString().equals(participant.getUserId()) && user1session1.equals(participant.getQueueId())
       ).findAny().orElseThrow();
       assertTrue(newParticipant.hasAudioStreamOn());
       assertFalse(newParticipant.hasVideoStreamOn());
@@ -830,7 +830,7 @@ public class MeetingApiIT {
       assertEquals(room1Id.toString(), meeting.getRoomId());
       assertEquals(4, meeting.getParticipants().size());
       Participant newParticipant = meeting.getParticipants().stream().filter(participant ->
-        user2Id.toString().equals(participant.getUserId()) && user2session2.equals(participant.getSessionId())
+        user2Id.toString().equals(participant.getUserId()) && user2session2.equals(participant.getQueueId())
       ).findAny().orElseThrow();
       assertTrue(newParticipant.hasAudioStreamOn());
       assertFalse(newParticipant.hasVideoStreamOn());
@@ -998,7 +998,7 @@ public class MeetingApiIT {
       Meeting meeting = meetingTestUtils.getMeetingById(meetingId).orElseThrow();
       assertTrue(meeting.getParticipants().stream().filter(participant ->
         user2Id.toString().equals(participant.getUserId()) &&
-          user2session2.equals(participant.getSessionId())
+          user2session2.equals(participant.getQueueId())
       ).findAny().isEmpty());
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",

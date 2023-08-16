@@ -3038,7 +3038,7 @@ public class RoomsApiIT {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals("user1session1", participant1.get().getSessionId());
+      assertEquals("user1session1", participant1.get().getQueueId());
       assertTrue(participant1.get().isVideoStreamEnabled());
       assertTrue(participant1.get().isAudioStreamEnabled());
     }
@@ -3163,7 +3163,7 @@ public class RoomsApiIT {
       assertEquals(roomId.toString(), meeting.getRoomId());
       assertEquals(4, meeting.getParticipants().size());
       Participant newParticipant = meeting.getParticipants().stream().filter(participant ->
-        user1Id.toString().equals(participant.getUserId()) && "user1session1".equals(participant.getSessionId())
+        user1Id.toString().equals(participant.getUserId()) && "user1session1".equals(participant.getQueueId())
       ).findAny().orElseThrow();
       assertTrue(newParticipant.hasAudioStreamOn());
       assertFalse(newParticipant.hasVideoStreamOn());
