@@ -36,7 +36,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -81,7 +80,7 @@ public class MeetingServiceImpl implements MeetingService {
               rId,
               null);
             roomService.setMeetingIntoRoom(room, meeting);
-            eventDispatcher.sendToUserQueue(
+            eventDispatcher.sendToUserExchange(
               room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
               MeetingCreated.create()
                 .meetingId(UUID.fromString(meeting.getId()))
@@ -99,7 +98,7 @@ public class MeetingServiceImpl implements MeetingService {
           MeetingType.valueOf(meetingType.toString().toUpperCase()),
           room.getId(),
           expiration);
-        eventDispatcher.sendToUserQueue(
+        eventDispatcher.sendToUserExchange(
           userIds.stream().map(UUID::toString).collect(Collectors.toList()),
           MeetingCreated.create()
             .meetingId(UUID.fromString(meeting.getId()))
@@ -123,7 +122,7 @@ public class MeetingServiceImpl implements MeetingService {
           }
         });
         Meeting updatedMeeting = meetingRepository.update(meeting);
-        eventDispatcher.sendToUserQueue(
+        eventDispatcher.sendToUserExchange(
           roomService.getRoomById(UUID.fromString(meeting.getRoomId()), user)
             .getMembers().stream().map(m -> m.getUserId().toString()).collect(Collectors.toList()),
           Boolean.TRUE.equals(active) ?
@@ -187,7 +186,7 @@ public class MeetingServiceImpl implements MeetingService {
       );
       roomService.setMeetingIntoRoom(room, meeting);
       videoServerService.startMeeting(meeting.getId());
-      eventDispatcher.sendToUserQueue(
+      eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
         MeetingCreated.create()
           .meetingId(UUID.fromString(meeting.getId()))
@@ -211,7 +210,7 @@ public class MeetingServiceImpl implements MeetingService {
   public void deleteMeeting(Meeting meeting, Room room, UUID userId) {
     videoServerService.stopMeeting(meeting.getId());
     meetingRepository.delete(meeting);
-    eventDispatcher.sendToUserQueue(
+    eventDispatcher.sendToUserExchange(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       MeetingDeleted.create()
         .meetingId(UUID.fromString(meeting.getId())));

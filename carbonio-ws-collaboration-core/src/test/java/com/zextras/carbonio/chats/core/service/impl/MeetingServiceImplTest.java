@@ -254,7 +254,7 @@ public class MeetingServiceImplTest {
         true);
       verify(videoServerService, times(1)).startMeeting(meetingId.toString());
       verify(videoServerService, times(0)).stopMeeting(meetingId.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(
+      verify(eventDispatcher, times(1)).sendToUserExchange(
         List.of(user1Id.toString()),
         MeetingStarted.create().meetingId(meetingId).starterUser(user1Id));
     }
@@ -288,7 +288,7 @@ public class MeetingServiceImplTest {
         false);
       verify(videoServerService, times(0)).startMeeting(meetingId.toString());
       verify(videoServerService, times(1)).stopMeeting(meetingId.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(
+      verify(eventDispatcher, times(1)).sendToUserExchange(
         List.of(user1Id.toString()),
         MeetingStopped.create().meetingId(meetingId));
     }
@@ -641,7 +641,7 @@ public class MeetingServiceImplTest {
         room1Id,
         null);
       verify(videoServerService, times(1)).startMeeting(meetingId.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(
+      verify(eventDispatcher, times(1)).sendToUserExchange(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         MeetingCreated.create().meetingId(meetingId).roomId(room1Id));
       verifyNoMoreInteractions(roomService, meetingRepository, videoServerService, eventDispatcher);
@@ -666,7 +666,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).delete(meeting1);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(room1Id, UserPrincipal.create(user1Id), false);
       verify(videoServerService, times(1)).stopMeeting(meeting1Id.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(
+      verify(eventDispatcher, times(1)).sendToUserExchange(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         MeetingDeleted.create().meetingId(meeting1Id));
       verifyNoMoreInteractions(meetingRepository, roomService, videoServerService, eventDispatcher);

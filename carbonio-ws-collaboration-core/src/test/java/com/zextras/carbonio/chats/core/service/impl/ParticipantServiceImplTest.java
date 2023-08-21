@@ -23,6 +23,7 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantClashed;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoined;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
@@ -167,7 +168,7 @@ public class ParticipantServiceImplTest {
       verify(videoServerService, times(1))
         .joinMeeting(user3Id.toString(), user3Queue1.toString(), meeting1Id.toString(), false, true);
       verify(eventDispatcher, times(1))
-        .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+        .sendToUserExchange(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
           MeetingParticipantJoined.create().meetingId(meeting1Id).userId(user3Id));
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
@@ -195,7 +196,7 @@ public class ParticipantServiceImplTest {
       verify(videoServerService, times(1))
         .joinMeeting(user3Id.toString(), user3Queue1.toString(), meeting.getId(), false, true);
       verify(eventDispatcher, times(1))
-        .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+        .sendToUserExchange(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
           MeetingParticipantJoined.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(user3Id)
@@ -225,7 +226,7 @@ public class ParticipantServiceImplTest {
       verify(videoServerService, times(1)).joinMeeting(user3Id.toString(), user3Queue1.toString(), meeting1Id.toString(),
         false, true);
       verify(eventDispatcher, times(1))
-        .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+        .sendToUserExchange(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
           MeetingParticipantJoined.create()
             .meetingId(meeting1Id)
             .userId(user3Id)
@@ -234,25 +235,38 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    @DisplayName("It inserts the user as meeting participant with another session")
-    public void insertMeetingParticipant_testOkSameUserAnotherSession() {
-      UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(user4Queue1);
-      when(meetingService.getMeetingEntity(meeting2Id)).thenReturn(Optional.of(meeting2));
+    @DisplayName("It kicks the previous session if the user was already inside the meeting")
+    public void insertMeetingParticipant_testOkRemovePreviousSessionBeforeJoining() {
+      UUID newQueue = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(newQueue);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
-      participantService.insertMeetingParticipant(meeting2Id,
+      participantService.insertMeetingParticipant(meeting1Id,
         JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false), currentUser);
 
-      verify(meetingService, times(1)).getMeetingEntity(meeting2Id);
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+
+      verify(participantRepository, times(1))
+        .remove(participant2Session1);
+      verify(videoServerService, times(1)).leaveMeeting(user2Id.toString(), meeting1Id.toString());
+      verify(eventDispatcher, times(1))
+        .sendToUserQueue(user2Id.toString(),
+          user2Queue1.toString(),
+          MeetingParticipantClashed.create()
+            .meetingId(meeting1Id)
+        );
+
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1))
-        .insert(Participant.create(meeting2, user2Id.toString()).queueId(user4Queue1.toString()).audioStreamOn(true));
-      verify(videoServerService, times(1)).joinMeeting(user2Id.toString(), user4Queue1.toString(), meeting2Id.toString(),
+        .insert(Participant.create(meeting1, user2Id.toString()).queueId(newQueue.toString()).audioStreamOn(true));
+      verify(videoServerService, times(1))
+        .joinMeeting(user2Id.toString(), newQueue.toString(), meeting1Id.toString(),
         false, true);
       verify(eventDispatcher, times(1))
-        .sendToUserQueue(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+        .sendToUserExchange(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
           MeetingParticipantJoined.create()
-            .meetingId(meeting2Id)
+            .meetingId(meeting1Id)
             .userId(user2Id)
         );
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
@@ -295,7 +309,7 @@ public class ParticipantServiceImplTest {
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1)).remove(participant4Session1);
       verify(videoServerService, times(1)).leaveMeeting(user4Id.toString(), meeting1Id.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(
+      verify(eventDispatcher, times(1)).sendToUserExchange(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         MeetingParticipantLeft.create().meetingId(meeting1Id).userId(user4Id)
       );
@@ -304,7 +318,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("It removes the current user as meeting participant, " +
-      "if it's the last one, the meeting is also removed")
+      "if it's the last one, the meeting is also stopped")
     public void removeMeetingParticipant_testOkLastParticipant() {
       UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(user2Queue1);
       when(meetingService.getMeetingEntity(meeting2Id)).thenReturn(Optional.of(meeting2));
@@ -316,10 +330,12 @@ public class ParticipantServiceImplTest {
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1)).remove(participant2Session1);
       verify(videoServerService, times(1)).leaveMeeting(user2Id.toString(), meeting2Id.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(
+      verify(eventDispatcher, times(1)).sendToUserExchange(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         MeetingParticipantLeft.create().meetingId(meeting2Id).userId(user2Id));
-      verify(meetingService, times(1)).deleteMeeting(meeting2, room, user2Id);
+      verify(meetingService, times(1)).updateMeeting(UserPrincipal.create(user2Id),
+        meeting2Id,
+        false);
       verifyNoMoreInteractions(meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
 
@@ -334,7 +350,7 @@ public class ParticipantServiceImplTest {
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Not Found - Session not found", exception.getMessage());
+      assertEquals("Not Found - User not found", exception.getMessage());
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
@@ -360,7 +376,7 @@ public class ParticipantServiceImplTest {
       verify(participantRepository, times(1)).update(
         ParticipantBuilder.create(Meeting.create(), user1Id.toString()).queueId(user1Queue1).videoStreamOn(true)
           .screenStreamOn(false).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
-      verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(),
+      verify(eventDispatcher, times(1)).sendToUserExchange(List.of(user1Id.toString(),
           user2Id.toString(), user4Id.toString()),
         MeetingMediaStreamChanged.create()
           .meetingId(meeting1Id)
@@ -427,7 +443,7 @@ public class ParticipantServiceImplTest {
       verify(participantRepository, times(1)).update(
         ParticipantBuilder.create(Meeting.create(), user4Id.toString()).queueId(user4Queue1).videoStreamOn(false)
           .audioStreamOn(true).screenStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
-      verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(),
+      verify(eventDispatcher, times(1)).sendToUserExchange(List.of(user1Id.toString(),
           user2Id.toString(), user4Id.toString()),
         MeetingMediaStreamChanged.create()
           .meetingId(meeting1Id)
@@ -515,7 +531,7 @@ public class ParticipantServiceImplTest {
       verify(participantRepository, times(1)).update(
         ParticipantBuilder.create(Meeting.create(), user1Id.toString()).queueId(user1Queue1).audioStreamOn(hasAudioStreamOn)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
-      verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(),
+      verify(eventDispatcher, times(1)).sendToUserExchange(List.of(user1Id.toString(),
           user2Id.toString(), user4Id.toString()),
         MeetingAudioStreamChanged.create()
           .meetingId(meeting1Id)
@@ -621,7 +637,7 @@ public class ParticipantServiceImplTest {
       verify(participantRepository, times(1)).update(
         ParticipantBuilder.create(Meeting.create(), user4Id.toString()).queueId(user4Queue1).audioStreamOn(hasAudioStreamOn)
           .videoStreamOn(true).screenStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
-      verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(),
+      verify(eventDispatcher, times(1)).sendToUserExchange(List.of(user1Id.toString(),
           user2Id.toString(), user4Id.toString()),
         MeetingAudioStreamChanged.create().meetingId(meeting1Id).userId(user4Id));
       verify(videoServerService, times(1)).updateAudioStream(user4Id.toString(), meeting1Id.toString(), false);
@@ -655,7 +671,7 @@ public class ParticipantServiceImplTest {
       verify(participantRepository, times(1)).update(
         ParticipantBuilder.create(Meeting.create(), user4Id.toString()).queueId(user4Queue1).audioStreamOn(false)
           .videoStreamOn(true).screenStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
-      verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(),
+      verify(eventDispatcher, times(1)).sendToUserExchange(List.of(user1Id.toString(),
           user2Id.toString(), user4Id.toString()),
         MeetingAudioStreamChanged.create().meetingId(meeting1Id).userId(user1Id));
       verify(videoServerService, times(1)).updateAudioStream(user4Id.toString(), meeting1Id.toString(), false);
@@ -734,7 +750,7 @@ public class ParticipantServiceImplTest {
       verify(participantRepository, times(1)).update(
         ParticipantBuilder.create(Meeting.create(), user1Id.toString()).queueId(user1Queue1).screenStreamOn(true)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
-      verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(),
+      verify(eventDispatcher, times(1)).sendToUserExchange(List.of(user1Id.toString(),
           user2Id.toString(), user4Id.toString()),
         MeetingMediaStreamChanged.create()
           .meetingId(meeting1Id)
@@ -823,7 +839,7 @@ public class ParticipantServiceImplTest {
       verify(participantRepository, times(1)).update(
         ParticipantBuilder.create(Meeting.create(), user4Id.toString()).queueId(user4Queue1).screenStreamOn(false)
           .audioStreamOn(true).videoStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
-      verify(eventDispatcher, times(1)).sendToUserQueue(List.of(user1Id.toString(),user2Id.toString(), user4Id.toString()),
+      verify(eventDispatcher, times(1)).sendToUserExchange(List.of(user1Id.toString(),user2Id.toString(), user4Id.toString()),
         MeetingMediaStreamChanged.create()
           .meetingId(meeting1Id)
           .userId(user4Id)

@@ -403,7 +403,7 @@ class UserServiceImplTest {
       verify(clock, times(1)).getZone();
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(contactsIds,
+      verify(eventDispatcher, times(1)).sendToUserExchange(contactsIds,
         UserPictureChanged.create()
           .userId(userId)
           .imageId(UUID.fromString(expectedMetadata.getId()))
@@ -450,7 +450,7 @@ class UserServiceImplTest {
         user.pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(contactsIds,
+      verify(eventDispatcher, times(1)).sendToUserExchange(contactsIds,
         UserPictureChanged.create()
           .userId(userId)
           .imageId(UUID.fromString(expectedMetadata.getId()))
@@ -527,7 +527,7 @@ class UserServiceImplTest {
       verify(userRepository, times(1)).save(user.pictureUpdatedAt(null));
       verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
       verify(eventDispatcher, times(1))
-        .sendToUserQueue(eq(contacts), any(UserPictureDeleted.class));
+        .sendToUserExchange(eq(contacts), any(UserPictureDeleted.class));
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
 
       verifyNoMoreInteractions(fileMetadataRepository, userRepository, storagesService, eventDispatcher,
@@ -550,7 +550,7 @@ class UserServiceImplTest {
       verify(fileMetadataRepository, times(1)).delete(metadata);
       verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
       verify(eventDispatcher, times(1))
-        .sendToUserQueue(eq(contacts), any(UserPictureDeleted.class));
+        .sendToUserExchange(eq(contacts), any(UserPictureDeleted.class));
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
       verifyNoMoreInteractions(fileMetadataRepository, storagesService, eventDispatcher, subscriptionRepository);
     }
