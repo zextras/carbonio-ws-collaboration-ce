@@ -23,6 +23,16 @@ paths:
       responses:
         200:
           $ref: '#/components/responses/200ListMeetingResponse'
+    post:
+      tags:
+        - Meetings
+      summary: Creates a new meeting
+      operationId: createMeeting
+      requestBody:
+        $ref: '#/components/requestBodies/CreateMeetingRequest'
+      responses:
+        200:
+          $ref: '#/components/responses/200CreateMeetingResponse'
   /meetings/{meetingId}:
     get:
       tags:
@@ -56,8 +66,42 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/start:
+    post:
+      tags:
+        - Meetings
+      summary: Stars the current meeting
+      operationId: startMeeting
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      responses:
+        204:
+          $ref: '#/components/responses/204StartMeetingResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/stop:
+    post:
+      tags:
+        - Meetings
+      summary: Stops the current meeting
+      operationId: stopMeeting
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      responses:
+        204:
+          $ref: '#/components/responses/204StopMeetingResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /meetings/{meetingId}/join:
-    put:
+    post:
       tags:
         - Meetings
       summary: adds the current user to the specified meeting
@@ -76,7 +120,7 @@ paths:
         404:
           $ref: '#/components/responses/404NotFoundResponse'
   /meetings/{meetingId}/leave:
-    put:
+    post:
       tags:
         - Meetings
       summary: remove the current user to the specified meeting
@@ -181,6 +225,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/JoinSettings'
+    CreateMeetingRequest:
+      description: Data to create a new meeting
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NewMeetingData'
     UpdateVideoStreamRequest:
       description: user request to update a meeting stream status
       required: true
@@ -204,6 +255,12 @@ components:
             $ref: '#/components/schemas/ScreenStreamSettings'
 
   responses:
+    200CreateMeetingResponse:
+      description: The meeting just created
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Meeting'
     200ListMeetingResponse:
       description: List of every meeting that the user has access to
       content:
@@ -218,12 +275,10 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Meeting'
-    201CreateMeetingResponse:
-      description: Meeting was created successfully
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Meeting'
+    204StartMeetingResponse:
+      description: The meeting was started successfully
+    204StopMeetingResponse:
+      description: The meeting was stopped successfully
     204DeleteMeetingResponse:
       description: The meeting was deleted successfully
     204JoinMeetingResponse:
@@ -247,8 +302,30 @@ components:
       description: The requested resource was not found
     409Conflict:
       description: The request conflict with the current state
-
   schemas:
+    NewMeetingData:
+      type: object
+      properties:
+        name:
+          type: string
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/MeetingUser'
+        roomId:
+          type: string
+          format: uuid
+        meetingType:
+          description: 'Defines the type of meeting, if permanent it will never be automatically deleted,
+          if scheduled it will be removed after the expiration is passed'
+          $ref: '#/components/schemas/MeetingType'
+        expiration:
+          description: 'This field is only used for scheduled meetings to indicate when the meeting will
+            no more be necessary'
+          type: string
+          format: date-time
+      required:
+        - name
     Room:
       type: object
       description: Room data for a meeting
@@ -268,31 +345,44 @@ components:
           type: string
           description: room description
           readOnly: true
-    Participant:
+    MeetingUser:
       type: object
-      description: Meeting participant data
+      description: Defines a user in the access list of a meeting
       properties:
         userId:
           type: string
           format: uuid
-          readOnly: true
           description: user identifier
-        sessionId:
-          type: string
-          readOnly: true
-          description: VideoServer session id
-        audioStreamOn:
-          type: boolean
-          readOnly: true
-          description: indicates if the audio stream is on
-        videoStreamOn:
-          type: boolean
-          readOnly: true
-          description: indicates if the video stream is on
-        screenStreamOn:
-          type: boolean
-          readOnly: true
-          description: indicates if the screen stream is on
+        userType:
+          $ref: '#/components/schemas/MeetingUserType'
+    MeetingType:
+      type: string
+      enum:
+        - permanent
+        - scheduled
+    MeetingUserType:
+      type: string
+      enum:
+        - moderator
+        - registered
+    Participant:
+      description: Meeting participant data
+      allOf:
+        - $ref: '#/components/schemas/MeetingUser'
+        - type: object
+          properties:
+            audioStreamOn:
+              type: boolean
+              readOnly: true
+              description: indicates if the audio stream is on
+            videoStreamOn:
+              type: boolean
+              readOnly: true
+              description: indicates if the video stream is on
+            screenStreamOn:
+              type: boolean
+              readOnly: true
+              description: indicates if the screen share stream is on
     Meeting:
       type: object
       description: Meeting data
@@ -301,12 +391,18 @@ components:
           type: string
           format: uuid
           readOnly: true
-          description: meesting identifier
+          description: meeting identifier
+        name:
+          type: string
+          description: The meeting name
         roomId:
           type: string
           format: uuid
           readOnly: true
-          description: meesting identifier
+          description: room identifier
+        active:
+          description: Indicates if the meeting is active
+          type: boolean
         participants:
           type: array
           items:
@@ -316,6 +412,8 @@ components:
           format: date-time
           readOnly: true
           description: entity creation date
+        meetingType:
+          $ref: '#/components/schemas/MeetingType'
     JoinSettings:
       type: object
       description: user's streams settings to join a meeting

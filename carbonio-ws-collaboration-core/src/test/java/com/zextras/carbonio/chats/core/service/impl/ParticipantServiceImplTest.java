@@ -28,6 +28,7 @@ import com.zextras.carbonio.chats.core.data.event.MeetingScreenStreamDisabled;
 import com.zextras.carbonio.chats.core.data.event.MeetingScreenStreamEnabled;
 import com.zextras.carbonio.chats.core.data.event.MeetingVideoStreamDisabled;
 import com.zextras.carbonio.chats.core.data.event.MeetingVideoStreamEnabled;
+import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
@@ -174,7 +175,10 @@ public class ParticipantServiceImplTest {
     public void insertMeetingParticipantByRoomId_testOkMeetingNotExists() {
       UserPrincipal currentUser = UserPrincipal.create(user3Id).sessionId(user3Session1);
       Meeting meeting = Meeting.create()
-        .id(UUID.randomUUID().toString()).roomId(roomId.toString()).participants(new ArrayList<>());
+        .id(UUID.randomUUID().toString())
+        .roomId(roomId.toString())
+        .meetingType(MeetingType.SCHEDULED)
+        .participants(new ArrayList<>());
       when(meetingService.getsOrCreatesMeetingEntityByRoomId(roomId, currentUser)).thenReturn(meeting);
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
 
