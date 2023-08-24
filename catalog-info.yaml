@@ -21,7 +21,8 @@ spec:
   lifecycle: production
   owner: smoky-beans
   providesApis:
-    - carbonio-ws-collaboration-rest-api
+    - carbonio-ws-collaboration-chats-api
+    - carbonio-ws-collaboration-meeting-api
   dependsOn:
     - component:carbonio-ws-collaboration-db
     - component:carbonio-message-dispatcher
@@ -36,9 +37,9 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: API
 metadata:
-  name: carbonio-ws-collaboration-rest-api
-  title: Carbonio Workstream Collaboration REST APIs
-  description: Carbonio Workstream Collaboration REST APIs.
+  name: carbonio-ws-collaboration-chats-api
+  title: Carbonio Workstream Collaboration Chats APIs
+  description: Carbonio Workstream Collaboration Chats APIs.
   tags:
     - rest
 spec:
@@ -46,4 +47,21 @@ spec:
   lifecycle: production
   owner: smoky-beans
   definition:
-    $text: https://github.com/Zextras/carbonio-ws-collaboration/blob/main/carbonio-ws-collaboration-openapi/src/main/resources/ws-collaboration/ws-collaboration-api.yaml
+    $text: https://github.com/Zextras/carbonio-ws-collaboration/blob/main/carbonio-ws-collaboration-openapi/src/main/resources/chats/chats-api.yaml
+
+---
+
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: carbonio-ws-collaboration-meeting-api
+  title: Carbonio Workstream Collaboration Meeting APIs
+  description: Carbonio Workstream Collaboration Meeting APIs.
+  tags:
+    - rest
+spec:
+  type: openapi
+  lifecycle: production
+  owner: smoky-beans
+  definition:
+    $text: https://github.com/Zextras/carbonio-ws-collaboration/blob/main/carbonio-ws-collaboration-openapi/src/main/resources/meeting/meeting-api.yaml
