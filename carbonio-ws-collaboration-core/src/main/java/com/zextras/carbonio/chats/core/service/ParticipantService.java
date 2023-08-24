@@ -77,7 +77,6 @@ public interface ParticipantService {
    * VideoServer for the PeerConnection setup related to video stream when it has to be enabled.
    *
    * @param meetingId              meeting identifier {@link UUID}
-   * @param sessionId              identifier of the session whose media stream status has to be updated
    * @param mediaStreamSettingsDto user settings request to update the media stream status
    * @param currentUser            currentUser current authenticated user {@link UserPrincipal}
    * @throws NotFoundException   if the meeting doesn't exist

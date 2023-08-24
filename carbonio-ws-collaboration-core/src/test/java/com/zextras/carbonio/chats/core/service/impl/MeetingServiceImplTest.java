@@ -21,8 +21,10 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.MeetingCreatedEvent;
-import com.zextras.carbonio.chats.core.data.event.MeetingDeletedEvent;
+import com.zextras.carbonio.chats.core.data.event.MeetingCreated;
+import com.zextras.carbonio.chats.core.data.event.MeetingDeleted;
+import com.zextras.carbonio.chats.core.data.event.MeetingStarted;
+import com.zextras.carbonio.chats.core.data.event.MeetingStopped;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
@@ -44,7 +46,6 @@ import com.zextras.carbonio.meeting.model.MeetingUserDto;
 import com.zextras.carbonio.meeting.model.MeetingTypeDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
 import java.time.OffsetDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -243,11 +244,18 @@ public class MeetingServiceImplTest {
         .active(true);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
+      when(roomService.getRoomById(roomId,currentUser)).thenReturn(RoomDto
+        .create()
+        .members(List.of(MemberDto.create().userId(user1Id)))
+      );
       MeetingDto meetingDto = meetingService.updateMeeting(currentUser,
         meetingId,
         true);
       verify(videoServerService, times(1)).startMeeting(meetingId.toString());
       verify(videoServerService, times(0)).stopMeeting(meetingId.toString());
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString()),
+        MeetingStarted.create().meetingId(meetingId).starterUser(user1Id));
     }
 
     @Test
@@ -270,11 +278,18 @@ public class MeetingServiceImplTest {
         .active(false);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
+      when(roomService.getRoomById(roomId,currentUser)).thenReturn(RoomDto
+        .create()
+        .members(List.of(MemberDto.create().userId(user1Id)))
+      );
       MeetingDto meetingDto = meetingService.updateMeeting(currentUser,
         meetingId,
         false);
       verify(videoServerService, times(0)).startMeeting(meetingId.toString());
       verify(videoServerService, times(1)).stopMeeting(meetingId.toString());
+      verify(eventDispatcher, times(1)).sendToUserQueue(
+        List.of(user1Id.toString()),
+        MeetingStopped.create().meetingId(meetingId));
     }
   }
 
@@ -627,7 +642,7 @@ public class MeetingServiceImplTest {
       verify(videoServerService, times(1)).startMeeting(meetingId.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        MeetingCreatedEvent.create(user1Id, null).meetingId(meetingId).roomId(room1Id));
+        MeetingCreated.create().meetingId(meetingId).roomId(room1Id));
       verifyNoMoreInteractions(roomService, meetingRepository, videoServerService, eventDispatcher);
       verifyNoInteractions(membersService);
     }
@@ -652,7 +667,7 @@ public class MeetingServiceImplTest {
       verify(videoServerService, times(1)).stopMeeting(meeting1Id.toString());
       verify(eventDispatcher, times(1)).sendToUserQueue(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        MeetingDeletedEvent.create(user1Id, null).meetingId(meeting1Id));
+        MeetingDeleted.create().meetingId(meeting1Id));
       verifyNoMoreInteractions(meetingRepository, roomService, videoServerService, eventDispatcher);
       verifyNoInteractions(membersService);
     }

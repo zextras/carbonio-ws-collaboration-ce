@@ -8,9 +8,10 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
-import com.zextras.carbonio.chats.core.data.event.RoomMemberAddedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomMemberRemovedEvent;
-import com.zextras.carbonio.chats.core.data.event.RoomOwnerChangedEvent;
+import com.zextras.carbonio.chats.core.data.event.RoomMemberAdded;
+import com.zextras.carbonio.chats.core.data.event.RoomMemberRemoved;
+import com.zextras.carbonio.chats.core.data.event.RoomOwnerDemoted;
+import com.zextras.carbonio.chats.core.data.event.RoomOwnerPromoted;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -104,8 +105,9 @@ public class MembersServiceImpl implements MembersService {
     subscriptionRepository.update(subscription);
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomOwnerChangedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
-        .roomId(roomId).userId(userId).isOwner(isOwner)
+      isOwner
+        ? RoomOwnerPromoted.create().roomId(roomId).userId(userId)
+        : RoomOwnerDemoted.create().roomId(roomId).userId(userId)
     );
   }
 
@@ -171,9 +173,12 @@ public class MembersServiceImpl implements MembersService {
 
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomMemberAddedEvent
-        .create(currentUser.getUUID(), currentUser.getSessionId()).roomId(UUID.fromString(room.getId()))
-        .member(subscriptionMapper.ent2memberDto(subscription)));
+      RoomMemberAdded
+        .create()
+        .roomId(UUID.fromString(room.getId()))
+        .userId(memberToInsertDto.getUserId())
+        .isOwner(memberToInsertDto.isOwner())
+    );
     return subscriptionMapper.ent2memberInsertedDto(subscription, settings);
   }
 
@@ -219,8 +224,7 @@ public class MembersServiceImpl implements MembersService {
     }
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomMemberRemovedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
-        .roomId(UUID.fromString(room.getId())).userId(userId)
+      RoomMemberRemoved.create().roomId(UUID.fromString(room.getId())).userId(userId)
     );
     // the room isn't updated with subscriptions table. It still has the deleted subscription,
     // so if room has only one subscription, but actually it is empty

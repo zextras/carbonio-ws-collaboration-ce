@@ -8,26 +8,37 @@ import java.util.Objects;
 import java.util.UUID;
 import org.jetbrains.annotations.Nullable;
 
-public class MeetingDeletedEvent extends DomainEvent {
+public class MeetingParticipantJoined extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.MEETING_DELETED;
+  private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_JOINED;
 
   private UUID meetingId;
 
-  public MeetingDeletedEvent(UUID from, @Nullable String sessionId) {
-    super(EVENT_TYPE, from, sessionId);
+  private UUID userId;
+
+  public MeetingParticipantJoined() {
+    super(EVENT_TYPE);
   }
 
-  public static MeetingDeletedEvent create(UUID from, @Nullable String sessionId) {
-    return new MeetingDeletedEvent(from, sessionId);
+  public static MeetingParticipantJoined create() {
+    return new MeetingParticipantJoined();
   }
 
   public UUID getMeetingId() {
     return meetingId;
   }
 
-  public MeetingDeletedEvent meetingId(UUID meetingId) {
+  public MeetingParticipantJoined meetingId(UUID meetingId) {
     this.meetingId = meetingId;
+    return this;
+  }
+
+  public UUID getUserId() {
+    return userId;
+  }
+
+  public MeetingParticipantJoined userId(UUID userId) {
+    this.userId = userId;
     return this;
   }
 
@@ -42,8 +53,9 @@ public class MeetingDeletedEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    MeetingDeletedEvent that = (MeetingDeletedEvent) o;
-    return Objects.equals(getMeetingId(), that.getMeetingId());
+    MeetingParticipantJoined that = (MeetingParticipantJoined) o;
+    return Objects.equals(getMeetingId(), that.getMeetingId()) &&
+      Objects.equals(getUserId(), that.getUserId());
   }
 
   @Override

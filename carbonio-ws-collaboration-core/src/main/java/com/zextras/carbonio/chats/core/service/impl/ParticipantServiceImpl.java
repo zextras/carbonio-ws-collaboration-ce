@@ -8,11 +8,10 @@ import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamDisabled;
-import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamEnabled;
+import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoinedEvent;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeftEvent;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoined;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -101,8 +100,10 @@ public class ParticipantServiceImpl implements ParticipantService {
       joinSettingsDto.isAudioStreamEnabled());
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      MeetingParticipantJoinedEvent.create(currentUser.getUUID(), currentUser.getSessionId())
-        .meetingId(UUID.fromString(meeting.getId())));
+      MeetingParticipantJoined.create()
+        .meetingId(UUID.fromString(meeting.getId()))
+        .userId(currentUser.getUUID())
+    );
     meeting.getParticipants().add(participant);
   }
 
@@ -128,8 +129,7 @@ public class ParticipantServiceImpl implements ParticipantService {
       videoServerService.leaveMeeting(participant.getSessionId(), meeting.getId());
       eventDispatcher.sendToUserQueue(
         room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-        MeetingParticipantLeftEvent.create(userId, participant.getSessionId())
-          .meetingId(UUID.fromString(meeting.getId())));
+        MeetingParticipantLeft.create().meetingId(UUID.fromString(meeting.getId())).userId(userId));
       meeting.getParticipants().remove(participant);
       if (meeting.getParticipants().isEmpty()) {
         meetingService.deleteMeeting(meeting, room, userId, participant.getSessionId());
@@ -162,7 +162,9 @@ public class ParticipantServiceImpl implements ParticipantService {
       eventDispatcher.sendToUserQueue(
         meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
         MeetingMediaStreamChanged
-          .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId)
+          .create()
+          .meetingId(meetingId)
+          .userId(UUID.fromString(currentUser.getId()))
           .mediaType(MediaType.valueOf(mediaStreamSettingsDto.getType().toString().toUpperCase()))
           .active(mediaStreamSettingsDto.isEnabled()));
       videoServerService.updateMediaStream(sessionId, meetingId.toString(), mediaStreamSettingsDto);
@@ -188,11 +190,8 @@ public class ParticipantServiceImpl implements ParticipantService {
       participantRepository.update(participant.audioStreamOn(enabled));
       eventDispatcher.sendToUserQueue(
         meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
-        enabled ?
-          MeetingAudioStreamEnabled
-            .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId) :
-          MeetingAudioStreamDisabled
-            .create(currentUser.getUUID(), sessionId).meetingId(meetingId).sessionId(sessionId));
+        MeetingAudioStreamChanged.create().userId(currentUser.getUUID()).meetingId(meetingId).active(enabled)
+      );
       videoServerService.updateAudioStream(currentUser.getSessionId(), meetingId.toString(), enabled);
     }
   }

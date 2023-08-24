@@ -8,25 +8,25 @@ import java.util.Objects;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
-public class RoomPictureDeletedEvent extends DomainEvent {
+public class RoomPictureDeleted extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.ROOM_PICTURE_DELETED;
 
   private UUID roomId;
 
-  public RoomPictureDeletedEvent(UUID from, @Nullable String sessionId) {
-    super(EVENT_TYPE, from, sessionId);
+  public RoomPictureDeleted() {
+    super(EVENT_TYPE);
   }
 
-  public static RoomPictureDeletedEvent create(UUID from, @Nullable String sessionId) {
-    return new RoomPictureDeletedEvent(from, sessionId);
+  public static RoomPictureDeleted create() {
+    return new RoomPictureDeleted();
   }
 
   public UUID getRoomId() {
     return roomId;
   }
 
-  public RoomPictureDeletedEvent roomId(UUID roomId) {
+  public RoomPictureDeleted roomId(UUID roomId) {
     this.roomId = roomId;
     return this;
   }
@@ -42,7 +42,7 @@ public class RoomPictureDeletedEvent extends DomainEvent {
     if (!super.equals(o)) {
       return false;
     }
-    return Objects.equals(getRoomId(), ((RoomPictureDeletedEvent) o).getRoomId());
+    return Objects.equals(getRoomId(), ((RoomPictureDeleted) o).getRoomId());
   }
 
   @Override
