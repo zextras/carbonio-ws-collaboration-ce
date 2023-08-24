@@ -209,8 +209,8 @@ public class MeetingServiceImpl implements MeetingService {
 
   @Override
   public void deleteMeeting(Meeting meeting, Room room, UUID userId, @Nullable String sessionId) {
-    meetingRepository.delete(meeting);
     videoServerService.stopMeeting(meeting.getId());
+    meetingRepository.delete(meeting);
     eventDispatcher.sendToUserQueue(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       MeetingDeleted.create()

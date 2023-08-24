@@ -12,6 +12,7 @@ import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
 import com.zextras.carbonio.chats.it.tools.PreviewerMockServer;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
+import com.zextras.carbonio.chats.it.tools.VideoServerMockServer;
 import com.zextras.carbonio.chats.model.DependencyHealthDto;
 import com.zextras.carbonio.chats.model.DependencyHealthTypeDto;
 import com.zextras.carbonio.chats.model.HealthStatusDto;
@@ -32,15 +33,18 @@ public class HealthApiIT {
   private final ObjectMapper              objectMapper;
   private final PreviewerMockServer       previewerMockServer;
   private final MongooseImMockServer      mongooseImMockServer;
+  private final VideoServerMockServer     videoServerMockServer;
 
   public HealthApiIT(
     HealthApi healthApi, ResteasyRequestDispatcher dispatcher, ObjectMapper objectMapper,
     PreviewerMockServer previewerMockServer,
-    MongooseImMockServer mongooseImMockServer
+    MongooseImMockServer mongooseImMockServer,
+    VideoServerMockServer videoServerMockServer
   ) {
     this.dispatcher = dispatcher;
     this.previewerMockServer = previewerMockServer;
     this.mongooseImMockServer = mongooseImMockServer;
+    this.videoServerMockServer = videoServerMockServer;
     this.dispatcher.getRegistry().addSingletonResource(healthApi);
     this.objectMapper = objectMapper;
   }
@@ -59,21 +63,30 @@ public class HealthApiIT {
     @DisplayName("Returns the success health status")
     public void getHealthStatus_TestOk() throws Exception {
       mongooseImMockServer.mockIsAlive(true);
+      videoServerMockServer.mockRequestedResponse("POST", "/admin",
+        "{\"janus\":\"ping\",\"transaction\":\"${json-unit.ignore-element}\"}",
+        "{\"janus\":\"pong\"}", true);
       MockHttpResponse response = dispatcher.get("/health");
       assertEquals(200, response.getStatus());
       HealthStatusDto healthStatus = objectMapper.readValue(response.getContentAsString(), HealthStatusDto.class);
       assertEquals(DependencyHealthTypeDto.values().length, healthStatus.getDependencies().size());
       assertEquals(HealthStatusTypeDto.OK, healthStatus.getStatus());
-
       assertEquals(0, (int) healthStatus.getDependencies().stream().map(DependencyHealthDto::isIsHealthy)
         .filter(isLive -> !isLive).count());
       mongooseImMockServer.verify(mongooseImMockServer.getIsAliveRequest(), VerificationTimes.exactly(2));
+      videoServerMockServer.verify(
+        videoServerMockServer.getRequest("POST", "/admin",
+          "{\"janus\":\"ping\",\"transaction\":\"${json-unit.ignore-element}\"}"),
+        VerificationTimes.exactly(2));
     }
 
     @Test
     @DisplayName("Returns the health status when previewer isn't alive")
     public void getHealthStatus_TestWarn() throws Exception {
       mongooseImMockServer.mockIsAlive(true);
+      videoServerMockServer.mockRequestedResponse("POST", "/admin",
+        "{\"janus\":\"ping\",\"transaction\":\"${json-unit.ignore-element}\"}",
+        "{\"janus\":\"pong\"}", true);
       previewerMockServer.setIsAliveResponse(false);
       MockHttpResponse response = dispatcher.get("/health");
       assertEquals(200, response.getStatus());
@@ -86,11 +99,18 @@ public class HealthApiIT {
       assertEquals(1, failedDependencies.size());
       assertEquals(DependencyHealthTypeDto.PREVIEWER_SERVICE, failedDependencies.get(0).getName());
       mongooseImMockServer.verify(mongooseImMockServer.getIsAliveRequest(), VerificationTimes.exactly(2));
+      videoServerMockServer.verify(
+        videoServerMockServer.getRequest("POST", "/admin",
+          "{\"janus\":\"ping\",\"transaction\":\"${json-unit.ignore-element}\"}"),
+        VerificationTimes.exactly(1));
     }
 
     @Test
     @DisplayName("Returns the health status when xmpp server isn't alive")
     public void getHealthStatus_TestError() throws Exception {
+      videoServerMockServer.mockRequestedResponse("POST", "/admin",
+        "{\"janus\":\"ping\",\"transaction\":\"${json-unit.ignore-element}\"}",
+        "{\"janus\":\"pong\"}", true);
       mongooseImMockServer.mockIsAlive(false);
       MockHttpResponse response = dispatcher.get("/health");
       assertEquals(200, response.getStatus());
@@ -103,6 +123,10 @@ public class HealthApiIT {
       assertEquals(1, failedDependencies.size());
       assertEquals(DependencyHealthTypeDto.XMPP_SERVER, failedDependencies.get(0).getName());
       mongooseImMockServer.verify(mongooseImMockServer.getIsAliveRequest(), VerificationTimes.exactly(2));
+      videoServerMockServer.verify(
+        videoServerMockServer.getRequest("POST", "/admin",
+          "{\"janus\":\"ping\",\"transaction\":\"${json-unit.ignore-element}\"}"),
+        VerificationTimes.exactly(1));
     }
   }
 
@@ -128,9 +152,16 @@ public class HealthApiIT {
     @DisplayName("Checks correct ready test")
     public void isReady_testOk() throws Exception {
       mongooseImMockServer.mockIsAlive(true);
+      videoServerMockServer.mockRequestedResponse("POST", "/admin",
+        "{\"janus\":\"ping\",\"transaction\":\"${json-unit.ignore-element}\"}",
+        "{\"janus\":\"pong\"}", true);
       MockHttpResponse response = dispatcher.get("/health/ready");
       assertEquals(204, response.getStatus());
       mongooseImMockServer.verify(mongooseImMockServer.getIsAliveRequest(), VerificationTimes.exactly(1));
+      videoServerMockServer.verify(
+        videoServerMockServer.getRequest("POST", "/admin",
+          "{\"janus\":\"ping\",\"transaction\":\"${json-unit.ignore-element}\"}"),
+        VerificationTimes.exactly(1));
     }
 
 
