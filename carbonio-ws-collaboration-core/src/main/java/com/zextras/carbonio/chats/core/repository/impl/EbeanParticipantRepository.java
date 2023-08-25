@@ -32,9 +32,9 @@ public class EbeanParticipantRepository implements ParticipantRepository {
   }
 
   @Override
-  public Optional<Participant> getById(String meetingId, String sessionId) {
+  public Optional<Participant> getById(String meetingId, String userId) {
     return Optional.ofNullable(
-      db.find(Participant.class, ParticipantId.create(meetingId, sessionId)));
+      db.find(Participant.class, ParticipantId.create(meetingId, userId)));
   }
 
   @Override

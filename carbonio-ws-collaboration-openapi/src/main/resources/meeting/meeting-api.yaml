@@ -369,7 +369,7 @@ components:
           type: string
           format: date-time
       required:
-        - name
+        - [name, meetingType]
     Room:
       type: object
       description: Room data for a meeting

@@ -69,8 +69,8 @@ public class MeetingTestUtils {
     return meetingRepository.getById(meetingId.toString());
   }
 
-  public Optional<Participant> getParticipant(UUID meetingId, String sessionId) {
-    return participantRepository.getById(meetingId.toString(), sessionId);
+  public Optional<Participant> getParticipant(UUID meetingId, String userId) {
+    return participantRepository.getById(meetingId.toString(), userId);
   }
 
   public VideoServerMeeting insertVideoServerMeeting(

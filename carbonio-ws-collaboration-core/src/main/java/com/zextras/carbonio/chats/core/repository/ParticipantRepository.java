@@ -22,10 +22,10 @@ public interface ParticipantRepository {
    * Retrieves a participant by its row identifier
    *
    * @param meetingId meeting identifier
-   * @param sessionId session identifier
+   * @param userId user identifier
    * @return required {@link Participant} wrapped in a {@link Optional}
    */
-  Optional<Participant> getById(String meetingId, String sessionId);
+  Optional<Participant> getById(String meetingId, String userId);
 
   /**
    * Retrieves the list of meeting participants

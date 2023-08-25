@@ -61,8 +61,8 @@ public class ParticipantBuilder {
   }
 
   public Participant build(Meeting meeting) {
-    return Participant.create(meeting, queueId)
-      .userId(userId.toString())
+    return Participant.create(meeting, userId.toString())
+      .queueId(this.queueId)
       .audioStreamOn(this.audioStreamOn)
       .videoStreamOn(this.videoStreamOn)
       .screenStreamOn(this.screenStreamOn);

@@ -23,17 +23,17 @@ public class ParticipantId implements Serializable {
   public ParticipantId() {
   }
 
-  public ParticipantId(String meetingId, String sessionId) {
+  public ParticipantId(String meetingId, String userId) {
     this.meetingId = meetingId;
-    this.userId = sessionId;
+    this.userId = userId;
   }
 
   public static ParticipantId create() {
     return new ParticipantId();
   }
 
-  public static ParticipantId create(String meetingId, String sessionId) {
-    return new ParticipantId(meetingId, sessionId);
+  public static ParticipantId create(String meetingId, String userId) {
+    return new ParticipantId(meetingId, userId);
   }
 
 

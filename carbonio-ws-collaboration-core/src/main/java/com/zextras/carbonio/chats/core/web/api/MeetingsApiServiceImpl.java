@@ -193,7 +193,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       .orElseThrow(UnauthorizedException::new);
     if (mediaStreamSettingsDto.isEnabled() && mediaStreamSettingsDto.getSdp() == null) {
       throw new BadRequestException(String.format(
-        "User '%s' cannot enable the media stream of the session '%s' without sending an rtc offer",
+        "User '%s' cannot enable the media stream without sending an rtc offer",
         currentUser.getId()));
     }
     participantService.updateMediaStream(meetingId, mediaStreamSettingsDto, currentUser);
