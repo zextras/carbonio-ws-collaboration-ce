@@ -987,7 +987,7 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true)), true, null);
       integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
       meetingTestUtils.insertVideoServerSession(
         meetingTestUtils.insertVideoServerMeeting(

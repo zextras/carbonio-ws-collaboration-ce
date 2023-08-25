@@ -2116,15 +2116,15 @@ public class RoomsApiIT {
             null)
           .audioHandleId("audioHandleId_" + user2Queue));
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2Queue/audioHandleId_user2Queue",
+        "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2Queue/audioHandleId_user2Queue",
+        "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
         "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2Queue",
+        "/janus/connection_" + user2Queue,
         "{\"janus\":\"destroy\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\"}", true);
 
@@ -2165,17 +2165,17 @@ public class RoomsApiIT {
 
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2Queue/audioHandleId_user2Queue",
+          "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2Queue/audioHandleId_user2Queue",
+          "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
           "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2Queue",
+          "/janus/connection_" + user2Queue,
           "{\"janus\":\"destroy\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
     }
@@ -2190,7 +2190,7 @@ public class RoomsApiIT {
       Room roomEntity = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
         List.of(user1Id, user2Id, user3Id));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(roomId, List.of(
-        ParticipantBuilder.create(user2Id, user2Queue)));
+        ParticipantBuilder.create(user2Id, user2Queue)), true, null);
       integrationTestUtils.updateRoom(roomEntity.meetingId(meetingId.toString()));
 
       meetingTestUtils.updateVideoServerSession(
@@ -2209,15 +2209,15 @@ public class RoomsApiIT {
             null)
           .audioHandleId("audioHandleId_" + user2Queue));
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2Queue/audioHandleId_user2Queue",
+        "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2Queue/audioHandleId_user2Queue",
+        "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
         "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2Queue",
+        "/janus/connection_" + user2Queue,
         "{\"janus\":\"destroy\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\"}", true);
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
@@ -2261,7 +2261,6 @@ public class RoomsApiIT {
       assertTrue(room.isPresent());
       assertTrue(room.get().getSubscriptions().stream().filter(s -> s.getUserId().equals(user2Id.toString())).findAny()
         .isEmpty());
-      assertTrue(meetingTestUtils.getMeetingById(meetingId).isEmpty());
 
       // TODO: 25/02/22 verify event dispatcher
       mongooseImMockServer.verify(
@@ -2273,17 +2272,17 @@ public class RoomsApiIT {
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2Queue/audioHandleId_user2Queue",
+          "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2Queue/audioHandleId_user2Queue",
+          "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
           "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2Queue",
+          "/janus/connection_" + user2Queue,
           "{\"janus\":\"destroy\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
@@ -2971,6 +2970,7 @@ public class RoomsApiIT {
     @DisplayName("Given a room identifier, correctly returns the room meeting information with participants")
     public void getMeetingByRoomId_testOk() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
+      UUID user1Queue = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
@@ -2978,7 +2978,7 @@ public class RoomsApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(roomId, List.of(
-        ParticipantBuilder.create(user1Id, UUID.randomUUID().toString()).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user1Id, user1Queue.toString()).audioStreamOn(true).videoStreamOn(true),
         ParticipantBuilder.create(user2Id, UUID.randomUUID().toString()).audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user3Id, UUID.randomUUID().toString()).audioStreamOn(false).videoStreamOn(false)));
 
@@ -2990,10 +2990,10 @@ public class RoomsApiIT {
       assertEquals(meetingId, meetingDto.getId());
       assertEquals(roomId, meetingDto.getRoomId());
       assertNotNull(meetingDto.getParticipants());
-      assertEquals(4, meetingDto.getParticipants().size());
+      assertEquals(3, meetingDto.getParticipants().size());
       assertEquals(1, (int) meetingDto.getParticipants().stream()
         .filter(p -> user1Id.equals(p.getUserId())).count());
-      assertEquals(2, (int) meetingDto.getParticipants().stream()
+      assertEquals(1, (int) meetingDto.getParticipants().stream()
         .filter(p -> user2Id.equals(p.getUserId())).count());
       assertEquals(1, (int) meetingDto.getParticipants().stream()
         .filter(p -> user3Id.equals(p.getUserId())).count());
@@ -3001,7 +3001,7 @@ public class RoomsApiIT {
         .filter(p -> user1Id.equals(p.getUserId())).findAny();
       assertTrue(participant1.isPresent());
       assertEquals(user1Id, participant1.get().getUserId());
-      assertEquals("user1Queue", participant1.get().getQueueId());
+      assertEquals(user1Queue.toString(), participant1.get().getQueueId());
       assertTrue(participant1.get().isVideoStreamEnabled());
       assertTrue(participant1.get().isAudioStreamEnabled());
     }
@@ -3071,6 +3071,7 @@ public class RoomsApiIT {
     @DisplayName("Given a room identifier, if the room meeting exists the authenticated user correctly joins the meeting")
     public void joinRoomMeeting_testOkMeetingExists() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
+      UUID queue1Id = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(roomId.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(
@@ -3078,7 +3079,7 @@ public class RoomsApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(roomId, List.of(
-        ParticipantBuilder.create(user2Id, "user2session1").audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, "user2Queue").audioStreamOn(false).videoStreamOn(true),
         ParticipantBuilder.create(user3Id, "user3Queue").audioStreamOn(false).videoStreamOn(false)));
       meetingTestUtils.insertVideoServerMeeting(
         meetingId.toString(),
@@ -3104,10 +3105,10 @@ public class RoomsApiIT {
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\",\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\",\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"videoroom\":\"created\",\"room\":\"videoRoomId\"}}}", true);
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"user1session1/video\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"" + user1Id + "/video\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"user1session1/screen\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"" + user1Id + "/screen\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       Instant executionInstant = Instant.parse("2022-01-01T00:00:00Z");
       clock.fixTimeAt(executionInstant);
@@ -3115,7 +3116,7 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.put(url(roomId),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
-        Map.of("queue-id", UUID.randomUUID().toString()), user1Token);
+        Map.of("queue-id", queue1Id.toString()), user1Token);
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
@@ -3123,9 +3124,9 @@ public class RoomsApiIT {
       assertNotNull(meeting);
       assertEquals(meetingId.toString(), meeting.getId());
       assertEquals(roomId.toString(), meeting.getRoomId());
-      assertEquals(4, meeting.getParticipants().size());
+      assertEquals(3, meeting.getParticipants().size());
       Participant newParticipant = meeting.getParticipants().stream().filter(participant ->
-        user1Id.toString().equals(participant.getUserId()) && "user1Queue".equals(participant.getQueueId())
+        user1Id.toString().equals(participant.getUserId()) && queue1Id.toString().equals(participant.getQueueId())
       ).findAny().orElseThrow();
       assertTrue(newParticipant.hasAudioStreamOn());
       assertFalse(newParticipant.hasVideoStreamOn());
