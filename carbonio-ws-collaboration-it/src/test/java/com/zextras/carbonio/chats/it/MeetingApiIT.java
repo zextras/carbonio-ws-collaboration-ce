@@ -99,13 +99,12 @@ public class MeetingApiIT {
 
   private static UUID   user1Id;
   private static String user1Token;
-  private static String user1session1;
+  private static String user1Queue;
   private static UUID   user2Id;
   private static String user2Token;
-  private static String user2session1;
-  private static String user2session2;
+  private static String user2Queue;
   private static UUID   user3Id;
-  private static String user3session1;
+  private static String user3Queue;
   private static UUID   room1Id;
   private static UUID   room2Id;
   private static UUID   room3Id;
@@ -114,13 +113,12 @@ public class MeetingApiIT {
   public static void initAll() {
     user1Id = MockedAccount.getAccount(MockedAccountType.SNOOPY).getUUID();
     user1Token = MockedAccount.getAccount(MockedAccountType.SNOOPY).getToken();
-    user1session1 = "user1session1";
+    user1Queue = UUID.randomUUID().toString();
     user2Id = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN).getUUID();
     user2Token = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN).getToken();
-    user2session1 = "user2session1";
-    user2session2 = "user2session2";
+    user2Queue = UUID.randomUUID().toString();
     user3Id = MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT).getUUID();
-    user3session1 = "user3session1";
+    user3Queue = UUID.randomUUID().toString();
     room1Id = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
     room2Id = UUID.fromString("0367dedb-a5d8-451f-bbc8-22e70d8a777a");
     room3Id = UUID.fromString("e110c21d-8c73-4096-b449-166264399ac8");
@@ -224,10 +222,9 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       UUID meeting1Id = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user3Id, user3Queue).audioStreamOn(false).videoStreamOn(false)));
       videoServerMockServer.mockRequestedResponse("POST", "/janus",
         "{\"janus\":\"create\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\",\"data\":{\"id\":\"connectionId\"}}", true);
@@ -286,10 +283,9 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user3Id)));
       UUID meeting1Id = meetingTestUtils.generateAndSaveMeeting(room1Id,
         List.of(
-          ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-          ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
-          ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
-          ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)),
+          ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+          ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(true),
+          ParticipantBuilder.create(user3Id, user3Queue).audioStreamOn(false).videoStreamOn(false)),
         true,
         null);
       meetingTestUtils.insertVideoServerMeeting(
@@ -381,13 +377,12 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       UUID meeting1Id = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user3Id, user3Queue).audioStreamOn(false).videoStreamOn(false)));
       UUID meeting2Id = meetingTestUtils.generateAndSaveMeeting(room2Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(true).videoStreamOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(true)));
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(true).videoStreamOn(false),
+        ParticipantBuilder.create(user3Id, user3Queue).audioStreamOn(false).videoStreamOn(true)));
 
       MockHttpResponse response = dispatcher.get(URL, user1Token);
       assertEquals(200, response.getStatus());
@@ -399,7 +394,7 @@ public class MeetingApiIT {
       assertEquals(meeting1Id, meeting1Dto.getId());
       assertEquals(room1Id, meeting1Dto.getRoomId());
       assertNotNull(meeting1Dto.getParticipants());
-      assertEquals(4, meeting1Dto.getParticipants().size());
+      assertEquals(3, meeting1Dto.getParticipants().size());
       assertEquals(1, (int) meeting1Dto.getParticipants().stream()
         .filter(p -> user1Id.equals(p.getUserId())).count());
       assertEquals(2, (int) meeting1Dto.getParticipants().stream()
@@ -515,10 +510,9 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user3Id, user3Queue).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.get(url(meetingId), user1Token);
 
@@ -528,7 +522,7 @@ public class MeetingApiIT {
       assertEquals(meetingId, meetingDto.getId());
       assertEquals(room1Id, meetingDto.getRoomId());
       assertNotNull(meetingDto.getParticipants());
-      assertEquals(4, meetingDto.getParticipants().size());
+      assertEquals(3, meetingDto.getParticipants().size());
       assertEquals(1, (int) meetingDto.getParticipants().stream()
         .filter(p -> user1Id.equals(p.getUserId())).count());
       assertEquals(2, (int) meetingDto.getParticipants().stream()
@@ -552,9 +546,8 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user3Id, user3Queue).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.get(url(meetingId), user1Token);
 
@@ -599,10 +592,9 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user3Id, user3Queue).audioStreamOn(false).videoStreamOn(false)));
 
       meetingTestUtils.insertVideoServerMeeting(
         meetingId.toString(),
@@ -664,9 +656,8 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user3Id, user3Queue).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.delete(url(meetingId), user1Token);
 
@@ -674,7 +665,7 @@ public class MeetingApiIT {
       assertEquals(0, response.getOutput().length);
 
       assertTrue(meetingTestUtils.getMeetingById(meetingId).isPresent());
-      assertEquals(3, participantRepository.getByMeetingId(meetingId.toString()).size());
+      assertEquals(2, participantRepository.getByMeetingId(meetingId.toString()).size());
     }
 
     @Test
@@ -714,9 +705,8 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user3Id, user3Queue).audioStreamOn(false).videoStreamOn(false)));
       meetingTestUtils.insertVideoServerMeeting(
         meetingId.toString(),
         "connectionId",
@@ -744,7 +734,7 @@ public class MeetingApiIT {
       MockHttpResponse response = dispatcher.post(url(meetingId),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
@@ -754,7 +744,7 @@ public class MeetingApiIT {
       assertEquals(room1Id.toString(), meeting.getRoomId());
       assertEquals(4, meeting.getParticipants().size());
       Participant newParticipant = meeting.getParticipants().stream().filter(participant ->
-        user1Id.toString().equals(participant.getUserId()) && user1session1.equals(participant.getQueueId())
+        user1Id.toString().equals(participant.getUserId()) && user1Queue.equals(participant.getQueueId())
       ).findAny().orElseThrow();
       assertTrue(newParticipant.hasAudioStreamOn());
       assertFalse(newParticipant.hasVideoStreamOn());
@@ -781,82 +771,6 @@ public class MeetingApiIT {
     }
 
     @Test
-    @DisplayName("Given a meeting identifier, the authenticated user correctly joins to the meeting with another session")
-    public void joinMeeting_testOkSameUserAnotherSession() throws Exception {
-      integrationTestUtils.generateAndSaveRoom(
-        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
-        List.of(
-          RoomMemberField.create().id(user1Id).owner(true),
-          RoomMemberField.create().id(user2Id),
-          RoomMemberField.create().id(user3Id)));
-      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(true).videoStreamOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
-      meetingTestUtils.insertVideoServerMeeting(
-        meetingId.toString(),
-        "connectionId",
-        "audioHandleId",
-        "videoHandleId",
-        "audioRoomId",
-        "videoRoomId");
-      videoServerMockServer.mockRequestedResponse("POST",
-        "/janus",
-        "{\"janus\":\"create\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
-        "{\"janus\":\"success\", \"data\":{\"id\":\"connectionId_user2session2\"}}", true);
-      videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connectionId_user2session2",
-        "{\"janus\":\"attach\",\"transaction\":\"${json-unit.ignore-element}\",\"plugin\":\"janus.plugin.videoroom\",\"apisecret\":\"secret\"}",
-        "{\"janus\":\"success\", \"data\":{\"id\":\"handleId_user2session2\"}}", true);
-      videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connectionId_user2session2/handleId_user2session2",
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"user2session2/video\"},\"apisecret\":\"secret\"}",
-        "{\"janus\":\"ack\"}", true);
-      videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connectionId_user2session2/handleId_user2session2",
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"user2session2/screen\"},\"apisecret\":\"secret\"}",
-        "{\"janus\":\"ack\", \"data\":{\"id\":\"screenHandleId_user2session2\"}}", true);
-
-      MockHttpResponse response = dispatcher.post(url(meetingId),
-        objectMapper.writeValueAsString(
-          JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
-        Map.of("session-id", user2session2), user2Token);
-      assertEquals(204, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-
-      Meeting meeting = meetingTestUtils.getMeetingById(meetingId).orElseThrow();
-      assertNotNull(meeting);
-      assertEquals(meetingId.toString(), meeting.getId());
-      assertEquals(room1Id.toString(), meeting.getRoomId());
-      assertEquals(4, meeting.getParticipants().size());
-      Participant newParticipant = meeting.getParticipants().stream().filter(participant ->
-        user2Id.toString().equals(participant.getUserId()) && user2session2.equals(participant.getQueueId())
-      ).findAny().orElseThrow();
-      assertTrue(newParticipant.hasAudioStreamOn());
-      assertFalse(newParticipant.hasVideoStreamOn());
-      videoServerMockServer.verify(
-        videoServerMockServer.getRequest("POST",
-          "/janus",
-          "{\"janus\":\"create\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
-        VerificationTimes.exactly(1));
-      videoServerMockServer.verify(
-        videoServerMockServer.getRequest("POST",
-          "/janus/connectionId_user2session2",
-          "{\"janus\":\"attach\",\"transaction\":\"${json-unit.ignore-element}\",\"plugin\":\"janus.plugin.videoroom\",\"apisecret\":\"secret\"}"),
-        VerificationTimes.exactly(2));
-      videoServerMockServer.verify(
-        videoServerMockServer.getRequest("POST",
-          "/janus/connectionId_user2session2/handleId_user2session2",
-          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"user2session2/video\"},\"apisecret\":\"secret\"}"),
-        VerificationTimes.exactly(1));
-      videoServerMockServer.verify(
-        videoServerMockServer.getRequest("POST",
-          "/janus/connectionId_user2session2/handleId_user2session2",
-          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"user2session2/screen\"},\"apisecret\":\"secret\"}"),
-        VerificationTimes.exactly(1));
-    }
-
-    @Test
     @DisplayName("Given a meeting identifier, if the user doesn't have an associated room member then it returns a status code 403")
     public void joinMeeting_testUserIsNotRoomMember() throws Exception {
       integrationTestUtils.generateAndSaveRoom(
@@ -865,14 +779,13 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id).owner(true),
           RoomMemberField.create().id(user3Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user3Id, user3Queue).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.post(url(meetingId),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }
@@ -883,7 +796,7 @@ public class MeetingApiIT {
       MockHttpResponse response = dispatcher.post(url(UUID.randomUUID()),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -895,7 +808,7 @@ public class MeetingApiIT {
       MockHttpResponse response = dispatcher.post(url(UUID.randomUUID()),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
-        Map.of("session-id", user1session1), null);
+        Map.of("queue-id", user1Queue), null);
 
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -920,10 +833,9 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user3Id, user3Queue).audioStreamOn(false).videoStreamOn(false)));
       meetingTestUtils.updateVideoServerSession(
         meetingTestUtils.insertVideoServerSession(
             meetingTestUtils.insertVideoServerMeeting(
@@ -933,131 +845,132 @@ public class MeetingApiIT {
               "videoHandleId",
               "audioRoomId",
               "videoRoomId"),
-            user2session2,
-            "connection_" + user2session2,
+            user2Id.toString(),
+            user2Queue,
+            "connection_" + user2Queue,
             null,
             null)
-          .audioHandleId("audioHandleId_" + user2session2)
-          .videoInHandleId("videoInHandleId_" + user2session2)
-          .videoOutHandleId("videoOutHandleId_" + user2session2)
-          .screenHandleId("screenHandleId_" + user2session2));
+          .audioHandleId("audioHandleId_" + user2Queue)
+          .videoInHandleId("videoInHandleId_" + user2Queue)
+          .videoOutHandleId("videoOutHandleId_" + user2Queue)
+          .screenHandleId("screenHandleId_" + user2Queue));
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2session2/audioHandleId_user2session2",
+        "/janus/connection_user2Queue/audioHandleId_user2Queue",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2session2/audioHandleId_user2session2",
+        "/janus/connection_user2Queue/audioHandleId_user2Queue",
         "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2session2/videoInHandleId_user2session2",
+        "/janus/connection_user2Queue/videoInHandleId_user2Queue",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2session2/videoInHandleId_user2session2",
+        "/janus/connection_user2Queue/videoInHandleId_user2Queue",
         "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2session2/videoOutHandleId_user2session2",
+        "/janus/connection_user2Queue/videoOutHandleId_user2Queue",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2session2/videoInHandleId_user2session2",
+        "/janus/connection_user2Queue/videoInHandleId_user2Queue",
         "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2session2/videoOutHandleId_user2session2",
+        "/janus/connection_user2Queue/videoOutHandleId_user2Queue",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2session2/videoOutHandleId_user2session2",
+        "/janus/connection_user2Queue/videoOutHandleId_user2Queue",
         "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2session2/screenHandleId_user2session2",
+        "/janus/connection_user2Queue/screenHandleId_user2Queue",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2session2/screenHandleId_user2session2",
+        "/janus/connection_user2Queue/screenHandleId_user2Queue",
         "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2session2/screenHandleId_user2session2",
+        "/janus/connection_user2Queue/screenHandleId_user2Queue",
         "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_user2session2",
+        "/janus/connection_user2Queue",
         "{\"janus\":\"destroy\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\"}", true);
 
       MockHttpResponse response = dispatcher
-        .post(url(meetingId), (String) null, Map.of("session-id", user2session2), user2Token);
+        .post(url(meetingId), (String) null, Map.of("queue-id", user2Queue), user2Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
       Meeting meeting = meetingTestUtils.getMeetingById(meetingId).orElseThrow();
       assertTrue(meeting.getParticipants().stream().filter(participant ->
         user2Id.toString().equals(participant.getUserId()) &&
-          user2session2.equals(participant.getQueueId())
+          user2Queue.equals(participant.getQueueId())
       ).findAny().isEmpty());
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2session2/audioHandleId_user2session2",
+          "/janus/connection_user2Queue/audioHandleId_user2Queue",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2session2/audioHandleId_user2session2",
+          "/janus/connection_user2Queue/audioHandleId_user2Queue",
           "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2session2/videoInHandleId_user2session2",
+          "/janus/connection_user2Queue/videoInHandleId_user2Queue",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2session2/videoInHandleId_user2session2",
+          "/janus/connection_user2Queue/videoInHandleId_user2Queue",
           "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2session2/videoOutHandleId_user2session2",
+          "/janus/connection_user2Queue/videoOutHandleId_user2Queue",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2session2/videoInHandleId_user2session2",
+          "/janus/connection_user2Queue/videoInHandleId_user2Queue",
           "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2session2/videoOutHandleId_user2session2",
+          "/janus/connection_user2Queue/videoOutHandleId_user2Queue",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2session2/videoOutHandleId_user2session2",
+          "/janus/connection_user2Queue/videoOutHandleId_user2Queue",
           "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2session2/screenHandleId_user2session2",
+          "/janus/connection_user2Queue/screenHandleId_user2Queue",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2session2/screenHandleId_user2session2",
+          "/janus/connection_user2Queue/screenHandleId_user2Queue",
           "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2session2/screenHandleId_user2session2",
+          "/janus/connection_user2Queue/screenHandleId_user2Queue",
           "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_user2session2",
+          "/janus/connection_user2Queue",
           "{\"janus\":\"destroy\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
     }
@@ -1073,7 +986,7 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true)));
       integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
       meetingTestUtils.insertVideoServerSession(
         meetingTestUtils.insertVideoServerMeeting(
@@ -1083,8 +996,9 @@ public class MeetingApiIT {
           "videoHandleId",
           "audioRoomId",
           "videoRoomId"),
-        user1session1,
-        "connection_" + user1session1,
+        user1Id.toString(),
+        user1Queue,
+        "connection_" + user1Queue,
         null,
         null);
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connection_user1session1",
@@ -1107,7 +1021,7 @@ public class MeetingApiIT {
         "{\"janus\":\"success\"}", true);
 
       MockHttpResponse response = dispatcher
-        .post(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);
+        .post(url(meetingId), (String) null, Map.of("queue-id", user1Queue), user1Token);
 
       assertTrue(meetingTestUtils.getMeetingById(meetingId).isEmpty());
       assertNull(integrationTestUtils.getRoomById(room1Id).orElseThrow().getMeetingId());
@@ -1151,12 +1065,11 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user2Id),
           RoomMemberField.create().id(user3Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session2).audioStreamOn(true).videoStreamOn(false),
-        ParticipantBuilder.create(user3Id, user3session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(true),
+        ParticipantBuilder.create(user3Id, user3Queue).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher
-        .post(url(meetingId), (String) null, Map.of("session-id", user1session1), user1Token);
+        .post(url(meetingId), (String) null, Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1168,7 +1081,7 @@ public class MeetingApiIT {
       MockHttpResponse response = dispatcher.post(url(UUID.randomUUID()),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1180,7 +1093,7 @@ public class MeetingApiIT {
       MockHttpResponse response = dispatcher.post(url(UUID.randomUUID()),
         objectMapper.writeValueAsString(
           JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
-        Map.of("session-id", user1session1), null);
+        Map.of("queue-id", user1Queue), null);
 
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1191,8 +1104,8 @@ public class MeetingApiIT {
   @DisplayName("Enable video stream tests")
   public class EnableVideoStreamTests {
 
-    private String url(UUID meetingId, String sessionId) {
-      return String.format("/meetings/%s/sessions/%s/media", meetingId, sessionId);
+    private String url(UUID meetingId) {
+      return String.format("/meetings/%s/media", meetingId);
     }
 
     @Test
@@ -1202,7 +1115,7 @@ public class MeetingApiIT {
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id,
-        List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(false)));
+        List.of(ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(false)));
       meetingTestUtils.updateVideoServerSession(
         meetingTestUtils.insertVideoServerSession(
             meetingTestUtils.insertVideoServerMeeting(
@@ -1212,24 +1125,25 @@ public class MeetingApiIT {
               "videoHandleId",
               "audioRoomId",
               "videoRoomId"),
-            user1session1,
-            "connection_" + user1session1,
+            user1Id.toString(),
+            user1Queue,
+            "connection_" + user1Queue,
             null,
             null)
-          .videoOutHandleId("videoOutHandleId_" + user1session1));
+          .videoOutHandleId("videoOutHandleId_" + user1Queue));
       videoServerMockServer.mockRequestedResponse("POST",
         "/janus/connection_user1session1/videoOutHandleId_user1session1",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"publish\"},\"apisecret\":\"secret\",\"jsep\":{\"type\":\"OFFER\",\"sdp\":\"sdp\"}}",
         "{\"janus\":\"ack\"}", true);
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp")),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1Queue).orElseThrow();
       assertTrue(participant.hasVideoStreamOn());
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
@@ -1246,16 +1160,16 @@ public class MeetingApiIT {
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp")),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1Queue).orElseThrow();
       assertTrue(participant.hasVideoStreamOn());
     }
 
@@ -1268,12 +1182,12 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp")),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1283,9 +1197,9 @@ public class MeetingApiIT {
     @DisplayName("If the requested meeting doesn't exist, it returns a status code 404")
     public void enableVideoStream_testErrorMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), user1session1),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp")),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }
@@ -1294,7 +1208,7 @@ public class MeetingApiIT {
     @DisplayName("If the current user doesn't have the session identifier, it returns a status code 400")
     public void enableVideoStream_testErrorCurrentUserWithoutSessionId() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), UUID.randomUUID().toString()),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp")),
         Map.of(), user1Token);
       assertEquals(400, response.getStatus());
@@ -1305,7 +1219,7 @@ public class MeetingApiIT {
     @DisplayName("If the user isn’t authenticated then it returns a status code 401")
     public void enableVideoStream_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), UUID.randomUUID().toString()),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp")),
         Map.of(), null);
 
@@ -1318,8 +1232,8 @@ public class MeetingApiIT {
   @DisplayName("Disable video stream tests")
   public class DisableVideoStreamTests {
 
-    private String url(UUID meetingId, String sessionId) {
-      return String.format("/meetings/%s/sessions/%s/media", meetingId, sessionId);
+    private String url(UUID meetingId) {
+      return String.format("/meetings/%s/media", meetingId);
     }
 
     @Test
@@ -1330,7 +1244,7 @@ public class MeetingApiIT {
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true)));
       meetingTestUtils.updateVideoServerSession(
         meetingTestUtils.insertVideoServerSession(
             meetingTestUtils.insertVideoServerMeeting(
@@ -1340,20 +1254,21 @@ public class MeetingApiIT {
               "videoHandleId",
               "audioRoomId",
               "videoRoomId"),
-            user1session1,
-            "connection_" + user1session1,
+            user1Id.toString(),
+            user1Queue,
+            "connection_" + user1Queue,
             null,
             null)
           .videoOutStreamOn(true));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1Queue).orElseThrow();
       assertFalse(participant.hasVideoStreamOn());
     }
 
@@ -1365,16 +1280,16 @@ public class MeetingApiIT {
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1Queue).orElseThrow();
       assertFalse(participant.hasVideoStreamOn());
     }
 
@@ -1387,8 +1302,8 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(true)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(true)));
       meetingTestUtils.updateVideoServerSession(
         meetingTestUtils.insertVideoServerSession(
             meetingTestUtils.insertVideoServerMeeting(
@@ -1398,19 +1313,20 @@ public class MeetingApiIT {
               "videoHandleId",
               "audioRoomId",
               "videoRoomId"),
-            user2session1,
-            "connection_" + user2session1,
+            user2Id.toString(),
+            user2Queue,
+            "connection_" + user2Queue,
             null,
             null)
           .videoOutStreamOn(true));
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user2session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user2session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user2Queue).orElseThrow();
       assertFalse(participant.hasVideoStreamOn());
     }
 
@@ -1423,17 +1339,17 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user2session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user2session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user2Queue).orElseThrow();
       assertFalse(participant.hasVideoStreamOn());
     }
 
@@ -1446,13 +1362,13 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user1Id),
           RoomMemberField.create().id(user2Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user2session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1465,12 +1381,12 @@ public class MeetingApiIT {
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id,
-        List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
+        List.of(ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user2session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1480,9 +1396,9 @@ public class MeetingApiIT {
     @DisplayName("If the requested meeting doesn't exist, it returns a status code 404")
     public void disableVideoStream_testErrorMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), user1session1),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1492,7 +1408,7 @@ public class MeetingApiIT {
     @DisplayName("If the user isn’t authenticated, it returns a status code 401")
     public void disableVideoStream_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), UUID.randomUUID().toString()),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false)),
         Map.of(), null);
 
@@ -1505,8 +1421,8 @@ public class MeetingApiIT {
   @DisplayName("Enable audio stream tests")
   public class EnableAudioStreamTests {
 
-    private String url(UUID meetingId, String sessionId) {
-      return String.format("/meetings/%s/sessions/%s/audio", meetingId, sessionId);
+    private String url(UUID meetingId) {
+      return String.format("/meetings/%s/audio", meetingId);
     }
 
     @Test
@@ -1516,7 +1432,7 @@ public class MeetingApiIT {
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id,
-        List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(false).videoStreamOn(true)));
+        List.of(ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(false).videoStreamOn(true)));
       meetingTestUtils.updateVideoServerSession(
         meetingTestUtils.insertVideoServerSession(
             meetingTestUtils.insertVideoServerMeeting(
@@ -1526,8 +1442,9 @@ public class MeetingApiIT {
               "videoHandleId",
               "audioRoomId",
               "videoRoomId"),
-            user1session1,
-            "connection_" + user1session1,
+            user1Id.toString(),
+            user1Queue,
+            "connection_" + user1Queue,
             null,
             null)
           .audioStreamOn(false));
@@ -1536,13 +1453,13 @@ public class MeetingApiIT {
         "{\"plugindata\":{\"data\":{\"audiobridge\":\"success\"}}}", true);
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(true)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1Queue).orElseThrow();
       assertTrue(participant.hasAudioStreamOn());
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST", "/janus/connectionId/audioHandleId",
@@ -1558,16 +1475,16 @@ public class MeetingApiIT {
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(true)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1Queue).orElseThrow();
       assertTrue(participant.hasAudioStreamOn());
     }
 
@@ -1580,12 +1497,12 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(true)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1595,9 +1512,9 @@ public class MeetingApiIT {
     @DisplayName("If the requested meeting doesn't exist, it returns a status code 404")
     public void enableAudioStream_testErrorMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), UUID.randomUUID().toString()),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(true)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }
@@ -1606,7 +1523,7 @@ public class MeetingApiIT {
     @DisplayName("If the current user doesn't have the session identifier, it returns a status code 400")
     public void enableAudioStream_testErrorCurrentUserWithoutSessionId() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), UUID.randomUUID().toString()),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(true)),
         Map.of(), user1Token);
       assertEquals(400, response.getStatus());
@@ -1617,7 +1534,7 @@ public class MeetingApiIT {
     @DisplayName("If the user isn’t authenticated then it returns a status code 401")
     public void enableAudioStream_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), UUID.randomUUID().toString()),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(true)),
         Map.of(), null);
 
@@ -1630,8 +1547,8 @@ public class MeetingApiIT {
   @DisplayName("Disable audio stream tests")
   public class DisableAudioStreamTests {
 
-    private String url(UUID meetingId, String sessionId) {
-      return String.format("/meetings/%s/sessions/%s/audio", meetingId, sessionId);
+    private String url(UUID meetingId) {
+      return String.format("/meetings/%s/audio", meetingId);
     }
 
     @Test
@@ -1642,7 +1559,7 @@ public class MeetingApiIT {
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true)));
       meetingTestUtils.updateVideoServerSession(
         meetingTestUtils.insertVideoServerSession(
             meetingTestUtils.insertVideoServerMeeting(
@@ -1652,23 +1569,24 @@ public class MeetingApiIT {
               "videoHandleId",
               "audioRoomId",
               "videoRoomId"),
-            user1session1,
-            "connection_" + user1session1,
+            user1Id.toString(),
+            user1Queue,
+            "connection_" + user1Queue,
             null,
-            "screenHandleId_" + user1session1)
+            "screenHandleId_" + user1Queue)
           .audioStreamOn(true));
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/audioHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"mute\",\"room\":\"audioRoomId\",\"id\":\"user1session1\"},\"apisecret\":\"secret\"}",
         "{\"plugindata\":{\"data\":{\"audiobridge\":\"success\"}}}", true);
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1Queue).orElseThrow();
       assertFalse(participant.hasAudioStreamOn());
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST", "/janus/connectionId/audioHandleId",
@@ -1684,16 +1602,16 @@ public class MeetingApiIT {
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1Queue).orElseThrow();
       assertFalse(participant.hasAudioStreamOn());
     }
 
@@ -1706,8 +1624,8 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(true).videoStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(true).videoStreamOn(false)));
       meetingTestUtils.updateVideoServerSession(
         meetingTestUtils.insertVideoServerSession(
             meetingTestUtils.insertVideoServerMeeting(
@@ -1717,22 +1635,23 @@ public class MeetingApiIT {
               "videoHandleId",
               "audioRoomId",
               "videoRoomId"),
-            user1session1,
-            "connection_" + user1session1,
+            user1Id.toString(),
+            user1Queue,
+            "connection_" + user1Queue,
             null,
-            "screenHandleId_" + user1session1)
+            "screenHandleId_" + user1Queue)
           .audioStreamOn(true));
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/audioHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"mute\",\"room\":\"audioRoomId\",\"id\":\"user1session1\"},\"apisecret\":\"secret\"}",
         "{\"plugindata\":{\"data\":{\"audiobridge\":\"success\"}}}", true);
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user2session1),
+        url(meetingId),
         objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user2session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user2Queue).orElseThrow();
       assertFalse(participant.hasAudioStreamOn());
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST", "/janus/connectionId/audioHandleId",
@@ -1749,17 +1668,17 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user2session1),
+        url(meetingId),
         objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user2session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user2Queue).orElseThrow();
       assertFalse(participant.hasAudioStreamOn());
     }
 
@@ -1772,13 +1691,13 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user1Id),
           RoomMemberField.create().id(user2Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).videoStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).videoStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user2session1),
+        url(meetingId),
         objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1791,12 +1710,12 @@ public class MeetingApiIT {
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id,
-        List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true)));
+        List.of(ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user2session1),
+        url(meetingId),
         objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1806,9 +1725,9 @@ public class MeetingApiIT {
     @DisplayName("If the requested meeting doesn't exist, it returns a status code 404")
     public void disableAudioStream_testErrorMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), user1session1),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1818,7 +1737,7 @@ public class MeetingApiIT {
     @DisplayName("If the user isn’t authenticated, it returns a status code 401")
     public void disableAudioStream_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), UUID.randomUUID().toString()),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false)),
         Map.of(), null);
 
@@ -1831,8 +1750,8 @@ public class MeetingApiIT {
   @DisplayName("Enable screen stream tests")
   public class EnableScreenStreamTests {
 
-    private String url(UUID meetingId, String sessionId) {
-      return String.format("/meetings/%s/sessions/%s/media", meetingId, sessionId);
+    private String url(UUID meetingId) {
+      return String.format("/meetings/%s/media", meetingId);
     }
 
     @Test
@@ -1842,7 +1761,7 @@ public class MeetingApiIT {
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id,
-        List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(false)));
+        List.of(ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).screenStreamOn(false)));
       meetingTestUtils.updateVideoServerSession(
         meetingTestUtils.insertVideoServerSession(
             meetingTestUtils.insertVideoServerMeeting(
@@ -1852,10 +1771,11 @@ public class MeetingApiIT {
               "videoHandleId",
               "audioRoomId",
               "videoRoomId"),
-            user1session1,
-            "connection_" + user1session1,
+            user1Id.toString(),
+            user1Queue,
+            "connection_" + user1Queue,
             null,
-            "screenHandleId_" + user1session1)
+            "screenHandleId_" + user1Queue)
           .screenStreamOn(false));
       videoServerMockServer.mockRequestedResponse("POST",
         "/janus/connection_user1session1/screenHandleId_user1session1",
@@ -1863,13 +1783,13 @@ public class MeetingApiIT {
         "{\"janus\":\"ack\"}", true);
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp")),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1Queue).orElseThrow();
       assertTrue(participant.hasScreenStreamOn());
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
@@ -1887,16 +1807,16 @@ public class MeetingApiIT {
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(true)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).screenStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp")),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1Queue).orElseThrow();
       assertTrue(participant.hasScreenStreamOn());
     }
 
@@ -1909,12 +1829,12 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).screenStreamOn(false)));
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).screenStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp")),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1924,9 +1844,9 @@ public class MeetingApiIT {
     @DisplayName("If the requested meeting doesn't exist, it returns a status code 404")
     public void enableScreenStream_testErrorMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), UUID.randomUUID().toString()),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp")),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }
@@ -1935,7 +1855,7 @@ public class MeetingApiIT {
     @DisplayName("If the current user doesn't have the session identifier, it returns a status code 400")
     public void enableScreenStream_testErrorCurrentUserWithoutSessionId() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), UUID.randomUUID().toString()),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp")),
         Map.of(), user1Token);
       assertEquals(400, response.getStatus());
@@ -1946,7 +1866,7 @@ public class MeetingApiIT {
     @DisplayName("If the user isn’t authenticated then it returns a status code 401")
     public void enableScreenStream_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), UUID.randomUUID().toString()),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp")),
         Map.of(), null);
 
@@ -1959,8 +1879,8 @@ public class MeetingApiIT {
   @DisplayName("Disable screen stream tests")
   public class DisableScreenStreamTests {
 
-    private String url(UUID meetingId, String sessionId) {
-      return String.format("/meetings/%s/sessions/%s/media", meetingId, sessionId);
+    private String url(UUID meetingId) {
+      return String.format("/meetings/%s/media", meetingId);
     }
 
     @Test
@@ -1971,7 +1891,7 @@ public class MeetingApiIT {
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(true)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).screenStreamOn(true)));
       meetingTestUtils.updateVideoServerSession(
         meetingTestUtils.insertVideoServerSession(
             meetingTestUtils.insertVideoServerMeeting(
@@ -1981,19 +1901,20 @@ public class MeetingApiIT {
               "videoHandleId",
               "audioRoomId",
               "videoRoomId"),
-            user1session1,
-            "connection_" + user1session1,
+            user1Id.toString(),
+            user1Queue,
+            "connection_" + user1Queue,
             null,
-            "screenHandleId_" + user1session1)
+            "screenHandleId_" + user1Queue)
           .screenStreamOn(true));
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1Queue).orElseThrow();
       assertFalse(participant.hasScreenStreamOn());
     }
 
@@ -2006,16 +1927,16 @@ public class MeetingApiIT {
         List.of(
           RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).screenStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user1session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user1session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user1Queue).orElseThrow();
       assertFalse(participant.hasScreenStreamOn());
     }
 
@@ -2028,8 +1949,8 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).screenStreamOn(true)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).screenStreamOn(true)));
       meetingTestUtils.updateVideoServerSession(
         meetingTestUtils.insertVideoServerSession(
             meetingTestUtils.insertVideoServerMeeting(
@@ -2039,24 +1960,25 @@ public class MeetingApiIT {
               "videoHandleId",
               "audioRoomId",
               "videoRoomId"),
-            user2session1,
-            "connection_" + user2session1,
+            user1Id.toString(),
+            user2Queue,
+            "connection_" + user2Queue,
             null,
-            "screenHandleId_" + user2session1)
+            "screenHandleId_" + user2Queue)
           .screenStreamOn(true));
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user2session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user2session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user2Queue).orElseThrow();
       assertFalse(participant.hasScreenStreamOn());
     }
 
     @Test
-    @DisplayName("If screen stream is already disabled for another session, correctly it ignores and it returns a status code 204")
+    @DisplayName("If screen stream is already disabled for another user, correctly it ignores and it returns a status code 204")
     public void disableScreenStream_testOkScreenStreamAlreadyDisabledWithAnotherSession() throws Exception {
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
@@ -2064,17 +1986,17 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user1Id).owner(true),
           RoomMemberField.create().id(user2Id)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).screenStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).screenStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user2session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      Participant participant = meetingTestUtils.getParticipant(meetingId, user2session1).orElseThrow();
+      Participant participant = meetingTestUtils.getParticipant(meetingId, user2Queue).orElseThrow();
       assertFalse(participant.hasScreenStreamOn());
     }
 
@@ -2087,13 +2009,13 @@ public class MeetingApiIT {
           RoomMemberField.create().id(user1Id),
           RoomMemberField.create().id(user2Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
-        ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).videoStreamOn(true),
-        ParticipantBuilder.create(user2Id, user2session1).audioStreamOn(false).screenStreamOn(false)));
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(false).screenStreamOn(false)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user2session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -2106,12 +2028,12 @@ public class MeetingApiIT {
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
         List.of(RoomMemberField.create().id(user1Id).owner(true)));
       UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id,
-        List.of(ParticipantBuilder.create(user1Id, user1session1).audioStreamOn(true).screenStreamOn(true)));
+        List.of(ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).screenStreamOn(true)));
 
       MockHttpResponse response = dispatcher.put(
-        url(meetingId, user2session1),
+        url(meetingId),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -2121,9 +2043,9 @@ public class MeetingApiIT {
     @DisplayName("If the requested meeting doesn't exist, it returns a status code 404")
     public void disableScreenStream_testErrorMeetingNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), user1session1),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false)),
-        Map.of("session-id", user1session1), user1Token);
+        Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -2133,7 +2055,7 @@ public class MeetingApiIT {
     @DisplayName("If the user isn’t authenticated, it returns a status code 401")
     public void disableScreenStream_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(
-        url(UUID.randomUUID(), UUID.randomUUID().toString()),
+        url(UUID.randomUUID()),
         objectMapper.writeValueAsString(MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false)),
         Map.of(), null);
 

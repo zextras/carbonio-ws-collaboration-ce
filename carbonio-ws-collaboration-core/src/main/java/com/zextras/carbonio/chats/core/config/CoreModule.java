@@ -219,15 +219,6 @@ public class CoreModule extends AbstractModule {
       appConfig.get(Integer.class, ConfigName.CONSUL_PORT).orElseThrow(),
       System.getenv("CONSUL_HTTP_TOKEN"))).ifPresent(consulConfig -> appConfig.add(consulConfig.load()));
     return appConfig;
-    /*
-      this.videoServerURL = String.format("http://%s:%s",
-      appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST).orElseThrow(),
-      appConfig.get(String.class, ConfigName.VIDEO_SERVER_PORT).orElseThrow()
-    );
-    this.videoServerAdminURL = String.format("http://%s:%s",
-      appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST).orElseThrow(),
-      appConfig.get(String.class, ConfigName.VIDEO_SERVER_ADMIN_PORT).orElseThrow()
-     */
   }
 
   @Singleton

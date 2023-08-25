@@ -31,8 +31,13 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
   @Override
   public void filter(ContainerRequestContext requestContext) {
-    UUID queueId = Optional.ofNullable(requestContext.getHeaderString("queue-id"))
-      .map(UUID::fromString).orElse(null);
+    UUID queueId;
+    try{
+      queueId = Optional.ofNullable(requestContext.getHeaderString("queue-id"))
+        .map(UUID::fromString).orElse(null);
+    } catch(IllegalArgumentException e){
+      throw new UnauthorizedException("Invalid queue id");
+    }
     Map<AuthenticationMethod, String> credentials = new HashMap<>();
     Optional.ofNullable(requestContext.getCookies().get(AUTHORIZATION_COOKIE))
       .ifPresent(cookie -> credentials.put(AuthenticationMethod.ZM_AUTH_TOKEN, cookie.getValue()));

@@ -21,8 +21,8 @@ public class ParticipantBuilder {
     this.queueId = queueid;
   }
 
-  public static ParticipantBuilder create(UUID userId, String sessionId) {
-    return new ParticipantBuilder(userId, sessionId);
+  public static ParticipantBuilder create(UUID userId, String queueid) {
+    return new ParticipantBuilder(userId, queueid);
   }
 
   public UUID getUserId() {
