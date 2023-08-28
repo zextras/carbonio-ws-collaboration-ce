@@ -139,7 +139,7 @@ public class EventsWebSocketEndpoint {
 
   private static class SessionOutEvent {
 
-    private final UUID queueId;
+    private final UUID   queueId;
     private final String type = "websocketConnected";
 
     public SessionOutEvent(UUID queueId) {

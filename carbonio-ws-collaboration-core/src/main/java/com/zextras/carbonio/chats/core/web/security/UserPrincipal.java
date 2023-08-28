@@ -18,7 +18,7 @@ public class UserPrincipal implements Principal {
   @Nullable
   private UUID                              userId;
   private boolean                           systemUser = false;
-  private UUID                            queueId;
+  private UUID                              queueId;
   private Map<AuthenticationMethod, String> authCredentials;
 
   public UserPrincipal() {

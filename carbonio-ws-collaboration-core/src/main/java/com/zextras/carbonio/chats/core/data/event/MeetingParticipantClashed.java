@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public class MeetingParticipantClashed extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.MEETING_USER_CLASHED;
+  private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_CLASHED;
 
   private UUID meetingId;
 

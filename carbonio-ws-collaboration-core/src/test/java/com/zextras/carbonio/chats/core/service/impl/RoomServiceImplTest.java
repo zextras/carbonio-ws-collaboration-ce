@@ -1251,7 +1251,8 @@ class RoomServiceImplTest {
       verify(storagesService, times(0)).deleteFile(anyString(), anyString());
       verify(eventDispatcher, times(1)).sendToUserExchange(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-        RoomPictureChanged.create().roomId(roomGroup1Id).updatedAt(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
+        RoomPictureChanged.create().roomId(roomGroup1Id)
+          .updatedAt(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
       verify(messageDispatcher, times(1)).updateRoomPicture(roomGroup1Id.toString(), user1Id.toString(),
         roomGroup1Id.toString(), "picture");
     }

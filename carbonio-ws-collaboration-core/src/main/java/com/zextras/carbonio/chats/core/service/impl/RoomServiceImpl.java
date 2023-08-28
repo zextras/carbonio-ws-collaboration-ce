@@ -383,7 +383,7 @@ public class RoomServiceImpl implements RoomService {
       RoomPictureChanged.create()
         .roomId(UUID.fromString(room.getId()))
         .updatedAt(room.getPictureUpdatedAt())
-      );
+    );
   }
 
   @Override

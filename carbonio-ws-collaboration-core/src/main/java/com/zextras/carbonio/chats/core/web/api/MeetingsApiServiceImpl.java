@@ -203,7 +203,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   /**
    * Updates the audio stream status in the meeting for the current session
    *
-   * @param meetingId              meeting identifier {@link UUID}   *
+   * @param meetingId              meeting identifier {@link UUID}
    * @param audioStreamSettingsDto user settings request to update the audio stream status
    * @param securityContext        security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
@@ -214,7 +214,8 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
     participantService.updateAudioStream(meetingId,
-      audioStreamSettingsDto.getUserToModerate() == null ? currentUser.getId(): audioStreamSettingsDto.getUserToModerate(),
+      audioStreamSettingsDto.getUserToModerate() == null ? currentUser.getId()
+        : audioStreamSettingsDto.getUserToModerate(),
       audioStreamSettingsDto.isEnabled(),
       currentUser);
     return Response.status(Status.NO_CONTENT).build();

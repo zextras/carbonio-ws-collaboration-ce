@@ -10,9 +10,9 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantClashed;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoined;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantClashed;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -87,22 +87,22 @@ public class ParticipantServiceImpl implements ParticipantService {
   private void insertMeetingParticipant(Meeting meeting, JoinSettingsDto joinSettingsDto,
     UserPrincipal currentUser) {
     meeting.getParticipants()
-    .stream()
-    .filter(participant -> participant.getUserId().equals(currentUser.getId()))
-    .findFirst()
-    .ifPresent(participant -> {
-      if (participant.getQueueId().equals(currentUser.getQueueId().toString())) {
-        throw new ConflictException("User is already inserted into the meeting");
-      } else {
-        participantRepository.remove(participant);
-        videoServerService.leaveMeeting(participant.getUserId(), meeting.getId());
-        eventDispatcher.sendToUserQueue(
-          participant.getUserId(),
-          participant.getQueueId(),
-          MeetingParticipantClashed.create().meetingId(UUID.fromString(meeting.getId()))
-        );
-      }
-    });
+      .stream()
+      .filter(participant -> participant.getUserId().equals(currentUser.getId()))
+      .findFirst()
+      .ifPresent(participant -> {
+        if (participant.getQueueId().equals(currentUser.getQueueId().toString())) {
+          throw new ConflictException("User is already inserted into the meeting");
+        } else {
+          participantRepository.remove(participant);
+          videoServerService.leaveMeeting(participant.getUserId(), meeting.getId());
+          eventDispatcher.sendToUserQueue(
+            participant.getUserId(),
+            participant.getQueueId(),
+            MeetingParticipantClashed.create().meetingId(UUID.fromString(meeting.getId()))
+          );
+        }
+      });
     Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     participantRepository.insert(
       Participant.create(meeting, currentUser.getId())
@@ -134,7 +134,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   @Override
   public void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, String queueId) {
     List<Participant> participants = meeting.getParticipants().stream()
-      .filter(p -> userId.toString().equals(p.getUserId()) )
+      .filter(p -> userId.toString().equals(p.getUserId()))
       .collect(Collectors.toList());
     if (participants.isEmpty()) {
       throw new NotFoundException("User not found");

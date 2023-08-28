@@ -71,6 +71,7 @@ public class ParticipantBuilder {
     }
     return this;
   }
+
   public Participant build() {
     return participant;
   }

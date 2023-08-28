@@ -7,7 +7,6 @@ package com.zextras.carbonio.chats.it;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
@@ -725,11 +724,13 @@ public class MeetingApiIT {
         "{\"janus\":\"success\", \"data\":{\"id\":\"handleId_user1session1\"}}", true);
       videoServerMockServer.mockRequestedResponse("POST",
         "/janus/connectionId_user1session1/handleId_user1session1",
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"" + user1Id + "/video\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\""
+          + user1Id + "/video\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
         "/janus/connectionId_user1session1/handleId_user1session1",
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"" + user1Id + "/screen\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\""
+          + user1Id + "/screen\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\", \"data\":{\"id\":\"screenHandleId_user1session1\"}}", true);
 
       MockHttpResponse response = dispatcher.post(url(meetingId),
@@ -762,12 +763,14 @@ public class MeetingApiIT {
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
           "/janus/connectionId_user1session1/handleId_user1session1",
-          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"" + user1Id + "/video\"},\"apisecret\":\"secret\"}"),
+          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\""
+            + user1Id + "/video\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
           "/janus/connectionId_user1session1/handleId_user1session1",
-          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"" + user1Id + "/screen\"},\"apisecret\":\"secret\"}"),
+          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\""
+            + user1Id + "/screen\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
     }
 
@@ -1131,7 +1134,7 @@ public class MeetingApiIT {
             null)
           .videoOutHandleId("videoOutHandleId_" + user1Queue));
       videoServerMockServer.mockRequestedResponse("POST",
-        "/janus/connection_"+user1Queue+"/videoOutHandleId_"+user1Queue,
+        "/janus/connection_" + user1Queue + "/videoOutHandleId_" + user1Queue,
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"publish\"},\"apisecret\":\"secret\",\"jsep\":{\"type\":\"OFFER\",\"sdp\":\"sdp\"}}",
         "{\"janus\":\"ack\"}", true);
 
@@ -1146,7 +1149,7 @@ public class MeetingApiIT {
       assertTrue(participant.hasVideoStreamOn());
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
-          "/janus/connection_"+user1Queue+"/videoOutHandleId_"+user1Queue,
+          "/janus/connection_" + user1Queue + "/videoOutHandleId_" + user1Queue,
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"publish\"},\"apisecret\":\"secret\",\"jsep\":{\"type\":\"OFFER\",\"sdp\":\"sdp\"}}"),
         VerificationTimes.exactly(1));
     }
@@ -1338,7 +1341,8 @@ public class MeetingApiIT {
             null)
           .audioStreamOn(false));
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/audioHandleId",
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"unmute\",\"room\":\"audioRoomId\",\"id\":\"" + user1Id + "\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"unmute\",\"room\":\"audioRoomId\",\"id\":\""
+          + user1Id + "\"},\"apisecret\":\"secret\"}",
         "{\"plugindata\":{\"data\":{\"audiobridge\":\"success\"}}}", true);
 
       MockHttpResponse response = dispatcher.put(
@@ -1352,7 +1356,8 @@ public class MeetingApiIT {
       assertTrue(participant.hasAudioStreamOn());
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST", "/janus/connectionId/audioHandleId",
-          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"unmute\",\"room\":\"audioRoomId\",\"id\":\"" + user1Id + "\"},\"apisecret\":\"secret\"}"),
+          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"unmute\",\"room\":\"audioRoomId\",\"id\":\""
+            + user1Id + "\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
     }
 
@@ -1454,7 +1459,8 @@ public class MeetingApiIT {
             "screenHandleId_" + user1Queue)
           .audioStreamOn(true));
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/audioHandleId",
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"mute\",\"room\":\"audioRoomId\",\"id\":\"" + user1Id + "\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"mute\",\"room\":\"audioRoomId\",\"id\":\""
+          + user1Id + "\"},\"apisecret\":\"secret\"}",
         "{\"plugindata\":{\"data\":{\"audiobridge\":\"success\"}}}", true);
 
       MockHttpResponse response = dispatcher.put(
@@ -1468,7 +1474,8 @@ public class MeetingApiIT {
       assertFalse(participant.hasAudioStreamOn());
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST", "/janus/connectionId/audioHandleId",
-          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"mute\",\"room\":\"audioRoomId\",\"id\":\"" + user1Id + "\"},\"apisecret\":\"secret\"}"),
+          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"mute\",\"room\":\"audioRoomId\",\"id\":\""
+            + user1Id + "\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
     }
 
@@ -1528,12 +1535,14 @@ public class MeetingApiIT {
             "screenHandleId_" + user2Queue)
           .audioStreamOn(true));
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/audioHandleId",
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"mute\",\"room\":\"audioRoomId\",\"id\":\"" + user2Id + "\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"mute\",\"room\":\"audioRoomId\",\"id\":\""
+          + user2Id + "\"},\"apisecret\":\"secret\"}",
         "{\"plugindata\":{\"data\":{\"audiobridge\":\"success\"}}}", true);
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId),
-        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false).userToModerate(user2Id.toString())),
+        objectMapper.writeValueAsString(
+          AudioStreamSettingsDto.create().enabled(false).userToModerate(user2Id.toString())),
         Map.of("queue-id", user1Queue), user1Token);
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1541,7 +1550,8 @@ public class MeetingApiIT {
       assertFalse(participant.hasAudioStreamOn());
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST", "/janus/connectionId/audioHandleId",
-          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"mute\",\"room\":\"audioRoomId\",\"id\":\"" + user2Id + "\"},\"apisecret\":\"secret\"}"),
+          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"mute\",\"room\":\"audioRoomId\",\"id\":\""
+            + user2Id + "\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
     }
 
@@ -1559,7 +1569,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId),
-        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false).userToModerate(user2Id.toString())),
+        objectMapper.writeValueAsString(
+          AudioStreamSettingsDto.create().enabled(false).userToModerate(user2Id.toString())),
         Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(204, response.getStatus());
@@ -1582,7 +1593,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId),
-        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false).userToModerate(user2Id.toString())),
+        objectMapper.writeValueAsString(
+          AudioStreamSettingsDto.create().enabled(false).userToModerate(user2Id.toString())),
         Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(403, response.getStatus());
@@ -1600,7 +1612,8 @@ public class MeetingApiIT {
 
       MockHttpResponse response = dispatcher.put(
         url(meetingId),
-        objectMapper.writeValueAsString(AudioStreamSettingsDto.create().enabled(false).userToModerate(user2Id.toString())),
+        objectMapper.writeValueAsString(
+          AudioStreamSettingsDto.create().enabled(false).userToModerate(user2Id.toString())),
         Map.of("queue-id", user1Queue), user1Token);
 
       assertEquals(404, response.getStatus());

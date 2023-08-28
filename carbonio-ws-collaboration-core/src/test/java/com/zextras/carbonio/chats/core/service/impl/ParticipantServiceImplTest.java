@@ -91,7 +91,7 @@ public class ParticipantServiceImplTest {
   private UUID        user4Queue1;
   private Participant participant4Session1;
   private UUID        user3Id;
-  private UUID user3Queue1;
+  private UUID        user3Queue1;
 
   private UUID roomId;
   private Room room;
@@ -223,7 +223,8 @@ public class ParticipantServiceImplTest {
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1))
         .insert(Participant.create(meeting1, user3Id.toString()).queueId(user3Queue1.toString()).audioStreamOn(true));
-      verify(videoServerService, times(1)).joinMeeting(user3Id.toString(), user3Queue1.toString(), meeting1Id.toString(),
+      verify(videoServerService, times(1)).joinMeeting(user3Id.toString(), user3Queue1.toString(),
+        meeting1Id.toString(),
         false, true);
       verify(eventDispatcher, times(1))
         .sendToUserExchange(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -262,7 +263,7 @@ public class ParticipantServiceImplTest {
         .insert(Participant.create(meeting1, user2Id.toString()).queueId(newQueue.toString()).audioStreamOn(true));
       verify(videoServerService, times(1))
         .joinMeeting(user2Id.toString(), newQueue.toString(), meeting1Id.toString(),
-        false, true);
+          false, true);
       verify(eventDispatcher, times(1))
         .sendToUserExchange(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
           MeetingParticipantJoined.create()
@@ -529,7 +530,8 @@ public class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(participantRepository, times(1)).update(
-        ParticipantBuilder.create(Meeting.create(), user1Id.toString()).queueId(user1Queue1).audioStreamOn(hasAudioStreamOn)
+        ParticipantBuilder.create(Meeting.create(), user1Id.toString()).queueId(user1Queue1)
+          .audioStreamOn(hasAudioStreamOn)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserExchange(List.of(user1Id.toString(),
           user2Id.toString(), user4Id.toString()),
@@ -635,7 +637,8 @@ public class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(participantRepository, times(1)).update(
-        ParticipantBuilder.create(Meeting.create(), user4Id.toString()).queueId(user4Queue1).audioStreamOn(hasAudioStreamOn)
+        ParticipantBuilder.create(Meeting.create(), user4Id.toString()).queueId(user4Queue1)
+          .audioStreamOn(hasAudioStreamOn)
           .videoStreamOn(true).screenStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
       verify(eventDispatcher, times(1)).sendToUserExchange(List.of(user1Id.toString(),
           user2Id.toString(), user4Id.toString()),
@@ -698,7 +701,7 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        participantService.updateAudioStream(meeting1Id,user3Id.toString(), hasAudioStreamOn,
+        participantService.updateAudioStream(meeting1Id, user3Id.toString(), hasAudioStreamOn,
           UserPrincipal.create(user1Id).queueId(user1Queue1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
@@ -839,7 +842,8 @@ public class ParticipantServiceImplTest {
       verify(participantRepository, times(1)).update(
         ParticipantBuilder.create(Meeting.create(), user4Id.toString()).queueId(user4Queue1).screenStreamOn(false)
           .audioStreamOn(true).videoStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
-      verify(eventDispatcher, times(1)).sendToUserExchange(List.of(user1Id.toString(),user2Id.toString(), user4Id.toString()),
+      verify(eventDispatcher, times(1)).sendToUserExchange(
+        List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
         MeetingMediaStreamChanged.create()
           .meetingId(meeting1Id)
           .userId(user4Id)

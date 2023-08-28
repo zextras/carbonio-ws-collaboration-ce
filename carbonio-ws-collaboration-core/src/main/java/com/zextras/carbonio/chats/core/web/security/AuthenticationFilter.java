@@ -32,10 +32,10 @@ public class AuthenticationFilter implements ContainerRequestFilter {
   @Override
   public void filter(ContainerRequestContext requestContext) {
     UUID queueId;
-    try{
+    try {
       queueId = Optional.ofNullable(requestContext.getHeaderString("queue-id"))
         .map(UUID::fromString).orElse(null);
-    } catch(IllegalArgumentException e){
+    } catch (IllegalArgumentException e) {
       throw new UnauthorizedException("Invalid queue id");
     }
     Map<AuthenticationMethod, String> credentials = new HashMap<>();

@@ -278,7 +278,8 @@ public class VideoServerServiceJanus implements VideoServerService {
 
   @Override
   @Transactional
-  public void joinMeeting(String userId, String queueId, String meetingId, boolean videoStreamOn, boolean audioStreamOn) {
+  public void joinMeeting(String userId, String queueId, String meetingId, boolean videoStreamOn,
+    boolean audioStreamOn) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     if (videoServerMeeting.getVideoServerSessions().stream()

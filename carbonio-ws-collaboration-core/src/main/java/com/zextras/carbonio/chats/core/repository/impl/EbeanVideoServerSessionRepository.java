@@ -40,8 +40,8 @@ public class EbeanVideoServerSessionRepository implements VideoServerSessionRepo
   }
 
   @Override
-  public VideoServerSession insert(VideoServerMeeting videoServerMeeting, String userId, String queueId, String connectionId,
-    String videoOutHandleId, String screenHandleId) {
+  public VideoServerSession insert(VideoServerMeeting videoServerMeeting, String userId, String queueId,
+    String connectionId, String videoOutHandleId, String screenHandleId) {
     VideoServerSession videoServerSession = VideoServerSession.create(userId, queueId, videoServerMeeting)
       .connectionId(connectionId)
       .videoOutHandleId(videoOutHandleId).screenHandleId(screenHandleId);

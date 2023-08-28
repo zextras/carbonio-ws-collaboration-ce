@@ -72,7 +72,7 @@ public class Boot {
       });
     }
     context.addEventListener(resteasyListener);
-    //context.addEventListener(videoServerEventListener);
+    context.addEventListener(videoServerEventListener);
     context.addServlet(new ServletHolder(HttpServletDispatcher.class), "/*");
 
     handlers.addHandler(context);
