@@ -234,7 +234,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     SubscriptionUpdatesDto subscriptionUpdatesDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    if (subscriptionUpdatesDto.getSubscribe().isEmpty() || subscriptionUpdatesDto.getUnsubscribe().isEmpty()) {
+    if (subscriptionUpdatesDto.getSubscribe().isEmpty() && subscriptionUpdatesDto.getUnsubscribe().isEmpty()) {
       throw new BadRequestException("Subscription list and Unsubscription list must not be empty");
     }
     participantService.updateSubscriptionsVideoStream(meetingId, subscriptionUpdatesDto, currentUser);
