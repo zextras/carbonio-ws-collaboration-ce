@@ -5,12 +5,12 @@
 package com.zextras.carbonio.chats.boot;
 
 import com.rabbitmq.client.Connection;
-import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ChatsConstant;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
+import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import java.net.InetSocketAddress;
 import java.util.EnumSet;
 import java.util.Optional;
@@ -33,6 +33,7 @@ public class Boot {
   private final Connection                                   eventDispatcherConnection;
   private final AuthenticationService                        authenticationService;
   private final EventsWebSocketEndpoint                      eventsWebSocketEndpoint;
+  private final VideoServerEventListener                     videoServerEventListener;
 
   @Inject
   public Boot(
@@ -40,13 +41,15 @@ public class Boot {
     Flyway flyway,
     Optional<Connection> eventDispatcherConnection,
     AuthenticationService authenticationService,
-    EventsWebSocketEndpoint eventsWebSocketEndpoint
+    EventsWebSocketEndpoint eventsWebSocketEndpoint,
+    VideoServerEventListener videoServerEventListener
   ) {
     this.resteasyListener = resteasyListener;
     this.flyway = flyway;
     this.eventDispatcherConnection = eventDispatcherConnection.orElse(null);
     this.authenticationService = authenticationService;
     this.eventsWebSocketEndpoint = eventsWebSocketEndpoint;
+    this.videoServerEventListener = videoServerEventListener;
   }
 
   public void boot() throws Exception {
@@ -69,6 +72,7 @@ public class Boot {
       });
     }
     context.addEventListener(resteasyListener);
+    //context.addEventListener(videoServerEventListener);
     context.addServlet(new ServletHolder(HttpServletDispatcher.class), "/*");
 
     handlers.addHandler(context);

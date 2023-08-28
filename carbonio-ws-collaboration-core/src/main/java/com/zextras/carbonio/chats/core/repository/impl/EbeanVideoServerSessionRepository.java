@@ -4,10 +4,12 @@
 
 package com.zextras.carbonio.chats.core.repository.impl;
 
+import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import io.ebean.Database;
 import java.util.List;
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -22,6 +24,14 @@ public class EbeanVideoServerSessionRepository implements VideoServerSessionRepo
   }
 
   @Override
+  public Optional<VideoServerSession> getByConnectionId(String connectionId) {
+    return db.find(VideoServerSession.class)
+      .where()
+      .eq("connection_id", connectionId)
+      .findOneOrEmpty();
+  }
+
+  @Override
   public List<VideoServerSession> getByMeetingId(String meetingId) {
     return db.find(VideoServerSession.class)
       .where()
@@ -30,7 +40,11 @@ public class EbeanVideoServerSessionRepository implements VideoServerSessionRepo
   }
 
   @Override
-  public VideoServerSession insert(VideoServerSession videoServerSession) {
+  public VideoServerSession insert(VideoServerMeeting videoServerMeeting, String sessionId, String connectionId,
+    String videoOutHandleId, String screenHandleId) {
+    VideoServerSession videoServerSession = VideoServerSession.create(sessionId, videoServerMeeting)
+      .connectionId(connectionId)
+      .videoOutHandleId(videoOutHandleId).screenHandleId(screenHandleId);
     db.insert(videoServerSession);
     return videoServerSession;
   }

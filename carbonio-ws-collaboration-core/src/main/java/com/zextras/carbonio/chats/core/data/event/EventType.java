@@ -4,50 +4,33 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
-import com.fasterxml.jackson.annotation.JsonValue;
+public enum EventType {
 
-public enum EventType implements EventTypeDescription {
+  ROOM_CREATED,
+  ROOM_UPDATED,
+  ROOM_DELETED,
+  ROOM_OWNER_PROMOTED,
+  ROOM_OWNER_DEMOTED,
+  ROOM_PICTURE_CHANGED,
+  ROOM_PICTURE_DELETED,
+  ROOM_MEMBER_ADDED,
+  ROOM_MEMBER_REMOVED,
+  ROOM_MUTED,
+  ROOM_UNMUTED,
+  USER_PICTURE_CHANGED,
+  USER_PICTURE_DELETED,
+  ROOM_HISTORY_CLEARED,
+  MEETING_CREATED,
+  MEETING_DELETED,
+  MEETING_PARTICIPANT_JOINED,
+  MEETING_PARTICIPANT_LEFT,
+  MEETING_AUDIO_STREAM_CHANGED,
+  MEETING_AUDIO_ANSWERED,
+  MEETING_MEDIA_STREAM_CHANGED,
+  MEETING_SDP_OFFERED,
+  MEETING_SDP_ANSWERED,
+  MEETING_STARTED,
+  MEETING_STOPPED,
+  MEETING_PARTICIPANT_TALKING;
 
-  ROOM_CREATED("roomCreated"),
-  ROOM_UPDATED("roomUpdated"),
-  ROOM_DELETED("roomDeleted"),
-  ROOM_OWNER_CHANGED("roomOwnerChanged"),
-  ROOM_PICTURE_CHANGED("roomPictureChanged"),
-  ROOM_PICTURE_DELETED("roomPictureDeleted"),
-  ROOM_MEMBER_ADDED("roomMemberAdded"),
-  ROOM_MEMBER_REMOVED("roomMemberRemoved"),
-  ATTACHMENT_ADDED("attachmentAdded"),
-  ATTACHMENT_REMOVED("attachmentRemoved"),
-  ROOM_MUTED("roomMuted"),
-  ROOM_UNMUTED("roomUnmuted"),
-  USER_PICTURE_CHANGED("userPictureChanged"),
-  USER_PICTURE_DELETED("userPictureDeleted"),
-  ROOM_HISTORY_CLEARED("roomHistoryCleared"),
-  MEETING_CREATED("meetingCreated"),
-  MEETING_DELETED("meetingDeleted"),
-  MEETING_PARTICIPANT_JOINED("meetingParticipantJoined"),
-  MEETING_PARTICIPANT_LEFT("meetingParticipantLeft"),
-  MEETING_PARTICIPANT_VIDEO_STREAM_OPENED("meetingParticipantVideoStreamOpened"),
-  MEETING_PARTICIPANT_VIDEO_STREAM_CLOSED("meetingParticipantVideoStreamClosed"),
-  MEETING_PARTICIPANT_AUDIO_STREAM_OPENED("meetingParticipantAudioStreamOpened"),
-  MEETING_PARTICIPANT_AUDIO_STREAM_CLOSED("meetingParticipantAudioStreamClosed"),
-  MEETING_PARTICIPANT_SCREEN_STREAM_OPENED("meetingParticipantScreenStreamOpened"),
-  MEETING_PARTICIPANT_SCREEN_STREAM_CLOSED("meetingParticipantScreenStreamClosed");
-
-  private final String description;
-
-  EventType(String description) {
-    this.description = description;
-  }
-
-  @JsonValue
-  @Override
-  public String getDescription() {
-    return description;
-  }
-
-  @Override
-  public String toString() {
-    return this.description;
-  }
 }

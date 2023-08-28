@@ -5,6 +5,8 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver;
 
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
+import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
+import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 
 public interface VideoServerService extends HealthIndicator {
 
@@ -13,14 +15,14 @@ public interface VideoServerService extends HealthIndicator {
    *
    * @param meetingId meeting identifier
    */
-  void createMeeting(String meetingId);
+  void startMeeting(String meetingId);
 
   /**
    * Performs all the actions necessary to delete a 'meeting' on the VideoServer
    *
    * @param meetingId meeting identifier
    */
-  void deleteMeeting(String meetingId);
+  void stopMeeting(String meetingId);
 
   /**
    * Performs all the actions necessary to join a 'participant' in a 'meeting' on the VideoServer
@@ -41,29 +43,48 @@ public interface VideoServerService extends HealthIndicator {
   void leaveMeeting(String sessionId, String meetingId);
 
   /**
-   * Enable or disable the audio stream for the user's session in the meeting
+   * Updates the audio stream status for the user's session in the meeting
    *
    * @param sessionId participant's session identifier
    * @param meetingId identification of the meeting on which to perform the operation
-   * @param enable    if true the audio stream is enabled, otherwise it is disabled
+   * @param enabled   if true the audio stream is enabled, otherwise it is disabled
    */
-  void enableAudioStream(String sessionId, String meetingId, boolean enable);
+  void updateAudioStream(String sessionId, String meetingId, boolean enabled);
 
   /**
-   * Enable or disable the video stream for the user's session in the meeting
+   * Updates the media stream status for the user's session in the meeting
    *
-   * @param sessionId participant's session identifier
-   * @param meetingId identification of the meeting on which to perform the operation
-   * @param enable    if true the video stream will be enabled, otherwise it will be disabled
+   * @param sessionId              participant's session identifier
+   * @param meetingId              identification of the meeting on which to perform the operation
+   * @param mediaStreamSettingsDto user settings request to update the media stream status
    */
-  void enableVideoStream(String sessionId, String meetingId, boolean enable);
+  void updateMediaStream(String sessionId, String meetingId, MediaStreamSettingsDto mediaStreamSettingsDto);
 
   /**
-   * Enable or disable the screen share stream for the user's session in the meeting
+   * Completes WebRTC negotiation with VideoServer for the PeerConnection setup related to media stream.
    *
    * @param sessionId participant's session identifier
    * @param meetingId identification of the meeting on which to perform the operation
-   * @param enable    if true the screen share stream will be enabled, otherwise it will be disabled
+   * @param sdp       the offer rtc session description
    */
-  void enableScreenShareStream(String sessionId, String meetingId, boolean enable);
+  void answerRtcMediaStream(String sessionId, String meetingId, String sdp);
+
+  /**
+   * Update subscriptions of the current session to the desired media streams
+   *
+   * @param sessionId              participant's session identifier
+   * @param meetingId              identification of the meeting on which to perform the operation
+   * @param subscriptionUpdatesDto contains all media streams which user wants to update subscriptions for
+   */
+  void updateSubscriptionsMediaStream(String sessionId, String meetingId,
+    SubscriptionUpdatesDto subscriptionUpdatesDto);
+
+  /**
+   * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to audio stream.
+   *
+   * @param sessionId participant's session identifier
+   * @param meetingId identification of the meeting on which to perform the operation
+   * @param sdp       the offer rtc session description
+   */
+  void offerRtcAudioStream(String sessionId, String meetingId, String sdp);
 }

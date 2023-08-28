@@ -17,7 +17,6 @@ tags:
   - name: Users
   - name: Attachments
   - name: Health
-  - name: Miscellaneous
   - name: Authentication
   - name: Meeting
 paths:
@@ -246,7 +245,6 @@ paths:
   /rooms/{roomId}/members:
     get:
       tags:
-        - Rooms
         - Members
       summary: Retrieves every member to the given room
       operationId: listRoomMember
@@ -281,7 +279,6 @@ paths:
   /rooms/{roomId}/members/{userId}:
     delete:
       tags:
-        - Rooms
         - Members
       summary: Removes a member from the room
       description: |
@@ -672,15 +669,6 @@ paths:
           $ref: '#/components/responses/400BadRequestResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /supported:
-    get:
-      tags:
-        - Miscellaneous
-      summary: Retrieves the supported versions list
-      operationId: getSupportedVersions
-      responses:
-        200:
-          $ref: '#/components/responses/200GetSupportedVersionsResponse'
   /auth/token:
     get:
       tags:
@@ -918,7 +906,7 @@ components:
             type: string
             format: binary
     JoinRoomMeetingRequest:
-      description: user settings to participate
+      description: user request containing its streams settings to join a meeting
       required: true
       content:
         application/json:
@@ -1080,16 +1068,6 @@ components:
           schema:
             type: string
             format: binary
-    200GetSupportedVersionsResponse:
-      description: |
-        The supported versions list.
-        Each element indicates the highest revision for that supported major version.
-      content:
-        application/json:
-          schema:
-            type: array
-            items:
-              type: string
     200GetTokensResponse:
       description: The authenticated tokens.
       content:
@@ -1103,7 +1081,7 @@ components:
           schema:
             $ref: '../meeting/meeting-api.yaml#/components/schemas/Meeting'
     200JoinRoomMeetingResponse:
-      description: A meeting was created and the user joined it successfully
+      description: meeting is created and the user joined it successfully
       content:
         application/json:
           schema:
@@ -1520,7 +1498,7 @@ components:
           description: ZM token
     JoinSettingsByRoom:
       type: object
-      description: Room data
+      description: user's streams settings to join a meeting by room
       allOf:
         - $ref: '../meeting/meeting-api.yaml#/components/schemas/JoinSettings'
     ImageQualityEnum:
@@ -1559,15 +1537,12 @@ components:
       properties:
         originalMessage:
           type: string
-          readOnly: true
           description: XML message to forward
         originalMessageSentAt:
           type: string
           format: date-time
-          readOnly: true
           description: date and time the original message was sent
         description:
           type: string
-          readOnly: true
           description: description of the forwarded message
       required: [ originalMessage ]

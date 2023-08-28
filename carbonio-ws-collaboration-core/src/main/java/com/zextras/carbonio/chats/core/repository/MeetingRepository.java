@@ -5,8 +5,11 @@
 package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.type.MeetingType;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface MeetingRepository {
 
@@ -38,10 +41,21 @@ public interface MeetingRepository {
   /**
    * Inserts a new row into MEETING table
    *
-   * @param meeting meeting to insert {@link Meeting}
+   * @param name        name chosen for the meeting
+   * @param meetingType {@link MeetingType} for the meeting
+   * @param roomId      room identifier
+   * @param expiration  {@link OffsetDateTime} expiration timestamp
    * @return meeting inserted {@link Meeting}
    */
-  Meeting insert(Meeting meeting);
+  Meeting insert(String name, MeetingType meetingType, UUID roomId, OffsetDateTime expiration);
+
+  /**
+   * Inserts the {@link Meeting} data
+   *
+   * @param meeting {@link Meeting} modified
+   * @return {@link Meeting} updated
+   */
+  Meeting update(Meeting meeting);
 
   /**
    * Deletes a meeting

@@ -8,6 +8,7 @@ import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
+import javax.validation.constraints.Null;
 import javax.ws.rs.core.MediaType;
 import org.jboss.resteasy.core.SynchronousDispatcher;
 import org.jboss.resteasy.core.SynchronousExecutionContext;
@@ -39,10 +40,10 @@ public class ResteasyRequestDispatcher {
     return sendRequest(request);
   }
 
-  private MockHttpRequest preparePost(String path, Map<String, String> requestHeaders, @Nullable String userToken)
+  private MockHttpRequest preparePost(String path, @Nullable Map<String, String> requestHeaders, @Nullable String userToken)
     throws URISyntaxException {
     MockHttpRequest request = MockHttpRequest.post(path);
-    requestHeaders.forEach(request::header);
+    Optional.ofNullable(requestHeaders).ifPresent(r -> r.forEach(request::header));
     Optional.ofNullable(userToken).ifPresent(token -> {
       request.cookie("ZM_AUTH_TOKEN", token);
       request.header("Cookie", token);
@@ -52,14 +53,20 @@ public class ResteasyRequestDispatcher {
     return request;
   }
 
+  public MockHttpResponse post(String path, String userToken) throws URISyntaxException {
+    return post(path, (String)null, Map.of(), userToken);
+  }
+
   public MockHttpResponse post(String path, String requestBody, @Nullable String userToken) throws URISyntaxException {
     return post(path, requestBody, Map.of(), userToken);
   }
 
   public MockHttpResponse post(
-    String path, String requestBody, Map<String, String> requestHeaders, @Nullable String userToken
+    String path, @Nullable String requestBody, Map<String, String> requestHeaders, @Nullable String userToken
   ) throws URISyntaxException {
-    return sendRequest(preparePost(path, requestHeaders, userToken).content(requestBody.getBytes()));
+    MockHttpRequest request = preparePost(path, requestHeaders, userToken);
+    Optional.ofNullable(requestBody).ifPresent(body -> request.content(requestBody.getBytes()));
+    return sendRequest(request);
   }
 
   public MockHttpResponse post(

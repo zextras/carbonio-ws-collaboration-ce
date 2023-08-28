@@ -22,8 +22,6 @@ import com.zextras.carbonio.chats.api.PreviewApi;
 import com.zextras.carbonio.chats.api.PreviewApiService;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.api.RoomsApiService;
-import com.zextras.carbonio.chats.api.SupportedApi;
-import com.zextras.carbonio.chats.api.SupportedApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
@@ -99,7 +97,6 @@ import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.MeetingsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.PreviewApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
-import com.zextras.carbonio.chats.core.web.api.SupportedApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandler;
@@ -108,6 +105,7 @@ import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHan
 import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
+import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.meeting.api.MeetingsApi;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
@@ -170,8 +168,6 @@ public class CoreModule extends AbstractModule {
     bind(SubscriptionRepository.class).to(EbeanSubscriptionRepository.class);
     bind(SubscriptionMapper.class).to(SubscriptionMapperImpl.class);
 
-    bind(SupportedApi.class);
-    bind(SupportedApiService.class).to(SupportedApiServiceImpl.class);
     bind(AppInfoProvider.class).to(AppInfoProviderImpl.class);
 
     bind(AuthApi.class);
@@ -206,6 +202,8 @@ public class CoreModule extends AbstractModule {
     bindInterceptor(Matchers.any(), Matchers.annotatedWith(TimedCall.class), new TimedCallInterceptor());
 
     bindExceptionMapper();
+
+    bind(VideoServerEventListener.class);
   }
 
   private void bindExceptionMapper() {

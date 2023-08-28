@@ -10,6 +10,8 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.rabbitmq.client.Connection;
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceJanus;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
 import com.zextras.filestore.powerstore.api.Protocol;
@@ -29,6 +31,7 @@ public class TestModule extends AbstractModule {
     super.configure();
     bind(IntegrationTestUtils.class);
     bind(MeetingTestUtils.class);
+    bind(VideoServerService.class).to(VideoServerServiceJanus.class);
   }
 
   @Provides

@@ -4,8 +4,11 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import javax.annotation.Nullable;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
 
 /**
  * This class represents a single message/request/action sent to the VideoServer.
@@ -16,19 +19,29 @@ import javax.annotation.Nullable;
  *   <li>transaction: a random string as transaction identifier</li>
  *   <li>plugin: (optional) the plugin name you want to interact with</li>
  *   <li>body: (optional) a request body containing info for the message/request/action needed</li>
+ *   <li>apiSecret: (optional) the api secret is required is it's set on VideoServer configuration file</li>
+ *   <li>jsep: (optional) SDP offer to negotiate a new PeerConnection or
+ *   SDP answer to close the circle and complete the setup of the PeerConnection</li>
  * </ul>
  *
  * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class VideoServerMessageRequest {
 
   @JsonProperty("janus")
-  private String      messageRequest;
+  private String                   messageRequest;
   @JsonProperty("transaction")
-  private String      transactionId;
+  private String                   transactionId;
   @JsonProperty("plugin")
-  private String      pluginName;
-  private RoomRequest body;
+  private String                   pluginName;
+  @JsonProperty("body")
+  private VideoServerPluginRequest videoServerPluginRequest;
+  @JsonProperty("apisecret")
+  private String                   apiSecret;
+  @JsonProperty("jsep")
+  private RtcSessionDescription    rtcSessionDescription;
 
   public static VideoServerMessageRequest create() {
     return new VideoServerMessageRequest();
@@ -56,17 +69,35 @@ public class VideoServerMessageRequest {
     return pluginName;
   }
 
-  public VideoServerMessageRequest pluginName(@Nullable String pluginName) {
+  public VideoServerMessageRequest pluginName(String pluginName) {
     this.pluginName = pluginName;
     return this;
   }
 
-  public RoomRequest getBody() {
-    return body;
+  public VideoServerPluginRequest getVideoServerPluginRequest() {
+    return videoServerPluginRequest;
   }
 
-  public VideoServerMessageRequest body(@Nullable RoomRequest body) {
-    this.body = body;
+  public VideoServerMessageRequest videoServerPluginRequest(VideoServerPluginRequest videoServerPluginRequest) {
+    this.videoServerPluginRequest = videoServerPluginRequest;
+    return this;
+  }
+
+  public String getApiSecret() {
+    return apiSecret;
+  }
+
+  public VideoServerMessageRequest apiSecret(String apiSecret) {
+    this.apiSecret = apiSecret;
+    return this;
+  }
+
+  public RtcSessionDescription getRtcSessionDescription() {
+    return rtcSessionDescription;
+  }
+
+  public VideoServerMessageRequest rtcSessionDescription(RtcSessionDescription rtcSessionDescription) {
+    this.rtcSessionDescription = rtcSessionDescription;
     return this;
   }
 }

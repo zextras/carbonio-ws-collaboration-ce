@@ -12,6 +12,9 @@
       },
       "carbonio-message-dispatcher/": {
         "policy": "read"
+      },
+      "carbonio-videoserver/": {
+        "policy": "read"
       }
     }
   ],
