@@ -163,7 +163,7 @@ public class RoomServiceImpl implements RoomService {
         room.getSubscriptions().get(1).getUserId());
     }
     UUID finalId = UUID.fromString(room.getId());
-    eventDispatcher.sendToUserQueue(
+    eventDispatcher.sendToUserExchange(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomCreated.create().roomId(finalId));
     return roomMapper.ent2dto(room,
@@ -227,7 +227,7 @@ public class RoomServiceImpl implements RoomService {
     }
     if (changed) {
       roomRepository.update(room);
-      eventDispatcher.sendToUserQueue(
+      eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
         RoomUpdated.create()
           .roomId(roomId).name(room.getName()).description(room.getDescription()));
@@ -243,7 +243,7 @@ public class RoomServiceImpl implements RoomService {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (room.getMeetingId() != null) {
       meetingService.getMeetingEntity(UUID.fromString(room.getMeetingId())).ifPresent(meeting ->
-        meetingService.deleteMeeting(meeting, room, currentUser.getUUID(), currentUser.getSessionId()));
+        meetingService.deleteMeeting(meeting, room, currentUser.getUUID()));
     }
     attachmentService.deleteAttachmentsByRoomId(roomId, currentUser);
     if (room.getPictureUpdatedAt() != null) {
@@ -252,7 +252,7 @@ public class RoomServiceImpl implements RoomService {
     }
     roomRepository.delete(roomId.toString());
     messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId());
-    eventDispatcher.sendToUserQueue(
+    eventDispatcher.sendToUserExchange(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomDeleted.create().roomId(roomId));
   }
@@ -265,7 +265,7 @@ public class RoomServiceImpl implements RoomService {
       .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
     if (settings.getMutedUntil() == null) {
       roomUserSettingsRepository.save(settings.mutedUntil(MUTED_TO_INFINITY));
-      eventDispatcher.sendToUserQueue(
+      eventDispatcher.sendToUserExchange(
         currentUser.getId(), RoomMuted.create().roomId(roomId));
     }
   }
@@ -277,7 +277,7 @@ public class RoomServiceImpl implements RoomService {
       .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
     settings = roomUserSettingsRepository.save(
       settings.clearedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
-    eventDispatcher.sendToUserQueue(currentUser.getId(),
+    eventDispatcher.sendToUserExchange(currentUser.getId(),
       RoomHistoryCleared.create().roomId(roomId)
         .clearedAt(settings.getClearedAt()));
     return settings.getClearedAt();
@@ -291,7 +291,7 @@ public class RoomServiceImpl implements RoomService {
       settings -> {
         if (settings.getMutedUntil() != null) {
           roomUserSettingsRepository.save(settings.mutedUntil(null));
-          eventDispatcher.sendToUserQueue(
+          eventDispatcher.sendToUserExchange(
             currentUser.getId(),
             RoomUnmuted.create().roomId(roomId));
         }
@@ -378,12 +378,12 @@ public class RoomServiceImpl implements RoomService {
     }
     storagesService.saveFile(image, metadata, currentUser.getId());
     messageDispatcher.updateRoomPicture(room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
-    eventDispatcher.sendToUserQueue(
+    eventDispatcher.sendToUserExchange(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomPictureChanged.create()
         .roomId(UUID.fromString(room.getId()))
         .updatedAt(room.getPictureUpdatedAt())
-      );
+    );
   }
 
   @Override
@@ -396,7 +396,7 @@ public class RoomServiceImpl implements RoomService {
     roomRepository.update(room.pictureUpdatedAt(null));
     storagesService.deleteFile(metadata.getId(), metadata.getUserId());
     messageDispatcher.deleteRoomPicture(room.getId(), currentUser.getId());
-    eventDispatcher.sendToUserQueue(
+    eventDispatcher.sendToUserExchange(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomPictureDeleted.create()
         .roomId(UUID.fromString(room.getId())));

@@ -136,7 +136,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/sessions/{sessionId}/media:
+  /meetings/{meetingId}/media:
     put:
       tags:
         - Meetings
@@ -144,7 +144,6 @@ paths:
       operationId: updateMediaStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
-        - $ref: '#/components/parameters/pathSessionId'
       requestBody:
         $ref: '#/components/requestBodies/UpdateMediaStreamRequest'
       responses:
@@ -156,7 +155,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/sessions/{sessionId}/media/answer:
+  /meetings/{meetingId}/media/answer:
     put:
       tags:
         - Meetings
@@ -164,7 +163,6 @@ paths:
       operationId: answerRtcMediaStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
-        - $ref: '#/components/parameters/pathSessionId'
       requestBody:
         $ref: '#/components/requestBodies/RtcMediaStreamRequest'
       responses:
@@ -176,7 +174,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/sessions/{sessionId}/media/subscribe:
+  /meetings/{meetingId}/media/subscribe:
     put:
       tags:
         - Meetings
@@ -184,7 +182,6 @@ paths:
       operationId: updateSubscriptionsMediaStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
-        - $ref: '#/components/parameters/pathSessionId'
       requestBody:
         $ref: '#/components/requestBodies/UpdateMediaStreamSubscriptionsRequest'
       responses:
@@ -196,15 +193,14 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/sessions/{sessionId}/audio:
+  /meetings/{meetingId}/audio:
     put:
       tags:
         - Meetings
-      summary: Update audio stream status for the current session
+      summary: Update audio stream status for a user, a moderator can disable audio for another user
       operationId: updateAudioStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
-        - $ref: '#/components/parameters/pathSessionId'
       requestBody:
         $ref: '#/components/requestBodies/UpdateAudioStreamRequest'
       responses:
@@ -216,7 +212,7 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /meetings/{meetingId}/sessions/{sessionId}/audio/offer:
+  /meetings/{meetingId}/audio/offer:
     put:
       tags:
         - Meetings
@@ -224,7 +220,6 @@ paths:
       operationId: offerRtcAudioStream
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
-        - $ref: '#/components/parameters/pathSessionId'
       requestBody:
         $ref: '#/components/requestBodies/RtcMediaStreamRequest'
       responses:
@@ -246,14 +241,6 @@ components:
       schema:
         type: string
         format: uuid
-      required: true
-      allowEmptyValue: false
-    pathSessionId:
-      in: path
-      name: sessionId
-      description: session identifier
-      schema:
-        type: string
       required: true
       allowEmptyValue: false
 
@@ -382,7 +369,7 @@ components:
           type: string
           format: date-time
       required:
-        - name
+        - [name, meetingType]
     Room:
       type: object
       description: Room data for a meeting
@@ -430,10 +417,10 @@ components:
         - $ref: '#/components/schemas/MeetingUser'
         - type: object
           properties:
-            sessionId:
+            queueId:
               type: string
               readOnly: true
-              description: VideoServer session id
+              description: Reference to the user queue of the user
             audioStreamEnabled:
               type: boolean
               readOnly: true
@@ -514,6 +501,9 @@ components:
         enabled:
           type: boolean
           description: indicates the status to change the audio stream to
+        userToModerate:
+          type: string
+          description: optional user to mute if i'm a moderator, only works if enabled is false
       required: [ enabled ]
     SessionDescriptionProtocol:
       type: object
@@ -542,13 +532,13 @@ components:
       type: object
       description: representation of meeting media stream
       properties:
-        session_id:
+        user_id:
           type: string
-          description: session identifier which owns the related media stream
+          description: user identifier which owns the related media stream
         type:
           type: string
           description: indicates the media stream type
           enum:
             - video
             - screen
-      required: [ session_id, type ]
+      required: [ user_id, type ]

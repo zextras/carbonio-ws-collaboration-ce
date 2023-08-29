@@ -337,6 +337,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @Deprecated(forRemoval = true)
   public Response joinRoomMeeting(
     UUID roomId, JoinSettingsByRoomDto joinSettingsByRoomDto, SecurityContext securityContext
   ) {

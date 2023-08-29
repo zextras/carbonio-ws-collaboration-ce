@@ -85,14 +85,13 @@ public interface ParticipantService {
    * @throws BadRequestException if another session tries to enable the stream
    * @throws ForbiddenException  if the current user isn't a room owner
    */
-  void updateMediaStream(UUID meetingId, String sessionId, MediaStreamSettingsDto mediaStreamSettingsDto,
+  void updateMediaStream(UUID meetingId, MediaStreamSettingsDto mediaStreamSettingsDto,
     UserPrincipal currentUser);
 
   /**
    * Updates the audio stream status in the meeting for the current session
    *
    * @param meetingId   meeting identifier {@link UUID}
-   * @param sessionId   identifier of the session whose audio stream status has to be updated
    * @param enabled     indicates whether the audio stream must be enabled or not
    * @param currentUser currentUser current authenticated user {@link UserPrincipal}
    * @throws NotFoundException   if the meeting doesn't exist
@@ -101,13 +100,12 @@ public interface ParticipantService {
    * @throws BadRequestException if another session tries to enable the stream
    * @throws ForbiddenException  if the current user isn't a room owner
    */
-  void updateAudioStream(UUID meetingId, String sessionId, boolean enabled, UserPrincipal currentUser);
+  void updateAudioStream(UUID meetingId, String userId, boolean enabled, UserPrincipal currentUser);
 
   /**
    * Completes WebRTC negotiation with VideoServer for the PeerConnection setup related to media stream.
    *
    * @param meetingId   meeting identifier {@link UUID}
-   * @param sessionId   identifier of the user session who wants to complete the WebRTC negotiation
    * @param sdp         the answer rtc session description
    * @param currentUser currentUser current authenticated user {@link UserPrincipal}
    * @throws NotFoundException   if the meeting doesn't exist
@@ -116,13 +114,12 @@ public interface ParticipantService {
    * @throws BadRequestException if the rtc session description type is not offer
    * @throws ForbiddenException  if the current user isn't a room owner
    */
-  void answerRtcMediaStream(UUID meetingId, String sessionId, String sdp, UserPrincipal currentUser);
+  void answerRtcMediaStream(UUID meetingId, String sdp, UserPrincipal currentUser);
 
   /**
    * Update subscriptions of the current session to the desired media streams.
    *
    * @param meetingId              meeting identifier {@link UUID}
-   * @param sessionId              identifier of the user session who wants to update the subscriptions
    * @param subscriptionUpdatesDto contains all media streams which user wants to update subscriptions for
    * @param currentUser            currentUser current authenticated user {@link UserPrincipal}
    * @throws NotFoundException   if the meeting doesn't exist
@@ -131,14 +128,13 @@ public interface ParticipantService {
    * @throws BadRequestException if the rtc session description type is not offer
    * @throws ForbiddenException  if the current user isn't a room owner
    */
-  void updateSubscriptionsVideoStream(UUID meetingId, String sessionId,
+  void updateSubscriptionsVideoStream(UUID meetingId,
     SubscriptionUpdatesDto subscriptionUpdatesDto, UserPrincipal currentUser);
 
   /**
    * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to audio stream.
    *
    * @param meetingId   meeting identifier {@link UUID}
-   * @param sessionId   identifier of the user session who wants to start the WebRTC negotiation
    * @param sdp         the offer rtc session description
    * @param currentUser currentUser current authenticated user {@link UserPrincipal}
    * @throws NotFoundException   if the meeting doesn't exist
@@ -147,5 +143,5 @@ public interface ParticipantService {
    * @throws BadRequestException if the rtc session description type is not offer
    * @throws ForbiddenException  if the current user isn't a room owner
    */
-  void offerRtcAudioStream(UUID meetingId, String sessionId, String sdp, UserPrincipal currentUser);
+  void offerRtcAudioStream(UUID meetingId, String sdp, UserPrincipal currentUser);
 }

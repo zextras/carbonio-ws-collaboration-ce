@@ -139,7 +139,7 @@ public class MembersServiceImplTest {
       membersService.setOwner(roomId, user2Id, true, principal);
 
       verify(subscriptionRepository, times(1)).update(user2subscription.owner(true));
-      verify(eventDispatcher, times(1)).sendToUserQueue(
+      verify(eventDispatcher, times(1)).sendToUserExchange(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         RoomOwnerPromoted.create().roomId(UUID.fromString(room.getId())).userId(user2Id));
       verifyNoMoreInteractions(subscriptionRepository, eventDispatcher);
@@ -161,7 +161,7 @@ public class MembersServiceImplTest {
       membersService.setOwner(roomId, user2Id, false, principal);
 
       verify(subscriptionRepository, times(1)).update(user2subscription.owner(false));
-      verify(eventDispatcher, times(1)).sendToUserQueue(
+      verify(eventDispatcher, times(1)).sendToUserExchange(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         RoomOwnerDemoted.create().roomId(UUID.fromString(room.getId())).userId(user2Id));
       verifyNoMoreInteractions(subscriptionRepository, eventDispatcher);
@@ -258,7 +258,7 @@ public class MembersServiceImplTest {
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
       verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
-      verify(eventDispatcher, times(1)).sendToUserQueue(
+      verify(eventDispatcher, times(1)).sendToUserExchange(
         List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
         RoomMemberAdded.create()
           .roomId(UUID.fromString(room.getId()))
@@ -374,7 +374,7 @@ public class MembersServiceImplTest {
       verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
       verify(roomUserSettingsRepository, times(1)).getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
       verify(roomUserSettingsRepository, times(1)).save(any(RoomUserSettings.class));
-      verify(eventDispatcher, times(1)).sendToUserQueue(
+      verify(eventDispatcher, times(1)).sendToUserExchange(
         List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
         RoomMemberAdded.create()
           .roomId(UUID.fromString(room.getId()))
@@ -435,7 +435,7 @@ public class MembersServiceImplTest {
 
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
       verify(subscriptionRepository, times(1)).delete(roomId.toString(), user2Id.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(
+      verify(eventDispatcher, times(1)).sendToUserExchange(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         RoomMemberRemoved.create().roomId(roomId).userId(user2Id));
       verify(messageDispatcher, times(1)).removeRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
@@ -459,7 +459,7 @@ public class MembersServiceImplTest {
 
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, false);
       verify(subscriptionRepository, times(1)).delete(roomId.toString(), user1Id.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(
+      verify(eventDispatcher, times(1)).sendToUserExchange(
         List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
         RoomMemberRemoved.create().roomId(roomId).userId(user1Id));
       verify(messageDispatcher, times(1)).removeRoomMember(roomId.toString(), user1Id.toString(), user1Id.toString());

@@ -37,24 +37,61 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   }
 
   @Override
-  public void sendToUserQueue(String userId, DomainEvent event) {
+  public void sendToUserExchange(String userId, DomainEvent event) {
     try {
-      send(userId, objectMapper.writeValueAsString(event));
+      sendToExchange(userId, objectMapper.writeValueAsString(event));
     } catch (JsonProcessingException e) {
       ChatsLogger.warn("Unable to convert event to json", e);
     }
   }
 
   @Override
-  public void sendToUserQueue(List<String> usersIds, DomainEvent event) {
+  public void sendToUserExchange(List<String> usersIds, DomainEvent event) {
     try {
-      send(usersIds, objectMapper.writeValueAsString(event));
+      sendToExchange(usersIds, objectMapper.writeValueAsString(event));
     } catch (JsonProcessingException e) {
       ChatsLogger.warn("Unable to convert event to json", e);
     }
   }
 
-  private void send(String userId, String message) {
+  public void sendToUserQueue(String userId, String queueId, DomainEvent event) {
+    if (Optional.ofNullable(connection).isEmpty()) {
+      ChatsLogger.warn("RabbitMQ connection is not up!");
+      return;
+    }
+    Channel channel;
+    try {
+      channel = connection.createChannel();
+    } catch (IOException e) {
+      ChatsLogger.warn(String.format("Error creating RabbitMQ connection channel for user '%s'", userId), e);
+      return;
+    }
+    try {
+      channel.queueDeclare(userId + "/" + queueId,
+        false,
+        false,
+        false,
+        null
+      );
+      channel.basicPublish("",
+        userId + "/" + queueId,
+        null,
+        objectMapper.writeValueAsString(event).getBytes(StandardCharsets.UTF_8)
+      );
+      channel.close();
+    } catch (JsonProcessingException e) {
+      ChatsLogger.warn("Unable to convert event to json", e);
+    } catch (Exception e) {
+      ChatsLogger.warn(String.format("Unable to send message to user '%s'", userId), e);
+      try {
+        channel.close();
+      } catch (IOException | TimeoutException ignored) {
+        ChatsLogger.warn(String.format("Error closing RabbitMQ connection channel for user '%s'", userId));
+      }
+    }
+  }
+
+  private void sendToExchange(String userId, String message) {
     if (Optional.ofNullable(connection).isEmpty()) {
       ChatsLogger.warn("RabbitMQ connection is not up!");
       return;
@@ -80,7 +117,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     }
   }
 
-  private void send(List<String> usersIds, String message) {
-    usersIds.forEach(userId -> send(userId, message));
+  private void sendToExchange(List<String> usersIds, String message) {
+    usersIds.forEach(userId -> sendToExchange(userId, message));
   }
 }

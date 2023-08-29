@@ -17,23 +17,23 @@ public class ParticipantId implements Serializable {
   @Column(name = "MEETING_ID", length = 64, nullable = false)
   private String meetingId;
 
-  @Column(name = "SESSION_ID", length = 64, nullable = false)
-  private String sessionId;
+  @Column(name = "USER_ID", length = 64, nullable = false)
+  private String userId;
 
   public ParticipantId() {
   }
 
-  public ParticipantId(String meetingId, String sessionId) {
+  public ParticipantId(String meetingId, String userId) {
     this.meetingId = meetingId;
-    this.sessionId = sessionId;
+    this.userId = userId;
   }
 
   public static ParticipantId create() {
     return new ParticipantId();
   }
 
-  public static ParticipantId create(String meetingId, String sessionId) {
-    return new ParticipantId(meetingId, sessionId);
+  public static ParticipantId create(String meetingId, String userId) {
+    return new ParticipantId(meetingId, userId);
   }
 
 
@@ -46,12 +46,12 @@ public class ParticipantId implements Serializable {
     return this;
   }
 
-  public String getSessionId() {
-    return sessionId;
+  public String getUserId() {
+    return userId;
   }
 
-  public ParticipantId sessionId(String sessionId) {
-    this.sessionId = sessionId;
+  public ParticipantId userId(String userId) {
+    this.userId = userId;
     return this;
   }
 
@@ -65,11 +65,11 @@ public class ParticipantId implements Serializable {
     }
     ParticipantId that = (ParticipantId) o;
     return Objects.equals(getMeetingId(), that.getMeetingId()) &&
-      Objects.equals(getSessionId(), that.getSessionId());
+      Objects.equals(getUserId(), that.getUserId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getMeetingId(), getSessionId());
+    return Objects.hash(getMeetingId(), getUserId());
   }
 }

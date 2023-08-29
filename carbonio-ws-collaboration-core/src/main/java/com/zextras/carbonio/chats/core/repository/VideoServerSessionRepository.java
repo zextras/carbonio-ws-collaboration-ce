@@ -31,13 +31,13 @@ public interface VideoServerSessionRepository {
    * Inserts a new {@link VideoServerSession}
    *
    * @param videoServerMeeting the associated video server meeting
-   * @param sessionId          the session identifier
+   * @param userId          the session identifier
    * @param connectionId       the connection identifier related to videoserver
    * @param videoOutHandleId   the video handle identifier related to video room plugin
    * @param screenHandleId     the screen handle identifier related to video room plugin
    * @return {@link VideoServerSession} inserted
    */
-  VideoServerSession insert(VideoServerMeeting videoServerMeeting, String sessionId, String connectionId,
+  VideoServerSession insert(VideoServerMeeting videoServerMeeting, String userId, String queueId, String connectionId,
     String videoOutHandleId, String screenHandleId);
 
   /**

@@ -22,7 +22,6 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.Vid
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import io.vavr.MatchError;
 import java.io.IOException;
@@ -52,7 +51,6 @@ public class VideoServerEventListener implements ServletContextListener {
   private final Connection                   rabbitMqConnection;
   private final ObjectMapper                 objectMapper;
   private final VideoServerSessionRepository videoServerSessionRepository;
-  private final ParticipantRepository        participantRepository;
 
   private enum EventType {
     AUDIO,
@@ -63,11 +61,10 @@ public class VideoServerEventListener implements ServletContextListener {
 
   @Inject
   public VideoServerEventListener(Optional<Connection> rabbitMqConnection, ObjectMapper objectMapper,
-    VideoServerSessionRepository videoServerSessionRepository, ParticipantRepository participantRepository) {
+    VideoServerSessionRepository videoServerSessionRepository) {
     this.rabbitMqConnection = rabbitMqConnection.orElse(null);
     this.objectMapper = objectMapper;
     this.videoServerSessionRepository = videoServerSessionRepository;
-    this.participantRepository = participantRepository;
   }
 
   @Override
@@ -85,56 +82,54 @@ public class VideoServerEventListener implements ServletContextListener {
             Optional.ofNullable(videoServerEvent.getEventInfo().getOwner()).ifPresent(owner -> {
               if (LOCAL.equalsIgnoreCase(owner)) {
                 videoServerSessionRepository.getByConnectionId(String.valueOf(videoServerEvent.getSessionId()))
-                  .ifPresent(
-                    videoServerSession -> participantRepository.getBySessionId(videoServerSession.getSessionId())
-                      .ifPresent(participant -> {
-                        try {
-                          EventType eventType = Match(videoServerEvent.getHandleId().toString()).of(
-                            Case($(videoServerSession.getAudioHandleId()), EventType.AUDIO),
-                            Case($(videoServerSession.getVideoInHandleId()), EventType.VIDEOIN),
-                            Case($(videoServerSession.getVideoOutHandleId()), EventType.VIDEOOUT),
-                            Case($(videoServerSession.getScreenHandleId()), EventType.SCREEN)
-                          );
-                          RtcSessionDescription rtcSessionDescription = videoServerEvent.getEventInfo()
-                            .getRtcSessionDescription();
-                          switch (rtcSessionDescription.getType()) {
-                            case OFFER:
-                              send(channel, participant.getUserId(), objectMapper.writeValueAsString(
-                                MeetingSdpOffered.create()
-                                  .meetingId(UUID.fromString(participant.getMeeting().getId()))
-                                  .userId(UUID.fromString(participant.getUserId()))
-                                  .mediaType(eventType == EventType.SCREEN ? MediaType.SCREEN : MediaType.VIDEO)
+                  .ifPresent(videoServerSession -> {
+                    try {
+                      EventType eventType = Match(videoServerEvent.getHandleId().toString()).of(
+                        Case($(videoServerSession.getAudioHandleId()), EventType.AUDIO),
+                        Case($(videoServerSession.getVideoInHandleId()), EventType.VIDEOIN),
+                        Case($(videoServerSession.getVideoOutHandleId()), EventType.VIDEOOUT),
+                        Case($(videoServerSession.getScreenHandleId()), EventType.SCREEN)
+                      );
+                      RtcSessionDescription rtcSessionDescription = videoServerEvent.getEventInfo()
+                        .getRtcSessionDescription();
+                      switch (rtcSessionDescription.getType()) {
+                        case OFFER:
+                          send(channel, videoServerSession.getUserId(), objectMapper.writeValueAsString(
+                            MeetingSdpOffered.create()
+                              .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
+                              .userId(UUID.fromString(videoServerSession.getUserId()))
+                              .mediaType(eventType == EventType.SCREEN ? MediaType.SCREEN : MediaType.VIDEO)
+                              .sdp(rtcSessionDescription.getSdp())));
+                          break;
+                        case ANSWER:
+                          switch (eventType) {
+                            case AUDIO:
+                              send(channel, videoServerSession.getUserId(), objectMapper.writeValueAsString(
+                                MeetingAudioAnswered.create()
+                                  .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
+                                  .userId(UUID.fromString(videoServerSession.getUserId()))
                                   .sdp(rtcSessionDescription.getSdp())));
                               break;
-                            case ANSWER:
-                              switch (eventType) {
-                                case AUDIO:
-                                  send(channel, participant.getUserId(), objectMapper.writeValueAsString(
-                                    MeetingAudioAnswered.create()
-                                      .meetingId(UUID.fromString(participant.getMeeting().getId()))
-                                      .userId(UUID.fromString(participant.getUserId()))
-                                      .sdp(rtcSessionDescription.getSdp())));
-                                  break;
-                                case VIDEOIN:
-                                case VIDEOOUT:
-                                case SCREEN:
-                                  send(channel, participant.getUserId(), objectMapper.writeValueAsString(
-                                    MeetingSdpAnswered.create()
-                                      .meetingId(UUID.fromString(participant.getMeeting().getId()))
-                                      .userId(UUID.fromString(participant.getUserId()))
-                                      .mediaType(eventType == EventType.SCREEN ? MediaType.SCREEN : MediaType.VIDEO)
-                                      .sdp(rtcSessionDescription.getSdp())));
-                              }
-                              break;
-                            default:
-                              break;
+                            case VIDEOIN:
+                            case VIDEOOUT:
+                            case SCREEN:
+                              send(channel, videoServerSession.getUserId(), objectMapper.writeValueAsString(
+                                MeetingSdpAnswered.create()
+                                  .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
+                                  .userId(UUID.fromString(videoServerSession.getUserId()))
+                                  .mediaType(eventType == EventType.SCREEN ? MediaType.SCREEN : MediaType.VIDEO)
+                                  .sdp(rtcSessionDescription.getSdp())));
                           }
-                        } catch (MatchError m) {
-                          ChatsLogger.error("Invalid event handle id: " + m.getObject());
-                        } catch (JsonProcessingException e) {
-                          ChatsLogger.debug("Error during serialization of " + videoServerEvent);
-                        }
-                      }));
+                          break;
+                        default:
+                          break;
+                      }
+                    } catch (MatchError m) {
+                      ChatsLogger.error("Invalid event handle id: " + m.getObject());
+                    } catch (JsonProcessingException e) {
+                      ChatsLogger.debug("Error during serialization of " + videoServerEvent);
+                    }
+                  });
               }
             });
             break;
@@ -142,13 +137,13 @@ public class VideoServerEventListener implements ServletContextListener {
             Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getAudioBridge())
               .ifPresent(eventType -> {
                 if (TALKING_TYPE_EVENTS.contains(eventType)) {
-                  Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getId())
-                    .flatMap(participantRepository::getBySessionId).ifPresent(participant -> {
+                  videoServerSessionRepository.getByConnectionId(String.valueOf(videoServerEvent.getSessionId()))
+                    .ifPresent(videoServerSession -> {
                       try {
-                        send(channel, participant.getUserId(), objectMapper.writeValueAsString(
+                        send(channel, videoServerSession.getUserId(), objectMapper.writeValueAsString(
                           MeetingParticipantTalking.create()
-                            .meetingId(UUID.fromString(participant.getMeeting().getId()))
-                            .userId(UUID.fromString(participant.getUserId()))
+                            .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
+                            .userId(UUID.fromString(videoServerSession.getUserId()))
                             .isTalking(TALKING.equals(videoServerEvent.getEventInfo().getEventData().getAudioBridge()))
                         ));
                       } catch (JsonProcessingException e) {
