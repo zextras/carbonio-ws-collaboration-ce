@@ -711,6 +711,11 @@ public class VideoServerServiceJanus implements VideoServerService {
           videoServerMessageRequest
         )
       );
+
+      int statusCode = response.getStatusLine().getStatusCode();
+      if (statusCode != HttpStatus.SC_OK) {
+        throw new VideoServerException("Could not get any response by video server");
+      }
       return objectMapper.readValue(
         IOUtils.toString(
           response.getEntity().getContent(),
@@ -745,6 +750,11 @@ public class VideoServerServiceJanus implements VideoServerService {
             .apiSecret(apiSecret)
         )
       );
+
+      int statusCode = response.getStatusLine().getStatusCode();
+      if (statusCode != HttpStatus.SC_OK) {
+        throw new VideoServerException("Could not get any response by video server");
+      }
       return objectMapper.readValue(
         IOUtils.toString(
           response.getEntity().getContent(),
