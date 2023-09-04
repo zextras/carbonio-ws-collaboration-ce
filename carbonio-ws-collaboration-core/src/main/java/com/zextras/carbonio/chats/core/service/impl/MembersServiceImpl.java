@@ -103,7 +103,7 @@ public class MembersServiceImpl implements MembersService {
 
     subscription.owner(isOwner);
     subscriptionRepository.update(subscription);
-    eventDispatcher.sendToUserQueue(
+    eventDispatcher.sendToUserExchange(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       isOwner
         ? RoomOwnerPromoted.create().roomId(roomId).userId(userId)
@@ -171,7 +171,7 @@ public class MembersServiceImpl implements MembersService {
       messageService.addRoomMember(room.getId(), currentUser.getId(), memberToInsertDto.getUserId().toString());
     }
 
-    eventDispatcher.sendToUserQueue(
+    eventDispatcher.sendToUserExchange(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomMemberAdded
         .create()
@@ -222,7 +222,7 @@ public class MembersServiceImpl implements MembersService {
     } else {
       messageService.removeRoomMember(room.getId(), currentUser.getId(), userId.toString());
     }
-    eventDispatcher.sendToUserQueue(
+    eventDispatcher.sendToUserExchange(
       room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
       RoomMemberRemoved.create().roomId(UUID.fromString(room.getId())).userId(userId)
     );

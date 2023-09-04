@@ -31,7 +31,13 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
   @Override
   public void filter(ContainerRequestContext requestContext) {
-    String sessionId = requestContext.getHeaderString("session-id");
+    UUID queueId;
+    try {
+      queueId = Optional.ofNullable(requestContext.getHeaderString("queue-id"))
+        .map(UUID::fromString).orElse(null);
+    } catch (IllegalArgumentException e) {
+      throw new UnauthorizedException("Invalid queue id");
+    }
     Map<AuthenticationMethod, String> credentials = new HashMap<>();
     Optional.ofNullable(requestContext.getCookies().get(AUTHORIZATION_COOKIE))
       .ifPresent(cookie -> credentials.put(AuthenticationMethod.ZM_AUTH_TOKEN, cookie.getValue()));
@@ -53,7 +59,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
               authenticationService.validateCredentials(credentials).map(UUID::fromString)
                 .orElseThrow(UnauthorizedException::new))
             .authCredentials(credentials)
-            .sessionId(sessionId)
+            .queueId(queueId)
         )
       );
     }

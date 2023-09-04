@@ -69,8 +69,8 @@ public class MeetingTestUtils {
     return meetingRepository.getById(meetingId.toString());
   }
 
-  public Optional<Participant> getParticipant(UUID meetingId, String sessionId) {
-    return participantRepository.getById(meetingId.toString(), sessionId);
+  public Optional<Participant> getParticipant(UUID meetingId, String userId) {
+    return participantRepository.getById(meetingId.toString(), userId);
   }
 
   public VideoServerMeeting insertVideoServerMeeting(
@@ -82,10 +82,10 @@ public class MeetingTestUtils {
   }
 
   public VideoServerSession insertVideoServerSession(
-    VideoServerMeeting videoServerMeeting, String sessionId, String connectionId,
+    VideoServerMeeting videoServerMeeting, String userId, String queueId, String connectionId,
     String videoOutHandleId, String screenHandleId
   ) {
-    return videoServerSessionRepository.insert(videoServerMeeting, sessionId, connectionId,
+    return videoServerSessionRepository.insert(videoServerMeeting, userId, queueId, connectionId,
       videoOutHandleId, screenHandleId);
   }
 

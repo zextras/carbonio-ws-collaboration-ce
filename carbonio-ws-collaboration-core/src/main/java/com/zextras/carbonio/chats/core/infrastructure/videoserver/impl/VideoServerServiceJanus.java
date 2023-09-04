@@ -6,6 +6,8 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
@@ -56,8 +58,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -278,45 +278,48 @@ public class VideoServerServiceJanus implements VideoServerService {
 
   @Override
   @Transactional
-  public void joinMeeting(String sessionId, String meetingId, boolean videoStreamOn, boolean audioStreamOn) {
+  public void joinMeeting(String userId, String queueId, String meetingId, boolean videoStreamOn,
+    boolean audioStreamOn) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     if (videoServerMeeting.getVideoServerSessions().stream()
-      .anyMatch(videoServerSessionUser -> videoServerSessionUser.getSessionId().equals(sessionId))) {
+      .anyMatch(videoServerSessionUser -> videoServerSessionUser.getQueueId().equals(queueId))) {
       throw new VideoServerException(
-        "Videoserver session user with sessionId " + sessionId + "is already present in the videoserver meeting "
+        "Videoserver session user with user  " + userId + "is already present in the videoserver meeting "
           + meetingId);
     }
     VideoServerResponse videoServerResponse = createNewConnection(meetingId);
     String connectionId = videoServerResponse.getDataId();
     videoServerResponse = attachToPlugin(connectionId, JANUS_VIDEOROOM_PLUGIN, meetingId);
     String videoOutHandleId = videoServerResponse.getDataId();
-    joinVideoRoom(connectionId, sessionId, videoOutHandleId, videoServerMeeting.getVideoRoomId(), Ptype.PUBLISHER,
+    joinVideoRoom(connectionId, userId, videoOutHandleId, videoServerMeeting.getVideoRoomId(), Ptype.PUBLISHER,
       MediaType.VIDEO, null);
     videoServerResponse = attachToPlugin(connectionId, JANUS_VIDEOROOM_PLUGIN, meetingId);
     String screenHandleId = videoServerResponse.getDataId();
-    joinVideoRoom(connectionId, sessionId, screenHandleId, videoServerMeeting.getVideoRoomId(), Ptype.PUBLISHER,
+    joinVideoRoom(connectionId, userId, screenHandleId, videoServerMeeting.getVideoRoomId(), Ptype.PUBLISHER,
       MediaType.SCREEN, null);
     videoServerSessionRepository.insert(
-      videoServerMeeting, sessionId, connectionId, videoOutHandleId, screenHandleId
+      videoServerMeeting, userId, queueId, connectionId, videoOutHandleId, screenHandleId
     );
   }
 
-  private void joinVideoRoom(String connectionId, String sessionId, String videoHandleId, String videoRoomId,
-    Ptype ptype, @Nullable MediaType feedType, @Nullable List<MediaStreamDto> mediaStreamDtos) {
+  private void joinVideoRoom(String connectionId, String userId, String videoHandleId, String videoRoomId,
+    Ptype ptype, @Nullable MediaType mediaType, @Nullable List<MediaStreamDto> mediaStreamDtos) {
     VideoRoomResponse videoRoomResponse;
     VideoRoomJoinRequest videoRoomJoinRequest = VideoRoomJoinRequest.create()
       .request(VideoRoomJoinRequest.JOIN)
       .ptype(ptype.toString().toLowerCase())
       .room(videoRoomId);
-    if (Ptype.PUBLISHER.equals(ptype) && feedType != null) {
-      videoRoomJoinRequest.id(Feed.create().type(feedType).sessionId(sessionId).toString());
+    if (Ptype.PUBLISHER.equals(ptype) && mediaType != null) {
+      videoRoomJoinRequest.id(Feed.create().type(mediaType).userId(userId).toString());
     }
     if (Ptype.SUBSCRIBER.equals(ptype) && mediaStreamDtos != null) {
       videoRoomJoinRequest.streams(mediaStreamDtos.stream().map(
         mediaStreamDto ->
-          Stream.create().feed(Feed.create().type(MediaType.valueOf(mediaStreamDto.getType().toString().toUpperCase()))
-            .sessionId(mediaStreamDto.getSessionId()))
+          Stream.create().feed(
+            Feed.create()
+              .type(MediaType.valueOf(mediaStreamDto.getType().toString().toUpperCase()))
+              .userId(mediaStreamDto.getUserId()))
       ).collect(Collectors.toList()));
     }
     videoRoomResponse = sendVideoRoomPluginMessage(
@@ -327,41 +330,41 @@ public class VideoServerServiceJanus implements VideoServerService {
     );
     if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
       throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + connectionId
+        "An error occured while user " + userId + " with connection id " + connectionId
           + " is joining video room as " + ptype.toString().toLowerCase());
     }
   }
 
   @Override
   @Transactional
-  public void leaveMeeting(String sessionId, String meetingId) {
+  public void leaveMeeting(String userId, String meetingId) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
+      .filter(sessionUser -> sessionUser.getUserId().equals(userId))
       .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
+        "No Videoserver session user found for user " + userId + " for the meeting " + meetingId));
     Optional.ofNullable(videoServerSession.getAudioHandleId()).ifPresent(audioHandleId -> {
-      leaveAudioBridgeRoom(videoServerSession.getConnectionId(), audioHandleId, videoServerSession.getSessionId());
+      leaveAudioBridgeRoom(videoServerSession.getConnectionId(), audioHandleId);
       destroyPluginHandle(videoServerSession.getConnectionId(), audioHandleId);
     });
     Optional.ofNullable(videoServerSession.getVideoInHandleId()).ifPresent(videoInHandleId -> {
-      leaveVideoRoom(videoServerSession.getConnectionId(), videoServerSession.getSessionId(), videoInHandleId);
+      leaveVideoRoom(videoServerSession.getConnectionId(), videoInHandleId);
       destroyPluginHandle(videoServerSession.getConnectionId(), videoInHandleId);
     });
     Optional.ofNullable(videoServerSession.getVideoOutHandleId()).ifPresent(videoOutHandleId -> {
-      leaveVideoRoom(videoServerSession.getConnectionId(), videoServerSession.getSessionId(), videoOutHandleId);
+      leaveVideoRoom(videoServerSession.getConnectionId(), videoOutHandleId);
       destroyPluginHandle(videoServerSession.getConnectionId(), videoOutHandleId);
     });
     Optional.ofNullable(videoServerSession.getScreenHandleId()).ifPresent(screenHandleId -> {
-      leaveVideoRoom(videoServerSession.getConnectionId(), videoServerSession.getSessionId(), screenHandleId);
+      leaveVideoRoom(videoServerSession.getConnectionId(), screenHandleId);
       destroyPluginHandle(videoServerSession.getConnectionId(), screenHandleId);
     });
     destroyConnection(videoServerSession.getConnectionId(), meetingId);
     videoServerSessionRepository.remove(videoServerSession);
   }
 
-  private void leaveAudioBridgeRoom(String connectionId, String audioHandleId, String sessionId) {
+  private void leaveAudioBridgeRoom(String connectionId, String audioHandleId) {
     AudioBridgeResponse audioBridgeResponse;
     audioBridgeResponse = sendAudioBridgePluginMessage(
       connectionId,
@@ -372,12 +375,12 @@ public class VideoServerServiceJanus implements VideoServerService {
     );
     if (!AudioBridgeResponse.ACK.equals(audioBridgeResponse.getStatus())) {
       throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + connectionId
+        "An error occured while connection id " + connectionId
           + " is leaving the audio room");
     }
   }
 
-  private void leaveVideoRoom(String connectionId, String sessionId, String videoHandleId) {
+  private void leaveVideoRoom(String connectionId, String videoHandleId) {
     VideoRoomResponse videoRoomResponse;
     videoRoomResponse = sendVideoRoomPluginMessage(
       connectionId,
@@ -388,28 +391,28 @@ public class VideoServerServiceJanus implements VideoServerService {
     );
     if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
       throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + connectionId
+        "An error occured while connection id " + connectionId
           + " is leaving the video room");
     }
   }
 
   @Override
-  public void updateMediaStream(String sessionId, String meetingId, MediaStreamSettingsDto mediaStreamSettingsDto) {
+  public void updateMediaStream(String userId, String meetingId, MediaStreamSettingsDto mediaStreamSettingsDto) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
+      .filter(sessionUser -> sessionUser.getUserId().equals(userId))
       .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
+        "No Videoserver session found for user " + userId + " for the meeting " + meetingId));
     boolean isVideoStream = MediaType.VIDEO.toString().equalsIgnoreCase(mediaStreamSettingsDto.getType().toString());
     boolean mediaStreamEnabled =
       isVideoStream ? videoServerSession.hasVideoOutStreamOn() : videoServerSession.hasScreenStreamOn();
     if (mediaStreamSettingsDto.isEnabled() == mediaStreamEnabled) {
       ChatsLogger.debug(
-        "Video stream status is already updated for session " + sessionId + " for the meeting " + meetingId);
+        "Video stream status is already updated for session " + userId + " for the meeting " + meetingId);
     } else {
       if (mediaStreamSettingsDto.isEnabled()) {
-        publishStreamOnVideoRoom(videoServerSession.getConnectionId(), sessionId,
+        publishStreamOnVideoRoom(videoServerSession.getConnectionId(),
           isVideoStream ? videoServerSession.getVideoOutHandleId() : videoServerSession.getScreenHandleId(),
           mediaStreamSettingsDto.getSdp());
       }
@@ -420,7 +423,7 @@ public class VideoServerServiceJanus implements VideoServerService {
     }
   }
 
-  private void publishStreamOnVideoRoom(String connectionId, String sessionId, String videoHandleId,
+  private void publishStreamOnVideoRoom(String connectionId, String videoHandleId,
     String sessionDescriptionProtocol) {
     VideoRoomResponse videoRoomResponse;
     videoRoomResponse = sendVideoRoomPluginMessage(
@@ -432,30 +435,30 @@ public class VideoServerServiceJanus implements VideoServerService {
     );
     if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
       throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + connectionId
+        "An error occured while connection id " + connectionId
           + " is joining video room as publisher");
     }
   }
 
   @Override
-  public void updateAudioStream(String sessionId, String meetingId, boolean enabled) {
+  public void updateAudioStream(String userId, String meetingId, boolean enabled) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
+      .filter(sessionUser -> sessionUser.getUserId().equals(userId))
       .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
+        "No Videoserver session found for user " + userId + " for the meeting " + meetingId));
     if (enabled == videoServerSession.hasAudioStreamOn()) {
       ChatsLogger.debug(
-        "Audio stream status is already updated for session " + sessionId + " for the meeting " + meetingId);
+        "Audio stream status is already updated for user " + userId + " for the meeting " + meetingId);
     } else {
-      muteAudioStream(videoServerMeeting.getConnectionId(), videoServerSession.getConnectionId(), sessionId,
+      muteAudioStream(videoServerMeeting.getConnectionId(), videoServerSession.getConnectionId(), userId,
         videoServerMeeting.getAudioHandleId(), videoServerMeeting.getAudioRoomId(), enabled);
       videoServerSessionRepository.update(videoServerSession.audioStreamOn(enabled));
     }
   }
 
-  private void muteAudioStream(String meetingConnectionId, String connectionId, String sessionId, String audioHandleId,
+  private void muteAudioStream(String meetingConnectionId, String connectionId, String userId, String audioHandleId,
     String audioRoomId, boolean enabled) {
     AudioBridgeResponse audioBridgeResponse;
     audioBridgeResponse = sendAudioBridgePluginMessage(
@@ -464,23 +467,23 @@ public class VideoServerServiceJanus implements VideoServerService {
       AudioBridgeMuteRequest.create()
         .request(enabled ? AudioBridgeMuteRequest.UNMUTE : AudioBridgeMuteRequest.MUTE)
         .room(audioRoomId)
-        .id(sessionId),
+        .id(userId),
       null
     );
     if (!AudioBridgeResponse.SUCCESS.equals(audioBridgeResponse.getPluginData().getDataInfo().getAudioBridge())) {
       throw new VideoServerException(
-        "An error occured while setting audio stream status for " + sessionId + " with connection id " + connectionId);
+        "An error occured while setting audio stream status for " + userId + " with connection id " + connectionId);
     }
   }
 
   @Override
-  public void answerRtcMediaStream(String sessionId, String meetingId, String sdp) {
+  public void answerRtcMediaStream(String userId, String meetingId, String sdp) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
+      .filter(sessionUser -> sessionUser.getUserId().equals(userId))
       .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
+        "No Videoserver session found for user " + userId + " for the meeting " + meetingId));
     AtomicReference<String> videoInHandleId = new AtomicReference<>();
     Optional.ofNullable(videoServerSession.getVideoInHandleId()).ifPresentOrElse(videoInHandleId::set, () -> {
       VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
@@ -488,11 +491,11 @@ public class VideoServerServiceJanus implements VideoServerService {
       videoInHandleId.set(videoServerResponse.getDataId());
       videoServerSession.videoInHandleId(videoInHandleId.get());
     });
-    startVideoIn(videoServerSession.getConnectionId(), sessionId, videoInHandleId.get(), sdp);
+    startVideoIn(videoServerSession.getConnectionId(), videoInHandleId.get(), sdp);
     videoServerSessionRepository.update(videoServerSession.videoInStreamOn(true));
   }
 
-  private void startVideoIn(String connectionId, String sessionId, String videoInHandleId, String sdp) {
+  private void startVideoIn(String connectionId, String videoInHandleId, String sdp) {
     VideoRoomResponse videoRoomResponse;
     videoRoomResponse = sendVideoRoomPluginMessage(
       connectionId,
@@ -503,35 +506,35 @@ public class VideoServerServiceJanus implements VideoServerService {
     );
     if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
       throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + connectionId
+        "An error occured while session with connection id " + connectionId
           + " is starting receiving video streams available in the video room");
     }
   }
 
   @Override
-  public void updateSubscriptionsMediaStream(String sessionId, String meetingId,
+  public void updateSubscriptionsMediaStream(String userId, String meetingId,
     SubscriptionUpdatesDto subscriptionUpdatesDto) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
+      .filter(sessionUser -> sessionUser.getUserId().equals(userId))
       .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
+        "No Videoserver session found for user " + userId + " for the meeting " + meetingId));
     AtomicReference<String> videoInHandleId = new AtomicReference<>();
     Optional.ofNullable(videoServerSession.getVideoInHandleId()).ifPresentOrElse(videoInHandleId::set,
       () -> {
         VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
           JANUS_VIDEOROOM_PLUGIN, meetingId);
         videoInHandleId.set(videoServerResponse.getDataId());
-        joinVideoRoom(videoServerSession.getConnectionId(), sessionId, videoInHandleId.get(),
+        joinVideoRoom(videoServerSession.getConnectionId(), userId, videoInHandleId.get(),
           videoServerMeeting.getVideoRoomId(), Ptype.SUBSCRIBER, null, subscriptionUpdatesDto.getSubscribe());
         videoServerSessionRepository.update(videoServerSession.videoInHandleId(videoInHandleId.get()));
       });
-    updateSubscriptions(videoServerSession.getConnectionId(), sessionId, videoServerSession.getVideoInHandleId(),
+    updateSubscriptions(videoServerSession.getConnectionId(), userId, videoServerSession.getVideoInHandleId(),
       subscriptionUpdatesDto);
   }
 
-  private void updateSubscriptions(String connectionId, String sessionId, String videoInHandleId,
+  private void updateSubscriptions(String connectionId, String userId, String videoInHandleId,
     SubscriptionUpdatesDto subscriptionUpdatesDto) {
     VideoRoomResponse videoRoomResponse;
     videoRoomResponse = sendVideoRoomPluginMessage(
@@ -541,27 +544,27 @@ public class VideoServerServiceJanus implements VideoServerService {
         .request(VideoRoomUpdateSubscriptionsRequest.UPDATE)
         .subscriptions(subscriptionUpdatesDto.getSubscribe().stream().map(mediaStreamDto -> Stream.create()
           .feed(Feed.create().type(MediaType.valueOf(mediaStreamDto.getType().toString().toUpperCase()))
-            .sessionId(mediaStreamDto.getSessionId()))).collect(Collectors.toList()))
+            .userId(mediaStreamDto.getUserId()))).collect(Collectors.toList()))
         .unsubscriptions(subscriptionUpdatesDto.getUnsubscribe().stream().map(mediaStreamDto -> Stream.create()
           .feed(Feed.create().type(MediaType.valueOf(mediaStreamDto.getType().toString().toUpperCase()))
-            .sessionId(mediaStreamDto.getSessionId()))).collect(Collectors.toList())),
+            .userId(mediaStreamDto.getUserId()))).collect(Collectors.toList())),
       null
     );
     if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
       throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + connectionId
+        "An error occured while user " + userId + " with connection id " + connectionId
           + " is updating media subscriptions in the video room");
     }
   }
 
   @Override
-  public void offerRtcAudioStream(String sessionId, String meetingId, String sdp) {
+  public void offerRtcAudioStream(String userId, String meetingId, String sdp) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getSessionId().equals(sessionId))
+      .filter(sessionUser -> sessionUser.getUserId().equals(userId))
       .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for session " + sessionId + " for the meeting " + meetingId));
+        "No Videoserver session found for user " + userId + " for the meeting " + meetingId));
     AtomicReference<String> audioHandleId = new AtomicReference<>();
     Optional.ofNullable(videoServerSession.getAudioHandleId()).ifPresentOrElse(audioHandleId::set, () -> {
       VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
@@ -569,12 +572,12 @@ public class VideoServerServiceJanus implements VideoServerService {
       audioHandleId.set(videoServerResponse.getDataId());
       videoServerSession.audioHandleId(audioHandleId.get());
     });
-    joinAudioBridgeRoom(sessionId, videoServerSession.getConnectionId(), audioHandleId.get(),
+    joinAudioBridgeRoom(userId, videoServerSession.getConnectionId(), audioHandleId.get(),
       videoServerMeeting.getAudioRoomId(), sdp);
     videoServerSessionRepository.update(videoServerSession.audioStreamOn(false));
   }
 
-  private void joinAudioBridgeRoom(String sessionId, String connectionId, String audioHandleId, String audioRoomId,
+  private void joinAudioBridgeRoom(String userId, String connectionId, String audioHandleId, String audioRoomId,
     String sdp) {
     AudioBridgeResponse audioBridgeResponse;
     audioBridgeResponse = sendAudioBridgePluginMessage(
@@ -583,14 +586,14 @@ public class VideoServerServiceJanus implements VideoServerService {
       AudioBridgeJoinRequest.create()
         .request(AudioBridgeJoinRequest.JOIN)
         .room(audioRoomId)
-        .id(sessionId)
+        .id(userId)
         .muted(true)
-        .filename(AudioBridgeJoinRequest.FILENAME_DEFAULT + "_" + sessionId + "_" + OffsetDateTime.now()),
+        .filename(AudioBridgeJoinRequest.FILENAME_DEFAULT + "_" + userId + "_" + OffsetDateTime.now()),
       RtcSessionDescription.create().type(RtcType.OFFER).sdp(sdp)
     );
     if (!AudioBridgeResponse.ACK.equals(audioBridgeResponse.getStatus())) {
       throw new VideoServerException(
-        "An error occured while session " + sessionId + " with connection id " + connectionId
+        "An error occured while user " + userId + " with connection id " + connectionId
           + " is joining the audio room");
     }
   }
@@ -708,6 +711,11 @@ public class VideoServerServiceJanus implements VideoServerService {
           videoServerMessageRequest
         )
       );
+
+      int statusCode = response.getStatusLine().getStatusCode();
+      if (statusCode != HttpStatus.SC_OK) {
+        throw new VideoServerException("Could not get any response by video server");
+      }
       return objectMapper.readValue(
         IOUtils.toString(
           response.getEntity().getContent(),
@@ -742,6 +750,11 @@ public class VideoServerServiceJanus implements VideoServerService {
             .apiSecret(apiSecret)
         )
       );
+
+      int statusCode = response.getStatusLine().getStatusCode();
+      if (statusCode != HttpStatus.SC_OK) {
+        throw new VideoServerException("Could not get any response by video server");
+      }
       return objectMapper.readValue(
         IOUtils.toString(
           response.getEntity().getContent(),

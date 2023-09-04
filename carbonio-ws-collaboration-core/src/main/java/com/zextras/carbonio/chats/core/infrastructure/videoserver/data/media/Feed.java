@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 public class Feed {
 
   private MediaType type;
-  private String    sessionId;
+  private String    userId;
 
   public static Feed create() {
     return new Feed();
@@ -28,17 +28,17 @@ public class Feed {
     return this;
   }
 
-  public String getSessionId() {
-    return sessionId;
+  public String getUserId() {
+    return userId;
   }
 
-  public Feed sessionId(String sessionId) {
-    this.sessionId = sessionId;
+  public Feed userId(String userId) {
+    this.userId = userId;
     return this;
   }
 
   @Override
   public String toString() {
-    return sessionId + "/" + getType().toString().toLowerCase();
+    return userId + "/" + getType().toString().toLowerCase();
   }
 }

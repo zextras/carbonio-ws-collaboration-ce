@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.it;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Injector;
 import com.zextras.carbonio.chats.api.HealthApi;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.mockserver.verify.VerificationTimes;
 
 @ApiIntegrationTest
@@ -36,7 +38,9 @@ public class HealthApiIT {
   private final VideoServerMockServer     videoServerMockServer;
 
   public HealthApiIT(
-    HealthApi healthApi, ResteasyRequestDispatcher dispatcher, ObjectMapper objectMapper,
+    HealthApi healthApi,
+    ResteasyRequestDispatcher dispatcher,
+    ObjectMapper objectMapper,
     PreviewerMockServer previewerMockServer,
     MongooseImMockServer mongooseImMockServer,
     VideoServerMockServer videoServerMockServer

@@ -31,7 +31,6 @@ public class TestModule extends AbstractModule {
     super.configure();
     bind(IntegrationTestUtils.class);
     bind(MeetingTestUtils.class);
-    bind(VideoServerService.class).to(VideoServerServiceJanus.class);
   }
 
   @Provides

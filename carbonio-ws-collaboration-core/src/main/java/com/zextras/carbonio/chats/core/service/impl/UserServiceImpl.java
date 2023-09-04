@@ -140,7 +140,7 @@ public class UserServiceImpl implements UserService {
           User.create().id(userId.toString()))
         .pictureUpdatedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
     storagesService.saveFile(image, metadata, currentUser.getId());
-    eventDispatcher.sendToUserQueue(
+    eventDispatcher.sendToUserExchange(
       subscriptionRepository.getContacts(userId.toString()),
       UserPictureChanged.create()
         .userId(userId)
@@ -160,7 +160,7 @@ public class UserServiceImpl implements UserService {
     userRepository.getById(userId.toString())
       .ifPresent(user -> userRepository.save(user.pictureUpdatedAt(null)));
     storagesService.deleteFile(metadata.getId(), metadata.getUserId());
-    eventDispatcher.sendToUserQueue(
+    eventDispatcher.sendToUserExchange(
       subscriptionRepository.getContacts(userId.toString()),
       UserPictureDeleted.create().userId(userId));
   }

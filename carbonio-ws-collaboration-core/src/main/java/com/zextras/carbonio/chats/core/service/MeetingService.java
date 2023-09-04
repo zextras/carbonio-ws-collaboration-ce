@@ -124,8 +124,7 @@ public interface MeetingService {
    * @param meeting   {@link Meeting} to delete
    * @param room      meeting {@link Room}
    * @param userId    current user identifier
-   * @param sessionId current session identifier
    */
-  void deleteMeeting(Meeting meeting, Room room, UUID userId, @Nullable String sessionId);
+  void deleteMeeting(Meeting meeting, Room room, UUID userId);
 
 }

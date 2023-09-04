@@ -123,8 +123,8 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
-      throw new BadRequestException("Session identifier is mandatory");
+    if (currentUser.getQueueId() == null) {
+      throw new BadRequestException("Queue identifier is mandatory");
     }
     participantService.insertMeetingParticipant(meetingId, joinSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
@@ -141,9 +141,6 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   public Response leaveMeeting(UUID meetingId, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
-      throw new BadRequestException("Session identifier is mandatory");
-    }
     participantService.removeMeetingParticipant(meetingId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -184,26 +181,22 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * Updates the media stream status in the meeting for the current session and starts WebRTC negotiation with
    * VideoServer for the PeerConnection setup related to screen stream when it has to be enabled.
    *
-   * @param meetingId              meeting identifier {@link UUID}
-   * @param sessionId              identifier of the user session whose media stream status has to updated
+   * @param meetingId              meeting identifier {@link UUID}   *
    * @param mediaStreamSettingsDto user settings request to update the media stream status
    * @param securityContext        security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response updateMediaStream(UUID meetingId, String sessionId, MediaStreamSettingsDto mediaStreamSettingsDto,
+  public Response updateMediaStream(UUID meetingId, MediaStreamSettingsDto mediaStreamSettingsDto,
     SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
-      throw new BadRequestException("Session identifier is mandatory");
-    }
     if (mediaStreamSettingsDto.isEnabled() && mediaStreamSettingsDto.getSdp() == null) {
       throw new BadRequestException(String.format(
-        "User '%s' cannot enable the media stream of the session '%s' without sending an rtc offer",
-        currentUser.getId(), sessionId));
+        "User '%s' cannot enable the media stream without sending an rtc offer",
+        currentUser.getId()));
     }
-    participantService.updateMediaStream(meetingId, sessionId, mediaStreamSettingsDto, currentUser);
+    participantService.updateMediaStream(meetingId, mediaStreamSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -211,20 +204,20 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * Updates the audio stream status in the meeting for the current session
    *
    * @param meetingId              meeting identifier {@link UUID}
-   * @param sessionId              identifier of the user session whose audio stream status has to updated
    * @param audioStreamSettingsDto user settings request to update the audio stream status
    * @param securityContext        security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response updateAudioStream(UUID meetingId, String sessionId, AudioStreamSettingsDto audioStreamSettingsDto,
+  public Response updateAudioStream(UUID meetingId, AudioStreamSettingsDto audioStreamSettingsDto,
     SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
-      throw new BadRequestException("Session identifier is mandatory");
-    }
-    participantService.updateAudioStream(meetingId, sessionId, audioStreamSettingsDto.isEnabled(), currentUser);
+    participantService.updateAudioStream(meetingId,
+      audioStreamSettingsDto.getUserToModerate() == null ? currentUser.getId()
+        : audioStreamSettingsDto.getUserToModerate(),
+      audioStreamSettingsDto.isEnabled(),
+      currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -232,23 +225,19 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * Update subscriptions of the current session to the desired media streams
    *
    * @param meetingId              meeting identifier {@link UUID}
-   * @param sessionId              identifier of the user session who wants to update the subscriptions
    * @param subscriptionUpdatesDto contains all media streams which user wants to update subscriptions for
    * @param securityContext        security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response updateSubscriptionsMediaStream(UUID meetingId, String sessionId,
+  public Response updateSubscriptionsMediaStream(UUID meetingId,
     SubscriptionUpdatesDto subscriptionUpdatesDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
-      throw new BadRequestException("Session identifier is mandatory");
-    }
-    if (subscriptionUpdatesDto.getSubscribe().isEmpty() || subscriptionUpdatesDto.getUnsubscribe().isEmpty()) {
+    if (subscriptionUpdatesDto.getSubscribe().isEmpty() && subscriptionUpdatesDto.getUnsubscribe().isEmpty()) {
       throw new BadRequestException("Subscription list and Unsubscription list must not be empty");
     }
-    participantService.updateSubscriptionsVideoStream(meetingId, sessionId, subscriptionUpdatesDto, currentUser);
+    participantService.updateSubscriptionsVideoStream(meetingId, subscriptionUpdatesDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -256,20 +245,16 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * Completes WebRTC negotiation with VideoServer for the PeerConnection setup related to media stream.
    *
    * @param meetingId                     meeting identifier {@link UUID}
-   * @param sessionId                     identifier of the user session who wants to complete the WebRTC negotiation
    * @param sessionDescriptionProtocolDto the answer rtc session description
    * @param securityContext               security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response answerRtcMediaStream(UUID meetingId, String sessionId,
+  public Response answerRtcMediaStream(UUID meetingId,
     SessionDescriptionProtocolDto sessionDescriptionProtocolDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
-      throw new BadRequestException("Session identifier is mandatory");
-    }
-    participantService.answerRtcMediaStream(meetingId, sessionId, sessionDescriptionProtocolDto.getSdp(), currentUser);
+    participantService.answerRtcMediaStream(meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -277,20 +262,16 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to audio stream.
    *
    * @param meetingId                     meeting identifier {@link UUID}
-   * @param sessionId                     identifier of the user session who wants to start the WebRTC negotiation
    * @param sessionDescriptionProtocolDto the offer rtc session description
    * @param securityContext               security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response offerRtcAudioStream(UUID meetingId, String sessionId,
+  public Response offerRtcAudioStream(UUID meetingId,
     SessionDescriptionProtocolDto sessionDescriptionProtocolDto, SecurityContext securityContext) {
     UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
       .orElseThrow(UnauthorizedException::new);
-    if (currentUser.getSessionId() == null || currentUser.getSessionId().isEmpty()) {
-      throw new BadRequestException("Session identifier is mandatory");
-    }
-    participantService.offerRtcAudioStream(meetingId, sessionId, sessionDescriptionProtocolDto.getSdp(), currentUser);
+    participantService.offerRtcAudioStream(meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 }

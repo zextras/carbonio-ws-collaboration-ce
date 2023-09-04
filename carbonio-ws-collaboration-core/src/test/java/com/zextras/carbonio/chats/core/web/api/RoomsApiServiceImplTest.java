@@ -93,7 +93,8 @@ class RoomsApiServiceImplTest {
     void insertAttachment_areaCorrectFormat() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(UserPrincipal.create(user1Id));
 
-      Response response = roomsApiService.insertAttachment(roomOneToOne1Id, StringFormatUtils.encodeToUtf8("fileName"), "image/jpeg",
+      Response response = roomsApiService.insertAttachment(roomOneToOne1Id, StringFormatUtils.encodeToUtf8("fileName"),
+        "image/jpeg",
         attachment, null, "message-id", "reply-id", "10x5", securityContext);
 
       verify(attachmentService, times(1)).addAttachment(roomOneToOne1Id, attachment, "image/jpeg",
@@ -108,7 +109,8 @@ class RoomsApiServiceImplTest {
     void insertAttachment_areaNull() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(UserPrincipal.create(user1Id));
 
-      Response response = roomsApiService.insertAttachment(roomOneToOne1Id, StringFormatUtils.encodeToUtf8("fileName"), "image/jpeg",
+      Response response = roomsApiService.insertAttachment(roomOneToOne1Id, StringFormatUtils.encodeToUtf8("fileName"),
+        "image/jpeg",
         attachment, null, "message-id", "reply-id", null, securityContext);
 
       verify(attachmentService, times(1)).addAttachment(roomOneToOne1Id, attachment, "image/jpeg",
@@ -123,7 +125,8 @@ class RoomsApiServiceImplTest {
     void insertAttachment_areaWrongFormat() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(UserPrincipal.create(user1Id));
 
-      Response response = roomsApiService.insertAttachment(roomOneToOne1Id, StringFormatUtils.encodeToUtf8("fileName"), "image/jpeg",
+      Response response = roomsApiService.insertAttachment(roomOneToOne1Id, StringFormatUtils.encodeToUtf8("fileName"),
+        "image/jpeg",
         attachment, null, "message-id", "reply-id", "wrong_format", securityContext);
 
       verifyNoInteractions(attachmentService);
