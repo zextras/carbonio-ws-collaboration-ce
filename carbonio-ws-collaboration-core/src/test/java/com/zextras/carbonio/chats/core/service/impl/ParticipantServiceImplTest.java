@@ -164,7 +164,7 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1))
-        .insert(Participant.create(meeting1, user3Id.toString()).queueId(user3Queue1.toString()).audioStreamOn(true));
+        .insert(Participant.create(meeting1, user3Id.toString()).queueId(user3Queue1.toString()));
       verify(videoServerService, times(1))
         .joinMeeting(user3Id.toString(), user3Queue1.toString(), meeting1Id.toString(), false, true);
       verify(eventDispatcher, times(1))
@@ -192,7 +192,7 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1))
-        .insert(Participant.create(meeting, user3Id.toString()).queueId(user3Queue1.toString()).audioStreamOn(true));
+        .insert(Participant.create(meeting, user3Id.toString()).queueId(user3Queue1.toString()));
       verify(videoServerService, times(1))
         .joinMeeting(user3Id.toString(), user3Queue1.toString(), meeting.getId(), false, true);
       verify(eventDispatcher, times(1))
@@ -222,7 +222,7 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1))
-        .insert(Participant.create(meeting1, user3Id.toString()).queueId(user3Queue1.toString()).audioStreamOn(true));
+        .insert(Participant.create(meeting1, user3Id.toString()).queueId(user3Queue1.toString()));
       verify(videoServerService, times(1)).joinMeeting(user3Id.toString(), user3Queue1.toString(),
         meeting1Id.toString(),
         false, true);
@@ -260,7 +260,7 @@ public class ParticipantServiceImplTest {
 
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1))
-        .insert(Participant.create(meeting1, user2Id.toString()).queueId(newQueue.toString()).audioStreamOn(true));
+        .insert(Participant.create(meeting1, user2Id.toString()).queueId(newQueue.toString()));
       verify(videoServerService, times(1))
         .joinMeeting(user2Id.toString(), newQueue.toString(), meeting1Id.toString(),
           false, true);

@@ -40,13 +40,14 @@ import javax.servlet.annotation.WebListener;
 @WebListener
 public class VideoServerEventListener implements ServletContextListener {
 
-  private static final String       JANUS_EVENTS        = "janus-events";
-  private static final String       LOCAL               = "local";
-  private static final int          JSEP_TYPE           = 8;
-  private static final int          PLUGIN_TYPE         = 64;
-  private static final String       TALKING             = "talking";
-  private static final String       STOPPED_TALKING     = "stopped-talking";
-  private static final List<String> TALKING_TYPE_EVENTS = List.of(TALKING, STOPPED_TALKING);
+  private static final String       JANUS_EVENTS         = "janus-events";
+  private static final String       LOCAL                = "local";
+  private static final int          JSEP_TYPE            = 8;
+  private static final int          PLUGIN_TYPE          = 64;
+  private static final String       TALKING              = "talking";
+  private static final String       STOPPED_TALKING      = "stopped-talking";
+  private static final List<String> TALKING_TYPE_EVENTS  = List.of(TALKING, STOPPED_TALKING);
+  private static final String       SUBSCRIBE_TYPE_EVENT = "subscribing";
 
   private final Connection                   rabbitMqConnection;
   private final ObjectMapper                 objectMapper;
@@ -72,7 +73,14 @@ public class VideoServerEventListener implements ServletContextListener {
     if (Optional.ofNullable(rabbitMqConnection).isEmpty()) {
       throw new InternalErrorException("RabbitMQ connection is not up!");
     }
-    try (Channel channel = rabbitMqConnection.createChannel()) {
+    Channel channel;
+    try {
+      channel = rabbitMqConnection.createChannel();
+    } catch (IOException e) {
+      ChatsLogger.error("Error creating RabbitMQ connection channel for videoserver events ", e);
+      return;
+    }
+    try {
       channel.queueDeclare(JANUS_EVENTS, true, false, false, null);
       DeliverCallback deliverCallback = (consumerTag, delivery) -> {
         String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
@@ -125,7 +133,7 @@ public class VideoServerEventListener implements ServletContextListener {
                           break;
                       }
                     } catch (MatchError m) {
-                      ChatsLogger.error("Invalid event handle id: " + m.getObject());
+                      ChatsLogger.warn("Invalid event handle id: " + m.getObject());
                     } catch (JsonProcessingException e) {
                       ChatsLogger.debug("Error during serialization of " + videoServerEvent);
                     }
@@ -152,6 +160,20 @@ public class VideoServerEventListener implements ServletContextListener {
                     });
                 }
               });
+            Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getEvent())
+              .ifPresent(eventType -> {
+                if (SUBSCRIBE_TYPE_EVENT.equals(eventType)) {
+                  videoServerSessionRepository.getByConnectionId(String.valueOf(videoServerEvent.getSessionId()))
+                    .ifPresent(videoServerSession -> {
+                      try {
+                        send(channel, videoServerSession.getUserId(),
+                          objectMapper.writeValueAsString(videoServerEvent));
+                      } catch (JsonProcessingException e) {
+                        ChatsLogger.debug("Error during serialization of " + videoServerEvent);
+                      }
+                    });
+                }
+              });
             break;
           default:
             break;
@@ -159,8 +181,13 @@ public class VideoServerEventListener implements ServletContextListener {
       };
       channel.basicConsume(JANUS_EVENTS, true, deliverCallback, consumerTag -> {
       });
-    } catch (IOException | TimeoutException e) {
-      throw new InternalErrorException("Error with RabbitMQ connection channel for videoserver events", e);
+    } catch (IOException e) {
+      try {
+        channel.close();
+      } catch (IOException | TimeoutException ignored) {
+        ChatsLogger.error("Error closing RabbitMQ connection channel for videoserver events");
+      }
+      ChatsLogger.error("Closed RabbitMQ connection channel for videoserver events");
     }
   }
 

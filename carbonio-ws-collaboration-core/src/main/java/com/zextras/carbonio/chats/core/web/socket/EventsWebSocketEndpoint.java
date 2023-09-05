@@ -56,14 +56,14 @@ public class EventsWebSocketEndpoint {
     session.getBasicRemote().sendObject(objectMapper.writeValueAsString(SessionOutEvent.create(queueId)));
 
     if (Optional.ofNullable(rabbitMqConnection).isEmpty()) {
-      ChatsLogger.warn("RabbitMQ connection is not up!");
+      ChatsLogger.error("RabbitMQ connection is not up!");
       return;
     }
     final Channel channel;
     try {
       channel = rabbitMqConnection.createChannel();
     } catch (IOException e) {
-      ChatsLogger.warn(
+      ChatsLogger.error(
         String.format("Error creating RabbitMQ connection channel for user/queue '%s'", userQueue), e);
       return;
     }
@@ -77,7 +77,7 @@ public class EventsWebSocketEndpoint {
         try {
           session.getBasicRemote().sendObject(message);
         } catch (EncodeException | IOException e) {
-          ChatsLogger.error(
+          ChatsLogger.warn(
             String.format("Error sending RabbitMQ message to websocket for user/queue '%s'. Message: ''%s",
               userQueue, message), e);
         }

@@ -56,14 +56,14 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
 
   public void sendToUserQueue(String userId, String queueId, DomainEvent event) {
     if (Optional.ofNullable(connection).isEmpty()) {
-      ChatsLogger.warn("RabbitMQ connection is not up!");
+      ChatsLogger.error("RabbitMQ connection is not up!");
       return;
     }
     Channel channel;
     try {
       channel = connection.createChannel();
     } catch (IOException e) {
-      ChatsLogger.warn(String.format("Error creating RabbitMQ connection channel for user '%s'", userId), e);
+      ChatsLogger.error(String.format("Error creating RabbitMQ connection channel for user '%s'", userId), e);
       return;
     }
     try {
@@ -86,7 +86,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
       try {
         channel.close();
       } catch (IOException | TimeoutException ignored) {
-        ChatsLogger.warn(String.format("Error closing RabbitMQ connection channel for user '%s'", userId));
+        ChatsLogger.error(String.format("Error closing RabbitMQ connection channel for user '%s'", userId));
       }
     }
   }
@@ -100,7 +100,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     try {
       channel = connection.createChannel();
     } catch (IOException e) {
-      ChatsLogger.warn(String.format("Error creating RabbitMQ connection channel for user '%s'", userId), e);
+      ChatsLogger.error(String.format("Error creating RabbitMQ connection channel for user '%s'", userId), e);
       return;
     }
     try {
@@ -112,7 +112,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
       try {
         channel.close();
       } catch (IOException | TimeoutException ignored) {
-        ChatsLogger.warn(String.format("Error closing RabbitMQ connection channel for user '%s'", userId));
+        ChatsLogger.error(String.format("Error closing RabbitMQ connection channel for user '%s'", userId));
       }
     }
   }

@@ -128,7 +128,7 @@ public interface ParticipantService {
    * @throws BadRequestException if the rtc session description type is not offer
    * @throws ForbiddenException  if the current user isn't a room owner
    */
-  void updateSubscriptionsVideoStream(UUID meetingId,
+  void updateSubscriptionsMediaStream(UUID meetingId,
     SubscriptionUpdatesDto subscriptionUpdatesDto, UserPrincipal currentUser);
 
   /**

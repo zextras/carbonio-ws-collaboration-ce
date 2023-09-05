@@ -106,9 +106,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     participantRepository.insert(
       Participant.create(meeting, currentUser.getId())
-        .queueId(currentUser.getQueueId().toString())
-        .audioStreamOn(joinSettingsDto.isAudioStreamEnabled())
-        .videoStreamOn(joinSettingsDto.isVideoStreamEnabled()));
+        .queueId(currentUser.getQueueId().toString()));
     videoServerService.joinMeeting(currentUser.getId(),
       currentUser.getQueueId().toString(),
       meeting.getId(),
@@ -217,7 +215,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   @Override
-  public void updateSubscriptionsVideoStream(UUID meetingId,
+  public void updateSubscriptionsMediaStream(UUID meetingId,
     SubscriptionUpdatesDto subscriptionUpdatesDto, UserPrincipal currentUser) {
     String userId = currentUser.getId();
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
@@ -229,7 +227,6 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   @Override
   public void offerRtcAudioStream(UUID meetingId, String sdp, UserPrincipal currentUser) {
-
     Meeting meeting = meetingService.getMeetingEntity(meetingId).orElseThrow(() ->
       new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
     roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
