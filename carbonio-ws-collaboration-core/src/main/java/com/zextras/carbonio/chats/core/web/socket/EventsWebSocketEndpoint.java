@@ -13,11 +13,10 @@ import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -36,24 +35,65 @@ public class EventsWebSocketEndpoint {
 
   private static final int MAX_IDLE_TIMEOUT = 90000;
 
-  private final Connection                        rabbitMqConnection;
-  private final ObjectMapper                      objectMapper;
-  private final Map<String, List<SessionChannel>> userSessionChannelsMap = new HashMap<>();
+  private final Connection           rabbitMqConnection;
+  private final ObjectMapper         objectMapper;
+  private final Map<String, Channel> userChannelMap;
 
   @Inject
   public EventsWebSocketEndpoint(Optional<Connection> rabbitMqConnection, ObjectMapper objectMapper) {
     this.rabbitMqConnection = rabbitMqConnection.orElse(null);
     this.objectMapper = objectMapper;
+    this.userChannelMap = new HashMap<>();
   }
 
   @OnOpen
   public void onOpen(Session session) throws IOException, EncodeException {
     String userId = getUserIdFromSession(session);
+    UUID queueId = UUID.randomUUID();
+    String userQueue = userId + "/" + queueId;
+
     session.setMaxIdleTimeout(MAX_IDLE_TIMEOUT);
-    session.getBasicRemote().sendObject(objectMapper.writeValueAsString(SessionOutEvent.create(session.getId())));
-    userSessionChannelsMap.computeIfAbsent(userId, k -> new ArrayList<>());
-    userSessionChannelsMap.get(userId).add(SessionChannel.create().session(session));
-    startBridge(userId, session.getId());
+    session.getBasicRemote().sendObject(objectMapper.writeValueAsString(SessionOutEvent.create(queueId)));
+
+    if (Optional.ofNullable(rabbitMqConnection).isEmpty()) {
+      ChatsLogger.warn("RabbitMQ connection is not up!");
+      return;
+    }
+    final Channel channel;
+    try {
+      channel = rabbitMqConnection.createChannel();
+    } catch (IOException e) {
+      ChatsLogger.warn(
+        String.format("Error creating RabbitMQ connection channel for user/queue '%s'", userQueue), e);
+      return;
+    }
+    try {
+      userChannelMap.putIfAbsent(userId + "/" + session.getId(), channel);
+      channel.queueDeclare(userQueue, true, false, false, null);
+      channel.exchangeDeclare(userId, "direct");
+      channel.queueBind(userQueue, userId, "");
+      DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+        String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
+        try {
+          session.getBasicRemote().sendObject(message);
+        } catch (EncodeException | IOException e) {
+          ChatsLogger.error(
+            String.format("Error sending RabbitMQ message to websocket for user/queue '%s'. Message: ''%s",
+              userQueue, message), e);
+        }
+      };
+      channel.basicConsume(userQueue, true, deliverCallback, consumerTag -> {
+      });
+    } catch (IOException e) {
+      ChatsLogger.warn(
+        String.format("Error interacting with RabbitMQ for user/queue '%s'", userQueue));
+      try {
+        channel.close();
+      } catch (IOException | TimeoutException ignored) {
+        ChatsLogger.warn(
+          String.format("Error closing RabbitMQ connection channel for user/queue '%s'", userQueue));
+      }
+    }
   }
 
   @OnMessage
@@ -68,13 +108,13 @@ public class EventsWebSocketEndpoint {
   }
 
   @OnClose
-  public void onClose(Session session) throws IOException, EncodeException {
-    closeAndRemoveSessionChannel(session);
+  public void onClose(Session session) {
+    closeSessionChannel(session);
   }
 
   @OnError
   public void onError(Session session, Throwable throwable) {
-    closeAndRemoveSessionChannel(session);
+    closeSessionChannel(session);
   }
 
   private String getUserIdFromSession(Session session) {
@@ -85,97 +125,33 @@ public class EventsWebSocketEndpoint {
       new InternalErrorException("Session user not found!"));
   }
 
-  private void startBridge(String userId, String sessionId) {
-    try {
-      Channel channel = rabbitMqConnection.createChannel();
-      Optional<SessionChannel> sessionChannelOptional = userSessionChannelsMap.get(userId).stream()
-        .filter(sc -> sc.getSession().getId().equals(sessionId)).findFirst();
-      sessionChannelOptional.ifPresent(sessionChannel -> sessionChannel.channel(channel));
-      channel.queueDeclare(userId, true, false, false, null);
-      DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-        String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-        userSessionChannelsMap.get(userId).forEach(sessionChannel -> {
-            try {
-              sessionChannel.getSession().getBasicRemote().sendObject(message);
-            } catch (EncodeException | IOException e) {
-              ChatsLogger.error(
-                String.format("Error sending RabbitMQ message to websocket for user '%s'. Message: ''%s",
-                  userId, message), e);
-            }
-          }
-        );
-      };
-      channel.basicConsume(userId, true, deliverCallback, consumerTag -> {
-      });
-    } catch (IOException e) {
-      throw new InternalErrorException(String.format("Error running RabbitMQ client for user '%s'", userId), e);
-    }
-  }
-
-  private void closeAndRemoveSessionChannel(Session session) {
-    String userId = getUserIdFromSession(session);
-    if (userSessionChannelsMap.containsKey(userId)) {
-      Optional<SessionChannel> toRemoveAndClose = userSessionChannelsMap.get(userId).stream()
-        .filter(sc -> sc.getSession().getId().equals(session.getId()))
-        .findFirst();
-      if (toRemoveAndClose.isPresent()) {
-        try {
-          SessionChannel sessionChannel = toRemoveAndClose.get();
-          sessionChannel.getSession().close();
-          sessionChannel.getChannel().close();
-        } catch (IOException | TimeoutException ignored) {
-        }
-        userSessionChannelsMap.get(userId).remove(toRemoveAndClose.get());
-        if (userSessionChannelsMap.get(userId).isEmpty()) {
-          userSessionChannelsMap.remove(userId);
-        }
+  private void closeSessionChannel(Session session) {
+    String userSessionId = getUserIdFromSession(session) + "/" + session.getId();
+    if (userChannelMap.containsKey(userSessionId)) {
+      try {
+        userChannelMap.get(userSessionId).close();
+        userChannelMap.remove(userSessionId);
+      } catch (IOException | TimeoutException ignored) {
+        // intentionally left blank
       }
-    }
-  }
-
-  private static class SessionChannel {
-
-    private Session session;
-    private Channel channel;
-
-    public static SessionChannel create() {
-      return new SessionChannel();
-    }
-
-    public SessionChannel session(Session session) {
-      this.session = session;
-      return this;
-    }
-
-    public SessionChannel channel(Channel channel) {
-      this.channel = channel;
-      return this;
-    }
-
-    public Session getSession() {
-      return session;
-    }
-
-    public Channel getChannel() {
-      return channel;
     }
   }
 
   private static class SessionOutEvent {
 
-    private final String sessionId;
+    private final UUID   queueId;
     private final String type = "websocketConnected";
 
-    public SessionOutEvent(String sessionId) {
-      this.sessionId = sessionId;
+    public SessionOutEvent(UUID queueId) {
+      this.queueId = queueId;
     }
 
-    public static SessionOutEvent create(String sessionId) {
-      return new SessionOutEvent(sessionId);
+    public static SessionOutEvent create(UUID queueId) {
+      return new SessionOutEvent(queueId);
     }
 
-    public String getSessionId() {
-      return sessionId;
+    public UUID getQueueId() {
+      return queueId;
     }
 
     public String getType() {

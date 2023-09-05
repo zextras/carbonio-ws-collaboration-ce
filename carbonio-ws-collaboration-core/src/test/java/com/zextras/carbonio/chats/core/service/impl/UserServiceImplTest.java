@@ -25,8 +25,8 @@ import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.User;
-import com.zextras.carbonio.chats.core.data.event.UserPictureChangedEvent;
-import com.zextras.carbonio.chats.core.data.event.UserPictureDeletedEvent;
+import com.zextras.carbonio.chats.core.data.event.UserPictureChanged;
+import com.zextras.carbonio.chats.core.data.event.UserPictureDeleted;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
@@ -381,6 +381,10 @@ class UserServiceImplTest {
       List<String> contactsIds = List.of("a", "b", "c");
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contactsIds);
       when(userRepository.getById(userId.toString())).thenReturn(Optional.empty());
+      when(userRepository.save( User.create()
+        .id(userId.toString())
+        .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")))).thenReturn(User.create()
+        .id(userId.toString()).pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
 
       userService.setUserPicture(userId, file, "image/jpeg", "picture", UserPrincipal.create(userId));
 
@@ -399,8 +403,12 @@ class UserServiceImplTest {
       verify(clock, times(1)).getZone();
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(contactsIds,
-        UserPictureChangedEvent.create(userId, null).userId(userId));
+      verify(eventDispatcher, times(1)).sendToUserExchange(contactsIds,
+        UserPictureChanged.create()
+          .userId(userId)
+          .imageId(UUID.fromString(expectedMetadata.getId()))
+          .updatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
+      );
       verifyNoMoreInteractions(fileMetadataRepository, userRepository, storagesService, subscriptionRepository,
         eventDispatcher, clock, appConfig);
       verifyNoInteractions(profilingService);
@@ -422,6 +430,10 @@ class UserServiceImplTest {
       User user = User.create().id(userId.toString())
         .pictureUpdatedAt(OffsetDateTime.parse("2000-12-31T00:00:00Z"));
       when(userRepository.getById(userId.toString())).thenReturn(Optional.of(user));
+      when(userRepository.save( User.create()
+        .id(userId.toString())
+        .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")))).thenReturn(User.create()
+        .id(userId.toString()).pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
 
       userService.setUserPicture(userId, file, "image/jpeg", "picture", UserPrincipal.create(userId));
 
@@ -438,8 +450,12 @@ class UserServiceImplTest {
         user.pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
-      verify(eventDispatcher, times(1)).sendToUserQueue(contactsIds,
-        UserPictureChangedEvent.create(userId, null).userId(userId));
+      verify(eventDispatcher, times(1)).sendToUserExchange(contactsIds,
+        UserPictureChanged.create()
+          .userId(userId)
+          .imageId(UUID.fromString(expectedMetadata.getId()))
+          .updatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
+      );
       verifyNoMoreInteractions(fileMetadataRepository, userRepository, storagesService, subscriptionRepository,
         eventDispatcher, clock, appConfig);
       verifyNoInteractions(profilingService);
@@ -511,7 +527,7 @@ class UserServiceImplTest {
       verify(userRepository, times(1)).save(user.pictureUpdatedAt(null));
       verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
       verify(eventDispatcher, times(1))
-        .sendToUserQueue(eq(contacts), any(UserPictureDeletedEvent.class));
+        .sendToUserExchange(eq(contacts), any(UserPictureDeleted.class));
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
 
       verifyNoMoreInteractions(fileMetadataRepository, userRepository, storagesService, eventDispatcher,
@@ -534,7 +550,7 @@ class UserServiceImplTest {
       verify(fileMetadataRepository, times(1)).delete(metadata);
       verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
       verify(eventDispatcher, times(1))
-        .sendToUserQueue(eq(contacts), any(UserPictureDeletedEvent.class));
+        .sendToUserExchange(eq(contacts), any(UserPictureDeleted.class));
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
       verifyNoMoreInteractions(fileMetadataRepository, storagesService, eventDispatcher, subscriptionRepository);
     }

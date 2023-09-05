@@ -14,8 +14,8 @@ public class VideoServerSessionId implements Serializable {
 
   private static final long serialVersionUID = -164436656214153498L;
 
-  @Column(name = "SESSION_ID", length = 64, nullable = false)
-  private String sessionId;
+  @Column(name = "USER_ID", length = 64, nullable = false)
+  private String userId;
 
   @Column(name = "MEETING_ID", length = 64, nullable = false)
   private String meetingId;
@@ -23,8 +23,8 @@ public class VideoServerSessionId implements Serializable {
   public VideoServerSessionId() {
   }
 
-  public VideoServerSessionId(String sessionId, String meetingId) {
-    this.sessionId = sessionId;
+  public VideoServerSessionId(String userId, String meetingId) {
+    this.userId = userId;
     this.meetingId = meetingId;
   }
 
@@ -36,12 +36,12 @@ public class VideoServerSessionId implements Serializable {
     return new VideoServerSessionId(sessionId, meetingId);
   }
 
-  public String getSessionId() {
-    return sessionId;
+  public String getUserId() {
+    return userId;
   }
 
-  public VideoServerSessionId sessionId(String sessionId) {
-    this.sessionId = sessionId;
+  public VideoServerSessionId userId(String userId) {
+    this.userId = userId;
     return this;
   }
 
@@ -63,12 +63,12 @@ public class VideoServerSessionId implements Serializable {
       return false;
     }
     VideoServerSessionId that = (VideoServerSessionId) o;
-    return Objects.equals(getSessionId(), that.getSessionId()) && Objects.equals(getMeetingId(),
+    return Objects.equals(getUserId(), that.getUserId()) && Objects.equals(getMeetingId(),
       that.getMeetingId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getSessionId(), getMeetingId());
+    return Objects.hash(getUserId(), getMeetingId());
   }
 }

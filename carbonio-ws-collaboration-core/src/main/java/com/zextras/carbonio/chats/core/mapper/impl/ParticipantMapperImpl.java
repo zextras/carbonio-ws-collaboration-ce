@@ -25,7 +25,7 @@ public class ParticipantMapperImpl implements ParticipantMapper {
     }
     return ParticipantDto.create()
       .userId(UUID.fromString(participant.getUserId()))
-      .sessionId(participant.getSessionId())
+      .queueId(participant.getQueueId())
       .audioStreamEnabled(Optional.ofNullable(participant.hasAudioStreamOn()).orElse(false))
       .videoStreamEnabled(Optional.ofNullable(participant.hasVideoStreamOn()).orElse(false))
       .screenStreamEnabled(Optional.ofNullable(participant.hasScreenStreamOn()).orElse(false));

@@ -31,11 +31,17 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
   @Override
   public void filter(ContainerRequestContext requestContext) {
-    String sessionId = requestContext.getHeaderString("session-id");
+    UUID queueId;
+    try {
+      queueId = Optional.ofNullable(requestContext.getHeaderString("queue-id"))
+        .map(UUID::fromString).orElse(null);
+    } catch (IllegalArgumentException e) {
+      throw new UnauthorizedException("Invalid queue id");
+    }
     Map<AuthenticationMethod, String> credentials = new HashMap<>();
     Optional.ofNullable(requestContext.getCookies().get(AUTHORIZATION_COOKIE))
       .ifPresent(cookie -> credentials.put(AuthenticationMethod.ZM_AUTH_TOKEN, cookie.getValue()));
-    if(credentials.isEmpty()) {
+    if (credentials.isEmpty()) {
       //The user didn't specify any authorization, we're logging him/her as anonymous (useful for healthchecks)
       requestContext.setSecurityContext(
         SecurityContextImpl.create(
@@ -51,9 +57,9 @@ public class AuthenticationFilter implements ContainerRequestFilter {
           UserPrincipal
             .create(
               authenticationService.validateCredentials(credentials).map(UUID::fromString)
-              .orElseThrow(UnauthorizedException::new))
+                .orElseThrow(UnauthorizedException::new))
             .authCredentials(credentials)
-            .sessionId(sessionId)
+            .queueId(queueId)
         )
       );
     }
