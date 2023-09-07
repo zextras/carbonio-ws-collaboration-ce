@@ -489,7 +489,7 @@ public class VideoServerServiceJanus implements VideoServerService {
       VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
         JANUS_VIDEOROOM_PLUGIN, meetingId);
       videoInHandleId.set(videoServerResponse.getDataId());
-      videoServerSession.videoInHandleId(videoInHandleId.get());
+      videoServerSessionRepository.update(videoServerSession.videoInHandleId(videoInHandleId.get()));
     });
     startVideoIn(videoServerSession.getConnectionId(), videoInHandleId.get(), sdp);
     videoServerSessionRepository.update(videoServerSession.videoInStreamOn(true));
@@ -526,13 +526,14 @@ public class VideoServerServiceJanus implements VideoServerService {
       () -> {
         VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
           JANUS_VIDEOROOM_PLUGIN, meetingId);
-        videoServerSession.videoInHandleId(videoServerResponse.getDataId());
-        joinVideoRoom(videoServerSession.getConnectionId(), userId, videoServerSession.getVideoInHandleId(),
-          videoServerMeeting.getVideoRoomId(), Ptype.SUBSCRIBER, null, subscriptionUpdatesDto.getSubscribe());
-        videoServerSessionRepository.update(videoServerSession);
+        VideoServerSession videoServerSessionUpdated = videoServerSessionRepository.update(
+          videoServerSession.videoInHandleId(videoServerResponse.getDataId()));
+        joinVideoRoom(videoServerSessionUpdated.getConnectionId(), userId,
+          videoServerSessionUpdated.getVideoInHandleId(), videoServerMeeting.getVideoRoomId(), Ptype.SUBSCRIBER, null,
+          subscriptionUpdatesDto.getSubscribe());
+        updateSubscriptions(videoServerSessionUpdated.getConnectionId(), userId,
+          videoServerSessionUpdated.getVideoInHandleId(), subscriptionUpdatesDto);
       });
-    updateSubscriptions(videoServerSession.getConnectionId(), userId, videoServerSession.getVideoInHandleId(),
-      subscriptionUpdatesDto);
   }
 
   private void updateSubscriptions(String connectionId, String userId, String videoInHandleId,
@@ -572,10 +573,10 @@ public class VideoServerServiceJanus implements VideoServerService {
         JANUS_AUDIOBRIDGE_PLUGIN, meetingId);
       audioHandleId.set(videoServerResponse.getDataId());
       videoServerSession.audioHandleId(audioHandleId.get());
+      videoServerSessionRepository.update(videoServerSession);
     });
     joinAudioBridgeRoom(userId, videoServerSession.getConnectionId(), audioHandleId.get(),
       videoServerMeeting.getAudioRoomId(), sdp);
-    videoServerSessionRepository.update(videoServerSession.audioStreamOn(false));
   }
 
   private void joinAudioBridgeRoom(String userId, String connectionId, String audioHandleId, String audioRoomId,

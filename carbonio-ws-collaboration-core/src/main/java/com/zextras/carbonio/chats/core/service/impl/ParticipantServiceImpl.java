@@ -168,15 +168,6 @@ public class ParticipantServiceImpl implements ParticipantService {
         : participant.screenStreamOn(mediaStreamSettingsDto.isEnabled());
       participantRepository.update(participantToUpdate);
       videoServerService.updateMediaStream(userId, meetingId.toString(), mediaStreamSettingsDto);
-      eventDispatcher.sendToUserExchange(
-        meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
-        MeetingMediaStreamChanged
-          .create()
-          .meetingId(meetingId)
-          .userId(UUID.fromString(currentUser.getId()))
-          .mediaType(MediaType.valueOf(mediaStreamSettingsDto.getType().toString().toUpperCase()))
-          .active(mediaStreamSettingsDto.isEnabled()));
-
     }
   }
 
