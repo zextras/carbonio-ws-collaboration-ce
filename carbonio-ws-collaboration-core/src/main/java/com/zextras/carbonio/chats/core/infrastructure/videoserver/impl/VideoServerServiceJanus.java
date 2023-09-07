@@ -531,8 +531,6 @@ public class VideoServerServiceJanus implements VideoServerService {
         joinVideoRoom(videoServerSessionUpdated.getConnectionId(), userId,
           videoServerSessionUpdated.getVideoInHandleId(), videoServerMeeting.getVideoRoomId(), Ptype.SUBSCRIBER, null,
           subscriptionUpdatesDto.getSubscribe());
-        updateSubscriptions(videoServerSessionUpdated.getConnectionId(), userId,
-          videoServerSessionUpdated.getVideoInHandleId(), subscriptionUpdatesDto);
       });
   }
 

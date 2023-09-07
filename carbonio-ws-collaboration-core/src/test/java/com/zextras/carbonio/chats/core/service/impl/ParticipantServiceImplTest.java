@@ -22,7 +22,6 @@ import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamChanged;
-import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantClashed;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoined;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
@@ -33,7 +32,6 @@ import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
@@ -377,13 +375,6 @@ public class ParticipantServiceImplTest {
       verify(participantRepository, times(1)).update(
         ParticipantBuilder.create(Meeting.create(), user1Id.toString()).queueId(user1Queue1).videoStreamOn(true)
           .screenStreamOn(false).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
-      verify(eventDispatcher, times(1)).sendToUserExchange(List.of(user1Id.toString(),
-          user2Id.toString(), user4Id.toString()),
-        MeetingMediaStreamChanged.create()
-          .meetingId(meeting1Id)
-          .userId(user1Id)
-          .mediaType(MediaType.VIDEO)
-          .active(true));
       verify(videoServerService, times(1)).updateMediaStream(user1Id.toString(), meeting1Id.toString(),
         MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp"));
 
@@ -444,13 +435,6 @@ public class ParticipantServiceImplTest {
       verify(participantRepository, times(1)).update(
         ParticipantBuilder.create(Meeting.create(), user4Id.toString()).queueId(user4Queue1).videoStreamOn(false)
           .audioStreamOn(true).screenStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
-      verify(eventDispatcher, times(1)).sendToUserExchange(List.of(user1Id.toString(),
-          user2Id.toString(), user4Id.toString()),
-        MeetingMediaStreamChanged.create()
-          .meetingId(meeting1Id)
-          .userId(user4Id)
-          .mediaType(MediaType.VIDEO)
-          .active(false));
       verify(videoServerService, times(1)).updateMediaStream(user4Id.toString(), meeting1Id.toString(),
         MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false));
       verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);
@@ -753,14 +737,6 @@ public class ParticipantServiceImplTest {
       verify(participantRepository, times(1)).update(
         ParticipantBuilder.create(Meeting.create(), user1Id.toString()).queueId(user1Queue1).screenStreamOn(true)
           .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
-      verify(eventDispatcher, times(1)).sendToUserExchange(List.of(user1Id.toString(),
-          user2Id.toString(), user4Id.toString()),
-        MeetingMediaStreamChanged.create()
-          .meetingId(meeting1Id)
-          .userId(user1Id)
-          .mediaType(MediaType.SCREEN)
-          .active(true)
-      );
       verify(videoServerService, times(1)).updateMediaStream(user1Id.toString(), meeting1Id.toString(),
         MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp"));
 
@@ -842,14 +818,6 @@ public class ParticipantServiceImplTest {
       verify(participantRepository, times(1)).update(
         ParticipantBuilder.create(Meeting.create(), user4Id.toString()).queueId(user4Queue1).screenStreamOn(false)
           .audioStreamOn(true).videoStreamOn(true).createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z")).build());
-      verify(eventDispatcher, times(1)).sendToUserExchange(
-        List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
-        MeetingMediaStreamChanged.create()
-          .meetingId(meeting1Id)
-          .userId(user4Id)
-          .mediaType(MediaType.SCREEN)
-          .active(false)
-      );
       verify(videoServerService, times(1)).updateMediaStream(user4Id.toString(), meeting1Id.toString(),
         MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false));
       verifyNoMoreInteractions(meetingService, participantRepository, eventDispatcher, videoServerService);

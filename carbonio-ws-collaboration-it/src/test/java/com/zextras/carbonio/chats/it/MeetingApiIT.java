@@ -1541,7 +1541,7 @@ public class MeetingApiIT {
       Participant newParticipant = meeting.getParticipants().stream().filter(participant ->
         user1Id.toString().equals(participant.getUserId()) && user1Queue.equals(participant.getQueueId())
       ).findAny().orElseThrow();
-      assertTrue(newParticipant.hasAudioStreamOn());
+      assertFalse(newParticipant.hasAudioStreamOn());
       assertFalse(newParticipant.hasVideoStreamOn());
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
@@ -2710,12 +2710,7 @@ public class MeetingApiIT {
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
           + "\"request\":\"join\",\"ptype\":\"subscriber\",\"room\":\"videoRoomId\",\"streams\":[{"
-          + "\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}]},\"apisecret\":\"secret\"}",
-        "{\"janus\":\"ack\"}", true);
-      videoServerMockServer.mockRequestedResponse("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
-          + "\"request\":\"update\",\"subscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}],"
-          + "\"unsubscribe\":[]},\"apisecret\":\"secret\"}\n",
+          + "\"feed\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45/video\"}]},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
 
       MockHttpResponse response = dispatcher.put(
@@ -2733,14 +2728,7 @@ public class MeetingApiIT {
         videoServerMockServer.getRequest("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
             + "\"request\":\"join\",\"ptype\":\"subscriber\",\"room\":\"videoRoomId\",\"streams\":[{"
-            + "\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}]},\"apisecret\":\"secret\"}"),
-        VerificationTimes.exactly(1)
-      );
-      videoServerMockServer.verify(
-        videoServerMockServer.getRequest("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
-          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
-            + "\"request\":\"update\",\"subscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}],"
-            + "\"unsubscribe\":[]},\"apisecret\":\"secret\"}\n"),
+            + "\"feed\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45/video\"}]},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1)
       );
 
@@ -2796,8 +2784,8 @@ public class MeetingApiIT {
 
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
-          + "\"request\":\"update\",\"subscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}],"
-          + "\"unsubscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"ea7b9b61-bef5-4cf4-80cb-19612c42593a\"}}]},\"apisecret\":\"secret\"}",
+          + "\"request\":\"update\",\"subscribe\":[{\"feed\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45/video\"}],"
+          + "\"unsubscribe\":[{\"feed\":\"ea7b9b61-bef5-4cf4-80cb-19612c42593a/video\"}]},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
 
       MockHttpResponse response = dispatcher.put(
@@ -2811,11 +2799,10 @@ public class MeetingApiIT {
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
-            + "\"request\":\"update\",\"subscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}],"
-            + "\"unsubscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"ea7b9b61-bef5-4cf4-80cb-19612c42593a\"}}]},\"apisecret\":\"secret\"}"),
+            + "\"request\":\"update\",\"subscribe\":[{\"feed\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45/video\"}],"
+            + "\"unsubscribe\":[{\"feed\":\"ea7b9b61-bef5-4cf4-80cb-19612c42593a/video\"}]},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1)
       );
-
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }
@@ -2858,7 +2845,7 @@ public class MeetingApiIT {
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
           + "\"request\":\"update\",\"subscribe\":[],"
-          + "\"unsubscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}]},\"apisecret\":\"secret\"}",
+          + "\"unsubscribe\":[{\"feed\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45/video\"}]},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
 
       MockHttpResponse response = dispatcher.put(
@@ -2871,7 +2858,7 @@ public class MeetingApiIT {
         videoServerMockServer.getRequest("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
             + "\"request\":\"update\",\"subscribe\":[],"
-            + "\"unsubscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}]},\"apisecret\":\"secret\"}"),
+            + "\"unsubscribe\":[{\"feed\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45/video\"}]},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1)
       );
 
