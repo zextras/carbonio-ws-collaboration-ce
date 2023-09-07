@@ -9,7 +9,6 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamChanged;
-import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantClashed;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoined;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
@@ -66,8 +65,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   @Transactional
   @Deprecated(forRemoval = true)
   public Optional<MeetingDto> insertMeetingParticipantByRoomId(
-    UUID roomId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser
-  ) {
+    UUID roomId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser) {
     Meeting meeting = meetingService.getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
     insertMeetingParticipant(meeting, joinSettingsDto, currentUser);
 
@@ -76,16 +74,14 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   @Override
   @Transactional
-  public void insertMeetingParticipant(UUID meetingId, JoinSettingsDto joinSettingsDto,
-    UserPrincipal currentUser) {
+  public void insertMeetingParticipant(UUID meetingId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser) {
     Meeting meeting = meetingService.getMeetingEntity(meetingId)
       .orElseThrow(() -> new NotFoundException(String.format("Meeting with id '%s' not found", meetingId)));
 
     insertMeetingParticipant(meeting, joinSettingsDto, currentUser);
   }
 
-  private void insertMeetingParticipant(Meeting meeting, JoinSettingsDto joinSettingsDto,
-    UserPrincipal currentUser) {
+  private void insertMeetingParticipant(Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser) {
     meeting.getParticipants()
       .stream()
       .filter(participant -> participant.getUserId().equals(currentUser.getId()))
@@ -126,11 +122,11 @@ public class ParticipantServiceImpl implements ParticipantService {
     Meeting meeting = meetingService.getMeetingEntity(meetingId)
       .orElseThrow(() -> new NotFoundException(String.format("Meeting with id '%s' not found", meetingId)));
     Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
-    removeMeetingParticipant(meeting, room, currentUser.getUUID(), currentUser.getId());
+    removeMeetingParticipant(meeting, room, currentUser.getUUID());
   }
 
   @Override
-  public void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, String queueId) {
+  public void removeMeetingParticipant(Meeting meeting, Room room, UUID userId) {
     List<Participant> participants = meeting.getParticipants().stream()
       .filter(p -> userId.toString().equals(p.getUserId()))
       .collect(Collectors.toList());

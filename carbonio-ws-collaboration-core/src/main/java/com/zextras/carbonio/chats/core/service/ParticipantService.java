@@ -17,7 +17,6 @@ import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import java.util.Optional;
 import java.util.UUID;
-import javax.annotation.Nullable;
 
 public interface ParticipantService {
 
@@ -64,13 +63,12 @@ public interface ParticipantService {
    * Removes the participant of the current user from a meeting. This method accepts entities because it's intended to
    * be used only to be called by services.
    *
-   * @param meeting   participant {@link Meeting}
-   * @param room      participant {@link Room}
-   * @param userId    identifier of the user to remove
-   * @param sessionId identifier of the session to remove. If it is null, it removes all user sessions
+   * @param meeting participant {@link Meeting}
+   * @param room    participant {@link Room}
+   * @param userId  identifier of the user to remove
    * @throws NotFoundException if the user session for indicated meeting doesn't exist.
    */
-  void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, @Nullable String sessionId);
+  void removeMeetingParticipant(Meeting meeting, Room room, UUID userId);
 
   /**
    * Updates the media stream status in the meeting for the current session and starts WebRTC negotiation with

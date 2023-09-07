@@ -123,8 +123,7 @@ public class VideoServerEventListener implements ServletContextListener {
                               .userId(UUID.fromString(videoServerSession.getUserId()))
                               .mediaType(eventType == EventType.SCREEN ? MediaType.SCREEN : MediaType.VIDEO)
                               .sdp(rtcSessionDescription.getSdp())));
-                          ChatsLogger.info(
-                            "Sent offer " + objectMapper.writeValueAsString(videoServerEvent));
+                          ChatsLogger.info("Sent offer " + objectMapper.writeValueAsString(videoServerEvent));
                           break;
                         case ANSWER:
                           switch (eventType) {
@@ -134,8 +133,7 @@ public class VideoServerEventListener implements ServletContextListener {
                                   .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
                                   .userId(UUID.fromString(videoServerSession.getUserId()))
                                   .sdp(rtcSessionDescription.getSdp())));
-                              ChatsLogger.info(
-                                "Sent audio " + objectMapper.writeValueAsString(videoServerEvent));
+                              ChatsLogger.info("Sent audio " + objectMapper.writeValueAsString(videoServerEvent));
                               break;
                             case VIDEOIN:
                             case VIDEOOUT:
@@ -146,8 +144,7 @@ public class VideoServerEventListener implements ServletContextListener {
                                   .userId(UUID.fromString(videoServerSession.getUserId()))
                                   .mediaType(eventType == EventType.SCREEN ? MediaType.SCREEN : MediaType.VIDEO)
                                   .sdp(rtcSessionDescription.getSdp())));
-                              ChatsLogger.info(
-                                "Sent answer " + objectMapper.writeValueAsString(videoServerEvent));
+                              ChatsLogger.info("Sent answer " + objectMapper.writeValueAsString(videoServerEvent));
                           }
                           break;
                         default:
@@ -233,8 +230,7 @@ public class VideoServerEventListener implements ServletContextListener {
               });
             break;
           default:
-            ChatsLogger.info(
-              "Skip " + objectMapper.writeValueAsString(videoServerEvent));
+            ChatsLogger.info("Skip " + objectMapper.writeValueAsString(message));
             break;
         }
       };
