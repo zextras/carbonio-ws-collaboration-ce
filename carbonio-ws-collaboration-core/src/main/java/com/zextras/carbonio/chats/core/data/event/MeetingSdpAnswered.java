@@ -34,7 +34,7 @@ public class MeetingSdpAnswered extends DomainEvent {
     return this;
   }
 
-  public UUID getSessionId() {
+  public UUID getUserId() {
     return userId;
   }
 
@@ -73,12 +73,12 @@ public class MeetingSdpAnswered extends DomainEvent {
       return false;
     }
     MeetingSdpAnswered that = (MeetingSdpAnswered) o;
-    return Objects.equals(getMeetingId(), that.getMeetingId()) && Objects.equals(getSessionId(),
-      that.getSessionId()) && getMediaType() == that.getMediaType();
+    return Objects.equals(getMeetingId(), that.getMeetingId()) && Objects.equals(getUserId(),
+      that.getUserId()) && getMediaType() == that.getMediaType();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getMeetingId(), getSessionId(), getMediaType());
+    return Objects.hash(super.hashCode(), getMeetingId(), getUserId(), getMediaType());
   }
 }

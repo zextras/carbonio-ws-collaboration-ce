@@ -5,6 +5,8 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 /**
  * This class represents the list of streams contained in the event data of a generic event sent by VideoServer.
@@ -13,6 +15,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  * @see <a href="https://janus.conf.meetecho.com/docs/eventhandlers.html">JanusEventHandlers</a>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class StreamData {
 
   public StreamData() {
