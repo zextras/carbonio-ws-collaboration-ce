@@ -3105,10 +3105,12 @@ public class RoomsApiIT {
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\",\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\",\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"videoroom\":\"created\",\"room\":\"videoRoomId\"}}}", true);
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"" + user1Id + "/video\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\""
+          + user1Id + "/video\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\"" + user1Id + "/screen\"},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\""
+          + user1Id + "/screen\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
       Instant executionInstant = Instant.parse("2022-01-01T00:00:00Z");
       clock.fixTimeAt(executionInstant);
@@ -3128,7 +3130,7 @@ public class RoomsApiIT {
       Participant newParticipant = meeting.getParticipants().stream().filter(participant ->
         user1Id.toString().equals(participant.getUserId()) && queue1Id.toString().equals(participant.getQueueId())
       ).findAny().orElseThrow();
-      assertTrue(newParticipant.hasAudioStreamOn());
+      assertFalse(newParticipant.hasAudioStreamOn());
       assertFalse(newParticipant.hasVideoStreamOn());
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);

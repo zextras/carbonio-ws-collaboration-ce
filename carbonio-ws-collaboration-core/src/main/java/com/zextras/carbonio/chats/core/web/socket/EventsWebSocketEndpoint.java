@@ -7,9 +7,9 @@ package com.zextras.carbonio.chats.core.web.socket;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DeliverCallback;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
+import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -35,13 +35,13 @@ public class EventsWebSocketEndpoint {
 
   private static final int MAX_IDLE_TIMEOUT = 90000;
 
-  private final Connection           rabbitMqConnection;
+  private final EventDispatcher      eventDispatcher;
   private final ObjectMapper         objectMapper;
   private final Map<String, Channel> userChannelMap;
 
   @Inject
-  public EventsWebSocketEndpoint(Optional<Connection> rabbitMqConnection, ObjectMapper objectMapper) {
-    this.rabbitMqConnection = rabbitMqConnection.orElse(null);
+  public EventsWebSocketEndpoint(EventDispatcher eventDispatcher, ObjectMapper objectMapper) {
+    this.eventDispatcher = eventDispatcher;
     this.objectMapper = objectMapper;
     this.userChannelMap = new HashMap<>();
   }
@@ -55,18 +55,16 @@ public class EventsWebSocketEndpoint {
     session.setMaxIdleTimeout(MAX_IDLE_TIMEOUT);
     session.getBasicRemote().sendObject(objectMapper.writeValueAsString(SessionOutEvent.create(queueId)));
 
-    if (Optional.ofNullable(rabbitMqConnection).isEmpty()) {
-      ChatsLogger.warn("RabbitMQ connection is not up!");
+    if (eventDispatcher.getConnection().isEmpty()) {
+      ChatsLogger.error("RabbitMQ connection is not up!");
       return;
     }
-    final Channel channel;
-    try {
-      channel = rabbitMqConnection.createChannel();
-    } catch (IOException e) {
-      ChatsLogger.warn(
-        String.format("Error creating RabbitMQ connection channel for user/queue '%s'", userQueue), e);
+    Optional<Channel> optionalChannel = eventDispatcher.createChannel();
+    if (optionalChannel.isEmpty()) {
+      ChatsLogger.error("Could not create RabbitMQ channel for websocket");
       return;
     }
+    final Channel channel = optionalChannel.get();
     try {
       userChannelMap.putIfAbsent(userId + "/" + session.getId(), channel);
       channel.queueDeclare(userQueue, true, false, false, null);
@@ -77,7 +75,7 @@ public class EventsWebSocketEndpoint {
         try {
           session.getBasicRemote().sendObject(message);
         } catch (EncodeException | IOException e) {
-          ChatsLogger.error(
+          ChatsLogger.warn(
             String.format("Error sending RabbitMQ message to websocket for user/queue '%s'. Message: ''%s",
               userQueue, message), e);
         }

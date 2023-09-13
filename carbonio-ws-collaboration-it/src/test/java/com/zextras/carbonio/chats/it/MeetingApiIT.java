@@ -1541,7 +1541,7 @@ public class MeetingApiIT {
       Participant newParticipant = meeting.getParticipants().stream().filter(participant ->
         user1Id.toString().equals(participant.getUserId()) && user1Queue.equals(participant.getQueueId())
       ).findAny().orElseThrow();
-      assertTrue(newParticipant.hasAudioStreamOn());
+      assertFalse(newParticipant.hasAudioStreamOn());
       assertFalse(newParticipant.hasVideoStreamOn());
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST",
@@ -2710,12 +2710,7 @@ public class MeetingApiIT {
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
           + "\"request\":\"join\",\"ptype\":\"subscriber\",\"room\":\"videoRoomId\",\"streams\":[{"
-          + "\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}]},\"apisecret\":\"secret\"}",
-        "{\"janus\":\"ack\"}", true);
-      videoServerMockServer.mockRequestedResponse("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
-          + "\"request\":\"update\",\"subscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}],"
-          + "\"unsubscribe\":[]},\"apisecret\":\"secret\"}\n",
+          + "\"feed\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45/video\"}]},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
 
       MockHttpResponse response = dispatcher.put(
@@ -2733,14 +2728,66 @@ public class MeetingApiIT {
         videoServerMockServer.getRequest("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
             + "\"request\":\"join\",\"ptype\":\"subscriber\",\"room\":\"videoRoomId\",\"streams\":[{"
-            + "\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}]},\"apisecret\":\"secret\"}"),
+            + "\"feed\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45/video\"}]},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1)
       );
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("It updates subscriptions for media stream for a participant that already joined as subscriber for the current session and returns a status code 204")
+    void updateSubscriptionsMediaStream_testOkAlreadyJoinedAsSubscriber() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+        Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
+        List.of(RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id).owner(false)));
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(room1Id, List.of(
+        ParticipantBuilder.create(user1Id, user1Queue).audioStreamOn(true).videoStreamOn(true),
+        ParticipantBuilder.create(user2Id, user2Queue).audioStreamOn(true).videoStreamOn(true)));
+      VideoServerMeeting meeting = meetingTestUtils.insertVideoServerMeeting(
+        meetingId.toString(),
+        "connectionId",
+        "audioHandleId",
+        "videoHandleId",
+        "audioRoomId",
+        "videoRoomId");
+      meetingTestUtils.updateVideoServerSession(
+        meetingTestUtils.insertVideoServerSession(meeting,
+            user1Id.toString(),
+            user1Queue,
+            "connection_" + user1Queue,
+            "videoOutHandleId_" + user1Queue,
+            null)
+          .videoOutStreamOn(true)
+          .videoInHandleId("videoInHandleId"));
+      meetingTestUtils.updateVideoServerSession(
+        meetingTestUtils.insertVideoServerSession(meeting,
+            user2Id.toString(),
+            user2Queue,
+            "connection_" + user2Queue,
+            "videoOutHandleId_" + user2Queue,
+            null)
+          .videoOutStreamOn(true));
+
+      videoServerMockServer.mockRequestedResponse("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
+        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
+          + "\"request\":\"update\","
+          + "\"subscribe\":[{\"feed\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45/video\"}]},\"apisecret\":\"secret\"}",
+        "{\"janus\":\"ack\"}", true);
+
+      MockHttpResponse response = dispatcher.put(
+        url(meetingId),
+        objectMapper.writeValueAsString(SubscriptionUpdatesDto.create().subscribe(
+          List.of(MediaStreamDto.create().type(MediaStreamDto.TypeEnum.VIDEO).userId(user2Id.toString())))),
+        Map.of("queue-id", user1Queue), user1Token);
+
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
-            + "\"request\":\"update\",\"subscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}],"
-            + "\"unsubscribe\":[]},\"apisecret\":\"secret\"}\n"),
+            + "\"request\":\"update\","
+            + "\"subscribe\":[{\"feed\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45/video\"}]},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1)
       );
 
@@ -2796,8 +2843,8 @@ public class MeetingApiIT {
 
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
-          + "\"request\":\"update\",\"subscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}],"
-          + "\"unsubscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"ea7b9b61-bef5-4cf4-80cb-19612c42593a\"}}]},\"apisecret\":\"secret\"}",
+          + "\"request\":\"update\",\"subscribe\":[{\"feed\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45/video\"}],"
+          + "\"unsubscribe\":[{\"feed\":\"ea7b9b61-bef5-4cf4-80cb-19612c42593a/video\"}]},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
 
       MockHttpResponse response = dispatcher.put(
@@ -2811,11 +2858,10 @@ public class MeetingApiIT {
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
-            + "\"request\":\"update\",\"subscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}],"
-            + "\"unsubscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"ea7b9b61-bef5-4cf4-80cb-19612c42593a\"}}]},\"apisecret\":\"secret\"}"),
+            + "\"request\":\"update\",\"subscribe\":[{\"feed\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45/video\"}],"
+            + "\"unsubscribe\":[{\"feed\":\"ea7b9b61-bef5-4cf4-80cb-19612c42593a/video\"}]},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1)
       );
-
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }
@@ -2857,8 +2903,8 @@ public class MeetingApiIT {
 
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
-          + "\"request\":\"update\",\"subscribe\":[],"
-          + "\"unsubscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}]},\"apisecret\":\"secret\"}",
+          + "\"request\":\"update\","
+          + "\"unsubscribe\":[{\"feed\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45/video\"}]},\"apisecret\":\"secret\"}",
         "{\"janus\":\"ack\"}", true);
 
       MockHttpResponse response = dispatcher.put(
@@ -2870,8 +2916,8 @@ public class MeetingApiIT {
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST", "/janus/connection_" + user1Queue + "/videoInHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{"
-            + "\"request\":\"update\",\"subscribe\":[],"
-            + "\"unsubscribe\":[{\"feed\":{\"type\":\"VIDEO\",\"user_id\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45\"}}]},\"apisecret\":\"secret\"}"),
+            + "\"request\":\"update\","
+            + "\"unsubscribe\":[{\"feed\":\"82735f6d-4c6c-471e-99d9-4eef91b1ec45/video\"}]},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1)
       );
 

@@ -4,11 +4,19 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.event;
 
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
 import com.zextras.carbonio.chats.core.data.event.DomainEvent;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
+import io.ebeaninternal.server.expression.Op;
 import java.util.List;
+import java.util.Optional;
 
 public interface EventDispatcher extends HealthIndicator {
+
+  Optional<Connection> getConnection();
+
+  Optional<Channel> createChannel();
 
   void sendToUserExchange(String userId, DomainEvent event);
 
