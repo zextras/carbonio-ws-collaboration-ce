@@ -14,7 +14,7 @@ import com.rabbitmq.client.DeliverCallback;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.data.event.MeetingAudioAnswered;
 import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantStreams;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantSubscribed;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantTalking;
 import com.zextras.carbonio.chats.core.data.event.MeetingSdpAnswered;
 import com.zextras.carbonio.chats.core.data.event.MeetingSdpOffered;
@@ -170,7 +170,7 @@ public class VideoServerEventListener implements ServletContextListener {
                         videoServerSessionRepository.getByConnectionId(String.valueOf(videoServerEvent.getSessionId()))
                           .ifPresent(
                             videoServerSession -> eventDispatcher.sendToUserExchange(videoServerSession.getUserId(),
-                              MeetingParticipantStreams.create()
+                              MeetingParticipantSubscribed.create()
                                 .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
                                 .userId(UUID.fromString(videoServerSession.getUserId()))
                                 .streams(streamData.stream().map(stream -> Feed.create()

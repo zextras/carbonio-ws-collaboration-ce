@@ -9,27 +9,27 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-public class MeetingParticipantStreams extends DomainEvent {
+public class MeetingParticipantSubscribed extends DomainEvent {
 
-  private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_STREAMS;
+  private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_SUBSCRIBED;
 
   private UUID       meetingId;
   private UUID       userId;
   private List<Feed> streams;
 
-  public MeetingParticipantStreams() {
+  public MeetingParticipantSubscribed() {
     super(EVENT_TYPE);
   }
 
-  public static MeetingParticipantStreams create() {
-    return new MeetingParticipantStreams();
+  public static MeetingParticipantSubscribed create() {
+    return new MeetingParticipantSubscribed();
   }
 
   public UUID getMeetingId() {
     return meetingId;
   }
 
-  public MeetingParticipantStreams meetingId(UUID meetingId) {
+  public MeetingParticipantSubscribed meetingId(UUID meetingId) {
     this.meetingId = meetingId;
     return this;
   }
@@ -38,7 +38,7 @@ public class MeetingParticipantStreams extends DomainEvent {
     return userId;
   }
 
-  public MeetingParticipantStreams userId(UUID userId) {
+  public MeetingParticipantSubscribed userId(UUID userId) {
     this.userId = userId;
     return this;
   }
@@ -47,7 +47,7 @@ public class MeetingParticipantStreams extends DomainEvent {
     return streams;
   }
 
-  public MeetingParticipantStreams streams(List<Feed> streams) {
+  public MeetingParticipantSubscribed streams(List<Feed> streams) {
     this.streams = streams;
     return this;
   }
@@ -57,13 +57,13 @@ public class MeetingParticipantStreams extends DomainEvent {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof MeetingParticipantStreams)) {
+    if (!(o instanceof MeetingParticipantSubscribed)) {
       return false;
     }
     if (!super.equals(o)) {
       return false;
     }
-    MeetingParticipantStreams that = (MeetingParticipantStreams) o;
+    MeetingParticipantSubscribed that = (MeetingParticipantSubscribed) o;
     return Objects.equals(getMeetingId(), that.getMeetingId()) && Objects.equals(getUserId(),
       that.getUserId()) && Objects.equals(getStreams(), that.getStreams());
   }
