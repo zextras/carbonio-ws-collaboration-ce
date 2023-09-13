@@ -8,10 +8,8 @@ import static io.vavr.API.$;
 import static io.vavr.API.Case;
 import static io.vavr.API.Match;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.DeliverCallback;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.data.event.MeetingAudioAnswered;
@@ -21,6 +19,7 @@ import com.zextras.carbonio.chats.core.data.event.MeetingParticipantTalking;
 import com.zextras.carbonio.chats.core.data.event.MeetingSdpAnswered;
 import com.zextras.carbonio.chats.core.data.event.MeetingSdpOffered;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
+import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.VideoServerEvent;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
@@ -56,7 +55,7 @@ public class VideoServerEventListener implements ServletContextListener {
   private static final String       PUBLISHED            = "published";
   private static final String       UNPUBLISHED          = "unpublished";
 
-  private final Connection                   rabbitMqConnection;
+  private final EventDispatcher              eventDispatcher;
   private final ObjectMapper                 objectMapper;
   private final VideoServerSessionRepository videoServerSessionRepository;
 
@@ -68,25 +67,24 @@ public class VideoServerEventListener implements ServletContextListener {
   }
 
   @Inject
-  public VideoServerEventListener(Optional<Connection> rabbitMqConnection, ObjectMapper objectMapper,
+  public VideoServerEventListener(EventDispatcher eventDispatcher, ObjectMapper objectMapper,
     VideoServerSessionRepository videoServerSessionRepository) {
-    this.rabbitMqConnection = rabbitMqConnection.orElse(null);
+    this.eventDispatcher = eventDispatcher;
     this.objectMapper = objectMapper;
     this.videoServerSessionRepository = videoServerSessionRepository;
   }
 
   @Override
   public void contextInitialized(ServletContextEvent sce) {
-    if (Optional.ofNullable(rabbitMqConnection).isEmpty()) {
+    if (eventDispatcher.getConnection().isEmpty()) {
       throw new InternalErrorException("RabbitMQ connection is not up!");
     }
-    Channel channel;
-    try {
-      channel = rabbitMqConnection.createChannel();
-    } catch (IOException e) {
-      ChatsLogger.error("Error creating RabbitMQ connection channel for videoserver events ", e);
+    Optional<Channel> optionalChannel = eventDispatcher.createChannel();
+    if (optionalChannel.isEmpty()) {
+      ChatsLogger.error("Could not create RabbitMQ channel for websocket");
       return;
     }
+    final Channel channel = optionalChannel.get();
     try {
       channel.queueDeclare(JANUS_EVENTS, true, false, false, null);
       DeliverCallback deliverCallback = (consumerTag, delivery) -> {
@@ -109,31 +107,31 @@ public class VideoServerEventListener implements ServletContextListener {
                         .getRtcSessionDescription();
                       switch (rtcSessionDescription.getType()) {
                         case OFFER:
-                          send(channel, videoServerSession.getUserId(), objectMapper.writeValueAsString(
+                          eventDispatcher.sendToUserExchange(videoServerSession.getUserId(),
                             MeetingSdpOffered.create()
                               .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
                               .userId(UUID.fromString(videoServerSession.getUserId()))
                               .mediaType(eventType == EventType.SCREEN ? MediaType.SCREEN : MediaType.VIDEO)
-                              .sdp(rtcSessionDescription.getSdp())));
+                              .sdp(rtcSessionDescription.getSdp()));
                           break;
                         case ANSWER:
                           switch (eventType) {
                             case AUDIO:
-                              send(channel, videoServerSession.getUserId(), objectMapper.writeValueAsString(
+                              eventDispatcher.sendToUserExchange(videoServerSession.getUserId(),
                                 MeetingAudioAnswered.create()
                                   .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
                                   .userId(UUID.fromString(videoServerSession.getUserId()))
-                                  .sdp(rtcSessionDescription.getSdp())));
+                                  .sdp(rtcSessionDescription.getSdp()));
                               break;
                             case VIDEOIN:
                             case VIDEOOUT:
                             case SCREEN:
-                              send(channel, videoServerSession.getUserId(), objectMapper.writeValueAsString(
+                              eventDispatcher.sendToUserExchange(videoServerSession.getUserId(),
                                 MeetingSdpAnswered.create()
                                   .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
                                   .userId(UUID.fromString(videoServerSession.getUserId()))
                                   .mediaType(eventType == EventType.SCREEN ? MediaType.SCREEN : MediaType.VIDEO)
-                                  .sdp(rtcSessionDescription.getSdp())));
+                                  .sdp(rtcSessionDescription.getSdp()));
                           }
                           break;
                         default:
@@ -141,8 +139,6 @@ public class VideoServerEventListener implements ServletContextListener {
                       }
                     } catch (MatchError m) {
                       ChatsLogger.error("Invalid event handle id: " + m.getObject());
-                    } catch (JsonProcessingException e) {
-                      ChatsLogger.debug("Error during serialization of " + videoServerEvent);
                     }
                   });
               }
@@ -155,20 +151,13 @@ public class VideoServerEventListener implements ServletContextListener {
                   videoServerSessionRepository.getByConnectionId(String.valueOf(videoServerEvent.getSessionId()))
                     .ifPresent(videoServerSession -> {
                       String meetingId = videoServerSession.getId().getMeetingId();
-                      List<VideoServerSession> sessionList = videoServerSessionRepository.getByMeetingId(meetingId);
-                      sessionList.forEach(session -> {
-                        try {
-                          send(channel, session.getUserId(), objectMapper.writeValueAsString(
-                            MeetingParticipantTalking.create()
-                              .meetingId(UUID.fromString(meetingId))
-                              .userId(UUID.fromString(videoServerSession.getUserId()))
-                              .isTalking(
-                                TALKING.equals(videoServerEvent.getEventInfo().getEventData().getAudioBridge()))
-                          ));
-                        } catch (JsonProcessingException e) {
-                          ChatsLogger.debug("Error during serialization of " + videoServerEvent);
-                        }
-                      });
+                      List<String> sessionUserIds = videoServerSessionRepository.getByMeetingId(meetingId).stream()
+                        .map(VideoServerSession::getUserId).collect(Collectors.toList());
+                      eventDispatcher.sendToUserExchange(sessionUserIds,
+                        MeetingParticipantTalking.create()
+                          .meetingId(UUID.fromString(meetingId))
+                          .userId(UUID.fromString(videoServerSession.getUserId()))
+                          .isTalking(TALKING.equals(videoServerEvent.getEventInfo().getEventData().getAudioBridge())));
                     });
                 }
               });
@@ -179,22 +168,15 @@ public class VideoServerEventListener implements ServletContextListener {
                     Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getStreamList())
                       .ifPresent(streamData ->
                         videoServerSessionRepository.getByConnectionId(String.valueOf(videoServerEvent.getSessionId()))
-                          .ifPresent(videoServerSession -> {
-                            try {
-                              send(channel, videoServerSession.getUserId(), objectMapper.writeValueAsString(
-                                MeetingParticipantStreams.create()
-                                  .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
-                                  .userId(UUID.fromString(videoServerSession.getUserId()))
-                                  .streams(streamData.stream()
-                                    .map(stream -> Feed.create()
-                                      .type(MediaType.valueOf(stream.getFeedId().split("/")[1].toUpperCase()))
-                                      .userId(stream.getFeedId().split("/")[0]))
-                                    .collect(Collectors.toList())))
-                              );
-                            } catch (JsonProcessingException e) {
-                              ChatsLogger.debug("Error during serialization of " + videoServerEvent);
-                            }
-                          }));
+                          .ifPresent(
+                            videoServerSession -> eventDispatcher.sendToUserExchange(videoServerSession.getUserId(),
+                              MeetingParticipantStreams.create()
+                                .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
+                                .userId(UUID.fromString(videoServerSession.getUserId()))
+                                .streams(streamData.stream().map(stream -> Feed.create()
+                                    .type(MediaType.valueOf(stream.getFeedId().split("/")[1].toUpperCase()))
+                                    .userId(stream.getFeedId().split("/")[0]))
+                                  .collect(Collectors.toList())))));
                     break;
                   case PUBLISHED:
                   case UNPUBLISHED:
@@ -202,20 +184,13 @@ public class VideoServerEventListener implements ServletContextListener {
                     videoServerSessionRepository.getByUserId(feedId.split("/")[0])
                       .ifPresent(videoServerSession -> {
                         String meetingId = videoServerSession.getId().getMeetingId();
-                        List<VideoServerSession> sessionList = videoServerSessionRepository.getByMeetingId(meetingId);
-                        sessionList.forEach(session -> {
-                          try {
-                            send(channel, session.getUserId(), objectMapper.writeValueAsString(
-                              MeetingMediaStreamChanged.create()
-                                .meetingId(UUID.fromString(meetingId))
-                                .userId(UUID.fromString(videoServerSession.getUserId()))
-                                .mediaType(MediaType.valueOf(feedId.split("/")[1].toUpperCase()))
-                                .active(PUBLISHED.equals(videoServerEvent.getEventInfo().getEventData().getEvent()))
-                            ));
-                          } catch (JsonProcessingException e) {
-                            ChatsLogger.debug("Error during serialization of " + videoServerEvent);
-                          }
-                        });
+                        List<String> sessionUserIds = videoServerSessionRepository.getByMeetingId(meetingId).stream()
+                          .map(VideoServerSession::getUserId).collect(Collectors.toList());
+                        eventDispatcher.sendToUserExchange(sessionUserIds, MeetingMediaStreamChanged.create()
+                          .meetingId(UUID.fromString(meetingId))
+                          .userId(UUID.fromString(videoServerSession.getUserId()))
+                          .mediaType(MediaType.valueOf(feedId.split("/")[1].toUpperCase()))
+                          .active(PUBLISHED.equals(videoServerEvent.getEventInfo().getEventData().getEvent())));
                       });
                     break;
                   default:
@@ -236,23 +211,6 @@ public class VideoServerEventListener implements ServletContextListener {
         ChatsLogger.error("Error closing RabbitMQ connection channel for videoserver events");
       }
       ChatsLogger.error("Closed RabbitMQ connection channel for videoserver events");
-    }
-  }
-
-  private void send(Channel channel, String userId, String message) {
-    try {
-      if (Optional.ofNullable(rabbitMqConnection).isEmpty()) {
-        return;
-      }
-      channel.exchangeDeclare(userId, "direct");
-      channel.basicPublish(userId, "", null, message.getBytes(StandardCharsets.UTF_8));
-    } catch (Exception e) {
-      try {
-        channel.close();
-      } catch (IOException | TimeoutException ignored) {
-        //nothing much we can do
-      }
-      ChatsLogger.warn(String.format("Unable to send message to %s", userId), e);
     }
   }
 
