@@ -237,7 +237,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     if (subscriptionUpdatesDto.getSubscribe().isEmpty() && subscriptionUpdatesDto.getUnsubscribe().isEmpty()) {
       throw new BadRequestException("Subscription list and Unsubscription list must not be empty");
     }
-    participantService.updateSubscriptionsVideoStream(meetingId, subscriptionUpdatesDto, currentUser);
+    participantService.updateSubscriptionsMediaStream(meetingId, subscriptionUpdatesDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 

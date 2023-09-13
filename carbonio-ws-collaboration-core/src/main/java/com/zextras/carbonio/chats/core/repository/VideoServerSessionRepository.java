@@ -20,6 +20,14 @@ public interface VideoServerSessionRepository {
   Optional<VideoServerSession> getByConnectionId(String connectionId);
 
   /**
+   * Returns the {@link VideoServerSession} associated to the given userId.
+   *
+   * @param userId user identifier related to videoserver
+   * @return the {@link List} of the video server sessions {@link VideoServerSession}
+   */
+  Optional<VideoServerSession> getByUserId(String userId);
+
+  /**
    * Retrieves the list of {@link VideoServerSession} for the required meeting
    *
    * @param meetingId meeting identifier
@@ -31,7 +39,7 @@ public interface VideoServerSessionRepository {
    * Inserts a new {@link VideoServerSession}
    *
    * @param videoServerMeeting the associated video server meeting
-   * @param userId          the session identifier
+   * @param userId             the session identifier
    * @param connectionId       the connection identifier related to videoserver
    * @param videoOutHandleId   the video handle identifier related to video room plugin
    * @param screenHandleId     the screen handle identifier related to video room plugin
