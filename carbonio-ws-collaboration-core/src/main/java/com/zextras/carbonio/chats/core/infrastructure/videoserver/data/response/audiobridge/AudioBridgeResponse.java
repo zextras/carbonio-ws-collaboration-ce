@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.audiobridge;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -40,30 +41,71 @@ public class AudioBridgeResponse {
 
   private PluginErrorResponse error;
 
-  public AudioBridgeResponse() {
+  public static AudioBridgeResponse create() {
+    return new AudioBridgeResponse();
   }
 
   public String getStatus() {
     return status;
   }
 
+  public AudioBridgeResponse status(String status) {
+    this.status = status;
+    return this;
+  }
+
   public String getConnectionId() {
     return connectionId;
+  }
+
+  public AudioBridgeResponse connectionId(String connectionId) {
+    this.connectionId = connectionId;
+    return this;
   }
 
   public String getTransactionId() {
     return transactionId;
   }
 
+  public AudioBridgeResponse transactionId(String transactionId) {
+    this.transactionId = transactionId;
+    return this;
+  }
+
   public String getHandleId() {
     return handleId;
+  }
+
+  public AudioBridgeResponse handleId(String handleId) {
+    this.handleId = handleId;
+    return this;
   }
 
   public AudioBridgePluginData getPluginData() {
     return pluginData;
   }
 
+  public AudioBridgeResponse pluginData(AudioBridgePluginData pluginData) {
+    this.pluginData = pluginData;
+    return this;
+  }
+
   public PluginErrorResponse getError() {
     return error;
+  }
+
+  public AudioBridgeResponse error(PluginErrorResponse error) {
+    this.error = error;
+    return this;
+  }
+
+  @JsonIgnore
+  public String getAudioBridge() {
+    return getPluginData().getDataInfo().getAudioBridge();
+  }
+
+  @JsonIgnore
+  public String getRoom() {
+    return getPluginData().getDataInfo().getRoom();
   }
 }

@@ -126,8 +126,8 @@ public class VideoServerServiceJanus implements VideoServerService {
       connectionId,
       audioHandleId,
       videoHandleId,
-      audioBridgeResponse.getPluginData().getDataInfo().getRoom(),
-      videoRoomResponse.getPluginData().getDataInfo().getRoom()
+      audioBridgeResponse.getRoom(),
+      videoRoomResponse.getRoom()
     );
   }
 
@@ -168,7 +168,7 @@ public class VideoServerServiceJanus implements VideoServerService {
         .audioLevelEvent(true),
       null
     );
-    if (!AudioBridgeResponse.CREATED.equals(audioBridgeResponse.getPluginData().getDataInfo().getAudioBridge())) {
+    if (!AudioBridgeResponse.CREATED.equals(audioBridgeResponse.getAudioBridge())) {
       throw new VideoServerException(
         "An error occurred when creating an audiobridge room for the connection " + connectionId + " with plugin "
           + audioHandleId + " for the meeting " + meetingId);
@@ -195,7 +195,7 @@ public class VideoServerServiceJanus implements VideoServerService {
           .collect(Collectors.joining(","))),
       null
     );
-    if (!VideoRoomResponse.CREATED.equals(videoRoomResponse.getPluginData().getDataInfo().getVideoRoom())) {
+    if (!VideoRoomResponse.CREATED.equals(videoRoomResponse.getVideoRoom())) {
       throw new VideoServerException(
         "An error occurred when creating a videoroom room for the connection " + connectionId + " with plugin "
           + videoHandleId + " for the meeting " + meetingId);
@@ -212,9 +212,9 @@ public class VideoServerServiceJanus implements VideoServerService {
       videoServerMeetingToRemove.getVideoHandleId(), videoServerMeetingToRemove.getVideoRoomId());
     destroyAudioBridgeRoom(meetingId, videoServerMeetingToRemove.getConnectionId(),
       videoServerMeetingToRemove.getAudioHandleId(), videoServerMeetingToRemove.getAudioRoomId());
-    destroyPluginHandle(videoServerMeetingToRemove.getConnectionId(), videoServerMeetingToRemove.getAudioHandleId(),
-      meetingId);
     destroyPluginHandle(videoServerMeetingToRemove.getConnectionId(), videoServerMeetingToRemove.getVideoHandleId(),
+      meetingId);
+    destroyPluginHandle(videoServerMeetingToRemove.getConnectionId(), videoServerMeetingToRemove.getAudioHandleId(),
       meetingId);
     destroyConnection(videoServerMeetingToRemove.getConnectionId(), meetingId);
     videoServerMeetingRepository.deleteById(meetingId);
@@ -251,7 +251,7 @@ public class VideoServerServiceJanus implements VideoServerService {
         .permanent(false),
       null
     );
-    if (!VideoRoomResponse.DESTROYED.equals(videoRoomResponse.getPluginData().getDataInfo().getVideoRoom())) {
+    if (!VideoRoomResponse.DESTROYED.equals(videoRoomResponse.getVideoRoom())) {
       throw new VideoServerException("An error occurred when destroying the videoroom for the connection "
         + connectionId + " with plugin "
         + videoHandleId + " for the meeting " + meetingId);
@@ -269,7 +269,7 @@ public class VideoServerServiceJanus implements VideoServerService {
         .permanent(false),
       null
     );
-    if (!AudioBridgeResponse.DESTROYED.equals(audioBridgeResponse.getPluginData().getDataInfo().getAudioBridge())) {
+    if (!AudioBridgeResponse.DESTROYED.equals(audioBridgeResponse.getAudioBridge())) {
       throw new VideoServerException("An error occurred when destroying the audiobridge room for the connection "
         + connectionId + " with plugin "
         + audioHandleId + " for the meeting " + meetingId);
@@ -285,8 +285,7 @@ public class VideoServerServiceJanus implements VideoServerService {
     if (videoServerMeeting.getVideoServerSessions().stream()
       .anyMatch(videoServerSessionUser -> videoServerSessionUser.getQueueId().equals(queueId))) {
       throw new VideoServerException(
-        "Videoserver session user with user  " + userId + "is already present in the videoserver meeting "
-          + meetingId);
+        "Videoserver session user with user  " + userId + "is already present in the videoserver meeting " + meetingId);
     }
     VideoServerResponse videoServerResponse = createNewConnection(meetingId);
     String connectionId = videoServerResponse.getDataId();
@@ -348,13 +347,13 @@ public class VideoServerServiceJanus implements VideoServerService {
       leaveAudioBridgeRoom(videoServerSession.getConnectionId(), audioHandleId);
       destroyPluginHandle(videoServerSession.getConnectionId(), audioHandleId);
     });
-    Optional.ofNullable(videoServerSession.getVideoInHandleId()).ifPresent(videoInHandleId -> {
-      leaveVideoRoom(videoServerSession.getConnectionId(), videoInHandleId);
-      destroyPluginHandle(videoServerSession.getConnectionId(), videoInHandleId);
-    });
     Optional.ofNullable(videoServerSession.getVideoOutHandleId()).ifPresent(videoOutHandleId -> {
       leaveVideoRoom(videoServerSession.getConnectionId(), videoOutHandleId);
       destroyPluginHandle(videoServerSession.getConnectionId(), videoOutHandleId);
+    });
+    Optional.ofNullable(videoServerSession.getVideoInHandleId()).ifPresent(videoInHandleId -> {
+      leaveVideoRoom(videoServerSession.getConnectionId(), videoInHandleId);
+      destroyPluginHandle(videoServerSession.getConnectionId(), videoInHandleId);
     });
     Optional.ofNullable(videoServerSession.getScreenHandleId()).ifPresent(screenHandleId -> {
       leaveVideoRoom(videoServerSession.getConnectionId(), screenHandleId);
@@ -458,19 +457,19 @@ public class VideoServerServiceJanus implements VideoServerService {
     }
   }
 
-  private void muteAudioStream(String meetingConnectionId, String connectionId, String userId, String audioHandleId,
-    String audioRoomId, boolean enabled) {
+  private void muteAudioStream(String meetingConnectionId, String connectionId, String userId,
+    String meetingAudioHandleId, String audioRoomId, boolean enabled) {
     AudioBridgeResponse audioBridgeResponse;
     audioBridgeResponse = sendAudioBridgePluginMessage(
       meetingConnectionId,
-      audioHandleId,
+      meetingAudioHandleId,
       AudioBridgeMuteRequest.create()
         .request(enabled ? AudioBridgeMuteRequest.UNMUTE : AudioBridgeMuteRequest.MUTE)
         .room(audioRoomId)
         .id(userId),
       null
     );
-    if (!AudioBridgeResponse.SUCCESS.equals(audioBridgeResponse.getPluginData().getDataInfo().getAudioBridge())) {
+    if (!AudioBridgeResponse.SUCCESS.equals(audioBridgeResponse.getAudioBridge())) {
       throw new VideoServerException(
         "An error occured while setting audio stream status for " + userId + " with connection id " + connectionId);
     }
@@ -529,8 +528,8 @@ public class VideoServerServiceJanus implements VideoServerService {
         VideoServerSession videoServerSessionUpdated = videoServerSessionRepository.update(
           videoServerSession.videoInHandleId(videoServerResponse.getDataId()));
         joinVideoRoom(videoServerSessionUpdated.getConnectionId(), userId,
-          videoServerSessionUpdated.getVideoInHandleId(), videoServerMeeting.getVideoRoomId(), Ptype.SUBSCRIBER, null,
-          subscriptionUpdatesDto.getSubscribe());
+          videoServerSessionUpdated.getVideoInHandleId(), videoServerMeeting.getVideoRoomId(),
+          Ptype.SUBSCRIBER, null, subscriptionUpdatesDto.getSubscribe());
       });
   }
 

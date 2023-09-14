@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Stream;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * This class represents the video room request to join a video room as publisher or as subscriber.
@@ -128,5 +129,28 @@ public class VideoRoomJoinRequest extends VideoRoomRequest {
   public VideoRoomJoinRequest streams(List<Stream> streams) {
     this.streams = streams;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof VideoRoomJoinRequest)) {
+      return false;
+    }
+    VideoRoomJoinRequest that = (VideoRoomJoinRequest) o;
+    return Objects.equals(getRequest(), that.getRequest()) && Objects.equals(getPtype(),
+      that.getPtype()) && Objects.equals(getRoom(), that.getRoom()) && Objects.equals(getId(),
+      that.getId()) && Objects.equals(getDisplay(), that.getDisplay()) && Objects.equals(getToken(),
+      that.getToken()) && Objects.equals(useMsid, that.useMsid) && Objects.equals(autoupdate,
+      that.autoupdate) && Objects.equals(getPrivateId(), that.getPrivateId()) && Objects.equals(
+      getStreams(), that.getStreams());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getRequest(), getPtype(), getRoom(), getId(), getDisplay(), getToken(), useMsid, autoupdate,
+      getPrivateId(), getStreams());
   }
 }

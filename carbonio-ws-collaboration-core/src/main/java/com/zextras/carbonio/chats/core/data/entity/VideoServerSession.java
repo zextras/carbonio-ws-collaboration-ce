@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.data.entity;
 
+import java.util.Objects;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
@@ -189,5 +190,32 @@ public class VideoServerSession {
   public VideoServerSession screenStreamOn(Boolean screenStreamOn) {
     this.screenStreamOn = screenStreamOn;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof VideoServerSession)) {
+      return false;
+    }
+    VideoServerSession that = (VideoServerSession) o;
+    return Objects.equals(getId(), that.getId()) && Objects.equals(getUserId(), that.getUserId())
+      && Objects.equals(getVideoServerMeeting(), that.getVideoServerMeeting()) && Objects.equals(
+      getQueueId(), that.getQueueId()) && Objects.equals(getConnectionId(), that.getConnectionId())
+      && Objects.equals(getAudioHandleId(), that.getAudioHandleId()) && Objects.equals(
+      getVideoOutHandleId(), that.getVideoOutHandleId()) && Objects.equals(getVideoInHandleId(),
+      that.getVideoInHandleId()) && Objects.equals(getScreenHandleId(), that.getScreenHandleId())
+      && Objects.equals(audioStreamOn, that.audioStreamOn) && Objects.equals(videoOutStreamOn,
+      that.videoOutStreamOn) && Objects.equals(videoInStreamOn, that.videoInStreamOn)
+      && Objects.equals(screenStreamOn, that.screenStreamOn);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getId(), getUserId(), getVideoServerMeeting(), getQueueId(), getConnectionId(),
+      getAudioHandleId(), getVideoOutHandleId(), getVideoInHandleId(), getScreenHandleId(), audioStreamOn,
+      videoOutStreamOn, videoInStreamOn, screenStreamOn);
   }
 }

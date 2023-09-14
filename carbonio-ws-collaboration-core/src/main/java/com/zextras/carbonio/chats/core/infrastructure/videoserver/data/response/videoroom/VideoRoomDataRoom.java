@@ -52,114 +52,250 @@ public class VideoRoomDataRoom {
   private Boolean      playOutDelayExt;
   private Boolean      transportWideCcExt;
 
-  public VideoRoomDataRoom() {
+  public static VideoRoomDataRoom create() {
+    return new VideoRoomDataRoom();
   }
 
   public String getRoom() {
     return room;
   }
 
+  public VideoRoomDataRoom room(String room) {
+    this.room = room;
+    return this;
+  }
+
   public String getDescription() {
     return description;
   }
 
-  public boolean isPinRequired() {
+  public VideoRoomDataRoom description(String description) {
+    this.description = description;
+    return this;
+  }
+
+  public Boolean getPinRequired() {
     return pinRequired;
   }
 
-  public boolean isPrivate() {
+  public VideoRoomDataRoom pinRequired(boolean pinRequired) {
+    this.pinRequired = pinRequired;
+    return this;
+  }
+
+  public Boolean getPrivate() {
     return isPrivate;
   }
 
-  public int getMaxPublishers() {
+  public VideoRoomDataRoom setPrivate(boolean status) {
+    isPrivate = status;
+    return this;
+  }
+
+  public Integer getMaxPublishers() {
     return maxPublishers;
   }
 
-  public long getBitrate() {
+  public VideoRoomDataRoom maxPublishers(int maxPublishers) {
+    this.maxPublishers = maxPublishers;
+    return this;
+  }
+
+  public Long getBitrate() {
     return bitrate;
   }
 
-  public boolean isBitrateCap() {
+  public VideoRoomDataRoom bitrate(long bitrate) {
+    this.bitrate = bitrate;
+    return this;
+  }
+
+  public Boolean getBitrateCap() {
     return bitrateCap;
   }
 
-  public int getFirFreq() {
+  public VideoRoomDataRoom bitrateCap(boolean bitrateCap) {
+    this.bitrateCap = bitrateCap;
+    return this;
+  }
+
+  public Integer getFirFreq() {
     return firFreq;
   }
 
-  public boolean isRequirePvtId() {
+  public VideoRoomDataRoom firFreq(int firFreq) {
+    this.firFreq = firFreq;
+    return this;
+  }
+
+  public Boolean getRequirePvtId() {
     return requirePvtId;
   }
 
-  public boolean isRequireE2ee() {
+  public VideoRoomDataRoom requirePvtId(boolean requirePvtId) {
+    this.requirePvtId = requirePvtId;
+    return this;
+  }
+
+  public Boolean getRequireE2ee() {
     return requireE2ee;
   }
 
-  public boolean isDummyPublisher() {
+  public VideoRoomDataRoom requireE2ee(boolean requireE2ee) {
+    this.requireE2ee = requireE2ee;
+    return this;
+  }
+
+  public Boolean getDummyPublisher() {
     return dummyPublisher;
   }
 
-  public boolean isNotifyJoining() {
+  public VideoRoomDataRoom dummyPublisher(boolean dummyPublisher) {
+    this.dummyPublisher = dummyPublisher;
+    return this;
+  }
+
+  public Boolean getNotifyJoining() {
     return notifyJoining;
+  }
+
+  public VideoRoomDataRoom notifyJoining(boolean notifyJoining) {
+    this.notifyJoining = notifyJoining;
+    return this;
   }
 
   public List<String> getAudioCodec() {
     return audioCodec;
   }
 
+  public VideoRoomDataRoom audioCodec(List<String> audioCodec) {
+    this.audioCodec = audioCodec;
+    return this;
+  }
+
   public List<String> getVideoCodec() {
     return videoCodec;
   }
 
-  public boolean isOpusFec() {
+  public VideoRoomDataRoom videoCodec(List<String> videoCodec) {
+    this.videoCodec = videoCodec;
+    return this;
+  }
+
+  public Boolean getOpusFec() {
     return opusFec;
   }
 
-  public boolean isOpusDtx() {
+  public VideoRoomDataRoom opusFec(boolean opusFec) {
+    this.opusFec = opusFec;
+    return this;
+  }
+
+  public Boolean getOpusDtx() {
     return opusDtx;
   }
 
-  public boolean isRecord() {
+  public VideoRoomDataRoom opusDtx(boolean opusDtx) {
+    this.opusDtx = opusDtx;
+    return this;
+  }
+
+  public Boolean getRecord() {
     return record;
+  }
+
+  public VideoRoomDataRoom record(boolean record) {
+    this.record = record;
+    return this;
   }
 
   public String getRecDir() {
     return recDir;
   }
 
-  public boolean isLockRecord() {
+  public VideoRoomDataRoom recDir(String recDir) {
+    this.recDir = recDir;
+    return this;
+  }
+
+  public Boolean getLockRecord() {
     return lockRecord;
   }
 
-  public int getNumParticipants() {
+  public VideoRoomDataRoom lockRecord(boolean lockRecord) {
+    this.lockRecord = lockRecord;
+    return this;
+  }
+
+  public Integer getNumParticipants() {
     return numParticipants;
   }
 
-  public boolean isAudioLevelExt() {
+  public VideoRoomDataRoom numParticipants(int numParticipants) {
+    this.numParticipants = numParticipants;
+    return this;
+  }
+
+  public Boolean getAudioLevelExt() {
     return audioLevelExt;
   }
 
-  public boolean isAudioLevelEvent() {
+  public VideoRoomDataRoom audioLevelExt(boolean audioLevelExt) {
+    this.audioLevelExt = audioLevelExt;
+    return this;
+  }
+
+  public Boolean getAudioLevelEvent() {
     return audioLevelEvent;
   }
 
-  public long getAudioActivePackets() {
+  public VideoRoomDataRoom audioLevelEvent(boolean audioLevelEvent) {
+    this.audioLevelEvent = audioLevelEvent;
+    return this;
+  }
+
+  public Long getAudioActivePackets() {
     return audioActivePackets;
   }
 
-  public long getAudioLevelAverage() {
+  public VideoRoomDataRoom audioActivePackets(long audioActivePackets) {
+    this.audioActivePackets = audioActivePackets;
+    return this;
+  }
+
+  public Long getAudioLevelAverage() {
     return audioLevelAverage;
   }
 
-  public boolean isVideoOrientExt() {
+  public VideoRoomDataRoom audioLevelAverage(long audioLevelAverage) {
+    this.audioLevelAverage = audioLevelAverage;
+    return this;
+  }
+
+  public Boolean getVideoOrientExt() {
     return videoOrientExt;
   }
 
-  public boolean isPlayOutDelayExt() {
+  public VideoRoomDataRoom videoOrientExt(boolean videoOrientExt) {
+    this.videoOrientExt = videoOrientExt;
+    return this;
+  }
+
+  public Boolean getPlayOutDelayExt() {
     return playOutDelayExt;
   }
 
-  public boolean isTransportWideCcExt() {
+  public VideoRoomDataRoom playOutDelayExt(boolean playOutDelayExt) {
+    this.playOutDelayExt = playOutDelayExt;
+    return this;
+  }
+
+  public Boolean getTransportWideCcExt() {
     return transportWideCcExt;
+  }
+
+  public VideoRoomDataRoom transportWideCcExt(boolean transportWideCcExt) {
+    this.transportWideCcExt = transportWideCcExt;
+    return this;
   }
 }

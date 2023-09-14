@@ -235,7 +235,7 @@ public class MeetingApiIT {
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/audioHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
           + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-          + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}",
+          + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"is_private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"audiobridge\":\"created\",\"room\":\"audioRoomId\"}}}",
         true);
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId",
@@ -244,7 +244,7 @@ public class MeetingApiIT {
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
           + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-          + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
+          + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"videoroom\":\"created\",\"room\":\"videoRoomId\"}}}", true);
 
       MockHttpResponse response = dispatcher.post(url(meeting1Id) + "/start", user1Token);
@@ -266,7 +266,7 @@ public class MeetingApiIT {
         videoServerMockServer.getRequest("POST", "/janus/connectionId/audioHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
             + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-            + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}"),
+            + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"is_private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST", "/janus/connectionId",
@@ -276,7 +276,7 @@ public class MeetingApiIT {
         videoServerMockServer.getRequest("POST", "/janus/connectionId/videoHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
             + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-            + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}"),
+            + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
     }
 
@@ -455,7 +455,7 @@ public class MeetingApiIT {
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/audioHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
           + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-          + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}",
+          + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"is_private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"audiobridge\":\"created\",\"room\":\"audioRoomId\"}}}",
         false);
 
@@ -476,7 +476,7 @@ public class MeetingApiIT {
         videoServerMockServer.getRequest("POST", "/janus/connectionId/audioHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
             + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-            + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}"),
+            + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"is_private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
     }
 
@@ -502,7 +502,7 @@ public class MeetingApiIT {
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/audioHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
           + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-          + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}",
+          + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"is_private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"audiobridge\":\"event\",\"error_code\":\"123\",\"error\":\"something\"}}}",
         true);
 
@@ -523,7 +523,7 @@ public class MeetingApiIT {
         videoServerMockServer.getRequest("POST", "/janus/connectionId/audioHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
             + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-            + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}"),
+            + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"is_private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
     }
 
@@ -549,7 +549,7 @@ public class MeetingApiIT {
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/audioHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
           + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-          + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}",
+          + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"is_private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"audiobridge\":\"created\",\"room\":\"audioRoomId\"}}}",
         true);
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId",
@@ -558,7 +558,7 @@ public class MeetingApiIT {
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
           + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-          + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
+          + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"videoroom\":\"created\",\"room\":\"videoRoomId\"}}}",
         false);
 
@@ -579,7 +579,7 @@ public class MeetingApiIT {
         videoServerMockServer.getRequest("POST", "/janus/connectionId/audioHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
             + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-            + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}"),
+            + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"is_private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST", "/janus/connectionId",
@@ -589,7 +589,7 @@ public class MeetingApiIT {
         videoServerMockServer.getRequest("POST", "/janus/connectionId/videoHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
             + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-            + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}"),
+            + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
     }
 
@@ -615,7 +615,7 @@ public class MeetingApiIT {
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/audioHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
           + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-          + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}",
+          + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"is_private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"audiobridge\":\"created\",\"room\":\"audioRoomId\"}}}",
         true);
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId",
@@ -624,7 +624,7 @@ public class MeetingApiIT {
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
           + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-          + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
+          + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"videoroom\":\"event\",\"error_code\":\"123\",\"error\":\"something\"}}}",
         true);
 
@@ -645,7 +645,7 @@ public class MeetingApiIT {
         videoServerMockServer.getRequest("POST", "/janus/connectionId/audioHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
             + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-            + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}"),
+            + "\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"is_private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
       videoServerMockServer.verify(
         videoServerMockServer.getRequest("POST", "/janus/connectionId",
@@ -655,7 +655,7 @@ public class MeetingApiIT {
         videoServerMockServer.getRequest("POST", "/janus/connectionId/videoHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
             + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-            + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}"),
+            + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
     }
 

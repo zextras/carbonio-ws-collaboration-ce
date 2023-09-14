@@ -4,38 +4,70 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
-import static io.smallrye.common.constraint.Assert.assertFalse;
-import static io.smallrye.common.constraint.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsontype.NamedType;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
+import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
+import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcType;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Stream;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerMessageRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeCreateRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeDestroyRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeJoinRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeLeaveRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeMuteRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomCreateRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomDestroyRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomJoinRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomLeaveRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomPublishRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomStartVideoInRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomUpdateSubscriptionsRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.VideoServerDataInfo;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.VideoServerResponse;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.audiobridge.AudioBridgeDataInfo;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.audiobridge.AudioBridgePluginData;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.audiobridge.AudioBridgeResponse;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.videoroom.VideoRoomDataInfo;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.videoroom.VideoRoomPluginData;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.videoroom.VideoRoomResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceJanus;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
+import com.zextras.carbonio.meeting.model.MediaStreamDto;
+import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
+import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
+import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -63,9 +95,6 @@ public class VideoServerServiceImplTest {
     when(appConfig.get(String.class, ConfigName.VIDEO_SERVER_ADMIN_PORT)).thenReturn(Optional.of("7088"));
     when(appConfig.get(String.class, ConfigName.VIDEO_SERVER_TOKEN)).thenReturn(Optional.of("token"));
 
-    objectMapper.registerSubtypes(new NamedType(AudioBridgeCreateRequest.class, "AudioBridgeCreateRequest"));
-    objectMapper.registerSubtypes(new NamedType(VideoRoomCreateRequest.class, "VideoRoomCreateRequest"));
-
     this.videoServerService = new VideoServerServiceJanus(
       appConfig,
       objectMapper,
@@ -76,14 +105,73 @@ public class VideoServerServiceImplTest {
   }
 
   private UUID   meeting1Id;
+  private UUID   user1Id;
+  private UUID   user2Id;
+  private UUID   queue1Id;
+  private UUID   queue2Id;
   private String videoServerURL;
   private String janusEndpoint;
 
   @BeforeEach
   public void init() {
     meeting1Id = UUID.randomUUID();
+    user1Id = UUID.randomUUID();
+    user2Id = UUID.randomUUID();
+    queue1Id = UUID.randomUUID();
+    queue2Id = UUID.randomUUID();
     videoServerURL = "http://127.0.0.1:8088";
     janusEndpoint = "/janus";
+  }
+
+  @AfterEach
+  public void cleanup() {
+    verifyNoMoreInteractions(httpClient);
+    verifyNoMoreInteractions(videoServerMeetingRepository);
+    verifyNoMoreInteractions(videoServerSessionRepository);
+    reset(
+      httpClient,
+      videoServerMeetingRepository,
+      videoServerSessionRepository
+    );
+  }
+
+  private CloseableHttpResponse mockResponse(Object bodyResponse) throws IOException {
+    CloseableHttpResponse sessionResponse = mock(CloseableHttpResponse.class);
+    StatusLine sessionStatusLine = mock(StatusLine.class);
+    HttpEntity sessionHttpEntity = mock(HttpEntity.class);
+    when(sessionResponse.getStatusLine()).thenReturn(sessionStatusLine);
+    when(sessionResponse.getEntity()).thenReturn(sessionHttpEntity);
+    when(sessionStatusLine.getStatusCode()).thenReturn(200);
+    when(sessionHttpEntity.getContent()).thenReturn(
+      new ByteArrayInputStream(objectMapper.writeValueAsString(bodyResponse).getBytes(StandardCharsets.UTF_8)));
+    return sessionResponse;
+  }
+
+  private VideoServerMeeting mockVideoServerMeeting(UUID meetingId) {
+    VideoServerMeeting videoServerMeeting = VideoServerMeeting.create()
+      .meetingId(meetingId.toString())
+      .connectionId("session-id")
+      .videoHandleId("video-handle-id")
+      .audioHandleId("audio-handle-id")
+      .videoRoomId("video-room-id")
+      .audioRoomId("audio-room-id");
+    when(videoServerMeetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(videoServerMeeting));
+    return videoServerMeeting;
+  }
+
+  private VideoServerSession mockVideoServerSession(VideoServerMeeting videoServerMeeting, UUID userId, UUID queueId,
+    int userIndex) {
+    VideoServerSession videoServerSession = VideoServerSession.create()
+      .userId(userId.toString())
+      .queueId(queueId.toString())
+      .videoServerMeeting(videoServerMeeting)
+      .connectionId(String.format("user%d-session-id", userIndex))
+      .audioHandleId(String.format("user%d-audio-handle-id", userIndex))
+      .videoInHandleId(String.format("user%d-video-in-handle-id", userIndex))
+      .videoOutHandleId(String.format("user%d-video-out-handle-id", userIndex))
+      .screenHandleId(String.format("user%d-screen-handle-id", userIndex));
+    videoServerMeeting.getVideoServerSessions().add(videoServerSession);
+    return videoServerSession;
   }
 
   @Nested
@@ -93,69 +181,27 @@ public class VideoServerServiceImplTest {
     @Test
     @DisplayName("Start meeting test")
     void startMeeting_testOk() throws IOException {
-      CloseableHttpResponse sessionResponse = mock(CloseableHttpResponse.class);
-      StatusLine sessionStatusLine = mock(StatusLine.class);
-      HttpEntity sessionHttpEntity = mock(HttpEntity.class);
-      when(sessionResponse.getStatusLine()).thenReturn(sessionStatusLine);
-      when(sessionResponse.getEntity()).thenReturn(sessionHttpEntity);
-      when(sessionStatusLine.getStatusCode()).thenReturn(200);
-      when(sessionHttpEntity.getContent()).thenReturn(
-        new ByteArrayInputStream(
-          ("{\n"
-            + "    \"janus\": \"success\",\n"
-            + "    \"transaction\": \"transaction-id\",\n"
-            + "    \"data\": {\n"
-            + "        \"id\": \"session-id\"\n"
-            + "    }\n"
-            + "}"
-          ).getBytes(StandardCharsets.UTF_8)
-        )
-      );
+      CloseableHttpResponse sessionResponse = mockResponse(VideoServerResponse.create()
+        .status("success")
+        .transactionId("transaction-id")
+        .data(VideoServerDataInfo.create().id("session-id")));
       when(httpClient.sendPost(
         eq(videoServerURL + janusEndpoint),
         eq(Map.of("content-type", "application/json")),
         anyString()
       )).thenReturn(sessionResponse);
 
-      CloseableHttpResponse audioHandleResponse = mock(CloseableHttpResponse.class);
-      StatusLine audioHandleStatusLine = mock(StatusLine.class);
-      HttpEntity audioHandleHttpEntity = mock(HttpEntity.class);
-      when(audioHandleResponse.getStatusLine()).thenReturn(audioHandleStatusLine);
-      when(audioHandleResponse.getEntity()).thenReturn(audioHandleHttpEntity);
-      when(audioHandleStatusLine.getStatusCode()).thenReturn(200);
-      when(audioHandleHttpEntity.getContent()).thenReturn(
-        new ByteArrayInputStream(
-          ("{\n"
-            + "    \"janus\": \"success\",\n"
-            + "    \"session_id\": \"session-id\",\n"
-            + "    \"transaction\": \"transaction-id\",\n"
-            + "    \"data\": {\n"
-            + "        \"id\": \"audio-handle-id\"\n"
-            + "    }\n"
-            + "}"
-          ).getBytes(StandardCharsets.UTF_8)
-        )
-      );
+      CloseableHttpResponse audioHandleResponse = mockResponse(VideoServerResponse.create()
+        .status("success")
+        .connectionId("session-id")
+        .transactionId("transaction-id")
+        .data(VideoServerDataInfo.create().id("audio-handle-id")));
 
-      CloseableHttpResponse videoHandleResponse = mock(CloseableHttpResponse.class);
-      StatusLine videoHandleStatusLine = mock(StatusLine.class);
-      HttpEntity videoHandleHttpEntity = mock(HttpEntity.class);
-      when(videoHandleResponse.getStatusLine()).thenReturn(videoHandleStatusLine);
-      when(videoHandleResponse.getEntity()).thenReturn(videoHandleHttpEntity);
-      when(videoHandleStatusLine.getStatusCode()).thenReturn(200);
-      when(videoHandleHttpEntity.getContent()).thenReturn(
-        new ByteArrayInputStream(
-          ("{\n"
-            + "    \"janus\": \"success\",\n"
-            + "    \"session_id\": \"session-id\",\n"
-            + "    \"transaction\": \"transaction-id\",\n"
-            + "    \"data\": {\n"
-            + "        \"id\": \"video-handle-id\"\n"
-            + "    }\n"
-            + "}"
-          ).getBytes(StandardCharsets.UTF_8)
-        )
-      );
+      CloseableHttpResponse videoHandleResponse = mockResponse(VideoServerResponse.create()
+        .status("success")
+        .connectionId("session-id")
+        .transactionId("transaction-id")
+        .data(VideoServerDataInfo.create().id("video-handle-id")));
 
       when(httpClient.sendPost(
         eq(videoServerURL + janusEndpoint + "/session-id"),
@@ -163,62 +209,30 @@ public class VideoServerServiceImplTest {
         anyString()
       )).thenReturn(audioHandleResponse, videoHandleResponse);
 
-      CloseableHttpResponse audioRoomResponse = mock(CloseableHttpResponse.class);
-      StatusLine audioRoomStatusLine = mock(StatusLine.class);
-      HttpEntity audioRoomHttpEntity = mock(HttpEntity.class);
-      when(audioRoomResponse.getStatusLine()).thenReturn(audioRoomStatusLine);
-      when(audioRoomResponse.getEntity()).thenReturn(audioRoomHttpEntity);
-      when(audioRoomStatusLine.getStatusCode()).thenReturn(200);
-      when(audioRoomHttpEntity.getContent()).thenReturn(
-        new ByteArrayInputStream(
-          ("{\n"
-            + "    \"janus\": \"success\",\n"
-            + "    \"session_id\": \"session-id\",\n"
-            + "    \"transaction\": \"transaction-id\",\n"
-            + "    \"sender\": \"audio-handle-id\",\n"
-            + "    \"plugindata\": {\n"
-            + "        \"plugin\": \"janus.plugin.audiobridge\",\n"
-            + "        \"data\": {\n"
-            + "            \"audiobridge\": \"created\",\n"
-            + "            \"room\": \"audio-room-id\",\n"
-            + "            \"permanent\": false\n"
-            + "        }\n"
-            + "    }\n"
-            + "}"
-          ).getBytes(StandardCharsets.UTF_8)
-        )
-      );
+      CloseableHttpResponse audioRoomResponse = mockResponse(AudioBridgeResponse.create()
+        .status("success")
+        .connectionId("session-id")
+        .transactionId("transaction-id")
+        .handleId("audio-handle-id")
+        .pluginData(
+          AudioBridgePluginData.create()
+            .plugin("janus.plugin.audiobridge")
+            .dataInfo(AudioBridgeDataInfo.create().audioBridge("created").room("audio-room-id").permanent(false))));
       when(httpClient.sendPost(
         eq(videoServerURL + janusEndpoint + "/session-id" + "/audio-handle-id"),
         eq(Map.of("content-type", "application/json")),
         anyString()
       )).thenReturn(audioRoomResponse);
 
-      CloseableHttpResponse videoRoomResponse = mock(CloseableHttpResponse.class);
-      StatusLine videoRoomStatusLine = mock(StatusLine.class);
-      HttpEntity videoRoomHttpEntity = mock(HttpEntity.class);
-      when(videoRoomResponse.getStatusLine()).thenReturn(videoRoomStatusLine);
-      when(videoRoomResponse.getEntity()).thenReturn(videoRoomHttpEntity);
-      when(videoRoomStatusLine.getStatusCode()).thenReturn(200);
-      when(videoRoomHttpEntity.getContent()).thenReturn(
-        new ByteArrayInputStream(
-          ("{\n"
-            + "    \"janus\": \"success\",\n"
-            + "    \"session_id\": \"session-id\",\n"
-            + "    \"transaction\": \"transaction-id\",\n"
-            + "    \"sender\": \"video-handle-id\",\n"
-            + "    \"plugindata\": {\n"
-            + "        \"plugin\": \"janus.plugin.videoroom\",\n"
-            + "        \"data\": {\n"
-            + "            \"videoroom\": \"created\",\n"
-            + "            \"room\": \"video-room-id\",\n"
-            + "            \"permanent\": false\n"
-            + "        }\n"
-            + "    }\n"
-            + "}"
-          ).getBytes(StandardCharsets.UTF_8)
-        )
-      );
+      CloseableHttpResponse videoRoomResponse = mockResponse(VideoRoomResponse.create()
+        .status("success")
+        .connectionId("session-id")
+        .transactionId("transaction-id")
+        .handleId("video-handle-id")
+        .pluginData(
+          VideoRoomPluginData.create()
+            .plugin("janus.plugin.videoroom")
+            .dataInfo(VideoRoomDataInfo.create().videoRoom("created").room("video-room-id").permanent(false))));
       when(httpClient.sendPost(
         eq(videoServerURL + janusEndpoint + "/session-id" + "/video-handle-id"),
         eq(Map.of("content-type", "application/json")),
@@ -262,59 +276,61 @@ public class VideoServerServiceImplTest {
         "video-room-id"
       );
 
-      VideoServerMessageRequest videoServerMessageRequest = objectMapper.readValue(
-        createConnectionJsonBody.getValue(), VideoServerMessageRequest.class);
-      assertEquals("create", videoServerMessageRequest.getMessageRequest());
-      assertFalse(videoServerMessageRequest.getTransactionId().isEmpty());
-      assertEquals("token", videoServerMessageRequest.getApiSecret());
+      assertEquals(1, createConnectionJsonBody.getAllValues().size());
+      assertEquals(VideoServerMessageRequest.create().messageRequest("create").apiSecret("token"),
+        objectMapper.readValue(createConnectionJsonBody.getValue(), VideoServerMessageRequest.class));
 
       assertEquals(2, createHandleJsonBody.getAllValues().size());
       VideoServerMessageRequest audioHandleMessageRequest = objectMapper.readValue(
         createHandleJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
-      assertEquals("attach", audioHandleMessageRequest.getMessageRequest());
-      assertEquals("janus.plugin.audiobridge", audioHandleMessageRequest.getPluginName());
-      assertFalse(audioHandleMessageRequest.getTransactionId().isEmpty());
-      assertEquals("token", audioHandleMessageRequest.getApiSecret());
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("attach")
+        .pluginName("janus.plugin.audiobridge")
+        .apiSecret("token"), audioHandleMessageRequest);
       VideoServerMessageRequest videoHandleMessageRequest = objectMapper.readValue(
         createHandleJsonBody.getAllValues().get(1), VideoServerMessageRequest.class);
-      assertEquals("attach", videoHandleMessageRequest.getMessageRequest());
-      assertEquals("janus.plugin.videoroom", videoHandleMessageRequest.getPluginName());
-      assertFalse(videoHandleMessageRequest.getTransactionId().isEmpty());
-      assertEquals("token", videoHandleMessageRequest.getApiSecret());
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("attach")
+        .pluginName("janus.plugin.videoroom")
+        .apiSecret("token"), videoHandleMessageRequest);
 
+      assertEquals(1, createAudioRoomJsonBody.getAllValues().size());
       VideoServerMessageRequest audioRoomMessageRequest = objectMapper.readValue(createAudioRoomJsonBody.getValue(),
         VideoServerMessageRequest.class);
-      assertEquals("message", audioRoomMessageRequest.getMessageRequest());
-      assertFalse(audioRoomMessageRequest.getTransactionId().isEmpty());
-      assertEquals("token", audioRoomMessageRequest.getApiSecret());
-      AudioBridgeCreateRequest audioBridgeCreateRequest = (AudioBridgeCreateRequest) audioRoomMessageRequest.getVideoServerPluginRequest();
-      assertEquals("create", audioBridgeCreateRequest.getRequest());
-      assertEquals("audio_" + meeting1Id, audioBridgeCreateRequest.getRoom());
-      assertFalse(audioBridgeCreateRequest.getPermanent());
-      assertEquals("audio_room_" + meeting1Id, audioBridgeCreateRequest.getDescription());
-      assertFalse(audioBridgeCreateRequest.getIsPrivate());
-      assertFalse(audioBridgeCreateRequest.getRecord());
-      assertEquals(16000L, audioBridgeCreateRequest.getSamplingRate());
-      assertEquals(10L, audioBridgeCreateRequest.getAudioActivePackets());
-      assertEquals(55, audioBridgeCreateRequest.getAudioLevelAverage());
-      assertTrue(audioBridgeCreateRequest.getAudioLevelEvent());
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          AudioBridgeCreateRequest.create()
+            .request("create")
+            .room("audio_" + meeting1Id)
+            .permanent(false)
+            .description("audio_room_" + meeting1Id)
+            .isPrivate(false)
+            .record(false)
+            .samplingRate(16000L)
+            .audioActivePackets(10L)
+            .audioLevelAverage(55)
+            .audioLevelEvent(true)), audioRoomMessageRequest);
 
+      assertEquals(1, createVideoRoomJsonBody.getAllValues().size());
       VideoServerMessageRequest videoRoomMessageRequest = objectMapper.readValue(createVideoRoomJsonBody.getValue(),
         VideoServerMessageRequest.class);
-      assertEquals("message", videoRoomMessageRequest.getMessageRequest());
-      assertFalse(videoRoomMessageRequest.getTransactionId().isEmpty());
-      assertEquals("token", videoRoomMessageRequest.getApiSecret());
-      VideoRoomCreateRequest videoRoomCreateRequest = (VideoRoomCreateRequest) videoRoomMessageRequest.getVideoServerPluginRequest();
-      assertEquals("create", videoRoomCreateRequest.getRequest());
-      assertEquals("video_" + meeting1Id, videoRoomCreateRequest.getRoom());
-      assertFalse(videoRoomCreateRequest.getPermanent());
-      assertEquals("video_room_" + meeting1Id, videoRoomCreateRequest.getDescription());
-      assertFalse(videoRoomCreateRequest.getIsPrivate());
-      assertFalse(videoRoomCreateRequest.getRecord());
-      assertEquals(100, videoRoomCreateRequest.getPublishers());
-      assertEquals(200L, videoRoomCreateRequest.getBitrate());
-      assertTrue(videoRoomCreateRequest.getBitrateCap());
-      assertEquals("vp8,h264,vp9,h265,av1", videoRoomCreateRequest.getVideoCodec());
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          VideoRoomCreateRequest.create()
+            .request("create")
+            .room("video_" + meeting1Id)
+            .permanent(false)
+            .description("video_room_" + meeting1Id)
+            .isPrivate(false)
+            .record(false)
+            .publishers(100)
+            .bitrate(200L)
+            .bitrateCap(true)
+            .videoCodec("vp8,h264,vp9,h265,av1")), videoRoomMessageRequest);
     }
   }
 
@@ -324,8 +340,729 @@ public class VideoServerServiceImplTest {
 
     @Test
     @DisplayName("Stop meeting test")
-    void stopMeeting_testOk() {
+    void stopMeeting_testOk() throws IOException {
+      mockVideoServerMeeting(meeting1Id);
 
+      CloseableHttpResponse destroyVideoRoomResponse = mockResponse(VideoRoomResponse.create()
+        .status("success")
+        .connectionId("session-id")
+        .transactionId("transaction-id")
+        .handleId("video-handle-id")
+        .pluginData(VideoRoomPluginData.create().plugin("janus.plugin.videoroom")
+          .dataInfo(VideoRoomDataInfo.create().videoRoom("destroyed"))));
+
+      CloseableHttpResponse destroyVideoRoomPluginResponse = mockResponse(VideoRoomResponse.create()
+        .status("success")
+        .connectionId("session-id")
+        .transactionId("transaction-id")
+        .handleId("video-handle-id"));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/session-id" + "/video-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(destroyVideoRoomResponse, destroyVideoRoomPluginResponse);
+
+      CloseableHttpResponse destroyAudioRoomResponse = mockResponse(AudioBridgeResponse.create()
+        .status("success")
+        .connectionId("session-id")
+        .transactionId("transaction-id")
+        .handleId("audio-handle-id")
+        .pluginData(AudioBridgePluginData.create().plugin("janus.plugin.audiobridge")
+          .dataInfo(AudioBridgeDataInfo.create().audioBridge("destroyed"))));
+
+      CloseableHttpResponse destroyAudioBridgePluginResponse = mockResponse(AudioBridgeResponse.create()
+        .status("success")
+        .connectionId("session-id")
+        .transactionId("transaction-id")
+        .handleId("audio-handle-id"));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/session-id" + "/audio-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(destroyAudioRoomResponse, destroyAudioBridgePluginResponse);
+
+      CloseableHttpResponse destroyConnectionResponse = mockResponse(VideoServerResponse.create()
+        .status("success")
+        .connectionId("session-id")
+        .transactionId("transaction-id"));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/session-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(destroyConnectionResponse);
+
+      videoServerService.stopMeeting(meeting1Id.toString());
+
+      ArgumentCaptor<String> destroyVideoRoomJsonBody = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<String> destroyAudioRoomJsonBody = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<String> destroyConnectionJsonBody = ArgumentCaptor.forClass(String.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(httpClient, times(2)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/session-id" + "/video-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        destroyVideoRoomJsonBody.capture()
+      );
+      verify(httpClient, times(2)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/session-id" + "/audio-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        destroyAudioRoomJsonBody.capture()
+      );
+      verify(httpClient, times(1)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/session-id"),
+        eq(Map.of("content-type", "application/json")),
+        destroyConnectionJsonBody.capture()
+      );
+      verify(videoServerMeetingRepository, times(1)).deleteById(meeting1Id.toString());
+
+      assertEquals(2, destroyVideoRoomJsonBody.getAllValues().size());
+      VideoServerMessageRequest destroyVideoRoomRequest = objectMapper.readValue(
+        destroyVideoRoomJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(VideoRoomDestroyRequest.create()
+          .request("destroy")
+          .room("video-room-id")
+          .permanent(false)), destroyVideoRoomRequest);
+      VideoServerMessageRequest destroyVideoRoomPluginRequest = objectMapper.readValue(
+        destroyVideoRoomJsonBody.getAllValues().get(1), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("detach")
+        .apiSecret("token"), destroyVideoRoomPluginRequest);
+
+      assertEquals(2, destroyAudioRoomJsonBody.getAllValues().size());
+      VideoServerMessageRequest destroyAudioRoomRequest = objectMapper.readValue(
+        destroyAudioRoomJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(AudioBridgeDestroyRequest.create()
+          .request("destroy")
+          .room("audio-room-id")
+          .permanent(false)), destroyAudioRoomRequest);
+      VideoServerMessageRequest destroyAudioBridgePluginRequest = objectMapper.readValue(
+        destroyAudioRoomJsonBody.getAllValues().get(1), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("detach")
+        .apiSecret("token"), destroyAudioBridgePluginRequest);
+
+      assertEquals(1, destroyConnectionJsonBody.getAllValues().size());
+      VideoServerMessageRequest destroyConnectionRequest = objectMapper.readValue(
+        destroyConnectionJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("destroy")
+        .apiSecret("token"), destroyConnectionRequest);
+    }
+  }
+
+  @Nested
+  @DisplayName("Join Meeting tests")
+  class JoinMeetingTests {
+
+    @Test
+    @DisplayName("join meeting test")
+    void joinMeeting_testOk() throws IOException {
+      VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
+
+      CloseableHttpResponse sessionResponse = mockResponse(VideoServerResponse.create()
+        .status("success")
+        .transactionId("transaction-id")
+        .data(VideoServerDataInfo.create().id("user-session-id")));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(sessionResponse);
+
+      CloseableHttpResponse videoOutHandleResponse = mockResponse(VideoServerResponse.create()
+        .status("success")
+        .connectionId("user-session-id")
+        .transactionId("transaction-id")
+        .data(VideoServerDataInfo.create().id("user-video-out-handle-id")));
+
+      CloseableHttpResponse screenHandleResponse = mockResponse(VideoServerResponse.create()
+        .status("success")
+        .connectionId("user-session-id")
+        .transactionId("transaction-id")
+        .data(VideoServerDataInfo.create().id("user-screen-handle-id")));
+
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/user-session-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(videoOutHandleResponse, screenHandleResponse);
+
+      CloseableHttpResponse joinPublisherVideoResponse = mockResponse(VideoRoomResponse.create()
+        .status("ack")
+        .connectionId("user-session-id")
+        .transactionId("transaction-id")
+        .handleId("user-video-out-handle-id"));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/user-session-id" + "/user-video-out-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(joinPublisherVideoResponse);
+
+      CloseableHttpResponse joinPublisherScreenResponse = mockResponse(VideoRoomResponse.create()
+        .status("ack")
+        .connectionId("user-session-id")
+        .transactionId("transaction-id")
+        .handleId("user-screen-handle-id"));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/user-session-id" + "/user-screen-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(joinPublisherScreenResponse);
+
+      videoServerService.joinMeeting(user1Id.toString(), queue1Id.toString(), meeting1Id.toString(), false, true);
+
+      ArgumentCaptor<String> createConnectionJsonBody = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<String> createHandleJsonBody = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<String> joinPublisherVideoJsonBody = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<String> joinPublisherScreenJsonBody = ArgumentCaptor.forClass(String.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(httpClient, times(1)).sendPost(
+        eq(videoServerURL + janusEndpoint),
+        eq(Map.of("content-type", "application/json")),
+        createConnectionJsonBody.capture()
+      );
+      verify(httpClient, times(2)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/user-session-id"),
+        eq(Map.of("content-type", "application/json")),
+        createHandleJsonBody.capture()
+      );
+      verify(httpClient, times(1)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/user-session-id" + "/user-video-out-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        joinPublisherVideoJsonBody.capture()
+      );
+      verify(httpClient, times(1)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/user-session-id" + "/user-screen-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        joinPublisherScreenJsonBody.capture()
+      );
+      verify(videoServerSessionRepository, times(1)).insert(
+        videoServerMeeting,
+        user1Id.toString(),
+        queue1Id.toString(),
+        "user-session-id",
+        "user-video-out-handle-id",
+        "user-screen-handle-id"
+      );
+
+      assertEquals(1, createConnectionJsonBody.getAllValues().size());
+      assertEquals(VideoServerMessageRequest.create().messageRequest("create").apiSecret("token"),
+        objectMapper.readValue(createConnectionJsonBody.getValue(), VideoServerMessageRequest.class));
+
+      assertEquals(2, createHandleJsonBody.getAllValues().size());
+      VideoServerMessageRequest videoOutHandleMessageRequest = objectMapper.readValue(
+        createHandleJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("attach")
+        .pluginName("janus.plugin.videoroom")
+        .apiSecret("token"), videoOutHandleMessageRequest);
+      VideoServerMessageRequest screenHandleMessageRequest = objectMapper.readValue(
+        createHandleJsonBody.getAllValues().get(1), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("attach")
+        .pluginName("janus.plugin.videoroom")
+        .apiSecret("token"), screenHandleMessageRequest);
+
+      assertEquals(1, joinPublisherVideoJsonBody.getAllValues().size());
+      VideoServerMessageRequest joinPublisherVideoRequest = objectMapper.readValue(
+        joinPublisherVideoJsonBody.getValue(),
+        VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          VideoRoomJoinRequest.create()
+            .request("join")
+            .ptype("publisher")
+            .room("video-room-id")
+            .id(user1Id.toString() + "/video")), joinPublisherVideoRequest);
+
+      assertEquals(1, joinPublisherScreenJsonBody.getAllValues().size());
+      VideoServerMessageRequest joinPublisherScreenRequest = objectMapper.readValue(
+        joinPublisherScreenJsonBody.getValue(),
+        VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          VideoRoomJoinRequest.create()
+            .request("join")
+            .ptype("publisher")
+            .room("video-room-id")
+            .id(user1Id.toString() + "/screen")), joinPublisherScreenRequest);
+    }
+  }
+
+  @Nested
+  @DisplayName("Leave Meeting tests")
+  class LeaveMeetingTests {
+
+    @Test
+    @DisplayName("leave meeting test")
+    void leaveMeeting_testOk() throws IOException {
+      VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession = mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
+
+      CloseableHttpResponse leaveAudioRoomResponse = mockResponse(AudioBridgeResponse.create()
+        .status("ack")
+        .connectionId("user1-session-id")
+        .transactionId("transaction-id")
+        .handleId("user1-audio-handle-id"));
+      CloseableHttpResponse destroyAudioBridgePluginResponse = mockResponse(AudioBridgeResponse.create()
+        .status("success")
+        .connectionId("user1-session-id")
+        .transactionId("transaction-id")
+        .handleId("user1-audio-handle-id"));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-audio-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(leaveAudioRoomResponse, destroyAudioBridgePluginResponse);
+
+      CloseableHttpResponse leaveVideoOutRoomResponse = mockResponse(VideoRoomResponse.create()
+        .status("ack")
+        .connectionId("user1-session-id")
+        .transactionId("transaction-id")
+        .handleId("user1-video-out-handle-id"));
+      CloseableHttpResponse destroyVideoOutRoomPluginResponse = mockResponse(VideoRoomResponse.create()
+        .status("success")
+        .connectionId("user1-session-id")
+        .transactionId("transaction-id")
+        .handleId("user1-video-out-handle-id"));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-video-out-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(leaveVideoOutRoomResponse, destroyVideoOutRoomPluginResponse);
+
+      CloseableHttpResponse leaveVideoInRoomResponse = mockResponse(VideoRoomResponse.create()
+        .status("ack")
+        .connectionId("user1-session-id")
+        .transactionId("transaction-id")
+        .handleId("user1-video-in-handle-id"));
+      CloseableHttpResponse destroyVideoInRoomPluginResponse = mockResponse(VideoRoomResponse.create()
+        .status("success")
+        .connectionId("user1-session-id")
+        .transactionId("transaction-id")
+        .handleId("user1-video-in-handle-id"));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-video-in-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(leaveVideoInRoomResponse, destroyVideoInRoomPluginResponse);
+
+      CloseableHttpResponse leaveVideoScreenResponse = mockResponse(VideoRoomResponse.create()
+        .status("ack")
+        .connectionId("user1-session-id")
+        .transactionId("transaction-id")
+        .handleId("user1-screen-handle-id"));
+      CloseableHttpResponse destroyVideoScreenPluginResponse = mockResponse(VideoRoomResponse.create()
+        .status("success")
+        .connectionId("user1-session-id")
+        .transactionId("transaction-id")
+        .handleId("user1-screen-handle-id"));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-screen-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(leaveVideoScreenResponse, destroyVideoScreenPluginResponse);
+
+      CloseableHttpResponse destroyConnectionResponse = mockResponse(VideoServerResponse.create()
+        .status("success")
+        .connectionId("user1-session-id")
+        .transactionId("transaction-id"));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(destroyConnectionResponse);
+
+      videoServerService.leaveMeeting(user1Id.toString(), meeting1Id.toString());
+
+      ArgumentCaptor<String> leaveAudioRoomJsonBody = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<String> leaveVideoInRoomJsonBody = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<String> leaveVideoOutRoomJsonBody = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<String> leaveVideoScreenJsonBody = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<String> destroyConnectionJsonBody = ArgumentCaptor.forClass(String.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(httpClient, times(2)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-audio-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        leaveAudioRoomJsonBody.capture()
+      );
+      verify(httpClient, times(2)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-video-out-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        leaveVideoOutRoomJsonBody.capture()
+      );
+      verify(httpClient, times(2)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-video-in-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        leaveVideoInRoomJsonBody.capture()
+      );
+      verify(httpClient, times(2)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-screen-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        leaveVideoScreenJsonBody.capture()
+      );
+      verify(httpClient, times(1)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id"),
+        eq(Map.of("content-type", "application/json")),
+        destroyConnectionJsonBody.capture()
+      );
+      verify(videoServerSessionRepository, times(1)).remove(videoServerSession);
+
+      assertEquals(2, leaveAudioRoomJsonBody.getAllValues().size());
+      VideoServerMessageRequest leaveAudioRoomRequest = objectMapper.readValue(
+        leaveAudioRoomJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          AudioBridgeLeaveRequest.create().request("leave")), leaveAudioRoomRequest);
+      VideoServerMessageRequest destroyAudioBridgePluginRequest = objectMapper.readValue(
+        leaveAudioRoomJsonBody.getAllValues().get(1), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("detach")
+        .apiSecret("token"), destroyAudioBridgePluginRequest);
+
+      assertEquals(2, leaveVideoOutRoomJsonBody.getAllValues().size());
+      VideoServerMessageRequest leaveVideoOutRoomRequest = objectMapper.readValue(
+        leaveVideoOutRoomJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          VideoRoomLeaveRequest.create().request("leave")), leaveVideoOutRoomRequest);
+      VideoServerMessageRequest destroyVideoOutRoomPluginRequest = objectMapper.readValue(
+        leaveVideoOutRoomJsonBody.getAllValues().get(1), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("detach")
+        .apiSecret("token"), destroyVideoOutRoomPluginRequest);
+
+      assertEquals(2, leaveVideoInRoomJsonBody.getAllValues().size());
+      VideoServerMessageRequest leaveVideoInRoomRequest = objectMapper.readValue(
+        leaveVideoInRoomJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          VideoRoomLeaveRequest.create().request("leave")), leaveVideoInRoomRequest);
+      VideoServerMessageRequest destroyVideoInRoomPluginRequest = objectMapper.readValue(
+        leaveVideoInRoomJsonBody.getAllValues().get(1), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("detach")
+        .apiSecret("token"), destroyVideoInRoomPluginRequest);
+
+      assertEquals(2, leaveVideoScreenJsonBody.getAllValues().size());
+      VideoServerMessageRequest leaveVideoScreenRequest = objectMapper.readValue(
+        leaveVideoScreenJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          VideoRoomLeaveRequest.create().request("leave")), leaveVideoScreenRequest);
+      VideoServerMessageRequest destroyVideoScreenPluginRequest = objectMapper.readValue(
+        leaveVideoScreenJsonBody.getAllValues().get(1), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("detach")
+        .apiSecret("token"), destroyVideoScreenPluginRequest);
+
+      assertEquals(1, destroyConnectionJsonBody.getAllValues().size());
+      VideoServerMessageRequest destroyConnectionRequest = objectMapper.readValue(
+        destroyConnectionJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("destroy")
+        .apiSecret("token"), destroyConnectionRequest);
+    }
+  }
+
+  @Nested
+  @DisplayName("Update media stream tests")
+  class UpdateMediaStreamTests {
+
+    @Test
+    @DisplayName("update media stream test")
+    void updateMediaStream_testOk() throws IOException {
+      VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
+      mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
+
+      CloseableHttpResponse publishStreamVideoRoomResponse = mockResponse(VideoRoomResponse.create()
+        .status("ack")
+        .connectionId("user1-session-id")
+        .transactionId("transaction-id")
+        .handleId("user1-video-out-handle-id"));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-video-out-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(publishStreamVideoRoomResponse);
+
+      videoServerService.updateMediaStream(user1Id.toString(), meeting1Id.toString(),
+        MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("session-description-protocol"));
+
+      ArgumentCaptor<String> publishStreamVideoRoomJsonBody = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<VideoServerSession> videoServerSessionCaptor = ArgumentCaptor.forClass(VideoServerSession.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(httpClient, times(1)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-video-out-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        publishStreamVideoRoomJsonBody.capture()
+      );
+      verify(videoServerSessionRepository, times(1)).update(videoServerSessionCaptor.capture());
+
+      assertEquals(1, publishStreamVideoRoomJsonBody.getAllValues().size());
+      VideoServerMessageRequest publishStreamVideoRoomRequest = objectMapper.readValue(
+        publishStreamVideoRoomJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          VideoRoomPublishRequest.create().request("publish")).rtcSessionDescription(RtcSessionDescription.create()
+          .type(RtcType.OFFER).sdp("session-description-protocol")), publishStreamVideoRoomRequest);
+
+      assertEquals(1, videoServerSessionCaptor.getAllValues().size());
+      VideoServerSession videoServerSession = videoServerSessionCaptor.getAllValues().get(0);
+      assertEquals(VideoServerSession.create()
+        .userId(user1Id.toString())
+        .queueId(queue1Id.toString())
+        .videoServerMeeting(videoServerMeeting)
+        .connectionId("user1-session-id")
+        .audioHandleId("user1-audio-handle-id")
+        .videoInHandleId("user1-video-in-handle-id")
+        .videoOutHandleId("user1-video-out-handle-id")
+        .screenHandleId("user1-screen-handle-id")
+        .videoOutStreamOn(true), videoServerSession);
+    }
+  }
+
+  @Nested
+  @DisplayName("Update audio stream tests")
+  class UpdateAudioStreamTests {
+
+    @Test
+    @DisplayName("update audio stream test")
+    void updateAudioStream_testOk() throws IOException {
+      VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
+      mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
+
+      CloseableHttpResponse updateAudioStreamResponse = mockResponse(AudioBridgeResponse.create()
+        .status("success")
+        .connectionId("session-id")
+        .transactionId("transaction-id")
+        .handleId("audio-handle-id")
+        .pluginData(
+          AudioBridgePluginData.create()
+            .plugin("janus.plugin.audiobridge")
+            .dataInfo(AudioBridgeDataInfo.create().audioBridge("success"))));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/session-id" + "/audio-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(updateAudioStreamResponse);
+
+      videoServerService.updateAudioStream(user1Id.toString(), meeting1Id.toString(), true);
+
+      ArgumentCaptor<String> updateAudioStreamJsonBody = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<VideoServerSession> videoServerSessionCaptor = ArgumentCaptor.forClass(VideoServerSession.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(httpClient, times(1)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/session-id" + "/audio-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        updateAudioStreamJsonBody.capture()
+      );
+      verify(videoServerSessionRepository, times(1)).update(videoServerSessionCaptor.capture());
+
+      assertEquals(1, updateAudioStreamJsonBody.getAllValues().size());
+      VideoServerMessageRequest updateAudioStreamRequest = objectMapper.readValue(
+        updateAudioStreamJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          AudioBridgeMuteRequest.create()
+            .request("unmute")
+            .room("audio-room-id")
+            .id(user1Id.toString())), updateAudioStreamRequest);
+
+      assertEquals(1, videoServerSessionCaptor.getAllValues().size());
+      VideoServerSession videoServerSession = videoServerSessionCaptor.getAllValues().get(0);
+      assertEquals(VideoServerSession.create()
+        .userId(user1Id.toString())
+        .queueId(queue1Id.toString())
+        .videoServerMeeting(videoServerMeeting)
+        .connectionId("user1-session-id")
+        .audioHandleId("user1-audio-handle-id")
+        .videoInHandleId("user1-video-in-handle-id")
+        .videoOutHandleId("user1-video-out-handle-id")
+        .screenHandleId("user1-screen-handle-id")
+        .audioStreamOn(true), videoServerSession);
+    }
+  }
+
+  @Nested
+  @DisplayName("Answer rtc media stream tests")
+  class AnswerRtcMediaStreamTests {
+
+    @Test
+    @DisplayName("answer rtc media stream test")
+    void answerRtcMediaStream_testOk() throws IOException {
+      VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
+      mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
+
+      CloseableHttpResponse answerRtcMediaStreamResponse = mockResponse(VideoRoomResponse.create()
+        .status("ack")
+        .connectionId("user1-session-id")
+        .transactionId("transaction-id")
+        .handleId("user1-video-in-handle-id"));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-video-in-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(answerRtcMediaStreamResponse);
+
+      videoServerService.answerRtcMediaStream(user1Id.toString(), meeting1Id.toString(),
+        "session-description-protocol");
+
+      ArgumentCaptor<String> answerRtcMediaStreamJsonBody = ArgumentCaptor.forClass(String.class);
+      ArgumentCaptor<VideoServerSession> videoServerSessionCaptor = ArgumentCaptor.forClass(VideoServerSession.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(httpClient, times(1)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-video-in-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        answerRtcMediaStreamJsonBody.capture()
+      );
+      verify(videoServerSessionRepository, times(1)).update(videoServerSessionCaptor.capture());
+
+      assertEquals(1, answerRtcMediaStreamJsonBody.getAllValues().size());
+      VideoServerMessageRequest answerRtcMediaStreamRequest = objectMapper.readValue(
+        answerRtcMediaStreamJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          VideoRoomStartVideoInRequest.create()
+            .request("start"))
+        .rtcSessionDescription(RtcSessionDescription.create()
+          .type(RtcType.ANSWER).sdp("session-description-protocol")), answerRtcMediaStreamRequest);
+
+      assertEquals(1, videoServerSessionCaptor.getAllValues().size());
+      VideoServerSession videoServerSession = videoServerSessionCaptor.getAllValues().get(0);
+      assertEquals(VideoServerSession.create()
+        .userId(user1Id.toString())
+        .queueId(queue1Id.toString())
+        .videoServerMeeting(videoServerMeeting)
+        .connectionId("user1-session-id")
+        .audioHandleId("user1-audio-handle-id")
+        .videoInHandleId("user1-video-in-handle-id")
+        .videoOutHandleId("user1-video-out-handle-id")
+        .screenHandleId("user1-screen-handle-id")
+        .videoInStreamOn(true), videoServerSession);
+    }
+  }
+
+  @Nested
+  @DisplayName("Update subscriptions media stream tests")
+  class UpdateSubscriptionsMediaStreamTests {
+
+    @Test
+    @DisplayName("update subscriptions media stream test")
+    void updateSubscriptionsMediaStream_testOk() throws IOException {
+      VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
+      mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
+      mockVideoServerSession(videoServerMeeting, user2Id, queue2Id, 2);
+
+      CloseableHttpResponse updateSubscriptionsMediaStreamResponse = mockResponse(VideoRoomResponse.create()
+        .status("ack")
+        .connectionId("user1-session-id")
+        .transactionId("transaction-id")
+        .handleId("user1-video-in-handle-id"));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-video-in-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(updateSubscriptionsMediaStreamResponse);
+
+      videoServerService.updateSubscriptionsMediaStream(user1Id.toString(), meeting1Id.toString(),
+        SubscriptionUpdatesDto.create()
+          .subscribe(List.of(MediaStreamDto.create().type(MediaStreamDto.TypeEnum.VIDEO).userId(user2Id.toString()))));
+
+      ArgumentCaptor<String> updateSubscriptionsMediaStreamJsonBody = ArgumentCaptor.forClass(String.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(httpClient, times(1)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-video-in-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        updateSubscriptionsMediaStreamJsonBody.capture()
+      );
+
+      assertEquals(1, updateSubscriptionsMediaStreamJsonBody.getAllValues().size());
+      VideoServerMessageRequest updateSubscriptionMediaStreamRequest = objectMapper.readValue(
+        updateSubscriptionsMediaStreamJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
+      assertEquals(VideoServerMessageRequest.create()
+          .messageRequest("message")
+          .apiSecret("token")
+          .videoServerPluginRequest(
+            VideoRoomUpdateSubscriptionsRequest.create()
+              .request("update").subscriptions(List.of(Stream.create()
+                .feed(Feed.create().type(MediaType.VIDEO).userId(user2Id.toString()).toString())))),
+        updateSubscriptionMediaStreamRequest);
+    }
+  }
+
+  @Nested
+  @DisplayName("Offer rtc audio stream tests")
+  class OfferRtcAudioStreamTests {
+
+    @Test
+    @DisplayName("offer rtc audio stream test")
+    void offerRtcAudioStream_testOk() throws IOException {
+      VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
+      mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
+
+      CloseableHttpResponse offerRtcAudioStreamResponse = mockResponse(AudioBridgeResponse.create()
+        .status("ack")
+        .connectionId("user1-session-id")
+        .transactionId("transaction-id")
+        .handleId("user1-audio-handle-id"));
+      when(httpClient.sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-audio-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        anyString()
+      )).thenReturn(offerRtcAudioStreamResponse);
+
+      videoServerService.offerRtcAudioStream(user1Id.toString(), meeting1Id.toString(), "session-description-protocol");
+
+      ArgumentCaptor<String> offerRtcAudioStreamJsonBody = ArgumentCaptor.forClass(String.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(httpClient, times(1)).sendPost(
+        eq(videoServerURL + janusEndpoint + "/user1-session-id" + "/user1-audio-handle-id"),
+        eq(Map.of("content-type", "application/json")),
+        offerRtcAudioStreamJsonBody.capture()
+      );
+
+      assertEquals(1, offerRtcAudioStreamJsonBody.getAllValues().size());
+      VideoServerMessageRequest offerRtcAudioStreamRequest = objectMapper.readValue(
+        offerRtcAudioStreamJsonBody.getAllValues().get(0), VideoServerMessageRequest.class);
+      assertEquals("message", offerRtcAudioStreamRequest.getMessageRequest());
+      assertEquals("token", offerRtcAudioStreamRequest.getApiSecret());
+      AudioBridgeJoinRequest audioBridgeJoinRequest = (AudioBridgeJoinRequest) offerRtcAudioStreamRequest.getVideoServerPluginRequest();
+      assertEquals("join", audioBridgeJoinRequest.getRequest());
+      assertEquals("audio-room-id", audioBridgeJoinRequest.getRoom());
+      assertTrue(audioBridgeJoinRequest.getMuted());
+      assertFalse(audioBridgeJoinRequest.getFilename().isEmpty());
     }
   }
 }

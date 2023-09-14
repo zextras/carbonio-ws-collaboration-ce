@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RtcSessionDescription {
@@ -35,5 +36,22 @@ public class RtcSessionDescription {
   public RtcSessionDescription sdp(String sdp) {
     this.sdp = sdp;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof RtcSessionDescription)) {
+      return false;
+    }
+    RtcSessionDescription that = (RtcSessionDescription) o;
+    return getType() == that.getType() && Objects.equals(getSdp(), that.getSdp());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getType(), getSdp());
   }
 }

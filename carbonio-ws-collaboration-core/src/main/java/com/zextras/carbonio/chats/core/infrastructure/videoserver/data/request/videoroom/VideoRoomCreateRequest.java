@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * This class represents the video room request to create a room.
@@ -365,5 +366,50 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
   public VideoRoomCreateRequest dummyStreams(List<String> dummyStreams) {
     this.dummyStreams = dummyStreams;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof VideoRoomCreateRequest)) {
+      return false;
+    }
+    VideoRoomCreateRequest that = (VideoRoomCreateRequest) o;
+    return Objects.equals(getRequest(), that.getRequest()) && Objects.equals(getRoom(),
+      that.getRoom()) && Objects.equals(getPermanent(), that.getPermanent()) && Objects.equals(
+      getDescription(), that.getDescription()) && Objects.equals(getSecret(), that.getSecret())
+      && Objects.equals(getPin(), that.getPin()) && Objects.equals(getIsPrivate(),
+      that.getIsPrivate()) && Objects.equals(getAllowed(), that.getAllowed()) && Objects.equals(
+      getRequirePvtId(), that.getRequirePvtId()) && Objects.equals(getSignedTokens(), that.getSignedTokens())
+      && Objects.equals(getPublishers(), that.getPublishers()) && Objects.equals(getBitrate(),
+      that.getBitrate()) && Objects.equals(getBitrateCap(), that.getBitrateCap()) && Objects.equals(
+      getFirFreq(), that.getFirFreq()) && Objects.equals(getAudioCodec(), that.getAudioCodec())
+      && Objects.equals(getVideoCodec(), that.getVideoCodec()) && Objects.equals(getVp9Profile(),
+      that.getVp9Profile()) && Objects.equals(getH264Profile(), that.getH264Profile())
+      && Objects.equals(getOpusFec(), that.getOpusFec()) && Objects.equals(getOpusDtx(),
+      that.getOpusDtx()) && Objects.equals(getAudioLevelExt(), that.getAudioLevelExt())
+      && Objects.equals(getAudioLevelEvent(), that.getAudioLevelEvent()) && Objects.equals(
+      getAudioLevelAverage(), that.getAudioLevelAverage()) && Objects.equals(getVideoOrientExt(),
+      that.getVideoOrientExt()) && Objects.equals(getPlayOutDelayExt(), that.getPlayOutDelayExt())
+      && Objects.equals(getTransportWideCcExt(), that.getTransportWideCcExt()) && Objects.equals(
+      getRecord(), that.getRecord()) && Objects.equals(getRecordDir(), that.getRecordDir())
+      && Objects.equals(getLockRecord(), that.getLockRecord()) && Objects.equals(getNotifyJoining(),
+      that.getNotifyJoining()) && Objects.equals(getRequireE2ee(), that.getRequireE2ee())
+      && Objects.equals(getDummyPublisher(), that.getDummyPublisher()) && Objects.equals(
+      getDummyStreams(), that.getDummyStreams());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getRequest(), getRoom(), getPermanent(), getDescription(), getSecret(), getPin(),
+      getIsPrivate(),
+      getAllowed(), getRequirePvtId(), getSignedTokens(), getPublishers(), getBitrate(), getBitrateCap(), getFirFreq(),
+      getAudioCodec(), getVideoCodec(), getVp9Profile(), getH264Profile(), getOpusFec(), getOpusDtx(),
+      getAudioLevelExt(),
+      getAudioLevelEvent(), getAudioLevelAverage(), getVideoOrientExt(), getPlayOutDelayExt(), getTransportWideCcExt(),
+      getRecord(), getRecordDir(), getLockRecord(), getNotifyJoining(), getRequireE2ee(), getDummyPublisher(),
+      getDummyStreams());
   }
 }

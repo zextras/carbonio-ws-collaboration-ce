@@ -19,14 +19,25 @@ public class AudioBridgePluginData {
   @JsonProperty("data")
   private AudioBridgeDataInfo dataInfo;
 
-  public AudioBridgePluginData() {
+  public static AudioBridgePluginData create() {
+    return new AudioBridgePluginData();
   }
 
   public String getPlugin() {
     return plugin;
   }
 
+  public AudioBridgePluginData plugin(String plugin) {
+    this.plugin = plugin;
+    return this;
+  }
+
   public AudioBridgeDataInfo getDataInfo() {
     return dataInfo;
+  }
+
+  public AudioBridgePluginData dataInfo(AudioBridgeDataInfo dataInfo) {
+    this.dataInfo = dataInfo;
+    return this;
   }
 }

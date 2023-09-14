@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
+import java.util.Objects;
 
 /**
  * This class represents a single message/request/action sent to the VideoServer.
@@ -99,5 +100,26 @@ public class VideoServerMessageRequest {
   public VideoServerMessageRequest rtcSessionDescription(RtcSessionDescription rtcSessionDescription) {
     this.rtcSessionDescription = rtcSessionDescription;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof VideoServerMessageRequest)) {
+      return false;
+    }
+    VideoServerMessageRequest that = (VideoServerMessageRequest) o;
+    return Objects.equals(getMessageRequest(), that.getMessageRequest()) && Objects.equals(
+      getPluginName(), that.getPluginName()) && Objects.equals(getVideoServerPluginRequest(),
+      that.getVideoServerPluginRequest()) && Objects.equals(getApiSecret(), that.getApiSecret())
+      && Objects.equals(getRtcSessionDescription(), that.getRtcSessionDescription());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getMessageRequest(), getPluginName(), getVideoServerPluginRequest(), getApiSecret(),
+      getRtcSessionDescription());
   }
 }

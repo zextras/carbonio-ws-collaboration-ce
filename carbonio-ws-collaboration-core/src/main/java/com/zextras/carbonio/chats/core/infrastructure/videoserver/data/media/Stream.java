@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -55,5 +56,24 @@ public class Stream {
   public Stream subMid(String subMid) {
     this.subMid = subMid;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof Stream)) {
+      return false;
+    }
+    Stream stream = (Stream) o;
+    return Objects.equals(getFeed(), stream.getFeed()) && Objects.equals(getMid(), stream.getMid())
+      && Objects.equals(getCrossrefid(), stream.getCrossrefid()) && Objects.equals(getSubMid(),
+      stream.getSubMid());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getFeed(), getMid(), getCrossrefid(), getSubMid());
   }
 }
