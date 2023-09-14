@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -22,6 +23,7 @@ import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
+import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
@@ -179,7 +181,7 @@ public class VideoServerServiceImplTest {
   class StartMeetingTests {
 
     @Test
-    @DisplayName("Start meeting test")
+    @DisplayName("Start a new meeting on a room")
     void startMeeting_testOk() throws IOException {
       CloseableHttpResponse sessionResponse = mockResponse(VideoServerResponse.create()
         .status("success")
@@ -332,6 +334,17 @@ public class VideoServerServiceImplTest {
             .bitrateCap(true)
             .videoCodec("vp8,h264,vp9,h265,av1")), videoRoomMessageRequest);
     }
+
+    @Test
+    @DisplayName("Try to start a meeting that is already active")
+    void startMeeting_testErrorAlreadyActive() {
+      mockVideoServerMeeting(meeting1Id);
+
+      assertThrows(VideoServerException.class, () -> videoServerService.startMeeting(meeting1Id.toString()),
+        "Videoserver meeting " + meeting1Id.toString() + " is already active");
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
   }
 
   @Nested
@@ -339,7 +352,7 @@ public class VideoServerServiceImplTest {
   class StopMeetingTests {
 
     @Test
-    @DisplayName("Stop meeting test")
+    @DisplayName("Stop an existing meeting")
     void stopMeeting_testOk() throws IOException {
       mockVideoServerMeeting(meeting1Id);
 
@@ -454,6 +467,15 @@ public class VideoServerServiceImplTest {
         .messageRequest("destroy")
         .apiSecret("token"), destroyConnectionRequest);
     }
+
+    @Test
+    @DisplayName("Try to stop a meeting that does not exist")
+    void stopMeeting_testErrorMeetingNotExists() {
+      assertThrows(VideoServerException.class, () -> videoServerService.stopMeeting(meeting1Id.toString()),
+        "No videoserver meeting found for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
   }
 
   @Nested
@@ -461,7 +483,7 @@ public class VideoServerServiceImplTest {
   class JoinMeetingTests {
 
     @Test
-    @DisplayName("join meeting test")
+    @DisplayName("join an existing meeting")
     void joinMeeting_testOk() throws IOException {
       VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
 
@@ -598,6 +620,32 @@ public class VideoServerServiceImplTest {
             .room("video-room-id")
             .id(user1Id.toString() + "/screen")), joinPublisherScreenRequest);
     }
+
+    @Test
+    @DisplayName("Try to join a meeting that does not exist")
+    void joinMeeting_testErrorMeetingNotExists() {
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.joinMeeting(user1Id.toString(), queue1Id.toString(), meeting1Id.toString(),
+          false, true),
+        "No videoserver meeting found for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName("Try to join a meeting already joined")
+    void joinMeeting_testErrorAlreadyJoined() {
+      VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
+      mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
+
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.joinMeeting(user1Id.toString(), queue1Id.toString(), meeting1Id.toString(),
+          false, true),
+        "Videoserver session user with user  " + user1Id.toString() +
+          "is already present in the videoserver meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
   }
 
   @Nested
@@ -605,7 +653,7 @@ public class VideoServerServiceImplTest {
   class LeaveMeetingTests {
 
     @Test
-    @DisplayName("leave meeting test")
+    @DisplayName("leave a meeting previously joined")
     void leaveMeeting_testOk() throws IOException {
       VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
       VideoServerSession videoServerSession = mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
@@ -783,6 +831,29 @@ public class VideoServerServiceImplTest {
         .messageRequest("destroy")
         .apiSecret("token"), destroyConnectionRequest);
     }
+
+    @Test
+    @DisplayName("Try to leave a meeting that does not exist")
+    void leaveMeeting_testErrorMeetingNotExists() {
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.leaveMeeting(user1Id.toString(), meeting1Id.toString()),
+        "No videoserver meeting found for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName("Try to leave a meeting that is not joined previously")
+    void leaveMeeting_testErrorMeetingNotJoined() {
+      mockVideoServerMeeting(meeting1Id);
+
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.leaveMeeting(user1Id.toString(), meeting1Id.toString()),
+        "No Videoserver session user found for user " + user1Id.toString()
+          + " for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
   }
 
   @Nested
@@ -790,7 +861,7 @@ public class VideoServerServiceImplTest {
   class UpdateMediaStreamTests {
 
     @Test
-    @DisplayName("update media stream test")
+    @DisplayName("enable video stream in a meeting")
     void updateMediaStream_testOk() throws IOException {
       VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
       mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
@@ -843,10 +914,59 @@ public class VideoServerServiceImplTest {
         .screenHandleId("user1-screen-handle-id")
         .videoOutStreamOn(true), videoServerSession);
     }
+
+    @Test
+    @DisplayName("Try to update media stream on a meeting that does not exist")
+    void updateMediaStream_testErrorMeetingNotExists() {
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.updateMediaStream(user1Id.toString(), meeting1Id.toString(),
+          MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("session-description-protocol")),
+        "No videoserver meeting found for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName("Try to update media stream on a meeting that is not joined previously")
+    void updateMediaStream_testErrorMeetingNotJoined() {
+      mockVideoServerMeeting(meeting1Id);
+
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.updateMediaStream(user1Id.toString(), meeting1Id.toString(),
+          MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("session-description-protocol")),
+        "No Videoserver session found for user " + user1Id.toString()
+          + " for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName("Try to disable video stream on a meeting when it is already disabled")
+    void updateMediaStream_testIgnoreVideoStreamAlreadyDisabled() {
+      VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
+      mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
+
+      videoServerService.updateMediaStream(user1Id.toString(), meeting1Id.toString(),
+        MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(false).sdp("session-description-protocol"));
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName("Try to disable screen stream on a meeting when it is already disabled")
+    void updateMediaStream_testIgnoreScreenStreamAlreadyDisabled() {
+      VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
+      mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
+
+      videoServerService.updateMediaStream(user1Id.toString(), meeting1Id.toString(),
+        MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false).sdp("session-description-protocol"));
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
   }
 
   @Nested
-  @DisplayName("Update audio stream tests")
+  @DisplayName("enable audio stream in a meeting")
   class UpdateAudioStreamTests {
 
     @Test
@@ -908,6 +1028,39 @@ public class VideoServerServiceImplTest {
         .screenHandleId("user1-screen-handle-id")
         .audioStreamOn(true), videoServerSession);
     }
+
+    @Test
+    @DisplayName("Try to update audio stream on a meeting that does not exist")
+    void updateAudioStream_testErrorMeetingNotExists() {
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.updateAudioStream(user1Id.toString(), meeting1Id.toString(), true),
+        "No videoserver meeting found for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName("Try to update audio stream on a meeting that is not joined previously")
+    void updateAudioStream_testErrorMeetingNotJoined() {
+      mockVideoServerMeeting(meeting1Id);
+
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.updateAudioStream(user1Id.toString(), meeting1Id.toString(), true),
+        "No Videoserver session found for user " + user1Id.toString() + " for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName("Try to disable audio stream on a meeting when it is already disabled")
+    void updateAudioStream_testIgnoreAudioStreamAlreadyDisabled() {
+      VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
+      mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
+
+      videoServerService.updateAudioStream(user1Id.toString(), meeting1Id.toString(), false);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
   }
 
   @Nested
@@ -915,7 +1068,7 @@ public class VideoServerServiceImplTest {
   class AnswerRtcMediaStreamTests {
 
     @Test
-    @DisplayName("answer rtc media stream test")
+    @DisplayName("send answer for video stream")
     void answerRtcMediaStream_testOk() throws IOException {
       VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
       mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
@@ -970,6 +1123,31 @@ public class VideoServerServiceImplTest {
         .screenHandleId("user1-screen-handle-id")
         .videoInStreamOn(true), videoServerSession);
     }
+
+    @Test
+    @DisplayName("Try to send answer for media stream on a meeting that does not exist")
+    void answerRtcMediaStream_testErrorMeetingNotExists() {
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.answerRtcMediaStream(user1Id.toString(), meeting1Id.toString(),
+          "session-description-protocol"),
+        "No videoserver meeting found for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName("Try to send answer for media stream on a meeting that is not joined previously")
+    void answerRtcMediaStream_testErrorMeetingNotJoined() {
+      mockVideoServerMeeting(meeting1Id);
+
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.answerRtcMediaStream(user1Id.toString(), meeting1Id.toString(),
+          "session-description-protocol"),
+        "No Videoserver session found for user " + user1Id.toString()
+          + " for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
   }
 
   @Nested
@@ -977,7 +1155,7 @@ public class VideoServerServiceImplTest {
   class UpdateSubscriptionsMediaStreamTests {
 
     @Test
-    @DisplayName("update subscriptions media stream test")
+    @DisplayName("subscribe to another participant stream video")
     void updateSubscriptionsMediaStream_testOk() throws IOException {
       VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
       mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
@@ -1019,6 +1197,33 @@ public class VideoServerServiceImplTest {
                 .feed(Feed.create().type(MediaType.VIDEO).userId(user2Id.toString()).toString())))),
         updateSubscriptionMediaStreamRequest);
     }
+
+    @Test
+    @DisplayName("Try to update subscriptions for media stream on a meeting that does not exist")
+    void updateSubscriptionsMediaStream_testErrorMeetingNotExists() {
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.updateSubscriptionsMediaStream(user1Id.toString(), meeting1Id.toString(),
+          SubscriptionUpdatesDto.create().subscribe(
+            List.of(MediaStreamDto.create().type(MediaStreamDto.TypeEnum.VIDEO).userId(user2Id.toString())))),
+        "No videoserver meeting found for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName("Try to update subscriptions for media stream on a meeting that is not joined previously")
+    void updateSubscriptionsMediaStream_testErrorMeetingNotJoined() {
+      mockVideoServerMeeting(meeting1Id);
+
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.updateSubscriptionsMediaStream(user1Id.toString(), meeting1Id.toString(),
+          SubscriptionUpdatesDto.create().subscribe(
+            List.of(MediaStreamDto.create().type(MediaStreamDto.TypeEnum.VIDEO).userId(user2Id.toString())))),
+        "No Videoserver session found for user " + user1Id.toString()
+          + " for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
   }
 
   @Nested
@@ -1026,7 +1231,7 @@ public class VideoServerServiceImplTest {
   class OfferRtcAudioStreamTests {
 
     @Test
-    @DisplayName("offer rtc audio stream test")
+    @DisplayName("send offer for audio stream")
     void offerRtcAudioStream_testOk() throws IOException {
       VideoServerMeeting videoServerMeeting = mockVideoServerMeeting(meeting1Id);
       mockVideoServerSession(videoServerMeeting, user1Id, queue1Id, 1);
@@ -1063,6 +1268,31 @@ public class VideoServerServiceImplTest {
       assertEquals("audio-room-id", audioBridgeJoinRequest.getRoom());
       assertTrue(audioBridgeJoinRequest.getMuted());
       assertFalse(audioBridgeJoinRequest.getFilename().isEmpty());
+    }
+
+    @Test
+    @DisplayName("Try to send offer for audio stream on a meeting that does not exist")
+    void offerRtcAudioStream_testErrorMeetingNotExists() {
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.offerRtcAudioStream(user1Id.toString(), meeting1Id.toString(),
+          "session-description-protocol"),
+        "No videoserver meeting found for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName("Try to send offer for audio stream on a meeting that is not joined previously")
+    void offerRtcAudioStream_testErrorMeetingNotJoined() {
+      mockVideoServerMeeting(meeting1Id);
+
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.offerRtcAudioStream(user1Id.toString(), meeting1Id.toString(),
+          "session-description-protocol"),
+        "No Videoserver session found for user " + user1Id.toString()
+          + " for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
   }
 }

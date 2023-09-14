@@ -408,7 +408,7 @@ public class VideoServerServiceJanus implements VideoServerService {
       isVideoStream ? videoServerSession.hasVideoOutStreamOn() : videoServerSession.hasScreenStreamOn();
     if (mediaStreamSettingsDto.isEnabled() == mediaStreamEnabled) {
       ChatsLogger.debug(
-        "Video stream status is already updated for session " + userId + " for the meeting " + meetingId);
+        "Media stream status is already updated for session " + userId + " for the meeting " + meetingId);
     } else {
       if (mediaStreamSettingsDto.isEnabled()) {
         publishStreamOnVideoRoom(videoServerSession.getConnectionId(),
