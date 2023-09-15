@@ -32,6 +32,14 @@ public class EbeanVideoServerSessionRepository implements VideoServerSessionRepo
   }
 
   @Override
+  public Optional<VideoServerSession> getByUserId(String userId) {
+    return db.find(VideoServerSession.class)
+      .where()
+      .eq("id.userId", userId)
+      .findOneOrEmpty();
+  }
+
+  @Override
   public List<VideoServerSession> getByMeetingId(String meetingId) {
     return db.find(VideoServerSession.class)
       .where()

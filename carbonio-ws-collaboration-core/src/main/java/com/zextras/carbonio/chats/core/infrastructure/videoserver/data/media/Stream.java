@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class Stream {
 
-  private Feed   feed;
+  private String feed;
   private String mid;
   private String crossrefid;
   private String subMid;
@@ -21,11 +21,11 @@ public class Stream {
     return new Stream();
   }
 
-  public Feed getFeed() {
+  public String getFeed() {
     return feed;
   }
 
-  public Stream feed(Feed feed) {
+  public Stream feed(String feed) {
     this.feed = feed;
     return this;
   }

@@ -195,7 +195,7 @@ public class MembersServiceImpl implements MembersService {
     }
     if (room.getMeetingId() != null) {
       meetingService.getMeetingEntity(UUID.fromString(room.getMeetingId())).ifPresent(meeting ->
-        participantService.removeMeetingParticipant(meeting, room, userId, null)
+        participantService.removeMeetingParticipant(meeting, room, userId)
       );
     }
     List<String> owners = room.getSubscriptions().stream()

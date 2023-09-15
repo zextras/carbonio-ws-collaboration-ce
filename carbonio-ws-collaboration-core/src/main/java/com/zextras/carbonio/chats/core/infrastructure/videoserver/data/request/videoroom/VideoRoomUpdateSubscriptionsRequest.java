@@ -5,6 +5,8 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -24,8 +26,10 @@ public class VideoRoomUpdateSubscriptionsRequest extends VideoRoomRequest {
 
   private String       request;
   @JsonProperty("subscribe")
+  @JsonInclude(Include.NON_EMPTY)
   private List<Stream> subscriptions;
   @JsonProperty("unsubscribe")
+  @JsonInclude(Include.NON_EMPTY)
   private List<Stream> unsubscriptions;
 
   public static VideoRoomUpdateSubscriptionsRequest create() {

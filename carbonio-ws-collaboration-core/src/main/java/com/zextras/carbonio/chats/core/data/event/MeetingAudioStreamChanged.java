@@ -36,7 +36,7 @@ public class MeetingAudioStreamChanged extends DomainEvent {
     return this;
   }
 
-  public UUID getSessionId() {
+  public UUID getUserId() {
     return userId;
   }
 
@@ -75,11 +75,11 @@ public class MeetingAudioStreamChanged extends DomainEvent {
       return false;
     }
     MeetingAudioStreamChanged that = (MeetingAudioStreamChanged) o;
-    return Objects.equals(getMeetingId(), that.getMeetingId()) && Objects.equals(getSessionId(), that.getSessionId());
+    return Objects.equals(getMeetingId(), that.getMeetingId()) && Objects.equals(getUserId(), that.getUserId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getMeetingId(), getSessionId());
+    return Objects.hash(super.hashCode(), getMeetingId(), getUserId());
   }
 }
