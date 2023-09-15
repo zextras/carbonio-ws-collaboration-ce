@@ -27,8 +27,8 @@ public interface VideoServerService extends HealthIndicator {
   /**
    * Performs all the actions necessary to join a 'participant' in a 'meeting' on the VideoServer
    *
-   * @param userId     participant's user identifier
-   * @param queueId     participant's message queue identifier
+   * @param userId        participant's user identifier
+   * @param queueId       participant's message queue identifier
    * @param meetingId     id of the meeting to join
    * @param videoStreamOn true if participant wants to join with video, false otherwise
    * @param audioStreamOn true if participant wants to join with audio, false otherwise
@@ -38,7 +38,7 @@ public interface VideoServerService extends HealthIndicator {
   /**
    * Performs all the actions necessary to leave a 'participant' from a 'meeting' on the VideoServer
    *
-   * @param userId participant's user identifier
+   * @param userId    participant's user identifier
    * @param meetingId id of the meeting to leave
    */
   void leaveMeeting(String userId, String meetingId);
@@ -46,7 +46,7 @@ public interface VideoServerService extends HealthIndicator {
   /**
    * Updates the audio stream status for the user's session in the meeting
    *
-   * @param userId participant's user identifier
+   * @param userId    participant's user identifier
    * @param meetingId identification of the meeting on which to perform the operation
    * @param enabled   if true the audio stream is enabled, otherwise it is disabled
    */
@@ -55,7 +55,7 @@ public interface VideoServerService extends HealthIndicator {
   /**
    * Updates the media stream status for the user's session in the meeting
    *
-   * @param userId              participant's user identifier
+   * @param userId                 participant's user identifier
    * @param meetingId              identification of the meeting on which to perform the operation
    * @param mediaStreamSettingsDto user settings request to update the media stream status
    */
@@ -64,7 +64,7 @@ public interface VideoServerService extends HealthIndicator {
   /**
    * Completes WebRTC negotiation with VideoServer for the PeerConnection setup related to media stream.
    *
-   * @param userId participant's user identifier
+   * @param userId    participant's user identifier
    * @param meetingId identification of the meeting on which to perform the operation
    * @param sdp       the offer rtc session description
    */
@@ -73,7 +73,7 @@ public interface VideoServerService extends HealthIndicator {
   /**
    * Update subscriptions of the current session to the desired media streams
    *
-   * @param userId              participant's user identifier
+   * @param userId                 participant's user identifier
    * @param meetingId              identification of the meeting on which to perform the operation
    * @param subscriptionUpdatesDto contains all media streams which user wants to update subscriptions for
    */
@@ -83,7 +83,7 @@ public interface VideoServerService extends HealthIndicator {
   /**
    * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to audio stream.
    *
-   * @param userId participant's user identifier
+   * @param userId    participant's user identifier
    * @param meetingId identification of the meeting on which to perform the operation
    * @param sdp       the offer rtc session description
    */
