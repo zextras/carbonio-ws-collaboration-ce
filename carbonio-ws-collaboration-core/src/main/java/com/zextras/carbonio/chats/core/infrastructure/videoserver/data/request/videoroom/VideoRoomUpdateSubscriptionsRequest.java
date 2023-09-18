@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Stream;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * This class represents the video room request to subscribe/unsubscribe to multiple streams available in a room.
@@ -61,5 +62,23 @@ public class VideoRoomUpdateSubscriptionsRequest extends VideoRoomRequest {
   public VideoRoomUpdateSubscriptionsRequest unsubscriptions(List<Stream> unsubscriptions) {
     this.unsubscriptions = unsubscriptions;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof VideoRoomUpdateSubscriptionsRequest)) {
+      return false;
+    }
+    VideoRoomUpdateSubscriptionsRequest that = (VideoRoomUpdateSubscriptionsRequest) o;
+    return Objects.equals(getRequest(), that.getRequest()) && Objects.equals(getSubscriptions(),
+      that.getSubscriptions()) && Objects.equals(getUnsubscriptions(), that.getUnsubscriptions());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getRequest(), getSubscriptions(), getUnsubscriptions());
   }
 }

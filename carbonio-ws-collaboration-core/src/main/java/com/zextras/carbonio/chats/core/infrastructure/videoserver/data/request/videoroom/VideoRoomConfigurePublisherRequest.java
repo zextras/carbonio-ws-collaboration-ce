@@ -20,16 +20,16 @@ public class VideoRoomConfigurePublisherRequest extends VideoRoomRequest {
 
   public static final String CONFIGURE = "configure";
 
-  private String            request;
-  private Long              bitrate;
-  private Boolean           keyframe;
-  private Boolean           record;
-  private String            filename;
-  private String            display;
-  private Long              audioActivePackets;
-  private Integer           audioLevelAverage;
-  private List<Stream>      streams;
-  private List<Description> descriptions;
+  private String                     request;
+  private Long                       bitrate;
+  private Boolean                    keyframe;
+  private Boolean                    record;
+  private String                     filename;
+  private String                     display;
+  private Long                       audioActivePackets;
+  private Integer                    audioLevelAverage;
+  private List<VideoRoomStream>      streams;
+  private List<VideoRoomDescription> descriptions;
 
   public static VideoRoomConfigurePublisherRequest create() {
     return new VideoRoomConfigurePublisherRequest();
@@ -107,111 +107,21 @@ public class VideoRoomConfigurePublisherRequest extends VideoRoomRequest {
     return this;
   }
 
-  public List<Stream> getStreams() {
+  public List<VideoRoomStream> getStreams() {
     return streams;
   }
 
-  public VideoRoomConfigurePublisherRequest streams(List<Stream> streams) {
+  public VideoRoomConfigurePublisherRequest streams(List<VideoRoomStream> streams) {
     this.streams = streams;
     return this;
   }
 
-  public List<Description> getDescriptions() {
+  public List<VideoRoomDescription> getDescriptions() {
     return descriptions;
   }
 
-  public VideoRoomConfigurePublisherRequest descriptions(List<Description> descriptions) {
+  public VideoRoomConfigurePublisherRequest descriptions(List<VideoRoomDescription> descriptions) {
     this.descriptions = descriptions;
     return this;
-  }
-
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-  private class Stream {
-
-    private String  mid;
-    private String  keyFrame;
-    private boolean send;
-    private int     minDelay;
-    private int     maxDelay;
-
-    public Stream create() {
-      return new Stream();
-    }
-
-    public String getMid() {
-      return mid;
-    }
-
-    public Stream mid(String mid) {
-      this.mid = mid;
-      return this;
-    }
-
-    public String getKeyFrame() {
-      return keyFrame;
-    }
-
-    public Stream keyFrame(String keyFrame) {
-      this.keyFrame = keyFrame;
-      return this;
-    }
-
-    public Boolean isSend() {
-      return send;
-    }
-
-    public Stream send(boolean send) {
-      this.send = send;
-      return this;
-    }
-
-    public Integer getMinDelay() {
-      return minDelay;
-    }
-
-    public Stream minDelay(int minDelay) {
-      this.minDelay = minDelay;
-      return this;
-    }
-
-    public Integer getMaxDelay() {
-      return maxDelay;
-    }
-
-    public Stream maxDelay(int maxDelay) {
-      this.maxDelay = maxDelay;
-      return this;
-    }
-  }
-
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-  private class Description {
-
-    private String mid;
-    private String description;
-
-    public Description create() {
-      return new Description();
-    }
-
-    public String getMid() {
-      return mid;
-    }
-
-    public Description mid(String mid) {
-      this.mid = mid;
-      return this;
-    }
-
-    public String getDescription() {
-      return description;
-    }
-
-    public Description description(String description) {
-      this.description = description;
-      return this;
-    }
   }
 }

@@ -4,8 +4,6 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.config.AppConfig;
@@ -42,28 +40,21 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
-import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.meeting.model.MediaStreamDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import io.ebean.annotation.Transactional;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.methods.CloseableHttpResponse;
 
 @Singleton
-public class VideoServerServiceJanus implements VideoServerService {
+public class VideoServerServiceImpl implements VideoServerService {
 
   private static final String                       JANUS_ENDPOINT           = "/janus";
   private static final String                       JANUS_ADMIN_ENDPOINT     = "/admin";
@@ -76,19 +67,17 @@ public class VideoServerServiceJanus implements VideoServerService {
   private static final String                       JANUS_SUCCESS            = "success";
   private static final String                       JANUS_VIDEOROOM_PLUGIN   = "janus.plugin.videoroom";
   private static final String                       JANUS_AUDIOBRIDGE_PLUGIN = "janus.plugin.audiobridge";
-  private final        ObjectMapper                 objectMapper;
   private final        String                       videoServerURL;
   private final        String                       videoServerAdminURL;
   private final        String                       apiSecret;
-  private final        HttpClient                   httpClient;
+  private final        VideoServerClient            videoServerClient;
   private final        VideoServerMeetingRepository videoServerMeetingRepository;
   private final        VideoServerSessionRepository videoServerSessionRepository;
 
   @Inject
-  public VideoServerServiceJanus(
+  public VideoServerServiceImpl(
     AppConfig appConfig,
-    ObjectMapper objectMapper,
-    HttpClient httpClient,
+    VideoServerClient videoServerClient,
     VideoServerMeetingRepository videoServerMeetingRepository,
     VideoServerSessionRepository videoServerSessionRepository
   ) {
@@ -101,8 +90,7 @@ public class VideoServerServiceJanus implements VideoServerService {
       appConfig.get(String.class, ConfigName.VIDEO_SERVER_ADMIN_PORT).orElseThrow()
     );
     this.apiSecret = appConfig.get(String.class, ConfigName.VIDEO_SERVER_TOKEN).orElseThrow();
-    this.objectMapper = objectMapper;
-    this.httpClient = httpClient;
+    this.videoServerClient = videoServerClient;
     this.videoServerMeetingRepository = videoServerMeetingRepository;
     this.videoServerSessionRepository = videoServerSessionRepository;
   }
@@ -126,8 +114,8 @@ public class VideoServerServiceJanus implements VideoServerService {
       connectionId,
       audioHandleId,
       videoHandleId,
-      audioBridgeResponse.getPluginData().getDataInfo().getRoom(),
-      videoRoomResponse.getPluginData().getDataInfo().getRoom()
+      audioBridgeResponse.getRoom(),
+      videoRoomResponse.getRoom()
     );
   }
 
@@ -168,7 +156,7 @@ public class VideoServerServiceJanus implements VideoServerService {
         .audioLevelEvent(true),
       null
     );
-    if (!AudioBridgeResponse.CREATED.equals(audioBridgeResponse.getPluginData().getDataInfo().getAudioBridge())) {
+    if (!AudioBridgeResponse.CREATED.equals(audioBridgeResponse.getAudioBridge())) {
       throw new VideoServerException(
         "An error occurred when creating an audiobridge room for the connection " + connectionId + " with plugin "
           + audioHandleId + " for the meeting " + meetingId);
@@ -195,7 +183,7 @@ public class VideoServerServiceJanus implements VideoServerService {
           .collect(Collectors.joining(","))),
       null
     );
-    if (!VideoRoomResponse.CREATED.equals(videoRoomResponse.getPluginData().getDataInfo().getVideoRoom())) {
+    if (!VideoRoomResponse.CREATED.equals(videoRoomResponse.getVideoRoom())) {
       throw new VideoServerException(
         "An error occurred when creating a videoroom room for the connection " + connectionId + " with plugin "
           + videoHandleId + " for the meeting " + meetingId);
@@ -212,9 +200,9 @@ public class VideoServerServiceJanus implements VideoServerService {
       videoServerMeetingToRemove.getVideoHandleId(), videoServerMeetingToRemove.getVideoRoomId());
     destroyAudioBridgeRoom(meetingId, videoServerMeetingToRemove.getConnectionId(),
       videoServerMeetingToRemove.getAudioHandleId(), videoServerMeetingToRemove.getAudioRoomId());
-    destroyPluginHandle(videoServerMeetingToRemove.getConnectionId(), videoServerMeetingToRemove.getAudioHandleId(),
-      meetingId);
     destroyPluginHandle(videoServerMeetingToRemove.getConnectionId(), videoServerMeetingToRemove.getVideoHandleId(),
+      meetingId);
+    destroyPluginHandle(videoServerMeetingToRemove.getConnectionId(), videoServerMeetingToRemove.getAudioHandleId(),
       meetingId);
     destroyConnection(videoServerMeetingToRemove.getConnectionId(), meetingId);
     videoServerMeetingRepository.deleteById(meetingId);
@@ -251,7 +239,7 @@ public class VideoServerServiceJanus implements VideoServerService {
         .permanent(false),
       null
     );
-    if (!VideoRoomResponse.DESTROYED.equals(videoRoomResponse.getPluginData().getDataInfo().getVideoRoom())) {
+    if (!VideoRoomResponse.DESTROYED.equals(videoRoomResponse.getVideoRoom())) {
       throw new VideoServerException("An error occurred when destroying the videoroom for the connection "
         + connectionId + " with plugin "
         + videoHandleId + " for the meeting " + meetingId);
@@ -269,7 +257,7 @@ public class VideoServerServiceJanus implements VideoServerService {
         .permanent(false),
       null
     );
-    if (!AudioBridgeResponse.DESTROYED.equals(audioBridgeResponse.getPluginData().getDataInfo().getAudioBridge())) {
+    if (!AudioBridgeResponse.DESTROYED.equals(audioBridgeResponse.getAudioBridge())) {
       throw new VideoServerException("An error occurred when destroying the audiobridge room for the connection "
         + connectionId + " with plugin "
         + audioHandleId + " for the meeting " + meetingId);
@@ -285,8 +273,7 @@ public class VideoServerServiceJanus implements VideoServerService {
     if (videoServerMeeting.getVideoServerSessions().stream()
       .anyMatch(videoServerSessionUser -> videoServerSessionUser.getQueueId().equals(queueId))) {
       throw new VideoServerException(
-        "Videoserver session user with user  " + userId + "is already present in the videoserver meeting "
-          + meetingId);
+        "Videoserver session user with user  " + userId + "is already present in the videoserver meeting " + meetingId);
     }
     VideoServerResponse videoServerResponse = createNewConnection(meetingId);
     String connectionId = videoServerResponse.getDataId();
@@ -346,19 +333,19 @@ public class VideoServerServiceJanus implements VideoServerService {
         "No Videoserver session user found for user " + userId + " for the meeting " + meetingId));
     Optional.ofNullable(videoServerSession.getAudioHandleId()).ifPresent(audioHandleId -> {
       leaveAudioBridgeRoom(videoServerSession.getConnectionId(), audioHandleId);
-      destroyPluginHandle(videoServerSession.getConnectionId(), audioHandleId);
-    });
-    Optional.ofNullable(videoServerSession.getVideoInHandleId()).ifPresent(videoInHandleId -> {
-      leaveVideoRoom(videoServerSession.getConnectionId(), videoInHandleId);
-      destroyPluginHandle(videoServerSession.getConnectionId(), videoInHandleId);
+      destroyPluginHandle(videoServerSession.getConnectionId(), audioHandleId, meetingId);
     });
     Optional.ofNullable(videoServerSession.getVideoOutHandleId()).ifPresent(videoOutHandleId -> {
       leaveVideoRoom(videoServerSession.getConnectionId(), videoOutHandleId);
-      destroyPluginHandle(videoServerSession.getConnectionId(), videoOutHandleId);
+      destroyPluginHandle(videoServerSession.getConnectionId(), videoOutHandleId, meetingId);
+    });
+    Optional.ofNullable(videoServerSession.getVideoInHandleId()).ifPresent(videoInHandleId -> {
+      leaveVideoRoom(videoServerSession.getConnectionId(), videoInHandleId);
+      destroyPluginHandle(videoServerSession.getConnectionId(), videoInHandleId, meetingId);
     });
     Optional.ofNullable(videoServerSession.getScreenHandleId()).ifPresent(screenHandleId -> {
       leaveVideoRoom(videoServerSession.getConnectionId(), screenHandleId);
-      destroyPluginHandle(videoServerSession.getConnectionId(), screenHandleId);
+      destroyPluginHandle(videoServerSession.getConnectionId(), screenHandleId, meetingId);
     });
     destroyConnection(videoServerSession.getConnectionId(), meetingId);
     videoServerSessionRepository.remove(videoServerSession);
@@ -409,7 +396,7 @@ public class VideoServerServiceJanus implements VideoServerService {
       isVideoStream ? videoServerSession.hasVideoOutStreamOn() : videoServerSession.hasScreenStreamOn();
     if (mediaStreamSettingsDto.isEnabled() == mediaStreamEnabled) {
       ChatsLogger.debug(
-        "Video stream status is already updated for session " + userId + " for the meeting " + meetingId);
+        "Media stream status is already updated for session " + userId + " for the meeting " + meetingId);
     } else {
       if (mediaStreamSettingsDto.isEnabled()) {
         publishStreamOnVideoRoom(videoServerSession.getConnectionId(),
@@ -458,19 +445,19 @@ public class VideoServerServiceJanus implements VideoServerService {
     }
   }
 
-  private void muteAudioStream(String meetingConnectionId, String connectionId, String userId, String audioHandleId,
-    String audioRoomId, boolean enabled) {
+  private void muteAudioStream(String meetingConnectionId, String connectionId, String userId,
+    String meetingAudioHandleId, String audioRoomId, boolean enabled) {
     AudioBridgeResponse audioBridgeResponse;
     audioBridgeResponse = sendAudioBridgePluginMessage(
       meetingConnectionId,
-      audioHandleId,
+      meetingAudioHandleId,
       AudioBridgeMuteRequest.create()
         .request(enabled ? AudioBridgeMuteRequest.UNMUTE : AudioBridgeMuteRequest.MUTE)
         .room(audioRoomId)
         .id(userId),
       null
     );
-    if (!AudioBridgeResponse.SUCCESS.equals(audioBridgeResponse.getPluginData().getDataInfo().getAudioBridge())) {
+    if (!AudioBridgeResponse.SUCCESS.equals(audioBridgeResponse.getAudioBridge())) {
       throw new VideoServerException(
         "An error occured while setting audio stream status for " + userId + " with connection id " + connectionId);
     }
@@ -529,8 +516,8 @@ public class VideoServerServiceJanus implements VideoServerService {
         VideoServerSession videoServerSessionUpdated = videoServerSessionRepository.update(
           videoServerSession.videoInHandleId(videoServerResponse.getDataId()));
         joinVideoRoom(videoServerSessionUpdated.getConnectionId(), userId,
-          videoServerSessionUpdated.getVideoInHandleId(), videoServerMeeting.getVideoRoomId(), Ptype.SUBSCRIBER, null,
-          subscriptionUpdatesDto.getSubscribe());
+          videoServerSessionUpdated.getVideoInHandleId(), videoServerMeeting.getVideoRoomId(),
+          Ptype.SUBSCRIBER, null, subscriptionUpdatesDto.getSubscribe());
       });
   }
 
@@ -600,33 +587,11 @@ public class VideoServerServiceJanus implements VideoServerService {
 
   @Override
   public boolean isAlive() {
-    try {
-      CloseableHttpResponse response = httpClient.sendPost(
-        videoServerAdminURL + JANUS_ADMIN_ENDPOINT,
-        Map.of("content-type", "application/json"),
-        objectMapper.writeValueAsString(
-          VideoServerMessageRequest.create()
-            .messageRequest(JANUS_PING)
-            .transactionId(UUID.randomUUID().toString())
-        )
-      );
-      int statusCode = response.getStatusLine().getStatusCode();
-      if (statusCode != HttpStatus.SC_OK) {
-        throw new VideoServerException("Could not get any response by video server");
-      }
-      return PongResponse.PONG.equals(
-        objectMapper.readValue(
-          IOUtils.toString(
-            response.getEntity().getContent(),
-            StandardCharsets.UTF_8),
-          PongResponse.class
-        ).getStatus()
-      );
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    } catch (IOException e) {
-      throw new VideoServerException("Something went wrong executing request");
-    }
+    return PongResponse.PONG.equals(videoServerClient.sendIsAliveRequest(
+      videoServerAdminURL + JANUS_ADMIN_ENDPOINT,
+      VideoServerMessageRequest.create()
+        .messageRequest(JANUS_PING)
+        .transactionId(UUID.randomUUID().toString())).getStatus());
   }
 
   /**
@@ -636,45 +601,12 @@ public class VideoServerServiceJanus implements VideoServerService {
    * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
    */
   private VideoServerResponse createConnection() {
-    try {
-      CloseableHttpResponse response = httpClient.sendPost(
-        videoServerURL + JANUS_ENDPOINT,
-        Map.of("content-type", "application/json"),
-        objectMapper.writeValueAsString(
-          VideoServerMessageRequest.create()
-            .messageRequest(JANUS_CREATE)
-            .transactionId(UUID.randomUUID().toString())
-            .apiSecret(apiSecret)
-        )
-      );
-
-      int statusCode = response.getStatusLine().getStatusCode();
-      if (statusCode != HttpStatus.SC_OK) {
-        throw new VideoServerException("Could not get any response by video server");
-      }
-      return objectMapper.readValue(
-        IOUtils.toString(
-          response.getEntity().getContent(),
-          StandardCharsets.UTF_8),
-        VideoServerResponse.class
-      );
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    } catch (IOException e) {
-      throw new VideoServerException("Something went wrong executing request");
-    }
-  }
-
-  /**
-   * This method destroys the previously attached plugin handle
-   *
-   * @param connectionId the 'connection' (session) id
-   * @param handleId     the plugin handle id
-   * @return {@link AudioBridgeResponse}
-   * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
-   */
-  private VideoServerResponse destroyPluginHandle(String connectionId, String handleId) {
-    return sendDetachPluginMessage(connectionId, handleId);
+    return videoServerClient.sendVideoServerRequest(
+      videoServerURL + JANUS_ENDPOINT,
+      VideoServerMessageRequest.create()
+        .messageRequest(JANUS_CREATE)
+        .transactionId(UUID.randomUUID().toString())
+        .apiSecret(apiSecret));
   }
 
   /**
@@ -698,36 +630,27 @@ public class VideoServerServiceJanus implements VideoServerService {
    * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
    */
   private VideoServerResponse interactWithConnection(String connectionId, String action, @Nullable String pluginName) {
-    try {
-      VideoServerMessageRequest videoServerMessageRequest = VideoServerMessageRequest.create()
-        .messageRequest(action)
-        .transactionId(UUID.randomUUID().toString())
-        .apiSecret(apiSecret);
-      Optional.ofNullable(pluginName).ifPresent(v -> videoServerMessageRequest.pluginName(pluginName));
-      CloseableHttpResponse response = httpClient.sendPost(
-        videoServerURL + JANUS_ENDPOINT + "/" + connectionId,
-        Map.of("content-type", "application/json"),
-        objectMapper.writeValueAsString(
-          videoServerMessageRequest
-        )
-      );
+    VideoServerMessageRequest videoServerMessageRequest = VideoServerMessageRequest.create()
+      .messageRequest(action)
+      .transactionId(UUID.randomUUID().toString())
+      .apiSecret(apiSecret);
+    Optional.ofNullable(pluginName).ifPresent(v -> videoServerMessageRequest.pluginName(pluginName));
+    return videoServerClient.sendVideoServerRequest(
+      videoServerURL + JANUS_ENDPOINT + "/" + connectionId,
+      videoServerMessageRequest
+    );
+  }
 
-      int statusCode = response.getStatusLine().getStatusCode();
-      if (statusCode != HttpStatus.SC_OK) {
-        throw new VideoServerException("Could not get any response by video server");
-      }
-      return objectMapper.readValue(
-        IOUtils.toString(
-          response.getEntity().getContent(),
-          StandardCharsets.UTF_8
-        ),
-        VideoServerResponse.class
-      );
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    } catch (IOException e) {
-      throw new VideoServerException("Something went wrong executing request");
-    }
+  /**
+   * This method destroys the previously attached plugin handle
+   *
+   * @param connectionId the 'connection' (session) id
+   * @param handleId     the plugin handle id
+   * @return {@link AudioBridgeResponse}
+   * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
+   */
+  private VideoServerResponse destroyPluginHandle(String connectionId, String handleId) {
+    return sendDetachPluginMessage(connectionId, handleId);
   }
 
   /**
@@ -739,34 +662,13 @@ public class VideoServerServiceJanus implements VideoServerService {
    * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
    */
   private VideoServerResponse sendDetachPluginMessage(String connectionId, String handleId) {
-    try {
-      CloseableHttpResponse response = httpClient.sendPost(
-        videoServerURL + JANUS_ENDPOINT + "/" + connectionId + "/" + handleId,
-        Map.of("content-type", "application/json"),
-        objectMapper.writeValueAsString(
-          VideoServerMessageRequest.create()
-            .messageRequest(VideoServerServiceJanus.JANUS_DETACH)
-            .transactionId(UUID.randomUUID().toString())
-            .apiSecret(apiSecret)
-        )
-      );
-
-      int statusCode = response.getStatusLine().getStatusCode();
-      if (statusCode != HttpStatus.SC_OK) {
-        throw new VideoServerException("Could not get any response by video server");
-      }
-      return objectMapper.readValue(
-        IOUtils.toString(
-          response.getEntity().getContent(),
-          StandardCharsets.UTF_8
-        ),
-        VideoServerResponse.class
-      );
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    } catch (IOException e) {
-      throw new VideoServerException("Something went wrong executing request");
-    }
+    return videoServerClient.sendVideoServerRequest(
+      videoServerURL + JANUS_ENDPOINT + "/" + connectionId + "/" + handleId,
+      VideoServerMessageRequest.create()
+        .messageRequest(VideoServerServiceImpl.JANUS_DETACH)
+        .transactionId(UUID.randomUUID().toString())
+        .apiSecret(apiSecret)
+    );
   }
 
   /**
@@ -782,35 +684,15 @@ public class VideoServerServiceJanus implements VideoServerService {
   private AudioBridgeResponse sendAudioBridgePluginMessage(String connectionId, String handleId,
     VideoServerPluginRequest videoServerPluginRequest, @Nullable RtcSessionDescription rtcSessionDescription) {
     VideoServerMessageRequest videoServerMessageRequest = VideoServerMessageRequest.create()
-      .messageRequest(VideoServerServiceJanus.JANUS_MESSAGE)
+      .messageRequest(VideoServerServiceImpl.JANUS_MESSAGE)
       .transactionId(UUID.randomUUID().toString())
       .videoServerPluginRequest(videoServerPluginRequest)
       .apiSecret(apiSecret);
     Optional.ofNullable(rtcSessionDescription).ifPresent(videoServerMessageRequest::rtcSessionDescription);
-    try {
-      CloseableHttpResponse response = httpClient.sendPost(
-        videoServerURL + JANUS_ENDPOINT + "/" + connectionId + "/" + handleId,
-        Map.of("content-type", "application/json"),
-        objectMapper.writeValueAsString(
-          videoServerMessageRequest
-        )
-      );
-      int statusCode = response.getStatusLine().getStatusCode();
-      if (statusCode != HttpStatus.SC_OK) {
-        throw new VideoServerException("Could not get any response by video server");
-      }
-      return objectMapper.readValue(
-        IOUtils.toString(
-          response.getEntity().getContent(),
-          StandardCharsets.UTF_8
-        ),
-        AudioBridgeResponse.class
-      );
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    } catch (IOException e) {
-      throw new VideoServerException("Something went wrong executing request");
-    }
+    return videoServerClient.sendAudioBridgeRequest(
+      videoServerURL + JANUS_ENDPOINT + "/" + connectionId + "/" + handleId,
+      videoServerMessageRequest
+    );
   }
 
   /**
@@ -826,34 +708,14 @@ public class VideoServerServiceJanus implements VideoServerService {
   private VideoRoomResponse sendVideoRoomPluginMessage(String connectionId, String handleId,
     VideoServerPluginRequest videoServerPluginRequest, @Nullable RtcSessionDescription rtcSessionDescription) {
     VideoServerMessageRequest videoServerMessageRequest = VideoServerMessageRequest.create()
-      .messageRequest(VideoServerServiceJanus.JANUS_MESSAGE)
+      .messageRequest(VideoServerServiceImpl.JANUS_MESSAGE)
       .transactionId(UUID.randomUUID().toString())
       .videoServerPluginRequest(videoServerPluginRequest)
       .apiSecret(apiSecret);
     Optional.ofNullable(rtcSessionDescription).ifPresent(videoServerMessageRequest::rtcSessionDescription);
-    try {
-      CloseableHttpResponse response = httpClient.sendPost(
-        videoServerURL + JANUS_ENDPOINT + "/" + connectionId + "/" + handleId,
-        Map.of("content-type", "application/json"),
-        objectMapper.writeValueAsString(
-          videoServerMessageRequest
-        )
-      );
-      int statusCode = response.getStatusLine().getStatusCode();
-      if (statusCode != HttpStatus.SC_OK) {
-        throw new VideoServerException("Could not get any response by video server");
-      }
-      return objectMapper.readValue(
-        IOUtils.toString(
-          response.getEntity().getContent(),
-          StandardCharsets.UTF_8
-        ),
-        VideoRoomResponse.class
-      );
-    } catch (JsonProcessingException e) {
-      throw new VideoServerException("Unable to convert request body to JSON");
-    } catch (IOException e) {
-      throw new VideoServerException("Something went wrong executing request");
-    }
+    return videoServerClient.sendVideoRoomRequest(
+      videoServerURL + JANUS_ENDPOINT + "/" + connectionId + "/" + handleId,
+      videoServerMessageRequest
+    );
   }
 }

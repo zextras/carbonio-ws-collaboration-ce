@@ -15,12 +15,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @UnitTest
-public class MessageDispatcherMongooseImTests {
+public class MessageDispatcherMongooseImplTests {
 
-  private final MessageDispatcherMongooseIm messageDispatcherMongooseIm;
+  private final MessageDispatcherMongooseImpl messageDispatcherMongooseImpl;
 
-  public MessageDispatcherMongooseImTests() {
-    messageDispatcherMongooseIm = new MessageDispatcherMongooseIm(
+  public MessageDispatcherMongooseImplTests() {
+    messageDispatcherMongooseImpl = new MessageDispatcherMongooseImpl(
       "mongooseimUrl", "username", "password", new ObjectMapper()
     );
   }
@@ -40,7 +40,7 @@ public class MessageDispatcherMongooseImTests {
         + "  </x>"
         + "</message>";
     assertEquals(attachmentId.toString(),
-      messageDispatcherMongooseIm.getAttachmentIdFromMessage(message).orElseThrow());
+      messageDispatcherMongooseImpl.getAttachmentIdFromMessage(message).orElseThrow());
   }
 
 
@@ -51,7 +51,7 @@ public class MessageDispatcherMongooseImTests {
       "<message from='userJid/roomJid' to='roomJid' id='messageId' type='groupchat' xmlns='jabber:client'>"
         + "  <body>text message</body>"
         + "</message>";
-    assertEquals(Optional.empty(), messageDispatcherMongooseIm.getAttachmentIdFromMessage(message));
+    assertEquals(Optional.empty(), messageDispatcherMongooseImpl.getAttachmentIdFromMessage(message));
   }
 
   @Test
@@ -63,7 +63,7 @@ public class MessageDispatcherMongooseImTests {
       + "    <item affiliation='member' jid='userJid/affiliationJid' role='participant'></item>"
       + "  </x>"
       + "</message>";
-    assertEquals(Optional.empty(), messageDispatcherMongooseIm.getAttachmentIdFromMessage(message));
+    assertEquals(Optional.empty(), messageDispatcherMongooseImpl.getAttachmentIdFromMessage(message));
   }
 
   @Test
@@ -77,6 +77,6 @@ public class MessageDispatcherMongooseImTests {
         + "    <attachment-id></attachment-id>"
         + "  </x>"
         + "</message>";
-    assertEquals(Optional.empty(), messageDispatcherMongooseIm.getAttachmentIdFromMessage(message));
+    assertEquals(Optional.empty(), messageDispatcherMongooseImpl.getAttachmentIdFromMessage(message));
   }
 }

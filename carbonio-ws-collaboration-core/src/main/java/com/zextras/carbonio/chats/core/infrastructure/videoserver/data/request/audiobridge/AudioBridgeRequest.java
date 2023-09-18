@@ -4,8 +4,10 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerPluginRequest;
 
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "className")
 public class AudioBridgeRequest extends VideoServerPluginRequest {
 
   public AudioBridgeRequest() {

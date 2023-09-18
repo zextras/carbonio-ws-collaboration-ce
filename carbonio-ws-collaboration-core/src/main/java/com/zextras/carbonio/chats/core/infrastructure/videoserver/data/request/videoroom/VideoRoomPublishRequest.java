@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * This class represents the video room request to publish a stream in a room.
@@ -21,18 +22,18 @@ public class VideoRoomPublishRequest extends VideoRoomRequest {
 
   public static final String PUBLISH = "publish";
 
-  private String            request;
+  private String                            request;
   @JsonProperty("audiocodec")
-  private String            audioCodec;
+  private String                            audioCodec;
   @JsonProperty("videocodec")
-  private String            videoCodec;
-  private Long              bitrate;
-  private Boolean           record;
-  private String            fileName;
-  private String            display;
-  private Integer           audioLevelAverage;
-  private Long              audioActivePackets;
-  private List<Description> descriptions;
+  private String                            videoCodec;
+  private Long                              bitrate;
+  private Boolean                           record;
+  private String                            fileName;
+  private String                            display;
+  private Integer                           audioLevelAverage;
+  private Long                       audioActivePackets;
+  private List<VideoRoomDescription> descriptions;
 
   public static VideoRoomPublishRequest create() {
     return new VideoRoomPublishRequest();
@@ -119,42 +120,37 @@ public class VideoRoomPublishRequest extends VideoRoomRequest {
     return this;
   }
 
-  public List<Description> getDescriptions() {
+  public List<VideoRoomDescription> getDescriptions() {
     return descriptions;
   }
 
-  public VideoRoomPublishRequest descriptions(List<Description> descriptions) {
+  public VideoRoomPublishRequest descriptions(List<VideoRoomDescription> descriptions) {
     this.descriptions = descriptions;
     return this;
   }
 
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-  private class Description {
-
-    private String mid;
-    private String description;
-
-    public Description create() {
-      return new Description();
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-
-    public String getMid() {
-      return mid;
+    if (!(o instanceof VideoRoomPublishRequest)) {
+      return false;
     }
+    VideoRoomPublishRequest that = (VideoRoomPublishRequest) o;
+    return Objects.equals(getRequest(), that.getRequest()) && Objects.equals(getAudioCodec(),
+      that.getAudioCodec()) && Objects.equals(getVideoCodec(), that.getVideoCodec())
+      && Objects.equals(getBitrate(), that.getBitrate()) && Objects.equals(record, that.record)
+      && Objects.equals(getFileName(), that.getFileName()) && Objects.equals(getDisplay(),
+      that.getDisplay()) && Objects.equals(getAudioLevelAverage(), that.getAudioLevelAverage())
+      && Objects.equals(getAudioActivePackets(), that.getAudioActivePackets()) && Objects.equals(
+      getDescriptions(), that.getDescriptions());
+  }
 
-    public Description mid(String mid) {
-      this.mid = mid;
-      return this;
-    }
-
-    public String getDescription() {
-      return description;
-    }
-
-    public Description description(String description) {
-      this.description = description;
-      return this;
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(getRequest(), getAudioCodec(), getVideoCodec(), getBitrate(), record, getFileName(),
+      getDisplay(),
+      getAudioLevelAverage(), getAudioActivePackets(), getDescriptions());
   }
 }

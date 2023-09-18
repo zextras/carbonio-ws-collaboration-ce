@@ -33,13 +33,15 @@ import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabas
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.MessageDispatcherMongooseIm;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.MessageDispatcherMongooseImpl;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagementProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceJanus;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerHttpClient;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceImpl;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.logging.aop.TimedCallInterceptor;
@@ -187,7 +189,8 @@ public class CoreModule extends AbstractModule {
     bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
 
     bind(HttpClient.class);
-    bind(VideoServerService.class).to(VideoServerServiceJanus.class);
+    bind(VideoServerService.class).to(VideoServerServiceImpl.class);
+    bind(VideoServerClient.class).to(VideoServerHttpClient.class);
     bind(VideoServerMeetingRepository.class).to(EbeanVideoServerMeetingRepository.class);
     bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
 
@@ -297,7 +300,7 @@ public class CoreModule extends AbstractModule {
   @Singleton
   @Provides
   private MessageDispatcher getMessageDispatcher(AppConfig appConfig, ObjectMapper objectMapper) {
-    return new MessageDispatcherMongooseIm(String.format("http://%s:%s/%s",
+    return new MessageDispatcherMongooseImpl(String.format("http://%s:%s/%s",
       appConfig.get(String.class, ConfigName.XMPP_SERVER_HOST).orElseThrow(),
       appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow(),
       ChatsConstant.MONGOOSEIM_GRAPHQL_ENDPOINT),

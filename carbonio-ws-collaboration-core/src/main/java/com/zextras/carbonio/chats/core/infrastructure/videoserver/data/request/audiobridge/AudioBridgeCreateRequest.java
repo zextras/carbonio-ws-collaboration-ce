@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * This class represents the audio bridge request to create a room.
@@ -76,7 +77,7 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public Boolean isPermanent() {
+  public Boolean getPermanent() {
     return permanent;
   }
 
@@ -112,7 +113,7 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public Boolean isPrivate() {
+  public Boolean getIsPrivate() {
     return isPrivate;
   }
 
@@ -139,7 +140,7 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public Boolean isSpatialAudio() {
+  public Boolean getSpatialAudio() {
     return spatialAudio;
   }
 
@@ -211,7 +212,7 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public Boolean isRecord() {
+  public Boolean getRecord() {
     return record;
   }
 
@@ -238,7 +239,7 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public Boolean isMjrs() {
+  public Boolean getMjrs() {
     return mjrs;
   }
 
@@ -256,7 +257,7 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public Boolean isAllowRtpParticipants() {
+  public Boolean getAllowRtpParticipants() {
     return allowRtpParticipants;
   }
 
@@ -272,5 +273,42 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
   public AudioBridgeCreateRequest groups(List<String> groups) {
     this.groups = groups;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof AudioBridgeCreateRequest)) {
+      return false;
+    }
+    AudioBridgeCreateRequest that = (AudioBridgeCreateRequest) o;
+    return Objects.equals(getRequest(), that.getRequest()) && Objects.equals(getRoom(),
+      that.getRoom()) && Objects.equals(getPermanent(), that.getPermanent()) && Objects.equals(
+      getDescription(), that.getDescription()) && Objects.equals(getSecret(), that.getSecret())
+      && Objects.equals(getPin(), that.getPin()) && Objects.equals(getIsPrivate(),
+      that.getIsPrivate()) && Objects.equals(getAllowed(), that.getAllowed()) && Objects.equals(
+      getSamplingRate(), that.getSamplingRate()) && Objects.equals(getSpatialAudio(), that.getSpatialAudio())
+      && Objects.equals(getAudioLevelExt(), that.getAudioLevelExt()) && Objects.equals(
+      getAudioLevelEvent(), that.getAudioLevelEvent()) && Objects.equals(getAudioActivePackets(),
+      that.getAudioActivePackets()) && Objects.equals(getAudioLevelAverage(), that.getAudioLevelAverage())
+      && Objects.equals(getDefaultPreBuffering(), that.getDefaultPreBuffering()) && Objects.equals(
+      getDefaultExpectedLoss(), that.getDefaultExpectedLoss()) && Objects.equals(getDefaultBitrate(),
+      that.getDefaultBitrate()) && Objects.equals(getRecord(), that.getRecord()) && Objects.equals(
+      getRecordFile(), that.getRecordFile()) && Objects.equals(getRecordDir(), that.getRecordDir())
+      && Objects.equals(getMjrs(), that.getMjrs()) && Objects.equals(getMjrsDir(), that.getMjrsDir())
+      && Objects.equals(getAllowRtpParticipants(), that.getAllowRtpParticipants()) && Objects.equals(
+      getGroups(), that.getGroups());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getRequest(), getRoom(), getPermanent(), getDescription(), getSecret(), getPin(),
+      getIsPrivate(),
+      getAllowed(), getSamplingRate(), getSpatialAudio(), getAudioLevelExt(), getAudioLevelEvent(),
+      getAudioActivePackets(), getAudioLevelAverage(), getDefaultPreBuffering(), getDefaultExpectedLoss(),
+      getDefaultBitrate(), getRecord(), getRecordFile(), getRecordDir(), getMjrs(), getMjrsDir(),
+      getAllowRtpParticipants(), getGroups());
   }
 }

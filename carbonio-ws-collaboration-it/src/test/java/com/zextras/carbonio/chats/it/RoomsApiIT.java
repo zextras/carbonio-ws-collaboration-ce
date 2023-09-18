@@ -2122,7 +2122,7 @@ public class RoomsApiIT {
       videoServerMockServer.mockRequestedResponse("POST",
         "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
         "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
-        "{\"janus\":\"ack\"}", true);
+        "{\"janus\":\"success\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
         "/janus/connection_" + user2Queue,
         "{\"janus\":\"destroy\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
@@ -2215,7 +2215,7 @@ public class RoomsApiIT {
       videoServerMockServer.mockRequestedResponse("POST",
         "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
         "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
-        "{\"janus\":\"ack\"}", true);
+        "{\"janus\":\"success\"}", true);
       videoServerMockServer.mockRequestedResponse("POST",
         "/janus/connection_" + user2Queue,
         "{\"janus\":\"destroy\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",

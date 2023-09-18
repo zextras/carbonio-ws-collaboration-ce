@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -40,5 +41,22 @@ public class Feed {
   @Override
   public String toString() {
     return userId + "/" + getType().toString().toLowerCase();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof Feed)) {
+      return false;
+    }
+    Feed feed = (Feed) o;
+    return getType() == feed.getType() && Objects.equals(getUserId(), feed.getUserId());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getType(), getUserId());
   }
 }

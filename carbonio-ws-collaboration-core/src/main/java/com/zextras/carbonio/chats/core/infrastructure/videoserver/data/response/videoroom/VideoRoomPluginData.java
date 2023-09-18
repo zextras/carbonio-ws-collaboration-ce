@@ -19,14 +19,25 @@ public class VideoRoomPluginData {
   @JsonProperty("data")
   private VideoRoomDataInfo dataInfo;
 
-  public VideoRoomPluginData() {
+  public static VideoRoomPluginData create() {
+    return new VideoRoomPluginData();
   }
 
   public String getPlugin() {
     return plugin;
   }
 
+  public VideoRoomPluginData plugin(String plugin) {
+    this.plugin = plugin;
+    return this;
+  }
+
   public VideoRoomDataInfo getDataInfo() {
     return dataInfo;
+  }
+
+  public VideoRoomPluginData dataInfo(VideoRoomDataInfo dataInfo) {
+    this.dataInfo = dataInfo;
+    return this;
   }
 }

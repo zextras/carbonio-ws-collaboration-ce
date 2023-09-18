@@ -24,30 +24,61 @@ public class AudioBridgeDataParticipant {
   private Boolean talking;
   private Integer spatialPosition;
 
-  public AudioBridgeDataParticipant() {
+  public static AudioBridgeDataParticipant create() {
+    return new AudioBridgeDataParticipant();
   }
 
   public String getId() {
     return id;
   }
 
+  public AudioBridgeDataParticipant id(String id) {
+    this.id = id;
+    return this;
+  }
+
   public String getDisplay() {
     return display;
   }
 
-  public boolean isSetup() {
+  public AudioBridgeDataParticipant display(String display) {
+    this.display = display;
+    return this;
+  }
+
+  public Boolean getSetup() {
     return setup;
   }
 
-  public boolean isMuted() {
+  public AudioBridgeDataParticipant setup(boolean setup) {
+    this.setup = setup;
+    return this;
+  }
+
+  public Boolean getMuted() {
     return muted;
   }
 
-  public boolean isTalking() {
+  public AudioBridgeDataParticipant setMuted(boolean muted) {
+    this.muted = muted;
+    return this;
+  }
+
+  public Boolean getTalking() {
     return talking;
   }
 
-  public int getSpatialPosition() {
+  public AudioBridgeDataParticipant talking(boolean talking) {
+    this.talking = talking;
+    return this;
+  }
+
+  public Integer getSpatialPosition() {
     return spatialPosition;
+  }
+
+  public AudioBridgeDataParticipant spatialPosition(int spatialPosition) {
+    this.spatialPosition = spatialPosition;
+    return this;
   }
 }

@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.Objects;
 
 /**
  * This class represents the video room request to leave a room. This will also implicitly unpublish you if you were an
@@ -34,5 +35,22 @@ public class VideoRoomLeaveRequest extends VideoRoomRequest {
   public VideoRoomLeaveRequest request(String request) {
     this.request = request;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof VideoRoomLeaveRequest)) {
+      return false;
+    }
+    VideoRoomLeaveRequest that = (VideoRoomLeaveRequest) o;
+    return Objects.equals(getRequest(), that.getRequest());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getRequest());
   }
 }

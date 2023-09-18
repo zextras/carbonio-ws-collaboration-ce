@@ -4,10 +4,12 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.Objects;
 
 /**
  * This class represents a response provided by VideoServer when interacting with session or plugin
@@ -42,70 +44,84 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 public class VideoServerResponse {
 
   @JsonProperty("janus")
-  private String status;
+  private String              status;
   @JsonProperty("sessionId")
-  private String connectionId;
+  private String              connectionId;
   @JsonProperty("transaction")
-  private String transactionId;
-  private Data   data;
+  private String              transactionId;
+  private VideoServerDataInfo data;
+  private VideoServerError    error;
 
-  private Error error;
-
-  public VideoServerResponse() {
+  public static VideoServerResponse create() {
+    return new VideoServerResponse();
   }
 
   public String getStatus() {
     return status;
   }
 
+  public VideoServerResponse status(String status) {
+    this.status = status;
+    return this;
+  }
+
   public String getConnectionId() {
     return connectionId;
+  }
+
+  public VideoServerResponse connectionId(String connectionId) {
+    this.connectionId = connectionId;
+    return this;
   }
 
   public String getTransactionId() {
     return transactionId;
   }
 
-  public Data getData() {
+  public VideoServerResponse transactionId(String transactionId) {
+    this.transactionId = transactionId;
+    return this;
+  }
+
+  public VideoServerDataInfo getData() {
     return data;
   }
 
-  public Error getError() {
+  public VideoServerResponse data(VideoServerDataInfo data) {
+    this.data = data;
+    return this;
+  }
+
+  public VideoServerError getError() {
     return error;
   }
 
+  public VideoServerResponse error(VideoServerError error) {
+    this.error = error;
+    return this;
+  }
+
+  @JsonIgnore
   public String getDataId() {
     return getData().getId();
   }
 
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  private static class Data {
-
-    private String id;
-
-    public Data() {
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-
-    public String getId() {
-      return id;
+    if (!(o instanceof VideoServerResponse)) {
+      return false;
     }
+    VideoServerResponse that = (VideoServerResponse) o;
+    return Objects.equals(getStatus(), that.getStatus()) && Objects.equals(getConnectionId(),
+      that.getConnectionId()) && Objects.equals(getTransactionId(), that.getTransactionId())
+      && Objects.equals(getData(), that.getData()) && Objects.equals(getError(), that.getError());
   }
 
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  private static class Error {
-
-    private Long   code;
-    private String reason;
-
-    public Error() {
-    }
-
-    public long getCode() {
-      return code;
-    }
-
-    public String getReason() {
-      return reason;
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(getStatus(), getConnectionId(), getTransactionId(), getData(), getError());
   }
 }

@@ -19,22 +19,43 @@ public class VideoRoomDataParticipant {
   private Boolean publisher;
   private Boolean talking;
 
-  public VideoRoomDataParticipant() {
+  public static VideoRoomDataParticipant create() {
+    return new VideoRoomDataParticipant();
   }
 
   public String getId() {
     return id;
   }
 
+  public VideoRoomDataParticipant id(String id) {
+    this.id = id;
+    return this;
+  }
+
   public String getDisplay() {
     return display;
   }
 
-  public boolean isPublisher() {
+  public VideoRoomDataParticipant display(String display) {
+    this.display = display;
+    return this;
+  }
+
+  public Boolean getPublisher() {
     return publisher;
   }
 
-  public boolean isTalking() {
+  public VideoRoomDataParticipant publisher(boolean publisher) {
+    this.publisher = publisher;
+    return this;
+  }
+
+  public Boolean getTalking() {
     return talking;
+  }
+
+  public VideoRoomDataParticipant talking(boolean talking) {
+    this.talking = talking;
+    return this;
   }
 }
