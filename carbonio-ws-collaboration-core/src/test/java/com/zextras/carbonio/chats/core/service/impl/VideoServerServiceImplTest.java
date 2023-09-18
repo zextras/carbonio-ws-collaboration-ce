@@ -51,7 +51,7 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.videoroom.VideoRoomPluginData;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.videoroom.VideoRoomResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceJanus;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceImpl;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import com.zextras.carbonio.meeting.model.MediaStreamDto;
@@ -87,7 +87,7 @@ public class VideoServerServiceImplTest {
     when(appConfig.get(String.class, ConfigName.VIDEO_SERVER_ADMIN_PORT)).thenReturn(Optional.of("7088"));
     when(appConfig.get(String.class, ConfigName.VIDEO_SERVER_TOKEN)).thenReturn(Optional.of("token"));
 
-    this.videoServerService = new VideoServerServiceJanus(
+    this.videoServerService = new VideoServerServiceImpl(
       appConfig,
       videoServerClient,
       videoServerMeetingRepository,

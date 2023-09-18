@@ -34,7 +34,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
-public class MessageDispatcherMongooseIm implements MessageDispatcher {
+public class MessageDispatcherMongooseImpl implements MessageDispatcher {
 
   private static final String DOMAIN = "muclight.carbonio";
 
@@ -42,7 +42,7 @@ public class MessageDispatcherMongooseIm implements MessageDispatcher {
   private final ObjectMapper objectMapper;
   private final String       authToken;
 
-  public MessageDispatcherMongooseIm(
+  public MessageDispatcherMongooseImpl(
     String mongooseimUrl, String username, String password, ObjectMapper objectMapper
   ) {
     this.mongooseimUrl = mongooseimUrl;

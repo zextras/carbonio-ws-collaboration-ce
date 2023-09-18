@@ -54,7 +54,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 @Singleton
-public class VideoServerServiceJanus implements VideoServerService {
+public class VideoServerServiceImpl implements VideoServerService {
 
   private static final String                       JANUS_ENDPOINT           = "/janus";
   private static final String                       JANUS_ADMIN_ENDPOINT     = "/admin";
@@ -75,7 +75,7 @@ public class VideoServerServiceJanus implements VideoServerService {
   private final        VideoServerSessionRepository videoServerSessionRepository;
 
   @Inject
-  public VideoServerServiceJanus(
+  public VideoServerServiceImpl(
     AppConfig appConfig,
     VideoServerClient videoServerClient,
     VideoServerMeetingRepository videoServerMeetingRepository,
@@ -665,7 +665,7 @@ public class VideoServerServiceJanus implements VideoServerService {
     return videoServerClient.sendVideoServerRequest(
       videoServerURL + JANUS_ENDPOINT + "/" + connectionId + "/" + handleId,
       VideoServerMessageRequest.create()
-        .messageRequest(VideoServerServiceJanus.JANUS_DETACH)
+        .messageRequest(VideoServerServiceImpl.JANUS_DETACH)
         .transactionId(UUID.randomUUID().toString())
         .apiSecret(apiSecret)
     );
@@ -684,7 +684,7 @@ public class VideoServerServiceJanus implements VideoServerService {
   private AudioBridgeResponse sendAudioBridgePluginMessage(String connectionId, String handleId,
     VideoServerPluginRequest videoServerPluginRequest, @Nullable RtcSessionDescription rtcSessionDescription) {
     VideoServerMessageRequest videoServerMessageRequest = VideoServerMessageRequest.create()
-      .messageRequest(VideoServerServiceJanus.JANUS_MESSAGE)
+      .messageRequest(VideoServerServiceImpl.JANUS_MESSAGE)
       .transactionId(UUID.randomUUID().toString())
       .videoServerPluginRequest(videoServerPluginRequest)
       .apiSecret(apiSecret);
@@ -708,7 +708,7 @@ public class VideoServerServiceJanus implements VideoServerService {
   private VideoRoomResponse sendVideoRoomPluginMessage(String connectionId, String handleId,
     VideoServerPluginRequest videoServerPluginRequest, @Nullable RtcSessionDescription rtcSessionDescription) {
     VideoServerMessageRequest videoServerMessageRequest = VideoServerMessageRequest.create()
-      .messageRequest(VideoServerServiceJanus.JANUS_MESSAGE)
+      .messageRequest(VideoServerServiceImpl.JANUS_MESSAGE)
       .transactionId(UUID.randomUUID().toString())
       .videoServerPluginRequest(videoServerPluginRequest)
       .apiSecret(apiSecret);

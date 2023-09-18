@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.Objects;
 
 /**
  * This class represents a pong response provided by VideoServer when a ping request is sent
@@ -31,11 +32,43 @@ public class PongResponse {
   @JsonProperty("transaction")
   private String transactionId;
 
+  public static PongResponse create() {
+    return new PongResponse();
+  }
+
   public String getStatus() {
     return status;
   }
 
+  public PongResponse status(String status) {
+    this.status = status;
+    return this;
+  }
+
   public String getTransactionId() {
     return transactionId;
+  }
+
+  public PongResponse transactionId(String transactionId) {
+    this.transactionId = transactionId;
+    return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof PongResponse)) {
+      return false;
+    }
+    PongResponse that = (PongResponse) o;
+    return Objects.equals(getStatus(), that.getStatus()) && Objects.equals(getTransactionId(),
+      that.getTransactionId());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getStatus(), getTransactionId());
   }
 }

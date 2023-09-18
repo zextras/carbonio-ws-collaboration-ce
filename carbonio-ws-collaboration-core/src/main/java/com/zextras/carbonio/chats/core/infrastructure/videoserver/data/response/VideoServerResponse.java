@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.Objects;
 
 /**
  * This class represents a response provided by VideoServer when interacting with session or plugin
@@ -103,5 +104,24 @@ public class VideoServerResponse {
   @JsonIgnore
   public String getDataId() {
     return getData().getId();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof VideoServerResponse)) {
+      return false;
+    }
+    VideoServerResponse that = (VideoServerResponse) o;
+    return Objects.equals(getStatus(), that.getStatus()) && Objects.equals(getConnectionId(),
+      that.getConnectionId()) && Objects.equals(getTransactionId(), that.getTransactionId())
+      && Objects.equals(getData(), that.getData()) && Objects.equals(getError(), that.getError());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getStatus(), getConnectionId(), getTransactionId(), getData(), getError());
   }
 }
