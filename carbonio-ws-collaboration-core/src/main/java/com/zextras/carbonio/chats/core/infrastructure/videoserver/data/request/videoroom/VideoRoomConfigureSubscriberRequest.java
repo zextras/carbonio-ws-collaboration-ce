@@ -20,9 +20,9 @@ public class VideoRoomConfigureSubscriberRequest extends VideoRoomRequest {
 
   public static final String CONFIGURE = "configure";
 
-  private String       request;
-  private List<Stream> streams;
-  private Boolean      restart;
+  private String                request;
+  private List<VideoRoomStream> streams;
+  private Boolean               restart;
 
   public static VideoRoomConfigureSubscriberRequest create() {
     return new VideoRoomConfigureSubscriberRequest();
@@ -32,11 +32,11 @@ public class VideoRoomConfigureSubscriberRequest extends VideoRoomRequest {
     return request;
   }
 
-  public List<Stream> getStreams() {
+  public List<VideoRoomStream> getStreams() {
     return streams;
   }
 
-  public VideoRoomConfigureSubscriberRequest streams(List<Stream> streams) {
+  public VideoRoomConfigureSubscriberRequest streams(List<VideoRoomStream> streams) {
     this.streams = streams;
     return this;
   }
@@ -53,121 +53,5 @@ public class VideoRoomConfigureSubscriberRequest extends VideoRoomRequest {
   public VideoRoomConfigureSubscriberRequest request(String request) {
     this.request = request;
     return this;
-  }
-
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-  private class Stream {
-
-    private String  mid;
-    private boolean send;
-    private int     substream;
-    private int     temporal;
-    private long    fallback;
-    private int     spatialLayer;
-    private int     temporalLayer;
-    private int     audioLevelAverage;
-    private long    audioActivePackets;
-    private int     minDelay;
-    private int     maxDelay;
-
-    public String getMid() {
-      return mid;
-    }
-
-    public Stream mid(String mid) {
-      this.mid = mid;
-      return this;
-    }
-
-    public Boolean isSend() {
-      return send;
-    }
-
-    public Stream send(boolean send) {
-      this.send = send;
-      return this;
-    }
-
-    public Integer getSubstream() {
-      return substream;
-    }
-
-    public Stream substream(int substream) {
-      this.substream = substream;
-      return this;
-    }
-
-    public Integer getTemporal() {
-      return temporal;
-    }
-
-    public Stream temporal(int temporal) {
-      this.temporal = temporal;
-      return this;
-    }
-
-    public Long getFallback() {
-      return fallback;
-    }
-
-    public Stream fallback(long fallback) {
-      this.fallback = fallback;
-      return this;
-    }
-
-    public Integer getSpatialLayer() {
-      return spatialLayer;
-    }
-
-    public Stream spatialLayer(int spatialLayer) {
-      this.spatialLayer = spatialLayer;
-      return this;
-    }
-
-    public Integer getTemporalLayer() {
-      return temporalLayer;
-    }
-
-    public Stream temporalLayer(int temporalLayer) {
-      this.temporalLayer = temporalLayer;
-      return this;
-    }
-
-    public Integer getAudioLevelAverage() {
-      return audioLevelAverage;
-    }
-
-    public Stream audioLevelAverage(int audioLevelAverage) {
-      this.audioLevelAverage = audioLevelAverage;
-      return this;
-    }
-
-    public Long getAudioActivePackets() {
-      return audioActivePackets;
-    }
-
-    public Stream audioActivePackets(long audioActivePackets) {
-      this.audioActivePackets = audioActivePackets;
-      return this;
-    }
-
-    public Integer getMinDelay() {
-      return minDelay;
-    }
-
-    public Stream minDelay(int minDelay) {
-      this.minDelay = minDelay;
-      return this;
-    }
-
-    public Integer getMaxDelay() {
-      return maxDelay;
-    }
-
-    public Stream maxDelay(int maxDelay) {
-      this.maxDelay = maxDelay;
-      return this;
-    }
   }
 }

@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.Objects;
 
 /**
  * This class represents the video room request to complete the setup a PeerConnection sending a JSEP SDP answer back to
@@ -33,5 +34,23 @@ public class VideoRoomStartVideoInRequest extends VideoRoomRequest {
   public VideoRoomStartVideoInRequest request(String request) {
     this.request = request;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof VideoRoomStartVideoInRequest)) {
+      return false;
+    }
+    VideoRoomStartVideoInRequest that = (VideoRoomStartVideoInRequest) o;
+    return Objects.equals(getRequest(), that.getRequest());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getRequest());
   }
 }

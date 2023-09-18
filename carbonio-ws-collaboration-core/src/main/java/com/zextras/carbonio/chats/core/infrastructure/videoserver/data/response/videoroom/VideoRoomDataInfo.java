@@ -19,7 +19,7 @@ public class VideoRoomDataInfo {
   @JsonProperty("videoroom")
   private String                         videoRoom;
   private String                         room;
-  private String                         permanent;
+  private Boolean                        permanent;
   private Boolean                        exists;
   private List<String>                   allowed;
   @JsonProperty("list")
@@ -29,42 +29,88 @@ public class VideoRoomDataInfo {
   private String errorCode;
   private String error;
 
-  public VideoRoomDataInfo() {
+  public static VideoRoomDataInfo create() {
+    return new VideoRoomDataInfo();
   }
 
   public String getVideoRoom() {
     return videoRoom;
   }
 
+  public VideoRoomDataInfo videoRoom(String videoRoom) {
+    this.videoRoom = videoRoom;
+    return this;
+  }
+
   public String getRoom() {
     return room;
   }
 
-  public String getPermanent() {
+  public VideoRoomDataInfo room(String room) {
+    this.room = room;
+    return this;
+  }
+
+  public Boolean getPermanent() {
     return permanent;
+  }
+
+  public VideoRoomDataInfo permanent(boolean permanent) {
+    this.permanent = permanent;
+    return this;
   }
 
   public Boolean getExists() {
     return exists;
   }
 
+  public VideoRoomDataInfo exists(boolean exists) {
+    this.exists = exists;
+    return this;
+  }
+
   public List<String> getAllowed() {
     return allowed;
+  }
+
+  public VideoRoomDataInfo allowed(List<String> allowed) {
+    this.allowed = allowed;
+    return this;
   }
 
   public List<VideoRoomDataRoom> getRooms() {
     return rooms;
   }
 
+  public VideoRoomDataInfo rooms(List<VideoRoomDataRoom> rooms) {
+    this.rooms = rooms;
+    return this;
+  }
+
   public List<VideoRoomDataParticipant> getParticipants() {
     return participants;
+  }
+
+  public VideoRoomDataInfo participants(List<VideoRoomDataParticipant> participants) {
+    this.participants = participants;
+    return this;
   }
 
   public String getErrorCode() {
     return errorCode;
   }
 
+  public VideoRoomDataInfo errorCode(String errorCode) {
+    this.errorCode = errorCode;
+    return this;
+  }
+
   public String getError() {
     return error;
+  }
+
+  public VideoRoomDataInfo error(String error) {
+    this.error = error;
+    return this;
   }
 }

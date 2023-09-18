@@ -26,38 +26,79 @@ public class AudioBridgeDataRoom {
   private Boolean muted;
   private Integer numParticipants;
 
-  public AudioBridgeDataRoom() {
+  public static AudioBridgeDataRoom create() {
+    return new AudioBridgeDataRoom();
   }
 
   public String getRoom() {
     return room;
   }
 
+  public AudioBridgeDataRoom room(String room) {
+    this.room = room;
+    return this;
+  }
+
   public String getDescription() {
     return description;
   }
 
-  public boolean isPinRequired() {
+  public AudioBridgeDataRoom description(String description) {
+    this.description = description;
+    return this;
+  }
+
+  public Boolean getPinRequired() {
     return pinRequired;
   }
 
-  public long getSamplingRate() {
+  public AudioBridgeDataRoom pinRequired(boolean pinRequired) {
+    this.pinRequired = pinRequired;
+    return this;
+  }
+
+  public Long getSamplingRate() {
     return samplingRate;
   }
 
-  public boolean isSpatialAudio() {
+  public AudioBridgeDataRoom samplingRate(long samplingRate) {
+    this.samplingRate = samplingRate;
+    return this;
+  }
+
+  public Boolean getSpatialAudio() {
     return spatialAudio;
   }
 
-  public boolean isRecord() {
+  public AudioBridgeDataRoom spatialAudio(boolean spatialAudio) {
+    this.spatialAudio = spatialAudio;
+    return this;
+  }
+
+  public Boolean getRecord() {
     return record;
   }
 
-  public boolean isMuted() {
+  public AudioBridgeDataRoom record(boolean record) {
+    this.record = record;
+    return this;
+  }
+
+  public Boolean getMuted() {
     return muted;
   }
 
-  public int getNumParticipants() {
+  public AudioBridgeDataRoom muted(boolean muted) {
+    this.muted = muted;
+    return this;
+  }
+
+  public Integer getNumParticipants() {
     return numParticipants;
+  }
+
+  public AudioBridgeDataRoom numParticipants(int numParticipants) {
+    this.numParticipants = numParticipants;
+    return this;
   }
 }

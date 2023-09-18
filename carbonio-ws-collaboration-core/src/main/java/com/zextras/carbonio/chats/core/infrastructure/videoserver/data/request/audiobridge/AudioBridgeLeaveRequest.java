@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.Objects;
 
 /**
  * This class represents the audio bridge request to allow session to leave a room.
@@ -32,5 +33,22 @@ public class AudioBridgeLeaveRequest extends AudioBridgeRequest {
   public AudioBridgeLeaveRequest request(String request) {
     this.request = request;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof AudioBridgeLeaveRequest)) {
+      return false;
+    }
+    AudioBridgeLeaveRequest that = (AudioBridgeLeaveRequest) o;
+    return Objects.equals(getRequest(), that.getRequest());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getRequest());
   }
 }
