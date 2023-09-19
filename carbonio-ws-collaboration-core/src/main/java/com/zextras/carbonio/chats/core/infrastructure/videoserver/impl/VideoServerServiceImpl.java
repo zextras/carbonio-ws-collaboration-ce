@@ -266,7 +266,7 @@ public class VideoServerServiceImpl implements VideoServerService {
 
   @Override
   @Transactional
-  public void joinMeeting(String userId, String queueId, String meetingId, boolean videoStreamOn,
+  public void addMeetingParticipant(String userId, String queueId, String meetingId, boolean videoStreamOn,
     boolean audioStreamOn) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
@@ -324,7 +324,7 @@ public class VideoServerServiceImpl implements VideoServerService {
 
   @Override
   @Transactional
-  public void leaveMeeting(String userId, String meetingId) {
+  public void destroyMeetingParticipant(String userId, String meetingId) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
@@ -348,6 +348,26 @@ public class VideoServerServiceImpl implements VideoServerService {
       destroyPluginHandle(videoServerSession.getConnectionId(), screenHandleId, meetingId);
     });
     destroyConnection(videoServerSession.getConnectionId(), meetingId);
+    videoServerSessionRepository.remove(videoServerSession);
+  }
+
+  @Override
+  @Transactional
+  public void removeMeetingParticipant(String userId, String meetingId) {
+    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
+      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
+    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
+      .filter(sessionUser -> sessionUser.getUserId().equals(userId))
+      .findAny().orElseThrow(() -> new VideoServerException(
+        "No Videoserver session user found for user " + userId + " for the meeting " + meetingId));
+    Optional.ofNullable(videoServerSession.getAudioHandleId())
+      .ifPresent(audioHandleId -> leaveAudioBridgeRoom(videoServerSession.getConnectionId(), audioHandleId));
+    Optional.ofNullable(videoServerSession.getVideoOutHandleId())
+      .ifPresent(videoOutHandleId -> leaveVideoRoom(videoServerSession.getConnectionId(), videoOutHandleId));
+    Optional.ofNullable(videoServerSession.getVideoInHandleId())
+      .ifPresent(videoInHandleId -> leaveVideoRoom(videoServerSession.getConnectionId(), videoInHandleId));
+    Optional.ofNullable(videoServerSession.getScreenHandleId())
+      .ifPresent(screenHandleId -> leaveVideoRoom(videoServerSession.getConnectionId(), screenHandleId));
     videoServerSessionRepository.remove(videoServerSession);
   }
 
@@ -384,6 +404,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
+  @Transactional
   public void updateMediaStream(String userId, String meetingId, MediaStreamSettingsDto mediaStreamSettingsDto) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
@@ -428,6 +449,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
+  @Transactional
   public void updateAudioStream(String userId, String meetingId, boolean enabled) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
@@ -464,6 +486,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
+  @Transactional
   public void answerRtcMediaStream(String userId, String meetingId, String sdp) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
@@ -499,6 +522,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
+  @Transactional
   public void updateSubscriptionsMediaStream(String userId, String meetingId,
     SubscriptionUpdatesDto subscriptionUpdatesDto) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
@@ -545,6 +569,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
+  @Transactional
   public void offerRtcAudioStream(String userId, String meetingId, String sdp) {
     VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));

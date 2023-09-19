@@ -11,6 +11,9 @@ import com.rabbitmq.client.DeliverCallback;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
+import com.zextras.carbonio.chats.core.repository.RoomRepository;
+import com.zextras.carbonio.chats.core.service.ParticipantService;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -35,21 +38,28 @@ public class EventsWebSocketEndpoint {
 
   private static final int MAX_IDLE_TIMEOUT = 90000;
 
-  private final EventDispatcher      eventDispatcher;
-  private final ObjectMapper         objectMapper;
-  private final Map<String, Channel> userChannelMap;
+  private final EventDispatcher       eventDispatcher;
+  private final ObjectMapper          objectMapper;
+  private final Map<String, Channel>  userChannelMap;
+  private final ParticipantRepository participantRepository;
+  private final RoomRepository        roomRepository;
+  private final ParticipantService    participantService;
 
   @Inject
-  public EventsWebSocketEndpoint(EventDispatcher eventDispatcher, ObjectMapper objectMapper) {
+  public EventsWebSocketEndpoint(EventDispatcher eventDispatcher, ObjectMapper objectMapper,
+    ParticipantRepository participantRepository, RoomRepository roomRepository, ParticipantService participantService) {
     this.eventDispatcher = eventDispatcher;
     this.objectMapper = objectMapper;
+    this.participantRepository = participantRepository;
+    this.roomRepository = roomRepository;
+    this.participantService = participantService;
     this.userChannelMap = new HashMap<>();
   }
 
   @OnOpen
   public void onOpen(Session session) throws IOException, EncodeException {
-    String userId = getUserIdFromSession(session);
-    UUID queueId = UUID.randomUUID();
+    UUID userId = UUID.fromString(getUserIdFromSession(session));
+    UUID queueId = UUID.fromString(session.getId());
     String userQueue = userId + "/" + queueId;
 
     session.setMaxIdleTimeout(MAX_IDLE_TIMEOUT);
@@ -68,8 +78,8 @@ public class EventsWebSocketEndpoint {
     try {
       userChannelMap.putIfAbsent(userId + "/" + session.getId(), channel);
       channel.queueDeclare(userQueue, true, false, false, null);
-      channel.exchangeDeclare(userId, "direct");
-      channel.queueBind(userQueue, userId, "");
+      channel.exchangeDeclare(userId.toString(), "direct");
+      channel.queueBind(userQueue, userId.toString(), "");
       DeliverCallback deliverCallback = (consumerTag, delivery) -> {
         String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
         try {
@@ -124,11 +134,17 @@ public class EventsWebSocketEndpoint {
   }
 
   private void closeSessionChannel(Session session) {
-    String userSessionId = getUserIdFromSession(session) + "/" + session.getId();
+    UUID userId = UUID.fromString(getUserIdFromSession(session));
+    UUID queueId = UUID.fromString(session.getId());
+    String userSessionId = userId + "/" + queueId;
     if (userChannelMap.containsKey(userSessionId)) {
       try {
         userChannelMap.get(userSessionId).close();
         userChannelMap.remove(userSessionId);
+        participantRepository.getByQueueId(queueId.toString()).ifPresent(
+          participant -> roomRepository.getById(participant.getMeeting().getRoomId()).ifPresent(
+            room -> participantService.removeMeetingParticipant(participant.getMeeting(), room, userId, queueId))
+        );
       } catch (IOException | TimeoutException ignored) {
         // intentionally left blank
       }

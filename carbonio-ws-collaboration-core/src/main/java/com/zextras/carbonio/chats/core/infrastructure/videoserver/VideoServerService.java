@@ -25,23 +25,32 @@ public interface VideoServerService extends HealthIndicator {
   void stopMeeting(String meetingId);
 
   /**
-   * Performs all the actions necessary to join a 'participant' in a 'meeting' on the VideoServer
+   * Performs all the actions necessary to add a 'participant' to a 'meeting' on the VideoServer
    *
    * @param userId        participant's user identifier
    * @param queueId       participant's message queue identifier
-   * @param meetingId     id of the meeting to join
+   * @param meetingId     id of the meeting
    * @param videoStreamOn true if participant wants to join with video, false otherwise
    * @param audioStreamOn true if participant wants to join with audio, false otherwise
    */
-  void joinMeeting(String userId, String queueId, String meetingId, boolean videoStreamOn, boolean audioStreamOn);
+  void addMeetingParticipant(String userId, String queueId, String meetingId, boolean videoStreamOn,
+    boolean audioStreamOn);
 
   /**
-   * Performs all the actions necessary to leave a 'participant' from a 'meeting' on the VideoServer
+   * Performs all the actions necessary to destroy a 'participant' in a 'meeting' on the VideoServer
    *
    * @param userId    participant's user identifier
-   * @param meetingId id of the meeting to leave
+   * @param meetingId id of the meeting
    */
-  void leaveMeeting(String userId, String meetingId);
+  void destroyMeetingParticipant(String userId, String meetingId);
+
+  /**
+   * Performs all the actions necessary to remove a 'participant' from a 'meeting' on the VideoServer
+   *
+   * @param userId    participant's user identifier
+   * @param meetingId id of the meeting
+   */
+  void removeMeetingParticipant(String userId, String meetingId);
 
   /**
    * Updates the audio stream status for the user's session in the meeting

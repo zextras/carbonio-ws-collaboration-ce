@@ -6,7 +6,7 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration CE Meeting Api
   description: Zextras Carbonio Workstream Collaboration CE Meeting HTTP APIs definition.
-  version: 0.3.2
+  version: 0.3.3
   contact:
     email: smokybeans@zextras.com
 servers:
@@ -369,7 +369,7 @@ components:
           type: string
           format: date-time
       required:
-        - [name, meetingType]
+        - [ name, meetingType ]
     Room:
       type: object
       description: Room data for a meeting
@@ -433,6 +433,11 @@ components:
               type: boolean
               readOnly: true
               description: indicates the screen share stream status
+            joinedAt:
+              type: string
+              format: date-time
+              readOnly: true
+              description: participant joining timestamp
     Meeting:
       type: object
       description: Meeting data

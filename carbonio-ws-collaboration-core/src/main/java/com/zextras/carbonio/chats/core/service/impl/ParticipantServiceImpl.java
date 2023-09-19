@@ -29,6 +29,7 @@ import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import io.ebean.annotation.Transactional;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -86,34 +87,42 @@ public class ParticipantServiceImpl implements ParticipantService {
       .stream()
       .filter(participant -> participant.getUserId().equals(currentUser.getId()))
       .findFirst()
-      .ifPresent(participant -> {
+      .ifPresentOrElse(participant -> {
         if (participant.getQueueId().equals(currentUser.getQueueId().toString())) {
           throw new ConflictException("User is already inserted into the meeting");
         } else {
-          participantRepository.remove(participant);
-          videoServerService.leaveMeeting(participant.getUserId(), meeting.getId());
+          String participantUserId = participant.getUserId();
+          videoServerService.removeMeetingParticipant(participantUserId, meeting.getId());
           eventDispatcher.sendToUserQueue(
-            participant.getUserId(),
+            participantUserId,
             participant.getQueueId(),
             MeetingParticipantClashed.create().meetingId(UUID.fromString(meeting.getId()))
           );
+          participantRepository.update(participant.queueId(currentUser.getQueueId().toString()));
+          videoServerService.addMeetingParticipant(currentUser.getId(),
+            currentUser.getQueueId().toString(),
+            meeting.getId(),
+            joinSettingsDto.isVideoStreamEnabled(),
+            joinSettingsDto.isAudioStreamEnabled());
         }
+      }, () -> {
+        Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
+        participantRepository.insert(
+          Participant.create(meeting, currentUser.getId())
+            .queueId(currentUser.getQueueId().toString())
+            .createdAt(OffsetDateTime.now()));
+        videoServerService.addMeetingParticipant(currentUser.getId(),
+          currentUser.getQueueId().toString(),
+          meeting.getId(),
+          joinSettingsDto.isVideoStreamEnabled(),
+          joinSettingsDto.isAudioStreamEnabled());
+        eventDispatcher.sendToUserExchange(
+          room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+          MeetingParticipantJoined.create()
+            .meetingId(UUID.fromString(meeting.getId()))
+            .userId(currentUser.getUUID())
+        );
       });
-    Room room = roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
-    participantRepository.insert(
-      Participant.create(meeting, currentUser.getId())
-        .queueId(currentUser.getQueueId().toString()));
-    videoServerService.joinMeeting(currentUser.getId(),
-      currentUser.getQueueId().toString(),
-      meeting.getId(),
-      joinSettingsDto.isVideoStreamEnabled(),
-      joinSettingsDto.isAudioStreamEnabled());
-    eventDispatcher.sendToUserExchange(
-      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      MeetingParticipantJoined.create()
-        .meetingId(UUID.fromString(meeting.getId()))
-        .userId(currentUser.getUUID())
-    );
   }
 
   @Override
@@ -130,21 +139,39 @@ public class ParticipantServiceImpl implements ParticipantService {
     List<Participant> participants = meeting.getParticipants().stream()
       .filter(p -> userId.toString().equals(p.getUserId()))
       .collect(Collectors.toList());
+
     if (participants.isEmpty()) {
       throw new NotFoundException("User not found");
     }
 
-    participants.forEach(participant -> {
-      participantRepository.remove(participant);
-      videoServerService.leaveMeeting(participant.getUserId(), meeting.getId());
-      meeting.getParticipants().remove(participant);
-      eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-        MeetingParticipantLeft.create().meetingId(UUID.fromString(meeting.getId())).userId(userId));
-      if (meeting.getParticipants().isEmpty()) {
-        meetingService.updateMeeting(UserPrincipal.create(userId), UUID.fromString(meeting.getId()), false);
-      }
-    });
+    participants.forEach(participant -> removeMeetingParticipant(participant, meeting, room));
+  }
+
+  @Override
+  public void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, UUID queueId) {
+    Optional<Participant> optionalParticipant = meeting.getParticipants().stream()
+      .filter(p -> userId.toString().equals(p.getUserId()) && queueId.toString().equals(p.getQueueId()))
+      .findFirst();
+
+    if (optionalParticipant.isEmpty()) {
+      throw new NotFoundException("User not found");
+    }
+
+    removeMeetingParticipant(optionalParticipant.get(), meeting, room);
+  }
+
+  private void removeMeetingParticipant(Participant participant, Meeting meeting, Room room) {
+    participantRepository.remove(participant);
+    videoServerService.destroyMeetingParticipant(participant.getUserId(), meeting.getId());
+    meeting.getParticipants().remove(participant);
+    eventDispatcher.sendToUserExchange(
+      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+      MeetingParticipantLeft.create().meetingId(UUID.fromString(meeting.getId()))
+        .userId(UUID.fromString(participant.getUserId())));
+    if (meeting.getParticipants().isEmpty()) {
+      meetingService.updateMeeting(UserPrincipal.create(UUID.fromString(participant.getUserId())),
+        UUID.fromString(meeting.getId()), false);
+    }
   }
 
   @Override
