@@ -9,6 +9,7 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamChanged;
+import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantClashed;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoined;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
@@ -96,8 +97,7 @@ public class ParticipantServiceImpl implements ParticipantService {
           eventDispatcher.sendToUserQueue(
             participantUserId,
             participant.getQueueId(),
-            MeetingParticipantClashed.create().meetingId(UUID.fromString(meeting.getId()))
-          );
+            MeetingParticipantClashed.create().meetingId(UUID.fromString(meeting.getId())));
           participantRepository.update(participant.queueId(currentUser.getQueueId().toString()));
           videoServerService.addMeetingParticipant(currentUser.getId(),
             currentUser.getQueueId().toString(),
@@ -191,6 +191,16 @@ public class ParticipantServiceImpl implements ParticipantService {
         : participant.screenStreamOn(mediaStreamSettingsDto.isEnabled());
       participantRepository.update(participantToUpdate);
       videoServerService.updateMediaStream(userId, meetingId.toString(), mediaStreamSettingsDto);
+      if (!mediaStreamSettingsDto.isEnabled()) {
+        eventDispatcher.sendToUserExchange(
+          meeting.getParticipants().stream().map(Participant::getUserId).distinct().collect(Collectors.toList()),
+          MeetingMediaStreamChanged
+            .create()
+            .meetingId(meetingId)
+            .userId(UUID.fromString(currentUser.getId()))
+            .mediaType(MediaType.valueOf(mediaStreamSettingsDto.getType().toString().toUpperCase()))
+            .active(mediaStreamSettingsDto.isEnabled()));
+      }
     }
   }
 

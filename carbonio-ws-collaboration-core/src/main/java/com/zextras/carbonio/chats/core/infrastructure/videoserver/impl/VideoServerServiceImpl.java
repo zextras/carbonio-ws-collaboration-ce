@@ -443,8 +443,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     );
     if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
       throw new VideoServerException(
-        "An error occured while connection id " + connectionId
-          + " is joining video room as publisher");
+        "An error occured while connection id " + connectionId + " is publishing video stream");
     }
   }
 
@@ -532,8 +531,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       .findAny().orElseThrow(() -> new VideoServerException(
         "No Videoserver session found for user " + userId + " for the meeting " + meetingId));
     Optional.ofNullable(videoServerSession.getVideoInHandleId()).ifPresentOrElse(
-      handleId -> updateSubscriptions(videoServerSession.getConnectionId(), userId, handleId,
-        subscriptionUpdatesDto),
+      handleId -> updateSubscriptions(videoServerSession.getConnectionId(), userId, handleId, subscriptionUpdatesDto),
       () -> {
         VideoServerResponse videoServerResponse = attachToPlugin(videoServerSession.getConnectionId(),
           JANUS_VIDEOROOM_PLUGIN, meetingId);
@@ -553,12 +551,14 @@ public class VideoServerServiceImpl implements VideoServerService {
       videoInHandleId,
       VideoRoomUpdateSubscriptionsRequest.create()
         .request(VideoRoomUpdateSubscriptionsRequest.UPDATE)
-        .subscriptions(subscriptionUpdatesDto.getSubscribe().stream().map(mediaStreamDto -> Stream.create()
-          .feed(Feed.create().type(MediaType.valueOf(mediaStreamDto.getType().toString().toUpperCase()))
-            .userId(mediaStreamDto.getUserId()).toString())).collect(Collectors.toList()))
-        .unsubscriptions(subscriptionUpdatesDto.getUnsubscribe().stream().map(mediaStreamDto -> Stream.create()
-          .feed(Feed.create().type(MediaType.valueOf(mediaStreamDto.getType().toString().toUpperCase()))
-            .userId(mediaStreamDto.getUserId()).toString())).collect(Collectors.toList())),
+        .subscriptions(
+          subscriptionUpdatesDto.getSubscribe().stream().distinct().map(mediaStreamDto -> Stream.create()
+            .feed(Feed.create().type(MediaType.valueOf(mediaStreamDto.getType().toString().toUpperCase()))
+              .userId(mediaStreamDto.getUserId()).toString())).collect(Collectors.toList()))
+        .unsubscriptions(
+          subscriptionUpdatesDto.getUnsubscribe().stream().distinct().map(mediaStreamDto -> Stream.create()
+            .feed(Feed.create().type(MediaType.valueOf(mediaStreamDto.getType().toString().toUpperCase()))
+              .userId(mediaStreamDto.getUserId()).toString())).collect(Collectors.toList())),
       null
     );
     if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {

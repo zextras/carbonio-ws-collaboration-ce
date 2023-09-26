@@ -22,16 +22,16 @@ public class VideoRoomPublishRequest extends VideoRoomRequest {
 
   public static final String PUBLISH = "publish";
 
-  private String                            request;
+  private String                     request;
   @JsonProperty("audiocodec")
-  private String                            audioCodec;
+  private String                     audioCodec;
   @JsonProperty("videocodec")
-  private String                            videoCodec;
-  private Long                              bitrate;
-  private Boolean                           record;
-  private String                            fileName;
-  private String                            display;
-  private Integer                           audioLevelAverage;
+  private String                     videoCodec;
+  private Long                       bitrate;
+  private Boolean                    record;
+  private String                     fileName;
+  private String                     display;
+  private Integer                    audioLevelAverage;
   private Long                       audioActivePackets;
   private List<VideoRoomDescription> descriptions;
 
