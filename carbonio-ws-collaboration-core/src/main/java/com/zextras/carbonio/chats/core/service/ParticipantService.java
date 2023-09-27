@@ -71,6 +71,18 @@ public interface ParticipantService {
   void removeMeetingParticipant(Meeting meeting, Room room, UUID userId);
 
   /**
+   * Removes the participant of the current user from a meeting. This method accepts entities because it's intended to
+   * be used only to be called by services.
+   *
+   * @param meeting participant {@link Meeting}
+   * @param room    participant {@link Room}
+   * @param userId  identifier of the user to remove
+   * @param queueId participant queue identifier
+   * @throws NotFoundException if the user session for indicated meeting doesn't exist.
+   */
+  void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, UUID queueId);
+
+  /**
    * Updates the media stream status in the meeting for the current session and starts WebRTC negotiation with
    * VideoServer for the PeerConnection setup related to video stream when it has to be enabled.
    *

@@ -15,6 +15,7 @@ public class Feed {
 
   private MediaType type;
   private String    userId;
+  private String    mid;
 
   public static Feed create() {
     return new Feed();
@@ -35,6 +36,15 @@ public class Feed {
 
   public Feed userId(String userId) {
     this.userId = userId;
+    return this;
+  }
+
+  public String getMid() {
+    return mid;
+  }
+
+  public Feed mid(String mid) {
+    this.mid = mid;
     return this;
   }
 

@@ -30,6 +30,10 @@ public class VideoRoomStream {
   private int     minDelay;
   private int     maxDelay;
 
+  public static VideoRoomStream create() {
+    return new VideoRoomStream();
+  }
+
   public String getMid() {
     return mid;
   }
