@@ -25,6 +25,7 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.Vid
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.SubscribedStream;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import io.vavr.MatchError;
@@ -77,6 +78,10 @@ public class VideoServerEventListener implements ServletContextListener {
 
   @Override
   public void contextInitialized(ServletContextEvent sce) {
+    processVideoServerEvents();
+  }
+
+  private void processVideoServerEvents() {
     if (eventDispatcher.getConnection().isEmpty()) {
       throw new InternalErrorException("RabbitMQ connection is not up!");
     }
@@ -90,131 +95,129 @@ public class VideoServerEventListener implements ServletContextListener {
       channel.queueDeclare(JANUS_EVENTS, true, false, false, null);
       DeliverCallback deliverCallback = (consumerTag, delivery) -> {
         String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-        ChatsLogger.error("Message: " + message);
-        List<VideoServerEvent> videoServerEvents = objectMapper.readValue(message, objectMapper.getTypeFactory()
-          .constructCollectionType(List.class, VideoServerEvent.class));
-        videoServerEvents.forEach(videoServerEvent -> {
-          switch (videoServerEvent.getType()) {
-            case JSEP_TYPE:
-              Optional.ofNullable(videoServerEvent.getEventInfo().getOwner()).ifPresent(owner -> {
-                if (LOCAL.equalsIgnoreCase(owner)) {
+        VideoServerEvent videoServerEvent = objectMapper.readValue(message, VideoServerEvent.class);
+        switch (videoServerEvent.getType()) {
+          case JSEP_TYPE:
+            Optional.ofNullable(videoServerEvent.getEventInfo().getOwner()).ifPresent(owner -> {
+              if (LOCAL.equalsIgnoreCase(owner)) {
+                videoServerSessionRepository.getByConnectionId(String.valueOf(videoServerEvent.getSessionId()))
+                  .ifPresent(videoServerSession -> {
+                    try {
+                      EventType eventType = Match(videoServerEvent.getHandleId().toString()).of(
+                        Case($(videoServerSession.getAudioHandleId()), EventType.AUDIO),
+                        Case($(videoServerSession.getVideoInHandleId()), EventType.VIDEOIN),
+                        Case($(videoServerSession.getVideoOutHandleId()), EventType.VIDEOOUT),
+                        Case($(videoServerSession.getScreenHandleId()), EventType.SCREEN)
+                      );
+                      RtcSessionDescription rtcSessionDescription = videoServerEvent.getEventInfo()
+                        .getRtcSessionDescription();
+                      switch (rtcSessionDescription.getType()) {
+                        case OFFER:
+                          eventDispatcher.sendToUserExchange(videoServerSession.getUserId(),
+                            MeetingSdpOffered.create()
+                              .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
+                              .userId(UUID.fromString(videoServerSession.getUserId()))
+                              .mediaType(eventType == EventType.SCREEN ? MediaType.SCREEN : MediaType.VIDEO)
+                              .sdp(rtcSessionDescription.getSdp()));
+                          break;
+                        case ANSWER:
+                          switch (eventType) {
+                            case AUDIO:
+                              eventDispatcher.sendToUserExchange(videoServerSession.getUserId(),
+                                MeetingAudioAnswered.create()
+                                  .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
+                                  .userId(UUID.fromString(videoServerSession.getUserId()))
+                                  .sdp(rtcSessionDescription.getSdp()));
+                              break;
+                            case VIDEOIN:
+                            case VIDEOOUT:
+                            case SCREEN:
+                              eventDispatcher.sendToUserExchange(videoServerSession.getUserId(),
+                                MeetingSdpAnswered.create()
+                                  .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
+                                  .userId(UUID.fromString(videoServerSession.getUserId()))
+                                  .mediaType(eventType == EventType.SCREEN ? MediaType.SCREEN : MediaType.VIDEO)
+                                  .sdp(rtcSessionDescription.getSdp()));
+                          }
+                          break;
+                        default:
+                          break;
+                      }
+                    } catch (MatchError m) {
+                      ChatsLogger.error("Invalid event handle id: " + m.getObject());
+                    }
+                  });
+              }
+            });
+            break;
+          case PLUGIN_TYPE:
+            Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getAudioBridge())
+              .ifPresent(eventType -> {
+                if (TALKING_TYPE_EVENTS.contains(eventType)) {
                   videoServerSessionRepository.getByConnectionId(String.valueOf(videoServerEvent.getSessionId()))
                     .ifPresent(videoServerSession -> {
-                      try {
-                        EventType eventType = Match(videoServerEvent.getHandleId().toString()).of(
-                          Case($(videoServerSession.getAudioHandleId()), EventType.AUDIO),
-                          Case($(videoServerSession.getVideoInHandleId()), EventType.VIDEOIN),
-                          Case($(videoServerSession.getVideoOutHandleId()), EventType.VIDEOOUT),
-                          Case($(videoServerSession.getScreenHandleId()), EventType.SCREEN)
-                        );
-                        RtcSessionDescription rtcSessionDescription = videoServerEvent.getEventInfo()
-                          .getRtcSessionDescription();
-                        switch (rtcSessionDescription.getType()) {
-                          case OFFER:
-                            eventDispatcher.sendToUserExchange(videoServerSession.getUserId(),
-                              MeetingSdpOffered.create()
-                                .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
-                                .userId(UUID.fromString(videoServerSession.getUserId()))
-                                .mediaType(eventType == EventType.SCREEN ? MediaType.SCREEN : MediaType.VIDEO)
-                                .sdp(rtcSessionDescription.getSdp()));
-                            break;
-                          case ANSWER:
-                            switch (eventType) {
-                              case AUDIO:
-                                eventDispatcher.sendToUserExchange(videoServerSession.getUserId(),
-                                  MeetingAudioAnswered.create()
-                                    .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
-                                    .userId(UUID.fromString(videoServerSession.getUserId()))
-                                    .sdp(rtcSessionDescription.getSdp()));
-                                break;
-                              case VIDEOIN:
-                              case VIDEOOUT:
-                              case SCREEN:
-                                eventDispatcher.sendToUserExchange(videoServerSession.getUserId(),
-                                  MeetingSdpAnswered.create()
-                                    .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
-                                    .userId(UUID.fromString(videoServerSession.getUserId()))
-                                    .mediaType(eventType == EventType.SCREEN ? MediaType.SCREEN : MediaType.VIDEO)
-                                    .sdp(rtcSessionDescription.getSdp()));
-                            }
-                            break;
-                          default:
-                            break;
-                        }
-                      } catch (MatchError m) {
-                        ChatsLogger.error("Invalid event handle id: " + m.getObject());
-                      }
+                      String meetingId = videoServerSession.getId().getMeetingId();
+                      List<String> sessionUserIds = videoServerSessionRepository.getByMeetingId(meetingId).stream()
+                        .map(VideoServerSession::getUserId).collect(Collectors.toList());
+                      eventDispatcher.sendToUserExchange(sessionUserIds,
+                        MeetingParticipantTalking.create()
+                          .meetingId(UUID.fromString(meetingId))
+                          .userId(UUID.fromString(videoServerSession.getUserId()))
+                          .isTalking(
+                            TALKING.equals(videoServerEvent.getEventInfo().getEventData().getAudioBridge())));
                     });
                 }
               });
-              break;
-            case PLUGIN_TYPE:
-              Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getAudioBridge())
-                .ifPresent(eventType -> {
-                  if (TALKING_TYPE_EVENTS.contains(eventType)) {
-                    videoServerSessionRepository.getByConnectionId(String.valueOf(videoServerEvent.getSessionId()))
+            Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getEvent())
+              .ifPresent(eventType -> {
+                switch (eventType) {
+                  case UPDATED_TYPE_EVENT:
+                  case SUBSCRIBING_TYPE_EVENT:
+                    Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getStreamList())
+                      .ifPresent(streamData -> {
+                        List<StreamData> streamDataList = streamData.stream()
+                          .filter(stream -> Optional.ofNullable(stream.getFeedId()).isPresent())
+                          .collect(Collectors.toList());
+                        if (!streamDataList.isEmpty()) {
+                          videoServerSessionRepository.getByConnectionId(
+                            String.valueOf(videoServerEvent.getSessionId())).ifPresent(
+                            videoServerSession -> eventDispatcher.sendToUserExchange(videoServerSession.getUserId(),
+                              MeetingParticipantSubscribed.create()
+                                .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
+                                .userId(UUID.fromString(videoServerSession.getUserId()))
+                                .streams(streamDataList.stream().map(stream -> {
+                                  Feed feed = Feed.fromString(stream.getFeedId());
+                                  return SubscribedStream.create()
+                                    .type(feed.getType().toString().toLowerCase())
+                                    .userId(feed.getUserId())
+                                    .mid(stream.getMid());
+                                }).collect(Collectors.toList()))));
+                        }
+                      });
+                    break;
+                  case PUBLISHED:
+                    Feed feed = Feed.fromString(videoServerEvent.getEventInfo().getEventData().getId());
+                    videoServerSessionRepository.getByUserId(feed.getUserId())
                       .ifPresent(videoServerSession -> {
                         String meetingId = videoServerSession.getId().getMeetingId();
-                        List<String> sessionUserIds = videoServerSessionRepository.getByMeetingId(meetingId).stream()
+                        List<String> sessionUserIds = videoServerSessionRepository.getByMeetingId(meetingId)
+                          .stream()
                           .map(VideoServerSession::getUserId).collect(Collectors.toList());
-                        eventDispatcher.sendToUserExchange(sessionUserIds,
-                          MeetingParticipantTalking.create()
-                            .meetingId(UUID.fromString(meetingId))
-                            .userId(UUID.fromString(videoServerSession.getUserId()))
-                            .isTalking(
-                              TALKING.equals(videoServerEvent.getEventInfo().getEventData().getAudioBridge())));
+                        eventDispatcher.sendToUserExchange(sessionUserIds, MeetingMediaStreamChanged.create()
+                          .meetingId(UUID.fromString(meetingId))
+                          .userId(UUID.fromString(videoServerSession.getUserId()))
+                          .mediaType(feed.getType())
+                          .active(PUBLISHED.equals(videoServerEvent.getEventInfo().getEventData().getEvent())));
                       });
-                  }
-                });
-              Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getEvent())
-                .ifPresent(eventType -> {
-                  switch (eventType) {
-                    case UPDATED_TYPE_EVENT:
-                    case SUBSCRIBING_TYPE_EVENT:
-                      Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getStreamList())
-                        .ifPresent(streamData -> {
-                          List<StreamData> streamDataList = streamData.stream()
-                            .filter(stream -> Optional.ofNullable(stream.getFeedId()).isPresent())
-                            .collect(Collectors.toList());
-                          if (!streamDataList.isEmpty()) {
-                            videoServerSessionRepository.getByConnectionId(
-                              String.valueOf(videoServerEvent.getSessionId())).ifPresent(
-                              videoServerSession -> eventDispatcher.sendToUserExchange(videoServerSession.getUserId(),
-                                MeetingParticipantSubscribed.create()
-                                  .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
-                                  .userId(UUID.fromString(videoServerSession.getUserId()))
-                                  .streams(streamDataList.stream().map(stream -> Feed.create()
-                                      .type(MediaType.valueOf(stream.getFeedId().split("/")[1].toUpperCase()))
-                                      .userId(stream.getFeedId().split("/")[0])
-                                      .mid(stream.getMid()))
-                                    .collect(Collectors.toList()))));
-                          }
-                        });
-                      break;
-                    case PUBLISHED:
-                      String publishedFeedId = videoServerEvent.getEventInfo().getEventData().getId();
-                      videoServerSessionRepository.getByUserId(publishedFeedId.split("/")[0])
-                        .ifPresent(videoServerSession -> {
-                          String meetingId = videoServerSession.getId().getMeetingId();
-                          List<String> sessionUserIds = videoServerSessionRepository.getByMeetingId(meetingId)
-                            .stream()
-                            .map(VideoServerSession::getUserId).collect(Collectors.toList());
-                          eventDispatcher.sendToUserExchange(sessionUserIds, MeetingMediaStreamChanged.create()
-                            .meetingId(UUID.fromString(meetingId))
-                            .userId(UUID.fromString(videoServerSession.getUserId()))
-                            .mediaType(MediaType.valueOf(publishedFeedId.split("/")[1].toUpperCase()))
-                            .active(PUBLISHED.equals(videoServerEvent.getEventInfo().getEventData().getEvent())));
-                        });
-                      break;
-                    default:
-                      break;
-                  }
-                });
-              break;
-            default:
-              break;
-          }
-        });
+                    break;
+                  default:
+                    break;
+                }
+              });
+            break;
+          default:
+            break;
+        }
       };
       channel.basicConsume(JANUS_EVENTS, true, deliverCallback, consumerTag -> {
       });
@@ -225,6 +228,8 @@ public class VideoServerEventListener implements ServletContextListener {
         ChatsLogger.error("Error closing RabbitMQ connection channel for videoserver events");
       }
       ChatsLogger.error("Closed RabbitMQ connection channel for videoserver events");
+      processVideoServerEvents();
+      ChatsLogger.warn("Reopened RabbitMQ connection channel for videoserver events");
     }
   }
 

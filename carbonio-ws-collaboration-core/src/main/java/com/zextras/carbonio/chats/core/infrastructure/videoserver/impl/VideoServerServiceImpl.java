@@ -301,12 +301,11 @@ public class VideoServerServiceImpl implements VideoServerService {
       videoRoomJoinRequest.id(Feed.create().type(mediaType).userId(userId).toString());
     }
     if (Ptype.SUBSCRIBER.equals(ptype) && mediaStreamDtos != null) {
-      videoRoomJoinRequest.streams(mediaStreamDtos.stream().map(
+      videoRoomJoinRequest.useMsid(true).streams(mediaStreamDtos.stream().map(
         mediaStreamDto ->
-          Stream.create().feed(
-            Feed.create()
-              .type(MediaType.valueOf(mediaStreamDto.getType().toString().toUpperCase()))
-              .userId(mediaStreamDto.getUserId()).toString())
+          Stream.create().feed(Feed.create()
+            .type(MediaType.valueOf(mediaStreamDto.getType().toString().toUpperCase()))
+            .userId(mediaStreamDto.getUserId()).toString())
       ).collect(Collectors.toList()));
     }
     videoRoomResponse = sendVideoRoomPluginMessage(
