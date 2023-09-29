@@ -138,6 +138,7 @@ public class VideoServerEventListener implements ServletContextListener {
                                   .userId(UUID.fromString(videoServerSession.getUserId()))
                                   .mediaType(eventType == EventType.SCREEN ? MediaType.SCREEN : MediaType.VIDEO)
                                   .sdp(rtcSessionDescription.getSdp()));
+                              break;
                           }
                           break;
                         default:
