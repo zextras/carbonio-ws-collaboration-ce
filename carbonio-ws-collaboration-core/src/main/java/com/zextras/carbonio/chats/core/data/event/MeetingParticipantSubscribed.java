@@ -4,7 +4,7 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.SubscribedStream;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -13,9 +13,9 @@ public class MeetingParticipantSubscribed extends DomainEvent {
 
   private static final EventType EVENT_TYPE = EventType.MEETING_PARTICIPANT_SUBSCRIBED;
 
-  private UUID       meetingId;
-  private UUID       userId;
-  private List<Feed> streams;
+  private UUID                   meetingId;
+  private UUID                   userId;
+  private List<SubscribedStream> streams;
 
   public MeetingParticipantSubscribed() {
     super(EVENT_TYPE);
@@ -43,11 +43,11 @@ public class MeetingParticipantSubscribed extends DomainEvent {
     return this;
   }
 
-  public List<Feed> getStreams() {
+  public List<SubscribedStream> getStreams() {
     return streams;
   }
 
-  public MeetingParticipantSubscribed streams(List<Feed> streams) {
+  public MeetingParticipantSubscribed streams(List<SubscribedStream> streams) {
     this.streams = streams;
     return this;
   }

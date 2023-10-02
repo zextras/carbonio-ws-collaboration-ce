@@ -24,7 +24,7 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
   public static final String ROOM_DEFAULT                 = "audio_";
   public static final String DESCRIPTION_DEFAULT          = "audio_room_";
   public static final long   AUDIO_ACTIVE_PACKETS_DEFAULT = 10L;
-  public static final int    AUDIO_LEVEL_AVERAGE_DEFAULT  = 55;
+  public static final int    AUDIO_LEVEL_AVERAGE_DEFAULT  = 65;
   public static final long   SAMPLING_RATE_DEFAULT        = 16000L;
 
   private String       request;

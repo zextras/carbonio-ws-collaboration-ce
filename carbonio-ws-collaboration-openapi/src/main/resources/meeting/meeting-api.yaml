@@ -537,7 +537,7 @@ components:
       type: object
       description: representation of meeting media stream
       properties:
-        user_id:
+        userId:
           type: string
           description: user identifier which owns the related media stream
         type:
@@ -546,4 +546,4 @@ components:
           enum:
             - video
             - screen
-      required: [ user_id, type ]
+      required: [ userId, type ]
