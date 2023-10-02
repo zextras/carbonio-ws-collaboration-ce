@@ -490,12 +490,12 @@ public class VideoServerServiceImplTest {
   }
 
   @Nested
-  @DisplayName("Join Meeting tests")
-  class JoinMeetingTests {
+  @DisplayName("Add Meeting Participant tests")
+  class AddMeetingParticipantTests {
 
     @Test
-    @DisplayName("join an existing meeting")
-    void joinMeeting_testOk() {
+    @DisplayName("add a participant in an existing meeting")
+    void addMeetingParticipant_testOk() {
       VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
 
       VideoServerResponse sessionResponse = VideoServerResponse.create()
@@ -543,7 +543,8 @@ public class VideoServerServiceImplTest {
           + "/" + user1ScreenHandleId.toString()), any(VideoServerMessageRequest.class)
       )).thenReturn(joinPublisherScreenResponse);
 
-      videoServerService.joinMeeting(user1Id.toString(), queue1Id.toString(), meeting1Id.toString(), false, true);
+      videoServerService.addMeetingParticipant(user1Id.toString(), queue1Id.toString(), meeting1Id.toString(), false,
+        true);
 
       ArgumentCaptor<VideoServerMessageRequest> createConnectionRequestCaptor = ArgumentCaptor.forClass(
         VideoServerMessageRequest.class);
@@ -620,10 +621,10 @@ public class VideoServerServiceImplTest {
     }
 
     @Test
-    @DisplayName("Try to join a meeting that does not exist")
-    void joinMeeting_testErrorMeetingNotExists() {
+    @DisplayName("Try to add a participant in a meeting that does not exist")
+    void addMeetingParticipant_testErrorMeetingNotExists() {
       assertThrows(VideoServerException.class,
-        () -> videoServerService.joinMeeting(user1Id.toString(), queue1Id.toString(), meeting1Id.toString(),
+        () -> videoServerService.addMeetingParticipant(user1Id.toString(), queue1Id.toString(), meeting1Id.toString(),
           false, true),
         "No videoserver meeting found for the meeting " + meeting1Id.toString());
 
@@ -631,8 +632,8 @@ public class VideoServerServiceImplTest {
     }
 
     @Test
-    @DisplayName("Try to join a meeting already joined")
-    void joinMeeting_testErrorAlreadyJoined() {
+    @DisplayName("Try to add a participant in a meeting when it's already in")
+    void addMeetingParticipant_testErrorAlreadyPresent() {
       VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
       VideoServerSession videoServerSession = VideoServerSession.create().userId(user1Id.toString())
         .queueId(queue1Id.toString())
@@ -640,7 +641,7 @@ public class VideoServerServiceImplTest {
       videoServerMeeting.videoServerSessions(List.of(videoServerSession));
 
       assertThrows(VideoServerException.class,
-        () -> videoServerService.joinMeeting(user1Id.toString(), queue1Id.toString(), meeting1Id.toString(),
+        () -> videoServerService.addMeetingParticipant(user1Id.toString(), queue1Id.toString(), meeting1Id.toString(),
           false, true),
         "Videoserver session user with user  " + user1Id.toString() +
           "is already present in the videoserver meeting " + meeting1Id.toString());
@@ -650,12 +651,12 @@ public class VideoServerServiceImplTest {
   }
 
   @Nested
-  @DisplayName("Leave Meeting tests")
-  class LeaveMeetingTests {
+  @DisplayName("Destroy Meeting Participant tests")
+  class DestroyMeetingParticipantTests {
 
     @Test
-    @DisplayName("leave a meeting previously joined")
-    void leaveMeeting_testOk() {
+    @DisplayName("destroy a participant in a meeting when it's in")
+    void destroyMeetingParticipant_testOk() {
       VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
       VideoServerSession videoServerSession = VideoServerSession.create().userId(user1Id.toString())
         .queueId(queue1Id.toString())
@@ -748,7 +749,7 @@ public class VideoServerServiceImplTest {
         any(VideoServerMessageRequest.class)
       )).thenReturn(destroyConnectionResponse);
 
-      videoServerService.leaveMeeting(user1Id.toString(), meeting1Id.toString());
+      videoServerService.destroyMeetingParticipant(user1Id.toString(), meeting1Id.toString());
 
       ArgumentCaptor<VideoServerMessageRequest> leaveAudioRoomRequestCaptor = ArgumentCaptor.forClass(
         VideoServerMessageRequest.class);
@@ -871,22 +872,167 @@ public class VideoServerServiceImplTest {
     }
 
     @Test
-    @DisplayName("Try to leave a meeting that does not exist")
-    void leaveMeeting_testErrorMeetingNotExists() {
+    @DisplayName("Try to destroy a participant in a meeting that does not exist")
+    void destroyMeetingParticipant_testErrorMeetingNotExists() {
       assertThrows(VideoServerException.class,
-        () -> videoServerService.leaveMeeting(user1Id.toString(), meeting1Id.toString()),
+        () -> videoServerService.destroyMeetingParticipant(user1Id.toString(), meeting1Id.toString()),
         "No videoserver meeting found for the meeting " + meeting1Id.toString());
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
 
     @Test
-    @DisplayName("Try to leave a meeting that is not joined previously")
-    void leaveMeeting_testErrorMeetingNotJoined() {
+    @DisplayName("Try to destroy a participant in a meeting when it's not in")
+    void destroyMeetingParticipant_testErrorParticipantNotExists() {
       createVideoServerMeeting(meeting1Id);
 
       assertThrows(VideoServerException.class,
-        () -> videoServerService.leaveMeeting(user1Id.toString(), meeting1Id.toString()),
+        () -> videoServerService.destroyMeetingParticipant(user1Id.toString(), meeting1Id.toString()),
+        "No Videoserver session user found for user " + user1Id.toString()
+          + " for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+  }
+
+  @Nested
+  @DisplayName("Remove Meeting Participant tests")
+  class RemoveMeetingParticipantTests {
+
+    @Test
+    @DisplayName("remove a participant in a meeting when it's in")
+    void removeMeetingParticipant_testOk() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession = VideoServerSession.create().userId(user1Id.toString())
+        .queueId(queue1Id.toString())
+        .videoServerMeeting(videoServerMeeting)
+        .connectionId(user1SessionId.toString())
+        .audioHandleId(user1AudioHandleId.toString())
+        .videoOutHandleId(user1VideoOutHandleId.toString())
+        .videoInHandleId(user1VideoInHandleId.toString())
+        .screenHandleId(user1ScreenHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+
+      AudioBridgeResponse leaveAudioRoomResponse = AudioBridgeResponse.create()
+        .status("ack")
+        .connectionId(user1SessionId.toString())
+        .transactionId("transaction-id")
+        .handleId(user1AudioHandleId.toString());
+      when(videoServerClient.sendAudioBridgeRequest(
+        eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()
+          + "/" + user1AudioHandleId.toString()), any(VideoServerMessageRequest.class)
+      )).thenReturn(leaveAudioRoomResponse);
+
+      VideoRoomResponse leaveVideoOutRoomResponse = VideoRoomResponse.create()
+        .status("ack")
+        .connectionId(user1SessionId.toString())
+        .transactionId("transaction-id")
+        .handleId(user1VideoOutHandleId.toString());
+      when(videoServerClient.sendVideoRoomRequest(
+        eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()
+          + "/" + user1VideoOutHandleId.toString()), any(VideoServerMessageRequest.class)
+      )).thenReturn(leaveVideoOutRoomResponse);
+
+      VideoRoomResponse leaveVideoInRoomResponse = VideoRoomResponse.create()
+        .status("ack")
+        .connectionId(user1SessionId.toString())
+        .transactionId("transaction-id")
+        .handleId(user1VideoInHandleId.toString());
+      when(videoServerClient.sendVideoRoomRequest(
+        eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()
+          + "/" + user1VideoInHandleId.toString()), any(VideoServerMessageRequest.class)
+      )).thenReturn(leaveVideoInRoomResponse);
+
+      VideoRoomResponse leaveVideoScreenResponse = VideoRoomResponse.create()
+        .status("ack")
+        .connectionId(user1SessionId.toString())
+        .transactionId("transaction-id")
+        .handleId(user1ScreenHandleId.toString());
+      when(videoServerClient.sendVideoRoomRequest(
+        eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()
+          + "/" + user1ScreenHandleId.toString()), any(VideoServerMessageRequest.class)
+      )).thenReturn(leaveVideoScreenResponse);
+
+      videoServerService.removeMeetingParticipant(user1Id.toString(), meeting1Id.toString());
+
+      ArgumentCaptor<VideoServerMessageRequest> leaveAudioRoomRequestCaptor = ArgumentCaptor.forClass(
+        VideoServerMessageRequest.class);
+      ArgumentCaptor<VideoServerMessageRequest> leaveVideoInRoomRequestCaptor = ArgumentCaptor.forClass(
+        VideoServerMessageRequest.class);
+      ArgumentCaptor<VideoServerMessageRequest> leaveVideoOutRoomRequestCaptor = ArgumentCaptor.forClass(
+        VideoServerMessageRequest.class);
+      ArgumentCaptor<VideoServerMessageRequest> leaveVideoScreenRequestCaptor = ArgumentCaptor.forClass(
+        VideoServerMessageRequest.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1)).sendAudioBridgeRequest(
+        eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()
+          + "/" + user1AudioHandleId.toString()), leaveAudioRoomRequestCaptor.capture()
+      );
+      verify(videoServerClient, times(1)).sendVideoRoomRequest(
+        eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()
+          + "/" + user1VideoOutHandleId.toString()), leaveVideoOutRoomRequestCaptor.capture()
+      );
+      verify(videoServerClient, times(1)).sendVideoRoomRequest(
+        eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()
+          + "/" + user1VideoInHandleId.toString()), leaveVideoInRoomRequestCaptor.capture()
+      );
+      verify(videoServerClient, times(1)).sendVideoRoomRequest(
+        eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()
+          + "/" + user1ScreenHandleId.toString()), leaveVideoScreenRequestCaptor.capture()
+      );
+      verify(videoServerSessionRepository, times(1)).remove(videoServerSession);
+
+      assertEquals(1, leaveAudioRoomRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest leaveAudioRoomRequest = leaveAudioRoomRequestCaptor.getValue();
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          AudioBridgeLeaveRequest.create().request("leave")), leaveAudioRoomRequest);
+
+      assertEquals(1, leaveVideoOutRoomRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest leaveVideoOutRoomRequest = leaveVideoOutRoomRequestCaptor.getValue();
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          VideoRoomLeaveRequest.create().request("leave")), leaveVideoOutRoomRequest);
+
+      assertEquals(1, leaveVideoInRoomRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest leaveVideoInRoomRequest = leaveVideoInRoomRequestCaptor.getValue();
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          VideoRoomLeaveRequest.create().request("leave")), leaveVideoInRoomRequest);
+
+      assertEquals(1, leaveVideoScreenRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest leaveVideoScreenRequest = leaveVideoScreenRequestCaptor.getValue();
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("message")
+        .apiSecret("token")
+        .videoServerPluginRequest(
+          VideoRoomLeaveRequest.create().request("leave")), leaveVideoScreenRequest);
+    }
+
+    @Test
+    @DisplayName("Try to remove a participant in a meeting that does not exist")
+    void removeMeetingParticipant_testErrorMeetingNotExists() {
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.removeMeetingParticipant(user1Id.toString(), meeting1Id.toString()),
+        "No videoserver meeting found for the meeting " + meeting1Id.toString());
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName("Try to remove a participant in a meeting when it's not in")
+    void removeMeetingParticipant_testErrorParticipantNotExists() {
+      createVideoServerMeeting(meeting1Id);
+
+      assertThrows(VideoServerException.class,
+        () -> videoServerService.removeMeetingParticipant(user1Id.toString(), meeting1Id.toString()),
         "No Videoserver session user found for user " + user1Id.toString()
           + " for the meeting " + meeting1Id.toString());
 
@@ -1084,8 +1230,8 @@ public class VideoServerServiceImplTest {
     }
 
     @Test
-    @DisplayName("Try to update media stream on a meeting that is not joined previously")
-    void updateMediaStream_testErrorMeetingNotJoined() {
+    @DisplayName("Try to update media stream on a meeting of a participant that is not in")
+    void updateMediaStream_testErrorParticipantNotExists() {
       createVideoServerMeeting(meeting1Id);
 
       assertThrows(VideoServerException.class,
@@ -1242,8 +1388,8 @@ public class VideoServerServiceImplTest {
     }
 
     @Test
-    @DisplayName("Try to update audio stream on a meeting that is not joined previously")
-    void updateAudioStream_testErrorMeetingNotJoined() {
+    @DisplayName("Try to update audio stream on a meeting of a participant that is not in")
+    void updateAudioStream_testErrorParticipantNotExists() {
       createVideoServerMeeting(meeting1Id);
 
       assertThrows(VideoServerException.class,
@@ -1360,8 +1506,8 @@ public class VideoServerServiceImplTest {
     }
 
     @Test
-    @DisplayName("Try to send answer for media stream on a meeting that is not joined previously")
-    void answerRtcMediaStream_testErrorMeetingNotJoined() {
+    @DisplayName("Try to send answer for media stream on a meeting of a participant that is not in")
+    void answerRtcMediaStream_testErrorParticipantNotExists() {
       createVideoServerMeeting(meeting1Id);
 
       assertThrows(VideoServerException.class,
@@ -1561,8 +1707,8 @@ public class VideoServerServiceImplTest {
     }
 
     @Test
-    @DisplayName("Try to update subscriptions for media stream on a meeting that is not joined previously")
-    void updateSubscriptionsMediaStream_testErrorMeetingNotJoined() {
+    @DisplayName("Try to update subscriptions for media stream on a meeting of a participant that is not in")
+    void updateSubscriptionsMediaStream_testErrorParticipantNotExists() {
       createVideoServerMeeting(meeting1Id);
 
       assertThrows(VideoServerException.class,
@@ -1635,8 +1781,8 @@ public class VideoServerServiceImplTest {
     }
 
     @Test
-    @DisplayName("Try to send offer for audio stream on a meeting that is not joined previously")
-    void offerRtcAudioStream_testErrorMeetingNotJoined() {
+    @DisplayName("Try to send offer for audio stream on a meeting of a participant that is not in")
+    void offerRtcAudioStream_testErrorParticipantNotExists() {
       createVideoServerMeeting(meeting1Id);
 
       assertThrows(VideoServerException.class,

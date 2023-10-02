@@ -83,15 +83,9 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
       return;
     }
     try {
-      channel.queueDeclare(userId + "/" + queueId,
-        false,
-        false,
-        false,
-        null
-      );
-      channel.basicPublish("",
-        userId + "/" + queueId,
-        null,
+      String queueName = userId + "/" + queueId;
+      channel.queueDeclare(queueName, true, false, false, null);
+      channel.basicPublish("", queueName, null,
         objectMapper.writeValueAsString(event).getBytes(StandardCharsets.UTF_8)
       );
       channel.close();

@@ -133,6 +133,11 @@ public class Participant {
     return createdAt;
   }
 
+  public Participant createdAt(OffsetDateTime createdAt) {
+    this.createdAt = createdAt;
+    return this;
+  }
+
   public OffsetDateTime getUpdatedAt() {
     return updatedAt;
   }
@@ -142,20 +147,18 @@ public class Participant {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof Participant)) {
       return false;
     }
     Participant that = (Participant) o;
-    return Objects.equals(id, that.id) && Objects.equals(meeting, that.meeting)
-      && Objects.equals(queueId, that.queueId) && Objects.equals(userId, that.userId)
-      && Objects.equals(audioStreamOn, that.audioStreamOn) && Objects.equals(videoStreamOn,
-      that.videoStreamOn) && Objects.equals(screenStreamOn, that.screenStreamOn) && Objects.equals(
-      createdAt, that.createdAt) && Objects.equals(updatedAt, that.updatedAt);
+    return Objects.equals(id, that.id) && Objects.equals(getMeeting(), that.getMeeting())
+      && Objects.equals(getUserId(), that.getUserId()) && Objects.equals(getQueueId(),
+      that.getQueueId()) && Objects.equals(audioStreamOn, that.audioStreamOn) && Objects.equals(
+      videoStreamOn, that.videoStreamOn) && Objects.equals(screenStreamOn, that.screenStreamOn);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, meeting.getId(), queueId, userId, audioStreamOn, videoStreamOn, screenStreamOn, createdAt,
-      updatedAt);
+    return Objects.hash(id, getMeeting(), getUserId(), getQueueId(), audioStreamOn, videoStreamOn, screenStreamOn);
   }
 }

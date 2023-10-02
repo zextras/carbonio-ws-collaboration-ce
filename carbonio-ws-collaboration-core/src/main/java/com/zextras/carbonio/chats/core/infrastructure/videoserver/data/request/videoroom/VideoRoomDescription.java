@@ -18,7 +18,7 @@ public class VideoRoomDescription {
   private String mid;
   private String description;
 
-  public VideoRoomDescription create() {
+  public static VideoRoomDescription create() {
     return new VideoRoomDescription();
   }
 
