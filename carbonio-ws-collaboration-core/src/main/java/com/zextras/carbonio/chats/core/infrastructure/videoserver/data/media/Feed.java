@@ -15,7 +15,6 @@ public class Feed {
 
   private MediaType type;
   private String    userId;
-  private String    mid;
 
   public static Feed create() {
     return new Feed();
@@ -39,13 +38,12 @@ public class Feed {
     return this;
   }
 
-  public String getMid() {
-    return mid;
-  }
-
-  public Feed mid(String mid) {
-    this.mid = mid;
-    return this;
+  public static Feed fromString(String feedId) {
+    String[] typeUserId = feedId.split("/");
+    if (typeUserId.length != 2) {
+      return Feed.create();
+    }
+    return Feed.create().type(MediaType.valueOf(typeUserId[1].toUpperCase())).userId(typeUserId[0]);
   }
 
   @Override

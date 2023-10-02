@@ -310,7 +310,7 @@ public class VideoServerServiceImplTest {
             .record(false)
             .samplingRate(16000L)
             .audioActivePackets(10L)
-            .audioLevelAverage(55)
+            .audioLevelAverage(65)
             .audioLevelEvent(true)), createAudioRoomMessageRequest);
 
       assertEquals(1, createVideoRoomRequestCaptor.getAllValues().size());
@@ -1523,6 +1523,96 @@ public class VideoServerServiceImplTest {
   @Nested
   @DisplayName("Update subscriptions media stream tests")
   class UpdateSubscriptionsMediaStreamTests {
+
+    @Test
+    @DisplayName("subscribe to another participant stream video for first time")
+    void updateSubscriptionsMediaStream_testJoinSubscriberOk() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession1 = VideoServerSession.create().userId(user1Id.toString())
+        .queueId(queue1Id.toString())
+        .videoServerMeeting(videoServerMeeting)
+        .connectionId(user1SessionId.toString());
+      VideoServerSession videoServerSession2 = VideoServerSession.create().userId(user2Id.toString())
+        .queueId(queue2Id.toString())
+        .videoServerMeeting(videoServerMeeting)
+        .connectionId(user2SessionId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession1, videoServerSession2));
+
+      VideoServerResponse videoInHandleResponse = VideoServerResponse.create()
+        .status("success")
+        .connectionId(user1SessionId.toString())
+        .transactionId("transaction-id")
+        .data(VideoServerDataInfo.create().id(user1VideoInHandleId.toString()));
+      when(videoServerClient.sendVideoServerRequest(
+        eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()),
+        any(VideoServerMessageRequest.class)
+      )).thenReturn(videoInHandleResponse);
+
+      VideoRoomResponse joinSubscriberResponse = VideoRoomResponse.create()
+        .status("ack")
+        .connectionId(user1SessionId.toString())
+        .transactionId("transaction-id")
+        .handleId(user1VideoInHandleId.toString());
+      when(videoServerClient.sendVideoRoomRequest(
+        eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()
+          + "/" + user1VideoInHandleId.toString()), any(VideoServerMessageRequest.class)
+      )).thenReturn(joinSubscriberResponse);
+
+      VideoServerSession videoServerSession1Updated = mock(VideoServerSession.class);
+      when(videoServerSession1Updated.getConnectionId()).thenReturn(user1SessionId.toString());
+      when(videoServerSession1Updated.getVideoInHandleId()).thenReturn(user1VideoInHandleId.toString());
+      when(videoServerSessionRepository.update(any(VideoServerSession.class))).thenReturn(videoServerSession1Updated);
+
+      videoServerService.updateSubscriptionsMediaStream(user1Id.toString(), meeting1Id.toString(),
+        SubscriptionUpdatesDto.create()
+          .subscribe(List.of(MediaStreamDto.create().type(MediaStreamDto.TypeEnum.VIDEO).userId(user2Id.toString()))));
+
+      ArgumentCaptor<VideoServerMessageRequest> createHandleRequestCaptor = ArgumentCaptor.forClass(
+        VideoServerMessageRequest.class);
+      ArgumentCaptor<VideoServerSession> videoServerSessionCaptor = ArgumentCaptor.forClass(VideoServerSession.class);
+      ArgumentCaptor<VideoServerMessageRequest> joinSubscriberRequestCaptor = ArgumentCaptor.forClass(
+        VideoServerMessageRequest.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1)).sendVideoServerRequest(
+        eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()), createHandleRequestCaptor.capture()
+      );
+      verify(videoServerSessionRepository, times(1)).update(videoServerSessionCaptor.capture());
+      verify(videoServerClient, times(1)).sendVideoRoomRequest(
+        eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()
+          + "/" + user1VideoInHandleId.toString()), joinSubscriberRequestCaptor.capture()
+      );
+
+      assertEquals(1, createHandleRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest videoInHandleMessageRequest = createHandleRequestCaptor.getAllValues().get(0);
+      assertEquals(VideoServerMessageRequest.create()
+        .messageRequest("attach")
+        .pluginName("janus.plugin.videoroom")
+        .apiSecret("token"), videoInHandleMessageRequest);
+
+      assertEquals(1, videoServerSessionCaptor.getAllValues().size());
+      VideoServerSession videoServerSession = videoServerSessionCaptor.getAllValues().get(0);
+      assertEquals(VideoServerSession.create().userId(user1Id.toString())
+        .queueId(queue1Id.toString())
+        .videoServerMeeting(videoServerMeeting)
+        .connectionId(user1SessionId.toString())
+        .videoInHandleId(user1VideoInHandleId.toString()), videoServerSession);
+
+      assertEquals(1, joinSubscriberRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest joinSubscriberRequest = joinSubscriberRequestCaptor.getValue();
+      assertEquals(VideoServerMessageRequest.create()
+          .messageRequest("message")
+          .apiSecret("token")
+          .videoServerPluginRequest(
+            VideoRoomJoinRequest.create()
+              .request("join")
+              .ptype("subscriber")
+              .useMsid(true)
+              .room(meeting1VideoRoomId.toString())
+              .streams(List.of(Stream.create()
+                .feed(Feed.create().type(MediaType.VIDEO).userId(user2Id.toString()).toString())))),
+        joinSubscriberRequest);
+    }
 
     @Test
     @DisplayName("subscribe to another participant stream video")
