@@ -6,7 +6,7 @@ openapi: 3.0.3
 info:
   title: Zextras Workstream Collaboration Chats Api
   description: Zextras Carbonio Workstream Collaboration Chats HTTP APIs definition.
-  version: 0.1.5
+  version: 0.1.6
   contact:
     email: smokybeans@zextras.com
 servers:
