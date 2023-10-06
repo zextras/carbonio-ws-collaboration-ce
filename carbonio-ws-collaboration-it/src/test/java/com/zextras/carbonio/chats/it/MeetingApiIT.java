@@ -244,7 +244,7 @@ public class MeetingApiIT {
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
           + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-          + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
+          + "\"publishers\":100,\"bitrate\":614400,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"videoroom\":\"created\",\"room\":\"videoRoomId\"}}}", true);
 
       MockHttpResponse response = dispatcher.post(url(meeting1Id) + "/start", user1Token);
@@ -276,7 +276,7 @@ public class MeetingApiIT {
         videoServerMockServer.getRequest("POST", "/janus/connectionId/videoHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
             + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-            + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}"),
+            + "\"publishers\":100,\"bitrate\":614400,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
     }
 
@@ -558,7 +558,7 @@ public class MeetingApiIT {
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
           + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-          + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
+          + "\"publishers\":100,\"bitrate\":614400,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"videoroom\":\"created\",\"room\":\"videoRoomId\"}}}",
         false);
 
@@ -589,7 +589,7 @@ public class MeetingApiIT {
         videoServerMockServer.getRequest("POST", "/janus/connectionId/videoHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
             + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-            + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}"),
+            + "\"publishers\":100,\"bitrate\":614400,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
     }
 
@@ -624,7 +624,7 @@ public class MeetingApiIT {
       videoServerMockServer.mockRequestedResponse("POST", "/janus/connectionId/videoHandleId",
         "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
           + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-          + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
+          + "\"publishers\":100,\"bitrate\":614400,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
         "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"videoroom\":\"event\",\"error_code\":\"123\",\"error\":\"something\"}}}",
         true);
 
@@ -655,7 +655,7 @@ public class MeetingApiIT {
         videoServerMockServer.getRequest("POST", "/janus/connectionId/videoHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
             + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-            + "\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}"),
+            + "\"publishers\":100,\"bitrate\":614400,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}"),
         VerificationTimes.exactly(1));
     }
 
@@ -1863,7 +1863,7 @@ public class MeetingApiIT {
     }
 
     @Test
-    @DisplayName("Given a meeting identifier, if the authenticated user isn't a meeting participant then it returns a status code 404")
+    @DisplayName("Given a meeting identifier, if the authenticated user isn't a meeting participant then it returns 200")
     void leaveMeeting_testIsNotMeetingParticipant() throws Exception {
       integrationTestUtils.generateAndSaveRoom(
         Room.create().id(room1Id.toString()).type(RoomTypeDto.GROUP).name("name").description("description"),
@@ -1878,7 +1878,7 @@ public class MeetingApiIT {
       MockHttpResponse response = dispatcher
         .post(url(meetingId), (String) null, Map.of("queue-id", user1Queue), user1Token);
 
-      assertEquals(404, response.getStatus());
+      assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }
 

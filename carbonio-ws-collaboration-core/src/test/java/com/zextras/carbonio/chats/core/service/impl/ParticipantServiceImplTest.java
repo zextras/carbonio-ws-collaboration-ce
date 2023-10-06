@@ -326,17 +326,12 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
-    @DisplayName("If the current user isn't a meeting participant, it throws a 'not found' exception")
+    @DisplayName("If the current user isn't a meeting participant, it ignores it silently")
     public void removeMeetingParticipant_testIsNotMeetingParticipant() {
       UserPrincipal currentUser = UserPrincipal.create(user3Id).queueId(user3Queue1);
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
-      ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        participantService.removeMeetingParticipant(meeting1Id, currentUser));
-
-      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Not Found - User not found", exception.getMessage());
+      participantService.removeMeetingParticipant(meeting1Id, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
