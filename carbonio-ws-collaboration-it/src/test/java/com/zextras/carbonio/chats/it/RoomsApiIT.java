@@ -994,7 +994,34 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a group room identifier, correctly deletes the room and the associated meeting")
-    public void deleteRoom_groupWithMeetingTestOk() throws Exception {
+    public void deleteRoom_groupWithStoppedMeetingTestOk() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      Room room = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP,
+        List.of(
+          RoomMemberField.create().id(user1Id).owner(true),
+          RoomMemberField.create().id(user2Id).muted(true),
+          RoomMemberField.create().id(user3Id)));
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(roomId, List.of(
+        ParticipantBuilder.create(user1Id, "user3Queue").audioStreamOn(false).videoStreamOn(false)));
+      integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
+      mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+
+      MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      assertTrue(integrationTestUtils.getRoomById(roomId).isEmpty());
+      assertTrue(roomUserSettingsRepository.getByRoomId(roomId.toString()).isEmpty());
+      assertTrue(meetingTestUtils.getMeetingById(meetingId).isEmpty());
+      assertTrue(meetingTestUtils.getParticipant(meetingId, "user3Queue").isEmpty());
+
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      mongooseImMockServer.verify(mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
+        VerificationTimes.exactly(1));
+    }
+
+    @Test
+    @DisplayName("Given a group room identifier, correctly deletes the room and stop and delete the associated meeting")
+    public void deleteRoom_groupWithActiveMeetingTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       Room room = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP,
         List.of(
@@ -2087,8 +2114,58 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a group room identifier and a member identifier, " +
+      "correctly leaves the user from the from room members")
+    public void deleteRoomMember_memberIsNotActiveMeetingParticipantTestOk() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      String user2Queue = UUID.randomUUID().toString();
+      Room roomEntity = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",
+        List.of(user1Id, user2Id, user3Id));
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(roomId, List.of(
+        ParticipantBuilder.create(user1Id, "user1Queue"),
+        ParticipantBuilder.create(user2Id, user2Queue),
+        ParticipantBuilder.create(user3Id, "user3Queue")));
+      integrationTestUtils.updateRoom(roomEntity.meetingId(meetingId.toString()));
+
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+      String hopedXmppAffiliationMessage =
+        String.format("<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio' type='groupchat'>",
+          user1Id, roomId)
+          + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+          + "<operation>memberRemoved</operation>"
+          + String.format("<user-id>%s</user-id>", user2Id)
+          + "</x>"
+          + "<body/>"
+          + "</message>";
+      mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
+      MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      Optional<Room> room = integrationTestUtils.getRoomById(roomId);
+      assertTrue(room.isPresent());
+      assertTrue(room.get().getSubscriptions().stream().filter(s -> s.getUserId().equals(user2Id.toString())).findAny()
+        .isEmpty());
+      Optional<Meeting> meeting = meetingTestUtils.getMeetingById(meetingId);
+      assertTrue(meeting.isPresent());
+      assertEquals(2, meeting.get().getParticipants().size());
+      assertTrue(meeting.get().getParticipants().stream().noneMatch(participant ->
+        user2Id.toString().equals(participant.getUserId())));
+
+      // TODO: 25/02/22 verify event dispatcher
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user2Id.toString()),
+        VerificationTimes.exactly(1));
+      mongooseImMockServer.verify(
+        mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
+        VerificationTimes.exactly(1)
+      );
+      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+    }
+
+    @Test
+    @DisplayName("Given a group room identifier and a member identifier, " +
       "correctly leaves the user from the associated meeting and removes the user from room members")
-    public void deleteRoomMember_memberIsMeetingParticipantTestOk() throws Exception {
+    public void deleteRoomMember_memberIsActiveMeetingParticipantTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       String user2Queue = UUID.randomUUID().toString();
       Room roomEntity = integrationTestUtils.generateAndSaveRoom(roomId, RoomTypeDto.GROUP, "room",

@@ -55,23 +55,24 @@ import javax.annotation.Nullable;
 @Singleton
 public class VideoServerServiceImpl implements VideoServerService {
 
-  private static final String                       JANUS_ENDPOINT           = "/janus";
-  private static final String                       JANUS_ADMIN_ENDPOINT     = "/admin";
-  private static final String                       JANUS_PING               = "ping";
-  private static final String                       JANUS_CREATE             = "create";
-  private static final String                       JANUS_MESSAGE            = "message";
-  private static final String                       JANUS_ATTACH             = "attach";
-  private static final String                       JANUS_DETACH             = "detach";
-  private static final String                       JANUS_DESTROY            = "destroy";
-  private static final String                       JANUS_SUCCESS            = "success";
-  private static final String                       JANUS_VIDEOROOM_PLUGIN   = "janus.plugin.videoroom";
-  private static final String                       JANUS_AUDIOBRIDGE_PLUGIN = "janus.plugin.audiobridge";
-  private final        String                       videoServerURL;
-  private final        String                       videoServerAdminURL;
-  private final        String                       apiSecret;
-  private final        VideoServerClient            videoServerClient;
-  private final        VideoServerMeetingRepository videoServerMeetingRepository;
-  private final        VideoServerSessionRepository videoServerSessionRepository;
+  private static final String JANUS_ENDPOINT           = "/janus";
+  private static final String JANUS_ADMIN_ENDPOINT     = "/admin";
+  private static final String JANUS_PING               = "ping";
+  private static final String JANUS_CREATE             = "create";
+  private static final String JANUS_MESSAGE            = "message";
+  private static final String JANUS_ATTACH             = "attach";
+  private static final String JANUS_DETACH             = "detach";
+  private static final String JANUS_DESTROY            = "destroy";
+  private static final String JANUS_SUCCESS            = "success";
+  private static final String JANUS_VIDEOROOM_PLUGIN   = "janus.plugin.videoroom";
+  private static final String JANUS_AUDIOBRIDGE_PLUGIN = "janus.plugin.audiobridge";
+
+  private final String                       videoServerURL;
+  private final String                       videoServerAdminURL;
+  private final String                       apiSecret;
+  private final VideoServerClient            videoServerClient;
+  private final VideoServerMeetingRepository videoServerMeetingRepository;
+  private final VideoServerSessionRepository videoServerSessionRepository;
 
   @Inject
   public VideoServerServiceImpl(
@@ -193,18 +194,18 @@ public class VideoServerServiceImpl implements VideoServerService {
   @Override
   @Transactional
   public void stopMeeting(String meetingId) {
-    VideoServerMeeting videoServerMeetingToRemove = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    destroyVideoRoom(meetingId, videoServerMeetingToRemove.getConnectionId(),
-      videoServerMeetingToRemove.getVideoHandleId(), videoServerMeetingToRemove.getVideoRoomId());
-    destroyAudioBridgeRoom(meetingId, videoServerMeetingToRemove.getConnectionId(),
-      videoServerMeetingToRemove.getAudioHandleId(), videoServerMeetingToRemove.getAudioRoomId());
-    destroyPluginHandle(videoServerMeetingToRemove.getConnectionId(), videoServerMeetingToRemove.getVideoHandleId(),
-      meetingId);
-    destroyPluginHandle(videoServerMeetingToRemove.getConnectionId(), videoServerMeetingToRemove.getAudioHandleId(),
-      meetingId);
-    destroyConnection(videoServerMeetingToRemove.getConnectionId(), meetingId);
-    videoServerMeetingRepository.deleteById(meetingId);
+    videoServerMeetingRepository.getById(meetingId).ifPresent(videoServerMeeting -> {
+      destroyVideoRoom(meetingId, videoServerMeeting.getConnectionId(),
+        videoServerMeeting.getVideoHandleId(), videoServerMeeting.getVideoRoomId());
+      destroyAudioBridgeRoom(meetingId, videoServerMeeting.getConnectionId(),
+        videoServerMeeting.getAudioHandleId(), videoServerMeeting.getAudioRoomId());
+      destroyPluginHandle(videoServerMeeting.getConnectionId(), videoServerMeeting.getVideoHandleId(),
+        meetingId);
+      destroyPluginHandle(videoServerMeeting.getConnectionId(), videoServerMeeting.getAudioHandleId(),
+        meetingId);
+      destroyConnection(videoServerMeeting.getConnectionId(), meetingId);
+      videoServerMeetingRepository.deleteById(meetingId);
+    });
   }
 
   private void destroyPluginHandle(String connectionId, String handleId, String meetingId) {
@@ -313,50 +314,48 @@ public class VideoServerServiceImpl implements VideoServerService {
   @Override
   @Transactional
   public void destroyMeetingParticipant(String userId, String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for user " + userId + " for the meeting " + meetingId));
-    Optional.ofNullable(videoServerSession.getAudioHandleId()).ifPresent(audioHandleId -> {
-      leaveAudioBridgeRoom(videoServerSession.getConnectionId(), audioHandleId);
-      destroyPluginHandle(videoServerSession.getConnectionId(), audioHandleId, meetingId);
-    });
-    Optional.ofNullable(videoServerSession.getVideoOutHandleId()).ifPresent(videoOutHandleId -> {
-      leaveVideoRoom(videoServerSession.getConnectionId(), videoOutHandleId);
-      destroyPluginHandle(videoServerSession.getConnectionId(), videoOutHandleId, meetingId);
-    });
-    Optional.ofNullable(videoServerSession.getVideoInHandleId()).ifPresent(videoInHandleId -> {
-      leaveVideoRoom(videoServerSession.getConnectionId(), videoInHandleId);
-      destroyPluginHandle(videoServerSession.getConnectionId(), videoInHandleId, meetingId);
-    });
-    Optional.ofNullable(videoServerSession.getScreenHandleId()).ifPresent(screenHandleId -> {
-      leaveVideoRoom(videoServerSession.getConnectionId(), screenHandleId);
-      destroyPluginHandle(videoServerSession.getConnectionId(), screenHandleId, meetingId);
-    });
-    destroyConnection(videoServerSession.getConnectionId(), meetingId);
-    videoServerSessionRepository.remove(videoServerSession);
+    videoServerMeetingRepository.getById(meetingId)
+      .flatMap(videoServerMeeting -> videoServerMeeting.getVideoServerSessions().stream()
+        .filter(sessionUser -> sessionUser.getUserId().equals(userId))
+        .findFirst()).ifPresent(videoServerSession -> {
+        Optional.ofNullable(videoServerSession.getAudioHandleId()).ifPresent(audioHandleId -> {
+          leaveAudioBridgeRoom(videoServerSession.getConnectionId(), audioHandleId);
+          destroyPluginHandle(videoServerSession.getConnectionId(), audioHandleId, meetingId);
+        });
+        Optional.ofNullable(videoServerSession.getVideoOutHandleId()).ifPresent(videoOutHandleId -> {
+          leaveVideoRoom(videoServerSession.getConnectionId(), videoOutHandleId);
+          destroyPluginHandle(videoServerSession.getConnectionId(), videoOutHandleId, meetingId);
+        });
+        Optional.ofNullable(videoServerSession.getVideoInHandleId()).ifPresent(videoInHandleId -> {
+          leaveVideoRoom(videoServerSession.getConnectionId(), videoInHandleId);
+          destroyPluginHandle(videoServerSession.getConnectionId(), videoInHandleId, meetingId);
+        });
+        Optional.ofNullable(videoServerSession.getScreenHandleId()).ifPresent(screenHandleId -> {
+          leaveVideoRoom(videoServerSession.getConnectionId(), screenHandleId);
+          destroyPluginHandle(videoServerSession.getConnectionId(), screenHandleId, meetingId);
+        });
+        destroyConnection(videoServerSession.getConnectionId(), meetingId);
+        videoServerSessionRepository.remove(videoServerSession);
+      });
   }
 
   @Override
   @Transactional
   public void removeMeetingParticipant(String userId, String meetingId) {
-    VideoServerMeeting videoServerMeeting = videoServerMeetingRepository.getById(meetingId)
-      .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
-      .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-      .findAny().orElseThrow(() -> new VideoServerException(
-        "No Videoserver session user found for user " + userId + " for the meeting " + meetingId));
-    Optional.ofNullable(videoServerSession.getAudioHandleId())
-      .ifPresent(audioHandleId -> leaveAudioBridgeRoom(videoServerSession.getConnectionId(), audioHandleId));
-    Optional.ofNullable(videoServerSession.getVideoOutHandleId())
-      .ifPresent(videoOutHandleId -> leaveVideoRoom(videoServerSession.getConnectionId(), videoOutHandleId));
-    Optional.ofNullable(videoServerSession.getVideoInHandleId())
-      .ifPresent(videoInHandleId -> leaveVideoRoom(videoServerSession.getConnectionId(), videoInHandleId));
-    Optional.ofNullable(videoServerSession.getScreenHandleId())
-      .ifPresent(screenHandleId -> leaveVideoRoom(videoServerSession.getConnectionId(), screenHandleId));
-    videoServerSessionRepository.remove(videoServerSession);
+    videoServerMeetingRepository.getById(meetingId)
+      .flatMap(videoServerMeeting -> videoServerMeeting.getVideoServerSessions().stream()
+        .filter(sessionUser -> sessionUser.getUserId().equals(userId))
+        .findFirst()).ifPresent(videoServerSession -> {
+        Optional.ofNullable(videoServerSession.getAudioHandleId())
+          .ifPresent(audioHandleId -> leaveAudioBridgeRoom(videoServerSession.getConnectionId(), audioHandleId));
+        Optional.ofNullable(videoServerSession.getVideoOutHandleId())
+          .ifPresent(videoOutHandleId -> leaveVideoRoom(videoServerSession.getConnectionId(), videoOutHandleId));
+        Optional.ofNullable(videoServerSession.getVideoInHandleId())
+          .ifPresent(videoInHandleId -> leaveVideoRoom(videoServerSession.getConnectionId(), videoInHandleId));
+        Optional.ofNullable(videoServerSession.getScreenHandleId())
+          .ifPresent(screenHandleId -> leaveVideoRoom(videoServerSession.getConnectionId(), screenHandleId));
+        videoServerSessionRepository.remove(videoServerSession);
+      });
   }
 
   private void leaveAudioBridgeRoom(String connectionId, String audioHandleId) {
@@ -398,7 +397,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
       .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-      .findAny().orElseThrow(() -> new VideoServerException(
+      .findFirst().orElseThrow(() -> new VideoServerException(
         "No Videoserver session found for user " + userId + " for the meeting " + meetingId));
     switch (mediaStreamSettingsDto.getType()) {
       case VIDEO:
@@ -463,7 +462,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
       .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-      .findAny().orElseThrow(() -> new VideoServerException(
+      .findFirst().orElseThrow(() -> new VideoServerException(
         "No Videoserver session found for user " + userId + " for the meeting " + meetingId));
     if (enabled == videoServerSession.hasAudioStreamOn()) {
       ChatsLogger.debug(
@@ -500,7 +499,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
       .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-      .findAny().orElseThrow(() -> new VideoServerException(
+      .findFirst().orElseThrow(() -> new VideoServerException(
         "No Videoserver session found for user " + userId + " for the meeting " + meetingId));
     Optional.ofNullable(videoServerSession.getVideoInHandleId()).ifPresentOrElse(
       handleId -> {
@@ -541,7 +540,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
       .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-      .findAny().orElseThrow(() -> new VideoServerException(
+      .findFirst().orElseThrow(() -> new VideoServerException(
         "No Videoserver session found for user " + userId + " for the meeting " + meetingId));
     Optional.ofNullable(videoServerSession.getVideoInHandleId()).ifPresentOrElse(
       handleId -> updateSubscriptions(videoServerSession.getConnectionId(), userId, handleId, subscriptionUpdatesDto),
@@ -616,7 +615,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       .orElseThrow(() -> new VideoServerException("No videoserver meeting found for the meeting " + meetingId));
     VideoServerSession videoServerSession = videoServerMeeting.getVideoServerSessions().stream()
       .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-      .findAny().orElseThrow(() -> new VideoServerException(
+      .findFirst().orElseThrow(() -> new VideoServerException(
         "No Videoserver session found for user " + userId + " for the meeting " + meetingId));
     Optional.ofNullable(videoServerSession.getAudioHandleId()).ifPresentOrElse(
       handleId -> joinAudioBridgeRoom(userId, videoServerSession.getConnectionId(), handleId,
