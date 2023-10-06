@@ -327,7 +327,7 @@ public class VideoServerServiceImplTest {
             .isPrivate(false)
             .record(false)
             .publishers(100)
-            .bitrate(200L)
+            .bitrate(600L * 1024)
             .bitrateCap(true)
             .videoCodec("vp8,h264,vp9,h265,av1")), createVideoRoomMessageRequest);
     }
@@ -480,10 +480,9 @@ public class VideoServerServiceImplTest {
     }
 
     @Test
-    @DisplayName("Try to stop a meeting that does not exist")
+    @DisplayName("Try to stop a meeting that does not exist, it ignores it silently")
     void stopMeeting_testErrorMeetingNotExists() {
-      assertThrows(VideoServerException.class, () -> videoServerService.stopMeeting(meeting1Id.toString()),
-        "No videoserver meeting found for the meeting " + meeting1Id.toString());
+      videoServerService.stopMeeting(meeting1Id.toString());
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
@@ -872,24 +871,19 @@ public class VideoServerServiceImplTest {
     }
 
     @Test
-    @DisplayName("Try to destroy a participant in a meeting that does not exist")
+    @DisplayName("Try to destroy a participant in a meeting that does not exist, it ignores it silently")
     void destroyMeetingParticipant_testErrorMeetingNotExists() {
-      assertThrows(VideoServerException.class,
-        () -> videoServerService.destroyMeetingParticipant(user1Id.toString(), meeting1Id.toString()),
-        "No videoserver meeting found for the meeting " + meeting1Id.toString());
+      videoServerService.destroyMeetingParticipant(user1Id.toString(), meeting1Id.toString());
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
 
     @Test
-    @DisplayName("Try to destroy a participant in a meeting when it's not in")
+    @DisplayName("Try to destroy a participant in a meeting when it's not in, it ignores it silently")
     void destroyMeetingParticipant_testErrorParticipantNotExists() {
       createVideoServerMeeting(meeting1Id);
 
-      assertThrows(VideoServerException.class,
-        () -> videoServerService.destroyMeetingParticipant(user1Id.toString(), meeting1Id.toString()),
-        "No Videoserver session user found for user " + user1Id.toString()
-          + " for the meeting " + meeting1Id.toString());
+      videoServerService.destroyMeetingParticipant(user1Id.toString(), meeting1Id.toString());
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
@@ -1017,24 +1011,19 @@ public class VideoServerServiceImplTest {
     }
 
     @Test
-    @DisplayName("Try to remove a participant in a meeting that does not exist")
+    @DisplayName("Try to remove a participant in a meeting that does not exist, it ignores it silently")
     void removeMeetingParticipant_testErrorMeetingNotExists() {
-      assertThrows(VideoServerException.class,
-        () -> videoServerService.removeMeetingParticipant(user1Id.toString(), meeting1Id.toString()),
-        "No videoserver meeting found for the meeting " + meeting1Id.toString());
+      videoServerService.removeMeetingParticipant(user1Id.toString(), meeting1Id.toString());
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
 
     @Test
-    @DisplayName("Try to remove a participant in a meeting when it's not in")
+    @DisplayName("Try to remove a participant in a meeting when it's not in, it ignores it silently")
     void removeMeetingParticipant_testErrorParticipantNotExists() {
       createVideoServerMeeting(meeting1Id);
 
-      assertThrows(VideoServerException.class,
-        () -> videoServerService.removeMeetingParticipant(user1Id.toString(), meeting1Id.toString()),
-        "No Videoserver session user found for user " + user1Id.toString()
-          + " for the meeting " + meeting1Id.toString());
+      videoServerService.removeMeetingParticipant(user1Id.toString(), meeting1Id.toString());
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
