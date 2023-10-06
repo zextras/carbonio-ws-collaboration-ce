@@ -37,14 +37,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-import javax.servlet.annotation.WebListener;
 
-@Singleton
-@WebListener
-public class VideoServerEventListener implements ServletContextListener {
+public class VideoServerEventListener {
 
   private static final String       JANUS_EVENTS           = "janus-events";
   private static final String       LOCAL                  = "local";
@@ -76,12 +70,7 @@ public class VideoServerEventListener implements ServletContextListener {
     this.videoServerSessionRepository = videoServerSessionRepository;
   }
 
-  @Override
-  public void contextInitialized(ServletContextEvent sce) {
-    processVideoServerEvents();
-  }
-
-  private void processVideoServerEvents() {
+  public void start() {
     if (eventDispatcher.getConnection().isEmpty()) {
       throw new InternalErrorException("RabbitMQ connection is not up!");
     }
@@ -229,13 +218,8 @@ public class VideoServerEventListener implements ServletContextListener {
         ChatsLogger.error("Error closing RabbitMQ connection channel for videoserver events");
       }
       ChatsLogger.error("Closed RabbitMQ connection channel for videoserver events");
-      processVideoServerEvents();
-      ChatsLogger.warn("Reopened RabbitMQ connection channel for videoserver events");
+      start();
+      ChatsLogger.warn("Restarted videoserver events listener");
     }
-  }
-
-  @Override
-  public void contextDestroyed(ServletContextEvent sce) {
-
   }
 }
