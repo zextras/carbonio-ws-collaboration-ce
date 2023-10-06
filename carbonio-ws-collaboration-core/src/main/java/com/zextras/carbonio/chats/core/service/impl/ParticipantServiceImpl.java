@@ -140,10 +140,6 @@ public class ParticipantServiceImpl implements ParticipantService {
       .filter(p -> userId.toString().equals(p.getUserId()))
       .collect(Collectors.toList());
 
-    if (participants.isEmpty()) {
-      throw new NotFoundException("User not found");
-    }
-
     participants.forEach(participant -> removeMeetingParticipant(participant, meeting, room));
   }
 
@@ -153,11 +149,7 @@ public class ParticipantServiceImpl implements ParticipantService {
       .filter(p -> userId.toString().equals(p.getUserId()) && queueId.toString().equals(p.getQueueId()))
       .findFirst();
 
-    if (optionalParticipant.isEmpty()) {
-      throw new NotFoundException("User not found");
-    }
-
-    removeMeetingParticipant(optionalParticipant.get(), meeting, room);
+    optionalParticipant.ifPresent(participant -> removeMeetingParticipant(participant, meeting, room));
   }
 
   private void removeMeetingParticipant(Participant participant, Meeting meeting, Room room) {
