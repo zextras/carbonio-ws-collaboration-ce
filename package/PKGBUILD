@@ -3,7 +3,7 @@ targets=(
    "ubuntu"
 )
 pkgname="carbonio-ws-collaboration-ce"
-pkgver="0.4.0.SNAPSHOT"
+pkgver="0.4.1.SNAPSHOT"
 pkgrel="1"
 pkgdesc="Workstream Collaboration for Carbonio CE"
 pkgdesclong=(
