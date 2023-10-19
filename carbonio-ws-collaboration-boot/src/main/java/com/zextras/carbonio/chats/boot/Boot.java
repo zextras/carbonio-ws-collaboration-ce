@@ -5,8 +5,11 @@
 package com.zextras.carbonio.chats.boot;
 
 import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.Recoverable;
+import com.rabbitmq.client.RecoveryListener;
 import com.zextras.carbonio.chats.core.config.ChatsConstant;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
@@ -69,6 +72,19 @@ public class Boot {
         servletContext.addFilter("eventsWebSocketAuthenticationFilter",
             EventsWebSocketAuthenticationFilter.create(authenticationService))
           .addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, "/events");
+      });
+      Recoverable recoverableConnection = (Recoverable) eventDispatcherConnection;
+      recoverableConnection.addRecoveryListener(new RecoveryListener() {
+        @Override
+        public void handleRecovery(Recoverable recoverable) {
+          ChatsLogger.warn("VideoServer events connection recovery finished successfully");
+          videoServerEventListener.start();
+        }
+
+        @Override
+        public void handleRecoveryStarted(Recoverable recoverable) {
+          ChatsLogger.warn("VideoServer events connection recovery started...");
+        }
       });
     }
     context.addEventListener(resteasyListener);
