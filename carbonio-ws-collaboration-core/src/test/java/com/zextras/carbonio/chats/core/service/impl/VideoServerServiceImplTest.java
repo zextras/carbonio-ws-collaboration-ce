@@ -84,7 +84,6 @@ public class VideoServerServiceImplTest {
 
     when(appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST)).thenReturn(Optional.of("127.0.0.1"));
     when(appConfig.get(String.class, ConfigName.VIDEO_SERVER_PORT)).thenReturn(Optional.of("8088"));
-    when(appConfig.get(String.class, ConfigName.VIDEO_SERVER_ADMIN_PORT)).thenReturn(Optional.of("7088"));
     when(appConfig.get(String.class, ConfigName.VIDEO_SERVER_TOKEN)).thenReturn(Optional.of("token"));
 
     this.videoServerService = new VideoServerServiceImpl(

@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerMessageRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.PongResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.VideoServerResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.audiobridge.AudioBridgeResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.videoroom.VideoRoomResponse;
@@ -33,16 +32,15 @@ public class VideoServerHttpClient implements VideoServerClient {
   }
 
   @Override
-  public PongResponse sendIsAliveRequest(String url, VideoServerMessageRequest request) {
+  public VideoServerResponse sendGetInfoRequest(String url) {
     try {
-      CloseableHttpResponse response = httpClient.sendPost(url, Map.of("content-type", "application/json"),
-        objectMapper.writeValueAsString(request));
+      CloseableHttpResponse response = httpClient.sendGet(url, Map.of("content-type", "application/json"));
       int statusCode = response.getStatusLine().getStatusCode();
       if (statusCode != HttpStatus.SC_OK) {
         throw new VideoServerException("Could not get any response by video server");
       }
-      return objectMapper.readValue(
-        IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8), PongResponse.class);
+      return objectMapper.readValue(IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8),
+        VideoServerResponse.class);
     } catch (JsonProcessingException e) {
       throw new VideoServerException("Unable to convert request body to JSON");
     } catch (IOException e) {

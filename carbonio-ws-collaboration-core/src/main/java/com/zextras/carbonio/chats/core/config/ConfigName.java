@@ -33,7 +33,6 @@ public enum ConfigName {
   EVENT_DISPATCHER_USER_PASSWORD,
   VIDEO_SERVER_HOST,
   VIDEO_SERVER_PORT,
-  VIDEO_SERVER_ADMIN_PORT,
   VIDEO_SERVER_TOKEN,
 
   // behavioral configurations

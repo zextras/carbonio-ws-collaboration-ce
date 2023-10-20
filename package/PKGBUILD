@@ -3,7 +3,7 @@ targets=(
    "ubuntu"
 )
 pkgname="carbonio-ws-collaboration-ce"
-pkgver="0.3.3"
+pkgver="0.3.4"
 pkgrel="1"
 pkgdesc="Workstream Collaboration for Carbonio CE"
 pkgdesclong=(
@@ -41,7 +41,7 @@ sources=(
 hashsums=(
    "ce7262f2c01e4f6c700265f88892d7572dc546d2ff328506dfd7f5502c6b6b0b"
    "ebd7dfa029719a34132bd1e6bc732dc82519e3b6004a806b7db45164a265da30"
-   "9558f0bfe1fc1d9e55a3490ace6f4cb30897dcb91d2522969be94c7112d3c20a"
+   "6eac2036167529595912ca791197358d16d40599d974328cf80241c6051cb247"
    "8e4c95a5b8480985c0cf0139f023b803c68056f10bb2460d3b9e343b5c8d237f"
    "766f41685994dbc891e9b03011e72edb688d989c5b27d39badbc59966748bb74"
    "5ab25236c2ba0a9e9c1577a3b6b1bb1497dba3fef40dd6851c3dfac86b685709"

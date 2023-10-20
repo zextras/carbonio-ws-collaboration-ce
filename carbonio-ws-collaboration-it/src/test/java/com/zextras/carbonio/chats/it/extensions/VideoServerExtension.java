@@ -34,7 +34,6 @@ public class VideoServerExtension implements AfterEachCallback, BeforeAllCallbac
       VideoServerMockServer client = new VideoServerMockServer(SERVER_PORT);
       InMemoryConfigStore.set(ConfigName.VIDEO_SERVER_HOST, SERVER_HOST);
       InMemoryConfigStore.set(ConfigName.VIDEO_SERVER_PORT, Integer.toString(SERVER_PORT));
-      InMemoryConfigStore.set(ConfigName.VIDEO_SERVER_ADMIN_PORT, Integer.toString(SERVER_PORT));
       InMemoryConfigStore.set(ConfigName.VIDEO_SERVER_TOKEN, "secret");
       return client;
     }, VideoServerMockServer.class);

@@ -65,10 +65,27 @@ public class VideoServerMockServer extends ClientAndServer implements CloseableR
         JsonBody.json(body));
   }
 
+  public HttpRequest getRequest(String method, String path) {
+    return request()
+      .withMethod(method)
+      .withPath(path)
+      .withHeader(Header.header("content-type", "application/json"));
+  }
+
   public void mockRequestedResponse(
     String method, String path, String requestBody, String responseBody, boolean success
   ) {
     HttpRequest request = getRequest(method, path, requestBody);
+    clear(request);
+    when(request).respond(response()
+      .withStatusCode(success ? 200 : 500)
+      .withBody(JsonBody.json(responseBody)));
+  }
+
+  public void mockRequestedResponse(
+    String method, String path, String responseBody, boolean success
+  ) {
+    HttpRequest request = getRequest(method, path);
     clear(request);
     when(request).respond(response()
       .withStatusCode(success ? 200 : 500)
