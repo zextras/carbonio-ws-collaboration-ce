@@ -33,7 +33,6 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.v
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomPublishRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomStartVideoInRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomUpdateSubscriptionsRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.PongResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.VideoServerResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.audiobridge.AudioBridgeResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.videoroom.VideoRoomResponse;
@@ -56,19 +55,18 @@ import javax.annotation.Nullable;
 public class VideoServerServiceImpl implements VideoServerService {
 
   private static final String JANUS_ENDPOINT           = "/janus";
-  private static final String JANUS_ADMIN_ENDPOINT     = "/admin";
-  private static final String JANUS_PING               = "ping";
+  private static final String JANUS_INFO_ENDPOINT      = "/info";
   private static final String JANUS_CREATE             = "create";
   private static final String JANUS_MESSAGE            = "message";
   private static final String JANUS_ATTACH             = "attach";
   private static final String JANUS_DETACH             = "detach";
   private static final String JANUS_DESTROY            = "destroy";
   private static final String JANUS_SUCCESS            = "success";
+  private static final String JANUS_SERVER_INFO        = "server_info";
   private static final String JANUS_VIDEOROOM_PLUGIN   = "janus.plugin.videoroom";
   private static final String JANUS_AUDIOBRIDGE_PLUGIN = "janus.plugin.audiobridge";
 
   private final String                       videoServerURL;
-  private final String                       videoServerAdminURL;
   private final String                       apiSecret;
   private final VideoServerClient            videoServerClient;
   private final VideoServerMeetingRepository videoServerMeetingRepository;
@@ -85,11 +83,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST).orElseThrow(),
       appConfig.get(String.class, ConfigName.VIDEO_SERVER_PORT).orElseThrow()
     );
-    this.videoServerAdminURL = String.format("http://%s:%s",
-      appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST).orElseThrow(),
-      appConfig.get(String.class, ConfigName.VIDEO_SERVER_ADMIN_PORT).orElseThrow()
-    );
-    this.apiSecret = appConfig.get(String.class, ConfigName.VIDEO_SERVER_TOKEN).orElseThrow();
+    this.apiSecret = appConfig.get(String.class, ConfigName.VIDEO_SERVER_TOKEN).orElse(null);
     this.videoServerClient = videoServerClient;
     this.videoServerMeetingRepository = videoServerMeetingRepository;
     this.videoServerSessionRepository = videoServerSessionRepository;
@@ -653,11 +647,13 @@ public class VideoServerServiceImpl implements VideoServerService {
 
   @Override
   public boolean isAlive() {
-    return PongResponse.PONG.equals(videoServerClient.sendIsAliveRequest(
-      videoServerAdminURL + JANUS_ADMIN_ENDPOINT,
-      VideoServerMessageRequest.create()
-        .messageRequest(JANUS_PING)
-        .transactionId(UUID.randomUUID().toString())).getStatus());
+    try {
+      return JANUS_SERVER_INFO.equals(videoServerClient.sendGetInfoRequest(
+        videoServerURL + JANUS_ENDPOINT + JANUS_INFO_ENDPOINT).getStatus());
+    } catch (Exception e) {
+      ChatsLogger.warn("Can't communicate with Video server due to: " + e);
+      return false;
+    }
   }
 
   /**

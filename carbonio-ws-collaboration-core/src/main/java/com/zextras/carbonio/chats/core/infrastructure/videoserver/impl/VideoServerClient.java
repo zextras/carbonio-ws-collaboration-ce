@@ -5,14 +5,13 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.impl;
 
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerMessageRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.PongResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.VideoServerResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.audiobridge.AudioBridgeResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.videoroom.VideoRoomResponse;
 
 public interface VideoServerClient {
 
-  PongResponse sendIsAliveRequest(String url, VideoServerMessageRequest request);
+  VideoServerResponse sendGetInfoRequest(String url);
 
   VideoServerResponse sendVideoServerRequest(String url, VideoServerMessageRequest request);
 

@@ -44,16 +44,14 @@ class VideoServerHttpClientTest {
   }
 
   private String videoServerURL;
-  private String videoServerAdminURL;
   private String janusEndpoint;
-  private String janusAdminEndpoint;
+  private String janusInfoEndpoint;
 
   @BeforeEach
   public void init() {
     videoServerURL = "http://127.0.0.1:8088";
-    videoServerAdminURL = "http://127.0.0.1:7088";
     janusEndpoint = "/janus";
-    janusAdminEndpoint = "/admin";
+    janusInfoEndpoint = "/info";
   }
 
   private void mockResponse(String url, int statusCode, Object bodyResponse) throws IOException {
@@ -66,37 +64,37 @@ class VideoServerHttpClientTest {
     when(sessionHttpEntity.getContent()).thenReturn(
       new ByteArrayInputStream(objectMapper.writeValueAsString(bodyResponse).getBytes(StandardCharsets.UTF_8)));
     when(httpClient.sendPost(eq(url), any(), anyString())).thenReturn(sessionResponse);
+    when(httpClient.sendGet(eq(url), any())).thenReturn(sessionResponse);
   }
 
   @Test
-  @DisplayName("Send isAlive http request to video server service")
+  @DisplayName("Send get info http request to video server service")
   void sendIsAliveHttpRequestCorrectly() throws IOException {
-    mockResponse(videoServerAdminURL + "/" + janusAdminEndpoint, 200, PongResponse.create());
+    mockResponse(videoServerURL + janusEndpoint + janusInfoEndpoint, 200, PongResponse.create());
 
-    PongResponse pongResponse = videoServerHttpClient.sendIsAliveRequest(
-      videoServerAdminURL + "/" + janusAdminEndpoint,
-      VideoServerMessageRequest.create());
+    VideoServerResponse videoServerResponse = videoServerHttpClient.sendGetInfoRequest(
+      videoServerURL + janusEndpoint + janusInfoEndpoint);
 
-    assertEquals(PongResponse.create(), pongResponse);
+    assertEquals(VideoServerResponse.create(), videoServerResponse);
   }
 
   @Test
-  @DisplayName("throws video server exception if video server service returns error sending admin request")
-  void throwsVideoServerExceptionWhenErrorOccursSendingAdminRequest() throws IOException {
-    mockResponse(videoServerAdminURL + "/" + janusAdminEndpoint, 404, null);
+  @DisplayName("throws video server exception if video server service returns error sending info request")
+  void throwsVideoServerExceptionWhenErrorOccursSendingInfoRequest() throws IOException {
+    mockResponse(videoServerURL + janusEndpoint + janusInfoEndpoint, 404, null);
 
-    assertThrows(VideoServerException.class, () -> videoServerHttpClient.sendIsAliveRequest(
-        videoServerAdminURL + "/" + janusAdminEndpoint, VideoServerMessageRequest.create()),
+    assertThrows(VideoServerException.class, () -> videoServerHttpClient.sendGetInfoRequest(
+        videoServerURL + janusEndpoint + janusInfoEndpoint),
       "Could not get any response by video server");
   }
 
   @Test
   @DisplayName("Send video server http request to video server service")
   void sendVideoServerHttpRequestCorrectly() throws IOException {
-    mockResponse(videoServerURL + "/" + janusEndpoint, 200, VideoServerResponse.create());
+    mockResponse(videoServerURL + janusEndpoint, 200, VideoServerResponse.create());
 
     VideoServerResponse videoServerResponse = videoServerHttpClient.sendVideoServerRequest(
-      videoServerURL + "/" + janusEndpoint,
+      videoServerURL + janusEndpoint,
       VideoServerMessageRequest.create());
 
     assertEquals(VideoServerResponse.create(), videoServerResponse);
@@ -105,20 +103,20 @@ class VideoServerHttpClientTest {
   @Test
   @DisplayName("throws video server exception if video server service returns error sending video server request")
   void throwsVideoServerExceptionWhenErrorOccursSendingVideoServerRequest() throws IOException {
-    mockResponse(videoServerURL + "/" + janusEndpoint, 404, null);
+    mockResponse(videoServerURL + janusEndpoint, 404, null);
 
     assertThrows(VideoServerException.class, () -> videoServerHttpClient.sendVideoServerRequest(
-        videoServerURL + "/" + janusEndpoint, VideoServerMessageRequest.create()),
+        videoServerURL + janusEndpoint, VideoServerMessageRequest.create()),
       "Could not get any response by video server");
   }
 
   @Test
   @DisplayName("Send http request to video server service for audio bridge")
   void sendAudioBridgeHttpRequestCorrectly() throws IOException {
-    mockResponse(videoServerURL + "/" + janusEndpoint, 200, AudioBridgeResponse.create());
+    mockResponse(videoServerURL + janusEndpoint, 200, AudioBridgeResponse.create());
 
     AudioBridgeResponse audioBridgeResponse = videoServerHttpClient.sendAudioBridgeRequest(
-      videoServerURL + "/" + janusEndpoint,
+      videoServerURL + janusEndpoint,
       VideoServerMessageRequest.create());
 
     assertEquals(AudioBridgeResponse.create(), audioBridgeResponse);
@@ -127,20 +125,20 @@ class VideoServerHttpClientTest {
   @Test
   @DisplayName("throws video server exception if video server service returns error sending audio bridge request")
   void throwsVideoServerExceptionWhenErrorOccursSendingAudioBridgeRequest() throws IOException {
-    mockResponse(videoServerURL + "/" + janusEndpoint, 404, null);
+    mockResponse(videoServerURL + janusEndpoint, 404, null);
 
     assertThrows(VideoServerException.class, () -> videoServerHttpClient.sendAudioBridgeRequest(
-        videoServerURL + "/" + janusEndpoint, VideoServerMessageRequest.create()),
+        videoServerURL + janusEndpoint, VideoServerMessageRequest.create()),
       "Could not get any response by video server");
   }
 
   @Test
   @DisplayName("Send http request to video server service for video room")
   void sendVideoRoomHttpRequestCorrectly() throws IOException {
-    mockResponse(videoServerURL + "/" + janusEndpoint, 200, VideoRoomResponse.create());
+    mockResponse(videoServerURL + janusEndpoint, 200, VideoRoomResponse.create());
 
     VideoRoomResponse videoRoomResponse = videoServerHttpClient.sendVideoRoomRequest(
-      videoServerURL + "/" + janusEndpoint,
+      videoServerURL + janusEndpoint,
       VideoServerMessageRequest.create());
 
     assertEquals(VideoRoomResponse.create(), videoRoomResponse);
@@ -149,10 +147,10 @@ class VideoServerHttpClientTest {
   @Test
   @DisplayName("throws video server exception if video server service returns error sending video room request")
   void throwsVideoServerExceptionWhenErrorOccursSendingVideoRoomRequest() throws IOException {
-    mockResponse(videoServerURL + "/" + janusEndpoint, 404, null);
+    mockResponse(videoServerURL + janusEndpoint, 404, null);
 
     assertThrows(VideoServerException.class, () -> videoServerHttpClient.sendVideoRoomRequest(
-        videoServerURL + "/" + janusEndpoint, VideoServerMessageRequest.create()),
+        videoServerURL + janusEndpoint, VideoServerMessageRequest.create()),
       "Could not get any response by video server");
   }
 }
