@@ -6,7 +6,7 @@ openapi: 3.0.3
 info:
   title: Zextras Workstream Collaboration Chats Api
   description: Zextras Carbonio Workstream Collaboration Chats HTTP APIs definition.
-  version: 0.1.7
+  version: 0.1.8
   contact:
     email: smokybeans@zextras.com
 servers:
@@ -934,6 +934,10 @@ components:
       description: The service is ready but some non-fundamental dependencies are not reachable
     500IsReadyResponse:
       description: The service is not yet ready to receive requests
+    204UpdateWorkspacesRankResponse:
+      description: workspaces’s order is updated
+    204UpdateChannelsRankResponse:
+        description: channels’s order is updated
     200ListRoomResponse:
       description: List of every room that the user has access to
       content:
