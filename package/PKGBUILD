@@ -1,56 +1,47 @@
-targets=(
-   "centos"
-   "ubuntu"
-)
 pkgname="carbonio-ws-collaboration"
 pkgver="0.1.8"
 pkgrel="1"
 pkgdesc="Workstream Collaboration for Carbonio"
-pkgdesclong=(
-   "Workstream Collaboration for Carbonio"
-)
 maintainer="Zextras <packages@zextras.com>"
-arch="amd64"
+arch=('x86_64')
 license=("spdx:AGPL-3.0-only")
 section="admin"
 priority="optional"
 url="https://www.zextras.com/"
 depends=(
-   "pending-setups"
-   "carbonio-openjdk"
-   "service-discover"
-   "jq"
+  "carbonio-openjdk"
+  "jq"
+  "pending-setups"
+  "service-discover"
 )
 backup=(
-   "etc/carbonio/ws-collaboration/logback.xml"
-   "etc/zextras/service-discover/carbonio-ws-collaboration.hcl"
+  "etc/carbonio/ws-collaboration/logback.xml"
+  "etc/zextras/service-discover/carbonio-ws-collaboration.hcl"
 )
-sources=(
-   "carbonio-ws-collaboration"
-   "carbonio-ws-collaboration-configs"
-   "carbonio-ws-collaboration-meeting-cleanup"
-   "carbonio-ws-collaboration.service"
-   "carbonio-ws-collaboration.hcl"
-   "carbonio-ws-collaboration-sidecar.service"
-   "carbonio-ws-collaboration-setup.sh"
-   "policies.json"
-   "intentions.json"
-   "service-protocol.json"
-   "logback.xml"
+source=(
+  "carbonio-ws-collaboration-configs"
+  "carbonio-ws-collaboration-meeting-cleanup"
+  "carbonio-ws-collaboration-setup.sh"
+  "carbonio-ws-collaboration-sidecar.service"
+  "carbonio-ws-collaboration.hcl"
+  "carbonio-ws-collaboration.service"
+  "carbonio-ws-collaboration"
+  "intentions.json"
+  "logback.xml"
+  "policies.json"
+  "service-protocol.json"
 )
-hashsums=(
-   "ce7262f2c01e4f6c700265f88892d7572dc546d2ff328506dfd7f5502c6b6b0b"
-   "ebd7dfa029719a34132bd1e6bc732dc82519e3b6004a806b7db45164a265da30"
-   "6eac2036167529595912ca791197358d16d40599d974328cf80241c6051cb247"
-   "8e4c95a5b8480985c0cf0139f023b803c68056f10bb2460d3b9e343b5c8d237f"
-   "91fef48c2170a468c07441b60d7bf40419a003701f85d5fa483da47d97708c96"
-   "5ab25236c2ba0a9e9c1577a3b6b1bb1497dba3fef40dd6851c3dfac86b685709"
-   "97256a878d94c5239c422049c9360ca18e1c34c74b3e6ac2a93e51ae0419b423"
-   "7dbc2225d51fb07c1e3e5577f8ba80d8cd9634c7c47f5b0ab1edbc949d97ff21"
-   "58c69efd45348762b3c603ecb8a7d3df5e4ada730b00a760d02d3f376a455d08"
-   "d3741e4103a786c40a319248258ee5a25a39174a6ba80973b5877bb8a5e2bf72"
-   "a993f63dbfa8273d92f004c6db2886f17d9876d36c65ab757456ab99c0a3f3c3"
-)
+sha256sums=('ebd7dfa029719a34132bd1e6bc732dc82519e3b6004a806b7db45164a265da30'
+  '6eac2036167529595912ca791197358d16d40599d974328cf80241c6051cb247'
+  '97256a878d94c5239c422049c9360ca18e1c34c74b3e6ac2a93e51ae0419b423'
+  '5ab25236c2ba0a9e9c1577a3b6b1bb1497dba3fef40dd6851c3dfac86b685709'
+  '91fef48c2170a468c07441b60d7bf40419a003701f85d5fa483da47d97708c96'
+  '8e4c95a5b8480985c0cf0139f023b803c68056f10bb2460d3b9e343b5c8d237f'
+  'ce7262f2c01e4f6c700265f88892d7572dc546d2ff328506dfd7f5502c6b6b0b'
+  '58c69efd45348762b3c603ecb8a7d3df5e4ada730b00a760d02d3f376a455d08'
+  'a993f63dbfa8273d92f004c6db2886f17d9876d36c65ab757456ab99c0a3f3c3'
+  '7dbc2225d51fb07c1e3e5577f8ba80d8cd9634c7c47f5b0ab1edbc949d97ff21'
+  'd3741e4103a786c40a319248258ee5a25a39174a6ba80973b5877bb8a5e2bf72')
 
 package() {
   cd "${srcdir}"/../../ws-collaboration

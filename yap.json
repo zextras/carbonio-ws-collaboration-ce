@@ -1,7 +1,7 @@
 {
   "name": "carbonio-ws-collaboration",
   "description": "Workstream Collaboration for Carbonio",
-  "build_dir": "/tmp/",
+  "buildDir": "/tmp/",
   "output": "artifacts",
   "projects": [
     {
