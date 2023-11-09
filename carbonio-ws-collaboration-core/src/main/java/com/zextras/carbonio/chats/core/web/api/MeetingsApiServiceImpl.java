@@ -10,7 +10,6 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
-import com.zextras.carbonio.meeting.api.NotFoundException;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
@@ -43,7 +42,8 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    *
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
    * @return a response
-   * {@link Response) with status 200 and the meetings list {@link MeetingDto} of authenticated user in the body
+   * {@link Response) with status 200 and the meetings list {@link com.zextras.carbonio.meeting.model.MeetingDto} of
+   * authenticated user in the body
    */
   @Override
   public Response listMeeting(SecurityContext securityContext) {
@@ -60,7 +60,9 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    *
    * @param meetingId       meeting identifier {@link UUID}}
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 200 and the requested meeting {@link MeetingDto} in the body
+   * @return a response
+   * {@link Response) with status 200 and the requested meeting {@link com.zextras.carbonio.meeting.model.MeetingDto} in
+   * the body
    */
   @Override
   public Response getMeeting(UUID meetingId, SecurityContext securityContext) {
@@ -73,7 +75,9 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   /**
    * @param newMeetingDataDto data form creating a new meeting
    * @param securityContext   security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 200 and the requested meeting {@link MeetingDto} in the body
+   * @return a response
+   * {@link Response) with status 200 and the requested meeting {@link com.zextras.carbonio.meeting.model.MeetingDto} in
+   * the body
    */
   @Override
   public Response createMeeting(
@@ -155,7 +159,9 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    *
    * @param meetingId       meeting identifier {@link UUID}
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 200 and the updated meeting {@link MeetingDto} in the body
+   * @return a response
+   * {@link Response) with status 200 and the updated meeting {@link com.zextras.carbonio.meeting.model.MeetingDto} in
+   * the body
    */
   @Override
   public Response startMeeting(UUID meetingId, SecurityContext securityContext) {
@@ -172,11 +178,12 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    *
    * @param meetingId       meeting identifier {@link UUID}
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 200 and the updated meeting {@link MeetingDto} in the body
+   * @return a response
+   * {@link Response) with status 200 and the updated meeting {@link com.zextras.carbonio.meeting.model.MeetingDto} in
+   * the body
    */
   @Override
-  public Response stopMeeting(UUID meetingId, SecurityContext securityContext)
-      throws NotFoundException {
+  public Response stopMeeting(UUID meetingId, SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
