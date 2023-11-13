@@ -30,6 +30,7 @@ import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
@@ -886,6 +887,40 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verifyNoMoreInteractions(meetingService);
       verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName(
+        "If the user who performed the action isn't a moderator, it throws a 'forbidden' exception")
+    public void disableAudioStream_testErrorUserIsNotAModerator() {
+      UserPrincipal user = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+      when(roomService.getRoomEntityAndCheckUser(roomId, user, true))
+          .thenThrow(
+              new ForbiddenException(
+                  String.format("User '%s' is not an owner of room '%s'", user.getId(), roomId)));
+
+      ChatsHttpException exception =
+          assertThrows(
+              ForbiddenException.class,
+              () ->
+                  participantService.updateAudioStream(
+                      meeting1Id,
+                      AudioStreamSettingsDto.create()
+                          .userToModerate(user4Id.toString())
+                          .enabled(hasAudioStreamOn),
+                      user));
+
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format("Forbidden - User '%s' is not an owner of room '%s'", user.getId(), roomId),
+          exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, user, true);
+      verifyNoInteractions(participantRepository, eventDispatcher, videoServerService);
     }
   }
 
