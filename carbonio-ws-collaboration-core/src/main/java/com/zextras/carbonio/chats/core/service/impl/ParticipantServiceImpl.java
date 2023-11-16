@@ -104,7 +104,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                 throw new ConflictException("User is already inserted into the meeting");
               } else {
                 String participantUserId = participant.getUserId();
-                videoServerService.removeMeetingParticipant(participantUserId, meeting.getId());
+                videoServerService.destroyMeetingParticipant(participantUserId, meeting.getId());
                 eventDispatcher.sendToUserExchange(
                     room.getSubscriptions().stream()
                         .map(Subscription::getUserId)

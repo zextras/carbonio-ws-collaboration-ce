@@ -293,7 +293,7 @@ public class ParticipantServiceImplTest {
 
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(videoServerService, times(1))
-          .removeMeetingParticipant(user2Id.toString(), meeting1Id.toString());
+          .destroyMeetingParticipant(user2Id.toString(), meeting1Id.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
