@@ -117,7 +117,11 @@ public class ParticipantServiceImpl implements ParticipantService {
                     participant.getQueueId(),
                     MeetingParticipantClashed.create().meetingId(UUID.fromString(meeting.getId())));
                 participantRepository.update(
-                    participant.queueId(currentUser.getQueueId().toString()));
+                    participant
+                        .audioStreamOn(joinSettingsDto.isAudioStreamEnabled())
+                        .videoStreamOn(joinSettingsDto.isVideoStreamEnabled())
+                        .screenStreamOn(false)
+                        .queueId(currentUser.getQueueId().toString()));
                 videoServerService.addMeetingParticipant(
                     participantUserId,
                     currentUser.getQueueId().toString(),
