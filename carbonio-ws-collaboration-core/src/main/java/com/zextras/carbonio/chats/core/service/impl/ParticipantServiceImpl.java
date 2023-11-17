@@ -279,21 +279,29 @@ public class ParticipantServiceImpl implements ParticipantService {
     if (enabled != Boolean.TRUE.equals(participant.hasAudioStreamOn())) {
       participantRepository.update(participant.audioStreamOn(enabled));
       videoServerService.updateAudioStream(userId, meetingId.toString(), enabled);
-      MeetingAudioStreamChanged meetingAudioStreamChanged =
-          MeetingAudioStreamChanged.create().meetingId(meetingId).active(enabled);
       Optional.ofNullable(audioStreamSettingsDto.getUserToModerate())
           .ifPresentOrElse(
               targetUserId ->
-                  meetingAudioStreamChanged
-                      .userId(UUID.fromString(targetUserId))
-                      .moderatorId(currentUser.getUUID()),
-              () -> meetingAudioStreamChanged.userId(currentUser.getUUID()));
-      eventDispatcher.sendToUserExchange(
-          meeting.getParticipants().stream()
-              .map(Participant::getUserId)
-              .distinct()
-              .collect(Collectors.toList()),
-          meetingAudioStreamChanged);
+                  eventDispatcher.sendToUserExchange(
+                      meeting.getParticipants().stream()
+                          .map(Participant::getUserId)
+                          .distinct()
+                          .collect(Collectors.toList()),
+                      MeetingAudioStreamChanged.create()
+                          .meetingId(meetingId)
+                          .userId(UUID.fromString(targetUserId))
+                          .moderatorId(currentUser.getUUID())
+                          .active(enabled)),
+              () ->
+                  eventDispatcher.sendToUserExchange(
+                      meeting.getParticipants().stream()
+                          .map(Participant::getUserId)
+                          .distinct()
+                          .collect(Collectors.toList()),
+                      MeetingAudioStreamChanged.create()
+                          .meetingId(meetingId)
+                          .userId(currentUser.getUUID())
+                          .active(enabled)));
     }
   }
 
