@@ -118,8 +118,8 @@ public class ParticipantServiceImpl implements ParticipantService {
                     MeetingParticipantClashed.create().meetingId(UUID.fromString(meeting.getId())));
                 participantRepository.update(
                     participant
-                        .audioStreamOn(joinSettingsDto.isAudioStreamEnabled())
-                        .videoStreamOn(joinSettingsDto.isVideoStreamEnabled())
+                        .audioStreamOn(false)
+                        .videoStreamOn(false)
                         .screenStreamOn(false)
                         .queueId(currentUser.getQueueId().toString()));
                 videoServerService.addMeetingParticipant(
