@@ -19,7 +19,6 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
-import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
@@ -27,11 +26,9 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import io.ebean.annotation.Transactional;
 import java.time.OffsetDateTime;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -43,7 +40,6 @@ public class ParticipantServiceImpl implements ParticipantService {
   private final MeetingService meetingService;
   private final RoomService roomService;
   private final ParticipantRepository participantRepository;
-  private final MeetingMapper meetingMapper;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
 
@@ -52,27 +48,13 @@ public class ParticipantServiceImpl implements ParticipantService {
       MeetingService meetingService,
       RoomService roomService,
       ParticipantRepository participantRepository,
-      MeetingMapper meetingMapper,
       VideoServerService videoServerService,
       EventDispatcher eventDispatcher) {
     this.meetingService = meetingService;
     this.roomService = roomService;
     this.participantRepository = participantRepository;
-    this.meetingMapper = meetingMapper;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
-  }
-
-  @Override
-  @Transactional
-  @Deprecated(forRemoval = true)
-  public Optional<MeetingDto> insertMeetingParticipantByRoomId(
-      UUID roomId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser) {
-    Meeting meeting = meetingService.getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
-    insertMeetingParticipant(meeting, joinSettingsDto, currentUser);
-
-    return Optional.ofNullable(
-        meeting.getParticipants().size() > 1 ? null : meetingMapper.ent2dto(meeting));
   }
 
   @Override
@@ -103,17 +85,9 @@ public class ParticipantServiceImpl implements ParticipantService {
               if (participant.getQueueId().equals(currentUser.getQueueId().toString())) {
                 throw new ConflictException("User is already inserted into the meeting");
               } else {
-                String participantUserId = participant.getUserId();
-                videoServerService.destroyMeetingParticipant(participantUserId, meeting.getId());
-                eventDispatcher.sendToUserExchange(
-                    room.getSubscriptions().stream()
-                        .map(Subscription::getUserId)
-                        .collect(Collectors.toList()),
-                    MeetingParticipantLeft.create()
-                        .meetingId(UUID.fromString(meeting.getId()))
-                        .userId(UUID.fromString(participantUserId)));
+                destroyMeetingParticipant(meeting, currentUser, room);
                 eventDispatcher.sendToUserQueue(
-                    participantUserId,
+                    currentUser.getId(),
                     participant.getQueueId(),
                     MeetingParticipantClashed.create().meetingId(UUID.fromString(meeting.getId())));
                 participantRepository.update(
@@ -122,19 +96,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                         .videoStreamOn(false)
                         .screenStreamOn(false)
                         .queueId(currentUser.getQueueId().toString()));
-                videoServerService.addMeetingParticipant(
-                    participantUserId,
-                    currentUser.getQueueId().toString(),
-                    meeting.getId(),
-                    joinSettingsDto.isVideoStreamEnabled(),
-                    joinSettingsDto.isAudioStreamEnabled());
-                eventDispatcher.sendToUserExchange(
-                    room.getSubscriptions().stream()
-                        .map(Subscription::getUserId)
-                        .collect(Collectors.toList()),
-                    MeetingParticipantJoined.create()
-                        .meetingId(UUID.fromString(meeting.getId()))
-                        .userId(UUID.fromString(participantUserId)));
+                addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
               }
             },
             () -> {
@@ -142,20 +104,32 @@ public class ParticipantServiceImpl implements ParticipantService {
                   Participant.create(meeting, currentUser.getId())
                       .queueId(currentUser.getQueueId().toString())
                       .createdAt(OffsetDateTime.now()));
-              videoServerService.addMeetingParticipant(
-                  currentUser.getId(),
-                  currentUser.getQueueId().toString(),
-                  meeting.getId(),
-                  joinSettingsDto.isVideoStreamEnabled(),
-                  joinSettingsDto.isAudioStreamEnabled());
-              eventDispatcher.sendToUserExchange(
-                  room.getSubscriptions().stream()
-                      .map(Subscription::getUserId)
-                      .collect(Collectors.toList()),
-                  MeetingParticipantJoined.create()
-                      .meetingId(UUID.fromString(meeting.getId()))
-                      .userId(currentUser.getUUID()));
+              addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
             });
+  }
+
+  private void addMeetingParticipant(
+      Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser, Room room) {
+    videoServerService.addMeetingParticipant(
+        currentUser.getId(),
+        currentUser.getQueueId().toString(),
+        meeting.getId(),
+        joinSettingsDto.isVideoStreamEnabled(),
+        joinSettingsDto.isAudioStreamEnabled());
+    eventDispatcher.sendToUserExchange(
+        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        MeetingParticipantJoined.create()
+            .meetingId(UUID.fromString(meeting.getId()))
+            .userId(currentUser.getUUID()));
+  }
+
+  private void destroyMeetingParticipant(Meeting meeting, UserPrincipal currentUser, Room room) {
+    videoServerService.destroyMeetingParticipant(currentUser.getId(), meeting.getId());
+    eventDispatcher.sendToUserExchange(
+        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        MeetingParticipantLeft.create()
+            .meetingId(UUID.fromString(meeting.getId()))
+            .userId(currentUser.getUUID()));
   }
 
   @Override
@@ -175,6 +149,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   @Override
+  @Transactional
   public void removeMeetingParticipant(Meeting meeting, Room room, UUID userId) {
     meeting.getParticipants().stream()
         .filter(p -> userId.toString().equals(p.getUserId()))
@@ -183,6 +158,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   @Override
+  @Transactional
   public void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, UUID queueId) {
     meeting.getParticipants().stream()
         .filter(
@@ -214,7 +190,6 @@ public class ParticipantServiceImpl implements ParticipantService {
   @Transactional
   public void updateMediaStream(
       UUID meetingId, MediaStreamSettingsDto mediaStreamSettingsDto, UserPrincipal currentUser) {
-    String userId = currentUser.getId();
     Meeting meeting =
         meetingService
             .getMeetingEntity(meetingId)
@@ -222,36 +197,52 @@ public class ParticipantServiceImpl implements ParticipantService {
                 () -> new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
     Participant participant =
         meeting.getParticipants().stream()
-            .filter(p -> userId.equals(p.getUserId()))
+            .filter(p -> currentUser.getId().equals(p.getUserId()))
             .findAny()
             .orElseThrow(
                 () ->
                     new NotFoundException(
-                        String.format("User '%s' not found into meeting '%s'", userId, meetingId)));
-    boolean isVideoStream =
-        MediaType.VIDEO.toString().equalsIgnoreCase(mediaStreamSettingsDto.getType().toString());
-    boolean mediaStreamEnabled =
-        isVideoStream ? participant.hasVideoStreamOn() : participant.hasScreenStreamOn();
-    if (mediaStreamSettingsDto.isEnabled() != mediaStreamEnabled) {
-      Participant participantToUpdate =
-          isVideoStream
-              ? participant.videoStreamOn(mediaStreamSettingsDto.isEnabled())
-              : participant.screenStreamOn(mediaStreamSettingsDto.isEnabled());
-      participantRepository.update(participantToUpdate);
-      videoServerService.updateMediaStream(userId, meetingId.toString(), mediaStreamSettingsDto);
-      if (!mediaStreamSettingsDto.isEnabled()) {
-        eventDispatcher.sendToUserExchange(
-            meeting.getParticipants().stream()
-                .map(Participant::getUserId)
-                .distinct()
-                .collect(Collectors.toList()),
-            MeetingMediaStreamChanged.create()
-                .meetingId(meetingId)
-                .userId(UUID.fromString(currentUser.getId()))
-                .mediaType(
-                    MediaType.valueOf(mediaStreamSettingsDto.getType().toString().toUpperCase()))
-                .active(mediaStreamSettingsDto.isEnabled()));
-      }
+                        String.format(
+                            "User '%s' not found into meeting '%s'",
+                            currentUser.getId(), meetingId)));
+    boolean mediaStreamEnabled = mediaStreamSettingsDto.isEnabled();
+    switch (mediaStreamSettingsDto.getType()) {
+      case VIDEO:
+        if (mediaStreamEnabled != participant.hasVideoStreamOn()) {
+          participantRepository.update(participant.videoStreamOn(mediaStreamEnabled));
+          videoServerService.updateMediaStream(
+              currentUser.getId(), meetingId.toString(), mediaStreamSettingsDto);
+          eventDispatcher.sendToUserExchange(
+              meeting.getParticipants().stream()
+                  .map(Participant::getUserId)
+                  .distinct()
+                  .collect(Collectors.toList()),
+              MeetingMediaStreamChanged.create()
+                  .meetingId(meetingId)
+                  .userId(UUID.fromString(currentUser.getId()))
+                  .mediaType(MediaType.VIDEO)
+                  .active(mediaStreamEnabled));
+        }
+        break;
+      case SCREEN:
+        if (mediaStreamEnabled != participant.hasScreenStreamOn()) {
+          participantRepository.update(participant.screenStreamOn(mediaStreamEnabled));
+          videoServerService.updateMediaStream(
+              currentUser.getId(), meetingId.toString(), mediaStreamSettingsDto);
+          eventDispatcher.sendToUserExchange(
+              meeting.getParticipants().stream()
+                  .map(Participant::getUserId)
+                  .distinct()
+                  .collect(Collectors.toList()),
+              MeetingMediaStreamChanged.create()
+                  .meetingId(meetingId)
+                  .userId(UUID.fromString(currentUser.getId()))
+                  .mediaType(MediaType.SCREEN)
+                  .active(mediaStreamEnabled));
+        }
+        break;
+      default:
+        break;
     }
   }
 
@@ -299,20 +290,18 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   @Override
   public void answerRtcMediaStream(UUID meetingId, String sdp, UserPrincipal currentUser) {
-    String userId = currentUser.getId();
     Meeting meeting =
         meetingService
             .getMeetingEntity(meetingId)
             .orElseThrow(
                 () -> new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
     roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
-    videoServerService.answerRtcMediaStream(userId, meetingId.toString(), sdp);
+    videoServerService.answerRtcMediaStream(currentUser.getId(), meetingId.toString(), sdp);
   }
 
   @Override
   public void updateSubscriptionsMediaStream(
       UUID meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto, UserPrincipal currentUser) {
-    String userId = currentUser.getId();
     Meeting meeting =
         meetingService
             .getMeetingEntity(meetingId)
@@ -320,7 +309,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                 () -> new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
     roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.updateSubscriptionsMediaStream(
-        userId, meetingId.toString(), subscriptionUpdatesDto);
+        currentUser.getId(), meetingId.toString(), subscriptionUpdatesDto);
   }
 
   @Override

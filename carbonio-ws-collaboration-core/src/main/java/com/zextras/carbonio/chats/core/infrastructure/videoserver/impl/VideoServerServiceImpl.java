@@ -24,12 +24,10 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.V
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeCreateRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeDestroyRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeJoinRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeLeaveRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeMuteRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomCreateRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomDestroyRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomJoinRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomLeaveRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomPublishRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomStartVideoInRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomUpdateSubscriptionsRequest;
@@ -385,93 +383,27 @@ public class VideoServerServiceImpl implements VideoServerService {
             videoServerSession -> {
               Optional.ofNullable(videoServerSession.getAudioHandleId())
                   .ifPresent(
-                      audioHandleId -> {
-                        destroyPluginHandle(
-                            videoServerSession.getConnectionId(), audioHandleId, meetingId);
-                      });
-              Optional.ofNullable(videoServerSession.getVideoOutHandleId())
-                  .ifPresent(
-                      videoOutHandleId -> {
-                        destroyPluginHandle(
-                            videoServerSession.getConnectionId(), videoOutHandleId, meetingId);
-                      });
-              Optional.ofNullable(videoServerSession.getVideoInHandleId())
-                  .ifPresent(
-                      videoInHandleId -> {
-                        destroyPluginHandle(
-                            videoServerSession.getConnectionId(), videoInHandleId, meetingId);
-                      });
-              Optional.ofNullable(videoServerSession.getScreenHandleId())
-                  .ifPresent(
-                      screenHandleId -> {
-                        destroyPluginHandle(
-                            videoServerSession.getConnectionId(), screenHandleId, meetingId);
-                      });
-              destroyConnection(videoServerSession.getConnectionId(), meetingId);
-              videoServerSessionRepository.remove(videoServerSession);
-            });
-  }
-
-  // TODO remove this
-  @Override
-  @Transactional
-  public void removeMeetingParticipant(String userId, String meetingId) {
-    videoServerMeetingRepository
-        .getById(meetingId)
-        .flatMap(
-            videoServerMeeting ->
-                videoServerMeeting.getVideoServerSessions().stream()
-                    .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-                    .findFirst())
-        .ifPresent(
-            videoServerSession -> {
-              Optional.ofNullable(videoServerSession.getAudioHandleId())
-                  .ifPresent(
                       audioHandleId ->
-                          leaveAudioBridgeRoom(
-                              videoServerSession.getConnectionId(), audioHandleId));
+                          destroyPluginHandle(
+                              videoServerSession.getConnectionId(), audioHandleId, meetingId));
               Optional.ofNullable(videoServerSession.getVideoOutHandleId())
                   .ifPresent(
                       videoOutHandleId ->
-                          leaveVideoRoom(videoServerSession.getConnectionId(), videoOutHandleId));
+                          destroyPluginHandle(
+                              videoServerSession.getConnectionId(), videoOutHandleId, meetingId));
               Optional.ofNullable(videoServerSession.getVideoInHandleId())
                   .ifPresent(
                       videoInHandleId ->
-                          leaveVideoRoom(videoServerSession.getConnectionId(), videoInHandleId));
+                          destroyPluginHandle(
+                              videoServerSession.getConnectionId(), videoInHandleId, meetingId));
               Optional.ofNullable(videoServerSession.getScreenHandleId())
                   .ifPresent(
                       screenHandleId ->
-                          leaveVideoRoom(videoServerSession.getConnectionId(), screenHandleId));
+                          destroyPluginHandle(
+                              videoServerSession.getConnectionId(), screenHandleId, meetingId));
+              destroyConnection(videoServerSession.getConnectionId(), meetingId);
               videoServerSessionRepository.remove(videoServerSession);
             });
-  }
-
-  private void leaveAudioBridgeRoom(String connectionId, String audioHandleId) {
-    AudioBridgeResponse audioBridgeResponse;
-    audioBridgeResponse =
-        sendAudioBridgePluginMessage(
-            connectionId,
-            audioHandleId,
-            AudioBridgeLeaveRequest.create().request(AudioBridgeLeaveRequest.LEAVE),
-            null);
-    if (!AudioBridgeResponse.ACK.equals(audioBridgeResponse.getStatus())) {
-      throw new VideoServerException(
-          "An error occured while connection id " + connectionId + " is leaving the audio room");
-    }
-  }
-
-  private void leaveVideoRoom(String connectionId, String videoHandleId) {
-    VideoRoomResponse videoRoomResponse;
-    videoRoomResponse =
-        sendVideoRoomPluginMessage(
-            connectionId,
-            videoHandleId,
-            VideoRoomLeaveRequest.create().request(VideoRoomLeaveRequest.LEAVE),
-            null);
-    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
-      throw new VideoServerException(
-          "An error occured while connection id " + connectionId + " is leaving the video room");
-    }
   }
 
   @Override

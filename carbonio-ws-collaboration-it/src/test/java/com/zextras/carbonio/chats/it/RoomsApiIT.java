@@ -16,7 +16,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
-import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
@@ -49,7 +48,6 @@ import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
 import java.time.Clock;
@@ -3849,189 +3847,6 @@ public class RoomsApiIT {
     public void getMeetingByRoomId_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.get(url(UUID.randomUUID()), null);
 
-      assertEquals(401, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-    }
-  }
-
-  @Nested
-  @DisplayName("Join room meeting tests")
-  public class JoinRoomMeetingTests {
-
-    private String url(UUID roomId) {
-      return String.format("/rooms/%s/meeting/join", roomId);
-    }
-
-    @Test
-    @DisplayName(
-        "Given a room identifier, if the room meeting exists the authenticated user correctly joins"
-            + " the meeting")
-    public void joinRoomMeeting_testOkMeetingExists() throws Exception {
-      UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
-      UUID queue1Id = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(roomId.toString())
-              .type(RoomTypeDto.GROUP)
-              .name("name")
-              .description("description"),
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true),
-              RoomMemberField.create().id(user2Id),
-              RoomMemberField.create().id(user3Id)));
-      UUID meetingId =
-          meetingTestUtils.generateAndSaveMeeting(
-              roomId,
-              List.of(
-                  ParticipantBuilder.create(user2Id, "user2Queue")
-                      .audioStreamOn(false)
-                      .videoStreamOn(true),
-                  ParticipantBuilder.create(user3Id, "user3Queue")
-                      .audioStreamOn(false)
-                      .videoStreamOn(false)));
-      meetingTestUtils.insertVideoServerMeeting(
-          meetingId.toString(),
-          "connectionId",
-          "audioHandleId",
-          "videoHandleId",
-          "audioRoomId",
-          "videoRoomId");
-      videoServerMockServer.mockRequestedResponse(
-          "POST",
-          "/janus",
-          "{\"janus\":\"create\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
-          "{\"janus\":\"success\",\"data\":{\"id\":\"connectionId\"}}",
-          true);
-      videoServerMockServer.mockRequestedResponse(
-          "POST",
-          "/janus/connectionId",
-          "{\"janus\":\"attach\",\"transaction\":\"${json-unit.ignore-element}\",\"plugin\":\"janus.plugin.audiobridge\",\"apisecret\":\"secret\"}",
-          "{\"janus\":\"success\",\"data\":{\"id\":\"audioHandleId\"}}",
-          true);
-      videoServerMockServer.mockRequestedResponse(
-          "POST",
-          "/janus/connectionId/audioHandleId",
-          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\",\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\",\"sampling_rate\":16000,\"audio_active_packets\":10,\"audio_level_average\":55,\"record\":false,\"private\":false,\"audiolevel_event\":true},\"apisecret\":\"secret\"}",
-          "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"audiobridge\":\"created\",\"room\":\"audioRoomId\"}}}",
-          true);
-      videoServerMockServer.mockRequestedResponse(
-          "POST",
-          "/janus/connectionId",
-          "{\"janus\":\"attach\",\"transaction\":\"${json-unit.ignore-element}\",\"plugin\":\"janus.plugin.videoroom\",\"apisecret\":\"secret\"}",
-          "{\"janus\":\"success\",\"data\":{\"id\":\"videoHandleId\"}}",
-          true);
-      videoServerMockServer.mockRequestedResponse(
-          "POST",
-          "/janus/connectionId/videoHandleId",
-          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\",\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\",\"publishers\":100,\"bitrate\":200,\"bitrate_cap\":true,\"record\":false,\"private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
-          "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"videoroom\":\"created\",\"room\":\"videoRoomId\"}}}",
-          true);
-      videoServerMockServer.mockRequestedResponse(
-          "POST",
-          "/janus/connectionId/videoHandleId",
-          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\""
-              + user1Id
-              + "/video\"},\"apisecret\":\"secret\"}",
-          "{\"janus\":\"ack\"}",
-          true);
-      videoServerMockServer.mockRequestedResponse(
-          "POST",
-          "/janus/connectionId/videoHandleId",
-          "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"join\",\"ptype\":\"publisher\",\"room\":\"videoRoomId\",\"id\":\""
-              + user1Id
-              + "/screen\"},\"apisecret\":\"secret\"}",
-          "{\"janus\":\"ack\"}",
-          true);
-      Instant executionInstant = Instant.parse("2022-01-01T00:00:00Z");
-      clock.fixTimeAt(executionInstant);
-
-      MockHttpResponse response =
-          dispatcher.put(
-              url(roomId),
-              objectMapper.writeValueAsString(
-                  JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
-              Map.of("queue-id", queue1Id.toString()),
-              user1Token);
-      assertEquals(204, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-
-      Meeting meeting = meetingTestUtils.getMeetingById(meetingId).orElseThrow();
-      assertNotNull(meeting);
-      assertEquals(meetingId.toString(), meeting.getId());
-      assertEquals(roomId.toString(), meeting.getRoomId());
-      assertEquals(3, meeting.getParticipants().size());
-      Participant newParticipant =
-          meeting.getParticipants().stream()
-              .filter(
-                  participant ->
-                      user1Id.toString().equals(participant.getUserId())
-                          && queue1Id.toString().equals(participant.getQueueId()))
-              .findAny()
-              .orElseThrow();
-      assertFalse(newParticipant.hasAudioStreamOn());
-      assertFalse(newParticipant.hasVideoStreamOn());
-
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-    }
-
-    @Test
-    @DisplayName(
-        "Given a room identifier, if the room doesn't exists then it returns a status code 404")
-    public void joinRoomMeeting_testErrorRoomNotExists() throws Exception {
-      MockHttpResponse response =
-          dispatcher.put(
-              url(UUID.randomUUID()),
-              objectMapper.writeValueAsString(
-                  JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
-              Map.of("queue-id", UUID.randomUUID().toString()),
-              user1Token);
-
-      assertEquals(404, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-    }
-
-    @Test
-    @DisplayName(
-        "Given a room identifier, if authenticated user isn't a room member then return a status"
-            + " code 403")
-    public void joinRoomMeeting_testErrorUserIsNotARoomMember() throws Exception {
-      UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(roomId.toString())
-              .type(RoomTypeDto.GROUP)
-              .name("name")
-              .description("description"),
-          List.of(
-              RoomMemberField.create().id(user2Id).owner(true),
-              RoomMemberField.create().id(user3Id)));
-
-      MockHttpResponse response =
-          dispatcher.put(
-              url(roomId),
-              objectMapper.writeValueAsString(
-                  JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
-              Map.of("queue-id", UUID.randomUUID().toString()),
-              user1Token);
-
-      assertEquals(403, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-    }
-
-    @Test
-    @DisplayName(
-        "Given a room identifier, if the user isn’t authenticated then it returns a status code"
-            + " 401")
-    public void joinRoomMeeting_testErrorUnauthenticatedUser() throws Exception {
-      MockHttpResponse response =
-          dispatcher.put(
-              url(UUID.randomUUID()),
-              objectMapper.writeValueAsString(
-                  JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
-              null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }
