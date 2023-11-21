@@ -28,6 +28,7 @@ import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
@@ -38,6 +39,7 @@ import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
@@ -539,7 +541,9 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
       participantService.updateAudioStream(
-          meeting1Id, user1Id.toString(), true, UserPrincipal.create(user1Id).queueId(user1Queue1));
+          meeting1Id,
+          AudioStreamSettingsDto.create().enabled(hasAudioStreamOn),
+          UserPrincipal.create(user1Id).queueId(user1Queue1));
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(participantRepository, times(1))
@@ -571,8 +575,7 @@ public class ParticipantServiceImplTest {
 
       participantService.updateAudioStream(
           meeting1Id,
-          user4Id.toString(),
-          hasAudioStreamOn,
+          AudioStreamSettingsDto.create().enabled(hasAudioStreamOn),
           UserPrincipal.create(user4Id).queueId(user4Queue1));
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
@@ -592,8 +595,9 @@ public class ParticipantServiceImplTest {
               () ->
                   participantService.updateAudioStream(
                       meeting1Id,
-                      user2Id.toString(),
-                      hasAudioStreamOn,
+                      AudioStreamSettingsDto.create()
+                          .userToModerate(user2Id.toString())
+                          .enabled(hasAudioStreamOn),
                       UserPrincipal.create(user1Id).queueId(user1Queue1)));
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
@@ -622,8 +626,9 @@ public class ParticipantServiceImplTest {
               () ->
                   participantService.updateAudioStream(
                       meeting1Id,
-                      user3Id.toString(),
-                      hasAudioStreamOn,
+                      AudioStreamSettingsDto.create()
+                          .userToModerate(user3Id.toString())
+                          .enabled(hasAudioStreamOn),
                       UserPrincipal.create(user1Id).queueId(user1Queue1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
@@ -648,8 +653,9 @@ public class ParticipantServiceImplTest {
               () ->
                   participantService.updateAudioStream(
                       meeting1Id,
-                      user3Id.toString(),
-                      hasAudioStreamOn,
+                      AudioStreamSettingsDto.create()
+                          .userToModerate(user3Id.toString())
+                          .enabled(hasAudioStreamOn),
                       UserPrincipal.create(user1Id).queueId(user1Queue1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
@@ -676,8 +682,7 @@ public class ParticipantServiceImplTest {
 
       participantService.updateAudioStream(
           meeting1Id,
-          user4Id.toString(),
-          hasAudioStreamOn,
+          AudioStreamSettingsDto.create().enabled(hasAudioStreamOn),
           UserPrincipal.create(user4Id).queueId(user4Queue1));
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
@@ -708,8 +713,7 @@ public class ParticipantServiceImplTest {
 
       participantService.updateAudioStream(
           meeting1Id,
-          user1Id.toString(),
-          hasAudioStreamOn,
+          AudioStreamSettingsDto.create().enabled(hasAudioStreamOn),
           UserPrincipal.create(user1Id).queueId(user1Queue1));
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
@@ -724,7 +728,11 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
       participantService.updateAudioStream(
-          meeting1Id, user4Id.toString(), hasAudioStreamOn, currentUser);
+          meeting1Id,
+          AudioStreamSettingsDto.create()
+              .userToModerate(user4Id.toString())
+              .enabled(hasAudioStreamOn),
+          currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, true);
@@ -740,7 +748,10 @@ public class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
-              MeetingAudioStreamChanged.create().meetingId(meeting1Id).userId(user1Id));
+              MeetingAudioStreamChanged.create()
+                  .meetingId(meeting1Id)
+                  .moderatorId(user1Id)
+                  .userId(user4Id));
       verify(videoServerService, times(1))
           .updateAudioStream(user4Id.toString(), meeting1Id.toString(), false);
       verifyNoMoreInteractions(
@@ -754,7 +765,11 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
 
       participantService.updateAudioStream(
-          meeting1Id, user2Id.toString(), hasAudioStreamOn, currentUser);
+          meeting1Id,
+          AudioStreamSettingsDto.create()
+              .userToModerate(user2Id.toString())
+              .enabled(hasAudioStreamOn),
+          currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, true);
@@ -775,8 +790,9 @@ public class ParticipantServiceImplTest {
               () ->
                   participantService.updateAudioStream(
                       meeting1Id,
-                      user3Id.toString(),
-                      hasAudioStreamOn,
+                      AudioStreamSettingsDto.create()
+                          .userToModerate(user3Id.toString())
+                          .enabled(hasAudioStreamOn),
                       UserPrincipal.create(user1Id).queueId(user1Queue1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
@@ -801,8 +817,9 @@ public class ParticipantServiceImplTest {
               () ->
                   participantService.updateAudioStream(
                       meeting1Id,
-                      user3Id.toString(),
-                      hasAudioStreamOn,
+                      AudioStreamSettingsDto.create()
+                          .userToModerate(user3Id.toString())
+                          .enabled(hasAudioStreamOn),
                       UserPrincipal.create(user1Id).queueId(user1Queue1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
@@ -813,6 +830,40 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
       verifyNoMoreInteractions(meetingService);
       verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName(
+        "If the user who performed the action isn't a moderator, it throws a 'forbidden' exception")
+    public void disableAudioStream_testErrorUserIsNotAModerator() {
+      UserPrincipal user = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+      when(roomService.getRoomEntityAndCheckUser(roomId, user, true))
+          .thenThrow(
+              new ForbiddenException(
+                  String.format("User '%s' is not an owner of room '%s'", user.getId(), roomId)));
+
+      ChatsHttpException exception =
+          assertThrows(
+              ForbiddenException.class,
+              () ->
+                  participantService.updateAudioStream(
+                      meeting1Id,
+                      AudioStreamSettingsDto.create()
+                          .userToModerate(user4Id.toString())
+                          .enabled(hasAudioStreamOn),
+                      user));
+
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format("Forbidden - User '%s' is not an owner of room '%s'", user.getId(), roomId),
+          exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verifyNoMoreInteractions(meetingService);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, user, true);
+      verifyNoInteractions(participantRepository, eventDispatcher, videoServerService);
     }
   }
 

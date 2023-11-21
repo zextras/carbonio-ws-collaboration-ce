@@ -24,11 +24,13 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import io.ebean.annotation.Transactional;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -249,12 +251,16 @@ public class ParticipantServiceImpl implements ParticipantService {
   @Override
   @Transactional
   public void updateAudioStream(
-      UUID meetingId, String userId, boolean enabled, UserPrincipal currentUser) {
+      UUID meetingId, AudioStreamSettingsDto audioStreamSettingsDto, UserPrincipal currentUser) {
     Meeting meeting =
         meetingService
             .getMeetingEntity(meetingId)
             .orElseThrow(
                 () -> new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
+    String userId =
+        audioStreamSettingsDto.getUserToModerate() == null
+            ? currentUser.getId()
+            : audioStreamSettingsDto.getUserToModerate();
     Participant participant =
         meeting.getParticipants().stream()
             .filter(p -> userId.equals(p.getUserId()))
@@ -263,6 +269,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                 () ->
                     new NotFoundException(
                         String.format("User '%s' not found into meeting '%s'", userId, meetingId)));
+    boolean enabled = audioStreamSettingsDto.isEnabled();
     if (!userId.equals(currentUser.getId())) {
       if (enabled) {
         throw new BadRequestException(
@@ -276,15 +283,29 @@ public class ParticipantServiceImpl implements ParticipantService {
     if (enabled != Boolean.TRUE.equals(participant.hasAudioStreamOn())) {
       participantRepository.update(participant.audioStreamOn(enabled));
       videoServerService.updateAudioStream(userId, meetingId.toString(), enabled);
-      eventDispatcher.sendToUserExchange(
-          meeting.getParticipants().stream()
-              .map(Participant::getUserId)
-              .distinct()
-              .collect(Collectors.toList()),
-          MeetingAudioStreamChanged.create()
-              .userId(currentUser.getUUID())
-              .meetingId(meetingId)
-              .active(enabled));
+      Optional.ofNullable(audioStreamSettingsDto.getUserToModerate())
+          .ifPresentOrElse(
+              targetUserId ->
+                  eventDispatcher.sendToUserExchange(
+                      meeting.getParticipants().stream()
+                          .map(Participant::getUserId)
+                          .distinct()
+                          .collect(Collectors.toList()),
+                      MeetingAudioStreamChanged.create()
+                          .meetingId(meetingId)
+                          .userId(UUID.fromString(targetUserId))
+                          .moderatorId(currentUser.getUUID())
+                          .active(enabled)),
+              () ->
+                  eventDispatcher.sendToUserExchange(
+                      meeting.getParticipants().stream()
+                          .map(Participant::getUserId)
+                          .distinct()
+                          .collect(Collectors.toList()),
+                      MeetingAudioStreamChanged.create()
+                          .meetingId(meetingId)
+                          .userId(currentUser.getUUID())
+                          .active(enabled)));
     }
   }
 

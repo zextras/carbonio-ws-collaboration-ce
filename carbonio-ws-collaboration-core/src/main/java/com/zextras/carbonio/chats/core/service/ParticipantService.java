@@ -11,6 +11,7 @@ import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
@@ -91,7 +92,7 @@ public interface ParticipantService {
    * Updates the audio stream status in the meeting for the current session
    *
    * @param meetingId meeting identifier {@link UUID}
-   * @param enabled indicates whether the audio stream must be enabled or not
+   * @param audioStreamSettingsDto audio stream settings request to update a user's audio stream
    * @param currentUser currentUser current authenticated user {@link UserPrincipal}
    * @throws NotFoundException if the meeting doesn't exist
    * @throws NotFoundException if the user session for indicated meeting doesn't exist.
@@ -99,7 +100,8 @@ public interface ParticipantService {
    * @throws BadRequestException if another session tries to enable the stream
    * @throws ForbiddenException if the current user isn't a room owner
    */
-  void updateAudioStream(UUID meetingId, String userId, boolean enabled, UserPrincipal currentUser);
+  void updateAudioStream(
+      UUID meetingId, AudioStreamSettingsDto audioStreamSettingsDto, UserPrincipal currentUser);
 
   /**
    * Completes WebRTC negotiation with VideoServer for the PeerConnection setup related to media
