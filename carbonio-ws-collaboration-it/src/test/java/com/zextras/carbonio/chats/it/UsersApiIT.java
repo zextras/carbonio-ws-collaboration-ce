@@ -53,21 +53,21 @@ import org.junit.jupiter.api.Test;
 public class UsersApiIT {
 
   private final ResteasyRequestDispatcher dispatcher;
-  private final UserManagementMockServer  userManagementMockServer;
-  private final StorageMockServer         storageMockServer;
-  private final ObjectMapper              objectMapper;
-  private final IntegrationTestUtils      integrationTestUtils;
-  private final AppClock                  clock;
-  private final AppConfig                 appConfig;
+  private final UserManagementMockServer userManagementMockServer;
+  private final StorageMockServer storageMockServer;
+  private final ObjectMapper objectMapper;
+  private final IntegrationTestUtils integrationTestUtils;
+  private final AppClock clock;
+  private final AppConfig appConfig;
 
   public UsersApiIT(
-    ResteasyRequestDispatcher dispatcher,
-    UserManagementMockServer userManagementMockServer,
-    StorageMockServer storageMockServer, ObjectMapper objectMapper,
-    IntegrationTestUtils integrationTestUtils,
-    Clock clock,
-    AppConfig appConfig
-  ) {
+      ResteasyRequestDispatcher dispatcher,
+      UserManagementMockServer userManagementMockServer,
+      StorageMockServer storageMockServer,
+      ObjectMapper objectMapper,
+      IntegrationTestUtils integrationTestUtils,
+      Clock clock,
+      AppConfig appConfig) {
     this.dispatcher = dispatcher;
     this.userManagementMockServer = userManagementMockServer;
     this.storageMockServer = storageMockServer;
@@ -93,15 +93,17 @@ public class UsersApiIT {
       clock.fixTimeAt(ofdt.toInstant());
       integrationTestUtils.generateAndSaveUser(userId, "hello", ofdt);
 
-      MockHttpResponse mockHttpResponse = dispatcher.get(url(userId), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
+      MockHttpResponse mockHttpResponse =
+          dispatcher.get(url(userId), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
       assertEquals(200, mockHttpResponse.getStatus());
-      UserDto user = objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {
-      });
+      UserDto user =
+          objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
       assertEquals("332a9527-3388-4207-be77-6d7e2978a723", user.getId().toString());
       assertEquals("snoopy@peanuts.com", user.getEmail());
       assertEquals("Snoopy", user.getName());
       assertEquals("hello", user.getStatusMessage());
-      assertEquals(clock.instant().toEpochMilli(), user.getPictureUpdatedAt().toInstant().toEpochMilli());
+      assertEquals(
+          clock.instant().toEpochMilli(), user.getPictureUpdatedAt().toInstant().toEpochMilli());
     }
 
     @Test
@@ -110,7 +112,8 @@ public class UsersApiIT {
       UUID userId = UUID.fromString("332a9527-3388-4207-be77-6d7e2978a722");
       clock.fixTimeAt(OffsetDateTime.now().toInstant());
 
-      MockHttpResponse mockHttpResponse = dispatcher.get(url(userId), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
+      MockHttpResponse mockHttpResponse =
+          dispatcher.get(url(userId), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
       assertEquals(404, mockHttpResponse.getStatus());
     }
   }
@@ -120,36 +123,55 @@ public class UsersApiIT {
   class GetUsersTests {
 
     private String url(List<String> userIds) {
-      return "/users?" + userIds.stream().map(id -> String.join("=", "userIds", id))
-        .collect(Collectors.joining("&"));
+      return "/users?"
+          + userIds.stream()
+              .map(id -> String.join("=", "userIds", id))
+              .collect(Collectors.joining("&"));
     }
 
     @Test
     @DisplayName("Returns the requested users")
     public void getUsers_testOK() throws Exception {
-      List<String> userIds = Arrays.asList(
-        "332a9527-3388-4207-be77-6d7e2978a723",
-        "82735f6d-4c6c-471e-99d9-4eef91b1ec45",
-        "ea7b9b61-bef5-4cf4-80cb-19612c42593a"
-      );
-      integrationTestUtils.generateAndSaveUser(UUID.fromString(userIds.get(0)), "status message 1",
-        OffsetDateTime.parse("0001-01-01T00:00:00Z"));
-      UserInfo user1 = new UserInfo(new UserId("332a9527-3388-4207-be77-6d7e2978a723"), "snoopy@peanuts.com", "Snoopy",
-        "peanuts.com");
-      UserInfo user2 = new UserInfo(new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"), "charlie.brown@peanuts.com",
-        "Charlie Brown", "peanuts.com");
-      UserInfo user3 = new UserInfo(new UserId("ea7b9b61-bef5-4cf4-80cb-19612c42593a"), "lucy.van.pelt@peanuts.com",
-        "Lucy van Pelt", "peanuts.com");
+      List<String> userIds =
+          Arrays.asList(
+              "332a9527-3388-4207-be77-6d7e2978a723",
+              "82735f6d-4c6c-471e-99d9-4eef91b1ec45",
+              "ea7b9b61-bef5-4cf4-80cb-19612c42593a");
+      integrationTestUtils.generateAndSaveUser(
+          UUID.fromString(userIds.get(0)),
+          "status message 1",
+          OffsetDateTime.parse("0001-01-01T00:00:00Z"));
+      UserInfo user1 =
+          new UserInfo(
+              new UserId("332a9527-3388-4207-be77-6d7e2978a723"),
+              "snoopy@peanuts.com",
+              "Snoopy",
+              "peanuts.com");
+      UserInfo user2 =
+          new UserInfo(
+              new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"),
+              "charlie.brown@peanuts.com",
+              "Charlie Brown",
+              "peanuts.com");
+      UserInfo user3 =
+          new UserInfo(
+              new UserId("ea7b9b61-bef5-4cf4-80cb-19612c42593a"),
+              "lucy.van.pelt@peanuts.com",
+              "Lucy van Pelt",
+              "peanuts.com");
       userManagementMockServer.mockUsersBulk(userIds, List.of(user1, user2, user3), true);
 
-      MockHttpResponse mockHttpResponse = dispatcher.get(url(userIds), "F2TkzabOK2pu91sL951ofbJ7Ur3zcJKV9gBwdB84");
+      MockHttpResponse mockHttpResponse =
+          dispatcher.get(url(userIds), "F2TkzabOK2pu91sL951ofbJ7Ur3zcJKV9gBwdB84");
       assertEquals(200, mockHttpResponse.getStatus());
-      List<UserDto> users = objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
+      List<UserDto> users =
+          objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
       assertEquals("332a9527-3388-4207-be77-6d7e2978a723", users.get(0).getId().toString());
       assertEquals("snoopy@peanuts.com", users.get(0).getEmail());
       assertEquals("Snoopy", users.get(0).getName());
       assertEquals("status message 1", users.get(0).getStatusMessage());
-      assertEquals(OffsetDateTime.parse("0001-01-01T00:00:00Z"), users.get(0).getPictureUpdatedAt());
+      assertEquals(
+          OffsetDateTime.parse("0001-01-01T00:00:00Z"), users.get(0).getPictureUpdatedAt());
       assertEquals("82735f6d-4c6c-471e-99d9-4eef91b1ec45", users.get(1).getId().toString());
       assertEquals("charlie.brown@peanuts.com", users.get(1).getEmail());
       assertEquals("Charlie Brown", users.get(1).getName());
@@ -161,27 +183,40 @@ public class UsersApiIT {
     @Test
     @DisplayName("Returns parts of the requested users")
     public void getUser_testPartiallyOK() throws Exception {
-      List<String> userIds = Arrays.asList(
-        "332a9527-3388-4207-be77-6d7e2978a723",
-        "82735f6d-4c6c-471e-99d9-4eef91b1ec45",
-        "ea7b9b61-bef5-4cf4-80cb-19612c42593a"
-      );
-      integrationTestUtils.generateAndSaveUser(UUID.fromString(userIds.get(0)), "status message 1",
-        OffsetDateTime.parse("0001-01-01T00:00:00Z"));
-      UserInfo user1 = new UserInfo(new UserId("332a9527-3388-4207-be77-6d7e2978a723"), "snoopy@peanuts.com", "Snoopy",
-        "peanuts.com");
-      UserInfo user2 = new UserInfo(new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"), "charlie.brown@peanuts.com",
-        "Charlie Brown", "peanuts.com");
+      List<String> userIds =
+          Arrays.asList(
+              "332a9527-3388-4207-be77-6d7e2978a723",
+              "82735f6d-4c6c-471e-99d9-4eef91b1ec45",
+              "ea7b9b61-bef5-4cf4-80cb-19612c42593a");
+      integrationTestUtils.generateAndSaveUser(
+          UUID.fromString(userIds.get(0)),
+          "status message 1",
+          OffsetDateTime.parse("0001-01-01T00:00:00Z"));
+      UserInfo user1 =
+          new UserInfo(
+              new UserId("332a9527-3388-4207-be77-6d7e2978a723"),
+              "snoopy@peanuts.com",
+              "Snoopy",
+              "peanuts.com");
+      UserInfo user2 =
+          new UserInfo(
+              new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"),
+              "charlie.brown@peanuts.com",
+              "Charlie Brown",
+              "peanuts.com");
       userManagementMockServer.mockUsersBulk(userIds, List.of(user1, user2), true);
 
-      MockHttpResponse mockHttpResponse = dispatcher.get(url(userIds), "F2TkzabOK2pu91sL951ofbJ7Ur3zcJKV9gBwdB84");
+      MockHttpResponse mockHttpResponse =
+          dispatcher.get(url(userIds), "F2TkzabOK2pu91sL951ofbJ7Ur3zcJKV9gBwdB84");
       assertEquals(200, mockHttpResponse.getStatus());
-      List<UserDto> users = objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
+      List<UserDto> users =
+          objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
       assertEquals("332a9527-3388-4207-be77-6d7e2978a723", users.get(0).getId().toString());
       assertEquals("snoopy@peanuts.com", users.get(0).getEmail());
       assertEquals("Snoopy", users.get(0).getName());
       assertEquals("status message 1", users.get(0).getStatusMessage());
-      assertEquals(OffsetDateTime.parse("0001-01-01T00:00:00Z"), users.get(0).getPictureUpdatedAt());
+      assertEquals(
+          OffsetDateTime.parse("0001-01-01T00:00:00Z"), users.get(0).getPictureUpdatedAt());
       assertEquals("82735f6d-4c6c-471e-99d9-4eef91b1ec45", users.get(1).getId().toString());
       assertEquals("charlie.brown@peanuts.com", users.get(1).getEmail());
       assertEquals("Charlie Brown", users.get(1).getName());
@@ -192,13 +227,14 @@ public class UsersApiIT {
     public void getUser_testUserNotFound() throws Exception {
       List<String> userIds = Collections.singletonList("332a9527-3388-4207-be77-6d7e2978a722");
 
-      MockHttpResponse mockHttpResponse = dispatcher.get(url(userIds), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
+      MockHttpResponse mockHttpResponse =
+          dispatcher.get(url(userIds), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
       userManagementMockServer.mockUsersBulk(userIds, Collections.emptyList(), true);
-      List<UserDto> users = objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
+      List<UserDto> users =
+          objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
       assertEquals(200, mockHttpResponse.getStatus());
       assertTrue(users.isEmpty());
     }
-
   }
 
   @Nested
@@ -215,24 +251,29 @@ public class UsersApiIT {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
 
-      integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.USER_AVATAR, account.getUUID(), null);
+      integrationTestUtils.generateAndSaveFileMetadata(
+          fileMock, FileMetadataType.USER_AVATAR, account.getUUID(), null);
 
       MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
       assertEquals(200, response.getStatus());
 
       assertArrayEquals(fileMock.getFileBytes(), response.getOutput());
       assertEquals(
-        String.format("inline; filename=\"%s\"", fileMock.getName()),
-        response.getOutputHeaders().get("Content-Disposition").get(0));
-      assertEquals(fileMock.getMimeType(), response.getOutputHeaders().get("Content-Type").get(0).toString());
+          String.format("inline; filename=\"%s\"", fileMock.getName()),
+          response.getOutputHeaders().get("Content-Disposition").get(0));
+      assertEquals(
+          fileMock.getMimeType(),
+          response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify(
+          "GET", String.format("/auth/token/%s", account.getToken()), 1);
       storageMockServer.verify("GET", "/download", fileMock.getId(), 1);
     }
 
     @Test
-    @DisplayName("Given a user identifier, if the user is not authenticated returns status code 401")
+    @DisplayName(
+        "Given a user identifier, if the user is not authenticated returns status code 401")
     public void getUserPicture_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.get(url(UUID.randomUUID()), null);
       assertEquals(401, response.getStatus());
@@ -247,20 +288,23 @@ public class UsersApiIT {
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify(
+          "GET", String.format("/auth/token/%s", account.getToken()), 1);
     }
 
     @Test
-    @DisplayName("Given a user identifier, if the storage hasn't the picture file returns status code 424")
+    @DisplayName(
+        "Given a user identifier, if the storage hasn't the picture file returns status code 424")
     public void getUserPicture_testErrorStorageHasNoPictureFile() throws Exception {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.LINUS_VAN_PELT);
-      integrationTestUtils.generateAndSaveFileMetadata(account.getUUID(), FileMetadataType.USER_AVATAR,
-        account.getUUID(), null);
+      integrationTestUtils.generateAndSaveFileMetadata(
+          account.getUUID(), FileMetadataType.USER_AVATAR, account.getUUID(), null);
       MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
       assertEquals(424, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify(
+          "GET", String.format("/auth/token/%s", account.getToken()), 1);
     }
   }
 
@@ -279,117 +323,151 @@ public class UsersApiIT {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       clock.fixTimeAt(Instant.parse("2022-01-01T00:00:00Z"));
 
-      MockHttpResponse response = dispatcher.put(url(account.getUUID()), fileMock.getId().getBytes(),
-        Map.of(
-          "Content-Type",
-          "application/octet-stream",
-          "fileName", "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067",
-          "mimeType", fileMock.getMimeType()
-        ),
-        account.getToken()
-      );
+      MockHttpResponse response =
+          dispatcher.put(
+              url(account.getUUID()),
+              fileMock.getId().getBytes(),
+              Map.of(
+                  "Content-Type",
+                  "application/octet-stream",
+                  "fileName",
+                  "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067",
+                  "mimeType",
+                  fileMock.getMimeType()),
+              account.getToken());
       clock.fixTimeAt(null);
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getContentAsString().length());
       Optional<User> user = integrationTestUtils.getUserById(account.getUUID());
       assertTrue(user.isPresent());
-      assertEquals(OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneOffset.systemDefault()), user.get().getPictureUpdatedAt());
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
+      assertEquals(
+          OffsetDateTime.ofInstant(
+              Instant.parse("2022-01-01T00:00:00Z"), ZoneOffset.systemDefault()),
+          user.get().getPictureUpdatedAt());
+      userManagementMockServer.verify(
+          "GET", String.format("/auth/token/%s", account.getToken()), 1);
       // TODO: 01/03/22 verify event dispatcher iterations
       storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
-
-
     }
 
     @Test
-    @DisplayName("Given a user identifier and a picture file, if user is not authenticated returns status code 401")
+    @DisplayName(
+        "Given a user identifier and a picture file, if user is not authenticated returns status"
+            + " code 401")
     public void updateUserPicture_testErrorUnauthenticatedUser() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
-      MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()), fileMock.getFileBytes(),
-        Map.of(
-          "Content-Type",
-          "application/octet-stream",
-          "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
-          "mimeType", fileMock.getMimeType()
-        ),
-        null
-      );
+      MockHttpResponse response =
+          dispatcher.put(
+              url(UUID.randomUUID()),
+              fileMock.getFileBytes(),
+              Map.of(
+                  "Content-Type",
+                  "application/octet-stream",
+                  "fileName",
+                  Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+                  "mimeType",
+                  fileMock.getMimeType()),
+              null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }
 
     @Test
-    @DisplayName("Given a user identifier and a picture file, if X-Content-Disposition is missing returns status code 400")
+    @DisplayName(
+        "Given a user identifier and a picture file, if X-Content-Disposition is missing returns"
+            + " status code 400")
     public void updateUserPicture_testErrorMissingXContentDisposition() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN);
-      MockHttpResponse response = dispatcher.put(url(account.getUUID()), fileMock.getFileBytes(),
-        Collections.singletonMap("Content-Type", "application/octet-stream"), account.getToken());
+      MockHttpResponse response =
+          dispatcher.put(
+              url(account.getUUID()),
+              fileMock.getFileBytes(),
+              Collections.singletonMap("Content-Type", "application/octet-stream"),
+              account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify(
+          "GET", String.format("/auth/token/%s", account.getToken()), 1);
     }
 
     @Test
-    @DisplayName("Given a user identifier and a picture file, if the identifier is not that of the authenticated user "
-      + "returns status code 403")
+    @DisplayName(
+        "Given a user identifier and a picture file, if the identifier is not that of the"
+            + " authenticated user returns status code 403")
     public void updateUserPicture_testErrorUserIsNotTheAuthenticatedUser() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       MockUserProfile account1 = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       MockUserProfile account2 = MockedAccount.getAccount(MockedAccountType.PEPERITA_PATTY);
 
-      MockHttpResponse response = dispatcher.put(url(account1.getUUID()), fileMock.getFileBytes(),
-        Map.of(
-          "Content-Type",
-          "application/octet-stream",
-          "fileName", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
-          "mimeType", fileMock.getMimeType()
-        ),
-        account2.getToken()
-      );
+      MockHttpResponse response =
+          dispatcher.put(
+              url(account1.getUUID()),
+              fileMock.getFileBytes(),
+              Map.of(
+                  "Content-Type",
+                  "application/octet-stream",
+                  "fileName",
+                  "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
+                  "mimeType",
+                  fileMock.getMimeType()),
+              account2.getToken());
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", account2.getToken()), 1);
+      userManagementMockServer.verify(
+          "GET", String.format("/auth/token/%s", account2.getToken()), 1);
     }
 
     @Test
-    @DisplayName("Given a ruser identifier and a picture file, if the image is too large returns status code 400")
+    @DisplayName(
+        "Given a ruser identifier and a picture file, if the image is too large returns status code"
+            + " 400")
     public void updateUserPicture_testErrorImageTooLarge() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.CHARLIE_BROWN_LARGE_IMAGE);
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN);
-      MockHttpResponse response = dispatcher.put(url(account.getUUID()), fileMock.getFileBytes(),
-        Map.of(
-          "Content-Type",
-          "application/octet-stream",
-          "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
-          "mimeType", fileMock.getMimeType()
-        ),
-        account.getToken()
-      );
+      MockHttpResponse response =
+          dispatcher.put(
+              url(account.getUUID()),
+              fileMock.getFileBytes(),
+              Map.of(
+                  "Content-Type",
+                  "application/octet-stream",
+                  "fileName",
+                  Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+                  "mimeType",
+                  fileMock.getMimeType()),
+              account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify(
+          "GET", String.format("/auth/token/%s", account.getToken()), 1);
     }
 
     @Test
-    @DisplayName("Given a user identifier and a picture file, if the file isn't an image returns status code 400")
+    @DisplayName(
+        "Given a user identifier and a picture file, if the file isn't an image returns status code"
+            + " 400")
     public void updateUserPicture_testErrorFileIsNotImage() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.LUCY_VAN_PELT_PDF);
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT);
 
-      MockHttpResponse response = dispatcher.put(url(account.getUUID()), fileMock.getFileBytes(),
-        Map.of(
-          "Content-Type",
-          "application/octet-stream",
-          "fileName", Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
-          "mimeType", fileMock.getMimeType()
-        ),
-        account.getToken()
-      );
+      MockHttpResponse response =
+          dispatcher.put(
+              url(account.getUUID()),
+              fileMock.getFileBytes(),
+              Map.of(
+                  "Content-Type",
+                  "application/octet-stream",
+                  "fileName",
+                  Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
+                  "mimeType",
+                  fileMock.getMimeType()),
+              account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify(
+          "GET", String.format("/auth/token/%s", account.getToken()), 1);
     }
   }
 
@@ -406,19 +484,22 @@ public class UsersApiIT {
     public void deleteUserPicture_testOk() throws Exception {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
-      integrationTestUtils.generateAndSaveFileMetadata(fileMock, FileMetadataType.USER_AVATAR, account.getUUID(), null);
-      integrationTestUtils.generateAndSaveUser(account.getUUID(), "hello",
-        OffsetDateTime.ofInstant(clock.instant(), clock.getZone()));
+      integrationTestUtils.generateAndSaveFileMetadata(
+          fileMock, FileMetadataType.USER_AVATAR, account.getUUID(), null);
+      integrationTestUtils.generateAndSaveUser(
+          account.getUUID(), "hello", OffsetDateTime.ofInstant(clock.instant(), clock.getZone()));
 
       MockHttpResponse response = dispatcher.delete(url(account.getUUID()), account.getToken());
       assertEquals(204, response.getStatus());
-      Optional<FileMetadata> metadata = integrationTestUtils.getFileMetadataById(fileMock.getUUID());
+      Optional<FileMetadata> metadata =
+          integrationTestUtils.getFileMetadataById(fileMock.getUUID());
       assertTrue(metadata.isEmpty());
       Optional<User> user = integrationTestUtils.getUserById(account.getUUID());
       assertTrue(user.isPresent());
       assertNull(user.get().getPictureUpdatedAt());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify(
+          "GET", String.format("/auth/token/%s", account.getToken()), 1);
       storageMockServer.verify("DELETE", "/delete", fileMock.getId(), 1);
     }
 
@@ -449,7 +530,8 @@ public class UsersApiIT {
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify(
+          "GET", String.format("/auth/token/%s", account.getToken()), 1);
     }
   }
 
@@ -466,8 +548,9 @@ public class UsersApiIT {
       MockHttpResponse response = dispatcher.get(URL, account.getToken());
       assertEquals(200, response.getStatus());
 
-      CapabilitiesDto capabilities = objectMapper.readValue(response.getContentAsString(), CapabilitiesDto.class);
-      assertEquals(false, capabilities.isCanVideoCall());
+      CapabilitiesDto capabilities =
+          objectMapper.readValue(response.getContentAsString(), CapabilitiesDto.class);
+      assertEquals(true, capabilities.isCanVideoCall());
       assertEquals(false, capabilities.isCanVideoCallRecord());
       assertEquals(false, capabilities.isCanUseVirtualBackground());
       assertEquals(true, capabilities.isCanSeeMessageReads());
@@ -482,6 +565,9 @@ public class UsersApiIT {
     @Test
     @DisplayName("Returns configured user capabilities")
     public void getCapabilities_configuredValuesTestOk() throws Exception {
+      appConfig.set(ConfigName.CAN_VIDEO_CALL, "true");
+      appConfig.set(ConfigName.CAN_VIDEO_CALL_RECORD, "false");
+      appConfig.set(ConfigName.CAN_USE_VIRTUAL_BACKGROUND, "false");
       appConfig.set(ConfigName.CAN_SEE_MESSAGE_READS, "false");
       appConfig.set(ConfigName.CAN_SEE_USERS_PRESENCE, "false");
       appConfig.set(ConfigName.MAX_USER_IMAGE_SIZE_IN_KB, "512");
@@ -494,8 +580,9 @@ public class UsersApiIT {
       MockHttpResponse response = dispatcher.get(URL, account.getToken());
       assertEquals(200, response.getStatus());
 
-      CapabilitiesDto capabilities = objectMapper.readValue(response.getContentAsString(), CapabilitiesDto.class);
-      assertEquals(false, capabilities.isCanVideoCall());
+      CapabilitiesDto capabilities =
+          objectMapper.readValue(response.getContentAsString(), CapabilitiesDto.class);
+      assertEquals(true, capabilities.isCanVideoCall());
       assertEquals(false, capabilities.isCanVideoCallRecord());
       assertEquals(false, capabilities.isCanUseVirtualBackground());
       assertEquals(false, capabilities.isCanSeeMessageReads());
@@ -506,6 +593,9 @@ public class UsersApiIT {
       assertEquals(512, capabilities.getMaxRoomImageSizeInKb());
       assertEquals(512, capabilities.getMaxUserImageSizeInKb());
 
+      appConfig.set(ConfigName.CAN_VIDEO_CALL, null);
+      appConfig.set(ConfigName.CAN_VIDEO_CALL_RECORD, null);
+      appConfig.set(ConfigName.CAN_USE_VIRTUAL_BACKGROUND, null);
       appConfig.set(ConfigName.CAN_SEE_MESSAGE_READS, null);
       appConfig.set(ConfigName.CAN_SEE_USERS_PRESENCE, null);
       appConfig.set(ConfigName.MAX_USER_IMAGE_SIZE_IN_KB, null);
