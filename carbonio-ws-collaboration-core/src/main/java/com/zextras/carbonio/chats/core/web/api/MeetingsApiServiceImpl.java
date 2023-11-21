@@ -10,11 +10,9 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
-import com.zextras.carbonio.meeting.api.NotFoundException;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
 import com.zextras.carbonio.meeting.model.SessionDescriptionProtocolDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
@@ -29,13 +27,12 @@ import javax.ws.rs.core.SecurityContext;
 @Singleton
 public class MeetingsApiServiceImpl implements MeetingsApiService {
 
-  private final MeetingService     meetingService;
+  private final MeetingService meetingService;
   private final ParticipantService participantService;
 
   @Inject
   public MeetingsApiServiceImpl(
-    MeetingService meetingService, ParticipantService participantService
-  ) {
+      MeetingService meetingService, ParticipantService participantService) {
     this.meetingService = meetingService;
     this.participantService = participantService;
   }
@@ -45,14 +42,17 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    *
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
    * @return a response
-   * {@link Response) with status 200 and the meetings list {@link MeetingDto} of authenticated user in the body
+   * {@link Response) with status 200 and the meetings list {@link com.zextras.carbonio.meeting.model.MeetingDto} of
+   * authenticated user in the body
    */
   @Override
   public Response listMeeting(SecurityContext securityContext) {
-    return Response.ok().entity(meetingService.getMeetings(
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-          .orElseThrow(UnauthorizedException::new)))
-      .build();
+    return Response.ok()
+        .entity(
+            meetingService.getMeetings(
+                Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+                    .orElseThrow(UnauthorizedException::new)))
+        .build();
   }
 
   /**
@@ -60,37 +60,43 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    *
    * @param meetingId       meeting identifier {@link UUID}}
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 200 and the requested meeting {@link MeetingDto} in the body
+   * @return a response
+   * {@link Response) with status 200 and the requested meeting {@link com.zextras.carbonio.meeting.model.MeetingDto} in
+   * the body
    */
   @Override
   public Response getMeeting(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
     return Response.ok().entity(meetingService.getMeetingById(meetingId, currentUser)).build();
   }
 
   /**
    * @param newMeetingDataDto data form creating a new meeting
    * @param securityContext   security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 200 and the requested meeting {@link MeetingDto} in the body
+   * @return a response
+   * {@link Response) with status 200 and the requested meeting {@link com.zextras.carbonio.meeting.model.MeetingDto} in
+   * the body
    */
   @Override
-  public Response createMeeting(NewMeetingDataDto newMeetingDataDto, SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
+  public Response createMeeting(
+      NewMeetingDataDto newMeetingDataDto, SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
     if (newMeetingDataDto.getRoomId() == null && newMeetingDataDto.getUsers().isEmpty()) {
       return Response.status(Status.BAD_REQUEST).build();
     } else {
       return Response.ok(
-        meetingService.createMeeting(
-          currentUser,
-          newMeetingDataDto.getName(),
-          newMeetingDataDto.getMeetingType(),
-          newMeetingDataDto.getRoomId(),
-          newMeetingDataDto.getUsers(),
-          newMeetingDataDto.getExpiration()
-        )
-      ).build();
+              meetingService.createMeeting(
+                  currentUser,
+                  newMeetingDataDto.getName(),
+                  newMeetingDataDto.getMeetingType(),
+                  newMeetingDataDto.getRoomId(),
+                  newMeetingDataDto.getUsers(),
+                  newMeetingDataDto.getExpiration()))
+          .build();
     }
   }
 
@@ -103,9 +109,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response deleteMeeting(UUID meetingId, SecurityContext securityContext) {
-    meetingService.deleteMeetingById(meetingId,
-      Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-        .orElseThrow(UnauthorizedException::new));
+    meetingService.deleteMeetingById(
+        meetingId,
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new));
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -119,10 +126,11 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response joinMeeting(UUID meetingId, JoinSettingsDto joinSettingsDto,
-    SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
+  public Response joinMeeting(
+      UUID meetingId, JoinSettingsDto joinSettingsDto, SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
     if (currentUser.getQueueId() == null) {
       throw new BadRequestException("Queue identifier is mandatory");
     }
@@ -139,8 +147,9 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response leaveMeeting(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
     participantService.removeMeetingParticipant(meetingId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -150,15 +159,18 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    *
    * @param meetingId       meeting identifier {@link UUID}
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 200 and the updated meeting {@link MeetingDto} in the body
+   * @return a response
+   * {@link Response) with status 200 and the updated meeting {@link com.zextras.carbonio.meeting.model.MeetingDto} in
+   * the body
    */
   @Override
   public Response startMeeting(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
     return Response.status(Status.OK)
-      .entity(meetingService.updateMeeting(currentUser, meetingId, true))
-      .build();
+        .entity(meetingService.updateMeeting(currentUser, meetingId, true))
+        .build();
   }
 
   /**
@@ -166,15 +178,18 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    *
    * @param meetingId       meeting identifier {@link UUID}
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 200 and the updated meeting {@link MeetingDto} in the body
+   * @return a response
+   * {@link Response) with status 200 and the updated meeting {@link com.zextras.carbonio.meeting.model.MeetingDto} in
+   * the body
    */
   @Override
-  public Response stopMeeting(UUID meetingId, SecurityContext securityContext) throws NotFoundException {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
+  public Response stopMeeting(UUID meetingId, SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
     return Response.status(Status.OK)
-      .entity(meetingService.updateMeeting(currentUser, meetingId, false))
-      .build();
+        .entity(meetingService.updateMeeting(currentUser, meetingId, false))
+        .build();
   }
 
   /**
@@ -187,14 +202,18 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response updateMediaStream(UUID meetingId, MediaStreamSettingsDto mediaStreamSettingsDto,
-    SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
+  public Response updateMediaStream(
+      UUID meetingId,
+      MediaStreamSettingsDto mediaStreamSettingsDto,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
     if (mediaStreamSettingsDto.isEnabled() && mediaStreamSettingsDto.getSdp() == null) {
-      throw new BadRequestException(String.format(
-        "User '%s' cannot enable the media stream without sending an rtc offer",
-        currentUser.getId()));
+      throw new BadRequestException(
+          String.format(
+              "User '%s' cannot enable the media stream without sending an rtc offer",
+              currentUser.getId()));
     }
     participantService.updateMediaStream(meetingId, mediaStreamSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
@@ -209,15 +228,14 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response updateAudioStream(UUID meetingId, AudioStreamSettingsDto audioStreamSettingsDto,
-    SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
-    participantService.updateAudioStream(meetingId,
-      audioStreamSettingsDto.getUserToModerate() == null ? currentUser.getId()
-        : audioStreamSettingsDto.getUserToModerate(),
-      audioStreamSettingsDto.isEnabled(),
-      currentUser);
+  public Response updateAudioStream(
+      UUID meetingId,
+      AudioStreamSettingsDto audioStreamSettingsDto,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+    participantService.updateAudioStream(meetingId, audioStreamSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -230,14 +248,19 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response updateSubscriptionsMediaStream(UUID meetingId,
-    SubscriptionUpdatesDto subscriptionUpdatesDto, SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
-    if (subscriptionUpdatesDto.getSubscribe().isEmpty() && subscriptionUpdatesDto.getUnsubscribe().isEmpty()) {
+  public Response updateSubscriptionsMediaStream(
+      UUID meetingId,
+      SubscriptionUpdatesDto subscriptionUpdatesDto,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+    if (subscriptionUpdatesDto.getSubscribe().isEmpty()
+        && subscriptionUpdatesDto.getUnsubscribe().isEmpty()) {
       throw new BadRequestException("Subscription list and Unsubscription list must not be empty");
     }
-    participantService.updateSubscriptionsMediaStream(meetingId, subscriptionUpdatesDto, currentUser);
+    participantService.updateSubscriptionsMediaStream(
+        meetingId, subscriptionUpdatesDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -250,11 +273,15 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response answerRtcMediaStream(UUID meetingId,
-    SessionDescriptionProtocolDto sessionDescriptionProtocolDto, SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
-    participantService.answerRtcMediaStream(meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
+  public Response answerRtcMediaStream(
+      UUID meetingId,
+      SessionDescriptionProtocolDto sessionDescriptionProtocolDto,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+    participantService.answerRtcMediaStream(
+        meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -267,11 +294,15 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * @return a response {@link Response) with status 204
    */
   @Override
-  public Response offerRtcAudioStream(UUID meetingId,
-    SessionDescriptionProtocolDto sessionDescriptionProtocolDto, SecurityContext securityContext) {
-    UserPrincipal currentUser = Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-      .orElseThrow(UnauthorizedException::new);
-    participantService.offerRtcAudioStream(meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
+  public Response offerRtcAudioStream(
+      UUID meetingId,
+      SessionDescriptionProtocolDto sessionDescriptionProtocolDto,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+    participantService.offerRtcAudioStream(
+        meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 }
