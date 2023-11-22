@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface VideoServerMeetingRepository {
 
@@ -28,8 +29,8 @@ public interface VideoServerMeetingRepository {
    * @param videoRoomId   video room identifier related to videoroom plugin
    * @return {@link VideoServerMeeting} inserted
    */
-  VideoServerMeeting insert(String meetingId, String connectionId, String audioHandleId, String videoHandleId,
-    String audioRoomId, String videoRoomId);
+  VideoServerMeeting insert(UUID serverId, String meetingId, String connectionId, String audioHandleId, String videoHandleId,
+                            String audioRoomId, String videoRoomId);
 
   /**
    * Deletes a {@link VideoServerMeeting} by meeting identifier

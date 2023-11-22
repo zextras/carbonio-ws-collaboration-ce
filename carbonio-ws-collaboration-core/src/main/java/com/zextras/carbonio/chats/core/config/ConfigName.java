@@ -34,7 +34,6 @@ public enum ConfigName {
   VIDEO_SERVER_HOST,
   VIDEO_SERVER_PORT,
   VIDEO_SERVER_TOKEN,
-
   // behavioral configurations
   CAN_VIDEO_CALL,
   CAN_VIDEO_CALL_RECORD,

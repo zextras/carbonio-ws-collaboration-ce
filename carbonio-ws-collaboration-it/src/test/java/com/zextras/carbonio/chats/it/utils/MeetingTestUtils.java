@@ -77,7 +77,8 @@ public class MeetingTestUtils {
     String meetingId, String connectionId, String audioHandleId, String videoHandleId, String audioRoomId,
     String videoRoomId
   ) {
-    return videoServerMeetingRepository.insert(meetingId, connectionId, audioHandleId,
+    //TODO put real server id
+    return videoServerMeetingRepository.insert(UUID.randomUUID(),meetingId, connectionId, audioHandleId,
       videoHandleId, audioRoomId, videoRoomId);
   }
 

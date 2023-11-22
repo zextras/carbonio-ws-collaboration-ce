@@ -28,6 +28,8 @@ import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
 import com.zextras.carbonio.chats.core.config.impl.InfrastructureAppConfig;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
+import com.zextras.carbonio.chats.core.infrastructure.consul.ConsulService;
+import com.zextras.carbonio.chats.core.infrastructure.consul.impl.OrbitzClientService;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -201,6 +203,7 @@ public class CoreModule extends AbstractModule {
     bind(StoragesService.class).to(StoragesServicePowerstoreImpl.class);
     bind(ProfilingService.class).to(UserManagementProfilingService.class);
     bind(AuthenticationService.class).to(UserManagementAuthenticationService.class);
+    bind(ConsulService.class).to(OrbitzClientService.class);
 
     bindInterceptor(Matchers.any(), Matchers.annotatedWith(TimedCall.class), new TimedCallInterceptor());
 

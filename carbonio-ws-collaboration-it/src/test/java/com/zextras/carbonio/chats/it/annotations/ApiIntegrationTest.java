@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.it.annotations;
 
+import com.zextras.carbonio.chats.it.extensions.ConsulExtension;
 import com.zextras.carbonio.chats.it.extensions.DatabaseExtension;
 import com.zextras.carbonio.chats.it.extensions.GuiceExtension;
 import com.zextras.carbonio.chats.it.extensions.MongooseIMExtension;
@@ -19,7 +20,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
@@ -31,6 +31,5 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(UserManagementExtension.class)
 @ExtendWith(MongooseIMExtension.class)
 @ExtendWith(VideoServerExtension.class)
-public @interface ApiIntegrationTest {
-
-}
+@ExtendWith(ConsulExtension.class)
+public @interface ApiIntegrationTest {}

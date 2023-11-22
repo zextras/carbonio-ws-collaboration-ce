@@ -8,6 +8,7 @@ import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import io.ebean.Database;
 import java.util.Optional;
+import java.util.UUID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -24,22 +25,30 @@ public class EbeanVideoServerMeetingRepository implements VideoServerMeetingRepo
   @Override
   public Optional<VideoServerMeeting> getById(String meetingId) {
     return db.find(VideoServerMeeting.class)
-      .fetch("videoServerSessions")
-      .where()
-      .eq("meetingId", meetingId)
-      .findOneOrEmpty();
+        .fetch("videoServerSessions")
+        .where()
+        .eq("meetingId", meetingId)
+        .findOneOrEmpty();
   }
 
   @Override
-  public VideoServerMeeting insert(String meetingId, String connectionId, String audioHandleId, String videoHandleId,
-    String audioRoomId, String videoRoomId) {
-    VideoServerMeeting videoServerMeeting = VideoServerMeeting.create()
-      .meetingId(meetingId)
-      .connectionId(connectionId)
-      .audioHandleId(audioHandleId)
-      .videoHandleId(videoHandleId)
-      .audioRoomId(audioRoomId)
-      .videoRoomId(videoRoomId);
+  public VideoServerMeeting insert(
+      UUID serverId,
+      String meetingId,
+      String connectionId,
+      String audioHandleId,
+      String videoHandleId,
+      String audioRoomId,
+      String videoRoomId) {
+    VideoServerMeeting videoServerMeeting =
+        VideoServerMeeting.create()
+            .serverId(serverId.toString())
+            .meetingId(meetingId)
+            .connectionId(connectionId)
+            .audioHandleId(audioHandleId)
+            .videoHandleId(videoHandleId)
+            .audioRoomId(audioRoomId)
+            .videoRoomId(videoRoomId);
     db.insert(videoServerMeeting);
     return videoServerMeeting;
   }

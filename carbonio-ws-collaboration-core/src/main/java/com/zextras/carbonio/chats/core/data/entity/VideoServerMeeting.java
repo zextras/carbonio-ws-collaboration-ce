@@ -21,6 +21,9 @@ public class VideoServerMeeting {
   @Column(name = "MEETING_ID", length = 64, nullable = false)
   private String meetingId;
 
+  @Column(name = "SERVER_ID", length = 64, nullable = false)
+  private String serverId;
+
   @Column(name = "CONNECTION_ID", length = 64, nullable = false)
   private String connectionId;
 
@@ -49,6 +52,15 @@ public class VideoServerMeeting {
 
   public VideoServerMeeting meetingId(String meetingId) {
     this.meetingId = meetingId;
+    return this;
+  }
+
+  public String getServerId() {
+    return serverId;
+  }
+
+  public VideoServerMeeting serverId(String serverId) {
+    this.serverId = serverId;
     return this;
   }
 

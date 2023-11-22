@@ -23,8 +23,7 @@ import javax.persistence.TemporalType;
 @Table(name = "PARTICIPANT", schema = "CHATS")
 public class Participant {
 
-  @EmbeddedId
-  private ParticipantId id;
+  @EmbeddedId private ParticipantId id;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @MapsId("meetingId")
@@ -151,14 +150,18 @@ public class Participant {
       return false;
     }
     Participant that = (Participant) o;
-    return Objects.equals(id, that.id) && Objects.equals(getMeeting(), that.getMeeting())
-      && Objects.equals(getUserId(), that.getUserId()) && Objects.equals(getQueueId(),
-      that.getQueueId()) && Objects.equals(audioStreamOn, that.audioStreamOn) && Objects.equals(
-      videoStreamOn, that.videoStreamOn) && Objects.equals(screenStreamOn, that.screenStreamOn);
+    return Objects.equals(id, that.id)
+        && Objects.equals(getMeeting(), that.getMeeting())
+        && Objects.equals(getUserId(), that.getUserId())
+        && Objects.equals(getQueueId(), that.getQueueId())
+        && Objects.equals(audioStreamOn, that.audioStreamOn)
+        && Objects.equals(videoStreamOn, that.videoStreamOn)
+        && Objects.equals(screenStreamOn, that.screenStreamOn);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, getMeeting(), getUserId(), getQueueId(), audioStreamOn, videoStreamOn, screenStreamOn);
+    return Objects.hash(
+        id, meeting.getId(), userId, queueId, audioStreamOn, videoStreamOn, screenStreamOn);
   }
 }
