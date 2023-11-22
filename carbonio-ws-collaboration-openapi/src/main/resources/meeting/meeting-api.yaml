@@ -6,7 +6,7 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration Meeting Api
   description: Zextras Carbonio Workstream Collaboration Meeting HTTP APIs definition.
-  version: 0.1.8
+  version: 0.1.9
   contact:
     email: smokybeans@zextras.com
 servers:
@@ -70,7 +70,7 @@ paths:
     post:
       tags:
         - Meetings
-      summary: Stars the current meeting
+      summary: Starts the current meeting
       operationId: startMeeting
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'

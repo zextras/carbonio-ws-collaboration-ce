@@ -6,7 +6,7 @@ openapi: 3.0.3
 info:
   title: Zextras Workstream Collaboration Chats Api
   description: Zextras Carbonio Workstream Collaboration Chats HTTP APIs definition.
-  version: 0.1.8
+  version: 0.1.9
   contact:
     email: smokybeans@zextras.com
 servers:
@@ -561,7 +561,7 @@ paths:
       description: |
         Creates and returns a preview of the image fetched by id
         with the given size, quality and format
-        - **fileId**: UUID of the image        
+        - **fileId**: UUID of the image
         - **quality**: quality of the output image
         (the higher you go the slower the process)
         - **output_format**: format of the output image
@@ -593,7 +593,7 @@ paths:
       description: |
         Creates and returns a preview of the image fetched by id
         with the given size, quality and format
-        - **fileId**: UUID of the image        
+        - **fileId**: UUID of the image
         - **quality**: quality of the output image
         (the higher you go the slower the process)
         - **output_format**: format of the output image
@@ -621,10 +621,10 @@ paths:
         - Preview
       summary: Get pdf preview
       description: |
-        Creates and returns a preview of the pdf fetched by id, 
+        Creates and returns a preview of the pdf fetched by id,
         the pdf file will contain the first and last page given. With default values
         it will return a pdf with all the pages.
-        - **fileId**: UUID of the pdf        
+        - **fileId**: UUID of the pdf
         - **first_page**: integer value of first page to preview (n>=1)
         - **last_page**: integer value of last page to preview (0 = last of the original pdf)
       operationId: getPdfPreview
@@ -647,7 +647,7 @@ paths:
       description: |
         Creates and returns a preview of the pdf fetched by id
         with the given size, quality and format
-        - **fileId**: UUID of the pdf        
+        - **fileId**: UUID of the pdf
         - **quality**: quality of the output image
         (the higher you go the slower the process)
         - **output_format**: format of the output image
@@ -937,7 +937,7 @@ components:
     204UpdateWorkspacesRankResponse:
       description: workspaces’s order is updated
     204UpdateChannelsRankResponse:
-        description: channels’s order is updated
+      description: channels’s order is updated
     200ListRoomResponse:
       description: List of every room that the user has access to
       content:
