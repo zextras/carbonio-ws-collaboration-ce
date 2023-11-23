@@ -14,26 +14,10 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
-import java.util.Optional;
 import java.util.UUID;
 
 public interface ParticipantService {
-
-  /**
-   * Inserts a participant into the meeting of the specified room. If the meeting doesn’t exist it
-   * will be created
-   *
-   * @param roomId room identifier of the associated meeting in which to insert the participant
-   *     {@link UUID}
-   * @param joinSettingsDto participation join settings for meeting {@link JoinSettingsDto}
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The newly meeting {@link MeetingDto} wrapped into an {@link Optional} only if it was
-   *     created
-   */
-  Optional<MeetingDto> insertMeetingParticipantByRoomId(
-      UUID roomId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser);
 
   /**
    * Inserts a participant into the indicated meeting

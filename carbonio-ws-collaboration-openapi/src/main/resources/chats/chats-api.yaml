@@ -6,7 +6,7 @@ openapi: 3.0.3
 info:
   title: Zextras Workstream Collaboration Chats Api
   description: Zextras Carbonio Workstream Collaboration Chats HTTP APIs definition.
-  version: 0.1.9
+  version: 1.0.0
   contact:
     email: smokybeans@zextras.com
 servers:
@@ -336,28 +336,6 @@ paths:
       responses:
         200:
           $ref: '#/components/responses/200GetRoomMeetingResponse'
-        401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
-        403:
-          $ref: '#/components/responses/403ForbiddenResponse'
-        404:
-          $ref: '#/components/responses/404NotFoundResponse'
-  /rooms/{roomId}/meeting/join:
-    put:
-      tags:
-        - Meetings
-        - Rooms
-      summary: Adds the current user to the specified meeting, if this doesn't exist then creates it
-      operationId: joinRoomMeeting
-      parameters:
-        - $ref: '#/components/parameters/pathRoomId'
-      requestBody:
-        $ref: '#/components/requestBodies/JoinRoomMeetingRequest'
-      responses:
-        200:
-          $ref: '#/components/responses/200JoinRoomMeetingResponse'
-        204:
-          $ref: '#/components/responses/204JoinRoomMeetingResponse'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
         403:
@@ -905,13 +883,6 @@ components:
           schema:
             type: string
             format: binary
-    JoinRoomMeetingRequest:
-      description: user request containing its streams settings to join a meeting
-      required: true
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/JoinSettingsByRoom'
     ForwardMessagesRequest:
       description: Messages forwarding request
       required: true
@@ -1084,14 +1055,6 @@ components:
         application/json:
           schema:
             $ref: '../meeting/meeting-api.yaml#/components/schemas/Meeting'
-    200JoinRoomMeetingResponse:
-      description: meeting is created and the user joined it successfully
-      content:
-        application/json:
-          schema:
-            $ref: '../meeting/meeting-api.yaml#/components/schemas/Meeting'
-    204JoinRoomMeetingResponse:
-      description: The user joined the meeting successfully
     204ForwardMessagesResponse:
       description: successfully forwarded the messages
 
@@ -1500,11 +1463,6 @@ components:
         zmToken:
           type: string
           description: ZM token
-    JoinSettingsByRoom:
-      type: object
-      description: user's streams settings to join a meeting by room
-      allOf:
-        - $ref: '../meeting/meeting-api.yaml#/components/schemas/JoinSettings'
     ImageQualityEnum:
       title: ImageQualityEnum
       enum:

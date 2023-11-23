@@ -6,7 +6,6 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -26,7 +25,6 @@ import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantClashed;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoined;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
-import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
@@ -35,7 +33,6 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
-import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
@@ -46,7 +43,6 @@ import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
-import com.zextras.carbonio.meeting.model.MeetingDto;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +64,7 @@ public class ParticipantServiceImplTest {
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
 
-  public ParticipantServiceImplTest(MeetingMapper meetingMapper) {
+  public ParticipantServiceImplTest() {
     this.meetingService = mock(MeetingService.class);
     this.roomService = mock(RoomService.class);
     this.participantRepository = mock(ParticipantRepository.class);
@@ -79,7 +75,6 @@ public class ParticipantServiceImplTest {
             this.meetingService,
             this.roomService,
             this.participantRepository,
-            meetingMapper,
             this.videoServerService,
             this.eventDispatcher);
   }
@@ -170,81 +165,6 @@ public class ParticipantServiceImplTest {
   }
 
   @Nested
-  @DisplayName("Insert meeting participant by room id tests")
-  public class InsertMeetingParticipantByRoomIdTests {
-
-    @Test
-    @DisplayName("If the meeting exists, it inserts the current user as a meeting participant")
-    public void insertMeetingParticipantByRoomId_testOkMeetingExists() {
-      UserPrincipal currentUser = UserPrincipal.create(user3Id).queueId(user3Queue1);
-      when(meetingService.getsOrCreatesMeetingEntityByRoomId(roomId, currentUser))
-          .thenReturn(meeting1);
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
-
-      Optional<MeetingDto> meetingDto =
-          participantService.insertMeetingParticipantByRoomId(
-              roomId,
-              JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false),
-              currentUser);
-      assertTrue(meetingDto.isEmpty());
-
-      verify(meetingService, times(1)).getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
-      verify(participantRepository, times(1))
-          .insert(Participant.create(meeting1, user3Id.toString()).queueId(user3Queue1.toString()));
-      verify(videoServerService, times(1))
-          .addMeetingParticipant(
-              user3Id.toString(), user3Queue1.toString(), meeting1Id.toString(), false, true);
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              MeetingParticipantJoined.create().meetingId(meeting1Id).userId(user3Id));
-      verifyNoMoreInteractions(
-          meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
-    }
-
-    @Test
-    @DisplayName(
-        "If the meeting doesn't exist, it creates a new meeting and inserts the current user as a"
-            + " meeting participant")
-    public void insertMeetingParticipantByRoomId_testOkMeetingNotExists() {
-      UserPrincipal currentUser = UserPrincipal.create(user3Id).queueId(user3Queue1);
-      Meeting meeting =
-          Meeting.create()
-              .id(UUID.randomUUID().toString())
-              .roomId(roomId.toString())
-              .meetingType(MeetingType.SCHEDULED)
-              .participants(new ArrayList<>());
-      when(meetingService.getsOrCreatesMeetingEntityByRoomId(roomId, currentUser))
-          .thenReturn(meeting);
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
-
-      Optional<MeetingDto> meetingDto =
-          participantService.insertMeetingParticipantByRoomId(
-              roomId,
-              JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false),
-              currentUser);
-      assertTrue(meetingDto.isPresent());
-
-      verify(meetingService, times(1)).getsOrCreatesMeetingEntityByRoomId(roomId, currentUser);
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
-      verify(participantRepository, times(1))
-          .insert(Participant.create(meeting, user3Id.toString()).queueId(user3Queue1.toString()));
-      verify(videoServerService, times(1))
-          .addMeetingParticipant(
-              user3Id.toString(), user3Queue1.toString(), meeting.getId(), false, true);
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              MeetingParticipantJoined.create()
-                  .meetingId(UUID.fromString(meeting.getId()))
-                  .userId(user3Id));
-      verifyNoMoreInteractions(
-          meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
-    }
-  }
-
-  @Nested
   @DisplayName("Insert meeting participant tests")
   public class InsertMeetingParticipantTests {
 
@@ -293,18 +213,32 @@ public class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
 
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(videoServerService, times(1))
-          .removeMeetingParticipant(user2Id.toString(), meeting1Id.toString());
+          .destroyMeetingParticipant(user2Id.toString(), meeting1Id.toString());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+              MeetingParticipantLeft.create().meetingId(meeting1Id).userId(user2Id));
       verify(eventDispatcher, times(1))
           .sendToUserQueue(
               user2Id.toString(),
               user2Queue1.toString(),
               MeetingParticipantClashed.create().meetingId(meeting1Id));
       verify(participantRepository, times(1))
-          .update(participant2Session1.queueId(newQueue.toString()));
+          .update(
+              participant2Session1
+                  .audioStreamOn(false)
+                  .videoStreamOn(false)
+                  .screenStreamOn(false)
+                  .queueId(newQueue.toString()));
       verify(videoServerService, times(1))
           .addMeetingParticipant(
               user2Id.toString(), newQueue.toString(), meeting1Id.toString(), false, true);
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+              MeetingParticipantJoined.create().meetingId(meeting1Id).userId(user2Id));
       verifyNoMoreInteractions(
           meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
@@ -330,8 +264,9 @@ public class ParticipantServiceImplTest {
       assertEquals("Conflict - User is already inserted into the meeting", exception.getMessage());
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
-      verifyNoMoreInteractions(meetingService);
-      verifyNoInteractions(roomService, participantRepository, videoServerService, eventDispatcher);
+      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
+      verifyNoMoreInteractions(roomService, meetingService);
+      verifyNoInteractions(participantRepository, videoServerService, eventDispatcher);
     }
   }
 
@@ -430,6 +365,14 @@ public class ParticipantServiceImplTest {
               user1Id.toString(),
               meeting1Id.toString(),
               MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp"));
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
+              MeetingMediaStreamChanged.create()
+                  .meetingId(meeting1Id)
+                  .userId(user1Id)
+                  .mediaType(MediaType.VIDEO)
+                  .active(true));
 
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
@@ -951,6 +894,14 @@ public class ParticipantServiceImplTest {
               user1Id.toString(),
               meeting1Id.toString(),
               MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp"));
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
+              MeetingMediaStreamChanged.create()
+                  .meetingId(meeting1Id)
+                  .userId(user1Id)
+                  .mediaType(MediaType.SCREEN)
+                  .active(true));
 
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);

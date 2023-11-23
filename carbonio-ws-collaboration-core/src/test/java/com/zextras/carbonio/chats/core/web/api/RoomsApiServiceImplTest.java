@@ -19,7 +19,6 @@ import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
-import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -41,12 +40,11 @@ import org.junit.jupiter.api.Test;
 class RoomsApiServiceImplTest {
 
   private final RoomsApiService roomsApiService;
-  private final RoomService       roomService;
-  private final MembersService    membersService;
-  private final AttachmentService  attachmentService;
-  private final MeetingService     meetingService;
-  private final ParticipantService participantService;
-  private final SecurityContext    securityContext;
+  private final RoomService roomService;
+  private final MembersService membersService;
+  private final AttachmentService attachmentService;
+  private final MeetingService meetingService;
+  private final SecurityContext securityContext;
 
   public RoomsApiServiceImplTest() {
     this.securityContext = mock(SecurityContext.class);
@@ -54,9 +52,8 @@ class RoomsApiServiceImplTest {
     this.membersService = mock(MembersService.class);
     this.attachmentService = mock(AttachmentService.class);
     this.meetingService = mock(MeetingService.class);
-    this.participantService = mock(ParticipantService.class);
-    this.roomsApiService = new RoomsApiServiceImpl(roomService, membersService, attachmentService, meetingService,
-      participantService);
+    this.roomsApiService =
+        new RoomsApiServiceImpl(roomService, membersService, attachmentService, meetingService);
   }
 
   private UUID user1Id;
@@ -72,14 +69,20 @@ class RoomsApiServiceImplTest {
     roomOneToOne1Id = UUID.fromString("86327874-40f4-47cb-914d-f0ce706d1611");
 
     roomOneToOne1 = Room.create();
-    roomOneToOne1.id(roomOneToOne1Id.toString()).type(RoomTypeDto.ONE_TO_ONE).name("").description("").subscriptions(
-      List.of(Subscription.create(roomOneToOne1, user1Id.toString()).owner(true),
-        Subscription.create(roomOneToOne1, user2Id.toString()).owner(false)));
+    roomOneToOne1
+        .id(roomOneToOne1Id.toString())
+        .type(RoomTypeDto.ONE_TO_ONE)
+        .name("")
+        .description("")
+        .subscriptions(
+            List.of(
+                Subscription.create(roomOneToOne1, user1Id.toString()).owner(true),
+                Subscription.create(roomOneToOne1, user2Id.toString()).owner(false)));
   }
 
   @AfterEach
   public void afterEach() {
-    reset(this.roomService, this.membersService, this.attachmentService, this.meetingService, this.participantService);
+    reset(this.roomService, this.membersService, this.attachmentService, this.meetingService);
   }
 
   @Nested
@@ -93,13 +96,29 @@ class RoomsApiServiceImplTest {
     void insertAttachment_areaCorrectFormat() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(UserPrincipal.create(user1Id));
 
-      Response response = roomsApiService.insertAttachment(roomOneToOne1Id, StringFormatUtils.encodeToUtf8("fileName"),
-        "image/jpeg",
-        attachment, null, "message-id", "reply-id", "10x5", securityContext);
+      Response response =
+          roomsApiService.insertAttachment(
+              roomOneToOne1Id,
+              StringFormatUtils.encodeToUtf8("fileName"),
+              "image/jpeg",
+              attachment,
+              null,
+              "message-id",
+              "reply-id",
+              "10x5",
+              securityContext);
 
-      verify(attachmentService, times(1)).addAttachment(roomOneToOne1Id, attachment, "image/jpeg",
-        "fileName", "", "message-id", "reply-id", "10x5",
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal()).get());
+      verify(attachmentService, times(1))
+          .addAttachment(
+              roomOneToOne1Id,
+              attachment,
+              "image/jpeg",
+              "fileName",
+              "",
+              "message-id",
+              "reply-id",
+              "10x5",
+              Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal()).get());
 
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
     }
@@ -109,13 +128,29 @@ class RoomsApiServiceImplTest {
     void insertAttachment_areaNull() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(UserPrincipal.create(user1Id));
 
-      Response response = roomsApiService.insertAttachment(roomOneToOne1Id, StringFormatUtils.encodeToUtf8("fileName"),
-        "image/jpeg",
-        attachment, null, "message-id", "reply-id", null, securityContext);
+      Response response =
+          roomsApiService.insertAttachment(
+              roomOneToOne1Id,
+              StringFormatUtils.encodeToUtf8("fileName"),
+              "image/jpeg",
+              attachment,
+              null,
+              "message-id",
+              "reply-id",
+              null,
+              securityContext);
 
-      verify(attachmentService, times(1)).addAttachment(roomOneToOne1Id, attachment, "image/jpeg",
-        "fileName", "", "message-id", "reply-id", null,
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal()).get());
+      verify(attachmentService, times(1))
+          .addAttachment(
+              roomOneToOne1Id,
+              attachment,
+              "image/jpeg",
+              "fileName",
+              "",
+              "message-id",
+              "reply-id",
+              null,
+              Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal()).get());
 
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
     }
@@ -125,9 +160,17 @@ class RoomsApiServiceImplTest {
     void insertAttachment_areaWrongFormat() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(UserPrincipal.create(user1Id));
 
-      Response response = roomsApiService.insertAttachment(roomOneToOne1Id, StringFormatUtils.encodeToUtf8("fileName"),
-        "image/jpeg",
-        attachment, null, "message-id", "reply-id", "wrong_format", securityContext);
+      Response response =
+          roomsApiService.insertAttachment(
+              roomOneToOne1Id,
+              StringFormatUtils.encodeToUtf8("fileName"),
+              "image/jpeg",
+              attachment,
+              null,
+              "message-id",
+              "reply-id",
+              "wrong_format",
+              securityContext);
 
       verifyNoInteractions(attachmentService);
       assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());

@@ -29,7 +29,6 @@ repos:
     rev: v2.11.0
     hooks:
       - id: pretty-format-java
-        args: [ --autofix ]
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.37.0
     hooks:
@@ -43,10 +42,6 @@ repos:
       - id: conventional-pre-commit
         stages: [ commit-msg ]
         args: [ ]
-  - repo: https://github.com/fsfe/reuse-tool
-    rev: v2.1.0
-    hooks:
-      - id: reuse
   - repo: https://github.com/ejba/pre-commit-maven
     rev: v0.3.3
     hooks:

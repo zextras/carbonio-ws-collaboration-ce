@@ -34,12 +34,10 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.V
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeCreateRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeDestroyRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeJoinRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeLeaveRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeMuteRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomCreateRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomDestroyRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomJoinRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomLeaveRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomPublishRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomStartVideoInRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomUpdateSubscriptionsRequest;
@@ -402,7 +400,6 @@ public class VideoServerServiceImplTest {
     @Test
     @DisplayName("Try to start a meeting that is already active")
     void startMeeting_testErrorAlreadyActive() {
-
       createVideoServerMeeting(UUID.randomUUID(), meeting1Id);
 
       assertThrows(
@@ -876,23 +873,6 @@ public class VideoServerServiceImplTest {
               .screenHandleId(user1ScreenHandleId.toString());
       videoServerMeeting.videoServerSessions(List.of(videoServerSession));
 
-      AudioBridgeResponse leaveAudioRoomResponse =
-          AudioBridgeResponse.create()
-              .status("ack")
-              .connectionId(user1SessionId.toString())
-              .transactionId("transaction-id")
-              .handleId(user1AudioHandleId.toString());
-      when(videoServerClient.sendAudioBridgeRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1AudioHandleId.toString()
-                      + serverQPm),
-              any(VideoServerMessageRequest.class)))
-          .thenReturn(leaveAudioRoomResponse);
       VideoServerResponse destroyAudioBridgePluginResponse =
           VideoServerResponse.create()
               .status("success")
@@ -910,23 +890,6 @@ public class VideoServerServiceImplTest {
               any(VideoServerMessageRequest.class)))
           .thenReturn(destroyAudioBridgePluginResponse);
 
-      VideoRoomResponse leaveVideoOutRoomResponse =
-          VideoRoomResponse.create()
-              .status("ack")
-              .connectionId(user1SessionId.toString())
-              .transactionId("transaction-id")
-              .handleId(user1VideoOutHandleId.toString());
-      when(videoServerClient.sendVideoRoomRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1VideoOutHandleId.toString()
-                      + serverQPm),
-              any(VideoServerMessageRequest.class)))
-          .thenReturn(leaveVideoOutRoomResponse);
       VideoServerResponse destroyVideoOutRoomPluginResponse =
           VideoServerResponse.create()
               .status("success")
@@ -944,23 +907,6 @@ public class VideoServerServiceImplTest {
               any(VideoServerMessageRequest.class)))
           .thenReturn(destroyVideoOutRoomPluginResponse);
 
-      VideoRoomResponse leaveVideoInRoomResponse =
-          VideoRoomResponse.create()
-              .status("ack")
-              .connectionId(user1SessionId.toString())
-              .transactionId("transaction-id")
-              .handleId(user1VideoInHandleId.toString());
-      when(videoServerClient.sendVideoRoomRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1VideoInHandleId.toString()
-                      + serverQPm),
-              any(VideoServerMessageRequest.class)))
-          .thenReturn(leaveVideoInRoomResponse);
       VideoServerResponse destroyVideoInRoomPluginResponse =
           VideoServerResponse.create()
               .status("success")
@@ -978,23 +924,6 @@ public class VideoServerServiceImplTest {
               any(VideoServerMessageRequest.class)))
           .thenReturn(destroyVideoInRoomPluginResponse);
 
-      VideoRoomResponse leaveVideoScreenResponse =
-          VideoRoomResponse.create()
-              .status("ack")
-              .connectionId(user1SessionId.toString())
-              .transactionId("transaction-id")
-              .handleId(user1ScreenHandleId.toString());
-      when(videoServerClient.sendVideoRoomRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1ScreenHandleId.toString()
-                      + serverQPm),
-              any(VideoServerMessageRequest.class)))
-          .thenReturn(leaveVideoScreenResponse);
       VideoServerResponse destroyVideoScreenPluginResponse =
           VideoServerResponse.create()
               .status("success")
@@ -1024,19 +953,11 @@ public class VideoServerServiceImplTest {
 
       videoServerService.destroyMeetingParticipant(user1Id.toString(), meeting1Id.toString());
 
-      ArgumentCaptor<VideoServerMessageRequest> leaveAudioRoomRequestCaptor =
-          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
       ArgumentCaptor<VideoServerMessageRequest> destroyAudioBridgePluginRequestCaptor =
-          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
-      ArgumentCaptor<VideoServerMessageRequest> leaveVideoInRoomRequestCaptor =
           ArgumentCaptor.forClass(VideoServerMessageRequest.class);
       ArgumentCaptor<VideoServerMessageRequest> destroyVideoInRoomPluginRequestCaptor =
           ArgumentCaptor.forClass(VideoServerMessageRequest.class);
-      ArgumentCaptor<VideoServerMessageRequest> leaveVideoOutRoomRequestCaptor =
-          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
       ArgumentCaptor<VideoServerMessageRequest> destroyVideoOutRoomPluginRequestCaptor =
-          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
-      ArgumentCaptor<VideoServerMessageRequest> leaveVideoScreenRequestCaptor =
           ArgumentCaptor.forClass(VideoServerMessageRequest.class);
       ArgumentCaptor<VideoServerMessageRequest> destroyVideoScreenPluginRequestCaptor =
           ArgumentCaptor.forClass(VideoServerMessageRequest.class);
@@ -1044,17 +965,6 @@ public class VideoServerServiceImplTest {
           ArgumentCaptor.forClass(VideoServerMessageRequest.class);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
-      verify(videoServerClient, times(1))
-          .sendAudioBridgeRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1AudioHandleId.toString()
-                      + serverQPm),
-              leaveAudioRoomRequestCaptor.capture());
       verify(videoServerClient, times(1))
           .sendVideoServerRequest(
               eq(
@@ -1067,17 +977,6 @@ public class VideoServerServiceImplTest {
                       + serverQPm),
               destroyAudioBridgePluginRequestCaptor.capture());
       verify(videoServerClient, times(1))
-          .sendVideoRoomRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1VideoOutHandleId.toString()
-                      + serverQPm),
-              leaveVideoOutRoomRequestCaptor.capture());
-      verify(videoServerClient, times(1))
           .sendVideoServerRequest(
               eq(
                   videoServerURL
@@ -1089,17 +988,6 @@ public class VideoServerServiceImplTest {
                       + serverQPm),
               destroyVideoOutRoomPluginRequestCaptor.capture());
       verify(videoServerClient, times(1))
-          .sendVideoRoomRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1VideoInHandleId.toString()
-                      + serverQPm),
-              leaveVideoInRoomRequestCaptor.capture());
-      verify(videoServerClient, times(1))
           .sendVideoServerRequest(
               eq(
                   videoServerURL
@@ -1110,17 +998,6 @@ public class VideoServerServiceImplTest {
                       + user1VideoInHandleId.toString()
                       + serverQPm),
               destroyVideoInRoomPluginRequestCaptor.capture());
-      verify(videoServerClient, times(1))
-          .sendVideoRoomRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1ScreenHandleId.toString()
-                      + serverQPm),
-              leaveVideoScreenRequestCaptor.capture());
       verify(videoServerClient, times(1))
           .sendVideoServerRequest(
               eq(
@@ -1138,31 +1015,12 @@ public class VideoServerServiceImplTest {
               destroyConnectionRequestCaptor.capture());
       verify(videoServerSessionRepository, times(1)).remove(videoServerSession);
 
-      assertEquals(1, leaveAudioRoomRequestCaptor.getAllValues().size());
-      VideoServerMessageRequest leaveAudioRoomRequest = leaveAudioRoomRequestCaptor.getValue();
-      assertEquals(
-          VideoServerMessageRequest.create()
-              .messageRequest("message")
-              .apiSecret("token")
-              .videoServerPluginRequest(AudioBridgeLeaveRequest.create().request("leave")),
-          leaveAudioRoomRequest);
-
       assertEquals(1, destroyAudioBridgePluginRequestCaptor.getAllValues().size());
       VideoServerMessageRequest destroyAudioBridgePluginRequest =
           destroyAudioBridgePluginRequestCaptor.getValue();
       assertEquals(
           VideoServerMessageRequest.create().messageRequest("detach").apiSecret("token"),
           destroyAudioBridgePluginRequest);
-
-      assertEquals(1, leaveVideoOutRoomRequestCaptor.getAllValues().size());
-      VideoServerMessageRequest leaveVideoOutRoomRequest =
-          leaveVideoOutRoomRequestCaptor.getValue();
-      assertEquals(
-          VideoServerMessageRequest.create()
-              .messageRequest("message")
-              .apiSecret("token")
-              .videoServerPluginRequest(VideoRoomLeaveRequest.create().request("leave")),
-          leaveVideoOutRoomRequest);
 
       assertEquals(1, destroyVideoOutRoomPluginRequestCaptor.getAllValues().size());
       VideoServerMessageRequest destroyVideoOutRoomPluginRequest =
@@ -1171,30 +1029,12 @@ public class VideoServerServiceImplTest {
           VideoServerMessageRequest.create().messageRequest("detach").apiSecret("token"),
           destroyVideoOutRoomPluginRequest);
 
-      assertEquals(1, leaveVideoInRoomRequestCaptor.getAllValues().size());
-      VideoServerMessageRequest leaveVideoInRoomRequest = leaveVideoInRoomRequestCaptor.getValue();
-      assertEquals(
-          VideoServerMessageRequest.create()
-              .messageRequest("message")
-              .apiSecret("token")
-              .videoServerPluginRequest(VideoRoomLeaveRequest.create().request("leave")),
-          leaveVideoInRoomRequest);
-
       assertEquals(1, destroyVideoInRoomPluginRequestCaptor.getAllValues().size());
       VideoServerMessageRequest destroyVideoInRoomPluginRequest =
           destroyVideoInRoomPluginRequestCaptor.getValue();
       assertEquals(
           VideoServerMessageRequest.create().messageRequest("detach").apiSecret("token"),
           destroyVideoInRoomPluginRequest);
-
-      assertEquals(1, leaveVideoScreenRequestCaptor.getAllValues().size());
-      VideoServerMessageRequest leaveVideoScreenRequest = leaveVideoScreenRequestCaptor.getValue();
-      assertEquals(
-          VideoServerMessageRequest.create()
-              .messageRequest("message")
-              .apiSecret("token")
-              .videoServerPluginRequest(VideoRoomLeaveRequest.create().request("leave")),
-          leaveVideoScreenRequest);
 
       assertEquals(1, destroyVideoScreenPluginRequestCaptor.getAllValues().size());
       VideoServerMessageRequest destroyVideoScreenPluginRequest =
@@ -1228,218 +1068,6 @@ public class VideoServerServiceImplTest {
       createVideoServerMeeting(serverId, meeting1Id);
 
       videoServerService.destroyMeetingParticipant(user1Id.toString(), meeting1Id.toString());
-
-      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
-    }
-  }
-
-  @Nested
-  @DisplayName("Remove Meeting Participant tests")
-  class RemoveMeetingParticipantTests {
-
-    @Test
-    @DisplayName("remove a participant in a meeting when it's in")
-    void removeMeetingParticipant_testOk() {
-      UUID serverId = UUID.randomUUID();
-      String serverQPm = getServerIdQueryParam(serverId);
-      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(serverId, meeting1Id);
-      VideoServerSession videoServerSession =
-          VideoServerSession.create()
-              .userId(user1Id.toString())
-              .queueId(queue1Id.toString())
-              .videoServerMeeting(videoServerMeeting)
-              .connectionId(user1SessionId.toString())
-              .audioHandleId(user1AudioHandleId.toString())
-              .videoOutHandleId(user1VideoOutHandleId.toString())
-              .videoInHandleId(user1VideoInHandleId.toString())
-              .screenHandleId(user1ScreenHandleId.toString());
-      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
-
-      AudioBridgeResponse leaveAudioRoomResponse =
-          AudioBridgeResponse.create()
-              .status("ack")
-              .connectionId(user1SessionId.toString())
-              .transactionId("transaction-id")
-              .handleId(user1AudioHandleId.toString());
-      when(videoServerClient.sendAudioBridgeRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1AudioHandleId.toString()
-                      + serverQPm),
-              any(VideoServerMessageRequest.class)))
-          .thenReturn(leaveAudioRoomResponse);
-
-      VideoRoomResponse leaveVideoOutRoomResponse =
-          VideoRoomResponse.create()
-              .status("ack")
-              .connectionId(user1SessionId.toString())
-              .transactionId("transaction-id")
-              .handleId(user1VideoOutHandleId.toString());
-      when(videoServerClient.sendVideoRoomRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1VideoOutHandleId.toString()
-                      + serverQPm),
-              any(VideoServerMessageRequest.class)))
-          .thenReturn(leaveVideoOutRoomResponse);
-
-      VideoRoomResponse leaveVideoInRoomResponse =
-          VideoRoomResponse.create()
-              .status("ack")
-              .connectionId(user1SessionId.toString())
-              .transactionId("transaction-id")
-              .handleId(user1VideoInHandleId.toString());
-      when(videoServerClient.sendVideoRoomRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1VideoInHandleId.toString()
-                      + serverQPm),
-              any(VideoServerMessageRequest.class)))
-          .thenReturn(leaveVideoInRoomResponse);
-
-      VideoRoomResponse leaveVideoScreenResponse =
-          VideoRoomResponse.create()
-              .status("ack")
-              .connectionId(user1SessionId.toString())
-              .transactionId("transaction-id")
-              .handleId(user1ScreenHandleId.toString());
-      when(videoServerClient.sendVideoRoomRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1ScreenHandleId.toString()
-                      + serverQPm),
-              any(VideoServerMessageRequest.class)))
-          .thenReturn(leaveVideoScreenResponse);
-
-      videoServerService.removeMeetingParticipant(user1Id.toString(), meeting1Id.toString());
-
-      ArgumentCaptor<VideoServerMessageRequest> leaveAudioRoomRequestCaptor =
-          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
-      ArgumentCaptor<VideoServerMessageRequest> leaveVideoInRoomRequestCaptor =
-          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
-      ArgumentCaptor<VideoServerMessageRequest> leaveVideoOutRoomRequestCaptor =
-          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
-      ArgumentCaptor<VideoServerMessageRequest> leaveVideoScreenRequestCaptor =
-          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
-
-      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
-      verify(videoServerClient, times(1))
-          .sendAudioBridgeRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1AudioHandleId.toString()
-                      + serverQPm),
-              leaveAudioRoomRequestCaptor.capture());
-      verify(videoServerClient, times(1))
-          .sendVideoRoomRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1VideoOutHandleId.toString()
-                      + serverQPm),
-              leaveVideoOutRoomRequestCaptor.capture());
-      verify(videoServerClient, times(1))
-          .sendVideoRoomRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1VideoInHandleId.toString()
-                      + serverQPm),
-              leaveVideoInRoomRequestCaptor.capture());
-      verify(videoServerClient, times(1))
-          .sendVideoRoomRequest(
-              eq(
-                  videoServerURL
-                      + janusEndpoint
-                      + "/"
-                      + user1SessionId.toString()
-                      + "/"
-                      + user1ScreenHandleId.toString()
-                      + serverQPm),
-              leaveVideoScreenRequestCaptor.capture());
-      verify(videoServerSessionRepository, times(1)).remove(videoServerSession);
-
-      assertEquals(1, leaveAudioRoomRequestCaptor.getAllValues().size());
-      VideoServerMessageRequest leaveAudioRoomRequest = leaveAudioRoomRequestCaptor.getValue();
-      assertEquals(
-          VideoServerMessageRequest.create()
-              .messageRequest("message")
-              .apiSecret("token")
-              .videoServerPluginRequest(AudioBridgeLeaveRequest.create().request("leave")),
-          leaveAudioRoomRequest);
-
-      assertEquals(1, leaveVideoOutRoomRequestCaptor.getAllValues().size());
-      VideoServerMessageRequest leaveVideoOutRoomRequest =
-          leaveVideoOutRoomRequestCaptor.getValue();
-      assertEquals(
-          VideoServerMessageRequest.create()
-              .messageRequest("message")
-              .apiSecret("token")
-              .videoServerPluginRequest(VideoRoomLeaveRequest.create().request("leave")),
-          leaveVideoOutRoomRequest);
-
-      assertEquals(1, leaveVideoInRoomRequestCaptor.getAllValues().size());
-      VideoServerMessageRequest leaveVideoInRoomRequest = leaveVideoInRoomRequestCaptor.getValue();
-      assertEquals(
-          VideoServerMessageRequest.create()
-              .messageRequest("message")
-              .apiSecret("token")
-              .videoServerPluginRequest(VideoRoomLeaveRequest.create().request("leave")),
-          leaveVideoInRoomRequest);
-
-      assertEquals(1, leaveVideoScreenRequestCaptor.getAllValues().size());
-      VideoServerMessageRequest leaveVideoScreenRequest = leaveVideoScreenRequestCaptor.getValue();
-      assertEquals(
-          VideoServerMessageRequest.create()
-              .messageRequest("message")
-              .apiSecret("token")
-              .videoServerPluginRequest(VideoRoomLeaveRequest.create().request("leave")),
-          leaveVideoScreenRequest);
-    }
-
-    @Test
-    @DisplayName(
-        "Try to remove a participant in a meeting that does not exist, it ignores it silently")
-    void removeMeetingParticipant_testErrorMeetingNotExists() {
-      videoServerService.removeMeetingParticipant(user1Id.toString(), meeting1Id.toString());
-
-      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
-    }
-
-    @Test
-    @DisplayName(
-        "Try to remove a participant in a meeting when it's not in, it ignores it silently")
-    void removeMeetingParticipant_testErrorParticipantNotExists() {
-      UUID serverId = UUID.randomUUID();
-      createVideoServerMeeting(serverId, meeting1Id);
-
-      videoServerService.removeMeetingParticipant(user1Id.toString(), meeting1Id.toString());
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
