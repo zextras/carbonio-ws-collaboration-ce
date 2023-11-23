@@ -2671,10 +2671,6 @@ public class RoomsApiIT {
                   null,
                   null)
               .audioHandleId("audioHandleId_" + user2Queue));
-      /*videoServerMockServer.mockRequestedResponse("POST",
-      "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
-      "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}",
-      "{\"janus\":\"ack\"}", true);*/
       videoServerMockServer.mockRequestedResponse(
           "POST",
           "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
@@ -2728,11 +2724,6 @@ public class RoomsApiIT {
           VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
 
-      /*videoServerMockServer.verify(
-      videoServerMockServer.getRequest("POST",
-        "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}"),
-      VerificationTimes.exactly(1));*/
       videoServerMockServer.verify(
           videoServerMockServer.getRequest(
               "POST",
@@ -2779,10 +2770,6 @@ public class RoomsApiIT {
                   null,
                   null)
               .audioHandleId("audioHandleId_" + user2Queue));
-      /*videoServerMockServer.mockRequestedResponse("POST",
-      "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
-      "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}",
-      "{\"janus\":\"ack\"}", true);*/
       videoServerMockServer.mockRequestedResponse(
           "POST",
           "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
@@ -2860,11 +2847,6 @@ public class RoomsApiIT {
           mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
           VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      /*videoServerMockServer.verify(
-      videoServerMockServer.getRequest("POST",
-        "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}"),
-      VerificationTimes.exactly(1));*/
       videoServerMockServer.verify(
           videoServerMockServer.getRequest(
               "POST",

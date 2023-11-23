@@ -2411,50 +2411,30 @@ public class MeetingApiIT {
               .videoInHandleId("videoInHandleId_" + user2Queue)
               .videoOutHandleId("videoOutHandleId_" + user2Queue)
               .screenHandleId("screenHandleId_" + user2Queue));
-      /*videoServerMockServer.mockRequestedResponse("POST",
-      "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
-      "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}",
-      "{\"janus\":\"ack\"}", true);*/
       videoServerMockServer.mockRequestedResponse(
           "POST",
           "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
           "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
           "{\"janus\":\"success\"}",
           true);
-      /*videoServerMockServer.mockRequestedResponse("POST",
-      "/janus/connection_" + user2Queue + "/videoInHandleId_" + user2Queue,
-      "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}",
-      "{\"janus\":\"ack\"}", true);*/
       videoServerMockServer.mockRequestedResponse(
           "POST",
           "/janus/connection_" + user2Queue + "/videoInHandleId_" + user2Queue,
           "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
           "{\"janus\":\"success\"}",
           true);
-      /*videoServerMockServer.mockRequestedResponse("POST",
-      "/janus/connection_" + user2Queue + "/videoOutHandleId_" + user2Queue,
-      "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}",
-      "{\"janus\":\"ack\"}", true);*/
       videoServerMockServer.mockRequestedResponse(
           "POST",
           "/janus/connection_" + user2Queue + "/videoInHandleId_" + user2Queue,
           "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
           "{\"janus\":\"success\"}",
           true);
-      /*videoServerMockServer.mockRequestedResponse("POST",
-      "/janus/connection_" + user2Queue + "/videoOutHandleId_" + user2Queue,
-      "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}",
-      "{\"janus\":\"ack\"}", true);*/
       videoServerMockServer.mockRequestedResponse(
           "POST",
           "/janus/connection_" + user2Queue + "/videoOutHandleId_" + user2Queue,
           "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
           "{\"janus\":\"success\"}",
           true);
-      /*videoServerMockServer.mockRequestedResponse("POST",
-      "/janus/connection_" + user2Queue + "/screenHandleId_" + user2Queue,
-      "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}",
-      "{\"janus\":\"ack\"}", true);*/
       videoServerMockServer.mockRequestedResponse(
           "POST",
           "/janus/connection_" + user2Queue + "/screenHandleId_" + user2Queue,
@@ -2489,55 +2469,30 @@ public class MeetingApiIT {
                           && user2Queue.equals(participant.getQueueId()))
               .findAny()
               .isEmpty());
-      /*videoServerMockServer.verify(
-      videoServerMockServer.getRequest("POST",
-        "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}"),
-      VerificationTimes.exactly(1));*/
       videoServerMockServer.verify(
           videoServerMockServer.getRequest(
               "POST",
               "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
               "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
           VerificationTimes.exactly(1));
-      /*videoServerMockServer.verify(
-      videoServerMockServer.getRequest("POST",
-        "/janus/connection_" + user2Queue + "/videoInHandleId_" + user2Queue,
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}"),
-      VerificationTimes.exactly(1));*/
       videoServerMockServer.verify(
           videoServerMockServer.getRequest(
               "POST",
               "/janus/connection_" + user2Queue + "/videoInHandleId_" + user2Queue,
               "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
           VerificationTimes.exactly(1));
-      /*videoServerMockServer.verify(
-      videoServerMockServer.getRequest("POST",
-        "/janus/connection_" + user2Queue + "/videoOutHandleId_" + user2Queue,
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}"),
-      VerificationTimes.exactly(1));*/
       videoServerMockServer.verify(
           videoServerMockServer.getRequest(
               "POST",
               "/janus/connection_" + user2Queue + "/videoInHandleId_" + user2Queue,
               "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
           VerificationTimes.exactly(1));
-      /*videoServerMockServer.verify(
-      videoServerMockServer.getRequest("POST",
-        "/janus/connection_" + user2Queue + "/videoOutHandleId_" + user2Queue,
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}"),
-      VerificationTimes.exactly(1));*/
       videoServerMockServer.verify(
           videoServerMockServer.getRequest(
               "POST",
               "/janus/connection_" + user2Queue + "/videoOutHandleId_" + user2Queue,
               "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}"),
           VerificationTimes.exactly(1));
-      /*videoServerMockServer.verify(
-      videoServerMockServer.getRequest("POST",
-        "/janus/connection_" + user2Queue + "/screenHandleId_" + user2Queue,
-        "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"leave\"},\"apisecret\":\"secret\"}"),
-      VerificationTimes.exactly(1));*/
       videoServerMockServer.verify(
           videoServerMockServer.getRequest(
               "POST",
