@@ -365,18 +365,9 @@ public class ParticipantServiceImplTest {
               user1Id.toString(),
               meeting1Id.toString(),
               MediaStreamSettingsDto.create().type(TypeEnum.VIDEO).enabled(true).sdp("sdp"));
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
-              MeetingMediaStreamChanged.create()
-                  .meetingId(meeting1Id)
-                  .userId(user1Id)
-                  .mediaType(MediaType.VIDEO)
-                  .active(true));
 
-      verifyNoMoreInteractions(
-          meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoInteractions(roomService);
+      verifyNoMoreInteractions(meetingService, participantRepository, videoServerService);
+      verifyNoInteractions(eventDispatcher, roomService);
     }
 
     @Test
@@ -894,18 +885,9 @@ public class ParticipantServiceImplTest {
               user1Id.toString(),
               meeting1Id.toString(),
               MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(true).sdp("sdp"));
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
-              MeetingMediaStreamChanged.create()
-                  .meetingId(meeting1Id)
-                  .userId(user1Id)
-                  .mediaType(MediaType.SCREEN)
-                  .active(true));
 
-      verifyNoMoreInteractions(
-          meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoInteractions(roomService);
+      verifyNoMoreInteractions(meetingService, participantRepository, videoServerService);
+      verifyNoInteractions(eventDispatcher, roomService);
     }
 
     @Test
