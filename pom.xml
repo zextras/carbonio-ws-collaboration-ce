@@ -88,7 +88,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     <com.rabbitmq.amqp-client.version>5.15.0</com.rabbitmq.amqp-client.version>
     <!-- Web Socket -->
     <javax.websocket-api.version>1.1</javax.websocket-api.version>
-
+    <!-- Metrics -->
+    <micrometer.version>1.11.2</micrometer.version>
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
     <org.junit.jupiter.version>5.8.2</org.junit.jupiter.version>
@@ -381,6 +382,12 @@ SPDX-License-Identifier: AGPL-3.0-only
         <version>${javax.websocket-api.version}</version>
       </dependency>
 
+      <!-- Metrics -->
+      <dependency>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-registry-prometheus</artifactId>
+        <version>${micrometer.version}</version>
+      </dependency>
 
       <!-- Tests dependency -->
       <!-- JUnit Jupiter -->

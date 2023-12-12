@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: 2023 Zextras <https://www.zextras.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+openapi: 3.0.3
+info:
+  title: Zextras Carbonio Workstream Collaboration Metrics Api
+  description: Zextras Carbonio Workstream Collaboration Metrics HTTP APIs definition.
+  version: 0.3.5
+  contact:
+    email: smokybeans@zextras.com
+servers:
+  - url: http://localhost:10000
+tags:
+  - name: Metrics
+paths:
+  /metrics:
+    get:
+      tags:
+        - Metrics
+      summary: Expose metrics to be scraped from Prometheus
+      operationId: metrics
+      responses:
+        200:
+          description: The metrics collected from the service
+          content:
+            text/plain:
+              schema:
+                type: string
+components:
+  schemas:
+    Metric:
+      type: object
+      properties:
+        name:
+          type: string

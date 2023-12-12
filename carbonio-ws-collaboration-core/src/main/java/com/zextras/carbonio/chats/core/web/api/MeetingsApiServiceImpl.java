@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.web.api;
 
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
+import com.zextras.carbonio.chats.core.infrastructure.metrics.PrometheusService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -28,13 +29,18 @@ import javax.ws.rs.core.SecurityContext;
 public class MeetingsApiServiceImpl implements MeetingsApiService {
 
   private final MeetingService meetingService;
-  private final ParticipantService participantService;
+  private final   ParticipantService participantService;
+  private final PrometheusService  prometheusService;
+
 
   @Inject
   public MeetingsApiServiceImpl(
-      MeetingService meetingService, ParticipantService participantService) {
+      MeetingService meetingService,
+      ParticipantService participantService,
+      PrometheusService prometheusService) {
     this.meetingService = meetingService;
     this.participantService = participantService;
+    this.prometheusService = prometheusService;
   }
 
   /**

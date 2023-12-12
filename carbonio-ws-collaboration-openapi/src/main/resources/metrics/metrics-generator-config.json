@@ -1,0 +1,13 @@
+{
+  "title": "Zextras Carbonio Workstream Collaboration Meeting CE",
+  "serverPort": 8080,
+
+  "apiPackage":     "com.zextras.carbonio.metrics.api",
+  "invokerPackage": "com.zextras.carbonio.metrics.api",
+  "modelPackage":   "com.zextras.carbonio.metrics.model",
+  "sourceFolder": "src/main/java",
+
+  "booleanGetterPrefix": "is",
+  "dateLibrary": "java8",
+  "hideGenerationTimestamp": true
+}

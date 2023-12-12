@@ -15,6 +15,7 @@ import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.metrics.PrometheusService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
@@ -30,6 +31,8 @@ import com.zextras.carbonio.meeting.model.MeetingTypeDto;
 import com.zextras.carbonio.meeting.model.MeetingUserDto;
 import io.ebean.annotation.Transactional;
 import io.vavr.control.Option;
+
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -48,13 +51,15 @@ public class MeetingServiceImpl implements MeetingService {
   private final MembersService     membersService;
   private final VideoServerService videoServerService;
   private final EventDispatcher    eventDispatcher;
+  private final PrometheusService prometheusService;
 
   @Inject
   public MeetingServiceImpl(
     MeetingRepository meetingRepository, MeetingMapper meetingMapper,
     RoomService roomService,
     MembersService membersService, VideoServerService videoServerService,
-    EventDispatcher eventDispatcher
+    EventDispatcher eventDispatcher,
+    PrometheusService prometheusService
   ) {
     this.meetingRepository = meetingRepository;
     this.meetingMapper = meetingMapper;
@@ -62,6 +67,7 @@ public class MeetingServiceImpl implements MeetingService {
     this.membersService = membersService;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
+    this.prometheusService = prometheusService;
   }
 
   @Override
@@ -111,20 +117,33 @@ public class MeetingServiceImpl implements MeetingService {
   @Override
   public MeetingDto updateMeeting(UserPrincipal user, UUID meetingId, Boolean active) {
     return meetingMapper.ent2dto(meetingRepository.getById(meetingId.toString()).map(meeting -> {
+      RoomDto room = roomService.getRoomById(UUID.fromString(meeting.getRoomId()), user);
+      RoomTypeDto roomType = room.getType();
         Option.of(active).peek(s -> {
           if (!Objects.equals(s, meeting.getActive())) {
             if (Boolean.TRUE.equals(s)) {
               videoServerService.startMeeting(meeting.getId());
+              if(roomType.equals(RoomTypeDto.ONE_TO_ONE)){
+                prometheusService.incrementOneOnOneMeetingStart();
+              } else {
+                prometheusService.incrementGroupMeetingStart();
+              }
             } else {
               videoServerService.stopMeeting(meeting.getId());
+              Duration meetingduration = Duration.ofMillis(OffsetDateTime.now().toInstant().toEpochMilli()
+                - meeting.getCreatedAt().toInstant().toEpochMilli());
+              if(roomType.equals(RoomTypeDto.ONE_TO_ONE)){
+                prometheusService.recordOneOnOneMeetingDuration(meetingduration);
+              } else {
+                prometheusService.recordGroupMeetingDuration(meetingduration);
+              }
             }
             meeting.active(s);
           }
         });
         Meeting updatedMeeting = meetingRepository.update(meeting);
         eventDispatcher.sendToUserExchange(
-          roomService.getRoomById(UUID.fromString(meeting.getRoomId()), user)
-            .getMembers().stream().map(m -> m.getUserId().toString()).collect(Collectors.toList()),
+          room.getMembers().stream().map(m -> m.getUserId().toString()).collect(Collectors.toList()),
           Boolean.TRUE.equals(active) ?
             MeetingStarted.create()
               .meetingId(UUID.fromString(updatedMeeting.getId())).starterUser(user.getUUID())

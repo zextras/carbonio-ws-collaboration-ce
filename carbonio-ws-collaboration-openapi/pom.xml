@@ -144,6 +144,28 @@ SPDX-License-Identifier: AGPL-3.0-only
             </configuration>
           </execution>
 
+          <execution>
+            <id>metrics-api</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <generatorName>jaxrs-resteasy</generatorName>
+              <engine>mustache</engine>
+              <!-- Openapi files -->
+              <inputSpec>${project.basedir}/src/main/resources/metrics/metrics-api.yaml</inputSpec>
+              <configurationFile>${project.basedir}/src/main/resources/metrics/metrics-generator-config.json
+              </configurationFile>
+              <templateDirectory>${project.basedir}/src/main/resources/templates</templateDirectory>
+              <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore
+              </ignoreFileOverride>
+              <!-- Generation options -->
+              <output>${project.build.directory}/generated-sources/metrics</output>
+              <modelNameSuffix>dto</modelNameSuffix>
+              <skipValidateSpec>true</skipValidateSpec>
+            </configuration>
+          </execution>
+
         </executions>
       </plugin>
     </plugins>

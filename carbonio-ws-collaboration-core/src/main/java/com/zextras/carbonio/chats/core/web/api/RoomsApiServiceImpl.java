@@ -8,6 +8,7 @@ import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
+import com.zextras.carbonio.chats.core.infrastructure.metrics.PrometheusService;
 import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
@@ -43,17 +44,20 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   private final MembersService membersService;
   private final AttachmentService attachmentService;
   private final MeetingService meetingService;
+  private final PrometheusService prometheusService;
 
   @Inject
   public RoomsApiServiceImpl(
       RoomService roomService,
       MembersService membersService,
       AttachmentService attachmentService,
-      MeetingService meetingService) {
+      MeetingService meetingService,
+      PrometheusService prometheusService) {
     this.roomService = roomService;
     this.membersService = membersService;
     this.attachmentService = attachmentService;
     this.meetingService = meetingService;
+    this.prometheusService = prometheusService;
   }
 
   @Override
@@ -91,6 +95,14 @@ public class RoomsApiServiceImpl implements RoomsApiService {
         && insertRoomRequestDto.getName() == null) {
       return Response.status(Status.BAD_REQUEST).build();
     } else {
+      switch (insertRoomRequestDto.getType()){
+        case ONE_TO_ONE:
+          prometheusService.incrementChatCreation();
+          break;
+        case GROUP:
+          prometheusService.incrementGroupChatCreation();
+          break;
+      }
       return Response.status(Status.CREATED)
           .entity(roomService.createRoom(insertRoomRequestDto, currentUser))
           .build();
