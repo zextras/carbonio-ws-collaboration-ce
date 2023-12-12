@@ -192,30 +192,29 @@ public class VideoServerEventListener {
                     .ifPresent(
                         eventType -> {
                           if (TALKING_TYPE_EVENTS.contains(eventType)) {
-                            videoServerSessionRepository
-                                .getByConnectionId(String.valueOf(videoServerEvent.getSessionId()))
-                                .ifPresent(
-                                    videoServerSession -> {
-                                      String meetingId = videoServerSession.getId().getMeetingId();
-                                      List<String> sessionUserIds =
-                                          videoServerSessionRepository
-                                              .getByMeetingId(meetingId)
-                                              .stream()
-                                              .map(VideoServerSession::getUserId)
-                                              .collect(Collectors.toList());
-                                      eventDispatcher.sendToUserExchange(
-                                          sessionUserIds,
-                                          MeetingParticipantTalking.create()
-                                              .meetingId(UUID.fromString(meetingId))
-                                              .userId(
-                                                  UUID.fromString(videoServerSession.getUserId()))
-                                              .isTalking(
-                                                  TALKING.equals(
-                                                      videoServerEvent
-                                                          .getEventInfo()
-                                                          .getEventData()
-                                                          .getAudioBridge())));
-                                    });
+                            String meetingId =
+                                videoServerEvent
+                                    .getEventInfo()
+                                    .getEventData()
+                                    .getRoom()
+                                    .split("_")[1];
+                            List<String> sessionUserIds =
+                                videoServerSessionRepository.getByMeetingId(meetingId).stream()
+                                    .map(VideoServerSession::getUserId)
+                                    .collect(Collectors.toList());
+                            eventDispatcher.sendToUserExchange(
+                                sessionUserIds,
+                                MeetingParticipantTalking.create()
+                                    .meetingId(UUID.fromString(meetingId))
+                                    .userId(
+                                        UUID.fromString(
+                                            videoServerEvent.getEventInfo().getEventData().getId()))
+                                    .isTalking(
+                                        TALKING.equals(
+                                            videoServerEvent
+                                                .getEventInfo()
+                                                .getEventData()
+                                                .getAudioBridge())));
                           }
                         });
                 Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getEvent())
@@ -286,32 +285,24 @@ public class VideoServerEventListener {
                               Feed feed =
                                   Feed.fromString(
                                       videoServerEvent.getEventInfo().getEventData().getId());
-                              videoServerSessionRepository
-                                  .getByUserId(feed.getUserId())
-                                  .ifPresent(
-                                      videoServerSession -> {
-                                        String meetingId =
-                                            videoServerSession.getId().getMeetingId();
-                                        List<String> sessionUserIds =
-                                            videoServerSessionRepository
-                                                .getByMeetingId(meetingId)
-                                                .stream()
-                                                .map(VideoServerSession::getUserId)
-                                                .collect(Collectors.toList());
-                                        eventDispatcher.sendToUserExchange(
-                                            sessionUserIds,
-                                            MeetingMediaStreamChanged.create()
-                                                .meetingId(UUID.fromString(meetingId))
-                                                .userId(
-                                                    UUID.fromString(videoServerSession.getUserId()))
-                                                .mediaType(feed.getType())
-                                                .active(
-                                                    PUBLISHED.equals(
-                                                        videoServerEvent
-                                                            .getEventInfo()
-                                                            .getEventData()
-                                                            .getEvent())));
-                                      });
+                              String meetingId =
+                                  videoServerEvent
+                                      .getEventInfo()
+                                      .getEventData()
+                                      .getRoom()
+                                      .split("_")[1];
+                              eventDispatcher.sendToUserExchange(
+                                  feed.getUserId(),
+                                  MeetingMediaStreamChanged.create()
+                                      .meetingId(UUID.fromString(meetingId))
+                                      .userId(UUID.fromString(feed.getUserId()))
+                                      .mediaType(feed.getType())
+                                      .active(
+                                          PUBLISHED.equals(
+                                              videoServerEvent
+                                                  .getEventInfo()
+                                                  .getEventData()
+                                                  .getEvent())));
                               break;
                             default:
                               break;
