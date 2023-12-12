@@ -291,8 +291,12 @@ public class VideoServerEventListener {
                                       .getEventData()
                                       .getRoom()
                                       .split("_")[1];
+                              List<String> sessionUserIds =
+                                  videoServerSessionRepository.getByMeetingId(meetingId).stream()
+                                      .map(VideoServerSession::getUserId)
+                                      .collect(Collectors.toList());
                               eventDispatcher.sendToUserExchange(
-                                  feed.getUserId(),
+                                  sessionUserIds,
                                   MeetingMediaStreamChanged.create()
                                       .meetingId(UUID.fromString(meetingId))
                                       .userId(UUID.fromString(feed.getUserId()))
