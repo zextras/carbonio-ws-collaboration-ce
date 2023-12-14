@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.repository.impl;
 
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
+import com.zextras.carbonio.chats.core.data.entity.VideoServerSessionId;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import io.ebean.Database;
 import java.util.List;
@@ -26,33 +27,35 @@ public class EbeanVideoServerSessionRepository implements VideoServerSessionRepo
   @Override
   public Optional<VideoServerSession> getByConnectionId(String connectionId) {
     return db.find(VideoServerSession.class)
-      .where()
-      .eq("connection_id", connectionId)
-      .findOneOrEmpty();
+        .where()
+        .eq("connection_id", connectionId)
+        .findOneOrEmpty();
   }
 
   @Override
-  public Optional<VideoServerSession> getByUserId(String userId) {
-    return db.find(VideoServerSession.class)
-      .where()
-      .eq("id.userId", userId)
-      .findOneOrEmpty();
+  public Optional<VideoServerSession> getById(String userId, String meetingId) {
+    return Optional.ofNullable(
+        db.find(VideoServerSession.class, new VideoServerSessionId(userId, meetingId)));
   }
 
   @Override
   public List<VideoServerSession> getByMeetingId(String meetingId) {
-    return db.find(VideoServerSession.class)
-      .where()
-      .eq("id.meetingId", meetingId)
-      .findList();
+    return db.find(VideoServerSession.class).where().eq("id.meetingId", meetingId).findList();
   }
 
   @Override
-  public VideoServerSession insert(VideoServerMeeting videoServerMeeting, String userId, String queueId,
-    String connectionId, String videoOutHandleId, String screenHandleId) {
-    VideoServerSession videoServerSession = VideoServerSession.create(userId, queueId, videoServerMeeting)
-      .connectionId(connectionId)
-      .videoOutHandleId(videoOutHandleId).screenHandleId(screenHandleId);
+  public VideoServerSession insert(
+      VideoServerMeeting videoServerMeeting,
+      String userId,
+      String queueId,
+      String connectionId,
+      String videoOutHandleId,
+      String screenHandleId) {
+    VideoServerSession videoServerSession =
+        VideoServerSession.create(userId, queueId, videoServerMeeting)
+            .connectionId(connectionId)
+            .videoOutHandleId(videoOutHandleId)
+            .screenHandleId(screenHandleId);
     db.insert(videoServerSession);
     return videoServerSession;
   }
