@@ -30,6 +30,7 @@ import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.metrics.PrometheusService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
@@ -66,6 +67,7 @@ public class MeetingServiceImplTest {
   private final MembersService     membersService;
   private final VideoServerService videoServerService;
   private final EventDispatcher    eventDispatcher;
+  private final PrometheusService  prometheusService;
 
   public MeetingServiceImplTest(MeetingMapper meetingMapper) {
     this.meetingRepository = mock(MeetingRepository.class);
@@ -73,13 +75,15 @@ public class MeetingServiceImplTest {
     this.membersService = mock(MembersService.class);
     this.videoServerService = mock(VideoServerService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
+    this.prometheusService = mock(PrometheusService.class);
     this.meetingService = new MeetingServiceImpl(
       this.meetingRepository,
       meetingMapper,
       this.roomService,
       this.membersService,
       this.videoServerService,
-      this.eventDispatcher);
+      this.eventDispatcher,
+      this.prometheusService);
   }
 
   private UUID   user1Id;
@@ -248,6 +252,7 @@ public class MeetingServiceImplTest {
       when(roomService.getRoomById(roomId, currentUser)).thenReturn(RoomDto
         .create()
         .members(List.of(MemberDto.create().userId(user1Id)))
+        .type(RoomTypeDto.GROUP)
       );
       MeetingDto meetingDto = meetingService.updateMeeting(currentUser,
         meetingId,
@@ -282,6 +287,7 @@ public class MeetingServiceImplTest {
       when(roomService.getRoomById(roomId, currentUser)).thenReturn(RoomDto
         .create()
         .members(List.of(MemberDto.create().userId(user1Id)))
+        .type(RoomTypeDto.GROUP)
       );
       MeetingDto meetingDto = meetingService.updateMeeting(currentUser,
         meetingId,

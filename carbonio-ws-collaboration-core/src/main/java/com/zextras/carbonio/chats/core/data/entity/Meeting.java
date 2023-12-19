@@ -116,6 +116,11 @@ public class Meeting {
     return createdAt;
   }
 
+  public Meeting createdAt(OffsetDateTime createdAt){
+    this.createdAt = createdAt;
+    return this;
+  }
+
   public Boolean getActive() {
     return active;
   }

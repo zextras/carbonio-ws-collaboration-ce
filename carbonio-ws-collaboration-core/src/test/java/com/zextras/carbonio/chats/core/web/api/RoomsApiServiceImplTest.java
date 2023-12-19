@@ -16,6 +16,7 @@ import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.infrastructure.metrics.PrometheusService;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
@@ -45,15 +46,16 @@ class RoomsApiServiceImplTest {
   private final AttachmentService attachmentService;
   private final MeetingService meetingService;
   private final SecurityContext securityContext;
-
+  private final PrometheusService prometheusService;
   public RoomsApiServiceImplTest() {
     this.securityContext = mock(SecurityContext.class);
     this.roomService = mock(RoomService.class);
     this.membersService = mock(MembersService.class);
     this.attachmentService = mock(AttachmentService.class);
     this.meetingService = mock(MeetingService.class);
+    this.prometheusService = mock(PrometheusService.class);
     this.roomsApiService =
-        new RoomsApiServiceImpl(roomService, membersService, attachmentService, meetingService);
+        new RoomsApiServiceImpl(roomService, membersService, attachmentService, meetingService, prometheusService);
   }
 
   private UUID user1Id;
