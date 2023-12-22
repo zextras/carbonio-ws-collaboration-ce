@@ -204,7 +204,7 @@ public class MeetingServiceImplTest {
         .active(false)
         .id(meetingId.toString());
       when(roomService.createRoom(RoomCreationFieldsDto
-        .create().name(meetingName).type(RoomTypeDto.HIDDEN).membersIds(List.of(user1Id, user2Id)), user))
+        .create().name(meetingName).type(RoomTypeDto.TEMPORARY).membersIds(List.of(user1Id, user2Id)), user))
         .thenReturn(RoomDto.create().id(newRoomId).name(meetingName));
       when(meetingRepository.insert(meetingName, meetingType, newRoomId, null)).thenReturn(meeting);
 

@@ -205,7 +205,7 @@ public class MeetingApiIT {
       MockHttpResponse responseRoom =
               dispatcher.get(String.format("/rooms/%s", meeting.getRoomId()), user1Token);
       RoomDto room = objectMapper.readValue(responseRoom.getContentAsString(), RoomDto.class);
-      assertEquals(room.getType(), RoomTypeDto.HIDDEN);
+      assertEquals(room.getType(), RoomTypeDto.TEMPORARY);
     }
 
     @Test
