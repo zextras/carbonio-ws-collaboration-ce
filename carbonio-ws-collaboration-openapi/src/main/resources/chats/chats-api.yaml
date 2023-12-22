@@ -1177,6 +1177,7 @@ components:
       enum:
         - group
         - one_to_one
+        - temporary
     RoomEditableFields:
       type: object
       description: Room fields that can be updated

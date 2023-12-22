@@ -91,7 +91,7 @@ public class MeetingServiceImpl implements MeetingService {
         List<UUID> userIds = users.stream().map(MeetingUserDto::getUserId).collect(Collectors.toList());
         RoomDto room = roomService.createRoom(RoomCreationFieldsDto.create()
             .name(name)
-            .type(RoomTypeDto.GROUP)
+            .type(RoomTypeDto.TEMPORARY)
             .membersIds(userIds)
           , user);
         Meeting meeting = meetingRepository.insert(name,
