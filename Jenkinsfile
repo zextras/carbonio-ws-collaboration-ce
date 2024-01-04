@@ -66,7 +66,7 @@ pipeline {
           -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
           verify
         '''
-        publishCoverage adapters: [jacocoAdapter('target/site/jacoco-all-tests/jacoco.xml')]
+        recordCoverage(tools: [[pattern: 'target/site/jacoco-all-tests/jacoco.xml']])
       }
       post {
         failure {
