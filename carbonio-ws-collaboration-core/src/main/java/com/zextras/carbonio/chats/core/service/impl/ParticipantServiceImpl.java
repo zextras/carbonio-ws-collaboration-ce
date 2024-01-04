@@ -214,16 +214,18 @@ public class ParticipantServiceImpl implements ParticipantService {
           participantRepository.update(participant.videoStreamOn(mediaStreamEnabled));
           videoServerService.updateMediaStream(
               currentUser.getId(), meetingId.toString(), mediaStreamSettingsDto);
-          eventDispatcher.sendToUserExchange(
-              meeting.getParticipants().stream()
-                  .map(Participant::getUserId)
-                  .distinct()
-                  .collect(Collectors.toList()),
-              MeetingMediaStreamChanged.create()
-                  .meetingId(meetingId)
-                  .userId(UUID.fromString(currentUser.getId()))
-                  .mediaType(MediaType.VIDEO)
-                  .active(mediaStreamEnabled));
+          if (!mediaStreamEnabled) {
+            eventDispatcher.sendToUserExchange(
+                meeting.getParticipants().stream()
+                    .map(Participant::getUserId)
+                    .distinct()
+                    .collect(Collectors.toList()),
+                MeetingMediaStreamChanged.create()
+                    .meetingId(meetingId)
+                    .userId(UUID.fromString(currentUser.getId()))
+                    .mediaType(MediaType.VIDEO)
+                    .active(mediaStreamEnabled));
+          }
         }
         break;
       case SCREEN:
@@ -231,16 +233,18 @@ public class ParticipantServiceImpl implements ParticipantService {
           participantRepository.update(participant.screenStreamOn(mediaStreamEnabled));
           videoServerService.updateMediaStream(
               currentUser.getId(), meetingId.toString(), mediaStreamSettingsDto);
-          eventDispatcher.sendToUserExchange(
-              meeting.getParticipants().stream()
-                  .map(Participant::getUserId)
-                  .distinct()
-                  .collect(Collectors.toList()),
-              MeetingMediaStreamChanged.create()
-                  .meetingId(meetingId)
-                  .userId(UUID.fromString(currentUser.getId()))
-                  .mediaType(MediaType.SCREEN)
-                  .active(mediaStreamEnabled));
+          if (!mediaStreamEnabled) {
+            eventDispatcher.sendToUserExchange(
+                meeting.getParticipants().stream()
+                    .map(Participant::getUserId)
+                    .distinct()
+                    .collect(Collectors.toList()),
+                MeetingMediaStreamChanged.create()
+                    .meetingId(meetingId)
+                    .userId(UUID.fromString(currentUser.getId()))
+                    .mediaType(MediaType.SCREEN)
+                    .active(mediaStreamEnabled));
+          }
         }
         break;
       default:
