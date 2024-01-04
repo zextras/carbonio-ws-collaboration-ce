@@ -20,12 +20,13 @@ public interface VideoServerSessionRepository {
   Optional<VideoServerSession> getByConnectionId(String connectionId);
 
   /**
-   * Returns the {@link VideoServerSession} associated to the given userId.
+   * Returns the {@link VideoServerSession} associated to the given userId and meetingId.
    *
    * @param userId user identifier related to videoserver
+   * @param meetingId meeting identifier
    * @return the {@link List} of the video server sessions {@link VideoServerSession}
    */
-  Optional<VideoServerSession> getByUserId(String userId);
+  Optional<VideoServerSession> getById(String userId, String meetingId);
 
   /**
    * Retrieves the list of {@link VideoServerSession} for the required meeting
@@ -39,14 +40,19 @@ public interface VideoServerSessionRepository {
    * Inserts a new {@link VideoServerSession}
    *
    * @param videoServerMeeting the associated video server meeting
-   * @param userId             the session identifier
-   * @param connectionId       the connection identifier related to videoserver
-   * @param videoOutHandleId   the video handle identifier related to video room plugin
-   * @param screenHandleId     the screen handle identifier related to video room plugin
+   * @param userId the session identifier
+   * @param connectionId the connection identifier related to videoserver
+   * @param videoOutHandleId the video handle identifier related to video room plugin
+   * @param screenHandleId the screen handle identifier related to video room plugin
    * @return {@link VideoServerSession} inserted
    */
-  VideoServerSession insert(VideoServerMeeting videoServerMeeting, String userId, String queueId, String connectionId,
-    String videoOutHandleId, String screenHandleId);
+  VideoServerSession insert(
+      VideoServerMeeting videoServerMeeting,
+      String userId,
+      String queueId,
+      String connectionId,
+      String videoOutHandleId,
+      String screenHandleId);
 
   /**
    * Removes a {@link VideoServerSession}
