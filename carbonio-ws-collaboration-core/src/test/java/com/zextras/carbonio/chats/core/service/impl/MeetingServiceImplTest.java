@@ -270,17 +270,20 @@ public class MeetingServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       UUID meetingId = UUID.randomUUID();
       UUID roomId = UUID.randomUUID();
+      OffsetDateTime meetingCreation = OffsetDateTime.now();
       Meeting meeting = Meeting.create()
         .roomId(roomId.toString())
         .name("test")
         .meetingType(MeetingType.PERMANENT)
         .id(meetingId.toString())
+        .createdAt(meetingCreation)
         .active(true);
       Meeting updatedMeeting = Meeting.create()
         .roomId(roomId.toString())
         .name("test")
         .meetingType(MeetingType.PERMANENT)
         .id(meetingId.toString())
+        .createdAt(meetingCreation)
         .active(false);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);

@@ -20,8 +20,8 @@ public class PrometheusService {
   private final Counter groupChatCreation = prometheusRegistry.counter("wsc.chat","service","wsc","type","group");
   private final Counter oneOnOneMeetingStart = prometheusRegistry.counter("wsc.meeting","service","wsc","type","oneOnOne");
   private final Counter groupMeetingStart       = prometheusRegistry.counter("wsc.meeting","service","wsc","type","group");
-  private final Timer   oneOnOneMeetingDuration = prometheusRegistry.timer("wsc.meeting","service","wsc","type","oneOnOne");
-  private final Timer   groupMeetingDuration    = prometheusRegistry.timer("wsc.meeting","service","wsc","type","group");
+  private final Timer   oneOnOneMeetingDuration = prometheusRegistry.timer("wsc.meeting.duration","service","wsc","type","oneOnOne");
+  private final Timer   groupMeetingDuration    = prometheusRegistry.timer("wsc.meeting.duration","service","wsc","type","group");
 
   public PrometheusMeterRegistry getRegistry(){
     return prometheusRegistry;
