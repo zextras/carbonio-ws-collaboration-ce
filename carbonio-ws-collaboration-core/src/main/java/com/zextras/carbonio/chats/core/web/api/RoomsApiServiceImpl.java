@@ -83,11 +83,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
+
     if (insertRoomRequestDto.getType().equals(RoomTypeDto.ONE_TO_ONE)
         && (insertRoomRequestDto.getName() != null
             || insertRoomRequestDto.getDescription() != null)) {
       return Response.status(Status.BAD_REQUEST).build();
-    } else if (insertRoomRequestDto.getType().equals(RoomTypeDto.GROUP)
+    } else if ((insertRoomRequestDto.getType().equals(RoomTypeDto.GROUP)
+            || insertRoomRequestDto.getType().equals(RoomTypeDto.TEMPORARY))
         && insertRoomRequestDto.getName() == null) {
       return Response.status(Status.BAD_REQUEST).build();
     } else {

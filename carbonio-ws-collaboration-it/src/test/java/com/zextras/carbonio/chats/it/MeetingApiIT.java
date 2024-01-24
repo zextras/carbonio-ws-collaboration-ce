@@ -168,47 +168,6 @@ public class MeetingApiIT {
     }
 
     @Test
-    @DisplayName("Create a meeting from a list of Users")
-    void createMeetingUsers_testOk() throws Exception {
-      mongooseImMockServer
-          .when(
-              request()
-                  .withMethod("POST")
-                  .withPath("/api/graphql")
-                  .withHeaders(Header.header("Authorization", "Basic dXNlcm5hbWU6cGFzc3dvcmQ=")))
-          .respond(
-              response()
-                  .withStatusCode(200)
-                  .withBody("{ \"data\": { \"mock\": \"success\" } }")
-                  .withHeaders(
-                      Header.header("Authorization", "Basic dXNlcm5hbWU6cGFzc3dvcmQ="),
-                      Header.header("Accept", "application/json")));
-      MockHttpResponse response =
-          dispatcher.post(
-              URL,
-              objectMapper.writeValueAsString(
-                  NewMeetingDataDto.create()
-                      .name("test")
-                      .meetingType(MeetingTypeDto.SCHEDULED)
-                      .users(
-                          List.of(
-                              MeetingUserDto.create().userId(user2Id),
-                              MeetingUserDto.create().userId(user3Id)))),
-              user1Token);
-      assertEquals(200, response.getStatus());
-      MeetingDto meeting =
-          objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
-      assertEquals(false, meeting.isActive());
-      assertEquals(MeetingTypeDto.SCHEDULED, meeting.getMeetingType());
-      assertEquals("test", meeting.getName());
-
-      MockHttpResponse responseRoom =
-              dispatcher.get(String.format("/rooms/%s", meeting.getRoomId()), user1Token);
-      RoomDto room = objectMapper.readValue(responseRoom.getContentAsString(), RoomDto.class);
-      assertEquals(room.getType(), RoomTypeDto.TEMPORARY);
-    }
-
-    @Test
     @DisplayName("Create a meeting Bad Request")
     void createMeeting_testKO() throws Exception {
       MockHttpResponse response =

@@ -482,6 +482,171 @@ public class RoomsApiIT {
     }
 
     @Nested
+    @DisplayName("Insert temporary room tests")
+    public class InsertTemporaryRoomTests {
+
+      @Test
+      @DisplayName("Given creation fields, inserts a new temporary room and returns its data")
+      public void insertTemporaryRoom_testOk() throws Exception {
+        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+        clock.fixTimeAt(executionInstant);
+        MockHttpResponse response;
+        UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
+        mongooseImMockServer.mockAddRoomMember(
+                roomId.toString(), user1Id.toString(), user2Id.toString(), true);
+        String hopedXmppAffiliationMessage1 =
+                String.format(
+                        "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
+                                + " type='groupchat'>",
+                        user1Id, roomId)
+                        + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+                        + "<operation>memberAdded</operation>"
+                        + String.format("<user-id>%s</user-id>", user2Id)
+                        + "</x>"
+                        + "<body/>"
+                        + "</message>";
+        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage1, true);
+        mongooseImMockServer.mockAddRoomMember(
+                roomId.toString(), user1Id.toString(), user3Id.toString(), true);
+        String hopedXmppAffiliationMessage2 =
+                String.format(
+                        "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
+                                + " type='groupchat'>",
+                        user1Id, roomId)
+                        + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+                        + "<operation>memberAdded</operation>"
+                        + String.format("<user-id>%s</user-id>", user3Id)
+                        + "</x>"
+                        + "<body/>"
+                        + "</message>";
+        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage2, true);
+        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+          uuid.when(UUID::randomUUID).thenReturn(roomId);
+          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+          uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
+          uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
+          uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+          response =
+                  dispatcher.post(
+                          URL,
+                          getInsertRoomRequestBody(
+                                  "testRoom", "Test room", RoomTypeDto.TEMPORARY, List.of(user2Id, user3Id)),
+                          user1Token);
+        }
+        clock.removeFixTime();
+        userManagementMockServer.verify(
+                "GET", String.format("/users/id/%s", user2Id), user1Token, 1);
+        userManagementMockServer.verify(
+                "GET", String.format("/users/id/%s", user3Id), user1Token, 1);
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        assertEquals(201, response.getStatus());
+        RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
+        assertEquals("testRoom", room.getName());
+        assertEquals("Test room", room.getDescription());
+        assertEquals(RoomTypeDto.TEMPORARY, room.getType());
+        assertEquals(3, room.getMembers().size());
+        assertTrue(
+                room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
+        assertTrue(
+                room.getMembers().stream()
+                        .filter(member -> user1Id.equals(member.getUserId()))
+                        .findAny()
+                        .orElseThrow()
+                        .isOwner());
+        assertTrue(
+                room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
+        assertTrue(
+                room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
+        assertEquals(executionInstant, room.getCreatedAt().toInstant());
+        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+        assertNull(room.getPictureUpdatedAt());
+
+        mongooseImMockServer.verify(
+                mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString()),
+                VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+                mongooseImMockServer.getAddRoomMemberRequest(
+                        roomId.toString(), user1Id.toString(), user2Id.toString()),
+                VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+                mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage1),
+                VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+                mongooseImMockServer.getAddRoomMemberRequest(
+                        roomId.toString(), user1Id.toString(), user3Id.toString()),
+                VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+                mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage2),
+                VerificationTimes.exactly(1));
+        // TODO: 23/02/22 verify event dispatcher interactions
+      }
+
+      @Test
+      @DisplayName("Given creation fields, if the name is not specified returns a status code 400")
+      public void insertTemporaryRoom_testErrorWithoutName() throws Exception {
+        MockHttpResponse response =
+                dispatcher.post(
+                        URL,
+                        getInsertRoomRequestBody(
+                                null, "Test room", RoomTypeDto.TEMPORARY, List.of(user2Id, user3Id)),
+                        user1Token);
+
+        assertEquals(400, response.getStatus());
+        assertEquals(0, response.getOutput().length);
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      }
+
+      @Test
+      @DisplayName(
+              "Given creation fields, create a room without adding more members but only creator as owner")
+      public void insertTemporaryRoom_testOkWithOneMember()
+              throws Exception {
+        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+        clock.fixTimeAt(executionInstant);
+        MockHttpResponse response;
+        UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
+        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+          uuid.when(UUID::randomUUID).thenReturn(roomId);
+          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+          uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+          response =
+                  dispatcher.post(
+                          URL,
+                          getInsertRoomRequestBody(
+                                  "testRoom", "Test room", RoomTypeDto.TEMPORARY, Collections.emptyList()),
+                          user1Token);
+        }
+        clock.removeFixTime();
+        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        assertEquals(201, response.getStatus());
+        RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
+        assertEquals("testRoom", room.getName());
+        assertEquals("Test room", room.getDescription());
+        assertEquals(RoomTypeDto.TEMPORARY, room.getType());
+        assertEquals(1, room.getMembers().size());
+        assertTrue(
+                room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
+        assertTrue(
+                room.getMembers().stream()
+                        .filter(member -> user1Id.equals(member.getUserId()))
+                        .findAny()
+                        .orElseThrow()
+                        .isOwner());
+        assertEquals(executionInstant, room.getCreatedAt().toInstant());
+        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+        assertNull(room.getPictureUpdatedAt());
+
+        mongooseImMockServer.verify(
+                mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString()),
+                VerificationTimes.exactly(1));
+      }
+    }
+
+    @Nested
     @DisplayName("Insert one-to-one room tests")
     public class InsertOneToOneRoomTests {
 
