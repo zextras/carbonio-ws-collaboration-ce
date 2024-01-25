@@ -354,10 +354,6 @@ components:
       properties:
         name:
           type: string
-        users:
-          type: array
-          items:
-            $ref: '#/components/schemas/MeetingUser'
         roomId:
           type: string
           format: uuid

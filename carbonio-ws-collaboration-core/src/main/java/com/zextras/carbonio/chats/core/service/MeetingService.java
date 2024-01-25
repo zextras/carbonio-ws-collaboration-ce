@@ -27,7 +27,6 @@ public interface MeetingService {
    * @param name
    * @param meetingType
    * @param roomId
-   * @param users
    * @param expiration
    * @return {@link MeetingDto}
    */
@@ -35,7 +34,6 @@ public interface MeetingService {
     String name,
     MeetingTypeDto meetingType,
     UUID roomId,
-    List<MeetingUserDto> users,
     OffsetDateTime expiration);
 
   /**
