@@ -15,7 +15,12 @@ services {
       interval = "5s"
     }
   ],
-
+  meta = {
+    prom_port = "21501"
+  }
+  tags = [
+    "prometheus-exporter"
+  ]
   connect {
     sidecar_service {
       proxy {
