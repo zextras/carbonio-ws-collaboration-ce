@@ -87,7 +87,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("Returns the requested user")
-    public void getUser_testOK() throws Exception {
+    void getUser_testOK() throws Exception {
       UUID userId = UUID.fromString("332a9527-3388-4207-be77-6d7e2978a723");
       OffsetDateTime ofdt = OffsetDateTime.now();
       clock.fixTimeAt(ofdt.toInstant());
@@ -108,7 +108,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("Returns the requested user")
-    public void getUser_testUserNotFound() throws Exception {
+    void getUser_testUserNotFound() throws Exception {
       UUID userId = UUID.fromString("332a9527-3388-4207-be77-6d7e2978a722");
       clock.fixTimeAt(OffsetDateTime.now().toInstant());
 
@@ -131,7 +131,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("Returns the requested users")
-    public void getUsers_testOK() throws Exception {
+    void getUsers_testOK() throws Exception {
       List<String> userIds =
           Arrays.asList(
               "332a9527-3388-4207-be77-6d7e2978a723",
@@ -182,7 +182,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("Returns parts of the requested users")
-    public void getUser_testPartiallyOK() throws Exception {
+    void getUser_testPartiallyOK() throws Exception {
       List<String> userIds =
           Arrays.asList(
               "332a9527-3388-4207-be77-6d7e2978a723",
@@ -224,7 +224,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("Returns empty list")
-    public void getUser_testUserNotFound() throws Exception {
+    void getUser_testUserNotFound() throws Exception {
       List<String> userIds = Collections.singletonList("332a9527-3388-4207-be77-6d7e2978a722");
 
       MockHttpResponse mockHttpResponse =
@@ -239,7 +239,7 @@ public class UsersApiIT {
 
   @Nested
   @DisplayName("Gets user picture tests")
-  public class GetsUserPictureTests {
+  class GetsUserPictureTests {
 
     private String url(UUID userId) {
       return String.format("/users/%s/picture", userId);
@@ -247,7 +247,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("Given a user identifier, correctly returns the user picture")
-    public void getUserPicture_testOk() throws Exception {
+    void getUserPicture_testOk() throws Exception {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
 
@@ -274,7 +274,7 @@ public class UsersApiIT {
     @Test
     @DisplayName(
         "Given a user identifier, if the user is not authenticated returns status code 401")
-    public void getUserPicture_testErrorUnauthenticatedUser() throws Exception {
+    void getUserPicture_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.get(url(UUID.randomUUID()), null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -282,7 +282,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("Given a user identifier, if the user hasn't the picture returns status code 404")
-    public void getUserPicture_testErrorUserHasNoPicture() throws Exception {
+    void getUserPicture_testErrorUserHasNoPicture() throws Exception {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT);
       MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
       assertEquals(404, response.getStatus());
@@ -295,10 +295,16 @@ public class UsersApiIT {
     @Test
     @DisplayName(
         "Given a user identifier, if the storage hasn't the picture file returns status code 424")
-    public void getUserPicture_testErrorStorageHasNoPictureFile() throws Exception {
+    void getUserPicture_testErrorStorageHasNoPictureFile() throws Exception {
+      UUID fileId = UUID.randomUUID();
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.LINUS_VAN_PELT);
       integrationTestUtils.generateAndSaveFileMetadata(
-          account.getUUID(), FileMetadataType.USER_AVATAR, account.getUUID(), null);
+          fileId,
+          "User avatar",
+          "image/png",
+          FileMetadataType.USER_AVATAR,
+          account.getUUID(),
+          null);
       MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
       assertEquals(424, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -310,7 +316,7 @@ public class UsersApiIT {
 
   @Nested
   @DisplayName("Update user picture tests")
-  public class UpdateUserPictureTests {
+  class UpdateUserPictureTests {
 
     private String url(UUID userId) {
       return String.format("/users/%s/picture", userId);
@@ -318,7 +324,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("Given a user identifier and a picture file, correctly updates the user pictures")
-    public void updateUserPicture_testOk() throws Exception {
+    void updateUserPicture_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       clock.fixTimeAt(Instant.parse("2022-01-01T00:00:00Z"));
@@ -355,7 +361,7 @@ public class UsersApiIT {
     @DisplayName(
         "Given a user identifier and a picture file, if user is not authenticated returns status"
             + " code 401")
-    public void updateUserPicture_testErrorUnauthenticatedUser() throws Exception {
+    void updateUserPicture_testErrorUnauthenticatedUser() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       MockHttpResponse response =
           dispatcher.put(
@@ -377,7 +383,7 @@ public class UsersApiIT {
     @DisplayName(
         "Given a user identifier and a picture file, if X-Content-Disposition is missing returns"
             + " status code 400")
-    public void updateUserPicture_testErrorMissingXContentDisposition() throws Exception {
+    void updateUserPicture_testErrorMissingXContentDisposition() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN);
       MockHttpResponse response =
@@ -396,7 +402,7 @@ public class UsersApiIT {
     @DisplayName(
         "Given a user identifier and a picture file, if the identifier is not that of the"
             + " authenticated user returns status code 403")
-    public void updateUserPicture_testErrorUserIsNotTheAuthenticatedUser() throws Exception {
+    void updateUserPicture_testErrorUserIsNotTheAuthenticatedUser() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       MockUserProfile account1 = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       MockUserProfile account2 = MockedAccount.getAccount(MockedAccountType.PEPERITA_PATTY);
@@ -423,7 +429,7 @@ public class UsersApiIT {
     @DisplayName(
         "Given a ruser identifier and a picture file, if the image is too large returns status code"
             + " 400")
-    public void updateUserPicture_testErrorImageTooLarge() throws Exception {
+    void updateUserPicture_testErrorImageTooLarge() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.CHARLIE_BROWN_LARGE_IMAGE);
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN);
       MockHttpResponse response =
@@ -448,7 +454,7 @@ public class UsersApiIT {
     @DisplayName(
         "Given a user identifier and a picture file, if the file isn't an image returns status code"
             + " 400")
-    public void updateUserPicture_testErrorFileIsNotImage() throws Exception {
+    void updateUserPicture_testErrorFileIsNotImage() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.LUCY_VAN_PELT_PDF);
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT);
 
@@ -473,7 +479,7 @@ public class UsersApiIT {
 
   @Nested
   @DisplayName("Delete user picture tests")
-  public class DeleteUserPictureTests {
+  class DeleteUserPictureTests {
 
     private String url(UUID userId) {
       return String.format("/users/%s/picture", userId);
@@ -481,7 +487,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("Correctly deletes the user picture")
-    public void deleteUserPicture_testOk() throws Exception {
+    void deleteUserPicture_testOk() throws Exception {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(
@@ -505,7 +511,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("If the user is not authenticated, it returns status code 401")
-    public void deleteUserPicture_unauthenticatedUser() throws Exception {
+    void deleteUserPicture_unauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID()), null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -513,7 +519,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("If user is not the picture owner, it return a status code 403")
-    public void deleteUserPicture_userNotPictureOwner() throws Exception {
+    void deleteUserPicture_userNotPictureOwner() throws Exception {
       MockUserProfile snoopy = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       MockUserProfile charlie = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN);
 
@@ -524,7 +530,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("If the user hasn't its picture, it returns a status code 404")
-    public void deleteUserPicture_fileNotFound() throws Exception {
+    void deleteUserPicture_fileNotFound() throws Exception {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SCHROEDER);
       MockHttpResponse response = dispatcher.delete(url(account.getUUID()), account.getToken());
       assertEquals(404, response.getStatus());
@@ -537,13 +543,13 @@ public class UsersApiIT {
 
   @Nested
   @DisplayName("Gets user capabilities")
-  public class GetsUserCapabilities {
+  class GetsUserCapabilities {
 
     private static final String URL = "/users/capabilities";
 
     @Test
     @DisplayName("Returns default user capabilities")
-    public void getCapabilities_defaultValuesTestOk() throws Exception {
+    void getCapabilities_defaultValuesTestOk() throws Exception {
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       MockHttpResponse response = dispatcher.get(URL, account.getToken());
       assertEquals(200, response.getStatus());
@@ -564,7 +570,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("Returns configured user capabilities")
-    public void getCapabilities_configuredValuesTestOk() throws Exception {
+    void getCapabilities_configuredValuesTestOk() throws Exception {
       appConfig.set(ConfigName.CAN_VIDEO_CALL, "true");
       appConfig.set(ConfigName.CAN_VIDEO_CALL_RECORD, "false");
       appConfig.set(ConfigName.CAN_USE_VIRTUAL_BACKGROUND, "false");
@@ -607,7 +613,7 @@ public class UsersApiIT {
 
     @Test
     @DisplayName("If the user is not authenticated, it returns status code 401")
-    public void getCapabilities_unauthenticatedUser() throws Exception {
+    void getCapabilities_unauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.get(URL, null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
