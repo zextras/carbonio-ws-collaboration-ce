@@ -1732,6 +1732,7 @@ public class RoomsApiIT {
           roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveFileMetadata(
           fileMock, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
+      storageMockServer.mockDownload(fileMock, true);
 
       MockHttpResponse response = dispatcher.get(url(roomId), user1Token);
       assertEquals(200, response.getStatus());
@@ -1818,6 +1819,13 @@ public class RoomsApiIT {
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+      storageMockServer.mockUpload(
+          fileMock,
+          new StorageMockServer.UploadResponse()
+              .digest("")
+              .digestAlgorithm("")
+              .size(fileMock.getSize()),
+          true);
       String hoped =
           String.format(
                   "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
@@ -2059,6 +2067,7 @@ public class RoomsApiIT {
           OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       integrationTestUtils.generateAndSaveFileMetadata(
           fileMock, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
+      storageMockServer.mockDelete(fileMock.getId(), true);
 
       String hoped =
           String.format(
@@ -3541,6 +3550,13 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+      storageMockServer.mockUpload(
+          fileMock,
+          new StorageMockServer.UploadResponse()
+              .digest("")
+              .digestAlgorithm("")
+              .size(fileMock.getSize()),
+          true);
 
       String hoped =
           String.format(
@@ -3598,6 +3614,13 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+      storageMockServer.mockUpload(
+          fileMock,
+          new StorageMockServer.UploadResponse()
+              .digest("")
+              .digestAlgorithm("")
+              .size(fileMock.getSize()),
+          true);
 
       String hoped =
           String.format(
@@ -3659,6 +3682,13 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+      storageMockServer.mockUpload(
+          fileMock,
+          new StorageMockServer.UploadResponse()
+              .digest("")
+              .digestAlgorithm("")
+              .size(fileMock.getSize()),
+          true);
 
       String hoped =
           String.format(
@@ -3721,6 +3751,13 @@ public class RoomsApiIT {
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+      storageMockServer.mockUpload(
+          fileMock,
+          new StorageMockServer.UploadResponse()
+              .digest("")
+              .digestAlgorithm("")
+              .size(fileMock.getSize()),
+          true);
 
       String hoped =
           String.format(

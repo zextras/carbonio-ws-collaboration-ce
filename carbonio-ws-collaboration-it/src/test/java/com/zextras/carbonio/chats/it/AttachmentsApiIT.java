@@ -107,6 +107,7 @@ public class AttachmentsApiIT {
           fileMetadataRepository.save(
               integrationTestUtils.generateAndSaveFileMetadata(
                   fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
+      storageMockServer.mockDownload(fileMock, true);
 
       MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user1Token);
 
@@ -131,6 +132,7 @@ public class AttachmentsApiIT {
           fileMetadataRepository.save(
               integrationTestUtils.generateAndSaveFileMetadata(
                   fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
+      storageMockServer.mockDownload(fileMock, true);
 
       MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user1Token);
 
@@ -155,6 +157,7 @@ public class AttachmentsApiIT {
           fileMetadataRepository.save(
               integrationTestUtils.generateAndSaveFileMetadata(
                   fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
+      storageMockServer.mockDownload(fileMock, true);
 
       MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user1Token);
 
@@ -179,6 +182,7 @@ public class AttachmentsApiIT {
           fileMetadataRepository.save(
               integrationTestUtils.generateAndSaveFileMetadata(
                   fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
+      storageMockServer.mockDownload(fileMock, true);
 
       MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user1Token);
 
@@ -351,6 +355,7 @@ public class AttachmentsApiIT {
               FileMetadataType.ATTACHMENT,
               user2Id,
               roomId);
+      storageMockServer.mockDelete(fileMetadata.getId(), true);
 
       MockHttpResponse response = dispatcher.delete(url(fileMetadata.getId()), user2Token);
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
@@ -368,6 +373,7 @@ public class AttachmentsApiIT {
               FileMetadataType.ATTACHMENT,
               user2Id,
               roomId);
+      storageMockServer.mockDelete(fileMetadata.getId(), true);
 
       MockHttpResponse response = dispatcher.delete(url(fileMetadata.getId()), user1Token);
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());

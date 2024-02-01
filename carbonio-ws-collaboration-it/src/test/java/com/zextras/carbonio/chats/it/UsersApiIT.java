@@ -253,6 +253,7 @@ public class UsersApiIT {
 
       integrationTestUtils.generateAndSaveFileMetadata(
           fileMock, FileMetadataType.USER_AVATAR, account.getUUID(), null);
+      storageMockServer.mockDownload(fileMock, true);
 
       MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
       assertEquals(200, response.getStatus());
@@ -328,6 +329,13 @@ public class UsersApiIT {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
       clock.fixTimeAt(Instant.parse("2022-01-01T00:00:00Z"));
+      storageMockServer.mockUpload(
+          fileMock,
+          new StorageMockServer.UploadResponse()
+              .digest("")
+              .digestAlgorithm("")
+              .size(fileMock.getSize()),
+          true);
 
       MockHttpResponse response =
           dispatcher.put(
@@ -494,6 +502,7 @@ public class UsersApiIT {
           fileMock, FileMetadataType.USER_AVATAR, account.getUUID(), null);
       integrationTestUtils.generateAndSaveUser(
           account.getUUID(), "hello", OffsetDateTime.ofInstant(clock.instant(), clock.getZone()));
+      storageMockServer.mockDelete(fileMock.getId(), true);
 
       MockHttpResponse response = dispatcher.delete(url(account.getUUID()), account.getToken());
       assertEquals(204, response.getStatus());
