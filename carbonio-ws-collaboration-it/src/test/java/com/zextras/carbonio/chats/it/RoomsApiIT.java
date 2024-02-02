@@ -1775,7 +1775,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if the room hasn't the picture returns status code 404")
-    public void getRoomPicture_testErrorRoomHasNoPicture() throws Exception {
+    void getRoomPicture_testErrorRoomHasNoPicture() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -1791,11 +1791,10 @@ public class RoomsApiIT {
         "Given a room identifier, if the storage hasn't the picture file returns status code 424")
     void getRoomPicture_testErrorStorageHasNoPictureFile() throws Exception {
       UUID roomId = UUID.randomUUID();
-      UUID fileId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveFileMetadata(
-          fileId, "Room avatar", "image/png", FileMetadataType.ROOM_AVATAR, user1Id, roomId);
+          roomId, "Room avatar", "image/png", FileMetadataType.ROOM_AVATAR, user1Id, roomId);
       MockHttpResponse response = dispatcher.get(url(roomId), user1Token);
       assertEquals(424, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -2313,7 +2312,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Clear room for authenticated user tests")
-  public class ClearRoomForAuthenticatedUserTests {
+  class ClearRoomForAuthenticatedUserTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s/clear", roomId);

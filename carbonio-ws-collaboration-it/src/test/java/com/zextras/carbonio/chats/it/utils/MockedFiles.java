@@ -71,7 +71,7 @@ public class MockedFiles {
               .id(UUID.randomUUID())
               .size(5106L)
               .mimeType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-              .name("calc_xlsx"));
+              .name("calc.xlsx"));
 
   private static final Map<MockedFileType, FileMock> mapMockedPreviews =
       Map.of(

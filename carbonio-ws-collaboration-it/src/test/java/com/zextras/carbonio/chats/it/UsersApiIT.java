@@ -297,10 +297,9 @@ public class UsersApiIT {
     @DisplayName(
         "Given a user identifier, if the storage hasn't the picture file returns status code 424")
     void getUserPicture_testErrorStorageHasNoPictureFile() throws Exception {
-      UUID fileId = UUID.randomUUID();
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.LINUS_VAN_PELT);
       integrationTestUtils.generateAndSaveFileMetadata(
-          fileId,
+          account.getUUID(),
           "User avatar",
           "image/png",
           FileMetadataType.USER_AVATAR,
