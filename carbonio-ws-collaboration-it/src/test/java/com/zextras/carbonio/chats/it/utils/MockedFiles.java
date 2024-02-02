@@ -14,28 +14,73 @@ import java.util.UUID;
 
 public class MockedFiles {
 
-  private static final UUID snoopyId       = MockedAccount.getAccount(MockedAccountType.SNOOPY).getUUID();
-  private static final UUID charlieBrownId = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN).getUUID();
-  private static final UUID lucyVanPeltId = MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT).getUUID();
+  private static final UUID snoopyId = MockedAccount.getAccount(MockedAccountType.SNOOPY).getUUID();
+  private static final UUID charlieBrownId =
+      MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN).getUUID();
+  private static final UUID lucyVanPeltId =
+      MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT).getUUID();
 
-  private static final Map<MockedFileType, FileMock> mapMockedFile = Map.of(
-    MockedFileType.PEANUTS_IMAGE,
-    FileMock.create().id(UUID.randomUUID()).size(33786L).mimeType("image/jpg").name("peanuts.jpg"),
-    MockedFileType.PEANUTS_LARGE_IMAGE,
-    FileMock.create().id(UUID.randomUUID()).size(2664054L).mimeType("image/bmp").name("peanuts.bmp"),
-    MockedFileType.PEANUTS_PDF,
-    FileMock.create().id(UUID.randomUUID()).size(81694L).mimeType("application/pdf").name("peanuts.pdf"),
-    MockedFileType.SNOOPY_IMAGE, FileMock.create().id(snoopyId).size(13705).mimeType("image/jpg").name("snoopy.jpg"),
-    MockedFileType.CHARLIE_BROWN_LARGE_IMAGE,
-    FileMock.create().id(charlieBrownId).size(1920054L).mimeType("image/bmp").name("charlie-brown.bmp"),
-    MockedFileType.LUCY_VAN_PELT_PDF,
-    FileMock.create().id(lucyVanPeltId).size(143845L).mimeType("application/pdf").name("lucy-van-pelt.pdf")
-  );
+  private static final Map<MockedFileType, FileMock> mapMockedFile =
+      Map.of(
+          MockedFileType.PEANUTS_IMAGE,
+          FileMock.create()
+              .id(UUID.randomUUID())
+              .size(33786L)
+              .mimeType("image/jpg")
+              .name("peanuts.jpg"),
+          MockedFileType.PEANUTS_LARGE_IMAGE,
+          FileMock.create()
+              .id(UUID.randomUUID())
+              .size(2664054L)
+              .mimeType("image/bmp")
+              .name("peanuts.bmp"),
+          MockedFileType.PEANUTS_PDF,
+          FileMock.create()
+              .id(UUID.randomUUID())
+              .size(81694L)
+              .mimeType("application/pdf")
+              .name("peanuts.pdf"),
+          MockedFileType.SNOOPY_IMAGE,
+          FileMock.create().id(snoopyId).size(13705).mimeType("image/jpg").name("snoopy.jpg"),
+          MockedFileType.CHARLIE_BROWN_LARGE_IMAGE,
+          FileMock.create()
+              .id(charlieBrownId)
+              .size(1920054L)
+              .mimeType("image/bmp")
+              .name("charlie-brown.bmp"),
+          MockedFileType.LUCY_VAN_PELT_PDF,
+          FileMock.create()
+              .id(lucyVanPeltId)
+              .size(143845L)
+              .mimeType("application/pdf")
+              .name("lucy-van-pelt.pdf"),
+          MockedFileType.DOCUMENT_DOCX,
+          FileMock.create()
+              .id(UUID.randomUUID())
+              .size(9027L)
+              .mimeType("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+              .name("document.docx"),
+          MockedFileType.PRESENTATION_PPTX,
+          FileMock.create()
+              .id(UUID.randomUUID())
+              .size(165869L)
+              .mimeType("application/vnd.openxmlformats-officedocument.presentationml.presentation")
+              .name("presentation.pptx"),
+          MockedFileType.CALC_XLSX,
+          FileMock.create()
+              .id(UUID.randomUUID())
+              .size(5106L)
+              .mimeType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+              .name("calc.xlsx"));
 
-  private static final Map<MockedFileType, FileMock> mapMockedPreviews = Map.of(
-    MockedFileType.SNOOPY_PREVIEW,
-    FileMock.create().id(snoopyId).size(4408).mimeType("image/jpg").name("snoopy-preview.jpg")
-  );
+  private static final Map<MockedFileType, FileMock> mapMockedPreviews =
+      Map.of(
+          MockedFileType.SNOOPY_PREVIEW,
+          FileMock.create()
+              .id(snoopyId)
+              .size(4408)
+              .mimeType("image/jpg")
+              .name("snoopy-preview.jpg"));
 
   public static List<FileMock> getMockedFiles() {
     return new ArrayList<>(mapMockedFile.values());
@@ -60,13 +105,16 @@ public class MockedFiles {
     SNOOPY_IMAGE,
     SNOOPY_PREVIEW,
     CHARLIE_BROWN_LARGE_IMAGE,
-    LUCY_VAN_PELT_PDF
+    LUCY_VAN_PELT_PDF,
+    DOCUMENT_DOCX,
+    PRESENTATION_PPTX,
+    CALC_XLSX
   }
 
   public static class FileMock {
 
-    private UUID   id;
-    private long   size;
+    private UUID id;
+    private long size;
     private String mimeType;
     private String name;
 
@@ -115,9 +163,9 @@ public class MockedFiles {
     }
 
     public byte[] getFileBytes() throws IOException {
-      return Objects.requireNonNull(getClass().getResourceAsStream(String.format("/files/%s", name))).readAllBytes();
+      return Objects.requireNonNull(
+              getClass().getResourceAsStream(String.format("/files/%s", name)))
+          .readAllBytes();
     }
   }
-
-
 }

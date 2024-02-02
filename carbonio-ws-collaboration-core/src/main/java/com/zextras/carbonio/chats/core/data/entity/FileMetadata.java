@@ -32,7 +32,7 @@ public class FileMetadata {
   @Column(name = "ORIGINAL_SIZE", nullable = false)
   private Long originalSize;
 
-  @Column(name = "MIME_TYPE", length = 64, nullable = false)
+  @Column(name = "MIME_TYPE", length = 256, nullable = false)
   private String mimeType;
 
   @Column(name = "TYPE", length = 32, nullable = false)
@@ -139,9 +139,13 @@ public class FileMetadata {
       return false;
     }
     FileMetadata that = (FileMetadata) o;
-    return Objects.equals(id, that.id) && Objects.equals(name, that.name) && Objects.equals(
-      originalSize, that.originalSize) && Objects.equals(mimeType, that.mimeType) && type == that.type
-      && Objects.equals(userId, that.userId) && Objects.equals(roomId, that.roomId);
+    return Objects.equals(id, that.id)
+        && Objects.equals(name, that.name)
+        && Objects.equals(originalSize, that.originalSize)
+        && Objects.equals(mimeType, that.mimeType)
+        && type == that.type
+        && Objects.equals(userId, that.userId)
+        && Objects.equals(roomId, that.roomId);
   }
 
   @Override
