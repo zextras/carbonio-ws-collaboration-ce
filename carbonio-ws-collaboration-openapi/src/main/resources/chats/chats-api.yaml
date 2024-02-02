@@ -1229,6 +1229,7 @@ components:
         - one_to_one
         - workspace
         - channel
+        - temporary
     RoomEditableFields:
       type: object
       description: Room fields that can be updated

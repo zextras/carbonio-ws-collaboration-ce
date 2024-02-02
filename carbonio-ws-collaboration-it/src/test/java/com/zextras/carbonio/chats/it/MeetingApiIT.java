@@ -33,6 +33,7 @@ import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils.RoomMemberField;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
+import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.api.MeetingsApi;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
@@ -296,6 +297,11 @@ public class MeetingApiIT {
       assertEquals(false, meeting.isActive());
       assertEquals(MeetingTypeDto.SCHEDULED, meeting.getMeetingType());
       assertEquals("test", meeting.getName());
+
+      MockHttpResponse responseRoom =
+          dispatcher.get(String.format("/rooms/%s", meeting.getRoomId()), user1Token);
+      RoomDto room = objectMapper.readValue(responseRoom.getContentAsString(), RoomDto.class);
+      assertEquals(room.getType(), RoomTypeDto.TEMPORARY);
     }
 
     @Test
