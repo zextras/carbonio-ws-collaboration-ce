@@ -1,26 +1,26 @@
 services {
   checks = [
     {
-      id       = "ready",
-      http     = "http://127.78.0.4:10000/health/ready",
-      method   = "GET",
-      timeout  = "1s",
+      id       = "ready"
+      http     = "http://127.78.0.4:10000/health/ready"
+      method   = "GET"
+      timeout  = "1s"
       interval = "5s"
     },
     {
-      id       = "live",
-      http     = "http://127.78.0.4:10000/health/live",
-      method   = "GET",
-      timeout  = "1s",
+      id       = "live"
+      http     = "http://127.78.0.4:10000/health/live"
+      method   = "GET"
+      timeout  = "1s"
       interval = "5s"
     }
-  ],
+  ]
 
   connect {
     sidecar_service {
       proxy {
         local_service_address = "127.78.0.4"
-        upstreams             = [
+        upstreams = [
           {
             destination_name   = "carbonio-user-management"
             local_bind_address = "127.78.0.4"
