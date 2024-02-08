@@ -8,28 +8,25 @@ import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamChanged;
-import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantClashed;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoined;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
+import com.zextras.carbonio.chats.core.data.event.*;
+import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
+import com.zextras.carbonio.chats.core.repository.WaitingParticipantRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.JoinSettingsDto;
-import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
+import com.zextras.carbonio.meeting.model.*;
 import io.ebean.annotation.Transactional;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -42,6 +39,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   private final MeetingService meetingService;
   private final RoomService roomService;
   private final ParticipantRepository participantRepository;
+  private final WaitingParticipantRepository waitingParticipantRepository;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
 
@@ -50,18 +48,20 @@ public class ParticipantServiceImpl implements ParticipantService {
       MeetingService meetingService,
       RoomService roomService,
       ParticipantRepository participantRepository,
+      WaitingParticipantRepository waitingParticipantRepository,
       VideoServerService videoServerService,
       EventDispatcher eventDispatcher) {
     this.meetingService = meetingService;
     this.roomService = roomService;
     this.participantRepository = participantRepository;
+    this.waitingParticipantRepository = waitingParticipantRepository;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
   }
 
   @Override
   @Transactional
-  public void insertMeetingParticipant(
+  public JoinStatus insertMeetingParticipant(
       UUID meetingId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser) {
     Meeting meeting =
         meetingService
@@ -71,18 +71,20 @@ public class ParticipantServiceImpl implements ParticipantService {
                     new NotFoundException(
                         String.format("Meeting with id '%s' not found", meetingId)));
 
-    insertMeetingParticipant(meeting, joinSettingsDto, currentUser);
+    return insertMeetingParticipant(meeting, joinSettingsDto, currentUser);
   }
 
-  private void insertMeetingParticipant(
+  private JoinStatus insertMeetingParticipant(
       Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser) {
     Room room =
-        roomService.getRoomEntityAndCheckUser(
-            UUID.fromString(meeting.getRoomId()), currentUser, false);
-    meeting.getParticipants().stream()
+        roomService
+            .getRoomEntityWithoutChecks(UUID.fromString(meeting.getRoomId()))
+            .orElseThrow(
+                () -> new NotFoundException(String.format("Room '%s'", meeting.getRoomId())));
+    return meeting.getParticipants().stream()
         .filter(participant -> participant.getUserId().equals(currentUser.getId()))
         .findFirst()
-        .ifPresentOrElse(
+        .map(
             participant -> {
               if (participant.getQueueId().equals(currentUser.getQueueId().toString())) {
                 throw new ConflictException("User is already inserted into the meeting");
@@ -100,13 +102,130 @@ public class ParticipantServiceImpl implements ParticipantService {
                         .queueId(currentUser.getQueueId().toString()));
                 addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
               }
+              return JoinStatus.ACCEPTED;
+            })
+        .orElseGet(
+            () ->
+                switch (meeting.getMeetingType()) {
+                  case SCHEDULED:
+                    yield room.getSubscriptions().stream()
+                        .filter(s -> s.getUserId().equals(currentUser.getId()))
+                        .map(
+                            s -> {
+                              if (s.isOwner()) {
+                                participantRepository.insert(
+                                    Participant.create(meeting, currentUser.getId())
+                                        .queueId(currentUser.getQueueId().toString())
+                                        .createdAt(OffsetDateTime.now()));
+                                addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
+                                return JoinStatus.ACCEPTED;
+                              } else {
+                                return waitingParticipantRepository
+                                    .find(meeting.getId(), currentUser.getId(), null)
+                                    .stream()
+                                    .findFirst()
+                                    .map(
+                                        wp -> {
+                                          return switch (wp.getStatus()) {
+                                            case ACCEPTED:
+                                              participantRepository.insert(
+                                                  Participant.create(meeting, currentUser.getId())
+                                                      .queueId(currentUser.getQueueId().toString())
+                                                      .createdAt(OffsetDateTime.now()));
+                                              addMeetingParticipant(
+                                                  meeting, joinSettingsDto, currentUser, room);
+                                              yield JoinStatus.ACCEPTED;
+                                            case WAITING:
+                                              eventDispatcher.sendToUserQueue(
+                                                  currentUser.getId(),
+                                                  wp.getQueueId(),
+                                                  MeetingWaitingParticipantClashed.create()
+                                                      .meetingId(UUID.fromString(meeting.getId())));
+                                              wp.queueId(currentUser.getQueueId().toString());
+                                              waitingParticipantRepository.update(wp);
+                                              yield JoinStatus.WAITING;
+                                          };
+                                        })
+                                    .orElseGet(
+                                        () -> {
+                                          waitingParticipantRepository.insert(
+                                              meeting.getId(),
+                                              currentUser.getId(),
+                                              currentUser.getQueueId().toString());
+                                          return JoinStatus.WAITING;
+                                        });
+                              }
+                            })
+                        .findFirst()
+                        .orElseGet(
+                            () -> {
+                              waitingParticipantRepository.insert(
+                                  meeting.getId(),
+                                  currentUser.getId(),
+                                  currentUser.getQueueId().toString());
+                              return JoinStatus.WAITING;
+                            });
+                  case PERMANENT:
+                    room.getSubscriptions().stream()
+                        .filter(s -> s.getUserId().equals(currentUser.getId()))
+                        .findFirst()
+                        .orElseThrow(ForbiddenException::new);
+                    participantRepository.insert(
+                        Participant.create(meeting, currentUser.getId())
+                            .queueId(currentUser.getQueueId().toString())
+                            .createdAt(OffsetDateTime.now()));
+                    addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
+                    yield JoinStatus.ACCEPTED;
+                });
+  }
+
+  @Override
+  public List<UUID> getQueue(UUID meetingId) {
+    return waitingParticipantRepository
+        .find(meetingId.toString(), null, JoinStatus.WAITING)
+        .stream()
+        .map(wp -> UUID.fromString(wp.getUserId()))
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public void updateQueue(
+      UUID meetingId, UUID userId, QueuedUserStatusDto status, UserPrincipal currentUser) {
+    Meeting meeting =
+        meetingService
+            .getMeetingEntity(meetingId)
+            .orElseThrow(() -> new NotFoundException("Meeting not found"));
+    Room room =
+        roomService.getRoomEntityAndCheckUser(
+            UUID.fromString(meeting.getRoomId()), currentUser, true);
+    waitingParticipantRepository.find(meetingId.toString(), userId.toString(), null).stream()
+        .findFirst()
+        .ifPresentOrElse(
+            wp -> {
+              DomainEvent event =
+                  switch (status) {
+                    case ACCEPTED:
+                      wp.status(JoinStatus.ACCEPTED);
+                      waitingParticipantRepository.update(wp);
+                      yield MeetingWaitingParticipantAccepted.create()
+                          .meetingId(meetingId)
+                          .userId(UUID.fromString(wp.getUserId()));
+                    case REJECTED:
+                      waitingParticipantRepository.remove(wp);
+                      yield MeetingWaitingParticipantRejected.create()
+                          .meetingId(meetingId)
+                          .userId(UUID.fromString(wp.getUserId()));
+                  };
+              eventDispatcher.sendToUserExchange(
+                  room.getSubscriptions().stream()
+                      .filter(Subscription::isOwner)
+                      .map(Subscription::getUserId)
+                      .collect(Collectors.toList()),
+                  event);
+              eventDispatcher.sendToUserQueue(wp.getUserId(), wp.getQueueId(), event);
             },
             () -> {
-              participantRepository.insert(
-                  Participant.create(meeting, currentUser.getId())
-                      .queueId(currentUser.getQueueId().toString())
-                      .createdAt(OffsetDateTime.now()));
-              addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
+              throw new NotFoundException("User not in queue");
             });
   }
 
