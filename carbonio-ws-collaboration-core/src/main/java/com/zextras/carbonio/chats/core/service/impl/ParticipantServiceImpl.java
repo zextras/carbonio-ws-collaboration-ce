@@ -136,13 +136,9 @@ public class ParticipantServiceImpl implements ParticipantService {
                                                   meeting, joinSettingsDto, currentUser, room);
                                               yield JoinStatus.ACCEPTED;
                                             case WAITING:
-                                              eventDispatcher.sendToUserQueue(
-                                                  currentUser.getId(),
-                                                  wp.getQueueId(),
-                                                  MeetingWaitingParticipantClashed.create()
-                                                      .meetingId(UUID.fromString(meeting.getId())));
-                                              wp.queueId(currentUser.getQueueId().toString());
-                                              waitingParticipantRepository.update(wp);
+                                              // This case should never happen
+                                              // A user already inside the room should always have been accepted
+                                              // or be an Owner
                                               yield JoinStatus.WAITING;
                                           };
                                         })
@@ -158,13 +154,30 @@ public class ParticipantServiceImpl implements ParticipantService {
                             })
                         .findFirst()
                         .orElseGet(
-                            () -> {
-                              waitingParticipantRepository.insert(
-                                  meeting.getId(),
-                                  currentUser.getId(),
-                                  currentUser.getQueueId().toString());
-                              return JoinStatus.WAITING;
-                            });
+                            () ->
+                                waitingParticipantRepository
+                                    .find(meeting.getId(), currentUser.getId(), null)
+                                    .stream()
+                                    .findFirst()
+                                    .map(
+                                        wp -> {
+                                          eventDispatcher.sendToUserQueue(
+                                              currentUser.getId(),
+                                              wp.getQueueId(),
+                                              MeetingWaitingParticipantClashed.create()
+                                                  .meetingId(UUID.fromString(meeting.getId())));
+                                          wp.queueId(currentUser.getQueueId().toString());
+                                          waitingParticipantRepository.update(wp);
+                                          return JoinStatus.WAITING;
+                                        })
+                                    .orElseGet(
+                                        () -> {
+                                          waitingParticipantRepository.insert(
+                                              meeting.getId(),
+                                              currentUser.getId(),
+                                              currentUser.getQueueId().toString());
+                                          return JoinStatus.WAITING;
+                                        }));
                   case PERMANENT:
                     room.getSubscriptions().stream()
                         .filter(s -> s.getUserId().equals(currentUser.getId()))
