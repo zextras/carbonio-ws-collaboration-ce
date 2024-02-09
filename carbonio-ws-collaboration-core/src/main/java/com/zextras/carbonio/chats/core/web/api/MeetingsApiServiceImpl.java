@@ -138,8 +138,14 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     }
 
     return Response.status(Status.OK)
-            .entity(participantService.insertMeetingParticipant(meetingId, joinSettingsDto, currentUser))
-            .build();
+        .entity(
+            new JoinMeetingResultDto()
+                .status(
+                    QueuedUserStatusDto.fromString(
+                        participantService
+                            .insertMeetingParticipant(meetingId, joinSettingsDto, currentUser)
+                            .toString())))
+        .build();
   }
 
   /**
@@ -202,7 +208,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
 
-    Response res =  meetingService
+    return meetingService
         .getMeetingEntity(meetingId)
         .map(
             meeting -> {
@@ -213,10 +219,9 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
         .map(
             meeting ->
                 Response.status(Status.OK)
-                    .entity(participantService.getQueue(meetingId).stream().map(UUID::toString))
+                    .entity(new QueuedUsersDto().users(participantService.getQueue(meetingId)))
                     .build())
         .orElse(Response.status(Status.NOT_FOUND).build());
-    return res;
   }
 
   @Override

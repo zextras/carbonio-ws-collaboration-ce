@@ -354,6 +354,12 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/Meeting'
+    200JoinMeetingResponse:
+      description: The result of the join operation for the meeting
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JoinMeetingResult'
     200GetMeetingResponse:
       description: Gets the requested meeting data
       content:
@@ -377,9 +383,7 @@ components:
       content:
         application/json:
           schema:
-            type: array
-            items:
-              type: string
+            $ref: '#/components/schemas/QueuedUsers'
     204UpdateQueuedUserResponse:
       description: The queued user was updated successfully
     204DeleteMeetingResponse:
@@ -424,9 +428,23 @@ components:
           description: 'This field is only used for scheduled meetings to indicate when the meeting will
             no more be necessary'
           type: string
-          format: date-time
+          format: date-time      
       required:
-        - [ name, meetingType ]
+        - name
+        - meetingType
+    JoinMeetingResult:
+      type: object
+      properties: 
+        status: 
+          $ref: '#/components/schemas/QueuedUserStatus'
+    QueuedUsers:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            type: string
+            format: uuid
     Room:
       type: object
       description: Room data for a meeting
@@ -472,7 +490,7 @@ components:
       type: string
       enum:
         - ACCEPTED
-        - REJECTED
+        - WAITING
     Participant:
       description: Meeting participant data
       allOf:
