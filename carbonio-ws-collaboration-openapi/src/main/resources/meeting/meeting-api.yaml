@@ -111,8 +111,8 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/JoinMeetingRequest'
       responses:
-        204:
-          $ref: '#/components/responses/204JoinMeetingResponse'
+        200:
+          $ref: '#/components/responses/200JoinMeetingResponse'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
         403:
@@ -388,8 +388,6 @@ components:
       description: The queued user was updated successfully
     204DeleteMeetingResponse:
       description: The meeting was deleted successfully
-    204JoinMeetingResponse:
-      description: The user joined the meeting successfully
     204LeaveMeetingResponse:
       description: The user exited the meeting successfully
     204AudioStreamResponse:
