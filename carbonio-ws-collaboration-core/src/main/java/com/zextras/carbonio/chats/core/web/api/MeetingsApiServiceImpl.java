@@ -194,13 +194,12 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   }
 
   @Override
-  public Response getQueue(UUID meetingId, SecurityContext securityContext)
-      throws NotFoundException {
+  public Response getQueue(UUID meetingId, SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
 
-    return meetingService
+    Response res =  meetingService
         .getMeetingEntity(meetingId)
         .map(
             meeting -> {
@@ -214,6 +213,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
                     .entity(participantService.getQueue(meetingId).stream().map(UUID::toString))
                     .build())
         .orElse(Response.status(Status.NOT_FOUND).build());
+    return res;
   }
 
   @Override
