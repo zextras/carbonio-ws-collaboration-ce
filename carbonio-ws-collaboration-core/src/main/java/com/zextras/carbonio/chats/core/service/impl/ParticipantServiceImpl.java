@@ -242,6 +242,10 @@ public class ParticipantServiceImpl implements ParticipantService {
             });
   }
 
+  public void clearQueue(UUID meetingId){
+    waitingParticipantRepository.clear(meetingId.toString());
+  }
+
   private void addMeetingParticipant(
       Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser, Room room) {
     videoServerService.addMeetingParticipant(

@@ -380,7 +380,6 @@ components:
             type: array
             items:
               type: string
-              format: uuid
     204UpdateQueuedUserResponse:
       description: The queued user was updated successfully
     204DeleteMeetingResponse:

@@ -47,4 +47,10 @@ public interface WaitingParticipantRepository {
    * @return true if the deletion was successful, false otherwise
    */
   boolean remove(WaitingParticipant waitingParticipant);
+
+  /**
+   *
+   * @param meetingId the id of the meeting to clear the queue of
+   */
+  void clear(String meetingId);
 }

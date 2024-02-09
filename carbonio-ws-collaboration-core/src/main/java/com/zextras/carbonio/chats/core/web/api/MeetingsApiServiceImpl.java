@@ -16,6 +16,7 @@ import com.zextras.carbonio.meeting.model.*;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.core.Response;
@@ -135,8 +136,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     if (currentUser.getQueueId() == null) {
       throw new BadRequestException("Queue identifier is mandatory");
     }
-    participantService.insertMeetingParticipant(meetingId, joinSettingsDto, currentUser);
-    return Response.status(Status.NO_CONTENT).build();
+
+    return Response.status(Status.OK)
+            .entity(participantService.insertMeetingParticipant(meetingId, joinSettingsDto, currentUser))
+            .build();
   }
 
   /**

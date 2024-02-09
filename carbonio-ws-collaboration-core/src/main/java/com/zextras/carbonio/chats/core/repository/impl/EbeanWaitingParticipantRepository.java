@@ -35,13 +35,14 @@ public class EbeanWaitingParticipantRepository implements WaitingParticipantRepo
     Query<WaitingParticipant> query = db.find(WaitingParticipant.class);
     Option.of(meetingId).map(mId -> query.where().eq("meetingId", meetingId));
     Option.of(userId).map(mId -> query.where().eq("userId", userId));
-    Option.of(status).map(s -> query.where().eq("status",status.toString()));
+    Option.of(status).map(s -> query.where().eq("status", status.toString()));
     return query.findList();
   }
 
   @Override
   public WaitingParticipant insert(String meetingId, String userId, String queueId) {
-    WaitingParticipant wp = new WaitingParticipant()
+    WaitingParticipant wp =
+        new WaitingParticipant()
             .id(UUID.randomUUID().toString())
             .meetingId(meetingId)
             .userId(userId)
@@ -60,5 +61,9 @@ public class EbeanWaitingParticipantRepository implements WaitingParticipantRepo
   @Override
   public boolean remove(WaitingParticipant waitingParticipant) {
     return db.delete(waitingParticipant);
+  }
+
+  public void clear(String meetingId) {
+    db.find(WaitingParticipant.class).where().eq("meetingId", meetingId).delete();
   }
 }

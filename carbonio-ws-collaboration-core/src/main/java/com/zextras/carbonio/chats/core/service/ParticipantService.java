@@ -51,6 +51,12 @@ public interface ParticipantService {
   void updateQueue(UUID meetingId, UUID userId, QueuedUserStatusDto status, UserPrincipal currentUser);
 
   /**
+   * Clears the queue of a meeting, deleting all users accepted and waiting from the list
+   * @param meetingId the id of the meeting
+   */
+  void clearQueue(UUID meetingId);
+
+  /**
    * Removes the participant of current user from the indicated meeting
    *
    * @param meetingId identifier of the meeting from which to remove the participant {@link UUID}
