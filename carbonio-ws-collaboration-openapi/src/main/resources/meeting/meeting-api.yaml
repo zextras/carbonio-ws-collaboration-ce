@@ -436,7 +436,7 @@ components:
       type: object
       properties: 
         status: 
-          $ref: '#/components/schemas/QueuedUserStatus'
+          $ref: '#/components/schemas/JoinStatus'
     QueuedUsers:
       type: object
       properties:
@@ -486,7 +486,12 @@ components:
       enum:
         - moderator
         - registered
-    QueuedUserStatus:
+    QueueUpdateStatus:
+      type: string
+      enum:
+        - ACCEPTED
+        - REJECTED
+    JoinStatus:
       type: string
       enum:
         - ACCEPTED
@@ -632,4 +637,4 @@ components:
       description: Queued user update data
       properties:
         status:
-          $ref: '#/components/schemas/QueuedUserStatus'
+          $ref: '#/components/schemas/QueueUpdateStatus'

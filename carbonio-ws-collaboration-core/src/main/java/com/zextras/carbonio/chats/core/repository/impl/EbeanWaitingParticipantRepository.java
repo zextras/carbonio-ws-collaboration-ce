@@ -4,11 +4,8 @@
 
 package com.zextras.carbonio.chats.core.repository.impl;
 
-import com.zextras.carbonio.chats.core.data.entity.Participant;
-import com.zextras.carbonio.chats.core.data.entity.ParticipantId;
 import com.zextras.carbonio.chats.core.data.entity.WaitingParticipant;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
-import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.WaitingParticipantRepository;
 import io.ebean.Database;
 import io.ebean.Query;
@@ -17,7 +14,6 @@ import io.vavr.control.Option;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Singleton

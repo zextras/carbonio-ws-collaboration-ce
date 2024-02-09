@@ -48,7 +48,7 @@ public interface ParticipantService {
    * @param userId the id of the user in queue
    * @param status the action to perform
    */
-  void updateQueue(UUID meetingId, UUID userId, QueuedUserStatusDto status, UserPrincipal currentUser);
+  void updateQueue(UUID meetingId, UUID userId, QueueUpdateStatusDto status, UserPrincipal currentUser);
 
   /**
    * Clears the queue of a meeting, deleting all users accepted and waiting from the list

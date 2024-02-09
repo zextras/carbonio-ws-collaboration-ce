@@ -203,7 +203,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   @Override
   public void updateQueue(
-      UUID meetingId, UUID userId, QueuedUserStatusDto status, UserPrincipal currentUser) {
+      UUID meetingId, UUID userId, QueueUpdateStatusDto status, UserPrincipal currentUser) {
     Meeting meeting =
         meetingService
             .getMeetingEntity(meetingId)

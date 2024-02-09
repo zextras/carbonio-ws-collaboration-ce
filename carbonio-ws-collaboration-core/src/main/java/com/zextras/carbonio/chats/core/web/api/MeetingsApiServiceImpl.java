@@ -141,7 +141,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
         .entity(
             new JoinMeetingResultDto()
                 .status(
-                    QueuedUserStatusDto.fromString(
+                    JoinStatusDto.fromString(
                         participantService
                             .insertMeetingParticipant(meetingId, joinSettingsDto, currentUser)
                             .toString())))
