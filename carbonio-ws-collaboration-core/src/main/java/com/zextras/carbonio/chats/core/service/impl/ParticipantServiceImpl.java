@@ -17,16 +17,20 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.WaitingParticipantRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
+import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.meeting.model.*;
 import io.ebean.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -38,6 +42,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   private final MeetingService meetingService;
   private final RoomService roomService;
+  private final MembersService membersService;
   private final ParticipantRepository participantRepository;
   private final WaitingParticipantRepository waitingParticipantRepository;
   private final VideoServerService videoServerService;
@@ -47,12 +52,14 @@ public class ParticipantServiceImpl implements ParticipantService {
   public ParticipantServiceImpl(
       MeetingService meetingService,
       RoomService roomService,
+      MembersService membersService,
       ParticipantRepository participantRepository,
       WaitingParticipantRepository waitingParticipantRepository,
       VideoServerService videoServerService,
       EventDispatcher eventDispatcher) {
     this.meetingService = meetingService;
     this.roomService = roomService;
+    this.membersService = membersService;
     this.participantRepository = participantRepository;
     this.waitingParticipantRepository = waitingParticipantRepository;
     this.videoServerService = videoServerService;
@@ -78,7 +85,7 @@ public class ParticipantServiceImpl implements ParticipantService {
       Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser) {
     Room room =
         roomService
-            .getRoomEntityWithoutChecks(UUID.fromString(meeting.getRoomId()))
+            .getRoom(UUID.fromString(meeting.getRoomId()))
             .orElseThrow(
                 () -> new NotFoundException(String.format("Room '%s'", meeting.getRoomId())));
     return meeting.getParticipants().stream()
@@ -137,7 +144,8 @@ public class ParticipantServiceImpl implements ParticipantService {
                                               yield JoinStatus.ACCEPTED;
                                             case WAITING:
                                               // This case should never happen
-                                              // A user already inside the room should always have been accepted
+                                              // A user already inside the room should always have
+                                              // been accepted
                                               // or be an Owner
                                               yield JoinStatus.WAITING;
                                           };
@@ -161,14 +169,28 @@ public class ParticipantServiceImpl implements ParticipantService {
                                     .findFirst()
                                     .map(
                                         wp -> {
-                                          eventDispatcher.sendToUserQueue(
-                                              currentUser.getId(),
-                                              wp.getQueueId(),
-                                              MeetingWaitingParticipantClashed.create()
-                                                  .meetingId(UUID.fromString(meeting.getId())));
-                                          wp.queueId(currentUser.getQueueId().toString());
-                                          waitingParticipantRepository.update(wp);
-                                          return JoinStatus.WAITING;
+                                          return switch (wp.getStatus()) {
+                                            case ACCEPTED:
+                                              this.membersService.insertRoomMember(UUID.fromString(meeting.getRoomId()),
+                                                      new MemberToInsertDto().userId(UUID.fromString(currentUser.getId())),
+                                                      currentUser);
+                                              participantRepository.insert(
+                                                      Participant.create(meeting, currentUser.getId())
+                                                              .queueId(currentUser.getQueueId().toString())
+                                                              .createdAt(OffsetDateTime.now()));
+                                              addMeetingParticipant(
+                                                      meeting, joinSettingsDto, currentUser, room);
+                                              yield JoinStatus.ACCEPTED;
+                                            case WAITING:
+                                              eventDispatcher.sendToUserQueue(
+                                                      currentUser.getId(),
+                                                      wp.getQueueId(),
+                                                      MeetingWaitingParticipantClashed.create()
+                                                              .meetingId(UUID.fromString(meeting.getId())));
+                                              wp.queueId(currentUser.getQueueId().toString());
+                                              waitingParticipantRepository.update(wp);
+                                              yield JoinStatus.WAITING;
+                                          };
                                         })
                                     .orElseGet(
                                         () -> {
@@ -201,6 +223,14 @@ public class ParticipantServiceImpl implements ParticipantService {
         .collect(Collectors.toList());
   }
 
+  private boolean isOwner(Room room, String userId) {
+    return room.getSubscriptions().stream()
+        .filter(u -> u.getUserId().equals(userId))
+        .findFirst()
+        .map(Subscription::isOwner)
+        .orElse(false);
+  }
+
   @Override
   public void updateQueue(
       UUID meetingId, UUID userId, QueueUpdateStatusDto status, UserPrincipal currentUser) {
@@ -209,8 +239,21 @@ public class ParticipantServiceImpl implements ParticipantService {
             .getMeetingEntity(meetingId)
             .orElseThrow(() -> new NotFoundException("Meeting not found"));
     Room room =
-        roomService.getRoomEntityAndCheckUser(
-            UUID.fromString(meeting.getRoomId()), currentUser, true);
+        roomService
+            .getRoom(UUID.fromString(meeting.getRoomId()))
+            .orElseThrow(
+                () -> {
+                  ChatsLogger.error(
+                      "Not found room %s associated with meeting %s"
+                          .formatted(meeting.getRoomId(), meetingId));
+                  return new RuntimeException();
+                });
+    boolean moderator = isOwner(room, currentUser.getId());
+    if (status.equals(QueueUpdateStatusDto.ACCEPTED) && !moderator
+        || status.equals(QueueUpdateStatusDto.REJECTED)
+            && (!moderator && !Objects.equals(userId.toString(), currentUser.getId()))) {
+      throw new ForbiddenException();
+    }
     waitingParticipantRepository.find(meetingId.toString(), userId.toString(), null).stream()
         .findFirst()
         .ifPresentOrElse(
@@ -242,7 +285,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             });
   }
 
-  public void clearQueue(UUID meetingId){
+  public void clearQueue(UUID meetingId) {
     waitingParticipantRepository.clear(meetingId.toString());
   }
 

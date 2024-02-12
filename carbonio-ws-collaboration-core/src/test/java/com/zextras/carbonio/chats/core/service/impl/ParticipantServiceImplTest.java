@@ -37,6 +37,7 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Med
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.WaitingParticipantRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
+import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -62,6 +63,7 @@ public class ParticipantServiceImplTest {
   private final ParticipantService participantService;
   private final MeetingService meetingService;
   private final RoomService roomService;
+  private final MembersService membersService;
   private final ParticipantRepository participantRepository;
   private final WaitingParticipantRepository waitingParticipantRepository;
   private final VideoServerService videoServerService;
@@ -70,6 +72,7 @@ public class ParticipantServiceImplTest {
   public ParticipantServiceImplTest() {
     this.meetingService = mock(MeetingService.class);
     this.roomService = mock(RoomService.class);
+    this.membersService = mock(MembersService.class);
     this.participantRepository = mock(ParticipantRepository.class);
     this.waitingParticipantRepository = mock(WaitingParticipantRepository.class);
     this.videoServerService = mock(VideoServerService.class);
@@ -78,6 +81,7 @@ public class ParticipantServiceImplTest {
         new ParticipantServiceImpl(
             this.meetingService,
             this.roomService,
+            this.membersService,
             this.participantRepository,
             this.waitingParticipantRepository,
             this.videoServerService,
@@ -179,7 +183,7 @@ public class ParticipantServiceImplTest {
     public void insertMeetingParticipant_testOk() {
       UserPrincipal currentUser = UserPrincipal.create(user3Id).queueId(user3Queue1);
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
-      when(roomService.getRoomEntityWithoutChecks(roomId)).thenReturn(Optional.of(room));
+      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
 
       participantService.insertMeetingParticipant(
           meeting1Id,
@@ -187,7 +191,7 @@ public class ParticipantServiceImplTest {
           currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
-      verify(roomService, times(1)).getRoomEntityWithoutChecks(roomId);
+      verify(roomService, times(1)).getRoom(roomId);
       verify(participantRepository, times(1))
           .insert(
               Participant.create(meeting1, user3Id.toString())
@@ -210,7 +214,7 @@ public class ParticipantServiceImplTest {
       UUID newQueue = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(newQueue);
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
-      when(roomService.getRoomEntityWithoutChecks(roomId)).thenReturn(Optional.of(room));
+      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
 
       participantService.insertMeetingParticipant(
           meeting1Id,
@@ -219,7 +223,7 @@ public class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
 
-      verify(roomService, times(1)).getRoomEntityWithoutChecks(roomId);
+      verify(roomService, times(1)).getRoom(roomId);
       verify(videoServerService, times(1))
           .destroyMeetingParticipant(user2Id.toString(), meeting1Id.toString());
       verify(eventDispatcher, times(1))
@@ -255,7 +259,7 @@ public class ParticipantServiceImplTest {
     public void insertMeetingParticipant_testIsAlreadyMeetingParticipant() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
       when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
-      when(roomService.getRoomEntityWithoutChecks(roomId)).thenReturn(Optional.of(room));
+      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
       ChatsHttpException exception =
           assertThrows(
               ConflictException.class,
@@ -270,7 +274,7 @@ public class ParticipantServiceImplTest {
       assertEquals("Conflict - User is already inserted into the meeting", exception.getMessage());
 
       verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
-      verify(roomService, times(1)).getRoomEntityWithoutChecks(roomId);
+      verify(roomService, times(1)).getRoom(roomId);
       verifyNoMoreInteractions(roomService, meetingService);
       verifyNoInteractions(participantRepository, videoServerService, eventDispatcher);
     }

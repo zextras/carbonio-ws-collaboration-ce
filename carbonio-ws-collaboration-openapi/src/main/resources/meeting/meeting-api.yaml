@@ -14,6 +14,17 @@ servers:
 tags:
   - name: Meetings
 paths:
+  /public/meetings/{meetingId}:
+    get:
+      tags:
+        - Meetings
+      summary: Retrieves public data of the meeting
+      operationId: getMeetingPublic
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      responses:
+        200:
+          $ref: '#/components/responses/200GetPublicMeetingResponse'
   /meetings:
     get:
       tags:
@@ -366,6 +377,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Meeting'
+    200GetPublicMeetingResponse:
+      description: Gets the public data of a meeting
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PublicMeeting'
     200StartMeetingResponse:
       description: The meeting was started successfully
       content:
@@ -552,6 +569,13 @@ components:
           description: entity creation date
         meetingType:
           $ref: '#/components/schemas/MeetingType'
+    PublicMeeting:
+      type: object
+      description: public Meeting data
+      properties:
+        name:
+          type: string
+          description: the Meeting name
     JoinSettings:
       type: object
       description: user's streams settings to join a meeting
