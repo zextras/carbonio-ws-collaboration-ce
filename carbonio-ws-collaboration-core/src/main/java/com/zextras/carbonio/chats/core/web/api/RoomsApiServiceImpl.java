@@ -260,7 +260,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
     return Response.status(Status.CREATED)
-        .entity(membersService.insertRoomMember(roomId, memberToInsertDto, currentUser))
+        .entity(membersService.insertRoomMember(roomId, memberToInsertDto, currentUser, false))
         .build();
   }
 
