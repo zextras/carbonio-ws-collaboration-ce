@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -33,7 +32,6 @@ import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils.RoomMemberField;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
-import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.api.MeetingsApi;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
@@ -43,7 +41,6 @@ import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.MeetingTypeDto;
-import com.zextras.carbonio.meeting.model.MeetingUserDto;
 import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
 import com.zextras.carbonio.meeting.model.SessionDescriptionProtocolDto;
@@ -60,7 +57,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockserver.model.Header;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
 import org.mockserver.model.JsonBody;
@@ -261,47 +257,6 @@ public class MeetingApiIT {
       assertEquals(false, meeting.isActive());
       assertEquals(MeetingTypeDto.PERMANENT, meeting.getMeetingType());
       assertEquals("test", meeting.getName());
-    }
-
-    @Test
-    @DisplayName("Create a meeting from a list of Users")
-    void createMeetingUsers_testOk() throws Exception {
-      mongooseImMockServer
-          .when(
-              request()
-                  .withMethod("POST")
-                  .withPath("/api/graphql")
-                  .withHeaders(Header.header("Authorization", "Basic dXNlcm5hbWU6cGFzc3dvcmQ=")))
-          .respond(
-              response()
-                  .withStatusCode(200)
-                  .withBody("{ \"data\": { \"mock\": \"success\" } }")
-                  .withHeaders(
-                      Header.header("Authorization", "Basic dXNlcm5hbWU6cGFzc3dvcmQ="),
-                      Header.header("Accept", "application/json")));
-      MockHttpResponse response =
-          dispatcher.post(
-              URL,
-              objectMapper.writeValueAsString(
-                  NewMeetingDataDto.create()
-                      .name("test")
-                      .meetingType(MeetingTypeDto.SCHEDULED)
-                      .users(
-                          List.of(
-                              MeetingUserDto.create().userId(user2Id),
-                              MeetingUserDto.create().userId(user3Id)))),
-              user1Token);
-      assertEquals(200, response.getStatus());
-      MeetingDto meeting =
-          objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
-      assertEquals(false, meeting.isActive());
-      assertEquals(MeetingTypeDto.SCHEDULED, meeting.getMeetingType());
-      assertEquals("test", meeting.getName());
-
-      MockHttpResponse responseRoom =
-          dispatcher.get(String.format("/rooms/%s", meeting.getRoomId()), user1Token);
-      RoomDto room = objectMapper.readValue(responseRoom.getContentAsString(), RoomDto.class);
-      assertEquals(room.getType(), RoomTypeDto.TEMPORARY);
     }
 
     @Test

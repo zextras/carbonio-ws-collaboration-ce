@@ -22,12 +22,8 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
-import com.zextras.carbonio.chats.model.RoomDto;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.MeetingTypeDto;
-import com.zextras.carbonio.meeting.model.MeetingUserDto;
 import io.ebean.annotation.Transactional;
 import io.vavr.control.Option;
 import java.time.OffsetDateTime;
@@ -71,56 +67,28 @@ public class MeetingServiceImpl implements MeetingService {
       String name,
       MeetingTypeDto meetingType,
       UUID roomId,
-      List<MeetingUserDto> users,
       OffsetDateTime expiration) {
     return meetingMapper.ent2dto(
-        Option.of(roomId)
+        Option.of(roomService.getRoomEntityAndCheckUser(roomId, user, false))
             .map(
-                rId ->
-                    Option.of(roomService.getRoomEntityAndCheckUser(roomId, user, false))
-                        .map(
-                            room -> {
-                              Meeting meeting =
-                                  meetingRepository.insert(
-                                      name,
-                                      MeetingType.valueOf(meetingType.toString().toUpperCase()),
-                                      rId,
-                                      null);
-                              roomService.setMeetingIntoRoom(room, meeting);
-                              eventDispatcher.sendToUserExchange(
-                                  room.getSubscriptions().stream()
-                                      .map(Subscription::getUserId)
-                                      .collect(Collectors.toList()),
-                                  MeetingCreated.create()
-                                      .meetingId(UUID.fromString(meeting.getId()))
-                                      .roomId(roomId));
-                              return meeting;
-                            })
-                        .getOrElseThrow(() -> new RuntimeException("Room not found")))
-            .getOrElse(
-                () -> {
-                  List<UUID> userIds =
-                      users.stream().map(MeetingUserDto::getUserId).collect(Collectors.toList());
-                  RoomDto room =
-                      roomService.createRoom(
-                          RoomCreationFieldsDto.create()
-                              .name(name)
-                              .type(RoomTypeDto.TEMPORARY)
-                              .membersIds(userIds),
-                          user);
+                room -> {
                   Meeting meeting =
                       meetingRepository.insert(
                           name,
                           MeetingType.valueOf(meetingType.toString().toUpperCase()),
-                          room.getId(),
-                          expiration);
+                          UUID.fromString(room.getId()),
+                          null);
+                  roomService.setMeetingIntoRoom(room, meeting);
                   eventDispatcher.sendToUserExchange(
-                      userIds.stream().map(UUID::toString).collect(Collectors.toList()),
+                      room.getSubscriptions().stream()
+                          .map(Subscription::getUserId)
+                          .collect(Collectors.toList()),
                       MeetingCreated.create()
                           .meetingId(UUID.fromString(meeting.getId()))
                           .roomId(roomId));
                   return meeting;
-                }));
+                })
+            .getOrElseThrow(() -> new RuntimeException("Room not found")));
   }
 
   @Override
