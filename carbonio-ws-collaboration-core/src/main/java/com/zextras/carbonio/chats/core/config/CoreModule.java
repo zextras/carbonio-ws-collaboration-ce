@@ -78,13 +78,7 @@ import com.zextras.carbonio.chats.core.service.impl.ParticipantServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.PreviewServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
-import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
-import com.zextras.carbonio.chats.core.web.api.AuthApiServiceImpl;
-import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
-import com.zextras.carbonio.chats.core.web.api.MeetingsApiServiceImpl;
-import com.zextras.carbonio.chats.core.web.api.PreviewApiServiceImpl;
-import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
-import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.*;
 import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
@@ -96,6 +90,8 @@ import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.meeting.api.MeetingsApi;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
+import com.zextras.carbonio.meeting.api.PublicApi;
+import com.zextras.carbonio.meeting.api.PublicApiService;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.storages.api.StoragesClient;
@@ -168,6 +164,9 @@ public class CoreModule extends AbstractModule {
     bind(MeetingService.class).to(MeetingServiceImpl.class);
     bind(MeetingRepository.class).to(EbeanMeetingRepository.class);
     bind(MeetingMapper.class).to(MeetingMapperImpl.class);
+
+    bind(PublicApi.class);
+    bind(PublicApiService.class).to(PublicMeetingsApiServiceImpl.class);
 
     bind(ParticipantService.class).to(ParticipantServiceImpl.class);
     bind(ParticipantRepository.class).to(EbeanParticipantRepository.class);
