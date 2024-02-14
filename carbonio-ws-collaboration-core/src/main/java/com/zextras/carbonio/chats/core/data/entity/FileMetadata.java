@@ -31,7 +31,7 @@ public class FileMetadata {
   @Column(name = "ORIGINAL_SIZE", nullable = false)
   private Long originalSize;
 
-  @Column(name = "MIME_TYPE", length = 64, nullable = false)
+  @Column(name = "MIME_TYPE", length = 256, nullable = false)
   private String mimeType;
 
   @Column(name = "TYPE", length = 32, nullable = false)

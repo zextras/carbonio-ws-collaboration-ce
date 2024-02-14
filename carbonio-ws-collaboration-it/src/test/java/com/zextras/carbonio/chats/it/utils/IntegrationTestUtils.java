@@ -29,18 +29,19 @@ import javax.inject.Inject;
 
 public class IntegrationTestUtils {
 
-  private final RoomRepository             roomRepository;
-  private final FileMetadataRepository     fileMetadataRepository;
-  private final UserRepository             userRepository;
+  private final RoomRepository roomRepository;
+  private final FileMetadataRepository fileMetadataRepository;
+  private final UserRepository userRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
-  private final Clock                      clock;
+  private final Clock clock;
 
   @Inject
   public IntegrationTestUtils(
-    RoomRepository roomRepository, FileMetadataRepository fileMetadataRepository, UserRepository userRepository,
-    RoomUserSettingsRepository roomUserSettingsRepository,
-    Clock clock
-  ) {
+      RoomRepository roomRepository,
+      FileMetadataRepository fileMetadataRepository,
+      UserRepository userRepository,
+      RoomUserSettingsRepository roomUserSettingsRepository,
+      Clock clock) {
     this.roomRepository = roomRepository;
     this.fileMetadataRepository = fileMetadataRepository;
     this.userRepository = userRepository;
@@ -48,48 +49,70 @@ public class IntegrationTestUtils {
     this.clock = clock;
   }
 
-  public Room generateAndSaveRoom(UUID id, RoomTypeDto type, @Nullable String name, List<UUID> usersIds) {
-    return generateAndSaveRoom(id, type, name, usersIds,
-      RoomTypeDto.ONE_TO_ONE.equals(type) ? usersIds : List.of(usersIds.get(0)),
-      null, null);
+  public Room generateAndSaveRoom(
+      UUID id, RoomTypeDto type, @Nullable String name, List<UUID> usersIds) {
+    return generateAndSaveRoom(
+        id,
+        type,
+        name,
+        usersIds,
+        RoomTypeDto.ONE_TO_ONE.equals(type) ? usersIds : List.of(usersIds.get(0)),
+        null,
+        null);
   }
 
   public Room generateAndSaveRoom(
-    UUID id, RoomTypeDto type, @Nullable String name, List<UUID> usersIds, List<UUID> ownerIds,
-    @Nullable List<UUID> mutedIds, @Nullable OffsetDateTime pictureUpdateTimestamp
-  ) {
-    return generateAndSaveRoom(id, type, name, null, usersIds, ownerIds, mutedIds, pictureUpdateTimestamp);
+      UUID id,
+      RoomTypeDto type,
+      @Nullable String name,
+      List<UUID> usersIds,
+      List<UUID> ownerIds,
+      @Nullable List<UUID> mutedIds,
+      @Nullable OffsetDateTime pictureUpdateTimestamp) {
+    return generateAndSaveRoom(
+        id, type, name, null, usersIds, ownerIds, mutedIds, pictureUpdateTimestamp);
   }
 
   public Room generateAndSaveRoom(
-    UUID id, RoomTypeDto type, @Nullable String name, @Nullable String description, List<UUID> usersIds,
-    List<UUID> ownerIds, @Nullable List<UUID> mutedIds, @Nullable OffsetDateTime pictureUpdateTimestamp
-  ) {
+      UUID id,
+      RoomTypeDto type,
+      @Nullable String name,
+      @Nullable String description,
+      List<UUID> usersIds,
+      List<UUID> ownerIds,
+      @Nullable List<UUID> mutedIds,
+      @Nullable OffsetDateTime pictureUpdateTimestamp) {
     Room room = Room.create();
-    room
-      .id(id.toString())
-      .name(name)
-      .description(description)
-      .type(type)
-      .subscriptions(usersIds.stream().map(userId ->
-        Subscription.create()
-          .id(new SubscriptionId(room.getId(), userId.toString()))
-          .userId(userId.toString())
-          .room(room)
-          .joinedAt(OffsetDateTime.now())
-      ).collect(Collectors.toList()));
-    ownerIds.forEach(ownerId ->
-      room.getSubscriptions().stream().filter(subscription ->
-        subscription.getUserId().equals(ownerId.toString())).findAny().ifPresent(s ->
-        s.owner(true)
-      ));
+    room.id(id.toString())
+        .name(name)
+        .description(description)
+        .type(type)
+        .subscriptions(
+            usersIds.stream()
+                .map(
+                    userId ->
+                        Subscription.create()
+                            .id(new SubscriptionId(room.getId(), userId.toString()))
+                            .userId(userId.toString())
+                            .room(room)
+                            .joinedAt(OffsetDateTime.now()))
+                .collect(Collectors.toList()));
+    ownerIds.forEach(
+        ownerId ->
+            room.getSubscriptions().stream()
+                .filter(subscription -> subscription.getUserId().equals(ownerId.toString()))
+                .findAny()
+                .ifPresent(s -> s.owner(true)));
     room.userSettings(new ArrayList<>());
-    Optional.ofNullable(mutedIds).ifPresent(ids ->
-      mutedIds.forEach(mutedId ->
-        room.getUserSettings().add(
-          RoomUserSettings.create(room, mutedId.toString())
-            .mutedUntil(OffsetDateTime.parse("0001-01-01T00:00:00Z"))
-        )));
+    Optional.ofNullable(mutedIds)
+        .ifPresent(
+            ids ->
+                mutedIds.forEach(
+                    mutedId ->
+                        room.getUserSettings()
+                            .add(
+                                RoomUserSettings.create(room, mutedId.toString())
+                                    .mutedUntil(OffsetDateTime.parse("0001-01-01T00:00:00Z")))));
     Optional.ofNullable(pictureUpdateTimestamp).ifPresent(room::pictureUpdatedAt);
 
     return roomRepository.insert(room);
@@ -97,31 +120,33 @@ public class IntegrationTestUtils {
 
   public Room generateAndSaveRoom(UUID roomId, RoomTypeDto type, List<RoomMemberField> members) {
     return generateAndSaveRoom(
-      Room.create()
-        .id(roomId.toString())
-        .name("name")
-        .description("description")
-        .type(type), members);
+        Room.create().id(roomId.toString()).name("name").description("description").type(type),
+        members);
   }
 
   public Room generateAndSaveRoom(Room room, List<RoomMemberField> members) {
     room.subscriptions(new ArrayList<>());
     room.userSettings(new ArrayList<>());
-    members.forEach(member -> {
-      room.getSubscriptions().add(
-        Subscription.create()
-          .id(new SubscriptionId(room.getId(), member.getId().toString()))
-          .userId(member.getId().toString())
-          .room(room)
-          .owner(member.isOwner())
-          .joinedAt(OffsetDateTime.now()));
+    members.forEach(
+        member -> {
+          room.getSubscriptions()
+              .add(
+                  Subscription.create()
+                      .id(new SubscriptionId(room.getId(), member.getId().toString()))
+                      .userId(member.getId().toString())
+                      .room(room)
+                      .owner(member.isOwner())
+                      .joinedAt(OffsetDateTime.now()));
 
-      if (member.isMuted() || member.getRank() != null) {
-        room.getUserSettings().add(RoomUserSettings.create(room, member.getId().toString())
-          .mutedUntil(member.isMuted() ? OffsetDateTime.parse("0001-01-01T00:00:00Z") : null)
-          .rank(member.getRank()));
-      }
-    });
+          if (member.isMuted() || member.getRank() != null) {
+            room.getUserSettings()
+                .add(
+                    RoomUserSettings.create(room, member.getId().toString())
+                        .mutedUntil(
+                            member.isMuted() ? OffsetDateTime.parse("0001-01-01T00:00:00Z") : null)
+                        .rank(member.getRank()));
+          }
+        });
     return roomRepository.insert(room);
   }
 
@@ -131,10 +156,10 @@ public class IntegrationTestUtils {
 
   public static class RoomMemberField {
 
-    private UUID    id;
+    private UUID id;
     private boolean owner = false;
     private boolean muted = false;
-    private Integer rank  = null;
+    private Integer rank = null;
 
     public static RoomMemberField create() {
       return new RoomMemberField();
@@ -182,31 +207,34 @@ public class IntegrationTestUtils {
   }
 
   public FileMetadata generateAndSaveFileMetadata(
-    UUID fileId, FileMetadataType fileType, UUID userId, @Nullable UUID roomId
-  ) {
+      UUID fileId,
+      String name,
+      String mimeType,
+      FileMetadataType fileType,
+      UUID userId,
+      @Nullable UUID roomId) {
     return fileMetadataRepository.save(
-      FileMetadata.create()
-        .id(fileId.toString())
-        .name("name")
-        .originalSize(0L)
-        .mimeType("mimetype")
-        .type(fileType)
-        .userId(userId.toString())
-        .roomId(roomId == null ? null : roomId.toString()));
+        FileMetadata.create()
+            .id(fileId.toString())
+            .name(name)
+            .originalSize(0L)
+            .mimeType(mimeType)
+            .type(fileType)
+            .userId(userId.toString())
+            .roomId(roomId == null ? null : roomId.toString()));
   }
 
   public FileMetadata generateAndSaveFileMetadata(
-    FileMock fileMock, FileMetadataType fileType, UUID userId, @Nullable UUID roomId
-  ) {
+      FileMock fileMock, FileMetadataType fileType, UUID userId, @Nullable UUID roomId) {
     return fileMetadataRepository.save(
-      FileMetadata.create()
-        .id(fileMock.getId())
-        .name(fileMock.getName())
-        .originalSize(fileMock.getSize())
-        .mimeType(fileMock.getMimeType())
-        .type(fileType)
-        .userId(userId.toString())
-        .roomId(roomId == null ? null : roomId.toString()));
+        FileMetadata.create()
+            .id(fileMock.getId())
+            .name(fileMock.getName())
+            .originalSize(fileMock.getSize())
+            .mimeType(fileMock.getMimeType())
+            .type(fileType)
+            .userId(userId.toString())
+            .roomId(roomId == null ? null : roomId.toString()));
   }
 
   public List<FileMetadata> getFileMetadataByRoomIdAndType(UUID roomId, FileMetadataType type) {
@@ -223,11 +251,10 @@ public class IntegrationTestUtils {
 
   public User generateAndSaveUser(UUID id, String statusMessage, OffsetDateTime pictureUpdatedAt) {
     return userRepository.save(
-      User.create()
-        .id(id.toString())
-        .statusMessage(statusMessage)
-        .pictureUpdatedAt(pictureUpdatedAt)
-    );
+        User.create()
+            .id(id.toString())
+            .statusMessage(statusMessage)
+            .pictureUpdatedAt(pictureUpdatedAt));
   }
 
   public Optional<RoomUserSettings> getRoomUserSettings(UUID roomId, UUID userId) {

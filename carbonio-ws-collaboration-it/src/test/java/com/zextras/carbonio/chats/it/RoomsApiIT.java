@@ -139,7 +139,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Gets rooms list tests")
-  public class GetsRoomsListTests {
+  class GetsRoomsListTests {
 
     private String url(@Nullable Map<String, List<String>> queryParams) {
       StringBuilder url = new StringBuilder();
@@ -158,7 +158,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Correctly gets the basic rooms of authenticated user")
-    public void listRoom_testOkBasicRooms() throws Exception {
+    void listRoom_testOkBasicRooms() throws Exception {
       UUID group1Id = UUID.randomUUID();
       UUID group2Id = UUID.randomUUID();
       UUID workspace1Id = UUID.randomUUID();
@@ -241,7 +241,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Correctly gets the rooms list with members of authenticated user")
-    public void listRoom_testOkWithMembers() throws Exception {
+    void listRoom_testOkWithMembers() throws Exception {
       UUID room1Id = UUID.randomUUID();
       UUID room2Id = UUID.randomUUID();
       UUID workspace1Id = UUID.randomUUID();
@@ -324,7 +324,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Correctly gets the rooms list with user settings of authenticated user")
-    public void listRoom_testOkWithUserSettings() throws Exception {
+    void listRoom_testOkWithUserSettings() throws Exception {
       UUID room1Id = UUID.randomUUID();
       UUID room2Id = UUID.randomUUID();
       UUID workspace1Id = UUID.randomUUID();
@@ -411,7 +411,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Correctly gets the complete rooms list of authenticated user")
-    public void listRoom_testOkCompleteRooms() throws Exception {
+    void listRoom_testOkCompleteRooms() throws Exception {
       UUID room1Id = UUID.randomUUID();
       UUID room2Id = UUID.randomUUID();
       UUID workspace1Id = UUID.randomUUID();
@@ -494,7 +494,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Correctly returns an empty list if the authenticated user isn't a member for any room")
-    public void listRoom_testNoRooms() throws Exception {
+    void listRoom_testNoRooms() throws Exception {
       MockHttpResponse response = dispatcher.get(url(null), user1Token);
       assertEquals(200, response.getStatus());
       List<RoomDto> rooms =
@@ -505,7 +505,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("If there isn't an authenticated user return a status code 401")
-    public void listRoom_testErrorUnauthenticatedUser() throws Exception {
+    void listRoom_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.get(url(null), null);
 
       assertEquals(401, response.getStatus());
@@ -515,17 +515,17 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Insert room tests")
-  public class InsertRoomTests {
+  class InsertRoomTests {
 
     private static final String URL = "/rooms";
 
     @Nested
     @DisplayName("Insert group room tests")
-    public class InsertGroupRoomTests {
+    class InsertGroupRoomTests {
 
       @Test
       @DisplayName("Given creation fields, inserts a new group room and returns its data")
-      public void insertGroupRoom_testOk() throws Exception {
+      void insertGroupRoom_testOk() throws Exception {
         Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
 
         clock.fixTimeAt(executionInstant);
@@ -623,7 +623,7 @@ public class RoomsApiIT {
 
       @Test
       @DisplayName("Given creation fields, if the name is not specified returns a status code 400")
-      public void insertGroupRoom_testErrorWithoutName() throws Exception {
+      void insertGroupRoom_testErrorWithoutName() throws Exception {
         MockHttpResponse response =
             dispatcher.post(
                 URL,
@@ -640,8 +640,7 @@ public class RoomsApiIT {
       @DisplayName(
           "Given creation fields, if there aren't at least two member invitations returns a status"
               + " code 400")
-      public void insertGroupRoom_testErrorRequestWithLessThanTwoMemberInvitations()
-          throws Exception {
+      void insertGroupRoom_testErrorRequestWithLessThanTwoMemberInvitations() throws Exception {
         MockHttpResponse response =
             dispatcher.post(
                 URL,
@@ -822,11 +821,11 @@ public class RoomsApiIT {
 
     @Nested
     @DisplayName("Insert one-to-one room tests")
-    public class InsertOneToOneRoomTests {
+    class InsertOneToOneRoomTests {
 
       @Test
       @DisplayName("Given creation fields, inserts a new one to one room and returns its data")
-      public void insertOneToOneRoom_testOk() throws Exception {
+      void insertOneToOneRoom_testOk() throws Exception {
         Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
 
         clock.fixTimeAt(executionInstant);
@@ -902,7 +901,7 @@ public class RoomsApiIT {
 
       @Test
       @DisplayName("Given one-to-one creation fields, if name is not null return a status code 400")
-      public void insertOneToOneRoom_testErrorWithName() throws Exception {
+      void insertOneToOneRoom_testErrorWithName() throws Exception {
         MockHttpResponse response =
             dispatcher.post(
                 URL,
@@ -919,7 +918,7 @@ public class RoomsApiIT {
       @Test
       @DisplayName(
           "Given one-to-one creation fields, if description is not null return a status code 400")
-      public void insertOneToOneRoom_testErrorWithDescription() throws Exception {
+      void insertOneToOneRoom_testErrorWithDescription() throws Exception {
         MockHttpResponse response =
             dispatcher.post(
                 URL,
@@ -937,7 +936,7 @@ public class RoomsApiIT {
       @DisplayName(
           "Given creation fields for a one to one room, if there is a room with those users returns"
               + " a status code 409")
-      public void insertOneToOneRoom_testAlreadyExists() throws Exception {
+      void insertOneToOneRoom_testAlreadyExists() throws Exception {
         UUID roomId = UUID.randomUUID();
         integrationTestUtils.generateAndSaveRoom(
             roomId, RoomTypeDto.ONE_TO_ONE, null, List.of(user1Id, user2Id));
@@ -961,7 +960,7 @@ public class RoomsApiIT {
       @DisplayName(
           "Given one-to-one creation fields, if there are more then one invitation return a ststus"
               + " code 400")
-      public void insertOneToOneRoom_testMoreThenOneInvitation() throws Exception {
+      void insertOneToOneRoom_testMoreThenOneInvitation() throws Exception {
         MockHttpResponse response =
             dispatcher.post(
                 URL,
@@ -978,12 +977,12 @@ public class RoomsApiIT {
 
     @Nested
     @DisplayName("Insert workspace room tests")
-    public class InsertWorkspaceRoomTests {
+    class InsertWorkspaceRoomTests {
 
       @Test
       @DisplayName(
           "Given workspace creation fields, inserts first workspace room and returns its data")
-      public void insertWorkspaceRoom_firstWorkspaceTestOk() throws Exception {
+      void insertWorkspaceRoom_firstWorkspaceTestOk() throws Exception {
         Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
 
         clock.fixTimeAt(executionInstant);
@@ -1037,7 +1036,7 @@ public class RoomsApiIT {
       @Test
       @DisplayName(
           "Given workspace creation fields, inserts nth workspace room and returns its data")
-      public void insertWorkspaceRoom_nthWorkspaceTestOk() throws Exception {
+      void insertWorkspaceRoom_nthWorkspaceTestOk() throws Exception {
 
         integrationTestUtils.generateAndSaveRoom(
             Room.create()
@@ -1103,8 +1102,7 @@ public class RoomsApiIT {
       @DisplayName(
           "Given creation fields, if there aren't at least two member invitations returns a status"
               + " code 400")
-      public void insertWorkspaceRoom_testErrorRequestWithLessThanTwoMemberInvitations()
-          throws Exception {
+      void insertWorkspaceRoom_testErrorRequestWithLessThanTwoMemberInvitations() throws Exception {
         MockHttpResponse response =
             dispatcher.post(
                 URL,
@@ -1120,14 +1118,14 @@ public class RoomsApiIT {
 
     @Nested
     @DisplayName("Insert channel room tests")
-    public class InsertChannelRoomTests {
+    class InsertChannelRoomTests {
 
       @Disabled
       @Test
       @DisplayName(
           "Given channel creation fields, inserts first channel room in a workspace and returns its"
               + " data")
-      public void insertChannelRoom_firstChannelTestOk() throws Exception {
+      void insertChannelRoom_firstChannelTestOk() throws Exception {
         UUID workspaceId = UUID.randomUUID();
         integrationTestUtils.generateAndSaveRoom(
             workspaceId,
@@ -1209,7 +1207,7 @@ public class RoomsApiIT {
       @DisplayName(
           "Given channel creation fields, inserts nth channel room in a workspace and returns its"
               + " data")
-      public void insertChannelRoom_nthChannelTestOk() throws Exception {
+      void insertChannelRoom_nthChannelTestOk() throws Exception {
         UUID workspaceId = UUID.randomUUID();
         integrationTestUtils.generateAndSaveRoom(
             workspaceId,
@@ -1298,7 +1296,7 @@ public class RoomsApiIT {
       @Test
       @DisplayName(
           "Given channel creation fields, if there is at least a member returns a status code 400")
-      public void insertChannelRoom_testErrorRequestWithMembers() throws Exception {
+      void insertChannelRoom_testErrorRequestWithMembers() throws Exception {
         MockHttpResponse response =
             dispatcher.post(
                 URL,
@@ -1319,7 +1317,7 @@ public class RoomsApiIT {
       @DisplayName(
           "Given channel creation fields, if there isn't the parent identifier returns a status"
               + " code 400")
-      public void insertChannelRoom_testErrorRequestWithoutParentId() throws Exception {
+      void insertChannelRoom_testErrorRequestWithoutParentId() throws Exception {
         MockHttpResponse response =
             dispatcher.post(
                 URL,
@@ -1338,7 +1336,7 @@ public class RoomsApiIT {
       @DisplayName(
           "Given channel creation fields, if there isn't the requested workspace room returns a"
               + " status code 404")
-      public void insertChannelRoom_testErrorRequestedWorkspaceNotExists() throws Exception {
+      void insertChannelRoom_testErrorRequestedWorkspaceNotExists() throws Exception {
         MockHttpResponse response =
             dispatcher.post(
                 URL,
@@ -1358,8 +1356,7 @@ public class RoomsApiIT {
       @DisplayName(
           "Given channel creation fields, if the authenticated user is not the workspace owner"
               + " returns a status code 403")
-      public void insertChannelRoom_testErrorAuthenticatedUserIsNotWorkspaceOwner()
-          throws Exception {
+      void insertChannelRoom_testErrorAuthenticatedUserIsNotWorkspaceOwner() throws Exception {
         UUID workspaceId = UUID.randomUUID();
         integrationTestUtils.generateAndSaveRoom(
             workspaceId,
@@ -1386,7 +1383,7 @@ public class RoomsApiIT {
       @DisplayName(
           "Given channel creation fields, if the parent isn't a workspace returns a status code"
               + " 400")
-      public void insertChannelRoom_testErrorParentIsNotAWorkspace() throws Exception {
+      void insertChannelRoom_testErrorParentIsNotAWorkspace() throws Exception {
         UUID groupId = UUID.randomUUID();
         integrationTestUtils.generateAndSaveRoom(
             groupId,
@@ -1412,7 +1409,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given creation fields, if there isn't name field returns a status code 400")
-    public void insertRoom_testErrorRequestWithoutName() throws Exception {
+    void insertRoom_testErrorRequestWithoutName() throws Exception {
       MockHttpResponse response =
           dispatcher.post(
               URL,
@@ -1428,7 +1425,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Given creation fields, if there isn't an authenticated user returns a status code 401")
-    public void insertRoom_testErrorUnauthenticatedUser() throws Exception {
+    void insertRoom_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response =
           dispatcher.post(
               URL,
@@ -1442,7 +1439,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given creation fields, if there are duplicated members returns a status code 400")
-    public void insertRoom_testErrorDuplicatedMembers() throws Exception {
+    void insertRoom_testErrorDuplicatedMembers() throws Exception {
       MockHttpResponse response =
           dispatcher.post(
               URL,
@@ -1459,8 +1456,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given creation fields, if there is current user into invites list returns a status code"
             + " 400")
-    public void insertRoom_testRoomToCreateWithInvitedUsersListContainsCurrentUser()
-        throws Exception {
+    void insertRoom_testRoomToCreateWithInvitedUsersListContainsCurrentUser() throws Exception {
       MockHttpResponse response =
           dispatcher.post(
               URL,
@@ -1475,7 +1471,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given creation fields, if there is a unknown member returns a status code 404")
-    public void insertRoom_testErrorUnknownMember() throws Exception {
+    void insertRoom_testErrorUnknownMember() throws Exception {
       MockHttpResponse response =
           dispatcher.post(
               URL,
@@ -1523,7 +1519,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Gets room by identifier tests")
-  public class GetsRoomByIdentifierTests {
+  class GetsRoomByIdentifierTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s", roomId);
@@ -1533,7 +1529,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a group room identifier, correctly returns the room information with members and"
             + " user settings")
-    public void getGroupRoom_testOk() throws Exception {
+    void getGroupRoom_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId,
@@ -1565,7 +1561,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a workspace room identifier, correctly returns the room information with members,"
             + " user settings and channels")
-    public void getWorkspaceRoom_testOk() throws Exception {
+    void getWorkspaceRoom_testOk() throws Exception {
       UUID workspaceId = UUID.randomUUID();
       UUID channel1Id = UUID.randomUUID();
       UUID channel2Id = UUID.randomUUID();
@@ -1645,7 +1641,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Returns the required channel room with all members and room user settings")
-    public void getRoomById_channelTestOk() throws Exception {
+    void getRoomById_channelTestOk() throws Exception {
       UUID workspaceId = UUID.randomUUID();
       UUID channelId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
@@ -1687,7 +1683,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room without a picture, correctly returns the room information with members and"
             + " user settings")
-    public void getRoom_testOkWithoutPicture() throws Exception {
+    void getRoom_testOkWithoutPicture() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId,
@@ -1718,7 +1714,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Given a room identifier, if the user is not authenticated return a status code 401")
-    public void getRoom_testErrorUnauthenticatedUser() throws Exception {
+    void getRoom_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.get(url(UUID.randomUUID()), null);
 
       assertEquals(401, response.getStatus());
@@ -1727,7 +1723,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a fake room identifier returns a status code 404")
-    public void getRoom_testErrorFakeRoomIdentifier() throws Exception {
+    void getRoom_testErrorFakeRoomIdentifier() throws Exception {
       UUID roomId = UUID.randomUUID();
 
       MockHttpResponse response = dispatcher.get(url(roomId), user3Token);
@@ -1740,7 +1736,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier, if authenticated user isn't a room member then return a status"
             + " code 403")
-    public void getRoom_testErrorUserIsNotARoomMember() throws Exception {
+    void getRoom_testErrorUserIsNotARoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id));
@@ -1754,7 +1750,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Updates room tests")
-  public class UpdatesRoomTests {
+  class UpdatesRoomTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s", roomId);
@@ -1762,7 +1758,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier and update fields, correctly updates the room")
-    public void updateRoom_testOk() throws Exception {
+    void updateRoom_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
       Instant insertRoomInstant =
@@ -1823,7 +1819,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier and update only name, correctly updates the room")
-    public void updateRoom_testOkWithNameAndWithoutDescription() throws Exception {
+    void updateRoom_testOkWithNameAndWithoutDescription() throws Exception {
       UUID roomId = UUID.randomUUID();
       Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
       Instant insertRoomInstant =
@@ -1872,7 +1868,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier and update only description, correctly updates the room")
-    public void updateRoom_testOkWithoutNameAndWithDescription() throws Exception {
+    void updateRoom_testOkWithoutNameAndWithDescription() throws Exception {
       UUID roomId = UUID.randomUUID();
       Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
       Instant insertRoomInstant =
@@ -1919,7 +1915,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if there isn't any room return a status code 404")
-    public void updateRoom_testErrorUpdateRoomNotExistingRoom() throws Exception {
+    void updateRoom_testErrorUpdateRoomNotExistingRoom() throws Exception {
       UUID roomId = UUID.randomUUID();
       MockHttpResponse response =
           dispatcher.put(url(roomId), getUpdateRoomRequestBody(null, "Updated room"), user1Token);
@@ -1931,7 +1927,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if it is a one to one return status code 400")
-    public void updateRoom_testErrorUpdateRoom1to1() throws Exception {
+    void updateRoom_testErrorUpdateRoom1to1() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.ONE_TO_ONE, null, List.of(user1Id, user2Id));
@@ -1946,7 +1942,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier, if it is a group and the name and the description are null return"
             + " status code 400")
-    public void updateRoom_testErrorUpdateRoomWithoutNameAndDescription() throws Exception {
+    void updateRoom_testErrorUpdateRoomWithoutNameAndDescription() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId,
@@ -1969,7 +1965,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and update fields, if the user is not authenticated return a"
             + " status code 401")
-    public void updateRoom_testErrorUnauthenticatedUser() throws Exception {
+    void updateRoom_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response =
           dispatcher.put(
               url(UUID.randomUUID()),
@@ -1982,7 +1978,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a fake room identifier returns a status code 404")
-    public void updateRoom_testErrorFakeRoomIdentifier() throws Exception {
+    void updateRoom_testErrorFakeRoomIdentifier() throws Exception {
       UUID roomId = UUID.randomUUID();
 
       MockHttpResponse response =
@@ -1997,7 +1993,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and update fields, "
             + "if authenticated user isn't a room member then return a status code 403")
-    public void updateRoom_testErrorUserIsNotARoomMember() throws Exception {
+    void updateRoom_testErrorUserIsNotARoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id));
@@ -2014,7 +2010,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and update fields, "
             + "if authenticated user isn't a room owner then return a status code 403")
-    public void updateRoom_testErrorUserIsNotARoomOwner() throws Exception {
+    void updateRoom_testErrorUserIsNotARoomOwner() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
@@ -2047,7 +2043,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Deletes room tests")
-  public class DeleteRoomTests {
+  class DeleteRoomTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s", roomId);
@@ -2055,7 +2051,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if the room is a 1to1 returns a status code 403")
-    public void deleteRoom_testErrorRoomIsA1to1() throws Exception {
+    void deleteRoom_testErrorRoomIsA1to1() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.ONE_TO_ONE, "room", List.of(user1Id, user2Id));
@@ -2069,7 +2065,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a group room identifier, correctly deletes the room")
-    public void deleteRoom_groupTestOk() throws Exception {
+    void deleteRoom_groupTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId,
@@ -2097,7 +2093,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Given a group room identifier, correctly deletes the room and the associated meeting")
-    public void deleteRoom_groupWithStoppedMeetingTestOk() throws Exception {
+    void deleteRoom_groupWithStoppedMeetingTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       Room room =
           integrationTestUtils.generateAndSaveRoom(
@@ -2135,7 +2131,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a group room identifier, correctly deletes the room and stop and delete the"
             + " associated meeting")
-    public void deleteRoom_groupWithActiveMeetingTestOk() throws Exception {
+    void deleteRoom_groupWithActiveMeetingTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       Room room =
           integrationTestUtils.generateAndSaveRoom(
@@ -2240,11 +2236,11 @@ public class RoomsApiIT {
 
     @Nested
     @DisplayName("Delete group room with attachments tests")
-    public class DeleteGroupRoomWithAttachmentsTests {
+    class DeleteGroupRoomWithAttachmentsTests {
 
       @Test
       @DisplayName("Correctly deletes the room and all associated attachments files")
-      public void deleteGroupRoomWithAttachments_testOk() throws Exception {
+      void deleteGroupRoomWithAttachments_testOk() throws Exception {
         UUID roomId = UUID.randomUUID();
         String file1Id = UUID.randomUUID().toString();
         String file2Id = UUID.randomUUID().toString();
@@ -2305,8 +2301,7 @@ public class RoomsApiIT {
 
       @Test
       @DisplayName("Deletes the room and only attachments that storage service has deleted")
-      public void deleteGroupRoomWithAttachments_storageServiceNotDeletesAllFiles()
-          throws Exception {
+      void deleteGroupRoomWithAttachments_storageServiceNotDeletesAllFiles() throws Exception {
         UUID roomId = UUID.randomUUID();
         String file1Id = UUID.randomUUID().toString();
         String file2Id = UUID.randomUUID().toString();
@@ -2366,7 +2361,7 @@ public class RoomsApiIT {
       @Test
       @DisplayName(
           "Deletes the room but no associated attachments files because storage service failed")
-      public void deleteGroupRoomWithAttachments_storageServiceFailed() throws Exception {
+      void deleteGroupRoomWithAttachments_storageServiceFailed() throws Exception {
         UUID roomId = UUID.randomUUID();
         String file1Id = UUID.randomUUID().toString();
         String file2Id = UUID.randomUUID().toString();
@@ -2430,7 +2425,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a workspace identifier, correctly delete the workspace without channel")
-    public void deleteRoom_workspaceWithoutChannelTestOk() throws Exception {
+    void deleteRoom_workspaceWithoutChannelTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId,
@@ -2453,7 +2448,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a workspace room identifier, correctly delete the workspace with channel")
-    public void deleteRoom_workspaceWithChannelTestOk() throws Exception {
+    void deleteRoom_workspaceWithChannelTestOk() throws Exception {
       UUID workspaceId = UUID.randomUUID();
       UUID channel1Id = UUID.randomUUID();
       UUID channel2Id = UUID.randomUUID();
@@ -2503,7 +2498,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a channel room identifier, correctly delete the room")
-    public void deleteRoom_ChannelTestOk() throws Exception {
+    void deleteRoom_ChannelTestOk() throws Exception {
       UUID workspaceId = UUID.randomUUID();
       UUID channelId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
@@ -2540,7 +2535,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if the user is not authenticated return status code 401")
-    public void deleteRoom_testErrorUnauthenticatedUser() throws Exception {
+    void deleteRoom_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID()), null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -2548,7 +2543,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if the room not exists returns a status code 404")
-    public void deleteRoom_testErrorRoomNotExists() throws Exception {
+    void deleteRoom_testErrorRoomNotExists() throws Exception {
       UUID roomId = UUID.randomUUID();
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(404, response.getStatus());
@@ -2561,7 +2556,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier, "
             + "if authenticated user isn't a room owner then return a status code 403")
-    public void deleteRoom_testErrorUserIsNotARoomOwner() throws Exception {
+    void deleteRoom_testErrorUserIsNotARoomOwner() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
@@ -2575,7 +2570,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Gets room picture tests")
-  public class GetsRoomPictureTests {
+  class GetsRoomPictureTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s/picture", roomId);
@@ -2583,7 +2578,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, correctly returns the room picture")
-    public void getRoomPicture_testOk() throws Exception {
+    void getRoomPicture_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(
@@ -2619,7 +2614,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Given a room identifier, if the user is not authenticated returns status code 401")
-    public void getRoomPicture_testErrorUnauthenticatedUser() throws Exception {
+    void getRoomPicture_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.get(url(UUID.randomUUID()), null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -2628,7 +2623,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Given a room identifier, if the user is not a room member returns status code 403")
-    public void getRoomPicture_testErrorAuthenticatedUserIsNotRoomMember() throws Exception {
+    void getRoomPicture_testErrorAuthenticatedUserIsNotRoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user2Id, user3Id));
@@ -2641,7 +2636,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if the room hasn't the picture returns status code 404")
-    public void getRoomPicture_testErrorRoomHasNoPicture() throws Exception {
+    void getRoomPicture_testErrorRoomHasNoPicture() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -2655,12 +2650,12 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Given a room identifier, if the storage hasn't the picture file returns status code 424")
-    public void getRoomPicture_testErrorStorageHasNoPictureFile() throws Exception {
+    void getRoomPicture_testErrorStorageHasNoPictureFile() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveFileMetadata(
-          roomId, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
+          roomId, "Room image", "image/png", FileMetadataType.ROOM_AVATAR, user1Id, roomId);
       MockHttpResponse response = dispatcher.get(url(roomId), user1Token);
       assertEquals(424, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -2671,7 +2666,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Update room picture tests")
-  public class UpdateRoomPictureTests {
+  class UpdateRoomPictureTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s/picture", roomId);
@@ -2679,7 +2674,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier and a picture file, correctly updates the room pictures")
-    public void updateRoomPicture_testOk() throws Exception {
+    void updateRoomPicture_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(
@@ -2737,7 +2732,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a picture file, if user is not authenticated returns status"
             + " code 401")
-    public void updateRoomPicture_testErrorUnauthenticatedUser() throws Exception {
+    void updateRoomPicture_testErrorUnauthenticatedUser() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       MockHttpResponse response =
           dispatcher.put(
@@ -2759,7 +2754,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a picture file, if X-Content-Disposition is missing returns"
             + " status code 400")
-    public void updateRoomPicture_testErrorMissingXContentDisposition() throws Exception {
+    void updateRoomPicture_testErrorMissingXContentDisposition() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       MockHttpResponse response =
           dispatcher.put(
@@ -2776,7 +2771,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a picture file, if user is not a room member returns status"
             + " code 403")
-    public void updateRoomPicture_testErrorUserIsNotRoomMember() throws Exception {
+    void updateRoomPicture_testErrorUserIsNotRoomMember() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(
@@ -2803,7 +2798,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a picture file, if user is not a room owner returns status"
             + " code 403")
-    public void updateRoomPicture_testErrorUserIsNotRoomOwner() throws Exception {
+    void updateRoomPicture_testErrorUserIsNotRoomOwner() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(
@@ -2830,7 +2825,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a picture file, if the room isn't a group returns status code"
             + " 400")
-    public void updateRoomPicture_testErrorRoomIsNotRoomGroup() throws Exception {
+    void updateRoomPicture_testErrorRoomIsNotRoomGroup() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(
@@ -2858,7 +2853,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a picture file, if the image is too large returns status code"
             + " 400")
-    public void updateRoomPicture_testErrorImageTooLarge() throws Exception {
+    void updateRoomPicture_testErrorImageTooLarge() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_LARGE_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(
@@ -2886,7 +2881,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a picture file, if the file isn't an image returns status code"
             + " 400")
-    public void updateRoomPicture_testErrorFileIsNotImage() throws Exception {
+    void updateRoomPicture_testErrorFileIsNotImage() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_PDF);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(
@@ -2913,7 +2908,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Delete room picture tests")
-  public class DeleteRoomPictureTests {
+  class DeleteRoomPictureTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s/picture", roomId);
@@ -2921,7 +2916,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Correctly deletes the room picture")
-    public void deleteRoomPicture_testOk() throws Exception {
+    void deleteRoomPicture_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(
@@ -2969,7 +2964,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("If the user is not authenticated, it returns status code 401")
-    public void deleteRoomPicture_unauthenticatedUser() throws Exception {
+    void deleteRoomPicture_unauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID()), null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -2977,7 +2972,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("If user is not a room owner, it returns status code 403")
-    public void deleteRoomPicture_userNotRoomOwner() throws Exception {
+    void deleteRoomPicture_userNotRoomOwner() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
@@ -2989,7 +2984,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("If the room hasn't a picture, it returns a status code 404")
-    public void deleteRoomPicture_fileNotFound() throws Exception {
+    void deleteRoomPicture_fileNotFound() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       UUID roomId = UUID.fromString(fileMock.getId());
       integrationTestUtils.generateAndSaveRoom(
@@ -3005,7 +3000,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Mutes room for authenticated user tests")
-  public class MutesRoomForAuthenticatedUserTests {
+  class MutesRoomForAuthenticatedUserTests {
 
     private final OffsetDateTime MUTED_TO_INFINITY = OffsetDateTime.parse("0001-01-01T00:00:00Z");
 
@@ -3015,7 +3010,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Mute the current user in a specific room when user settings not exists")
-    public void muteRoom_testOkUserSettingNotExists() throws Exception {
+    void muteRoom_testOkUserSettingNotExists() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -3034,7 +3029,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Mute the current user in a specific room when user settings exists")
-    public void muteRoom_testOkUserSettingExists() throws Exception {
+    void muteRoom_testOkUserSettingExists() throws Exception {
       UUID roomId = UUID.randomUUID();
       Room room =
           integrationTestUtils.generateAndSaveRoom(
@@ -3054,7 +3049,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Correctly does nothing if the user is already muted")
-    public void muteRoom_testOkUserAlreadyMuted() throws Exception {
+    void muteRoom_testOkUserAlreadyMuted() throws Exception {
       UUID roomId = UUID.randomUUID();
       Room room =
           integrationTestUtils.generateAndSaveRoom(
@@ -3075,7 +3070,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Correctly mute a channel")
-    public void muteRoom_testOkChannel() throws Exception {
+    void muteRoom_testOkChannel() throws Exception {
       UUID workspaceId = UUID.randomUUID();
       UUID channelId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
@@ -3107,7 +3102,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("If the room is a workspace, it responds with status code 400")
-    public void muteRoom_errorRoomIsWorkspace() throws Exception {
+    void muteRoom_errorRoomIsWorkspace() throws Exception {
       UUID workspaceId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           workspaceId,
@@ -3126,7 +3121,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("If the authenticated user isn't a room member, it throws a 'forbidden' exception")
-    public void muteRoom_testAuthenticatedUserIsNotARoomMember() throws Exception {
+    void muteRoom_testAuthenticatedUserIsNotARoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
@@ -3140,7 +3135,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("If the room doesn't exist, it throws a 'not found' exception")
-    public void muteRoom_testRoomNotExists() throws Exception {
+    void muteRoom_testRoomNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()), null, user3Token);
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getContentAsString().length());
@@ -3151,7 +3146,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Unmute room for authenticated user tests")
-  public class UnmuteRoomForAuthenticatedUserTests {
+  class UnmuteRoomForAuthenticatedUserTests {
 
     private final OffsetDateTime MUTED_TO_INFINITY = OffsetDateTime.parse("0001-01-01T00:00:00Z");
 
@@ -3161,7 +3156,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Correctly does nothing if user settings not exists")
-    public void unmuteRoom_testOkUserSettingNotExists() throws Exception {
+    void unmuteRoom_testOkUserSettingNotExists() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -3177,7 +3172,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Unmute the current user in a specific room")
-    public void unmuteRoom_testOkUserSettingExists() throws Exception {
+    void unmuteRoom_testOkUserSettingExists() throws Exception {
       UUID roomId = UUID.randomUUID();
       Room room =
           integrationTestUtils.generateAndSaveRoom(
@@ -3196,7 +3191,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Correctly does nothing if the user has already unmuted")
-    public void unmuteRoom_testOkUserAlreadyUnmuted() throws Exception {
+    void unmuteRoom_testOkUserAlreadyUnmuted() throws Exception {
       UUID roomId = UUID.randomUUID();
       Room room =
           integrationTestUtils.generateAndSaveRoom(
@@ -3214,7 +3209,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Correctly unmute a channel")
-    public void unmuteRoom_testOkChannel() throws Exception {
+    void unmuteRoom_testOkChannel() throws Exception {
       UUID workspaceId = UUID.randomUUID();
       UUID channelId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
@@ -3246,7 +3241,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("If the room is a workspace, it responds with status code 400")
-    public void unmuteRoom_errorRoomIsWorkspace() throws Exception {
+    void unmuteRoom_errorRoomIsWorkspace() throws Exception {
       UUID workspaceId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           workspaceId,
@@ -3265,7 +3260,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("If the authenticated user isn't a room member, it throws a 'forbidden' exception")
-    public void unmuteRoom_testAuthenticatedUserIsNotARoomMember() throws Exception {
+    void unmuteRoom_testAuthenticatedUserIsNotARoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
@@ -3279,7 +3274,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("If the room doesn't exist, it throws a 'not found' exception")
-    public void unmuteRoom_testRoomNotExists() throws Exception {
+    void unmuteRoom_testRoomNotExists() throws Exception {
       MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID()), user3Token);
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getContentAsString().length());
@@ -3290,7 +3285,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Clear room for authenticated user tests")
-  public class ClearRoomForAuthenticatedUserTests {
+  class ClearRoomForAuthenticatedUserTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s/clear", roomId);
@@ -3298,7 +3293,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Sets the clear date to now when user settings doesn't exist")
-    public void clearRoom_testOkUserSettingNotExists() throws Exception {
+    void clearRoom_testOkUserSettingNotExists() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -3315,7 +3310,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Sets the clear date to now when user settings exists")
-    public void clearRoom_testOkUserSettingExists() throws Exception {
+    void clearRoom_testOkUserSettingExists() throws Exception {
       UUID roomId = UUID.randomUUID();
       Room room =
           integrationTestUtils.generateAndSaveRoom(
@@ -3336,7 +3331,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("If the authenticated user isn't a room member, it throws a 'forbidden' exception")
-    public void clearRoom_testAuthenticatedUserIsNotARoomMember() throws Exception {
+    void clearRoom_testAuthenticatedUserIsNotARoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
@@ -3350,7 +3345,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("If the room doesn't exist, it throws a 'not found' exception")
-    public void clearRoom_testRoomNotExists() throws Exception {
+    void clearRoom_testRoomNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID()), null, user3Token);
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getContentAsString().length());
@@ -3361,7 +3356,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Gets list of room members tests")
-  public class GetsListOfRoomMembersTests {
+  class GetsListOfRoomMembersTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s/members", roomId);
@@ -3369,7 +3364,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, correctly returns the list of room members")
-    public void listRoomMember_testOk() throws Exception {
+    void listRoomMember_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -3387,7 +3382,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if user isn't authenticated returns status code 401")
-    public void listRoomMember_testErrorUnauthenticatedUser() throws Exception {
+    void listRoomMember_testErrorUnauthenticatedUser() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -3399,7 +3394,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if room doesn't exist returns status code 404")
-    public void listRoomMember_testErrorRoomNotExists() throws Exception {
+    void listRoomMember_testErrorRoomNotExists() throws Exception {
       MockHttpResponse response = dispatcher.get(url(UUID.randomUUID()), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -3409,7 +3404,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if user isn't a room member returns status code 403")
-    public void listRoomMember_testErrorUserNotRoomMember() throws Exception {
+    void listRoomMember_testErrorUserNotRoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
@@ -3423,7 +3418,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Insert a room member tests")
-  public class InsertRoomMemberTests {
+  class InsertRoomMemberTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s/members", roomId);
@@ -3431,7 +3426,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a group room identifier, correctly insert the new room member")
-    public void insertRoomMember_groupTestOk() throws Exception {
+    void insertRoomMember_groupTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
@@ -3479,7 +3474,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if the room is one to one returns status code 400")
-    public void insertRoomMember_oneToOneTest() throws Exception {
+    void insertRoomMember_oneToOneTest() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.ONE_TO_ONE, "room", List.of(user1Id, user2Id));
@@ -3493,7 +3488,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a workspace room identifier, correctly insert the new room member")
-    public void insertRoomMember_workspaceTestOk() throws Exception {
+    void insertRoomMember_workspaceTestOk() throws Exception {
       UUID workspaceId = UUID.randomUUID();
       UUID channel1Id = UUID.randomUUID();
       UUID channel2Id = UUID.randomUUID();
@@ -3567,7 +3562,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if the room is a channel returns status code 400")
-    public void insertRoomMember_channelTest() throws Exception {
+    void insertRoomMember_channelTest() throws Exception {
       UUID workspaceId = UUID.randomUUID();
       UUID channelId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
@@ -3597,7 +3592,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Given a group room identifier, correctly insert the new room member clearing the history")
-    public void insertRoomMember_historyClearedOk() throws Exception {
+    void insertRoomMember_historyClearedOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
@@ -3651,7 +3646,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Given a room identifier, if there isn't an authenticated user returns status code 401")
-    public void insertRoomMember_testErrorUnauthenticatedUser() throws Exception {
+    void insertRoomMember_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response =
           dispatcher.post(url(UUID.randomUUID()), getInsertRoomMemberRequestBody(user1Id), null);
       assertEquals(401, response.getStatus());
@@ -3660,7 +3655,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if the room doesn't exist returns status code 404")
-    public void insertRoomMember_testRoomNotExist() throws Exception {
+    void insertRoomMember_testRoomNotExist() throws Exception {
       UUID roomId = UUID.randomUUID();
       MockHttpResponse response =
           dispatcher.post(url(roomId), getInsertRoomMemberRequestBody(user1Id), user1Token);
@@ -3674,7 +3669,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier, if the authenticated user isn't a room owner returns status code"
             + " 403")
-    public void insertRoomMember_testAuthenticateUserNotRoomOwner() throws Exception {
+    void insertRoomMember_testAuthenticateUserNotRoomOwner() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -3689,7 +3684,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Given a room identifier, if the user is already a room member returns status code 400")
-    public void insertRoomMember_testUserAlreadyRoomMember() throws Exception {
+    void insertRoomMember_testUserAlreadyRoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -3703,7 +3698,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if the user isn't an account returns status code 404")
-    public void insertRoomMember_testUserNotHasAccount() throws Exception {
+    void insertRoomMember_testUserNotHasAccount() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -3720,7 +3715,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a group room identifier, if the request doesn't contain historyCleared returns"
             + " status code 500")
-    public void insertRoomMember_testHistoryClearedNotInitialized() throws Exception {
+    void insertRoomMember_testHistoryClearedNotInitialized() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
@@ -3776,7 +3771,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Remove a member from the room tests")
-  public class RemoveRoomMemberTests {
+  class RemoveRoomMemberTests {
 
     private String url(UUID roomId, UUID userId) {
       return String.format("/rooms/%s/members/%s", roomId, userId);
@@ -3786,7 +3781,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a group room identifier and a member identifier, correctly remove the user from room"
             + " members")
-    public void deleteRoomMember_groupTestOk() throws Exception {
+    void deleteRoomMember_groupTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -3830,7 +3825,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a group room identifier and a member identifier, "
             + "correctly leaves the user from the from room members")
-    public void deleteRoomMember_memberIsNotActiveMeetingParticipantTestOk() throws Exception {
+    void deleteRoomMember_memberIsNotActiveMeetingParticipantTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       String user2Queue = UUID.randomUUID().toString();
       Room roomEntity =
@@ -3890,7 +3885,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a group room identifier and a member identifier, correctly leaves the user from the"
             + " associated meeting and removes the user from room members")
-    public void deleteRoomMember_memberIsActiveMeetingParticipantTestOk() throws Exception {
+    void deleteRoomMember_memberIsActiveMeetingParticipantTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       String user2Queue = UUID.randomUUID().toString();
       Room roomEntity =
@@ -3995,7 +3990,7 @@ public class RoomsApiIT {
         "Given a group room identifier and a member identifier, correctly leaves the user from the"
             + " associated meeting, removes the meeting because the user was the last and removes"
             + " the user from room members")
-    public void deleteRoomMember_memberIsLastMeetingParticipantTestOk() throws Exception {
+    void deleteRoomMember_memberIsLastMeetingParticipantTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       String user2Queue = UUID.randomUUID().toString();
       Room roomEntity =
@@ -4147,7 +4142,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a workspace room identifier and a member identifier, correctly remove the user from"
             + " room members")
-    public void deleteRoomMember_workspaceTestOk() throws Exception {
+    void deleteRoomMember_workspaceTestOk() throws Exception {
       List.of(1, 2, 4, 5)
           .forEach(
               index ->
@@ -4192,7 +4187,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if there isn't an authenticated user"
             + " returns status code 401")
-    public void deleteRoomMember_testErrorUnauthenticatedUser() throws Exception {
+    void deleteRoomMember_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID(), user1Id), null);
 
       assertEquals(401, response.getStatus());
@@ -4203,7 +4198,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if room doesn't exist returns status code"
             + " 404")
-    public void deleteRoomMember_testErrorRoomNotExists() throws Exception {
+    void deleteRoomMember_testErrorRoomNotExists() throws Exception {
       MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID(), user1Id), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -4215,7 +4210,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if the authenticated user isn't a room"
             + " owner returns status code 403")
-    public void deleteRoomMember_testErrorUserNotRoomOwner() throws Exception {
+    void deleteRoomMember_testErrorUserNotRoomOwner() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -4230,7 +4225,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if the room is a one to one returns"
             + " status code 403")
-    public void deleteRoomMember_testErrorRoomOneToOne() throws Exception {
+    void deleteRoomMember_testErrorRoomOneToOne() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.ONE_TO_ONE, "room", List.of(user1Id, user2Id, user3Id));
@@ -4245,7 +4240,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a group room identifier and a member identifier equals to authenticated user,"
             + " correctly user remove itself")
-    public void deleteRoomMember_userRemoveItselfTestOk() throws Exception {
+    void deleteRoomMember_userRemoveItselfTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -4287,7 +4282,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Promote a member to owner tests")
-  public class PromoteMemberToOwnerTests {
+  class PromoteMemberToOwnerTests {
 
     private String url(UUID roomId, UUID userId) {
       return String.format("/rooms/%s/members/%s/owner", roomId, userId);
@@ -4296,7 +4291,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Given a room identifier and a member identifier, correctly promotes the member to owner")
-    public void updateToOwner_testOk() throws Exception {
+    void updateToOwner_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -4320,7 +4315,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if there isn't an authenticated user"
             + " return status code 401")
-    public void updateToOwner_testErrorUnauthenticatedUser() throws Exception {
+    void updateToOwner_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID(), user1Id), null, null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -4330,7 +4325,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if the room doesn't exist return status"
             + " code 404")
-    public void updateToOwner_testErrorRoomNotExists() throws Exception {
+    void updateToOwner_testErrorRoomNotExists() throws Exception {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID(), user2Id), null, user1Token);
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -4341,7 +4336,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if the authenticated user isn't a room"
             + " owner return status code 403")
-    public void updateToOwner_testAuthenticateUserNotRoomOwner() throws Exception {
+    void updateToOwner_testAuthenticateUserNotRoomOwner() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -4355,7 +4350,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if the member doesn't exist return status"
             + " code 403")
-    public void updateToOwner_testErrorMemberNotExists() throws Exception {
+    void updateToOwner_testErrorMemberNotExists() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -4369,7 +4364,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if the room is a one-to-one then it"
             + " returns status code 400")
-    public void updateToOwner_testErrorRoomIsOneToOne() throws Exception {
+    void updateToOwner_testErrorRoomIsOneToOne() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId,
@@ -4387,7 +4382,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if the room is a channel then it returns"
             + " status code 400")
-    public void updateToOwner_testErrorRoomIsChannel() throws Exception {
+    void updateToOwner_testErrorRoomIsChannel() throws Exception {
       UUID workspaceId = UUID.randomUUID();
       UUID channelId = UUID.randomUUID();
 
@@ -4416,7 +4411,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Demote a member from owner to normal member tests")
-  public class DemoteOwnerTests {
+  class DemoteOwnerTests {
 
     private String url(UUID roomId, UUID userId) {
       return String.format("/rooms/%s/members/%s/owner", roomId, userId);
@@ -4426,7 +4421,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, correctly demotes a owner to normal"
             + " member")
-    public void deleteOwner_testOk() throws Exception {
+    void deleteOwner_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId,
@@ -4457,7 +4452,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if there isn't an authenticated user"
             + " returns status code 401")
-    public void deleteOwner_testErrorUnauthenticatedUser() throws Exception {
+    void deleteOwner_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.delete(url(UUID.randomUUID(), user2Id), null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -4467,7 +4462,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if authenticated user isn't a room owner"
             + " returns status code 403")
-    public void deleteOwner_testErrorAuthenticatedUserNotRoomOwner() throws Exception {
+    void deleteOwner_testErrorAuthenticatedUserNotRoomOwner() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId,
@@ -4487,7 +4482,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if requested user isn't a room member"
             + " returns status code 403")
-    public void deleteOwner_testErrorUserNotRoomMember() throws Exception {
+    void deleteOwner_testErrorUserNotRoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user3Id));
@@ -4501,7 +4496,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if the room is a one-to-one then it"
             + " returns status code 400")
-    public void deleteOwner_testErrorRoomIsOneToOne() throws Exception {
+    void deleteOwner_testErrorRoomIsOneToOne() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId,
@@ -4519,7 +4514,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and a member identifier, if the room is a channel then it returns"
             + " status code 400")
-    public void deleteOwner_testErrorRoomIsChannel() throws Exception {
+    void deleteOwner_testErrorRoomIsChannel() throws Exception {
       UUID workspaceId = UUID.randomUUID();
       UUID channelId = UUID.randomUUID();
 
@@ -4548,7 +4543,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Gets paged list of room attachment information tests")
-  public class ListRoomAttachmentInformationTests {
+  class ListRoomAttachmentInformationTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s/attachments", roomId);
@@ -4558,7 +4553,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier, correctly returns a single paged list of attachments info of the"
             + " required room")
-    public void listRoomAttachmentInfo_testOkSinglePage() throws Exception {
+    void listRoomAttachmentInfo_testOkSinglePage() throws Exception {
 
       UUID room1Id = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
@@ -4568,6 +4563,8 @@ public class RoomsApiIT {
       FileMetadata file1 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("faec1132-567d-451c-a969-18ca9131bdfa"),
+              "Test attachment 1",
+              "image/png",
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
@@ -4575,6 +4572,8 @@ public class RoomsApiIT {
       FileMetadata file2 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("6a6a1f06-0947-4b5f-a6ac-7631426e3a62"),
+              "Test attachment 2",
+              "image/png",
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
@@ -4582,12 +4581,16 @@ public class RoomsApiIT {
       FileMetadata file3 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("991b5178-1108-459e-a017-4197647167ec"),
+              "Test attachment 3",
+              "image/png",
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
       FileMetadata file4 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("5a3d8dd2-f431-4195-acc1-5108948c6d26"),
+              "Test attachment 4",
+              "image/png",
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
@@ -4611,7 +4614,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier, correctly returns multiple paged lists of attachments info of the"
             + " required room")
-    public void listRoomAttachmentInfo_testOkMultiplePages() throws Exception {
+    void listRoomAttachmentInfo_testOkMultiplePages() throws Exception {
 
       UUID room1Id = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
@@ -4621,6 +4624,8 @@ public class RoomsApiIT {
       FileMetadata file1 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("faec1132-567d-451c-a969-18ca9131bdfa"),
+              "Test attachment 1",
+              "image/png",
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
@@ -4628,6 +4633,8 @@ public class RoomsApiIT {
       FileMetadata file2 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("6a6a1f06-0947-4b5f-a6ac-7631426e3a62"),
+              "Test attachment 2",
+              "image/png",
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
@@ -4635,6 +4642,8 @@ public class RoomsApiIT {
       FileMetadata file3 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("991b5178-1108-459e-a017-4197647167ec"),
+              "Test attachment 3",
+              "image/png",
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
@@ -4642,6 +4651,8 @@ public class RoomsApiIT {
       FileMetadata file4 =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.fromString("5a3d8dd2-f431-4195-acc1-5108948c6d26"),
+              "Test attachment 4",
+              "image/png",
               FileMetadataType.ATTACHMENT,
               user1Id,
               room1Id);
@@ -4681,7 +4692,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Given a room identifier, if the user is not authenticated return a status code 401")
-    public void listRoomAttachmentInfo_testErrorUnauthenticatedUser() throws Exception {
+    void listRoomAttachmentInfo_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.get(url(UUID.randomUUID()), null);
 
       assertEquals(401, response.getStatus());
@@ -4692,7 +4703,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier, if authenticated user isn't a room member then return a status"
             + " code 403")
-    public void listRoomAttachmentInfo_testErrorUserIsNotARoomMember() throws Exception {
+    void listRoomAttachmentInfo_testErrorUserIsNotARoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id));
@@ -4706,7 +4717,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Insert attachment tests")
-  public class InsertAttachmentTests {
+  class InsertAttachmentTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s/attachments", roomId);
@@ -4714,7 +4725,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier and an attachment, correctly inserts the attachment")
-    public void insertAttachment_testOk() throws Exception {
+    void insertAttachment_testOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -4779,7 +4790,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and an attachment, correctly inserts the attachment with a"
             + " description")
-    public void insertAttachment_testOkWithDescription() throws Exception {
+    void insertAttachment_testOkWithDescription() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -4847,7 +4858,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and an attachment, correctly reply to the attachment with a"
             + " description")
-    public void insertAttachment_testOkWithReply() throws Exception {
+    void insertAttachment_testOkWithReply() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -5031,7 +5042,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and an attachment, if there isn't an authenticated user returns a"
             + " status code 401")
-    public void insertAttachment_testErrorUnauthenticatedUser() throws Exception {
+    void insertAttachment_testErrorUnauthenticatedUser() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       MockHttpResponse response =
           dispatcher.post(
@@ -5053,7 +5064,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier and an attachment, if authenticated isn't a room member returns a"
             + " status code 403")
-    public void insertAttachment_testErrorAuthenticatedUserNotRoomMember() throws Exception {
+    void insertAttachment_testErrorAuthenticatedUserNotRoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
@@ -5080,7 +5091,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Update workspaces rank tests")
-  public class UpdateWorkspacesRankTests {
+  class UpdateWorkspacesRankTests {
 
     private static final String URL = "/rooms/workspaces/rank";
 
@@ -5088,7 +5099,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a pair list of room id and rank, correctly update workspace rank for the"
             + " authenticated user")
-    public void updateWorkspacesRank_testOk() throws Exception {
+    void updateWorkspacesRank_testOk() throws Exception {
       UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
       UUID ws3Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
@@ -5128,7 +5139,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a pair list of room id and rank, if there authenticated user workspaces are not"
             + " compatible then return a status code 400")
-    public void updateWorkspacesRank_testWorkspaceNotCompatibleWithList() throws Exception {
+    void updateWorkspacesRank_testWorkspaceNotCompatibleWithList() throws Exception {
       UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
       UUID ws3Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
@@ -5168,7 +5179,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a pair list of room id and rank, if there authenticated user workspaces number is"
             + " different then return a status code 400")
-    public void updateWorkspacesRank_testWorkspaceNumberDifferentThenList() throws Exception {
+    void updateWorkspacesRank_testWorkspaceNumberDifferentThenList() throws Exception {
       UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
       UUID ws3Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
@@ -5206,7 +5217,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a pair list of room id and rank, if its ranks are not progressive number"
             + " sequencethere then return a status code 400")
-    public void updateWorkspacesRank_testRankListNotProgressiveNumberSequence() throws Exception {
+    void updateWorkspacesRank_testRankListNotProgressiveNumberSequence() throws Exception {
       UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
       UUID ws3Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
@@ -5245,7 +5256,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a pair list of room id and rank, if it has duplicated room identifiers "
             + "then return a status code 400")
-    public void updateWorkspacesRank_testRankListHasDuplicatedWorkspaceId() throws Exception {
+    void updateWorkspacesRank_testRankListHasDuplicatedWorkspaceId() throws Exception {
       UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
       integrationTestUtils.generateAndSaveRoom(
@@ -5277,7 +5288,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Updates channels rank tests")
-  public class UpdateChannelsRankTests {
+  class UpdateChannelsRankTests {
 
     private String url(UUID workspaceId) {
       return String.format("/rooms/workspaces/%s/channels/rank", workspaceId);
@@ -5286,7 +5297,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Given a pair list of room id and rank, correctly update channels rank for workspace")
-    public void updateChannelsRank_testOk() throws Exception {
+    void updateChannelsRank_testOk() throws Exception {
       UUID workspaceId = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID channel1Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
       UUID channel2Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
@@ -5363,7 +5374,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a pair list of room id and rank, if there are rooms not compatible with the"
             + " workspace channels then return a status code 400")
-    public void updateChannelsRank_testChannelNotCompatibleWithList() throws Exception {
+    void updateChannelsRank_testChannelNotCompatibleWithList() throws Exception {
       UUID workspaceId = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID channel1Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
       UUID channel2Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
@@ -5440,7 +5451,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a pair list of room id and rank, if the workspace channels number is different "
             + "then return a status code 400")
-    public void updateChannelsRank_testWorkspaceChannelNumberDifferentThenList() throws Exception {
+    void updateChannelsRank_testWorkspaceChannelNumberDifferentThenList() throws Exception {
       UUID workspaceId = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
       UUID channel1Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
       UUID channel2Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
@@ -5484,7 +5495,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a pair list of room id and rank, if it has duplicated channels identifiers "
             + "then return a status code 400")
-    public void updateChannelsRank_testRankListHasDuplicatedWorkspaceId() throws Exception {
+    void updateChannelsRank_testRankListHasDuplicatedWorkspaceId() throws Exception {
       UUID channel1Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
       MockHttpResponse response =
           dispatcher.put(
@@ -5503,7 +5514,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a pair list of room id and rank, if its ranks are not progressive number sequence "
             + "then return a status code 400")
-    public void updateChannelsRank_testRankListNotProgressiveNumberSequence() throws Exception {
+    void updateChannelsRank_testRankListNotProgressiveNumberSequence() throws Exception {
       MockHttpResponse response =
           dispatcher.put(
               url(UUID.randomUUID()),
@@ -5520,7 +5531,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Get meeting by room id tests")
-  public class GetMeetingByRoomIdTests {
+  class GetMeetingByRoomIdTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s/meeting", roomId);
@@ -5529,7 +5540,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Given a room identifier, correctly returns the room meeting information with participants")
-    public void getMeetingByRoomId_testOk() throws Exception {
+    void getMeetingByRoomId_testOk() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       UUID user1Queue = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
@@ -5599,7 +5610,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier, if the associated meeting doesn't exist then it returns a status"
             + " code 404")
-    public void getMeetingByRoomId_testMeetingNotExists() throws Exception {
+    void getMeetingByRoomId_testMeetingNotExists() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
@@ -5622,7 +5633,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier, if the user doesn't have an associated room member then it"
             + " returns a status code 403")
-    public void getMeetingByRoomId_testUserIsNotRoomMember() throws Exception {
+    void getMeetingByRoomId_testUserIsNotRoomMember() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
@@ -5643,7 +5654,7 @@ public class RoomsApiIT {
     @Test
     @DisplayName(
         "Given a room identifier, if the room doesn't exist then it returns a status code 404")
-    public void getMeetingByRoomId_testRoomNotExists() throws Exception {
+    void getMeetingByRoomId_testRoomNotExists() throws Exception {
       MockHttpResponse response = dispatcher.get(url(UUID.randomUUID()), user1Token);
 
       assertEquals(404, response.getStatus());
@@ -5654,7 +5665,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier, if the user isn’t authenticated then it returns a status code"
             + " 401")
-    public void getMeetingByRoomId_testErrorUnauthenticatedUser() throws Exception {
+    void getMeetingByRoomId_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response = dispatcher.get(url(UUID.randomUUID()), null);
 
       assertEquals(401, response.getStatus());
@@ -5664,7 +5675,7 @@ public class RoomsApiIT {
 
   @Nested
   @DisplayName("Forward Messages tests")
-  public class ForwardMessagesTests {
+  class ForwardMessagesTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s/forward", roomId);
@@ -5672,7 +5683,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Forwards a text message")
-    public void forwardMessages_textMessage() throws Exception {
+    void forwardMessages_textMessage() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
@@ -5717,7 +5728,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Forwards a message describing an attachment")
-    public void forwardMessages_attachmentMessage() throws Exception {
+    void forwardMessages_attachmentMessage() throws Exception {
       UUID room1Id = UUID.randomUUID();
       UUID room2Id = UUID.randomUUID();
       UUID attach1Id = UUID.randomUUID();
@@ -5836,7 +5847,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Forwards a text message with multiple lines")
-    public void forwardMessages_textMessageWithMultipleLines() throws Exception {
+    void forwardMessages_textMessageWithMultipleLines() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
@@ -5886,7 +5897,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Forwards a text message with special characters")
-    public void forwardMessages_textMessageWithSpecialCharacters() throws Exception {
+    void forwardMessages_textMessageWithSpecialCharacters() throws Exception {
       UUID roomId = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
       integrationTestUtils.generateAndSaveRoom(
           Room.create()
@@ -5933,7 +5944,7 @@ public class RoomsApiIT {
     @DisplayName(
         "If the authenticated user is not a member of the attachment room to forward, correctly"
             + " returns a status code 403")
-    public void forwardMessages_userNotMemberOfAttachmentRoom() throws Exception {
+    void forwardMessages_userNotMemberOfAttachmentRoom() throws Exception {
       UUID room1Id = UUID.randomUUID();
       UUID room2Id = UUID.randomUUID();
       UUID attachId = UUID.randomUUID();
@@ -5996,7 +6007,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("If the attachment to forward not exists, correctly returns a status code 404")
-    public void forwardMessages_attachmentNotFound() throws Exception {
+    void forwardMessages_attachmentNotFound() throws Exception {
       UUID roomId = UUID.randomUUID();
 
       integrationTestUtils.generateAndSaveRoom(
@@ -6038,7 +6049,7 @@ public class RoomsApiIT {
     @DisplayName(
         "If the authenticated user is not a member of destination room, correctly returns a status"
             + " code 403")
-    public void forwardMessages_userNotMemberOfDestinationRoom() throws Exception {
+    void forwardMessages_userNotMemberOfDestinationRoom() throws Exception {
       UUID roomId = UUID.randomUUID();
 
       integrationTestUtils.generateAndSaveRoom(
@@ -6070,7 +6081,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("If the current user is not authenticated, correctly returns a status code 401")
-    public void forwardMessages_userNotAuthenticated() throws Exception {
+    void forwardMessages_userNotAuthenticated() throws Exception {
       ForwardMessageDto forwardMessageDto =
           ForwardMessageDto.create()
               .originalMessage("<>")
