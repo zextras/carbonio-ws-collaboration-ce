@@ -127,42 +127,40 @@ public class ParticipantServiceImpl implements ParticipantService {
                                 addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
                                 return JoinStatus.ACCEPTED;
                               } else {
-                                // This cases covers a special situation that should usually not occur when a user
-                                // not inside the meeting is still inside the room
                                 return waitingParticipantRepository
                                     .find(meeting.getId(), currentUser.getId(), null)
                                     .stream()
                                     .findFirst()
                                     .map(
-                                        wp -> {
-                                          return switch (wp.getStatus()) {
-                                            case ACCEPTED:
-                                              participantRepository.insert(
-                                                  Participant.create(meeting, currentUser.getId())
-                                                      .queueId(currentUser.getQueueId().toString())
-                                                      .createdAt(OffsetDateTime.now()));
-                                              addMeetingParticipant(
-                                                  meeting, joinSettingsDto, currentUser, room);
-                                              yield JoinStatus.ACCEPTED;
-                                            case WAITING:
-                                              if (!Objects.equals(
+                                        wp -> switch (wp.getStatus()) {
+                                          case ACCEPTED:
+                                            participantRepository.insert(
+                                                Participant.create(meeting, currentUser.getId())
+                                                    .queueId(currentUser.getQueueId().toString())
+                                                    .createdAt(OffsetDateTime.now()));
+                                            addMeetingParticipant(
+                                                meeting, joinSettingsDto, currentUser, room);
+                                            waitingParticipantRepository.remove(wp);
+                                            yield JoinStatus.ACCEPTED;
+                                          case WAITING:
+                                            // This case should never happen
+                                            // A user already inside the room should always have
+                                            // been accepted or be an Owner, we'll treat it the same ways
+                                            // as if the user was not inside the room and put it on queue on
+                                            // this new tab/device
+                                            if (!Objects.equals(
+                                                wp.getQueueId(),
+                                                currentUser.getQueueId().toString())) {
+                                              eventDispatcher.sendToUserQueue(
+                                                  currentUser.getId(),
                                                   wp.getQueueId(),
-                                                  currentUser.getQueueId().toString())) {
-                                                eventDispatcher.sendToUserQueue(
-                                                    currentUser.getId(),
-                                                    wp.getQueueId(),
-                                                    MeetingWaitingParticipantClashed.create()
-                                                        .meetingId(
-                                                            UUID.fromString(meeting.getId())));
-                                                wp.queueId(currentUser.getQueueId().toString());
-                                                waitingParticipantRepository.update(wp);
-                                              }
-                                              // This case should never happen
-                                              // A user already inside the room should always have
-                                              // been accepted
-                                              // or be an Owner
-                                              yield JoinStatus.WAITING;
-                                          };
+                                                  MeetingWaitingParticipantClashed.create()
+                                                      .meetingId(
+                                                          UUID.fromString(meeting.getId())));
+                                              wp.queueId(currentUser.getQueueId().toString());
+                                              waitingParticipantRepository.update(wp);
+                                            }
+                                            yield JoinStatus.WAITING;
                                         })
                                     .orElseGet(
                                         () -> {
@@ -193,26 +191,25 @@ public class ParticipantServiceImpl implements ParticipantService {
                                         wp -> {
                                           return switch (wp.getStatus()) {
                                             case ACCEPTED:
-                                              try {
-                                                this.membersService.insertRoomMember(
-                                                    UUID.fromString(meeting.getRoomId()),
-                                                    new MemberToInsertDto()
-                                                        .userId(
-                                                            UUID.fromString(currentUser.getId()))
-                                                        .owner(false)
-                                                        .historyCleared(false),
-                                                    currentUser,
-                                                    true);
-                                              } catch (BadRequestException ignored) {
-                                              }
-                                              participantRepository.insert(
-                                                  Participant.create(meeting, currentUser.getId())
-                                                      .queueId(currentUser.getQueueId().toString())
-                                                      .createdAt(OffsetDateTime.now()));
-                                              addMeetingParticipant(
-                                                  meeting, joinSettingsDto, currentUser, room);
-                                              yield JoinStatus.ACCEPTED;
+                                              // User is accepted but not inside the room, this should not happen
+                                              // since when accepting the moderator also adds the user to the room
+                                              // we'll put the user back on queue
+                                              waitingParticipantRepository.update(
+                                                  wp.status(JoinStatus.WAITING));
+                                              eventDispatcher.sendToUserExchange(
+                                                  room.getSubscriptions().stream()
+                                                      .filter(Subscription::isOwner)
+                                                      .map(Subscription::getUserId)
+                                                      .collect(Collectors.toList()),
+                                                  new MeetingWaitingParticipantJoined()
+                                                      .meetingId(UUID.fromString(meeting.getId()))
+                                                      .userId(
+                                                          UUID.fromString(currentUser.getId())));
+                                              yield JoinStatus.WAITING;
                                             case WAITING:
+                                              // The user was already in queue, probably on another tab/device,
+                                              // but not already accepted so we'll remove him from queue on the
+                                              // previous tab/device and add it on queue on the new one
                                               if (!wp.getQueueId()
                                                   .equals(currentUser.getQueueId().toString())) {
                                                 eventDispatcher.sendToUserQueue(
