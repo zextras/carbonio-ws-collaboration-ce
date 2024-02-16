@@ -14,17 +14,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
-import com.zextras.carbonio.chats.core.data.entity.Meeting;
-import com.zextras.carbonio.chats.core.data.entity.MeetingBuilder;
-import com.zextras.carbonio.chats.core.data.entity.Participant;
-import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
-import com.zextras.carbonio.chats.core.data.entity.Room;
-import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamChanged;
-import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantClashed;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoined;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
+import com.zextras.carbonio.chats.core.data.entity.*;
+import com.zextras.carbonio.chats.core.data.event.*;
+import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
@@ -41,17 +33,17 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import javax.ws.rs.core.Response.Status;
+
+import com.zextras.carbonio.meeting.model.QueueUpdateStatusDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -344,6 +336,102 @@ public class ParticipantServiceImplTest {
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(meetingService, roomService);
       verifyNoInteractions(participantRepository, videoServerService, eventDispatcher);
+    }
+  }
+
+  @Nested
+  @DisplayName("Queue tests")
+  class QueueTests {
+    @Test
+    @DisplayName("Return empty list if no user in queue")
+    void getQueue_testEmpty() {
+      when(waitingParticipantRepository.find(meeting1Id.toString(), null, JoinStatus.WAITING))
+          .thenReturn(Collections.emptyList());
+      List<UUID> queuedUsers = participantService.getQueue(meeting1Id);
+      assertEquals(queuedUsers, Collections.emptyList());
+    }
+
+    @Test
+    @DisplayName("Return the list of users in queue")
+    void getQueue_testOk() {
+      when(waitingParticipantRepository.find(meeting1Id.toString(), null, JoinStatus.WAITING))
+          .thenReturn(
+              List.of(
+                  new WaitingParticipant().userId(user1Id.toString()),
+                  new WaitingParticipant().userId(user2Id.toString())));
+      List<UUID> queuedUsers = participantService.getQueue(meeting1Id);
+      assertEquals(queuedUsers.size(), 2);
+      assertEquals(queuedUsers, List.of(user1Id, user2Id));
+    }
+
+    @Test
+    @DisplayName("Reject a user from queue")
+    void updateQueue_rejectUser() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
+      when(waitingParticipantRepository.find(meeting1Id.toString(), user2Id.toString(), null))
+          .thenReturn(
+              List.of(
+                  new WaitingParticipant()
+                      .userId(user2Id.toString())
+                      .status(JoinStatus.WAITING)
+                      .queueId(user2Queue1.toString())));
+      participantService.updateQueue(
+          meeting1Id, user2Id, QueueUpdateStatusDto.REJECTED, currentUser);
+
+      verify(waitingParticipantRepository, times(1))
+          .remove(
+              WaitingParticipant.create()
+                  .userId(user2Id.toString())
+                  .status(JoinStatus.WAITING)
+                  .queueId(user2Queue1.toString()));
+      DomainEvent event =
+          MeetingWaitingParticipantRejected.create()
+              .meetingId(meeting1Id)
+              .userId(UUID.fromString(user2Id.toString()));
+      verify(eventDispatcher).sendToUserExchange(List.of(user1Id.toString()), event);
+      verify(eventDispatcher).sendToUserQueue(user2Id.toString(), user2Queue1.toString(), event);
+    }
+
+    @Test
+    @DisplayName("Accept a user from queue")
+    void updateQueue_acceptUser() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
+      when(waitingParticipantRepository.find(meeting1Id.toString(), user2Id.toString(), null))
+          .thenReturn(
+              List.of(
+                  new WaitingParticipant()
+                      .userId(user2Id.toString())
+                      .status(JoinStatus.WAITING)
+                      .queueId(user2Queue1.toString())));
+      participantService.updateQueue(
+          meeting1Id, user2Id, QueueUpdateStatusDto.ACCEPTED, currentUser);
+
+      verify(waitingParticipantRepository, times(1))
+          .update(
+              WaitingParticipant.create()
+                  .userId(user2Id.toString())
+                  .status(JoinStatus.ACCEPTED)
+                  .queueId(user2Queue1.toString()));
+      verify(membersService, times(1))
+          .insertRoomMember(
+              roomId,
+              MemberToInsertDto.create()
+                  .userId(user2Id)
+                  .historyCleared(false)
+                  .external(false)
+                  .owner(false)
+                  .temporary(false),
+              currentUser);
+      DomainEvent event =
+          MeetingWaitingParticipantAccepted.create()
+              .meetingId(meeting1Id)
+              .userId(UUID.fromString(user2Id.toString()));
+      verify(eventDispatcher).sendToUserExchange(List.of(user1Id.toString()), event);
+      verify(eventDispatcher).sendToUserQueue(user2Id.toString(), user2Queue1.toString(), event);
     }
   }
 

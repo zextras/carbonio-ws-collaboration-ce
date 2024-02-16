@@ -44,7 +44,7 @@ public interface MembersService {
    * @param direct            allows the operation to be done programmatically without an owner user
    * @return The member added or invited {@link MemberDto }
    **/
-  MemberInsertedDto insertRoomMember(UUID roomId, MemberToInsertDto memberToInsertDto, UserPrincipal currentUser, boolean direct);
+  MemberInsertedDto insertRoomMember(UUID roomId, MemberToInsertDto memberToInsertDto, UserPrincipal currentUser);
 
   /**
    * Removes a member from the specified room. If the specified user is different from the requester, this action is

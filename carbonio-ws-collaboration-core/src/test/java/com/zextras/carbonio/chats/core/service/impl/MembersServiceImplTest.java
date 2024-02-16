@@ -251,8 +251,7 @@ public class MembersServiceImplTest {
 
       MemberInsertedDto member = membersService.insertRoomMember(roomId,
         MemberToInsertDto.create().userId(user2Id).historyCleared(false),
-        principal,
-              false);
+        principal);
       assertNotNull(member);
       assertEquals(user2Id, member.getUserId());
 
@@ -282,7 +281,7 @@ public class MembersServiceImplTest {
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
-        membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal, false));
+        membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal));
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -311,7 +310,7 @@ public class MembersServiceImplTest {
         CapabilitiesDto.create().maxGroupMembers(128));
 
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
-        membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal, false));
+        membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal));
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Bad Request - User '%s' is already a room member", user2Id.toString()),
@@ -335,7 +334,7 @@ public class MembersServiceImplTest {
 
       when(userService.userExists(user2Id, principal)).thenReturn(false);
       ChatsHttpException exception = assertThrows(NotFoundException.class, () ->
-        membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal, false));
+        membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user2Id), principal));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -366,7 +365,7 @@ public class MembersServiceImplTest {
         CapabilitiesDto.create().maxGroupMembers(128));
 
       MemberInsertedDto member = membersService.insertRoomMember(roomId,
-        MemberToInsertDto.create().userId(user2Id).historyCleared(true).owner(false), principal, false);
+        MemberToInsertDto.create().userId(user2Id).historyCleared(true).owner(false), principal);
       assertNotNull(member);
       assertEquals(user2Id, member.getUserId());
 
@@ -402,7 +401,7 @@ public class MembersServiceImplTest {
       when(userService.userExists(user4Id, principal)).thenReturn(true);
       when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
       ChatsHttpException exception = assertThrows(BadRequestException.class, () ->
-        membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user4Id), principal, false));
+        membersService.insertRoomMember(roomId, MemberToInsertDto.create().userId(user4Id), principal));
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Cannot add more members to this group", exception.getMessage());

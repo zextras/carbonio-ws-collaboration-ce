@@ -310,8 +310,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                                 .userId(userId)
                                 .owner(false)
                                 .historyCleared(false),
-                            currentUser,
-                            false);
+                            currentUser);
                       } catch (BadRequestException ignored) {
                       }
                       yield MeetingWaitingParticipantAccepted.create()

@@ -114,15 +114,12 @@ public class MembersServiceImpl implements MembersService {
   @Transactional
   public MemberInsertedDto insertRoomMember(
     UUID roomId, MemberToInsertDto memberToInsertDto,
-    UserPrincipal currentUser, boolean direct
+    UserPrincipal currentUser
   ) {
     if (!userService.userExists(memberToInsertDto.getUserId(), currentUser)) {
       throw new NotFoundException(String.format("User with id '%s' was not found", memberToInsertDto.getUserId()));
     }
-    Room room = direct
-            ? roomService.getRoom(roomId).orElseThrow(() ->
-                new NotFoundException(String.format("Room '%s'", roomId)))
-            : roomService.getRoomEntityAndCheckUser(roomId, currentUser, true);
+    Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
       throw new BadRequestException(String.format("Cannot add members to a %s conversation", room.getType()));
     } else if (RoomTypeDto.GROUP.equals(room.getType())) {
