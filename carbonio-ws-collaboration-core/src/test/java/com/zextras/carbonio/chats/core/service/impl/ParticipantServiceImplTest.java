@@ -395,6 +395,36 @@ public class ParticipantServiceImplTest {
     }
 
     @Test
+    @DisplayName("Exit from the queue from the user")
+    void updateQueue_exitQueueUser() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
+      when(waitingParticipantRepository.find(meeting1Id.toString(), user1Id.toString(), null))
+          .thenReturn(
+              List.of(
+                  new WaitingParticipant()
+                      .userId(user1Id.toString())
+                      .status(JoinStatus.WAITING)
+                      .queueId(user1Queue1.toString())));
+      participantService.updateQueue(
+          meeting1Id, user1Id, QueueUpdateStatusDto.REJECTED, currentUser);
+
+      verify(waitingParticipantRepository, times(1))
+          .remove(
+              WaitingParticipant.create()
+                  .userId(user1Id.toString())
+                  .status(JoinStatus.WAITING)
+                  .queueId(user1Queue1.toString()));
+      DomainEvent event =
+          MeetingWaitingParticipantRejected.create()
+              .meetingId(meeting1Id)
+              .userId(UUID.fromString(user1Id.toString()));
+      verify(eventDispatcher).sendToUserExchange(List.of(user1Id.toString()), event);
+      verify(eventDispatcher).sendToUserQueue(user1Id.toString(), user1Queue1.toString(), event);
+    }
+
+    @Test
     @DisplayName("Accept a user from queue")
     void updateQueue_acceptUser() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
@@ -432,6 +462,30 @@ public class ParticipantServiceImplTest {
               .userId(UUID.fromString(user2Id.toString()));
       verify(eventDispatcher).sendToUserExchange(List.of(user1Id.toString()), event);
       verify(eventDispatcher).sendToUserQueue(user2Id.toString(), user2Queue1.toString(), event);
+    }
+
+    @Test
+    @DisplayName("Block a non owner from moderating the queue")
+    void updateQueue_testKOnotOwner() {
+      UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(user2Queue1);
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
+      when(waitingParticipantRepository.find(meeting1Id.toString(), user3Id.toString(), null))
+          .thenReturn(
+              List.of(
+                  new WaitingParticipant()
+                      .userId(user3Id.toString())
+                      .status(JoinStatus.WAITING)
+                      .queueId(user3Queue1.toString())));
+      ChatsHttpException exception =
+          assertThrows(
+              ForbiddenException.class,
+              () ->
+                  participantService.updateQueue(
+                      meeting1Id, user3Id, QueueUpdateStatusDto.REJECTED, currentUser));
+
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
     }
   }
 
