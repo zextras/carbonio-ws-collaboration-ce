@@ -304,11 +304,11 @@ public class ParticipantServiceImplTest {
 
   @Nested
   @DisplayName("Insert SCHEDULED meeting participant tests")
-  public class InsertScheduledMeetingParticipantTests {
+  class InsertScheduledMeetingParticipantTests {
 
     @Test
     @DisplayName("A moderator can directly enter the meeting")
-    public void insertMeetingParticipant_moderatorOk() {
+    void insertMeetingParticipant_moderatorOk() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
       when(meetingService.getMeetingEntity(scheduledMeetingId))
           .thenReturn(Optional.of(scheduledMeeting));
@@ -345,7 +345,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("It kicks the previous session if the user was already inside the meeting")
-    public void insertMeetingParticipant_testOkRemovePreviousSessionBeforeJoining() {
+    void insertMeetingParticipant_testOkRemovePreviousSessionBeforeJoining() {
       UUID newQueue = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(newQueue);
       scheduledMeeting.participants(List.of(participant1Session1));
@@ -394,7 +394,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("A user is put on queue when trying to enter")
-    public void insertMeetingParticipant_userWaiting() {
+    void insertMeetingParticipant_userWaiting() {
       UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(user2Queue1);
       when(meetingService.getMeetingEntity(scheduledMeetingId))
           .thenReturn(Optional.of(scheduledMeeting));
@@ -410,7 +410,11 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
       verify(roomService, times(1)).getRoom(scheduledRoomId);
       verify(waitingParticipantRepository, times(1))
-          .insert(scheduledMeetingId.toString(), user2Id.toString(), user2Queue1.toString(), JoinStatus.WAITING);
+          .insert(
+              scheduledMeetingId.toString(),
+              user2Id.toString(),
+              user2Queue1.toString(),
+              JoinStatus.WAITING);
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString()),
@@ -423,7 +427,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("An accepted user can enter the meeting")
-    public void insertMeetingParticipant_userAccepted() {
+    void insertMeetingParticipant_userAccepted() {
       UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(user2Queue1);
       WaitingParticipant wp2 =
           new WaitingParticipant()
@@ -473,7 +477,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("An user inside the room but still waiting is put on queue on the new device")
-    public void insertMeetingParticipant_userRoomWaitingClash() {
+    void insertMeetingParticipant_userRoomWaitingClash() {
       UUID newQueue = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(newQueue);
       WaitingParticipant wp2 =
@@ -513,7 +517,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("An user inside the room but not on queue is put on waiting")
-    public void insertMeetingParticipant_userRoomNoQueue() {
+    void insertMeetingParticipant_userRoomNoQueue() {
       UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(user2Queue1);
       scheduledRoom.subscriptions(
           List.of(
@@ -536,7 +540,11 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
       verify(roomService, times(1)).getRoom(scheduledRoomId);
       verify(waitingParticipantRepository, times(1))
-          .insert(scheduledMeetingId.toString(), user2Id.toString(), user2Queue1.toString(), JoinStatus.WAITING);
+          .insert(
+              scheduledMeetingId.toString(),
+              user2Id.toString(),
+              user2Queue1.toString(),
+              JoinStatus.WAITING);
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString()),
@@ -549,7 +557,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("An accepted user but not inside the room is put back on queue")
-    public void insertMeetingParticipant_userNoRoomAccepted() {
+    void insertMeetingParticipant_userNoRoomAccepted() {
       UUID newQueue = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(newQueue);
       WaitingParticipant wp2 =
@@ -578,74 +586,49 @@ public class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString()),
-              MeetingWaitingParticipantJoined.create().meetingId(scheduledMeetingId).userId(user2Id));
+              MeetingWaitingParticipantJoined.create()
+                  .meetingId(scheduledMeetingId)
+                  .userId(user2Id));
       verifyNoMoreInteractions(
           meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
 
     @Test
     @DisplayName("A waiting user that rejoins is put on queue on the new device")
-    public void insertMeetingParticipant_userNoRoomWaitingRejoin() {
+    void insertMeetingParticipant_userNoRoomWaitingRejoin() {
       UUID newQueue = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(newQueue);
       WaitingParticipant wp2 =
-              new WaitingParticipant()
-                      .userId(user2Id.toString())
-                      .queueId(user2Queue1.toString())
-                      .status(JoinStatus.WAITING);
+          new WaitingParticipant()
+              .userId(user2Id.toString())
+              .queueId(user2Queue1.toString())
+              .status(JoinStatus.WAITING);
       when(meetingService.getMeetingEntity(scheduledMeetingId))
-              .thenReturn(Optional.of(scheduledMeeting));
+          .thenReturn(Optional.of(scheduledMeeting));
       when(roomService.getRoom(scheduledRoomId)).thenReturn(Optional.of(scheduledRoom));
       when(waitingParticipantRepository.find(
               scheduledMeetingId.toString(), user2Id.toString(), null))
-              .thenReturn(List.of(wp2));
+          .thenReturn(List.of(wp2));
 
       JoinStatus meetingJoinStatus =
-              participantService.insertMeetingParticipant(
-                      scheduledMeetingId,
-                      JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false),
-                      currentUser);
+          participantService.insertMeetingParticipant(
+              scheduledMeetingId,
+              JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false),
+              currentUser);
 
       assertEquals(JoinStatus.WAITING, meetingJoinStatus);
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
       verify(roomService, times(1)).getRoom(scheduledRoomId);
       verify(waitingParticipantRepository, times(1))
-              .update(wp2.status(JoinStatus.WAITING).queueId(newQueue.toString()));
+          .update(wp2.status(JoinStatus.WAITING).queueId(newQueue.toString()));
       verify(eventDispatcher, times(1))
-              .sendToUserQueue(
-                      user2Id.toString(),
-                      user2Queue1.toString(),
-                      MeetingWaitingParticipantClashed.create().meetingId(scheduledMeetingId));
+          .sendToUserQueue(
+              user2Id.toString(),
+              user2Queue1.toString(),
+              MeetingWaitingParticipantClashed.create().meetingId(scheduledMeetingId));
       verifyNoMoreInteractions(
-              meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
+          meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }
-    /*
-    @Test
-    @DisplayName(
-        "If the current user is already a meeting participant, it throws a 'conflict' exception")
-    public void insertMeetingParticipant_testIsAlreadyMeetingParticipant() {
-      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
-      when(meetingService.getMeetingEntity(permanentMeetingId))
-          .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
-      ChatsHttpException exception =
-          assertThrows(
-              ConflictException.class,
-              () ->
-                  participantService.insertMeetingParticipant(
-                      permanentMeetingId,
-                      JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false),
-                      currentUser));
-
-      assertEquals(Status.CONFLICT.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.CONFLICT.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Conflict - User is already inserted into the meeting", exception.getMessage());
-
-      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
-      verify(roomService, times(1)).getRoom(roomId);
-      verifyNoMoreInteractions(roomService, meetingService);
-      verifyNoInteractions(participantRepository, videoServerService, eventDispatcher);
-    }*/
   }
 
   @Nested
@@ -727,7 +710,7 @@ public class ParticipantServiceImplTest {
               permanentMeetingId.toString(), null, JoinStatus.WAITING))
           .thenReturn(Collections.emptyList());
       List<UUID> queuedUsers = participantService.getQueue(permanentMeetingId);
-      assertEquals(queuedUsers, Collections.emptyList());
+      assertEquals(Collections.emptyList(), queuedUsers);
     }
 
     @Test
@@ -740,8 +723,8 @@ public class ParticipantServiceImplTest {
                   new WaitingParticipant().userId(user1Id.toString()),
                   new WaitingParticipant().userId(user2Id.toString())));
       List<UUID> queuedUsers = participantService.getQueue(permanentMeetingId);
-      assertEquals(queuedUsers.size(), 2);
-      assertEquals(queuedUsers, List.of(user1Id, user2Id));
+      assertEquals(2, queuedUsers.size());
+      assertEquals(List.of(user1Id, user2Id), queuedUsers);
     }
 
     @Test
