@@ -410,7 +410,7 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
       verify(roomService, times(1)).getRoom(scheduledRoomId);
       verify(waitingParticipantRepository, times(1))
-          .insert(scheduledMeetingId.toString(), user2Id.toString(), user2Queue1.toString());
+          .insert(scheduledMeetingId.toString(), user2Id.toString(), user2Queue1.toString(), JoinStatus.WAITING);
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString()),
@@ -536,7 +536,7 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
       verify(roomService, times(1)).getRoom(scheduledRoomId);
       verify(waitingParticipantRepository, times(1))
-          .insert(scheduledMeetingId.toString(), user2Id.toString(), user2Queue1.toString());
+          .insert(scheduledMeetingId.toString(), user2Id.toString(), user2Queue1.toString(), JoinStatus.WAITING);
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString()),

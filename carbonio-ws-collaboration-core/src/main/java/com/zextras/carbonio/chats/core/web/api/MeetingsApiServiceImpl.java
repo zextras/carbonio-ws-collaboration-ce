@@ -235,7 +235,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
             .orElseThrow(UnauthorizedException::new);
 
     participantService.updateQueue(meetingId, userId, queuedUserUpdateDto.getStatus(), currentUser);
-    return Response.ok().build();
+    return Response.noContent().build();
   }
 
   /**

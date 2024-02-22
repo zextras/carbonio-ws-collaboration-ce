@@ -36,14 +36,14 @@ public class EbeanWaitingParticipantRepository implements WaitingParticipantRepo
   }
 
   @Override
-  public WaitingParticipant insert(String meetingId, String userId, String queueId) {
+  public WaitingParticipant insert(String meetingId, String userId, String queueId, JoinStatus status) {
     WaitingParticipant wp =
         new WaitingParticipant()
             .id(UUID.randomUUID().toString())
             .meetingId(meetingId)
             .userId(userId)
             .queueId(queueId)
-            .status(JoinStatus.WAITING);
+            .status(status);
     db.save(wp);
     return wp;
   }

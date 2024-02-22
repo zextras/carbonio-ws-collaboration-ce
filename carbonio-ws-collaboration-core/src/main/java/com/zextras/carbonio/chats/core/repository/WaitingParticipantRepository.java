@@ -28,9 +28,10 @@ public interface WaitingParticipantRepository {
    * @param meetingId meeting identifier
    * @param userId user identifier
    * @param queueId user identifier
+   * @param status the status of the inserted user
    * @return {@link WaitingParticipant} inserted
    */
-  WaitingParticipant insert(String meetingId, String userId, String queueId);
+  WaitingParticipant insert(String meetingId, String userId, String queueId, JoinStatus status);
 
   /**
    * Updates the {@link WaitingParticipant}

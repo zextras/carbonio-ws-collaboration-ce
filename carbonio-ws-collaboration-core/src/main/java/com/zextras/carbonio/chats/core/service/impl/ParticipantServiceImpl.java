@@ -171,7 +171,8 @@ public class ParticipantServiceImpl implements ParticipantService {
                                           waitingParticipantRepository.insert(
                                               meeting.getId(),
                                               currentUser.getId(),
-                                              currentUser.getQueueId().toString());
+                                              currentUser.getQueueId().toString(),
+                                              JoinStatus.WAITING);
                                           eventDispatcher.sendToUserExchange(
                                               room.getSubscriptions().stream()
                                                   .filter(Subscription::isOwner)
@@ -240,7 +241,8 @@ public class ParticipantServiceImpl implements ParticipantService {
                                           waitingParticipantRepository.insert(
                                               meeting.getId(),
                                               currentUser.getId(),
-                                              currentUser.getQueueId().toString());
+                                              currentUser.getQueueId().toString(),
+                                              JoinStatus.WAITING);
                                           eventDispatcher.sendToUserExchange(
                                               room.getSubscriptions().stream()
                                                   .filter(Subscription::isOwner)
