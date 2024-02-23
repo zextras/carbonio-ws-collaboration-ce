@@ -10,11 +10,10 @@ import com.zextras.carbonio.chats.core.repository.WaitingParticipantRepository;
 import io.ebean.Database;
 import io.ebean.Query;
 import io.vavr.control.Option;
-
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.List;
 import java.util.UUID;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 @Singleton
 public class EbeanWaitingParticipantRepository implements WaitingParticipantRepository {
@@ -36,7 +35,8 @@ public class EbeanWaitingParticipantRepository implements WaitingParticipantRepo
   }
 
   @Override
-  public WaitingParticipant insert(String meetingId, String userId, String queueId, JoinStatus status) {
+  public WaitingParticipant insert(
+      String meetingId, String userId, String queueId, JoinStatus status) {
     WaitingParticipant wp =
         new WaitingParticipant()
             .id(UUID.randomUUID().toString())
@@ -59,6 +59,7 @@ public class EbeanWaitingParticipantRepository implements WaitingParticipantRepo
     return db.delete(waitingParticipant);
   }
 
+  @Override
   public void clear(String meetingId) {
     db.find(WaitingParticipant.class).where().eq("meetingId", meetingId).delete();
   }

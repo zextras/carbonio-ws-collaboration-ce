@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -33,25 +32,20 @@ import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils.RoomMemberField;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
-import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.api.MeetingsApi;
 import com.zextras.carbonio.meeting.model.*;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.*;
-
-import org.checkerframework.checker.units.qual.C;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockserver.model.Header;
 import org.mockserver.verify.VerificationTimes;
 
 @ApiIntegrationTest
@@ -2194,7 +2188,8 @@ public class MeetingApiIT {
               Map.of("queue-id", user1Queue),
               user1Token);
       assertEquals(200, response.getStatus());
-      // assertEquals(0, response.getOutput().length);
+      assertEquals(
+          "{\"status\":\"ACCEPTED\"}", new String(response.getOutput(), StandardCharsets.UTF_8));
 
       Meeting meeting = meetingTestUtils.getMeetingById(meetingId).orElseThrow();
       assertNotNull(meeting);
@@ -3004,18 +2999,18 @@ public class MeetingApiIT {
               .description("description"),
           List.of(RoomMemberField.create().id(user1Id).owner(true)));
       mongooseImMockServer.mockAddRoomMember(
-              room1Id.toString(), user1Id.toString(), user2Id.toString(), true);
+          room1Id.toString(), user1Id.toString(), user2Id.toString(), true);
       String hopedXmppAffiliationMessage1 =
-              String.format(
-                      "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
-                              + " type='groupchat'>",
-                      user1Id, room1Id)
-                      + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
-                      + "<operation>memberAdded</operation>"
-                      + String.format("<user-id>%s</user-id>", user2Id)
-                      + "</x>"
-                      + "<body/>"
-                      + "</message>";
+          String.format(
+                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
+                      + " type='groupchat'>",
+                  user1Id, room1Id)
+              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+              + "<operation>memberAdded</operation>"
+              + String.format("<user-id>%s</user-id>", user2Id)
+              + "</x>"
+              + "<body/>"
+              + "</message>";
       mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage1, true);
       UUID meetingId =
           meetingTestUtils.generateAndSaveMeeting(
@@ -3033,9 +3028,10 @@ public class MeetingApiIT {
                   QueuedUserUpdateDto.create().status(QueueUpdateStatusDto.ACCEPTED)),
               Map.of("queue-id", user1Queue),
               user1Token);
-      
-      assertEquals(204,response.getStatus());
-      List<WaitingParticipant> wp1 = waitingParticipantRepository.find(meetingId.toString(), user2Id.toString(), null);
+
+      assertEquals(204, response.getStatus());
+      List<WaitingParticipant> wp1 =
+          waitingParticipantRepository.find(meetingId.toString(), user2Id.toString(), null);
       assertEquals(1, wp1.size());
       WaitingParticipant wp = wp1.get(0);
       assertEquals(JoinStatus.ACCEPTED, wp.getStatus());
