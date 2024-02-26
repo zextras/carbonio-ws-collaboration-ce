@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.data.entity;
 
+import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -31,6 +32,11 @@ public class MeetingBuilder {
     return this;
   }
 
+  public MeetingBuilder meetingType(MeetingType meetingType) {
+    meeting.meetingType(meetingType);
+    return this;
+  }
+
   public MeetingBuilder createdAt(OffsetDateTime createdAt) {
     try {
       Field createdAtField = Meeting.class.getDeclaredField("createdAt");
@@ -45,5 +51,4 @@ public class MeetingBuilder {
   public Meeting build() {
     return meeting;
   }
-
 }

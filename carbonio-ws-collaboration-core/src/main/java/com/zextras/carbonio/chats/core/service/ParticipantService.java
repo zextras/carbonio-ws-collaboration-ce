@@ -6,15 +6,14 @@ package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.JoinSettingsDto;
-import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
+import com.zextras.carbonio.meeting.model.*;
+import java.util.List;
 import java.util.UUID;
 
 public interface ParticipantService {
@@ -32,8 +31,33 @@ public interface ParticipantService {
    * @throws ForbiddenException if the user isn't an associated room owner and mustBeRoomOwner is
    *     true
    */
-  void insertMeetingParticipant(
+  JoinStatus insertMeetingParticipant(
       UUID meetingId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser);
+
+  /**
+   * Returns the list of users in queue for entering the meeting
+   *
+   * @param meetingId the id of the meeting
+   * @return the list of ids of the users in queue
+   */
+  List<UUID> getQueue(UUID meetingId);
+
+  /**
+   * Updates the status of a user in queue, accepting or refusing it
+   *
+   * @param meetingId the id of the meeting
+   * @param userId the id of the user in queue
+   * @param status the action to perform
+   */
+  void updateQueue(
+      UUID meetingId, UUID userId, QueueUpdateStatusDto status, UserPrincipal currentUser);
+
+  /**
+   * Clears the queue of a meeting, deleting all users accepted and waiting from the list
+   *
+   * @param meetingId the id of the meeting
+   */
+  void clearQueue(UUID meetingId);
 
   /**
    * Removes the participant of current user from the indicated meeting

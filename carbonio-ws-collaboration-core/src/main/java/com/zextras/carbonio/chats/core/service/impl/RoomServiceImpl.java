@@ -69,38 +69,40 @@ import javax.inject.Singleton;
 @Singleton
 public class RoomServiceImpl implements RoomService {
 
-  private static final OffsetDateTime MUTED_TO_INFINITY = OffsetDateTime.parse("0001-01-01T00:00:00Z");
+  private static final OffsetDateTime MUTED_TO_INFINITY =
+      OffsetDateTime.parse("0001-01-01T00:00:00Z");
 
-  private final RoomRepository             roomRepository;
+  private final RoomRepository roomRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
-  private final RoomMapper                 roomMapper;
-  private final EventDispatcher            eventDispatcher;
-  private final MessageDispatcher          messageDispatcher;
-  private final UserService                userService;
-  private final MembersService             membersService;
-  private final MeetingService             meetingService;
-  private final FileMetadataRepository     fileMetadataRepository;
-  private final StoragesService            storagesService;
-  private final AttachmentService          attachmentService;
-  private final Clock                      clock;
-  private final AppConfig                  appConfig;
-  private final CapabilityService          capabilityService;
+  private final RoomMapper roomMapper;
+  private final EventDispatcher eventDispatcher;
+  private final MessageDispatcher messageDispatcher;
+  private final UserService userService;
+  private final MembersService membersService;
+  private final MeetingService meetingService;
+  private final FileMetadataRepository fileMetadataRepository;
+  private final StoragesService storagesService;
+  private final AttachmentService attachmentService;
+  private final Clock clock;
+  private final AppConfig appConfig;
+  private final CapabilityService capabilityService;
 
   @Inject
   public RoomServiceImpl(
-    RoomRepository roomRepository, RoomUserSettingsRepository roomUserSettingsRepository, RoomMapper roomMapper,
-    EventDispatcher eventDispatcher,
-    MessageDispatcher messageDispatcher,
-    UserService userService,
-    MembersService membersService,
-    MeetingService meetingService,
-    FileMetadataRepository fileMetadataRepository,
-    StoragesService storagesService,
-    AttachmentService attachmentService,
-    Clock clock,
-    AppConfig appConfig,
-    CapabilityService capabilityService
-  ) {
+      RoomRepository roomRepository,
+      RoomUserSettingsRepository roomUserSettingsRepository,
+      RoomMapper roomMapper,
+      EventDispatcher eventDispatcher,
+      MessageDispatcher messageDispatcher,
+      UserService userService,
+      MembersService membersService,
+      MeetingService meetingService,
+      FileMetadataRepository fileMetadataRepository,
+      StoragesService storagesService,
+      AttachmentService attachmentService,
+      Clock clock,
+      AppConfig appConfig,
+      CapabilityService capabilityService) {
     this.roomRepository = roomRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
     this.roomMapper = roomMapper;
@@ -119,8 +121,7 @@ public class RoomServiceImpl implements RoomService {
 
   @Override
   public List<RoomDto> getRooms(
-    @Nullable List<RoomExtraFieldDto> extraFields, UserPrincipal currentUser
-  ) {
+      @Nullable List<RoomExtraFieldDto> extraFields, UserPrincipal currentUser) {
     boolean includeMembers = false, includeSettings = false;
     if (extraFields != null) {
       includeMembers = extraFields.contains(RoomExtraFieldDto.MEMBERS);
@@ -131,10 +132,14 @@ public class RoomServiceImpl implements RoomService {
     if (includeSettings) {
       settingsMap = roomUserSettingsRepository.getMapGroupedByUserId(currentUser.getId());
     } else {
-      List<String> ids = rooms.stream()
-        .filter(room -> RoomTypeDto.WORKSPACE.equals(room.getType()))
-        .map(Room::getId).collect(Collectors.toList());
-      settingsMap = roomUserSettingsRepository.getMapByRoomsIdsAndUserIdGroupedByRoomsIds(ids, currentUser.getId());
+      List<String> ids =
+          rooms.stream()
+              .filter(room -> RoomTypeDto.WORKSPACE.equals(room.getType()))
+              .map(Room::getId)
+              .collect(Collectors.toList());
+      settingsMap =
+          roomUserSettingsRepository.getMapByRoomsIdsAndUserIdGroupedByRoomsIds(
+              ids, currentUser.getId());
     }
     return roomMapper.ent2dto(rooms, settingsMap, includeMembers, includeSettings);
   }
@@ -146,14 +151,23 @@ public class RoomServiceImpl implements RoomService {
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
       List<String> ids = room.getChildren().stream().map(Room::getId).collect(Collectors.toList());
       ids.add(roomId.toString());
-      return roomMapper.ent2dto(room, roomUserSettingsRepository.getMapByRoomsIdsAndUserIdGroupedByRoomsIds(ids,
-        currentUser.getId()), true, true);
+      return roomMapper.ent2dto(
+          room,
+          roomUserSettingsRepository.getMapByRoomsIdsAndUserIdGroupedByRoomsIds(
+              ids, currentUser.getId()),
+          true,
+          true);
     } else if (RoomTypeDto.CHANNEL.equals(room.getType())) {
-      room.subscriptions(roomRepository.getById(room.getParentId()).orElseThrow().getSubscriptions());
+      room.subscriptions(
+          roomRepository.getById(room.getParentId()).orElseThrow().getSubscriptions());
     }
-    return roomMapper.ent2dto(room,
-      roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId()).orElse(null),
-      true, true);
+    return roomMapper.ent2dto(
+        room,
+        roomUserSettingsRepository
+            .getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
+            .orElse(null),
+        true,
+        true);
   }
 
   @Override
@@ -166,65 +180,78 @@ public class RoomServiceImpl implements RoomService {
     }
 
     UUID newRoomId = UUID.randomUUID();
-    Room room = Room.create()
-      .id(newRoomId.toString())
-      .type(roomCreationFields.getType())
-      .parentId(Optional.ofNullable(roomCreationFields.getParentId()).map(UUID::toString).orElse(null));
+    Room room =
+        Room.create()
+            .id(newRoomId.toString())
+            .type(roomCreationFields.getType())
+            .parentId(
+                Optional.ofNullable(roomCreationFields.getParentId())
+                    .map(UUID::toString)
+                    .orElse(null));
     Optional.ofNullable(roomCreationFields.getName()).ifPresent(room::name);
     Optional.ofNullable(roomCreationFields.getDescription()).ifPresent(room::description);
-    room = room.subscriptions(
-      membersService.initRoomSubscriptions(membersIds, room, currentUser));
+    room = room.subscriptions(membersService.initRoomSubscriptions(membersIds, room, currentUser));
 
     if (RoomTypeDto.WORKSPACE.equals(roomCreationFields.getType())) {
       List<RoomUserSettings> roomUserSettings = new ArrayList<>();
-      Map<String, RoomUserSettings> maxRanksMapByUsers = roomUserSettingsRepository.getWorkspaceMaxRanksMapGroupedByUsers(
-        membersIds.stream().map(UUID::toString).collect(Collectors.toList())
-      );
+      Map<String, RoomUserSettings> maxRanksMapByUsers =
+          roomUserSettingsRepository.getWorkspaceMaxRanksMapGroupedByUsers(
+              membersIds.stream().map(UUID::toString).collect(Collectors.toList()));
       for (UUID memberId : membersIds) {
         RoomUserSettings maxRank = maxRanksMapByUsers.get(memberId.toString());
         roomUserSettings.add(
-          RoomUserSettings.create(room, memberId.toString())
-            .rank((maxRank != null && maxRank.getRank() != null ? maxRank.getRank() : 0) + 1));
+            RoomUserSettings.create(room, memberId.toString())
+                .rank((maxRank != null && maxRank.getRank() != null ? maxRank.getRank() : 0) + 1));
       }
       room.userSettings(roomUserSettings);
     } else if (RoomTypeDto.CHANNEL.equals(roomCreationFields.getType())) {
       room.rank(
-        roomRepository.getChannelMaxRanksByWorkspace(roomCreationFields.getParentId().toString()).orElse(0) + 1);
+          roomRepository
+                  .getChannelMaxRanksByWorkspace(roomCreationFields.getParentId().toString())
+                  .orElse(0)
+              + 1);
     }
 
     room = roomRepository.insert(room);
 
     if (RoomTypeDto.CHANNEL.equals(room.getType())) {
-      room.subscriptions(roomRepository.getById(room.getParentId()).orElseThrow().getSubscriptions());
+      room.subscriptions(
+          roomRepository.getById(room.getParentId()).orElseThrow().getSubscriptions());
     }
     if (!RoomTypeDto.WORKSPACE.equals(room.getType())) {
       messageDispatcher.createRoom(room, currentUser.getId());
       if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
         messageDispatcher.addUsersToContacts(
-          room.getSubscriptions().get(0).getUserId(),
-          room.getSubscriptions().get(1).getUserId());
+            room.getSubscriptions().get(0).getUserId(), room.getSubscriptions().get(1).getUserId());
       }
     }
     UUID finalId = UUID.fromString(room.getId());
     eventDispatcher.sendToUserExchange(
-      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomCreated.create().roomId(finalId));
-    return roomMapper.ent2dto(room,
-      room.getUserSettings().stream().filter(userSettings -> userSettings.getUserId().equals(currentUser.getId()))
-        .findAny().orElse(null), true, true);
+        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        RoomCreated.create().roomId(finalId));
+    return roomMapper.ent2dto(
+        room,
+        room.getUserSettings().stream()
+            .filter(userSettings -> userSettings.getUserId().equals(currentUser.getId()))
+            .findAny()
+            .orElse(null),
+        true,
+        true);
   }
 
-  private void createRoomValidation(RoomCreationFieldsDto roomCreationFields, UserPrincipal currentUser) {
+  private void createRoomValidation(
+      RoomCreationFieldsDto roomCreationFields, UserPrincipal currentUser) {
     Set<UUID> membersSet = new HashSet<>(roomCreationFields.getMembersIds());
 
     if (roomCreationFields.getMembersIds().size() != membersSet.size()) {
       throw new BadRequestException("Members cannot be duplicated");
     }
     if (roomCreationFields.getMembersIds().stream()
-      .anyMatch(memberId -> memberId.toString().equals(currentUser.getId()))) {
+        .anyMatch(memberId -> memberId.toString().equals(currentUser.getId()))) {
       throw new BadRequestException("Requester can't be invited to the room");
     }
-    if (!RoomTypeDto.CHANNEL.equals(roomCreationFields.getType()) && roomCreationFields.getParentId() != null) {
+    if (!RoomTypeDto.CHANNEL.equals(roomCreationFields.getType())
+        && roomCreationFields.getParentId() != null) {
       throw new BadRequestException("Parent is allowed only for channel room");
     }
     switch (roomCreationFields.getType()) {
@@ -232,18 +259,22 @@ public class RoomServiceImpl implements RoomService {
         if (membersSet.size() != 1) {
           throw new BadRequestException("Only 2 users can participate to a one-to-one room");
         }
-        if (roomRepository.getOneToOneByAllUserIds(currentUser.getId(),
-          roomCreationFields.getMembersIds().get(0).toString()).isPresent()) {
+        if (roomRepository
+            .getOneToOneByAllUserIds(
+                currentUser.getId(), roomCreationFields.getMembersIds().get(0).toString())
+            .isPresent()) {
           throw new ConflictException("The one to one room already exists for these users");
         }
         break;
       case GROUP:
       case WORKSPACE:
-        Integer maxGroupMembers = capabilityService.getCapabilities(currentUser).getMaxGroupMembers();
+        Integer maxGroupMembers =
+            capabilityService.getCapabilities(currentUser).getMaxGroupMembers();
         if (membersSet.size() < 2) {
           throw new BadRequestException("Too few members (required at least 3)");
         } else if (membersSet.size() > maxGroupMembers) {
-          throw new BadRequestException("Too much members (required less than " + maxGroupMembers + ")");
+          throw new BadRequestException(
+              "Too much members (required less than " + maxGroupMembers + ")");
         }
         break;
       case CHANNEL:
@@ -261,39 +292,54 @@ public class RoomServiceImpl implements RoomService {
     }
 
     roomCreationFields.getMembersIds().stream()
-      .filter(memberId -> !userService.userExists(memberId, currentUser))
-      .findFirst()
-      .ifPresent((uuid) -> {
-        throw new NotFoundException(String.format("User with identifier '%s' not found", uuid));
-      });
+        .filter(memberId -> !userService.userExists(memberId, currentUser))
+        .findFirst()
+        .ifPresent(
+            (uuid) -> {
+              throw new NotFoundException(
+                  String.format("User with identifier '%s' not found", uuid));
+            });
   }
 
   @Override
   @Transactional
-  public RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser) {
+  public RoomDto updateRoom(
+      UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     boolean changed = false;
-    if (updateRoomRequestDto.getName() != null && !room.getName().equals(updateRoomRequestDto.getName())) {
+    if (updateRoomRequestDto.getName() != null
+        && !room.getName().equals(updateRoomRequestDto.getName())) {
       changed = true;
       room.name(updateRoomRequestDto.getName());
-      messageDispatcher.updateRoomName(room.getId(), currentUser.getId(), updateRoomRequestDto.getName());
+      messageDispatcher.updateRoomName(
+          room.getId(), currentUser.getId(), updateRoomRequestDto.getName());
     }
-    if (updateRoomRequestDto.getDescription() != null && !room.getDescription()
-      .equals(updateRoomRequestDto.getDescription())) {
+    if (updateRoomRequestDto.getDescription() != null
+        && !room.getDescription().equals(updateRoomRequestDto.getDescription())) {
       changed = true;
       room.description(updateRoomRequestDto.getDescription());
-      messageDispatcher.updateRoomDescription(room.getId(), currentUser.getId(), updateRoomRequestDto.getDescription());
+      messageDispatcher.updateRoomDescription(
+          room.getId(), currentUser.getId(), updateRoomRequestDto.getDescription());
     }
     if (changed) {
       roomRepository.update(room);
       eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-        RoomUpdated.create()
-          .roomId(roomId).name(room.getName()).description(room.getDescription()));
+          room.getSubscriptions().stream()
+              .map(Subscription::getUserId)
+              .collect(Collectors.toList()),
+          RoomUpdated.create()
+              .roomId(roomId)
+              .name(room.getName())
+              .description(room.getDescription()));
     }
-    return roomMapper.ent2dto(room,
-      room.getUserSettings().stream().filter(userSettings -> userSettings.getUserId().equals(currentUser.getId()))
-        .findAny().orElse(null), false, false);
+    return roomMapper.ent2dto(
+        room,
+        room.getUserSettings().stream()
+            .filter(userSettings -> userSettings.getUserId().equals(currentUser.getId()))
+            .findAny()
+            .orElse(null),
+        false,
+        false);
   }
 
   @Override
@@ -301,8 +347,9 @@ public class RoomServiceImpl implements RoomService {
   public void deleteRoom(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (room.getMeetingId() != null) {
-      meetingService.getMeetingEntity(UUID.fromString(room.getMeetingId())).ifPresent(meeting ->
-        meetingService.deleteMeeting(meeting, room, currentUser.getUUID()));
+      meetingService
+          .getMeetingEntity(UUID.fromString(room.getMeetingId()))
+          .ifPresent(meeting -> meetingService.deleteMeeting(meeting, room, currentUser.getUUID()));
     }
     attachmentService.deleteAttachmentsByRoomId(roomId, currentUser);
     if (room.getPictureUpdatedAt() != null) {
@@ -311,21 +358,25 @@ public class RoomServiceImpl implements RoomService {
     }
     roomRepository.delete(roomId.toString());
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
-      room.getChildren().forEach(child -> {
-        try {
-          messageDispatcher.deleteRoom(child.getId(), currentUser.getId());
-        } catch (Exception e) {
-          ChatsLogger.warn(String.format(
-            "An error occurred while sending room deletion to the message dispatcher. Room identifier: '%s'",
-            child.getId()));
-        }
-      });
+      room.getChildren()
+          .forEach(
+              child -> {
+                try {
+                  messageDispatcher.deleteRoom(child.getId(), currentUser.getId());
+                } catch (Exception e) {
+                  ChatsLogger.warn(
+                      String.format(
+                          "An error occurred while sending room deletion to the message dispatcher."
+                              + " Room identifier: '%s'",
+                          child.getId()));
+                }
+              });
     } else {
       messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId());
     }
     eventDispatcher.sendToUserExchange(
-      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomDeleted.create().roomId(roomId));
+        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        RoomDeleted.create().roomId(roomId));
   }
 
   @Override
@@ -335,25 +386,29 @@ public class RoomServiceImpl implements RoomService {
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
       throw new BadRequestException("Cannot mute a workspace");
     }
-    RoomUserSettings settings = roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
-      .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
+    RoomUserSettings settings =
+        roomUserSettingsRepository
+            .getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
+            .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
     if (settings.getMutedUntil() == null) {
       roomUserSettingsRepository.save(settings.mutedUntil(MUTED_TO_INFINITY));
-      eventDispatcher.sendToUserExchange(
-        currentUser.getId(), RoomMuted.create().roomId(roomId));
+      eventDispatcher.sendToUserExchange(currentUser.getId(), RoomMuted.create().roomId(roomId));
     }
   }
 
   @Override
   public OffsetDateTime clearRoomHistory(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
-    RoomUserSettings settings = roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
-      .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
-    settings = roomUserSettingsRepository.save(
-      settings.clearedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
-    eventDispatcher.sendToUserExchange(currentUser.getId(),
-      RoomHistoryCleared.create().roomId(roomId)
-        .clearedAt(settings.getClearedAt()));
+    RoomUserSettings settings =
+        roomUserSettingsRepository
+            .getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
+            .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
+    settings =
+        roomUserSettingsRepository.save(
+            settings.clearedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
+    eventDispatcher.sendToUserExchange(
+        currentUser.getId(),
+        RoomHistoryCleared.create().roomId(roomId).clearedAt(settings.getClearedAt()));
     return settings.getClearedAt();
   }
 
@@ -364,51 +419,64 @@ public class RoomServiceImpl implements RoomService {
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
       throw new BadRequestException("Cannot unmute a workspace");
     }
-    roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), currentUser.getId()).ifPresent(
-      settings -> {
-        if (settings.getMutedUntil() != null) {
-          roomUserSettingsRepository.save(settings.mutedUntil(null));
-          eventDispatcher.sendToUserExchange(
-            currentUser.getId(),
-            RoomUnmuted.create().roomId(roomId));
-        }
-      });
+    roomUserSettingsRepository
+        .getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
+        .ifPresent(
+            settings -> {
+              if (settings.getMutedUntil() != null) {
+                roomUserSettingsRepository.save(settings.mutedUntil(null));
+                eventDispatcher.sendToUserExchange(
+                    currentUser.getId(), RoomUnmuted.create().roomId(roomId));
+              }
+            });
   }
 
   @Override
   public List<UUID> getRoomsIds(UserPrincipal currentUser) {
     return roomRepository.getIdsByUserId(currentUser.getId()).stream()
-      .map(UUID::fromString).collect(Collectors.toList());
+        .map(UUID::fromString)
+        .collect(Collectors.toList());
   }
 
   @Override
-  public Room getRoomEntityAndCheckUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner) {
-    Room room = roomRepository.getById(roomId.toString()).orElseThrow(() ->
-      new NotFoundException(String.format("Room '%s'", roomId)));
+  public Room getRoomEntityAndCheckUser(
+      UUID roomId, UserPrincipal currentUser, boolean mustBeOwner) {
+    Room room =
+        roomRepository
+            .getById(roomId.toString())
+            .orElseThrow(() -> new NotFoundException(String.format("Room '%s'", roomId)));
     List<Subscription> subscriptions;
     if (RoomTypeDto.CHANNEL.equals(room.getType())) {
-      subscriptions = roomRepository.getById(room.getParentId()).orElseThrow(() ->
-        new InternalErrorException(String.format("Room '%s'", roomId))).getSubscriptions();
+      subscriptions =
+          roomRepository
+              .getById(room.getParentId())
+              .orElseThrow(() -> new InternalErrorException(String.format("Room '%s'", roomId)))
+              .getSubscriptions();
     } else {
       subscriptions = room.getSubscriptions();
     }
 
     if (!currentUser.isSystemUser()) {
-      Subscription member = subscriptions.stream()
-        .filter(subscription -> subscription.getUserId().equals(currentUser.getId()))
-        .findAny()
-        .orElseThrow(() -> new ForbiddenException(
-          String.format("User '%s' is not a member of room '%s'", currentUser.getId(), roomId)));
+      Subscription member =
+          subscriptions.stream()
+              .filter(subscription -> subscription.getUserId().equals(currentUser.getId()))
+              .findAny()
+              .orElseThrow(
+                  () ->
+                      new ForbiddenException(
+                          String.format(
+                              "User '%s' is not a member of room '%s'",
+                              currentUser.getId(), roomId)));
       if (mustBeOwner && !member.isOwner()) {
         throw new ForbiddenException(
-          String.format("User '%s' is not an owner of room '%s'", currentUser.getId(), roomId));
+            String.format("User '%s' is not an owner of room '%s'", currentUser.getId(), roomId));
       }
     }
     return room;
   }
 
   @Override
-  public Optional<Room> getRoomEntityWithoutChecks(UUID roomId) {
+  public Optional<Room> getRoom(UUID roomId) {
     return roomRepository.getById(roomId.toString());
   }
 
@@ -416,39 +484,49 @@ public class RoomServiceImpl implements RoomService {
   @Transactional
   public FileContentAndMetadata getRoomPicture(UUID roomId, UserPrincipal currentUser) {
     getRoomEntityAndCheckUser(roomId, currentUser, false);
-    FileMetadata metadata = fileMetadataRepository.getById(roomId.toString())
-      .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
+    FileMetadata metadata =
+        fileMetadataRepository
+            .getById(roomId.toString())
+            .orElseThrow(
+                () -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
     File file = storagesService.getFileById(metadata.getId(), metadata.getUserId());
     return new FileContentAndMetadata(file, metadata);
   }
 
   @Override
   @Transactional
-  public void setRoomPicture(UUID roomId, File image, String mimeType, String fileName, UserPrincipal currentUser) {
+  public void setRoomPicture(
+      UUID roomId, File image, String mimeType, String fileName, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (!RoomTypeDto.GROUP.equals(room.getType())) {
       throw new BadRequestException("The room picture can only be set to group type rooms");
     }
-    Integer maxImageSizeKb = appConfig.get(Integer.class, ConfigName.MAX_ROOM_IMAGE_SIZE_IN_KB)
-      .orElse(CONFIGURATIONS_DEFAULT_VALUES.MAX_ROOM_IMAGE_SIZE_IN_KB);
+    Integer maxImageSizeKb =
+        appConfig
+            .get(Integer.class, ConfigName.MAX_ROOM_IMAGE_SIZE_IN_KB)
+            .orElse(CONFIGURATIONS_DEFAULT_VALUES.MAX_ROOM_IMAGE_SIZE_IN_KB);
     if (image.length() > maxImageSizeKb * 1024) {
       throw new BadRequestException(
-        String.format("The size of room picture exceeds the maximum value of %d kB", maxImageSizeKb));
+          String.format(
+              "The size of room picture exceeds the maximum value of %d kB", maxImageSizeKb));
     }
     if (!mimeType.startsWith("image/")) {
       throw new BadRequestException("The room picture must be an image");
     }
     Optional<FileMetadata> oldMetadata = fileMetadataRepository.getById(roomId.toString());
     Optional<String> oldUser = oldMetadata.map(FileMetadata::getUserId);
-    FileMetadata metadata = oldMetadata.orElseGet(() -> FileMetadata.create()
-        .id(roomId.toString())
-        .type(FileMetadataType.ROOM_AVATAR)
-        .roomId(roomId.toString())
-      )
-      .name(fileName)
-      .originalSize(image.length())
-      .mimeType(mimeType)
-      .userId(currentUser.getId());
+    FileMetadata metadata =
+        oldMetadata
+            .orElseGet(
+                () ->
+                    FileMetadata.create()
+                        .id(roomId.toString())
+                        .type(FileMetadataType.ROOM_AVATAR)
+                        .roomId(roomId.toString()))
+            .name(fileName)
+            .originalSize(image.length())
+            .mimeType(mimeType)
+            .userId(currentUser.getId());
     room.pictureUpdatedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone()));
     fileMetadataRepository.save(metadata);
     roomRepository.update(room);
@@ -460,36 +538,39 @@ public class RoomServiceImpl implements RoomService {
       }
     }
     storagesService.saveFile(image, metadata, currentUser.getId());
-    messageDispatcher.updateRoomPicture(room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
+    messageDispatcher.updateRoomPicture(
+        room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
     eventDispatcher.sendToUserExchange(
-      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomPictureChanged.create()
-        .roomId(UUID.fromString(room.getId()))
-        .updatedAt(room.getPictureUpdatedAt())
-    );
+        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        RoomPictureChanged.create()
+            .roomId(UUID.fromString(room.getId()))
+            .updatedAt(room.getPictureUpdatedAt()));
   }
 
   @Override
   @Transactional
   public void deleteRoomPicture(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
-    FileMetadata metadata = fileMetadataRepository.getById(roomId.toString())
-      .orElseThrow(() -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
+    FileMetadata metadata =
+        fileMetadataRepository
+            .getById(roomId.toString())
+            .orElseThrow(
+                () -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
     fileMetadataRepository.delete(metadata);
     roomRepository.update(room.pictureUpdatedAt(null));
     storagesService.deleteFile(metadata.getId(), metadata.getUserId());
     messageDispatcher.deleteRoomPicture(room.getId(), currentUser.getId());
     eventDispatcher.sendToUserExchange(
-      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomPictureDeleted.create()
-        .roomId(UUID.fromString(room.getId())));
+        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        RoomPictureDeleted.create().roomId(UUID.fromString(room.getId())));
   }
 
   @Override
   @Transactional
   public void updateWorkspacesRank(List<RoomRankDto> roomRankDto, UserPrincipal currentUser) {
     List<RoomRankDto> roomRankList = new ArrayList<>(roomRankDto);
-    if (roomRankList.size() > roomRankList.stream().map(RoomRankDto::getRoomId).collect(Collectors.toSet()).size()) {
+    if (roomRankList.size()
+        > roomRankList.stream().map(RoomRankDto::getRoomId).collect(Collectors.toSet()).size()) {
       throw new BadRequestException("Rooms cannot be duplicated");
     }
     roomRankList.sort(Comparator.comparing(RoomRankDto::getRank));
@@ -498,27 +579,35 @@ public class RoomServiceImpl implements RoomService {
         throw new BadRequestException("Ranks must be progressive number that starts with 1");
       }
     }
-    Map<String, RoomUserSettings> userWorkspaces = roomUserSettingsRepository.getWorkspaceMapGroupedByRoomId(
-      currentUser.getId());
+    Map<String, RoomUserSettings> userWorkspaces =
+        roomUserSettingsRepository.getWorkspaceMapGroupedByRoomId(currentUser.getId());
     if (roomRankList.size() != userWorkspaces.size()) {
-      throw new BadRequestException(String.format("Too %s elements compared to user workspaces",
-        roomRankList.size() < userWorkspaces.size() ? "few" : "many"));
+      throw new BadRequestException(
+          String.format(
+              "Too %s elements compared to user workspaces",
+              roomRankList.size() < userWorkspaces.size() ? "few" : "many"));
     }
-    roomRankList.forEach(roomRank ->
-      Optional.ofNullable(userWorkspaces.get(roomRank.getRoomId().toString()))
-        .ifPresentOrElse(userSettings -> {
-          if (!userSettings.getRank().equals(roomRank.getRank())) {
-            userSettings.rank(roomRank.getRank());
-          }
-        }, () -> {
-          throw new BadRequestException(String.format(
-            "There isn't a workspace with id '%s' for the user id '%s'", roomRank.getRoomId(), currentUser.getId()));
-        }));
+    roomRankList.forEach(
+        roomRank ->
+            Optional.ofNullable(userWorkspaces.get(roomRank.getRoomId().toString()))
+                .ifPresentOrElse(
+                    userSettings -> {
+                      if (!userSettings.getRank().equals(roomRank.getRank())) {
+                        userSettings.rank(roomRank.getRank());
+                      }
+                    },
+                    () -> {
+                      throw new BadRequestException(
+                          String.format(
+                              "There isn't a workspace with id '%s' for the user id '%s'",
+                              roomRank.getRoomId(), currentUser.getId()));
+                    }));
     roomUserSettingsRepository.save(userWorkspaces.values());
   }
 
   @Override
-  public void updateChannelsRank(UUID workspaceId, List<RoomRankDto> roomRankDto, UserPrincipal currentUser) {
+  public void updateChannelsRank(
+      UUID workspaceId, List<RoomRankDto> roomRankDto, UserPrincipal currentUser) {
     List<RoomRankDto> roomRankList = new ArrayList<>(roomRankDto);
     roomRankList.sort(Comparator.comparing(RoomRankDto::getRank));
     for (int i = 0; i < roomRankList.size(); i++) {
@@ -527,25 +616,37 @@ public class RoomServiceImpl implements RoomService {
       }
     }
 
-    Map<String, Integer> roomRankMap = roomRankDto.stream().collect(
-      Collectors.toMap(roomRank -> roomRank.getRoomId().toString(), RoomRankDto::getRank,
-        (existing, replacement) -> existing));
+    Map<String, Integer> roomRankMap =
+        roomRankDto.stream()
+            .collect(
+                Collectors.toMap(
+                    roomRank -> roomRank.getRoomId().toString(),
+                    RoomRankDto::getRank,
+                    (existing, replacement) -> existing));
     if (roomRankMap.size() != roomRankDto.size()) {
       throw new BadRequestException("Channels cannot be duplicated");
     }
     Room workspace = getRoomEntityAndCheckUser(workspaceId, currentUser, true);
     if (roomRankDto.size() != workspace.getChildren().size()) {
-      throw new BadRequestException(String.format("Too %s elements compared to workspace channels",
-        roomRankDto.size() < workspace.getChildren().size() ? "few" : "many"));
+      throw new BadRequestException(
+          String.format(
+              "Too %s elements compared to workspace channels",
+              roomRankDto.size() < workspace.getChildren().size() ? "few" : "many"));
     }
 
-    workspace.getChildren().forEach(child ->
-      Optional.ofNullable(roomRankMap.get(child.getId())).ifPresentOrElse(
-        child::rank,
-        () -> {
-          throw new BadRequestException(
-            String.format("Channel '%s' is not a child of workspace '%s'", child.getId(), workspaceId));
-        }));
+    workspace
+        .getChildren()
+        .forEach(
+            child ->
+                Optional.ofNullable(roomRankMap.get(child.getId()))
+                    .ifPresentOrElse(
+                        child::rank,
+                        () -> {
+                          throw new BadRequestException(
+                              String.format(
+                                  "Channel '%s' is not a child of workspace '%s'",
+                                  child.getId(), workspaceId));
+                        }));
 
     roomRepository.update(workspace);
   }
@@ -556,12 +657,21 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  public void forwardMessages(UUID roomId, List<ForwardMessageDto> forwardMessageDto, UserPrincipal currentUser) {
+  public void forwardMessages(
+      UUID roomId, List<ForwardMessageDto> forwardMessageDto, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
-    forwardMessageDto.forEach(messageToForward ->
-      messageDispatcher.forwardMessage(roomId.toString(), currentUser.getId(), messageToForward,
-        messageDispatcher.getAttachmentIdFromMessage(messageToForward.getOriginalMessage())
-          .map(attachmentId ->
-            attachmentService.copyAttachment(room, UUID.fromString(attachmentId), currentUser)).orElse(null)));
+    forwardMessageDto.forEach(
+        messageToForward ->
+            messageDispatcher.forwardMessage(
+                roomId.toString(),
+                currentUser.getId(),
+                messageToForward,
+                messageDispatcher
+                    .getAttachmentIdFromMessage(messageToForward.getOriginalMessage())
+                    .map(
+                        attachmentId ->
+                            attachmentService.copyAttachment(
+                                room, UUID.fromString(attachmentId), currentUser))
+                    .orElse(null)));
   }
 }

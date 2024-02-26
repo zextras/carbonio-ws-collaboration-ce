@@ -8,14 +8,10 @@ import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
+import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
-import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.JoinSettingsDto;
-import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
-import com.zextras.carbonio.meeting.model.SessionDescriptionProtocolDto;
-import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
+import com.zextras.carbonio.meeting.model.*;
 import java.util.Optional;
 import java.util.UUID;
 import javax.inject.Inject;
@@ -28,12 +24,16 @@ import javax.ws.rs.core.SecurityContext;
 public class MeetingsApiServiceImpl implements MeetingsApiService {
 
   private final MeetingService meetingService;
+  private final RoomService roomService;
   private final ParticipantService participantService;
 
   @Inject
   public MeetingsApiServiceImpl(
-      MeetingService meetingService, ParticipantService participantService) {
+      MeetingService meetingService,
+      RoomService roomService,
+      ParticipantService participantService) {
     this.meetingService = meetingService;
+    this.roomService = roomService;
     this.participantService = participantService;
   }
 
@@ -133,8 +133,16 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     if (currentUser.getQueueId() == null) {
       throw new BadRequestException("Queue identifier is mandatory");
     }
-    participantService.insertMeetingParticipant(meetingId, joinSettingsDto, currentUser);
-    return Response.status(Status.NO_CONTENT).build();
+
+    return Response.status(Status.OK)
+        .entity(
+            new JoinMeetingResultDto()
+                .status(
+                    JoinStatusDto.fromString(
+                        participantService
+                            .insertMeetingParticipant(meetingId, joinSettingsDto, currentUser)
+                            .toString())))
+        .build();
   }
 
   /**
@@ -189,6 +197,42 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     return Response.status(Status.OK)
         .entity(meetingService.updateMeeting(currentUser, meetingId, false))
         .build();
+  }
+
+  @Override
+  public Response getQueue(UUID meetingId, SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+
+    return meetingService
+        .getMeetingEntity(meetingId)
+        .map(
+            meeting -> {
+              roomService.getRoomEntityAndCheckUser(
+                  UUID.fromString(meeting.getRoomId()), currentUser, true);
+              return meeting;
+            })
+        .map(
+            meeting ->
+                Response.status(Status.OK)
+                    .entity(new QueuedUsersDto().users(participantService.getQueue(meetingId)))
+                    .build())
+        .orElse(Response.status(Status.NOT_FOUND).build());
+  }
+
+  @Override
+  public Response updateQueuedUser(
+      UUID meetingId,
+      UUID userId,
+      QueuedUserUpdateDto queuedUserUpdateDto,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+
+    participantService.updateQueue(meetingId, userId, queuedUserUpdateDto.getStatus(), currentUser);
+    return Response.noContent().build();
   }
 
   /**

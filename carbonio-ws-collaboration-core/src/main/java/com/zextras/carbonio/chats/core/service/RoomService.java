@@ -29,19 +29,20 @@ public interface RoomService {
    * Retrieves rooms identifiers {@link UUID} {@link List} of every room the user has access to
    *
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return identifier {@link UUID} {@link List} of every room that the user has access to {@link RoomDto }
-   **/
+   * @return identifier {@link UUID} {@link List} of every room that the user has access to {@link
+   *     RoomDto }
+   */
   List<UUID> getRoomsIds(UserPrincipal currentUser);
 
   /**
-   * Get room by identifier and check if the current user is subscribed. This method returns an entity because it's
-   * intended to be used only to be called by services.
+   * Get room by identifier and check if the current user is subscribed. This method returns an
+   * entity because it's intended to be used only to be called by services.
    *
-   * @param roomId      room identifier {@link UUID}
+   * @param roomId room identifier {@link UUID}
    * @param currentUser current authenticate user {@link UserPrincipal}
    * @param mustBeOwner if true, the user must be a room owner
    * @return The requested room {@link Room}
-   * @throws NotFoundException  if the indicated room doesn't exist
+   * @throws NotFoundException if the indicated room doesn't exist
    * @throws ForbiddenException if the user isn't a room member
    * @throws ForbiddenException if the user isn't a room owner and mustBeOwner is true
    */
@@ -53,33 +54,32 @@ public interface RoomService {
    * @param roomId room identifier
    * @return {@link Room} entity
    */
-  Optional<Room> getRoomEntityWithoutChecks(UUID roomId);
+  Optional<Room> getRoom(UUID roomId);
 
   /**
    * Creates a room of the specified type
    *
    * @param insertRoomRequestDto room to create {@link RoomCreationFieldsDto }
-   * @param currentUser          current authenticated user {@link UserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    * @return The newly created room {@link RoomDto }
-   **/
+   */
   RoomDto createRoom(RoomCreationFieldsDto insertRoomRequestDto, UserPrincipal currentUser);
 
   /**
    * Deletes the specified room
    *
-   * @param roomId      room identifier {@link UUID }
+   * @param roomId room identifier {@link UUID }
    * @param currentUser current authenticate user {@link UserPrincipal}
-   **/
+   */
   void deleteRoom(UUID roomId, UserPrincipal currentUser);
-
 
   /**
    * Retrieves the requested room
    *
-   * @param roomId      room identifier {@link UUID }
+   * @param roomId room identifier {@link UUID }
    * @param currentUser current authenticated user {@link UserPrincipal}
    * @return Requested room {@link RoomDto }
-   **/
+   */
   RoomDto getRoomById(UUID roomId, UserPrincipal currentUser);
 
   /**
@@ -88,21 +88,21 @@ public interface RoomService {
    * @param extraFields
    * @param currentUser current authenticated user {@link UserPrincipal}
    * @return List of every room that the user has access to {@link RoomDto }
-   **/
+   */
   List<RoomDto> getRooms(@Nullable List<RoomExtraFieldDto> extraFields, UserPrincipal currentUser);
 
   /**
    * Mutes notification for the specified room
    *
-   * @param roomId      room identifier {@link UUID }
+   * @param roomId room identifier {@link UUID }
    * @param currentUser current authenticated user {@link UserPrincipal}
-   **/
+   */
   void muteRoom(UUID roomId, UserPrincipal currentUser);
 
   /**
    * Clears all messages for the specified room
    *
-   * @param roomId      room identifier {@link UUID }
+   * @param roomId room identifier {@link UUID }
    * @param currentUser current authenticated user {@link UserPrincipal}
    * @return date since messages were cleared
    */
@@ -111,25 +111,26 @@ public interface RoomService {
   /**
    * Unmutes notification for the specified room
    *
-   * @param roomId      room identifier {@link UUID }
+   * @param roomId room identifier {@link UUID }
    * @param currentUser current authenticated user {@link UserPrincipal}
-   **/
+   */
   void unmuteRoom(UUID roomId, UserPrincipal currentUser);
 
   /**
    * Updates a room information
    *
-   * @param roomId               room identifier {@link UUID }
+   * @param roomId room identifier {@link UUID }
    * @param updateRoomRequestDto room fields to update {@link RoomEditableFieldsDto }
-   * @param currentUser          current authenticated user {@link UserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    * @return Updated room {@link RoomDto }
-   **/
-  RoomDto updateRoom(UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser);
+   */
+  RoomDto updateRoom(
+      UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser);
 
   /**
    * Gets the room picture
    *
-   * @param roomId      room identifier
+   * @param roomId room identifier
    * @param currentUser current authenticated user {@link UserPrincipal}
    * @return The room picture
    */
@@ -138,18 +139,19 @@ public interface RoomService {
   /**
    * Sets a new room picture
    *
-   * @param roomId      room identifier {@link UUID }
-   * @param image       image to set {@link File}
-   * @param mimeType    image mime type
-   * @param fileName    image file name
+   * @param roomId room identifier {@link UUID }
+   * @param image image to set {@link File}
+   * @param mimeType image mime type
+   * @param fileName image file name
    * @param currentUser current authenticated user {@link UserPrincipal}
-   **/
-  void setRoomPicture(UUID roomId, File image, String mimeType, String fileName, UserPrincipal currentUser);
+   */
+  void setRoomPicture(
+      UUID roomId, File image, String mimeType, String fileName, UserPrincipal currentUser);
 
   /**
    * Deletes the room pictures
    *
-   * @param roomId      room identifier {@link UUID }
+   * @param roomId room identifier {@link UUID }
    * @param currentUser current authenticated user {@link UserPrincipal}
    */
   void deleteRoomPicture(UUID roomId, UserPrincipal currentUser);
@@ -169,13 +171,14 @@ public interface RoomService {
    * @param roomRankDto {@link List} of channel identifier and rank {@link RoomRankDto}
    * @param currentUser current authenticated user {@link UserPrincipal}
    */
-  void updateChannelsRank(UUID workspaceId, List<RoomRankDto> roomRankDto, UserPrincipal currentUser);
+  void updateChannelsRank(
+      UUID workspaceId, List<RoomRankDto> roomRankDto, UserPrincipal currentUser);
 
   /**
-   * Sets the meeting as a reference in the room. This method accepts entities because it's intended to be used only to
-   * be called by services.
+   * Sets the meeting as a reference in the room. This method accepts entities because it's intended
+   * to be used only to be called by services.
    *
-   * @param room    {@link Room} in which to set up the meeting
+   * @param room {@link Room} in which to set up the meeting
    * @param meeting {@link Meeting} to set
    */
   void setMeetingIntoRoom(Room room, Meeting meeting);
@@ -183,9 +186,10 @@ public interface RoomService {
   /**
    * Forward a list of messages to a specified room
    *
-   * @param roomId            identifier of the room to send messages to be forwarded
+   * @param roomId identifier of the room to send messages to be forwarded
    * @param forwardMessageDto {@link List} of messages to be forwarded {@link ForwardMessageDto}
-   * @param currentUser       current authenticated user {@link UserPrincipal}
+   * @param currentUser current authenticated user {@link UserPrincipal}
    */
-  void forwardMessages(UUID roomId, List<ForwardMessageDto> forwardMessageDto, UserPrincipal currentUser);
+  void forwardMessages(
+      UUID roomId, List<ForwardMessageDto> forwardMessageDto, UserPrincipal currentUser);
 }

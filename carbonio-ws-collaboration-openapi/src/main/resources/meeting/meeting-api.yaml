@@ -14,6 +14,17 @@ servers:
 tags:
   - name: Meetings
 paths:
+  /public/meetings/{meetingId}:
+    get:
+      tags:
+        - Meetings
+      summary: Retrieves public data of the meeting
+      operationId: getMeetingPublic
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      responses:
+        200:
+          $ref: '#/components/responses/200GetPublicMeetingResponse'
   /meetings:
     get:
       tags:
@@ -111,8 +122,8 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/JoinMeetingRequest'
       responses:
-        204:
-          $ref: '#/components/responses/204JoinMeetingResponse'
+        200:
+          $ref: '#/components/responses/200JoinMeetingResponse'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
         403:
@@ -130,6 +141,43 @@ paths:
       responses:
         204:
           $ref: '#/components/responses/204LeaveMeetingResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/queue:
+    get:
+      tags:
+        - Meetings
+      summary: Retrieve the list of people in queue for the meeting
+      operationId: getQueue
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      responses:
+        200:
+          $ref: '#/components/responses/200QueueResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/queue/{userId}:
+    post:
+      tags:
+        - Meetings
+      summary: Updates the status of a queued user
+      operationId: updateQueuedUser
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: '#/components/parameters/pathUserId'
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateQueuedUserRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204UpdateQueuedUserResponse'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
         403:
@@ -243,7 +291,15 @@ components:
         format: uuid
       required: true
       allowEmptyValue: false
-
+    pathUserId:
+      in: path
+      name: userId
+      description: user identifier
+      schema:
+        type: string
+        format: uuid
+      required: true
+      allowEmptyValue: false
   requestBodies:
     JoinMeetingRequest:
       description: user request containing its streams settings to join a meeting
@@ -287,7 +343,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SubscriptionUpdates'
-
+    UpdateQueuedUserRequest:
+      description: request to approve or reject a user inside a meeting
+      required: true
+      content:
+       application/json:
+         schema:
+            $ref: '#/components/schemas/QueuedUserUpdate'
   responses:
     200CreateMeetingResponse:
       description: The meeting just created
@@ -303,12 +365,24 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/Meeting'
+    200JoinMeetingResponse:
+      description: The result of the join operation for the meeting
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JoinMeetingResult'
     200GetMeetingResponse:
       description: Gets the requested meeting data
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Meeting'
+    200GetPublicMeetingResponse:
+      description: Gets the public data of a meeting
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PublicMeeting'
     200StartMeetingResponse:
       description: The meeting was started successfully
       content:
@@ -321,10 +395,16 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Meeting'
+    200QueueResponse:
+      description: The list of queued users
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/QueuedUsers'
+    204UpdateQueuedUserResponse:
+      description: The queued user was updated successfully
     204DeleteMeetingResponse:
       description: The meeting was deleted successfully
-    204JoinMeetingResponse:
-      description: The user joined the meeting successfully
     204LeaveMeetingResponse:
       description: The user exited the meeting successfully
     204AudioStreamResponse:
@@ -365,7 +445,21 @@ components:
           type: string
           format: date-time
       required:
-        - [ name, meetingType ]
+        - name
+        - meetingType
+    JoinMeetingResult:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/JoinStatus'
+    QueuedUsers:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            type: string
+            format: uuid
     Room:
       type: object
       description: Room data for a meeting
@@ -407,6 +501,16 @@ components:
       enum:
         - moderator
         - registered
+    QueueUpdateStatus:
+      type: string
+      enum:
+        - ACCEPTED
+        - REJECTED
+    JoinStatus:
+      type: string
+      enum:
+        - ACCEPTED
+        - WAITING
     Participant:
       description: Meeting participant data
       allOf:
@@ -465,6 +569,13 @@ components:
           description: entity creation date
         meetingType:
           $ref: '#/components/schemas/MeetingType'
+    PublicMeeting:
+      type: object
+      description: public Meeting data
+      properties:
+        name:
+          type: string
+          description: the Meeting name
     JoinSettings:
       type: object
       description: user's streams settings to join a meeting
@@ -543,3 +654,9 @@ components:
             - video
             - screen
       required: [ userId, type ]
+    QueuedUserUpdate:
+      type: object
+      description: Queued user update data
+      properties:
+        status:
+          $ref: '#/components/schemas/QueueUpdateStatus'

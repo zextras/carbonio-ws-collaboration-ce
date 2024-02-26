@@ -20,6 +20,7 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
@@ -3998,7 +3999,11 @@ public class RoomsApiIT {
               roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       UUID meetingId =
           meetingTestUtils.generateAndSaveMeeting(
-              roomId, List.of(ParticipantBuilder.create(user2Id, user2Queue)), true, null);
+              roomId,
+              MeetingType.PERMANENT,
+              List.of(ParticipantBuilder.create(user2Id, user2Queue)),
+              true,
+              null);
       integrationTestUtils.updateRoom(roomEntity.meetingId(meetingId.toString()));
 
       meetingTestUtils.updateVideoServerSession(

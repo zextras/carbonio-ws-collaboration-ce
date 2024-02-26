@@ -20,6 +20,7 @@ import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
+import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.MeetingDto;
@@ -42,6 +43,7 @@ public class MeetingServiceImpl implements MeetingService {
   private final MeetingMapper meetingMapper;
   private final RoomService roomService;
   private final MembersService membersService;
+  private final ParticipantService participantService;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
 
@@ -51,12 +53,14 @@ public class MeetingServiceImpl implements MeetingService {
       MeetingMapper meetingMapper,
       RoomService roomService,
       MembersService membersService,
+      ParticipantService participantService,
       VideoServerService videoServerService,
       EventDispatcher eventDispatcher) {
     this.meetingRepository = meetingRepository;
     this.meetingMapper = meetingMapper;
     this.roomService = roomService;
     this.membersService = membersService;
+    this.participantService = participantService;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
   }
@@ -106,6 +110,7 @@ public class MeetingServiceImpl implements MeetingService {
                                 videoServerService.startMeeting(meeting.getId());
                               } else {
                                 videoServerService.stopMeeting(meeting.getId());
+                                participantService.clearQueue(UUID.fromString(meeting.getId()));
                               }
                               meeting.active(s);
                             }
