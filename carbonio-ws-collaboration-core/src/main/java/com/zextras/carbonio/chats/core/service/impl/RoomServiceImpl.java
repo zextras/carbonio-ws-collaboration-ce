@@ -325,7 +325,7 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  public Optional<Room> getRoomEntityWithoutChecks(UUID roomId) {
+  public Optional<Room> getRoom(UUID roomId) {
     return roomRepository.getById(roomId.toString());
   }
 

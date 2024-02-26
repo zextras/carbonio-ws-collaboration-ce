@@ -52,7 +52,7 @@ public interface RoomService {
    * @param roomId room identifier
    * @return {@link Room} entity
    */
-  Optional<Room> getRoomEntityWithoutChecks(UUID roomId);
+  Optional<Room> getRoom(UUID roomId);
 
   /**
    * Creates a room of the specified type

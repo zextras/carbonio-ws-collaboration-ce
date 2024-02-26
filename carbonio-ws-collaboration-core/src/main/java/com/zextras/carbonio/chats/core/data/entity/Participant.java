@@ -159,6 +159,6 @@ public class Participant {
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, getMeeting(), getUserId(), getQueueId(), audioStreamOn, videoStreamOn, screenStreamOn);
+    return Objects.hash(id, meeting.getId(), getUserId(), getQueueId(), audioStreamOn, videoStreamOn, screenStreamOn);
   }
 }

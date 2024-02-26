@@ -44,17 +44,18 @@ public class MeetingTestUtils {
   }
 
   public UUID generateAndSaveMeeting(UUID roomId, List<ParticipantBuilder> participantBuilders) {
-    return generateAndSaveMeeting(roomId, participantBuilders, false, null);
+    return generateAndSaveMeeting(roomId, MeetingType.PERMANENT, participantBuilders, false, null);
   }
 
   public UUID generateAndSaveMeeting(
     UUID roomId,
+    MeetingType meetingType,
     List<ParticipantBuilder> participantBuilders,
     Boolean active,
     OffsetDateTime expiration
   ) {
     Meeting meeting = meetingRepository.insert("Test Meeting for " + roomId.toString(),
-      MeetingType.PERMANENT,
+            meetingType,
       roomId,
       expiration);
     meeting.participants(participantBuilders.stream().map(participantBuilder ->

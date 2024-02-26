@@ -41,6 +41,7 @@ public interface MembersService {
    * @param roomId            room identifier {@link UUID }
    * @param memberToInsertDto member to add or invite {@link MemberDto }
    * @param currentUser       current authenticated user {@link UserPrincipal}
+   * @param direct            allows the operation to be done programmatically without an owner user
    * @return The member added or invited {@link MemberDto }
    **/
   MemberInsertedDto insertRoomMember(UUID roomId, MemberToInsertDto memberToInsertDto, UserPrincipal currentUser);

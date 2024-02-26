@@ -26,28 +26,27 @@ repos:
     hooks:
       - id: docker-compose-check
   - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.11.0
+    rev: v2.12.0
     hooks:
       - id: pretty-format-java
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.37.0
+    rev: v0.39.0
     hooks:
       - id: markdownlint
         language_version: 16.0.0
       - id: markdownlint-fix
         language_version: 16.0.0
   - repo: https://github.com/compilerla/conventional-pre-commit
-    rev: v2.4.0
+    rev: v3.1.0
     hooks:
       - id: conventional-pre-commit
         stages: [ commit-msg ]
         args: [ ]
   - repo: https://github.com/fsfe/reuse-tool
-    rev: v2.1.0
+    rev: v3.0.1
     hooks:
       - id: reuse
   - repo: https://github.com/ejba/pre-commit-maven
-    rev: v0.3.3
+    rev: v0.3.4
     hooks:
-      - id: maven
-        args: [ 'compile' ]
+      - id: maven-compile

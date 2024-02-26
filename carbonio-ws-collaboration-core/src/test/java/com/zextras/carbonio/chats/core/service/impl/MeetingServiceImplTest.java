@@ -35,6 +35,7 @@ import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
+import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
@@ -64,6 +65,7 @@ public class MeetingServiceImplTest {
   private final MeetingRepository  meetingRepository;
   private final RoomService        roomService;
   private final MembersService     membersService;
+  private final ParticipantService participantService;
   private final VideoServerService videoServerService;
   private final EventDispatcher    eventDispatcher;
 
@@ -71,6 +73,7 @@ public class MeetingServiceImplTest {
     this.meetingRepository = mock(MeetingRepository.class);
     this.roomService = mock(RoomService.class);
     this.membersService = mock(MembersService.class);
+    this.participantService = mock(ParticipantService.class);
     this.videoServerService = mock(VideoServerService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.meetingService = new MeetingServiceImpl(
@@ -78,6 +81,7 @@ public class MeetingServiceImplTest {
       meetingMapper,
       this.roomService,
       this.membersService,
+      this.participantService,
       this.videoServerService,
       this.eventDispatcher);
   }

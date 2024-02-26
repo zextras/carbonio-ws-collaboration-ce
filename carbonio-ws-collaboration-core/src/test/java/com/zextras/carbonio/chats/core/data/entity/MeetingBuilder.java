@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.data.entity;
 
+import com.zextras.carbonio.chats.core.data.type.MeetingType;
+
 import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -28,6 +30,11 @@ public class MeetingBuilder {
 
   public MeetingBuilder participants(List<Participant> participants) {
     meeting.participants(participants);
+    return this;
+  }
+
+  public MeetingBuilder meetingType(MeetingType meetingType) {
+    meeting.meetingType(meetingType);
     return this;
   }
 
