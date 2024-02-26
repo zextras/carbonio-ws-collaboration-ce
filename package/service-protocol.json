@@ -1,6 +1,5 @@
 {
   "Kind": "service-defaults",
   "Name": "carbonio-ws-collaboration",
-  "Protocol": "http",
-  "Websocket": true
+  "Protocol": "http"
 }
