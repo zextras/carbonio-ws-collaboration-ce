@@ -14,7 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @UnitTest
-public class AppInfoProviderImplTest {
+class AppInfoProviderImplTest {
 
   private final AppInfoProvider appInfoProvider;
 
@@ -24,9 +24,9 @@ public class AppInfoProviderImplTest {
 
   @Test
   @DisplayName("Correctly gets ")
-  public void getVersion_testOk() {
+  void getVersion_testOk() {
     Optional<String> version = appInfoProvider.getVersion();
     assertTrue(version.isPresent());
-    assertEquals("1.0.0", version.get());
+    assertEquals("0.4.0", version.get());
   }
 }
