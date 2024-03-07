@@ -273,6 +273,40 @@ public class MeetingServiceImplTest {
           .sendToUserExchange(
               List.of(user1Id.toString()), MeetingStopped.create().meetingId(meetingId));
     }
+
+    @Test
+    @DisplayName("Deactivate a meeting with users in waiting list")
+    void updateMeetingStopWithWaiting_testOk() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UUID meetingId = UUID.randomUUID();
+      UUID roomId = UUID.randomUUID();
+      Meeting meeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .active(true);
+      Meeting updatedMeeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .active(false);
+      when(participantService.getQueue(meetingId)).thenReturn(List.of(user2Id));
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
+      when(roomService.getRoomById(roomId, currentUser))
+          .thenReturn(RoomDto.create().members(List.of(MemberDto.create().userId(user1Id))));
+      MeetingDto meetingDto = meetingService.updateMeeting(currentUser, meetingId, false);
+      verify(videoServerService, times(0)).startMeeting(meetingId.toString());
+      verify(videoServerService, times(1)).stopMeeting(meetingId.toString());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString()),
+              MeetingStopped.create().meetingId(meetingId));
+    }
   }
 
   @Nested

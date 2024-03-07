@@ -28,11 +28,13 @@ import com.zextras.carbonio.meeting.model.MeetingTypeDto;
 import io.ebean.annotation.Transactional;
 import io.vavr.control.Option;
 import java.time.OffsetDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -102,27 +104,37 @@ public class MeetingServiceImpl implements MeetingService {
             .getById(meetingId.toString())
             .map(
                 meeting -> {
-                  Option.of(active)
-                      .peek(
-                          s -> {
-                            if (!Objects.equals(s, meeting.getActive())) {
-                              if (Boolean.TRUE.equals(s)) {
-                                videoServerService.startMeeting(meeting.getId());
-                              } else {
-                                videoServerService.stopMeeting(meeting.getId());
-                                participantService.clearQueue(UUID.fromString(meeting.getId()));
-                              }
-                              meeting.active(s);
-                            }
-                          });
+                  List<String> queuedReceivers =
+                      Option.of(active)
+                          .map(
+                              s -> {
+                                List<String> addedReceivers = Collections.emptyList();
+                                if (!Objects.equals(s, meeting.getActive())) {
+                                  meeting.active(s);
+                                  if (Boolean.TRUE.equals(s)) {
+                                    videoServerService.startMeeting(meeting.getId());
+                                  } else {
+                                    videoServerService.stopMeeting(meeting.getId());
+                                    addedReceivers =
+                                        participantService.getQueue(meetingId).stream()
+                                            .map(UUID::toString)
+                                            .toList();
+                                    participantService.clearQueue(UUID.fromString(meeting.getId()));
+                                  }
+                                }
+                                return addedReceivers;
+                              })
+                          .get();
                   Meeting updatedMeeting = meetingRepository.update(meeting);
                   eventDispatcher.sendToUserExchange(
-                      roomService
-                          .getRoomById(UUID.fromString(meeting.getRoomId()), user)
-                          .getMembers()
-                          .stream()
-                          .map(m -> m.getUserId().toString())
-                          .collect(Collectors.toList()),
+                      Stream.concat(
+                              roomService
+                                  .getRoomById(UUID.fromString(meeting.getRoomId()), user)
+                                  .getMembers()
+                                  .stream()
+                                  .map(m -> m.getUserId().toString()),
+                              queuedReceivers.stream())
+                          .toList(),
                       Boolean.TRUE.equals(active)
                           ? MeetingStarted.create()
                               .meetingId(UUID.fromString(updatedMeeting.getId()))
