@@ -4,53 +4,53 @@ Upstream-Contact: Smoky Beans <smokybeans@zextras.com>
 Source: https://github.com/Zextras/carbonio-ws-collaboration
 
 Files: README.md
-Copyright: 2023 Zextras s.r.l
+Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
 Files: .env.example
-Copyright: 2023 Zextras s.r.l
+Copyright: 2023 Zextras
 License: CC0-1.0
 
 Files: yap.json
-Copyright: 2023 Zextras s.r.l
+Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
 Files: package/*
-Copyright: 2023 Zextras s.r.l
+Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
 Files: carbonio-ws-collaboration-core/src/main/resources/build-information
-Copyright: 2023 Zextras s.r.l
+Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
 Files: carbonio-ws-collaboration-core/src/main/resources/ebean.mf
-Copyright: 2023 Zextras s.r.l
+Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
 Files: carbonio-ws-collaboration-openapi/src/main/resources/chats/chats-generator-config.json
-Copyright: 2023 Zextras s.r.l
+Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
 Files: carbonio-ws-collaboration-openapi/src/main/resources/generator-ignore
-Copyright: 2023 Zextras s.r.l
+Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
 Files: carbonio-ws-collaboration-openapi/src/main/resources/meeting/meeting-generator-config.json
-Copyright: 2023 Zextras s.r.l
+Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
 Files: carbonio-ws-collaboration-core/src/test/resources/build-information
-Copyright: 2023 Zextras s.r.l
+Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
 Files: carbonio-ws-collaboration-it/src/test/resources/build-information
-Copyright: 2023 Zextras s.r.l
+Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
 Files: carbonio-ws-collaboration-it/src/test/resources/files/*
-Copyright: 2023 Zextras s.r.l
+Copyright: 2023 Zextras
 License: CC-BY-NC-SA-4.0
 
 Files: carbonio-ws-collaboration-boot/src/main/resources/banner.txt
-Copyright: 2023 Zextras s.r.l
+Copyright: 2023 Zextras
 License: CC0-1.0
