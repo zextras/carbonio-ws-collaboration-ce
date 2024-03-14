@@ -10,13 +10,14 @@ import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomUserSettingsDto;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class RoomMapperImpl implements RoomMapper {
@@ -30,51 +31,63 @@ public class RoomMapperImpl implements RoomMapper {
 
   private RoomDto ent2dto(Room room, boolean includeMembers) {
     return RoomDto.create()
-      .id(UUID.fromString(room.getId()))
-      .name(room.getName())
-      .description(room.getDescription())
-      .type(room.getType())
-      .pictureUpdatedAt(room.getPictureUpdatedAt())
-      .meetingId(room.getMeetingId() == null ? null : UUID.fromString(room.getMeetingId()))
-      .createdAt(room.getCreatedAt())
-      .updatedAt(room.getUpdatedAt())
-      .members(includeMembers ? subscriptionMapper.ent2memberDto(room.getSubscriptions()) : null);
+        .id(UUID.fromString(room.getId()))
+        .name(room.getName())
+        .description(room.getDescription())
+        .type(room.getType())
+        .pictureUpdatedAt(room.getPictureUpdatedAt())
+        .meetingId(room.getMeetingId() == null ? null : UUID.fromString(room.getMeetingId()))
+        .createdAt(room.getCreatedAt())
+        .updatedAt(room.getUpdatedAt())
+        .members(
+            includeMembers
+                ? subscriptionMapper.ent2memberDto(room.getSubscriptions())
+                : Collections.emptyList());
   }
 
   @Override
   @Nullable
   public RoomDto ent2dto(
-    Room room, RoomUserSettings userSettings,
-    boolean includeMembers, boolean includeSettings
-  ) {
+      Room room, RoomUserSettings userSettings, boolean includeMembers, boolean includeSettings) {
     if (room == null) {
       return null;
     }
     return ent2dto(room, includeMembers)
-      .userSettings(includeSettings ? getRoomUserSettingsDto(userSettings) : null);
+        .userSettings(includeSettings ? getRoomUserSettingsDto(userSettings) : null);
   }
 
   @Override
   public List<RoomDto> ent2dto(
-    @Nullable List<Room> rooms, @Nullable RoomUserSettings userSettings,
-    boolean includeMembers, boolean includeSettings
-  ) {
-    return rooms == null ? List.of() : rooms.stream()
-      .map(room -> ent2dto(room, userSettings, includeMembers, includeSettings))
-      .collect(Collectors.toList());
+      @Nullable List<Room> rooms,
+      @Nullable RoomUserSettings userSettings,
+      boolean includeMembers,
+      boolean includeSettings) {
+    return rooms == null
+        ? List.of()
+        : rooms.stream()
+            .map(room -> ent2dto(room, userSettings, includeMembers, includeSettings))
+            .collect(Collectors.toList());
   }
 
   public List<RoomDto> ent2dto(
-    List<Room> rooms, @Nullable Map<String, RoomUserSettings> settingsMapByRoomId,
-    boolean includeMembers, boolean includeSettings
-  ) {
-    return rooms == null ? List.of() : rooms.stream()
-      .map(room -> ent2dto(room, includeMembers)
-        .userSettings(
-          includeSettings ?
-            getRoomUserSettingsDto(settingsMapByRoomId == null ? null : settingsMapByRoomId.get(room.getId())) :
-            null))
-      .collect(Collectors.toList());
+      List<Room> rooms,
+      @Nullable Map<String, RoomUserSettings> settingsMapByRoomId,
+      boolean includeMembers,
+      boolean includeSettings) {
+    return rooms == null
+        ? List.of()
+        : rooms.stream()
+            .map(
+                room ->
+                    ent2dto(room, includeMembers)
+                        .userSettings(
+                            includeSettings
+                                ? getRoomUserSettingsDto(
+                                    settingsMapByRoomId == null
+                                        ? null
+                                        : settingsMapByRoomId.get(room.getId()))
+                                : null))
+            .collect(Collectors.toList());
   }
 
   private RoomUserSettingsDto getRoomUserSettingsDto(@Nullable RoomUserSettings userSettings) {

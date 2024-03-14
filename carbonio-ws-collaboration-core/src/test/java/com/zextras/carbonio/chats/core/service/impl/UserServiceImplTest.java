@@ -43,6 +43,7 @@ import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
+import jakarta.ws.rs.core.Response.Status;
 import java.io.File;
 import java.time.Clock;
 import java.time.Instant;
@@ -53,7 +54,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import javax.ws.rs.core.Response.Status;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -62,15 +62,15 @@ import org.junit.jupiter.api.Test;
 @UnitTest
 class UserServiceImplTest {
 
-  private final UserService            userService;
-  private final ProfilingService       profilingService;
-  private final UserRepository         userRepository;
+  private final UserService userService;
+  private final ProfilingService profilingService;
+  private final UserRepository userRepository;
   private final FileMetadataRepository fileMetadataRepository;
-  private final StoragesService        storagesService;
+  private final StoragesService storagesService;
   private final SubscriptionRepository subscriptionRepository;
-  private final EventDispatcher        eventDispatcher;
-  private final AppConfig              appConfig;
-  private final Clock                  clock;
+  private final EventDispatcher eventDispatcher;
+  private final AppConfig appConfig;
+  private final Clock clock;
 
   public UserServiceImplTest() {
     this.profilingService = mock(ProfilingService.class);
@@ -81,15 +81,16 @@ class UserServiceImplTest {
     this.eventDispatcher = mock(EventDispatcher.class);
     this.appConfig = mock(AppConfig.class);
     this.clock = mock(Clock.class);
-    this.userService = new UserServiceImpl(
-      profilingService,
-      userRepository,
-      fileMetadataRepository,
-      storagesService,
-      subscriptionRepository,
-      eventDispatcher,
-      appConfig,
-      clock);
+    this.userService =
+        new UserServiceImpl(
+            profilingService,
+            userRepository,
+            fileMetadataRepository,
+            storagesService,
+            subscriptionRepository,
+            eventDispatcher,
+            appConfig,
+            clock);
   }
 
   @BeforeEach
@@ -107,15 +108,20 @@ class UserServiceImplTest {
     public void getUserById_testOk() {
       UUID requestedUserId = UUID.randomUUID();
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId);
-      when(userRepository.getById(requestedUserId.toString())).thenReturn(
-        Optional.of(
-          User.create().id(requestedUserId.toString())
-            .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
-            .statusMessage("my status!"))
-      );
+      when(userRepository.getById(requestedUserId.toString()))
+          .thenReturn(
+              Optional.of(
+                  User.create()
+                      .id(requestedUserId.toString())
+                      .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
+                      .statusMessage("my status!")));
       when(profilingService.getById(currentPrincipal, requestedUserId))
-        .thenReturn(Optional.of(
-          UserProfile.create(requestedUserId).email("test@example.com").domain("mydomain.com").name("test user")));
+          .thenReturn(
+              Optional.of(
+                  UserProfile.create(requestedUserId)
+                      .email("test@example.com")
+                      .domain("mydomain.com")
+                      .name("test user")));
 
       UserDto userById = userService.getUserById(requestedUserId, currentPrincipal);
 
@@ -134,9 +140,12 @@ class UserServiceImplTest {
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId);
       when(userRepository.getById(requestedUserId.toString())).thenReturn(Optional.empty());
       when(profilingService.getById(currentPrincipal, requestedUserId))
-        .thenReturn(Optional.of(
-          UserProfile.create(requestedUserId).email("test@example.com").domain("mydomain.com").name("test user"))
-        );
+          .thenReturn(
+              Optional.of(
+                  UserProfile.create(requestedUserId)
+                      .email("test@example.com")
+                      .domain("mydomain.com")
+                      .name("test user")));
 
       UserDto userById = userService.getUserById(requestedUserId, currentPrincipal);
 
@@ -154,11 +163,13 @@ class UserServiceImplTest {
       UUID requestedUserId = UUID.randomUUID();
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId);
       when(userRepository.getById(requestedUserId.toString())).thenReturn(Optional.empty());
-      when(profilingService.getById(currentPrincipal, requestedUserId)).thenReturn(Optional.empty());
+      when(profilingService.getById(currentPrincipal, requestedUserId))
+          .thenReturn(Optional.empty());
 
-      assertThrows(NotFoundException.class, () -> userService.getUserById(requestedUserId, currentPrincipal));
+      assertThrows(
+          NotFoundException.class,
+          () -> userService.getUserById(requestedUserId, currentPrincipal));
     }
-
   }
 
   @Nested
@@ -171,48 +182,63 @@ class UserServiceImplTest {
       UUID requestedUserId1 = UUID.randomUUID();
       UUID requestedUserId2 = UUID.randomUUID();
       UUID requestedUserId3 = UUID.randomUUID();
-      List<String> requestedUserIds = Arrays.asList(requestedUserId1.toString(), requestedUserId2.toString(),
-        requestedUserId3.toString());
+      List<String> requestedUserIds =
+          Arrays.asList(
+              requestedUserId1.toString(),
+              requestedUserId2.toString(),
+              requestedUserId3.toString());
 
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId1);
 
-      when(userRepository.getByIds(requestedUserIds)).thenReturn(
-        Arrays.asList(
-          User.create().id(requestedUserId1.toString())
-            .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
-            .statusMessage("my status 1"),
-          User.create().id(requestedUserId2.toString())
-            .pictureUpdatedAt(OffsetDateTime.parse("2022-02-02T00:00:00Z"))
-            .statusMessage("my status 2"),
-          User.create().id(requestedUserId3.toString())
-            .pictureUpdatedAt(OffsetDateTime.parse("2022-03-03T00:00:00Z"))
-            .statusMessage("my status 3")
-        )
-      );
+      when(userRepository.getByIds(requestedUserIds))
+          .thenReturn(
+              Arrays.asList(
+                  User.create()
+                      .id(requestedUserId1.toString())
+                      .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
+                      .statusMessage("my status 1"),
+                  User.create()
+                      .id(requestedUserId2.toString())
+                      .pictureUpdatedAt(OffsetDateTime.parse("2022-02-02T00:00:00Z"))
+                      .statusMessage("my status 2"),
+                  User.create()
+                      .id(requestedUserId3.toString())
+                      .pictureUpdatedAt(OffsetDateTime.parse("2022-03-03T00:00:00Z"))
+                      .statusMessage("my status 3")));
       when(profilingService.getByIds(currentPrincipal, requestedUserIds))
-        .thenReturn(
-          Arrays.asList(
-            UserProfile.create(requestedUserId1).email("test1@example.com").domain("mydomain.com").name("test user 1"),
-            UserProfile.create(requestedUserId2).email("test2@example.com").domain("mydomain.com").name("test user 2"),
-            UserProfile.create(requestedUserId3).email("test3@example.com").domain("mydomain.com").name("test user 3")
-          )
-        );
+          .thenReturn(
+              Arrays.asList(
+                  UserProfile.create(requestedUserId1)
+                      .email("test1@example.com")
+                      .domain("mydomain.com")
+                      .name("test user 1"),
+                  UserProfile.create(requestedUserId2)
+                      .email("test2@example.com")
+                      .domain("mydomain.com")
+                      .name("test user 2"),
+                  UserProfile.create(requestedUserId3)
+                      .email("test3@example.com")
+                      .domain("mydomain.com")
+                      .name("test user 3")));
 
       List<UserDto> usersById = userService.getUsersByIds(requestedUserIds, currentPrincipal);
 
       assertFalse(usersById.isEmpty());
       assertEquals(requestedUserId1, usersById.get(0).getId());
-      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), usersById.get(0).getPictureUpdatedAt());
+      assertEquals(
+          OffsetDateTime.parse("2022-01-01T00:00:00Z"), usersById.get(0).getPictureUpdatedAt());
       assertEquals("my status 1", usersById.get(0).getStatusMessage());
       assertEquals("test user 1", usersById.get(0).getName());
       assertEquals("test1@example.com", usersById.get(0).getEmail());
       assertEquals(requestedUserId2, usersById.get(1).getId());
-      assertEquals(OffsetDateTime.parse("2022-02-02T00:00:00Z"), usersById.get(1).getPictureUpdatedAt());
+      assertEquals(
+          OffsetDateTime.parse("2022-02-02T00:00:00Z"), usersById.get(1).getPictureUpdatedAt());
       assertEquals("my status 2", usersById.get(1).getStatusMessage());
       assertEquals("test user 2", usersById.get(1).getName());
       assertEquals("test2@example.com", usersById.get(1).getEmail());
       assertEquals(requestedUserId3, usersById.get(2).getId());
-      assertEquals(OffsetDateTime.parse("2022-03-03T00:00:00Z"), usersById.get(2).getPictureUpdatedAt());
+      assertEquals(
+          OffsetDateTime.parse("2022-03-03T00:00:00Z"), usersById.get(2).getPictureUpdatedAt());
       assertEquals("my status 3", usersById.get(2).getStatusMessage());
       assertEquals("test user 3", usersById.get(2).getName());
       assertEquals("test3@example.com", usersById.get(2).getEmail());
@@ -222,23 +248,25 @@ class UserServiceImplTest {
     @DisplayName("Don't returns duplicates")
     public void getUsersByIds_testNoDuplicates() {
       UUID requestedUserId1 = UUID.randomUUID();
-      List<String> requestedUserIds = Arrays.asList(requestedUserId1.toString(), requestedUserId1.toString());
+      List<String> requestedUserIds =
+          Arrays.asList(requestedUserId1.toString(), requestedUserId1.toString());
 
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId1);
 
-      when(userRepository.getByIds(requestedUserIds)).thenReturn(
-        Collections.singletonList(
-          User.create().id(requestedUserId1.toString())
-            .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
-            .statusMessage("my status 1")
-        )
-      );
+      when(userRepository.getByIds(requestedUserIds))
+          .thenReturn(
+              Collections.singletonList(
+                  User.create()
+                      .id(requestedUserId1.toString())
+                      .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
+                      .statusMessage("my status 1")));
       when(profilingService.getByIds(currentPrincipal, requestedUserIds))
-        .thenReturn(
-          Collections.singletonList(
-            UserProfile.create(requestedUserId1).email("test1@example.com").domain("mydomain.com").name("test user 1")
-          )
-        );
+          .thenReturn(
+              Collections.singletonList(
+                  UserProfile.create(requestedUserId1)
+                      .email("test1@example.com")
+                      .domain("mydomain.com")
+                      .name("test user 1")));
 
       List<UserDto> usersById = userService.getUsersByIds(requestedUserIds, currentPrincipal);
 
@@ -251,7 +279,8 @@ class UserServiceImplTest {
     public void getUsersByIds_testEmptyList() {
       UserPrincipal currentPrincipal = UserPrincipal.create(UUID.randomUUID());
       when(userRepository.getByIds(Collections.emptyList())).thenReturn(Collections.emptyList());
-      when(profilingService.getByIds(currentPrincipal, Collections.emptyList())).thenReturn(Collections.emptyList());
+      when(profilingService.getByIds(currentPrincipal, Collections.emptyList()))
+          .thenReturn(Collections.emptyList());
 
       assertTrue(userService.getUsersByIds(Collections.emptyList(), currentPrincipal).isEmpty());
     }
@@ -261,15 +290,20 @@ class UserServiceImplTest {
     public void getUsersByIds_testDbNotFound() {
       UUID requestedUserId = UUID.randomUUID();
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId);
-      when(userRepository.getByIds(Collections.singletonList(requestedUserId.toString()))).thenReturn(
-        Collections.emptyList());
-      when(
-        profilingService.getByIds(currentPrincipal, Collections.singletonList(requestedUserId.toString()))).thenReturn(
-        Collections.singletonList(
-          UserProfile.create(requestedUserId).email("test@example.com").domain("mydomain.com").name("test user")));
+      when(userRepository.getByIds(Collections.singletonList(requestedUserId.toString())))
+          .thenReturn(Collections.emptyList());
+      when(profilingService.getByIds(
+              currentPrincipal, Collections.singletonList(requestedUserId.toString())))
+          .thenReturn(
+              Collections.singletonList(
+                  UserProfile.create(requestedUserId)
+                      .email("test@example.com")
+                      .domain("mydomain.com")
+                      .name("test user")));
 
-      List<UserDto> usersById = userService.getUsersByIds(Collections.singletonList(requestedUserId.toString()),
-        currentPrincipal);
+      List<UserDto> usersById =
+          userService.getUsersByIds(
+              Collections.singletonList(requestedUserId.toString()), currentPrincipal);
 
       assertFalse(usersById.isEmpty());
       assertEquals(requestedUserId, usersById.get(0).getId());
@@ -284,18 +318,18 @@ class UserServiceImplTest {
     public void getUserById_testProfilingNotFound() {
       UUID requestedUserId = UUID.randomUUID();
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId);
-      when(userRepository.getByIds(Collections.singletonList(requestedUserId.toString()))).thenReturn(
-        Collections.emptyList());
-      when(
-        profilingService.getByIds(currentPrincipal, Collections.singletonList(requestedUserId.toString()))).thenReturn(
-        Collections.emptyList());
+      when(userRepository.getByIds(Collections.singletonList(requestedUserId.toString())))
+          .thenReturn(Collections.emptyList());
+      when(profilingService.getByIds(
+              currentPrincipal, Collections.singletonList(requestedUserId.toString())))
+          .thenReturn(Collections.emptyList());
 
-      List<UserDto> usersById = userService.getUsersByIds(Collections.singletonList(requestedUserId.toString()),
-        currentPrincipal);
+      List<UserDto> usersById =
+          userService.getUsersByIds(
+              Collections.singletonList(requestedUserId.toString()), currentPrincipal);
 
       assertTrue(usersById.isEmpty());
     }
-
   }
 
   @Nested
@@ -307,8 +341,8 @@ class UserServiceImplTest {
     public void userExists_testOk() {
       UUID requestedUserId = UUID.randomUUID();
       UserPrincipal currentPrincipal = UserPrincipal.create(UUID.randomUUID());
-      when(profilingService.getById(currentPrincipal, requestedUserId)).thenReturn(
-        Optional.of(UserProfile.create(requestedUserId)));
+      when(profilingService.getById(currentPrincipal, requestedUserId))
+          .thenReturn(Optional.of(UserProfile.create(requestedUserId)));
       assertTrue(userService.userExists(requestedUserId, currentPrincipal));
     }
 
@@ -317,11 +351,11 @@ class UserServiceImplTest {
     public void userExists_testUserDoesNotExist() {
       UUID requestedUserId = UUID.randomUUID();
       UserPrincipal currentPrincipal = UserPrincipal.create(UUID.randomUUID());
-      when(profilingService.getById(currentPrincipal, requestedUserId)).thenReturn(Optional.empty());
+      when(profilingService.getById(currentPrincipal, requestedUserId))
+          .thenReturn(Optional.empty());
 
       assertFalse(userService.userExists(requestedUserId, currentPrincipal));
     }
-
   }
 
   @Nested
@@ -332,23 +366,25 @@ class UserServiceImplTest {
     @DisplayName("It returns the user picture")
     void getUserPicture_testOk() {
       UUID userId = UUID.randomUUID();
-      FileMetadata pfpMetadata = FileMetadata.create()
-        .type(FileMetadataType.USER_AVATAR)
-        .userId(userId.toString())
-        .mimeType("mime/type")
-        .id(userId.toString())
-        .name("pfp").originalSize(123L);
+      FileMetadata pfpMetadata =
+          FileMetadata.create()
+              .type(FileMetadataType.USER_AVATAR)
+              .userId(userId.toString())
+              .mimeType("mime/type")
+              .id(userId.toString())
+              .name("pfp")
+              .originalSize(123L);
       when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.of(pfpMetadata));
       File file = new File("test");
       when(storagesService.getFileById(userId.toString(), userId.toString())).thenReturn(file);
 
-      FileContentAndMetadata picture = userService.getUserPicture(userId, UserPrincipal.create(userId));
+      FileContentAndMetadata picture =
+          userService.getUserPicture(userId, UserPrincipal.create(userId));
 
       assertEquals(file, picture.getFile());
       assertEquals(pfpMetadata.getId(), picture.getMetadata().getId());
       verify(fileMetadataRepository, times(1)).getById(userId.toString());
       verify(storagesService, times(1)).getFileById(userId.toString(), userId.toString());
-
     }
 
     @Test
@@ -357,13 +393,15 @@ class UserServiceImplTest {
       UUID userId = UUID.randomUUID();
       when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.empty());
 
-      ChatsHttpException exception = assertThrows(NotFoundException.class,
-        () -> userService.getUserPicture(userId, UserPrincipal.create(userId)));
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () -> userService.getUserPicture(userId, UserPrincipal.create(userId)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(String.format("Not Found - File with id '%s' not found", userId),
-        exception.getMessage());
+      assertEquals(
+          String.format("Not Found - File with id '%s' not found", userId), exception.getMessage());
     }
   }
 
@@ -381,36 +419,55 @@ class UserServiceImplTest {
       List<String> contactsIds = List.of("a", "b", "c");
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contactsIds);
       when(userRepository.getById(userId.toString())).thenReturn(Optional.empty());
-      when(userRepository.save( User.create()
-        .id(userId.toString())
-        .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")))).thenReturn(User.create()
-        .id(userId.toString()).pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
+      when(userRepository.save(
+              User.create()
+                  .id(userId.toString())
+                  .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))))
+          .thenReturn(
+              User.create()
+                  .id(userId.toString())
+                  .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
 
-      userService.setUserPicture(userId, file, "image/jpeg", "picture", UserPrincipal.create(userId));
+      userService.setUserPicture(
+          userId, file, "image/jpeg", "picture", UserPrincipal.create(userId));
 
-      FileMetadata expectedMetadata = FileMetadataBuilder.create().id(userId.toString())
-        .mimeType("image/jpeg").type(FileMetadataType.USER_AVATAR).name("picture").originalSize(123L)
-        .userId(userId.toString()).build();
+      FileMetadata expectedMetadata =
+          FileMetadataBuilder.create()
+              .id(userId.toString())
+              .mimeType("image/jpeg")
+              .type(FileMetadataType.USER_AVATAR)
+              .name("picture")
+              .originalSize(123L)
+              .userId(userId.toString())
+              .build();
       verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB);
       verify(fileMetadataRepository, times(1)).getById(userId.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(userRepository, times(1)).getById(userId.toString());
-      verify(userRepository, times(1)).save(
-        User.create()
-          .id(userId.toString())
-          .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
+      verify(userRepository, times(1))
+          .save(
+              User.create()
+                  .id(userId.toString())
+                  .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
       verify(clock, times(1)).instant();
       verify(clock, times(1)).getZone();
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
-      verify(eventDispatcher, times(1)).sendToUserExchange(contactsIds,
-        UserPictureChanged.create()
-          .userId(userId)
-          .imageId(UUID.fromString(expectedMetadata.getId()))
-          .updatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
-      );
-      verifyNoMoreInteractions(fileMetadataRepository, userRepository, storagesService, subscriptionRepository,
-        eventDispatcher, clock, appConfig);
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              contactsIds,
+              UserPictureChanged.create()
+                  .userId(userId)
+                  .imageId(UUID.fromString(expectedMetadata.getId()))
+                  .updatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          userRepository,
+          storagesService,
+          subscriptionRepository,
+          eventDispatcher,
+          clock,
+          appConfig);
       verifyNoInteractions(profilingService);
     }
 
@@ -419,45 +476,67 @@ class UserServiceImplTest {
     void setUserPicture_testOkUpdate() {
       UUID userId = UUID.randomUUID();
       when(fileMetadataRepository.getById(userId.toString()))
-        .thenReturn(Optional.of(FileMetadata.create()
-          .id(userId.toString())
-          .type(FileMetadataType.USER_AVATAR)
-          .userId(userId.toString())));
+          .thenReturn(
+              Optional.of(
+                  FileMetadata.create()
+                      .id(userId.toString())
+                      .type(FileMetadataType.USER_AVATAR)
+                      .userId(userId.toString())));
       File file = mock(File.class);
       when(file.length()).thenReturn(123L);
       List<String> contactsIds = List.of("a", "b", "c");
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contactsIds);
-      User user = User.create().id(userId.toString())
-        .pictureUpdatedAt(OffsetDateTime.parse("2000-12-31T00:00:00Z"));
+      User user =
+          User.create()
+              .id(userId.toString())
+              .pictureUpdatedAt(OffsetDateTime.parse("2000-12-31T00:00:00Z"));
       when(userRepository.getById(userId.toString())).thenReturn(Optional.of(user));
-      when(userRepository.save( User.create()
-        .id(userId.toString())
-        .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")))).thenReturn(User.create()
-        .id(userId.toString()).pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
+      when(userRepository.save(
+              User.create()
+                  .id(userId.toString())
+                  .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))))
+          .thenReturn(
+              User.create()
+                  .id(userId.toString())
+                  .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
 
-      userService.setUserPicture(userId, file, "image/jpeg", "picture", UserPrincipal.create(userId));
+      userService.setUserPicture(
+          userId, file, "image/jpeg", "picture", UserPrincipal.create(userId));
 
-      FileMetadata expectedMetadata = FileMetadataBuilder.create().id(userId.toString())
-        .mimeType("image/jpeg").type(FileMetadataType.USER_AVATAR).name("picture").originalSize(123L)
-        .userId(userId.toString()).build();
+      FileMetadata expectedMetadata =
+          FileMetadataBuilder.create()
+              .id(userId.toString())
+              .mimeType("image/jpeg")
+              .type(FileMetadataType.USER_AVATAR)
+              .name("picture")
+              .originalSize(123L)
+              .userId(userId.toString())
+              .build();
       verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB);
       verify(fileMetadataRepository, times(1)).getById(userId.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(clock, times(1)).instant();
       verify(clock, times(1)).getZone();
       verify(userRepository, times(1)).getById(userId.toString());
-      verify(userRepository, times(1)).save(
-        user.pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
+      verify(userRepository, times(1))
+          .save(user.pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
       verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
-      verify(eventDispatcher, times(1)).sendToUserExchange(contactsIds,
-        UserPictureChanged.create()
-          .userId(userId)
-          .imageId(UUID.fromString(expectedMetadata.getId()))
-          .updatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
-      );
-      verifyNoMoreInteractions(fileMetadataRepository, userRepository, storagesService, subscriptionRepository,
-        eventDispatcher, clock, appConfig);
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              contactsIds,
+              UserPictureChanged.create()
+                  .userId(userId)
+                  .imageId(UUID.fromString(expectedMetadata.getId()))
+                  .updatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          userRepository,
+          storagesService,
+          subscriptionRepository,
+          eventDispatcher,
+          clock,
+          appConfig);
       verifyNoInteractions(profilingService);
     }
 
@@ -466,13 +545,16 @@ class UserServiceImplTest {
     void setUserPicture_failsIfPictureIsNotAnImage() {
       UUID userId = UUID.randomUUID();
       File file = mock(File.class);
-      ChatsHttpException exception = assertThrows(BadRequestException.class,
-        () -> userService.setUserPicture(userId, file, "text/html", "picture", UserPrincipal.create(userId)));
+      ChatsHttpException exception =
+          assertThrows(
+              BadRequestException.class,
+              () ->
+                  userService.setUserPicture(
+                      userId, file, "text/html", "picture", UserPrincipal.create(userId)));
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Bad Request - The user picture must be an image",
-        exception.getMessage());
+      assertEquals("Bad Request - The user picture must be an image", exception.getMessage());
     }
 
     @Test
@@ -481,26 +563,37 @@ class UserServiceImplTest {
       UUID userId = UUID.randomUUID();
       File file = mock(File.class);
       when(file.length()).thenReturn(600L * 1024);
-      ChatsHttpException exception = assertThrows(BadRequestException.class,
-        () -> userService.setUserPicture(userId, file, "image/jpeg", "picture", UserPrincipal.create(userId)));
+      ChatsHttpException exception =
+          assertThrows(
+              BadRequestException.class,
+              () ->
+                  userService.setUserPicture(
+                      userId, file, "image/jpeg", "picture", UserPrincipal.create(userId)));
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(String.format("Bad Request - The user picture cannot be greater than %d kB", 512),
-        exception.getMessage());
+      assertEquals(
+          String.format("Bad Request - The user picture cannot be greater than %d kB", 512),
+          exception.getMessage());
     }
 
     @Test
-    @DisplayName("If the specified user is not the authenticated user, it throws a ForbiddenException")
+    @DisplayName(
+        "If the specified user is not the authenticated user, it throws a ForbiddenException")
     void setUserPicture_failsIfUserIsNotAuthenticatedUser() {
       UUID user1Id = UUID.randomUUID();
       UUID user2Id = UUID.randomUUID();
       File file = mock(File.class);
-      ForbiddenException exception = assertThrows(ForbiddenException.class,
-        () -> userService.setUserPicture(user2Id, file, "image/jpeg", "picture", UserPrincipal.create(user1Id)));
+      ForbiddenException exception =
+          assertThrows(
+              ForbiddenException.class,
+              () ->
+                  userService.setUserPicture(
+                      user2Id, file, "image/jpeg", "picture", UserPrincipal.create(user1Id)));
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Forbidden - The picture can be change only from its owner", exception.getMessage());
+      assertEquals(
+          "Forbidden - The picture can be change only from its owner", exception.getMessage());
     }
   }
 
@@ -516,8 +609,10 @@ class UserServiceImplTest {
       when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.of(metadata));
       List<String> contacts = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contacts);
-      User user = User.create().id(userId.toString())
-        .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+      User user =
+          User.create()
+              .id(userId.toString())
+              .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"));
       when(userRepository.getById(userId.toString())).thenReturn(Optional.of(user));
       userService.deleteUserPicture(userId, UserPrincipal.create(userId));
 
@@ -527,11 +622,16 @@ class UserServiceImplTest {
       verify(userRepository, times(1)).save(user.pictureUpdatedAt(null));
       verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
       verify(eventDispatcher, times(1))
-        .sendToUserExchange(eq(contacts), any(UserPictureDeleted.class));
+          .sendToUserExchange(eq(contacts), any(UserPictureDeleted.class));
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
 
-      verifyNoMoreInteractions(fileMetadataRepository, userRepository, storagesService, eventDispatcher,
-        subscriptionRepository, eventDispatcher);
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          userRepository,
+          storagesService,
+          eventDispatcher,
+          subscriptionRepository,
+          eventDispatcher);
       verifyNoInteractions(profilingService, appConfig, clock);
     }
 
@@ -544,27 +644,35 @@ class UserServiceImplTest {
       List<String> contacts = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contacts);
 
-      userService.deleteUserPicture(userId, UserPrincipal.create(UUID.randomUUID()).systemUser(true));
+      userService.deleteUserPicture(
+          userId, UserPrincipal.create(UUID.randomUUID()).systemUser(true));
 
       verify(fileMetadataRepository, times(1)).getById(userId.toString());
       verify(fileMetadataRepository, times(1)).delete(metadata);
       verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
       verify(eventDispatcher, times(1))
-        .sendToUserExchange(eq(contacts), any(UserPictureDeleted.class));
+          .sendToUserExchange(eq(contacts), any(UserPictureDeleted.class));
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
-      verifyNoMoreInteractions(fileMetadataRepository, storagesService, eventDispatcher, subscriptionRepository);
+      verifyNoMoreInteractions(
+          fileMetadataRepository, storagesService, eventDispatcher, subscriptionRepository);
     }
 
     @Test
     @DisplayName("If user is not the picture owner, it throws a ForbiddenException")
     public void deleteUserPicture_userNotPictureOwner() {
-      ChatsHttpException exception = assertThrows(ForbiddenException.class,
-        () -> userService.deleteUserPicture(UUID.randomUUID(), UserPrincipal.create(UUID.randomUUID())));
+      ChatsHttpException exception =
+          assertThrows(
+              ForbiddenException.class,
+              () ->
+                  userService.deleteUserPicture(
+                      UUID.randomUUID(), UserPrincipal.create(UUID.randomUUID())));
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Forbidden - The picture can be removed only from its owner", exception.getMessage());
-      verifyNoInteractions(fileMetadataRepository, storagesService, eventDispatcher, subscriptionRepository);
+      assertEquals(
+          "Forbidden - The picture can be removed only from its owner", exception.getMessage());
+      verifyNoInteractions(
+          fileMetadataRepository, storagesService, eventDispatcher, subscriptionRepository);
     }
 
     @Test
@@ -573,13 +681,15 @@ class UserServiceImplTest {
       UUID userId = UUID.randomUUID();
       when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.empty());
 
-      ChatsHttpException exception = assertThrows(NotFoundException.class,
-        () -> userService.getUserPicture(userId, UserPrincipal.create(userId)));
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () -> userService.getUserPicture(userId, UserPrincipal.create(userId)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(String.format("Not Found - File with id '%s' not found", userId),
-        exception.getMessage());
+      assertEquals(
+          String.format("Not Found - File with id '%s' not found", userId), exception.getMessage());
       verify(fileMetadataRepository, times(1)).getById(userId.toString());
       verifyNoMoreInteractions(fileMetadataRepository);
       verifyNoInteractions(storagesService, eventDispatcher, subscriptionRepository);

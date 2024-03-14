@@ -19,10 +19,10 @@ import com.zextras.carbonio.chats.model.DependencyHealthDto;
 import com.zextras.carbonio.chats.model.DependencyHealthTypeDto;
 import com.zextras.carbonio.chats.model.HealthStatusDto;
 import com.zextras.carbonio.chats.model.HealthStatusTypeDto;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class HealthcheckServiceImpl implements HealthcheckService {
@@ -31,25 +31,24 @@ public class HealthcheckServiceImpl implements HealthcheckService {
 
   @Inject
   public HealthcheckServiceImpl(
-    MessageDispatcher messageDispatcher,
-    DatabaseInfoService databaseInfoService,
-    EventDispatcher eventDispatcher,
-    StoragesService storagesService,
-    PreviewService previewService,
-    AuthenticationService authenticationService,
-    ProfilingService profilingService,
-    VideoServerService videoServerService
-  ) {
-    dependencies = List.of(
-      HealthDependency.create(databaseInfoService, DependencyType.DATABASE),
-      HealthDependency.create(authenticationService, DependencyType.AUTHENTICATION_SERVICE),
-      HealthDependency.create(profilingService, DependencyType.PROFILING_SERVICE),
-      HealthDependency.create(messageDispatcher, DependencyType.XMPP_SERVER),
-      HealthDependency.create(eventDispatcher, DependencyType.EVENT_DISPATCHER),
-      HealthDependency.create(storagesService, DependencyType.STORAGE_SERVICE),
-      HealthDependency.create(previewService, DependencyType.PREVIEWER_SERVICE),
-      HealthDependency.create(videoServerService, DependencyType.VIDEOSERVER_SERVICE)
-    );
+      MessageDispatcher messageDispatcher,
+      DatabaseInfoService databaseInfoService,
+      EventDispatcher eventDispatcher,
+      StoragesService storagesService,
+      PreviewService previewService,
+      AuthenticationService authenticationService,
+      ProfilingService profilingService,
+      VideoServerService videoServerService) {
+    dependencies =
+        List.of(
+            HealthDependency.create(databaseInfoService, DependencyType.DATABASE),
+            HealthDependency.create(authenticationService, DependencyType.AUTHENTICATION_SERVICE),
+            HealthDependency.create(profilingService, DependencyType.PROFILING_SERVICE),
+            HealthDependency.create(messageDispatcher, DependencyType.XMPP_SERVER),
+            HealthDependency.create(eventDispatcher, DependencyType.EVENT_DISPATCHER),
+            HealthDependency.create(storagesService, DependencyType.STORAGE_SERVICE),
+            HealthDependency.create(previewService, DependencyType.PREVIEWER_SERVICE),
+            HealthDependency.create(videoServerService, DependencyType.VIDEOSERVER_SERVICE));
   }
 
   @Override
@@ -60,20 +59,24 @@ public class HealthcheckServiceImpl implements HealthcheckService {
   @Override
   public HealthStatusDto getServiceHealth() {
     return HealthStatusDto.create()
-      .isLive(true)
-      .status(checkServiceStatus())
-      .dependencies(dependencies.stream()
-        .map(dependency -> DependencyHealthDto.create().name(dependency.getDependencyHealthType())
-          .isHealthy(dependency.isAlive()))
-        .collect(Collectors.toList()));
+        .isLive(true)
+        .status(checkServiceStatus())
+        .dependencies(
+            dependencies.stream()
+                .map(
+                    dependency ->
+                        DependencyHealthDto.create()
+                            .name(dependency.getDependencyHealthType())
+                            .isHealthy(dependency.isAlive()))
+                .collect(Collectors.toList()));
   }
 
   private HealthStatusTypeDto checkServiceStatus() {
     if (dependencies.stream()
-      .anyMatch(dependency -> dependency.getType().isRequired() && !dependency.isAlive())) {
+        .anyMatch(dependency -> dependency.getType().isRequired() && !dependency.isAlive())) {
       return HealthStatusTypeDto.ERROR;
     } else if (dependencies.stream()
-      .anyMatch(dependency -> !dependency.getType().isRequired() && !dependency.isAlive())) {
+        .anyMatch(dependency -> !dependency.getType().isRequired() && !dependency.isAlive())) {
       return HealthStatusTypeDto.WARN;
     }
     return HealthStatusTypeDto.OK;
@@ -82,7 +85,7 @@ public class HealthcheckServiceImpl implements HealthcheckService {
   private static class HealthDependency {
 
     private final HealthIndicator service;
-    private final DependencyType  type;
+    private final DependencyType type;
 
     public HealthDependency(HealthIndicator dependency, DependencyType type) {
       this.service = dependency;

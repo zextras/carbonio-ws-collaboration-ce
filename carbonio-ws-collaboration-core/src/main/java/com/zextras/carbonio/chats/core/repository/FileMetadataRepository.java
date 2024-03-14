@@ -7,9 +7,9 @@ package com.zextras.carbonio.chats.core.repository;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
-import javax.annotation.Nullable;
 
 public interface FileMetadataRepository {
 
@@ -25,7 +25,7 @@ public interface FileMetadataRepository {
    * Gets all identifiers of file metadata by the room identifier and type
    *
    * @param roomId room identifier
-   * @param type   file metadata type {@link FileMetadataType}
+   * @param type file metadata type {@link FileMetadataType}
    * @return The required file metadata identifiers list
    */
   List<String> getIdsByRoomIdAndType(String roomId, FileMetadataType type);
@@ -33,15 +33,17 @@ public interface FileMetadataRepository {
   /**
    * Gets a paginated list of file metadata info filtered by roomId and type
    *
-   * @param roomId           room identifier
-   * @param type             file metadata type {@link FileMetadataType}
-   * @param itemsNumber      items number of metadata to return
+   * @param roomId room identifier
+   * @param type file metadata type {@link FileMetadataType}
+   * @param itemsNumber items number of metadata to return
    * @param paginationFilter {@link PaginationFilter} to apply to the query for keyset pagination
    * @return The required file metadata list {@link FileMetadata}
    */
   List<FileMetadata> getByRoomIdAndType(
-    String roomId, FileMetadataType type, int itemsNumber, @Nullable PaginationFilter paginationFilter
-  );
+      String roomId,
+      FileMetadataType type,
+      int itemsNumber,
+      @Nullable PaginationFilter paginationFilter);
 
   /**
    * Saves a new file metadata entity

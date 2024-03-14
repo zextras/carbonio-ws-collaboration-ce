@@ -12,12 +12,12 @@ import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.carbonio.usermanagement.exceptions.UserNotFound;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class UserManagementProfilingService implements ProfilingService {
@@ -33,26 +33,40 @@ public class UserManagementProfilingService implements ProfilingService {
 
   @Override
   public Optional<UserProfile> getById(UserPrincipal principal, UUID userId) {
-    String token = principal.getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN)
-      .orElseThrow(ForbiddenException::new);
+    String token =
+        principal
+            .getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN)
+            .orElseThrow(ForbiddenException::new);
     return Optional.ofNullable(
-      userManagementClient.getUserById(String.format("%s=%s", AUTH_COOKIE, token), userId.toString()).map(userInfo ->
-        UserProfile.create(userInfo.getId().getUserId())
-          .name(userInfo.getFullName())
-          .email(userInfo.getEmail())
-          .domain(userInfo.getDomain())
-      ).recover(UserNotFound.class, e -> null)
-        .getOrElseThrow((fail) -> new ProfilingException(fail)));
+        userManagementClient
+            .getUserById(String.format("%s=%s", AUTH_COOKIE, token), userId.toString())
+            .map(
+                userInfo ->
+                    UserProfile.create(userInfo.getId().getUserId())
+                        .name(userInfo.getFullName())
+                        .email(userInfo.getEmail())
+                        .domain(userInfo.getDomain()))
+            .recover(UserNotFound.class, e -> null)
+            .getOrElseThrow((fail) -> new ProfilingException(fail)));
   }
 
   @Override
   public List<UserProfile> getByIds(UserPrincipal principal, List<String> userIds) {
-    String token = principal.getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN)
-      .orElseThrow(ForbiddenException::new);
-    return userManagementClient.getUsers(String.join("=", AUTH_COOKIE, token), userIds)
-      .getOrElseThrow((fail) -> new ProfilingException(fail)).stream().map(
-        u -> UserProfile.create(u.getId().getUserId()).name(u.getFullName()).email(u.getEmail()).domain(u.getDomain()))
-      .collect(Collectors.toList());
+    String token =
+        principal
+            .getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN)
+            .orElseThrow(ForbiddenException::new);
+    return userManagementClient
+        .getUsers(String.join("=", AUTH_COOKIE, token), userIds)
+        .getOrElseThrow((fail) -> new ProfilingException(fail))
+        .stream()
+        .map(
+            u ->
+                UserProfile.create(u.getId().getUserId())
+                    .name(u.getFullName())
+                    .email(u.getEmail())
+                    .domain(u.getDomain()))
+        .collect(Collectors.toList());
   }
 
   @Override

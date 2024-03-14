@@ -8,13 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.api.AuthApi;
-import com.zextras.carbonio.chats.it.utils.MockedAccount;
-import com.zextras.carbonio.chats.it.utils.MockedAccount.MockUserProfile;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
+import com.zextras.carbonio.chats.it.utils.MockedAccount;
+import com.zextras.carbonio.chats.it.utils.MockedAccount.MockUserProfile;
 import com.zextras.carbonio.chats.model.TokenDto;
-import javax.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.Response.Status;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,15 +22,15 @@ import org.junit.jupiter.api.Test;
 @ApiIntegrationTest
 public class AuthApiIT {
 
-  private final UserManagementMockServer  userManagementMockServer;
+  private final UserManagementMockServer userManagementMockServer;
   private final ResteasyRequestDispatcher dispatcher;
-  private final ObjectMapper              objectMapper;
+  private final ObjectMapper objectMapper;
 
   public AuthApiIT(
-    AuthApi authApi, UserManagementMockServer userManagementMockServer,
-    ResteasyRequestDispatcher dispatcher,
-    ObjectMapper objectMapper
-  ) {
+      AuthApi authApi,
+      UserManagementMockServer userManagementMockServer,
+      ResteasyRequestDispatcher dispatcher,
+      ObjectMapper objectMapper) {
     this.userManagementMockServer = userManagementMockServer;
     this.dispatcher = dispatcher;
     this.objectMapper = objectMapper;

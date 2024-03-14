@@ -29,12 +29,12 @@ import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import io.ebean.annotation.Transactional;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class ParticipantServiceImpl implements ParticipantService {

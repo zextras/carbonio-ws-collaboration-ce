@@ -81,6 +81,39 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>rabbitmq-mock</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.google.inject</groupId>
+      <artifactId>guice</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.eclipse.jetty.ee10</groupId>
+      <artifactId>jetty-ee10-servlet</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.hibernate.validator</groupId>
+      <artifactId>hibernate-validator-cdi</artifactId>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/org.glassfish/jakarta.el -->
+    <dependency>
+      <groupId>org.glassfish</groupId>
+      <artifactId>jakarta.el</artifactId>
+      <version>5.0.0-M1</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+
   </dependencies>
 
   <build>

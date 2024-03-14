@@ -4,10 +4,10 @@
 
 package com.zextras.carbonio.chats.core.web.utility;
 
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import javax.inject.Singleton;
 import org.apache.http.HttpVersion;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -19,7 +19,8 @@ import org.apache.http.impl.client.HttpClients;
 @Singleton
 public class HttpClient {
 
-  public CloseableHttpResponse sendPost(String url, Map<String, String> headers, String body) throws IOException {
+  public CloseableHttpResponse sendPost(String url, Map<String, String> headers, String body)
+      throws IOException {
     CloseableHttpClient httpClient = HttpClients.createDefault();
     try {
       return httpClient.execute(getHttpPost(url, headers, body));
@@ -51,5 +52,4 @@ public class HttpClient {
     headers.forEach(request::addHeader);
     return request;
   }
-
 }

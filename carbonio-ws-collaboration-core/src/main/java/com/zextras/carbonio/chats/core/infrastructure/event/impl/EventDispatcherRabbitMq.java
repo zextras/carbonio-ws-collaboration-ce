@@ -11,18 +11,18 @@ import com.rabbitmq.client.Connection;
 import com.zextras.carbonio.chats.core.data.event.DomainEvent;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class EventDispatcherRabbitMq implements EventDispatcher {
 
-  private final Connection   connection;
+  private final Connection connection;
   private final ObjectMapper objectMapper;
 
   @Inject
@@ -79,15 +79,18 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     try {
       channel = connection.createChannel();
     } catch (IOException e) {
-      ChatsLogger.error(String.format("Error creating RabbitMQ connection channel for user '%s'", userId), e);
+      ChatsLogger.error(
+          String.format("Error creating RabbitMQ connection channel for user '%s'", userId), e);
       return;
     }
     try {
       String queueName = userId + "/" + queueId;
       channel.queueDeclare(queueName, true, false, false, null);
-      channel.basicPublish("", queueName, null,
-        objectMapper.writeValueAsString(event).getBytes(StandardCharsets.UTF_8)
-      );
+      channel.basicPublish(
+          "",
+          queueName,
+          null,
+          objectMapper.writeValueAsString(event).getBytes(StandardCharsets.UTF_8));
       channel.close();
     } catch (JsonProcessingException e) {
       ChatsLogger.warn("Unable to convert event to json", e);
@@ -96,7 +99,8 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
       try {
         channel.close();
       } catch (IOException | TimeoutException ignored) {
-        ChatsLogger.error(String.format("Error closing RabbitMQ connection channel for user '%s'", userId));
+        ChatsLogger.error(
+            String.format("Error closing RabbitMQ connection channel for user '%s'", userId));
       }
     }
   }
@@ -110,7 +114,8 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     try {
       channel = connection.createChannel();
     } catch (IOException e) {
-      ChatsLogger.error(String.format("Error creating RabbitMQ connection channel for user '%s'", userId), e);
+      ChatsLogger.error(
+          String.format("Error creating RabbitMQ connection channel for user '%s'", userId), e);
       return;
     }
     try {
@@ -122,7 +127,8 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
       try {
         channel.close();
       } catch (IOException | TimeoutException ignored) {
-        ChatsLogger.error(String.format("Error closing RabbitMQ connection channel for user '%s'", userId));
+        ChatsLogger.error(
+            String.format("Error closing RabbitMQ connection channel for user '%s'", userId));
       }
     }
   }

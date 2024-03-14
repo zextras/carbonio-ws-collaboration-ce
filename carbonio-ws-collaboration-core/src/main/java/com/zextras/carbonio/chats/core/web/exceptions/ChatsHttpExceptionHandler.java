@@ -6,23 +6,24 @@ package com.zextras.carbonio.chats.core.web.exceptions;
 
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
-import javax.inject.Inject;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.Provider;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.Provider;
 
 @Provider
 @Singleton
 public class ChatsHttpExceptionHandler extends ExceptionHandler<ChatsHttpException> {
 
   @Inject
-  public ChatsHttpExceptionHandler() {
-  }
+  public ChatsHttpExceptionHandler() {}
 
   @Override
   public Response toResponse(ChatsHttpException exception) {
-    return handleException(exception, exception.getDebugInfo(), exception.getHttpStatusCode(),
-      exception.getHttpStatusPhrase(), exception.isToLog());
+    return handleException(
+        exception,
+        exception.getDebugInfo(),
+        exception.getHttpStatusCode(),
+        exception.getHttpStatusPhrase(),
+        exception.isToLog());
   }
-
-
 }

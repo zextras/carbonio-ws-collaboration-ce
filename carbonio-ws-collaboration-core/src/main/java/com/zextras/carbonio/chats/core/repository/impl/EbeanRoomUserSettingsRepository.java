@@ -9,13 +9,12 @@ import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import io.ebean.Database;
 import io.ebean.annotation.Transactional;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 
 @Transactional
 @Singleton
@@ -31,38 +30,33 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
   @Override
   public Optional<RoomUserSettings> getByRoomIdAndUserId(String roomId, String userId) {
     return db.find(RoomUserSettings.class)
-      .where()
-      .eq("id", new SubscriptionId(roomId, userId))
-      .findOneOrEmpty();
+        .where()
+        .eq("id", new SubscriptionId(roomId, userId))
+        .findOneOrEmpty();
   }
 
   @Override
   public List<RoomUserSettings> getByUserId(String userId) {
-    return db.find(RoomUserSettings.class)
-      .where().eq("userId", userId)
-      .findList();
+    return db.find(RoomUserSettings.class).where().eq("userId", userId).findList();
   }
 
   @Override
   public Map<String, RoomUserSettings> getMapGroupedByUserId(String userId) {
     return db.find(RoomUserSettings.class)
-      .where().eq("userId", userId)
-      .setMapKey("id.roomId")
-      .findMap();
-
+        .where()
+        .eq("userId", userId)
+        .setMapKey("id.roomId")
+        .findMap();
   }
 
   @Override
   public List<RoomUserSettings> getByRoomId(String roomId) {
-    return db.find(RoomUserSettings.class)
-      .where().eq("id.roomId", roomId)
-      .findList();
+    return db.find(RoomUserSettings.class).where().eq("id.roomId", roomId).findList();
   }
 
   @Override
   public void delete(RoomUserSettings userSettings) {
     db.delete(userSettings);
-
   }
 
   @Override

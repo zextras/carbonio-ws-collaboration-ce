@@ -14,6 +14,16 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.servlet.http.HttpSession;
+import jakarta.websocket.EncodeException;
+import jakarta.websocket.OnClose;
+import jakarta.websocket.OnError;
+import jakarta.websocket.OnMessage;
+import jakarta.websocket.OnOpen;
+import jakarta.websocket.Session;
+import jakarta.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -21,16 +31,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.servlet.http.HttpSession;
-import javax.websocket.EncodeException;
-import javax.websocket.OnClose;
-import javax.websocket.OnError;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
-import javax.websocket.Session;
-import javax.websocket.server.ServerEndpoint;
 
 @Singleton
 @ServerEndpoint(value = "/events")
@@ -38,16 +38,20 @@ public class EventsWebSocketEndpoint {
 
   private static final int MAX_IDLE_TIMEOUT = 90000;
 
-  private final EventDispatcher       eventDispatcher;
-  private final ObjectMapper          objectMapper;
-  private final Map<String, Channel>  userChannelMap;
+  private final EventDispatcher eventDispatcher;
+  private final ObjectMapper objectMapper;
+  private final Map<String, Channel> userChannelMap;
   private final ParticipantRepository participantRepository;
-  private final RoomRepository        roomRepository;
-  private final ParticipantService    participantService;
+  private final RoomRepository roomRepository;
+  private final ParticipantService participantService;
 
   @Inject
-  public EventsWebSocketEndpoint(EventDispatcher eventDispatcher, ObjectMapper objectMapper,
-    ParticipantRepository participantRepository, RoomRepository roomRepository, ParticipantService participantService) {
+  public EventsWebSocketEndpoint(
+      EventDispatcher eventDispatcher,
+      ObjectMapper objectMapper,
+      ParticipantRepository participantRepository,
+      RoomRepository roomRepository,
+      ParticipantService participantService) {
     this.eventDispatcher = eventDispatcher;
     this.objectMapper = objectMapper;
     this.participantRepository = participantRepository;
@@ -63,7 +67,9 @@ public class EventsWebSocketEndpoint {
     String userQueue = userId + "/" + queueId;
 
     session.setMaxIdleTimeout(MAX_IDLE_TIMEOUT);
-    session.getBasicRemote().sendObject(objectMapper.writeValueAsString(SessionOutEvent.create(queueId)));
+    session
+        .getBasicRemote()
+        .sendObject(objectMapper.writeValueAsString(SessionOutEvent.create(queueId)));
 
     if (eventDispatcher.getConnection().isEmpty()) {
       ChatsLogger.error("RabbitMQ connection is not up!");
@@ -80,26 +86,30 @@ public class EventsWebSocketEndpoint {
       channel.queueDeclare(userQueue, true, false, false, null);
       channel.exchangeDeclare(userId.toString(), "direct");
       channel.queueBind(userQueue, userId.toString(), "");
-      DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-        String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-        try {
-          session.getBasicRemote().sendObject(message);
-        } catch (EncodeException | IOException e) {
-          ChatsLogger.warn(
-            String.format("Error sending RabbitMQ message to websocket for user/queue '%s'. Message: ''%s",
-              userQueue, message), e);
-        }
-      };
-      channel.basicConsume(userQueue, true, deliverCallback, consumerTag -> {
-      });
+      DeliverCallback deliverCallback =
+          (consumerTag, delivery) -> {
+            String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
+            try {
+              session.getBasicRemote().sendObject(message);
+            } catch (EncodeException | IOException e) {
+              ChatsLogger.warn(
+                  String.format(
+                      "Error sending RabbitMQ message to websocket for user/queue '%s'. Message:"
+                          + " ''%s",
+                      userQueue, message),
+                  e);
+            }
+          };
+      channel.basicConsume(userQueue, true, deliverCallback, consumerTag -> {});
     } catch (IOException e) {
       ChatsLogger.warn(
-        String.format("Error interacting with RabbitMQ for user/queue '%s'", userQueue));
+          String.format("Error interacting with RabbitMQ for user/queue '%s'", userQueue));
       try {
         channel.close();
       } catch (IOException | TimeoutException ignored) {
         ChatsLogger.warn(
-          String.format("Error closing RabbitMQ connection channel for user/queue '%s'", userQueue));
+            String.format(
+                "Error closing RabbitMQ connection channel for user/queue '%s'", userQueue));
       }
     }
   }
@@ -108,7 +118,9 @@ public class EventsWebSocketEndpoint {
   public void onMessage(Session session, String message) throws EncodeException, IOException {
     try {
       if (objectMapper.readValue(message, PingPongDtoEvent.class).getType().equals("ping")) {
-        session.getBasicRemote().sendObject(objectMapper.writeValueAsString(PingPongDtoEvent.create("pong")));
+        session
+            .getBasicRemote()
+            .sendObject(objectMapper.writeValueAsString(PingPongDtoEvent.create("pong")));
       }
     } catch (JsonProcessingException e) {
       // intentionally left blank
@@ -126,11 +138,11 @@ public class EventsWebSocketEndpoint {
   }
 
   private String getUserIdFromSession(Session session) {
-    return Optional.ofNullable((String)
-      ((HttpSession) session.getUserProperties()
-        .get(HttpSession.class.getName()))
-        .getAttribute("userId")).orElseThrow(() ->
-      new InternalErrorException("Session user not found!"));
+    return Optional.ofNullable(
+            (String)
+                ((HttpSession) session.getUserProperties().get(HttpSession.class.getName()))
+                    .getAttribute("userId"))
+        .orElseThrow(() -> new InternalErrorException("Session user not found!"));
   }
 
   private void closeSessionChannel(Session session) {
@@ -141,10 +153,16 @@ public class EventsWebSocketEndpoint {
       try {
         userChannelMap.get(userSessionId).close();
         userChannelMap.remove(userSessionId);
-        participantRepository.getByQueueId(queueId.toString()).ifPresent(
-          participant -> roomRepository.getById(participant.getMeeting().getRoomId()).ifPresent(
-            room -> participantService.removeMeetingParticipant(participant.getMeeting(), room, userId, queueId))
-        );
+        participantRepository
+            .getByQueueId(queueId.toString())
+            .ifPresent(
+                participant ->
+                    roomRepository
+                        .getById(participant.getMeeting().getRoomId())
+                        .ifPresent(
+                            room ->
+                                participantService.removeMeetingParticipant(
+                                    participant.getMeeting(), room, userId, queueId)));
       } catch (IOException | TimeoutException ignored) {
         // intentionally left blank
       }
@@ -153,7 +171,7 @@ public class EventsWebSocketEndpoint {
 
   private static class SessionOutEvent {
 
-    private final UUID   queueId;
+    private final UUID queueId;
     private final String type = "websocketConnected";
 
     public SessionOutEvent(UUID queueId) {
@@ -191,4 +209,3 @@ public class EventsWebSocketEndpoint {
     }
   }
 }
-

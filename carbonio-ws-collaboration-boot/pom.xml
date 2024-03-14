@@ -72,7 +72,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <version>${project.version}</version>
       <exclusions>
         <exclusion>
-          <groupId>javax.ws.rs</groupId>
+          <groupId>jakarta.ws.rs</groupId>
           <artifactId>jsr311-api</artifactId>
         </exclusion>
       </exclusions>
@@ -85,9 +85,14 @@ SPDX-License-Identifier: AGPL-3.0-only
     </dependency>
 
     <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-servlet</artifactId>
+      <groupId>org.eclipse.jetty.ee10</groupId>
+      <artifactId>jetty-ee10-servlet</artifactId>
     </dependency>
+
+    <!--<dependency>
+      <groupId>jakarta.websocket</groupId>
+      <artifactId>jakarta.websocket-api</artifactId>
+    </dependency>-->
 
     <dependency>
       <groupId>jakarta.websocket</groupId>
@@ -96,12 +101,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <dependency>
       <groupId>org.eclipse.jetty.websocket</groupId>
-      <artifactId>websocket-javax-server</artifactId>
+      <artifactId>websocket-jakarta-server</artifactId>
     </dependency>
 
     <dependency>
       <groupId>org.eclipse.jetty.websocket</groupId>
-      <artifactId>websocket-javax-client</artifactId>
+      <artifactId>websocket-jakarta-client</artifactId>
     </dependency>
 
     <!-- Guice dependencies -->
@@ -112,7 +117,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <!-- RestEasy dependencies -->
     <dependency>
-      <groupId>org.jboss.resteasy</groupId>
+      <groupId>com.federicorispo</groupId>
       <artifactId>resteasy-guice</artifactId>
     </dependency>
 

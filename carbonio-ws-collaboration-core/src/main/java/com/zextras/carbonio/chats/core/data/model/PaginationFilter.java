@@ -8,11 +8,10 @@ import java.time.OffsetDateTime;
 
 public class PaginationFilter {
 
-  private String         id;
+  private String id;
   private OffsetDateTime createdAt;
 
-  public PaginationFilter() {
-  }
+  public PaginationFilter() {}
 
   public PaginationFilter(String id, OffsetDateTime createdAt) {
     this.id = id;
@@ -30,5 +29,4 @@ public class PaginationFilter {
   public OffsetDateTime getCreatedAt() {
     return createdAt;
   }
-
 }

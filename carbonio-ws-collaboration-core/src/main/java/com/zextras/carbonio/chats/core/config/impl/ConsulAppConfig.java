@@ -15,13 +15,13 @@ import com.orbitz.consul.option.ImmutableQueryOptions;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import jakarta.annotation.Nullable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.annotation.Nullable;
 
 public class ConsulAppConfig extends AppConfig {
 

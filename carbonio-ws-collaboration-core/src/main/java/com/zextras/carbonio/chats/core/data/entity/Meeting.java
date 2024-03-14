@@ -6,20 +6,20 @@ package com.zextras.carbonio.chats.core.data.entity;
 
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import io.ebean.annotation.WhenCreated;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 
 @Entity
 @Table(name = "MEETING", schema = "CHATS")
@@ -42,7 +42,7 @@ public class Meeting {
   @OneToMany(mappedBy = "meeting", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   private List<Participant> participants;
 
-  @Column(name="MEETING_TYPE", length = 32, nullable = false)
+  @Column(name = "MEETING_TYPE", length = 32, nullable = false)
   @Enumerated(EnumType.STRING)
   private MeetingType meetingType;
 
@@ -51,11 +51,11 @@ public class Meeting {
   @WhenCreated
   private OffsetDateTime createdAt;
 
-  @Column(name= "EXPIRATION")
+  @Column(name = "EXPIRATION")
   @Temporal(TemporalType.TIMESTAMP)
   private OffsetDateTime expiration;
 
-  @Column(name= "ACTIVE", nullable = false)
+  @Column(name = "ACTIVE", nullable = false)
   private Boolean active;
 
   public String getId() {
@@ -134,9 +134,10 @@ public class Meeting {
       return false;
     }
     Meeting meeting = (Meeting) o;
-    return Objects.equals(getId(), meeting.getId()) && Objects.equals(getRoomId(), meeting.getRoomId())
-      && Objects.equals(getParticipants(), meeting.getParticipants()) &&
-      Objects.equals(getCreatedAt(), meeting.getCreatedAt());
+    return Objects.equals(getId(), meeting.getId())
+        && Objects.equals(getRoomId(), meeting.getRoomId())
+        && Objects.equals(getParticipants(), meeting.getParticipants())
+        && Objects.equals(getCreatedAt(), meeting.getCreatedAt());
   }
 
   @Override

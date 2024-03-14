@@ -65,7 +65,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <!-- RestEasy dependencies -->
     <dependency>
-      <groupId>org.jboss.resteasy</groupId>
+      <groupId>com.federicorispo</groupId>
       <artifactId>resteasy-guice</artifactId>
     </dependency>
 
@@ -79,10 +79,10 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>resteasy-validator-provider</artifactId>
     </dependency>
 
-    <!-- JavaEE api -->
+    <!-- Jakarta -->
     <dependency>
-      <groupId>javax</groupId>
-      <artifactId>javaee-api</artifactId>
+      <groupId>jakarta.platform</groupId>
+      <artifactId>jakarta.jakartaee-api</artifactId>
       <scope>provided</scope>
     </dependency>
 
@@ -162,9 +162,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <!-- Web Socket -->
     <dependency>
-      <groupId>javax.websocket</groupId>
-      <artifactId>javax.websocket-api</artifactId>
-    </dependency>
+       <groupId>jakarta.websocket</groupId>
+       <artifactId>jakarta.websocket-api</artifactId>
+     </dependency>
 
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
@@ -188,7 +188,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     </dependency>
 
     <dependency>
-      <groupId>org.hibernate</groupId>
+      <groupId>org.hibernate.validator</groupId>
       <artifactId>hibernate-validator-cdi</artifactId>
     </dependency>
 
