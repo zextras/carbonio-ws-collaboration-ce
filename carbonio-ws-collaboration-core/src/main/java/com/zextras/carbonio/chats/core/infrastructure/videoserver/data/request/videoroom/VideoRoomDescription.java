@@ -42,15 +42,10 @@ public class VideoRoomDescription {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof VideoRoomDescription)) {
-      return false;
-    }
-    VideoRoomDescription that = (VideoRoomDescription) o;
-    return Objects.equals(getMid(), that.getMid()) && Objects.equals(getDescription(),
-      that.getDescription());
+    if (this == o) return true;
+    if (!(o instanceof VideoRoomDescription that)) return false;
+    return Objects.equals(getMid(), that.getMid())
+        && Objects.equals(getDescription(), that.getDescription());
   }
 
   @Override

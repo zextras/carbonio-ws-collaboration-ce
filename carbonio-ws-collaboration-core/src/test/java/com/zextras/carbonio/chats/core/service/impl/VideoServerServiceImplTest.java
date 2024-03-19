@@ -110,17 +110,11 @@ public class VideoServerServiceImplTest {
   private UUID user2SessionId;
   private UUID user3SessionId;
   private UUID user1AudioHandleId;
-  private UUID user2AudioHandleId;
-  private UUID user3AudioHandleId;
   private UUID user1VideoOutHandleId;
-  private UUID user2VideoOutHandleId;
-  private UUID user3VideoOutHandleId;
   private UUID user1VideoInHandleId;
   private UUID user2VideoInHandleId;
   private UUID user3VideoInHandleId;
   private UUID user1ScreenHandleId;
-  private UUID user2ScreenHandleId;
-  private UUID user3ScreenHandleId;
   private String videoServerURL;
   private String janusEndpoint;
 
@@ -142,17 +136,11 @@ public class VideoServerServiceImplTest {
     user2SessionId = UUID.randomUUID();
     user3SessionId = UUID.randomUUID();
     user1AudioHandleId = UUID.randomUUID();
-    user2AudioHandleId = UUID.randomUUID();
-    user3AudioHandleId = UUID.randomUUID();
     user1VideoOutHandleId = UUID.randomUUID();
-    user2VideoOutHandleId = UUID.randomUUID();
-    user3VideoOutHandleId = UUID.randomUUID();
     user1VideoInHandleId = UUID.randomUUID();
     user2VideoInHandleId = UUID.randomUUID();
     user3VideoInHandleId = UUID.randomUUID();
     user1ScreenHandleId = UUID.randomUUID();
-    user2ScreenHandleId = UUID.randomUUID();
-    user3ScreenHandleId = UUID.randomUUID();
     videoServerURL = "http://127.0.0.1:8088";
     janusEndpoint = "/janus";
   }

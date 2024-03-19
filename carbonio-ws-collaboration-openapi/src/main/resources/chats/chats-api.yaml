@@ -1110,9 +1110,6 @@ components:
         canVideoCall:
           type: boolean
           description: indicates whether it can access video calls
-        canVideoCallRecord:
-          type: boolean
-          description: indicates whether it can record video calls
         canUseVirtualBackground:
           type: boolean
           description: indicates whether it can use a virtual background

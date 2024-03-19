@@ -55,9 +55,6 @@ public class ConsulAppConfig extends AppConfig {
     namesMapping.put(ConfigName.EVENT_DISPATCHER_USER_PASSWORD, "carbonio-message-broker/password");
     namesMapping.put(ConfigName.CAN_VIDEO_CALL, "carbonio-ws-collaboration/configs/can-video-call");
     namesMapping.put(
-        ConfigName.CAN_VIDEO_CALL_RECORD,
-        "carbonio-ws-collaboration/configs/can-video-call-record");
-    namesMapping.put(
         ConfigName.CAN_USE_VIRTUAL_BACKGROUND,
         "carbonio-ws-collaboration/configs/can-use-virtual-background");
     namesMapping.put(

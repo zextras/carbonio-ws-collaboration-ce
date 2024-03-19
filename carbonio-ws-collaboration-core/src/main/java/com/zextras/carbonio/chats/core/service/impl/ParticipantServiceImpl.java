@@ -32,7 +32,6 @@ import io.ebean.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -119,7 +118,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         joinSettingsDto.isVideoStreamEnabled(),
         joinSettingsDto.isAudioStreamEnabled());
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingParticipantJoined.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(currentUser.getUUID()));
@@ -128,7 +127,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   private void destroyMeetingParticipant(Meeting meeting, UserPrincipal currentUser, Room room) {
     videoServerService.destroyMeetingParticipant(currentUser.getId(), meeting.getId());
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingParticipantLeft.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(currentUser.getUUID()));
@@ -155,7 +154,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   public void removeMeetingParticipant(Meeting meeting, Room room, UUID userId) {
     meeting.getParticipants().stream()
         .filter(p -> userId.toString().equals(p.getUserId()))
-        .collect(Collectors.toList())
+        .toList()
         .forEach(participant -> removeMeetingParticipant(participant, meeting, room));
   }
 
@@ -174,13 +173,12 @@ public class ParticipantServiceImpl implements ParticipantService {
   private void removeMeetingParticipant(Participant participant, Meeting meeting, Room room) {
     participantRepository.remove(participant);
     videoServerService.destroyMeetingParticipant(participant.getUserId(), meeting.getId());
-    meeting.getParticipants().remove(participant);
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingParticipantLeft.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(UUID.fromString(participant.getUserId())));
-    if (meeting.getParticipants().isEmpty()) {
+    if (participantRepository.getByMeetingId(meeting.getId()).isEmpty()) {
       meetingService.updateMeeting(
           UserPrincipal.create(UUID.fromString(participant.getUserId())),
           UUID.fromString(meeting.getId()),
@@ -210,40 +208,34 @@ public class ParticipantServiceImpl implements ParticipantService {
     boolean mediaStreamEnabled = mediaStreamSettingsDto.isEnabled();
     switch (mediaStreamSettingsDto.getType()) {
       case VIDEO:
-        if (mediaStreamEnabled != participant.hasVideoStreamOn()) {
+        if (Boolean.TRUE.equals(participant.hasVideoStreamOn()) != mediaStreamEnabled) {
           participantRepository.update(participant.videoStreamOn(mediaStreamEnabled));
           videoServerService.updateMediaStream(
               currentUser.getId(), meetingId.toString(), mediaStreamSettingsDto);
           if (!mediaStreamEnabled) {
             eventDispatcher.sendToUserExchange(
-                meeting.getParticipants().stream()
-                    .map(Participant::getUserId)
-                    .distinct()
-                    .collect(Collectors.toList()),
+                meeting.getParticipants().stream().map(Participant::getUserId).distinct().toList(),
                 MeetingMediaStreamChanged.create()
                     .meetingId(meetingId)
                     .userId(UUID.fromString(currentUser.getId()))
                     .mediaType(MediaType.VIDEO)
-                    .active(mediaStreamEnabled));
+                    .active(false));
           }
         }
         break;
       case SCREEN:
-        if (mediaStreamEnabled != participant.hasScreenStreamOn()) {
+        if (Boolean.TRUE.equals(participant.hasScreenStreamOn()) != mediaStreamEnabled) {
           participantRepository.update(participant.screenStreamOn(mediaStreamEnabled));
           videoServerService.updateMediaStream(
               currentUser.getId(), meetingId.toString(), mediaStreamSettingsDto);
           if (!mediaStreamEnabled) {
             eventDispatcher.sendToUserExchange(
-                meeting.getParticipants().stream()
-                    .map(Participant::getUserId)
-                    .distinct()
-                    .collect(Collectors.toList()),
+                meeting.getParticipants().stream().map(Participant::getUserId).distinct().toList(),
                 MeetingMediaStreamChanged.create()
                     .meetingId(meetingId)
                     .userId(UUID.fromString(currentUser.getId()))
                     .mediaType(MediaType.SCREEN)
-                    .active(mediaStreamEnabled));
+                    .active(false));
           }
         }
         break;
@@ -284,7 +276,7 @@ public class ParticipantServiceImpl implements ParticipantService {
       roomService.getRoomEntityAndCheckUser(
           UUID.fromString(meeting.getRoomId()), currentUser, true);
     }
-    if (enabled != Boolean.TRUE.equals(participant.hasAudioStreamOn())) {
+    if (Boolean.TRUE.equals(participant.hasAudioStreamOn()) != enabled) {
       participantRepository.update(participant.audioStreamOn(enabled));
       videoServerService.updateAudioStream(userId, meetingId.toString(), enabled);
       Optional.ofNullable(audioStreamSettingsDto.getUserToModerate())
@@ -294,7 +286,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                       meeting.getParticipants().stream()
                           .map(Participant::getUserId)
                           .distinct()
-                          .collect(Collectors.toList()),
+                          .toList(),
                       MeetingAudioStreamChanged.create()
                           .meetingId(meetingId)
                           .userId(UUID.fromString(targetUserId))
@@ -305,7 +297,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                       meeting.getParticipants().stream()
                           .map(Participant::getUserId)
                           .distinct()
-                          .collect(Collectors.toList()),
+                          .toList(),
                       MeetingAudioStreamChanged.create()
                           .meetingId(meetingId)
                           .userId(currentUser.getUUID())

@@ -20,39 +20,44 @@ import java.util.Objects;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class AudioBridgeCreateRequest extends AudioBridgeRequest {
 
-  public static final String CREATE                       = "create";
-  public static final String ROOM_DEFAULT                 = "audio_";
-  public static final String DESCRIPTION_DEFAULT          = "audio_room_";
-  public static final long   AUDIO_ACTIVE_PACKETS_DEFAULT = 10L;
-  public static final int    AUDIO_LEVEL_AVERAGE_DEFAULT  = 65;
-  public static final long   SAMPLING_RATE_DEFAULT        = 16000L;
+  public static final String CREATE = "create";
+  public static final String ROOM_DEFAULT = "audio_";
+  public static final String DESCRIPTION_DEFAULT = "audio_room_";
+  public static final long AUDIO_ACTIVE_PACKETS_DEFAULT = 10L;
+  public static final int AUDIO_LEVEL_AVERAGE_DEFAULT = 65;
+  public static final long SAMPLING_RATE_DEFAULT = 16000L;
 
-  private String       request;
-  private String       room;
-  private Boolean      permanent;
-  private String       description;
-  private String       secret;
-  private String       pin;
-  private Boolean      isPrivate;
+  private String request;
+  private String room;
+  private Boolean permanent;
+  private String description;
+  private String secret;
+  private String pin;
+  private Boolean isPrivate;
   private List<String> allowed;
-  private Long         samplingRate;
-  private Boolean      spatialAudio;
+  private Long samplingRate;
+  private Boolean spatialAudio;
+
   @JsonProperty("audiolevel_ext")
-  private Boolean      audioLevelExt;
+  private Boolean audioLevelExt;
+
   @JsonProperty("audiolevel_event")
-  private Boolean      audioLevelEvent;
-  private Long         audioActivePackets;
-  private Integer      audioLevelAverage;
-  private Long         defaultPreBuffering;
+  private Boolean audioLevelEvent;
+
+  private Long audioActivePackets;
+  private Integer audioLevelAverage;
+  private Long defaultPreBuffering;
+
   @JsonProperty("default_expectedloss")
-  private Integer      defaultExpectedLoss;
-  private Long         defaultBitrate;
-  private Boolean      record;
-  private String       recordFile;
-  private String       recordDir;
-  private Boolean      mjrs;
-  private String       mjrsDir;
-  private Boolean      allowRtpParticipants;
+  private Integer defaultExpectedLoss;
+
+  private Long defaultBitrate;
+  private Boolean record;
+  private String recordFile;
+  private String recordDir;
+  private Boolean mjrs;
+  private String mjrsDir;
+  private Boolean allowRtpParticipants;
   private List<String> groups;
 
   public static AudioBridgeCreateRequest create() {
@@ -277,38 +282,60 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof AudioBridgeCreateRequest)) {
-      return false;
-    }
-    AudioBridgeCreateRequest that = (AudioBridgeCreateRequest) o;
-    return Objects.equals(getRequest(), that.getRequest()) && Objects.equals(getRoom(),
-      that.getRoom()) && Objects.equals(getPermanent(), that.getPermanent()) && Objects.equals(
-      getDescription(), that.getDescription()) && Objects.equals(getSecret(), that.getSecret())
-      && Objects.equals(getPin(), that.getPin()) && Objects.equals(getIsPrivate(),
-      that.getIsPrivate()) && Objects.equals(getAllowed(), that.getAllowed()) && Objects.equals(
-      getSamplingRate(), that.getSamplingRate()) && Objects.equals(getSpatialAudio(), that.getSpatialAudio())
-      && Objects.equals(getAudioLevelExt(), that.getAudioLevelExt()) && Objects.equals(
-      getAudioLevelEvent(), that.getAudioLevelEvent()) && Objects.equals(getAudioActivePackets(),
-      that.getAudioActivePackets()) && Objects.equals(getAudioLevelAverage(), that.getAudioLevelAverage())
-      && Objects.equals(getDefaultPreBuffering(), that.getDefaultPreBuffering()) && Objects.equals(
-      getDefaultExpectedLoss(), that.getDefaultExpectedLoss()) && Objects.equals(getDefaultBitrate(),
-      that.getDefaultBitrate()) && Objects.equals(getRecord(), that.getRecord()) && Objects.equals(
-      getRecordFile(), that.getRecordFile()) && Objects.equals(getRecordDir(), that.getRecordDir())
-      && Objects.equals(getMjrs(), that.getMjrs()) && Objects.equals(getMjrsDir(), that.getMjrsDir())
-      && Objects.equals(getAllowRtpParticipants(), that.getAllowRtpParticipants()) && Objects.equals(
-      getGroups(), that.getGroups());
+    if (this == o) return true;
+    if (!(o instanceof AudioBridgeCreateRequest that)) return false;
+    return Objects.equals(getRequest(), that.getRequest())
+        && Objects.equals(getRoom(), that.getRoom())
+        && Objects.equals(getPermanent(), that.getPermanent())
+        && Objects.equals(getDescription(), that.getDescription())
+        && Objects.equals(getSecret(), that.getSecret())
+        && Objects.equals(getPin(), that.getPin())
+        && Objects.equals(getIsPrivate(), that.getIsPrivate())
+        && Objects.equals(getAllowed(), that.getAllowed())
+        && Objects.equals(getSamplingRate(), that.getSamplingRate())
+        && Objects.equals(getSpatialAudio(), that.getSpatialAudio())
+        && Objects.equals(getAudioLevelExt(), that.getAudioLevelExt())
+        && Objects.equals(getAudioLevelEvent(), that.getAudioLevelEvent())
+        && Objects.equals(getAudioActivePackets(), that.getAudioActivePackets())
+        && Objects.equals(getAudioLevelAverage(), that.getAudioLevelAverage())
+        && Objects.equals(getDefaultPreBuffering(), that.getDefaultPreBuffering())
+        && Objects.equals(getDefaultExpectedLoss(), that.getDefaultExpectedLoss())
+        && Objects.equals(getDefaultBitrate(), that.getDefaultBitrate())
+        && Objects.equals(getRecord(), that.getRecord())
+        && Objects.equals(getRecordFile(), that.getRecordFile())
+        && Objects.equals(getRecordDir(), that.getRecordDir())
+        && Objects.equals(getMjrs(), that.getMjrs())
+        && Objects.equals(getMjrsDir(), that.getMjrsDir())
+        && Objects.equals(getAllowRtpParticipants(), that.getAllowRtpParticipants())
+        && Objects.equals(getGroups(), that.getGroups());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getRequest(), getRoom(), getPermanent(), getDescription(), getSecret(), getPin(),
-      getIsPrivate(),
-      getAllowed(), getSamplingRate(), getSpatialAudio(), getAudioLevelExt(), getAudioLevelEvent(),
-      getAudioActivePackets(), getAudioLevelAverage(), getDefaultPreBuffering(), getDefaultExpectedLoss(),
-      getDefaultBitrate(), getRecord(), getRecordFile(), getRecordDir(), getMjrs(), getMjrsDir(),
-      getAllowRtpParticipants(), getGroups());
+    return Objects.hash(
+        getRequest(),
+        getRoom(),
+        getPermanent(),
+        getDescription(),
+        getSecret(),
+        getPin(),
+        getIsPrivate(),
+        getAllowed(),
+        getSamplingRate(),
+        getSpatialAudio(),
+        getAudioLevelExt(),
+        getAudioLevelEvent(),
+        getAudioActivePackets(),
+        getAudioLevelAverage(),
+        getDefaultPreBuffering(),
+        getDefaultExpectedLoss(),
+        getDefaultBitrate(),
+        getRecord(),
+        getRecordFile(),
+        getRecordDir(),
+        getMjrs(),
+        getMjrsDir(),
+        getAllowRtpParticipants(),
+        getGroups());
   }
 }

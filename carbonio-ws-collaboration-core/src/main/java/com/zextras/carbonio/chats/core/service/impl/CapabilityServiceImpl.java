@@ -31,10 +31,6 @@ public class CapabilityServiceImpl implements CapabilityService {
             appConfig
                 .get(Boolean.class, ConfigName.CAN_VIDEO_CALL)
                 .orElse(CONFIGURATIONS_DEFAULT_VALUES.CAN_VIDEO_CALL))
-        .canVideoCallRecord(
-            appConfig
-                .get(Boolean.class, ConfigName.CAN_VIDEO_CALL_RECORD)
-                .orElse(CONFIGURATIONS_DEFAULT_VALUES.CAN_VIDEO_CALL_RECORD))
         .canUseVirtualBackground(
             appConfig
                 .get(Boolean.class, ConfigName.CAN_USE_VIRTUAL_BACKGROUND)

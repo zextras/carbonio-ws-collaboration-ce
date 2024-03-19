@@ -15,7 +15,6 @@ public class ChatsConstant {
   public static class CONFIGURATIONS_DEFAULT_VALUES {
 
     public static final boolean CAN_VIDEO_CALL = true;
-    public static final boolean CAN_VIDEO_CALL_RECORD = false;
     public static final boolean CAN_USE_VIRTUAL_BACKGROUND = false;
     public static final boolean CAN_SEE_MESSAGE_READS = true;
     public static final boolean CAN_SEE_USERS_PRESENCE = true;

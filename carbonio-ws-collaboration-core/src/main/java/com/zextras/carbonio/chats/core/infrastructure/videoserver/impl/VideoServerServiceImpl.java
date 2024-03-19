@@ -456,7 +456,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       VideoServerSession videoServerSession,
       boolean enabled,
       String sdp) {
-    if (videoServerSession.hasVideoOutStreamOn() == enabled) {
+    if (Boolean.TRUE.equals(videoServerSession.hasVideoOutStreamOn()) == enabled) {
       ChatsLogger.debug(
           "Video stream status is already updated for session "
               + userId
@@ -477,7 +477,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       VideoServerSession videoServerSession,
       boolean enabled,
       String sdp) {
-    if (videoServerSession.hasScreenStreamOn() == enabled) {
+    if (Boolean.TRUE.equals(videoServerSession.hasScreenStreamOn()) == enabled) {
       ChatsLogger.debug(
           "Screen stream status is already updated for session "
               + userId
@@ -528,7 +528,7 @@ public class VideoServerServiceImpl implements VideoServerService {
                             + userId
                             + " for the meeting "
                             + meetingId));
-    if (enabled == videoServerSession.hasAudioStreamOn()) {
+    if (Boolean.TRUE.equals(videoServerSession.hasAudioStreamOn()) == enabled) {
       ChatsLogger.debug(
           "Audio stream status is already updated for user "
               + userId
@@ -698,7 +698,7 @@ public class VideoServerServiceImpl implements VideoServerService {
                                                 mediaStreamDto.getType().toString().toUpperCase()))
                                         .userId(mediaStreamDto.getUserId())
                                         .toString()))
-                    .collect(Collectors.toList()));
+                    .toList());
 
     videoRoomResponse =
         sendVideoRoomPluginMessage(connectionId, videoHandleId, videoRoomJoinRequest, null);
@@ -740,7 +740,7 @@ public class VideoServerServiceImpl implements VideoServerService {
                                                         .toUpperCase()))
                                             .userId(mediaStreamDto.getUserId())
                                             .toString()))
-                        .collect(Collectors.toList()))
+                        .toList())
                 .unsubscriptions(
                     subscriptionUpdatesDto.getUnsubscribe().stream()
                         .distinct()
@@ -757,7 +757,7 @@ public class VideoServerServiceImpl implements VideoServerService {
                                                         .toUpperCase()))
                                             .userId(mediaStreamDto.getUserId())
                                             .toString()))
-                        .collect(Collectors.toList())),
+                        .toList()),
             null);
     if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
       throw new VideoServerException(
@@ -844,6 +844,12 @@ public class VideoServerServiceImpl implements VideoServerService {
     }
   }
 
+  /**
+   * This method allows you to send a request to the video server in order to know if it's alive
+   *
+   * @return true if the video server returns the server_info status, false otherwise
+   * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
+   */
   @Override
   public boolean isAlive() {
     try {

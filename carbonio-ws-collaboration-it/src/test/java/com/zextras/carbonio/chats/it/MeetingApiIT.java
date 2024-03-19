@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -17,22 +16,16 @@ import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
-import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
-import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
-import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
-import com.zextras.carbonio.chats.it.tools.MongooseImMockServer;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
-import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.it.tools.VideoServerMockServer;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils.RoomMemberField;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
-import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.api.MeetingsApi;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
@@ -42,12 +35,10 @@ import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.MeetingTypeDto;
-import com.zextras.carbonio.meeting.model.MeetingUserDto;
 import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
 import com.zextras.carbonio.meeting.model.SessionDescriptionProtocolDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
-import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,49 +48,33 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockserver.model.Header;
 import org.mockserver.verify.VerificationTimes;
 
 @ApiIntegrationTest
 public class MeetingApiIT {
 
   private final ResteasyRequestDispatcher dispatcher;
-  private final MeetingRepository meetingRepository;
   private final ParticipantRepository participantRepository;
   private final MeetingTestUtils meetingTestUtils;
   private final ObjectMapper objectMapper;
   private final IntegrationTestUtils integrationTestUtils;
-  private final UserManagementMockServer userManagementMockServer;
-  private final AppClock clock;
-  private final MongooseImMockServer mongooseImMockServer;
-  private final RoomRepository roomRepository;
   private final VideoServerMockServer videoServerMockServer;
 
   public MeetingApiIT(
       MeetingsApi meetingsApi,
       ResteasyRequestDispatcher dispatcher,
-      MongooseImMockServer mongooseImMockServer,
-      MeetingRepository meetingRepository,
       ParticipantRepository participantRepository,
-      RoomRepository roomRepository,
       MeetingTestUtils meetingTestUtils,
       ObjectMapper objectMapper,
       IntegrationTestUtils integrationTestUtils,
-      UserManagementMockServer userManagementMockServer,
-      Clock clock,
       VideoServerMockServer videoServerMockServer) {
     this.dispatcher = dispatcher;
-    this.mongooseImMockServer = mongooseImMockServer;
-    this.meetingRepository = meetingRepository;
     this.participantRepository = participantRepository;
-    this.roomRepository = roomRepository;
     this.meetingTestUtils = meetingTestUtils;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
-    this.userManagementMockServer = userManagementMockServer;
     this.videoServerMockServer = videoServerMockServer;
     this.dispatcher.getRegistry().addSingletonResource(meetingsApi);
-    this.clock = (AppClock) clock;
   }
 
   private static UUID user1Id;

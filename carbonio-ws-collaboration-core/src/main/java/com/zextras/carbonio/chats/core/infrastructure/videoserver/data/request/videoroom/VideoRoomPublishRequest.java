@@ -22,17 +22,20 @@ public class VideoRoomPublishRequest extends VideoRoomRequest {
 
   public static final String PUBLISH = "publish";
 
-  private String                     request;
+  private String request;
+
   @JsonProperty("audiocodec")
-  private String                     audioCodec;
+  private String audioCodec;
+
   @JsonProperty("videocodec")
-  private String                     videoCodec;
-  private Long                       bitrate;
-  private Boolean                    record;
-  private String                     fileName;
-  private String                     display;
-  private Integer                    audioLevelAverage;
-  private Long                       audioActivePackets;
+  private String videoCodec;
+
+  private Long bitrate;
+  private Boolean record;
+  private String fileName;
+  private String display;
+  private Integer audioLevelAverage;
+  private Long audioActivePackets;
   private List<VideoRoomDescription> descriptions;
 
   public static VideoRoomPublishRequest create() {
@@ -131,26 +134,32 @@ public class VideoRoomPublishRequest extends VideoRoomRequest {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof VideoRoomPublishRequest)) {
-      return false;
-    }
-    VideoRoomPublishRequest that = (VideoRoomPublishRequest) o;
-    return Objects.equals(getRequest(), that.getRequest()) && Objects.equals(getAudioCodec(),
-      that.getAudioCodec()) && Objects.equals(getVideoCodec(), that.getVideoCodec())
-      && Objects.equals(getBitrate(), that.getBitrate()) && Objects.equals(record, that.record)
-      && Objects.equals(getFileName(), that.getFileName()) && Objects.equals(getDisplay(),
-      that.getDisplay()) && Objects.equals(getAudioLevelAverage(), that.getAudioLevelAverage())
-      && Objects.equals(getAudioActivePackets(), that.getAudioActivePackets()) && Objects.equals(
-      getDescriptions(), that.getDescriptions());
+    if (this == o) return true;
+    if (!(o instanceof VideoRoomPublishRequest that)) return false;
+    return Objects.equals(getRequest(), that.getRequest())
+        && Objects.equals(getAudioCodec(), that.getAudioCodec())
+        && Objects.equals(getVideoCodec(), that.getVideoCodec())
+        && Objects.equals(getBitrate(), that.getBitrate())
+        && Objects.equals(record, that.record)
+        && Objects.equals(getFileName(), that.getFileName())
+        && Objects.equals(getDisplay(), that.getDisplay())
+        && Objects.equals(getAudioLevelAverage(), that.getAudioLevelAverage())
+        && Objects.equals(getAudioActivePackets(), that.getAudioActivePackets())
+        && Objects.equals(getDescriptions(), that.getDescriptions());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getRequest(), getAudioCodec(), getVideoCodec(), getBitrate(), record, getFileName(),
-      getDisplay(),
-      getAudioLevelAverage(), getAudioActivePackets(), getDescriptions());
+    return Objects.hash(
+        getRequest(),
+        getAudioCodec(),
+        getVideoCodec(),
+        getBitrate(),
+        record,
+        getFileName(),
+        getDisplay(),
+        getAudioLevelAverage(),
+        getAudioActivePackets(),
+        getDescriptions());
   }
 }

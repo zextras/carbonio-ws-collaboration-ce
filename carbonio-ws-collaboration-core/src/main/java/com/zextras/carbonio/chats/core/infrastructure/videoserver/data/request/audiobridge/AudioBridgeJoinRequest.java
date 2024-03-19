@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * This class represents the audio bridge request to join a room.
@@ -23,27 +24,29 @@ public class AudioBridgeJoinRequest extends AudioBridgeRequest {
 
   public static final String FILENAME_DEFAULT = "audio";
 
-  private String       request;
-  private String       room;
-  private String       id;
-  private String       group;
-  private String       pin;
-  private String       display;
-  private String       token;
-  private Boolean      muted;
+  private String request;
+  private String room;
+  private String id;
+  private String group;
+  private String pin;
+  private String display;
+  private String token;
+  private Boolean muted;
   private List<String> codec;
+
   @JsonProperty("prebuffer")
-  private Long         preBuffer;
-  private Long         bitrate;
-  private Integer      quality;
-  private Integer      expectedLoss;
-  private Integer      volume;
-  private Integer      spatialPosition;
-  private String       secret;
-  private Integer      audioLevelAverage;
-  private Long         audioActivePackets;
-  private Boolean      record;
-  private String       filename;
+  private Long preBuffer;
+
+  private Long bitrate;
+  private Integer quality;
+  private Integer expectedLoss;
+  private Integer volume;
+  private Integer spatialPosition;
+  private String secret;
+  private Integer audioLevelAverage;
+  private Long audioActivePackets;
+  private Boolean record;
+  private String filename;
 
   public static AudioBridgeJoinRequest create() {
     return new AudioBridgeJoinRequest();
@@ -227,5 +230,56 @@ public class AudioBridgeJoinRequest extends AudioBridgeRequest {
   public AudioBridgeJoinRequest filename(String filename) {
     this.filename = filename;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof AudioBridgeJoinRequest that)) return false;
+    return Objects.equals(getRequest(), that.getRequest())
+        && Objects.equals(getRoom(), that.getRoom())
+        && Objects.equals(getId(), that.getId())
+        && Objects.equals(getGroup(), that.getGroup())
+        && Objects.equals(getPin(), that.getPin())
+        && Objects.equals(getDisplay(), that.getDisplay())
+        && Objects.equals(getToken(), that.getToken())
+        && Objects.equals(getMuted(), that.getMuted())
+        && Objects.equals(getCodec(), that.getCodec())
+        && Objects.equals(getPreBuffer(), that.getPreBuffer())
+        && Objects.equals(getBitrate(), that.getBitrate())
+        && Objects.equals(getQuality(), that.getQuality())
+        && Objects.equals(getExpectedLoss(), that.getExpectedLoss())
+        && Objects.equals(getVolume(), that.getVolume())
+        && Objects.equals(getSpatialPosition(), that.getSpatialPosition())
+        && Objects.equals(getSecret(), that.getSecret())
+        && Objects.equals(getAudioLevelAverage(), that.getAudioLevelAverage())
+        && Objects.equals(getAudioActivePackets(), that.getAudioActivePackets())
+        && Objects.equals(getRecord(), that.getRecord())
+        && Objects.equals(getFilename(), that.getFilename());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        getRequest(),
+        getRoom(),
+        getId(),
+        getGroup(),
+        getPin(),
+        getDisplay(),
+        getToken(),
+        getMuted(),
+        getCodec(),
+        getPreBuffer(),
+        getBitrate(),
+        getQuality(),
+        getExpectedLoss(),
+        getVolume(),
+        getSpatialPosition(),
+        getSecret(),
+        getAudioLevelAverage(),
+        getAudioActivePackets(),
+        getRecord(),
+        getFilename());
   }
 }
