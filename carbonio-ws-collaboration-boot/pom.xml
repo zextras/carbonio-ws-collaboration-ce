@@ -89,11 +89,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>jetty-ee10-servlet</artifactId>
     </dependency>
 
-    <!--<dependency>
-      <groupId>jakarta.websocket</groupId>
-      <artifactId>jakarta.websocket-api</artifactId>
-    </dependency>-->
-
     <dependency>
       <groupId>jakarta.websocket</groupId>
       <artifactId>jakarta.websocket-api</artifactId>

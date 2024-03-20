@@ -71,17 +71,13 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>resteasy-jackson2-provider</artifactId>
     </dependency>
 
-<!--    <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jsr310</artifactId>
-    </dependency>-->
-
     <!-- Jakarta -->
     <dependency>
       <groupId>jakarta.platform</groupId>
       <artifactId>jakarta.jakartaee-api</artifactId>
       <scope>provided</scope>
     </dependency>
+
     <dependency>
       <groupId>org.eclipse.jetty.ee10</groupId>
       <artifactId>jetty-ee10-servlet</artifactId>
