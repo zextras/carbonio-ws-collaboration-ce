@@ -85,7 +85,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Consul -->
     <com.orbitz.consul.consul-client.version>1.5.3</com.orbitz.consul.consul-client.version>
     <!-- Rabbit MQ -->
-    <com.rabbitmq.amqp-client.version>5.15.0</com.rabbitmq.amqp-client.version>
+    <com.rabbitmq.amqp-client.version>5.20.0</com.rabbitmq.amqp-client.version>
     <!-- Web Socket -->
     <javax.websocket-api.version>1.1</javax.websocket-api.version>
 
@@ -101,7 +101,6 @@ SPDX-License-Identifier: AGPL-3.0-only
     <org.testcontainers.version>1.18.0</org.testcontainers.version>
     <org.mock-server.version>5.15.0</org.mock-server.version>
     <com.github.fridujo-rabbitmq-mock.version>1.2.0</com.github.fridujo-rabbitmq-mock.version>
-
 
     <!-- Plugins -->
     <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
@@ -167,7 +166,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         <artifactId>jakarta.websocket-api</artifactId>
         <version>${jakarta.api.version}</version>
       </dependency>
-
 
       <!-- Guice dependencies -->
       <dependency>
@@ -380,7 +378,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         <artifactId>javax.websocket-api</artifactId>
         <version>${javax.websocket-api.version}</version>
       </dependency>
-
 
       <!-- Tests dependency -->
       <!-- JUnit Jupiter -->
