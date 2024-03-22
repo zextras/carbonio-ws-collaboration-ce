@@ -44,7 +44,6 @@ import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -151,16 +150,14 @@ public class ParticipantServiceImplTest {
         MeetingBuilder.create(meeting1Id)
             .roomId(roomId)
             .createdAt(OffsetDateTime.parse("2022-01-01T12:00:00Z"))
-            .participants(
-                new ArrayList<>(
-                    List.of(participant1Session1, participant2Session1, participant4Session1)))
+            .participants(List.of(participant1Session1, participant2Session1, participant4Session1))
             .build();
     meeting2Id = UUID.randomUUID();
     meeting2 =
         MeetingBuilder.create(meeting2Id)
             .roomId(roomId)
             .createdAt(OffsetDateTime.parse("2022-01-01T12:00:00Z"))
-            .participants(new ArrayList<>(List.of(participant2Session1)))
+            .participants(List.of(participant2Session1))
             .build();
   }
 

@@ -32,7 +32,7 @@ public class VideoRoomPublishRequest extends VideoRoomRequest {
 
   private Long bitrate;
   private Boolean record;
-  private String fileName;
+  private String filename;
   private String display;
   private Integer audioLevelAverage;
   private Long audioActivePackets;
@@ -87,12 +87,12 @@ public class VideoRoomPublishRequest extends VideoRoomRequest {
     return this;
   }
 
-  public String getFileName() {
-    return fileName;
+  public String getFilename() {
+    return filename;
   }
 
-  public VideoRoomPublishRequest fileName(String fileName) {
-    this.fileName = fileName;
+  public VideoRoomPublishRequest filename(String filename) {
+    this.filename = filename;
     return this;
   }
 
@@ -141,7 +141,7 @@ public class VideoRoomPublishRequest extends VideoRoomRequest {
         && Objects.equals(getVideoCodec(), that.getVideoCodec())
         && Objects.equals(getBitrate(), that.getBitrate())
         && Objects.equals(record, that.record)
-        && Objects.equals(getFileName(), that.getFileName())
+        && Objects.equals(getFilename(), that.getFilename())
         && Objects.equals(getDisplay(), that.getDisplay())
         && Objects.equals(getAudioLevelAverage(), that.getAudioLevelAverage())
         && Objects.equals(getAudioActivePackets(), that.getAudioActivePackets())
@@ -156,7 +156,7 @@ public class VideoRoomPublishRequest extends VideoRoomRequest {
         getVideoCodec(),
         getBitrate(),
         record,
-        getFileName(),
+        getFilename(),
         getDisplay(),
         getAudioLevelAverage(),
         getAudioActivePackets(),
