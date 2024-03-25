@@ -39,14 +39,8 @@ public class VideoRoomStartVideoInRequest extends VideoRoomRequest {
 
   @Override
   public boolean equals(Object o) {
-
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof VideoRoomStartVideoInRequest)) {
-      return false;
-    }
-    VideoRoomStartVideoInRequest that = (VideoRoomStartVideoInRequest) o;
+    if (this == o) return true;
+    if (!(o instanceof VideoRoomStartVideoInRequest that)) return false;
     return Objects.equals(getRequest(), that.getRequest());
   }
 

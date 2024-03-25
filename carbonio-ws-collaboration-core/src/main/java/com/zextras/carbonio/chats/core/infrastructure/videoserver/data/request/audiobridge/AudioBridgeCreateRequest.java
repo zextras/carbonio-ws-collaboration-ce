@@ -8,7 +8,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -31,34 +30,16 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
   private String room;
   private Boolean permanent;
   private String description;
-  private String secret;
-  private String pin;
   private Boolean isPrivate;
-  private List<String> allowed;
   private Long samplingRate;
-  private Boolean spatialAudio;
-
-  @JsonProperty("audiolevel_ext")
-  private Boolean audioLevelExt;
 
   @JsonProperty("audiolevel_event")
   private Boolean audioLevelEvent;
 
   private Long audioActivePackets;
   private Integer audioLevelAverage;
-  private Long defaultPreBuffering;
 
-  @JsonProperty("default_expectedloss")
-  private Integer defaultExpectedLoss;
-
-  private Long defaultBitrate;
   private Boolean record;
-  private String recordFile;
-  private String recordDir;
-  private Boolean mjrs;
-  private String mjrsDir;
-  private Boolean allowRtpParticipants;
-  private List<String> groups;
 
   public static AudioBridgeCreateRequest create() {
     return new AudioBridgeCreateRequest();
@@ -100,24 +81,6 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public String getSecret() {
-    return secret;
-  }
-
-  public AudioBridgeCreateRequest secret(String secret) {
-    this.secret = secret;
-    return this;
-  }
-
-  public String getPin() {
-    return pin;
-  }
-
-  public AudioBridgeCreateRequest pin(String pin) {
-    this.pin = pin;
-    return this;
-  }
-
   public Boolean getIsPrivate() {
     return isPrivate;
   }
@@ -127,39 +90,12 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public List<String> getAllowed() {
-    return allowed;
-  }
-
-  public AudioBridgeCreateRequest allowed(List<String> allowed) {
-    this.allowed = allowed;
-    return this;
-  }
-
   public Long getSamplingRate() {
     return samplingRate;
   }
 
   public AudioBridgeCreateRequest samplingRate(long samplingRate) {
     this.samplingRate = samplingRate;
-    return this;
-  }
-
-  public Boolean getSpatialAudio() {
-    return spatialAudio;
-  }
-
-  public AudioBridgeCreateRequest spatialAudio(boolean spatialAudio) {
-    this.spatialAudio = spatialAudio;
-    return this;
-  }
-
-  public Boolean getAudioLevelExt() {
-    return audioLevelExt;
-  }
-
-  public AudioBridgeCreateRequest audioLevelExt(boolean audioLevelExt) {
-    this.audioLevelExt = audioLevelExt;
     return this;
   }
 
@@ -190,93 +126,12 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public Long getDefaultPreBuffering() {
-    return defaultPreBuffering;
-  }
-
-  public AudioBridgeCreateRequest defaultPreBuffering(long defaultPreBuffering) {
-    this.defaultPreBuffering = defaultPreBuffering;
-    return this;
-  }
-
-  public Integer getDefaultExpectedLoss() {
-    return defaultExpectedLoss;
-  }
-
-  public AudioBridgeCreateRequest defaultExpectedLoss(int defaultExpectedLoss) {
-    this.defaultExpectedLoss = defaultExpectedLoss;
-    return this;
-  }
-
-  public Long getDefaultBitrate() {
-    return defaultBitrate;
-  }
-
-  public AudioBridgeCreateRequest defaultBitrate(long defaultBitrate) {
-    this.defaultBitrate = defaultBitrate;
-    return this;
-  }
-
   public Boolean getRecord() {
     return record;
   }
 
   public AudioBridgeCreateRequest record(boolean record) {
     this.record = record;
-    return this;
-  }
-
-  public String getRecordFile() {
-    return recordFile;
-  }
-
-  public AudioBridgeCreateRequest recordFile(String recordFile) {
-    this.recordFile = recordFile;
-    return this;
-  }
-
-  public String getRecordDir() {
-    return recordDir;
-  }
-
-  public AudioBridgeCreateRequest recordDir(String recordDir) {
-    this.recordDir = recordDir;
-    return this;
-  }
-
-  public Boolean getMjrs() {
-    return mjrs;
-  }
-
-  public AudioBridgeCreateRequest mjrs(boolean mjrs) {
-    this.mjrs = mjrs;
-    return this;
-  }
-
-  public String getMjrsDir() {
-    return mjrsDir;
-  }
-
-  public AudioBridgeCreateRequest mjrsDir(String mjrsDir) {
-    this.mjrsDir = mjrsDir;
-    return this;
-  }
-
-  public Boolean getAllowRtpParticipants() {
-    return allowRtpParticipants;
-  }
-
-  public AudioBridgeCreateRequest allowRtpParticipants(boolean allowRtpParticipants) {
-    this.allowRtpParticipants = allowRtpParticipants;
-    return this;
-  }
-
-  public List<String> getGroups() {
-    return groups;
-  }
-
-  public AudioBridgeCreateRequest groups(List<String> groups) {
-    this.groups = groups;
     return this;
   }
 
@@ -288,26 +143,12 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
         && Objects.equals(getRoom(), that.getRoom())
         && Objects.equals(getPermanent(), that.getPermanent())
         && Objects.equals(getDescription(), that.getDescription())
-        && Objects.equals(getSecret(), that.getSecret())
-        && Objects.equals(getPin(), that.getPin())
         && Objects.equals(getIsPrivate(), that.getIsPrivate())
-        && Objects.equals(getAllowed(), that.getAllowed())
         && Objects.equals(getSamplingRate(), that.getSamplingRate())
-        && Objects.equals(getSpatialAudio(), that.getSpatialAudio())
-        && Objects.equals(getAudioLevelExt(), that.getAudioLevelExt())
         && Objects.equals(getAudioLevelEvent(), that.getAudioLevelEvent())
         && Objects.equals(getAudioActivePackets(), that.getAudioActivePackets())
         && Objects.equals(getAudioLevelAverage(), that.getAudioLevelAverage())
-        && Objects.equals(getDefaultPreBuffering(), that.getDefaultPreBuffering())
-        && Objects.equals(getDefaultExpectedLoss(), that.getDefaultExpectedLoss())
-        && Objects.equals(getDefaultBitrate(), that.getDefaultBitrate())
-        && Objects.equals(getRecord(), that.getRecord())
-        && Objects.equals(getRecordFile(), that.getRecordFile())
-        && Objects.equals(getRecordDir(), that.getRecordDir())
-        && Objects.equals(getMjrs(), that.getMjrs())
-        && Objects.equals(getMjrsDir(), that.getMjrsDir())
-        && Objects.equals(getAllowRtpParticipants(), that.getAllowRtpParticipants())
-        && Objects.equals(getGroups(), that.getGroups());
+        && Objects.equals(getRecord(), that.getRecord());
   }
 
   @Override
@@ -317,25 +158,11 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
         getRoom(),
         getPermanent(),
         getDescription(),
-        getSecret(),
-        getPin(),
         getIsPrivate(),
-        getAllowed(),
         getSamplingRate(),
-        getSpatialAudio(),
-        getAudioLevelExt(),
         getAudioLevelEvent(),
         getAudioActivePackets(),
         getAudioLevelAverage(),
-        getDefaultPreBuffering(),
-        getDefaultExpectedLoss(),
-        getDefaultBitrate(),
-        getRecord(),
-        getRecordFile(),
-        getRecordDir(),
-        getMjrs(),
-        getMjrsDir(),
-        getAllowRtpParticipants(),
-        getGroups());
+        getRecord());
   }
 }

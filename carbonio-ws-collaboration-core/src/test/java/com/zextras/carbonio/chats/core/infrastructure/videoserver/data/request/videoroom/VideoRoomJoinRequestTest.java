@@ -20,32 +20,37 @@ class VideoRoomJoinRequestTest {
             .ptype("publisher")
             .room("video-room-id")
             .id("id")
-            .display("display")
-            .token("token")
             .useMsid(true)
-            .autoupdate(true)
-            .privateId("private-id")
             .streams(List.of(Stream.create().mid("mid")));
 
     assertEquals("join", videoRoomJoinRequest.getRequest());
     assertEquals("publisher", videoRoomJoinRequest.getPtype());
     assertEquals("video-room-id", videoRoomJoinRequest.getRoom());
     assertEquals("id", videoRoomJoinRequest.getId());
-    assertEquals("display", videoRoomJoinRequest.getDisplay());
-    assertEquals("token", videoRoomJoinRequest.getToken());
     assertTrue(videoRoomJoinRequest.isUseMsid());
-    assertTrue(videoRoomJoinRequest.isAutoupdate());
-    assertEquals("private-id", videoRoomJoinRequest.getPrivateId());
     assertEquals(List.of(Stream.create().mid("mid")), videoRoomJoinRequest.getStreams());
   }
 
   @Test
   void test_equals_ok() {
     VideoRoomJoinRequest videoRoomJoinRequest =
-        VideoRoomJoinRequest.create().request("join").room("video-room-id");
+        VideoRoomJoinRequest.create()
+            .request("join")
+            .ptype("publisher")
+            .room("video-room-id")
+            .id("id")
+            .useMsid(true)
+            .streams(List.of(Stream.create().mid("mid")));
 
     assertEquals(
-        VideoRoomJoinRequest.create().request("join").room("video-room-id"), videoRoomJoinRequest);
+        VideoRoomJoinRequest.create()
+            .request("join")
+            .ptype("publisher")
+            .room("video-room-id")
+            .id("id")
+            .useMsid(true)
+            .streams(List.of(Stream.create().mid("mid"))),
+        videoRoomJoinRequest);
   }
 
   @Test

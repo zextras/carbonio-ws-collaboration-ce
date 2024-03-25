@@ -13,25 +13,20 @@ class AudioBridgeMuteRequestTest {
   @Test
   void test_builder_ok() {
     AudioBridgeMuteRequest audioBridgeMuteRequest =
-        AudioBridgeMuteRequest.create()
-            .request("mute")
-            .room("audio-room-id")
-            .secret("secret")
-            .id("id");
+        AudioBridgeMuteRequest.create().request("mute").room("audio-room-id").id("id");
 
     assertEquals("mute", audioBridgeMuteRequest.getRequest());
     assertEquals("audio-room-id", audioBridgeMuteRequest.getRoom());
-    assertEquals("secret", audioBridgeMuteRequest.getSecret());
     assertEquals("id", audioBridgeMuteRequest.getId());
   }
 
   @Test
-  void test_equals_ok() {
+  void test_equals_all_attributes() {
     AudioBridgeMuteRequest audioBridgeMuteRequest =
-        AudioBridgeMuteRequest.create().request("mute").room("audio-room-id");
+        AudioBridgeMuteRequest.create().request("mute").room("audio-room-id").id("id");
 
     assertEquals(
-        AudioBridgeMuteRequest.create().request("mute").room("audio-room-id"),
+        AudioBridgeMuteRequest.create().request("mute").room("audio-room-id").id("id"),
         audioBridgeMuteRequest);
   }
 

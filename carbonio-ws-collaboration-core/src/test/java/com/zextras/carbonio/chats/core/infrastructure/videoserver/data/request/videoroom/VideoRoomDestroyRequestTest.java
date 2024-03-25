@@ -13,25 +13,20 @@ class VideoRoomDestroyRequestTest {
   @Test
   void test_builder_ok() {
     VideoRoomDestroyRequest videoRoomDestroyRequest =
-        VideoRoomDestroyRequest.create()
-            .request("destroy")
-            .room("video-room-id")
-            .secret("secret")
-            .permanent(false);
+        VideoRoomDestroyRequest.create().request("destroy").room("video-room-id").permanent(false);
 
     assertEquals("destroy", videoRoomDestroyRequest.getRequest());
     assertEquals("video-room-id", videoRoomDestroyRequest.getRoom());
-    assertEquals("secret", videoRoomDestroyRequest.getSecret());
     assertFalse(videoRoomDestroyRequest.getPermanent());
   }
 
   @Test
   void test_equals_ok() {
     VideoRoomDestroyRequest videoRoomDestroyRequest =
-        VideoRoomDestroyRequest.create().request("destroy").room("video-room-id");
+        VideoRoomDestroyRequest.create().request("destroy").room("video-room-id").permanent(false);
 
     assertEquals(
-        VideoRoomDestroyRequest.create().request("destroy").room("video-room-id"),
+        VideoRoomDestroyRequest.create().request("destroy").room("video-room-id").permanent(false),
         videoRoomDestroyRequest);
   }
 

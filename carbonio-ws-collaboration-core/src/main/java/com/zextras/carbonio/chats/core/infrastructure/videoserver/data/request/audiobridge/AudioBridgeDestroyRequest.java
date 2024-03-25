@@ -23,7 +23,6 @@ public class AudioBridgeDestroyRequest extends AudioBridgeRequest {
 
   private String request;
   private String room;
-  private String secret;
   private Boolean permanent;
 
   public static AudioBridgeDestroyRequest create() {
@@ -48,15 +47,6 @@ public class AudioBridgeDestroyRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public String getSecret() {
-    return secret;
-  }
-
-  public AudioBridgeDestroyRequest secret(String secret) {
-    this.secret = secret;
-    return this;
-  }
-
   public Boolean getPermanent() {
     return permanent;
   }
@@ -72,12 +62,11 @@ public class AudioBridgeDestroyRequest extends AudioBridgeRequest {
     if (!(o instanceof AudioBridgeDestroyRequest that)) return false;
     return Objects.equals(getRequest(), that.getRequest())
         && Objects.equals(getRoom(), that.getRoom())
-        && Objects.equals(getSecret(), that.getSecret())
         && Objects.equals(getPermanent(), that.getPermanent());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getRequest(), getRoom(), getSecret(), getPermanent());
+    return Objects.hash(getRequest(), getRoom(), getPermanent());
   }
 }

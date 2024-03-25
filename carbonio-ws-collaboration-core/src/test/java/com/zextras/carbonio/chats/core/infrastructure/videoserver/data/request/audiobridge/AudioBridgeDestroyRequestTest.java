@@ -16,22 +16,26 @@ class AudioBridgeDestroyRequestTest {
         AudioBridgeDestroyRequest.create()
             .request("destroy")
             .room("audio-room-id")
-            .secret("secret")
             .permanent(false);
 
     assertEquals("destroy", audioBridgeDestroyRequest.getRequest());
     assertEquals("audio-room-id", audioBridgeDestroyRequest.getRoom());
-    assertEquals("secret", audioBridgeDestroyRequest.getSecret());
     assertFalse(audioBridgeDestroyRequest.getPermanent());
   }
 
   @Test
   void test_equals_ok() {
     AudioBridgeDestroyRequest audioBridgeDestroyRequest =
-        AudioBridgeDestroyRequest.create().request("destroy").room("audio-room-id");
+        AudioBridgeDestroyRequest.create()
+            .request("destroy")
+            .room("audio-room-id")
+            .permanent(false);
 
     assertEquals(
-        AudioBridgeDestroyRequest.create().request("destroy").room("audio-room-id"),
+        AudioBridgeDestroyRequest.create()
+            .request("destroy")
+            .room("audio-room-id")
+            .permanent(false),
         audioBridgeDestroyRequest);
   }
 
