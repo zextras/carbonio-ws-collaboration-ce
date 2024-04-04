@@ -116,6 +116,7 @@ import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
+import io.ebean.annotation.Platform;
 import io.ebean.config.DatabaseConfig;
 import jakarta.inject.Singleton;
 import java.time.Clock;
@@ -268,6 +269,7 @@ public class CoreModule extends AbstractModule {
     DatabaseConfig databaseConfig = new DatabaseConfig();
     databaseConfig.setDataSource(dataSource);
     databaseConfig.setClock(clock);
+    databaseConfig.setDatabasePlatformName(Platform.POSTGRES.toString());
     return DatabaseFactory.create(databaseConfig);
   }
 

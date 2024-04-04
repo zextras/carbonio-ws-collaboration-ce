@@ -89,7 +89,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Ebean dependencies -->
     <dependency>
       <groupId>io.ebean</groupId>
-      <artifactId>ebean</artifactId>
+      <artifactId>ebean-postgres</artifactId>
     </dependency>
 
     <!-- Database dependencies -->
