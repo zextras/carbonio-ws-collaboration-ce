@@ -65,7 +65,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Jakarta api -->
     <jakarta.api.version>8.0.0</jakarta.api.version>
     <!-- Database -->
-    <org.flywaydb.version>10.9.1</org.flywaydb.version>
+    <org.flywaydb.version>10.11.0</org.flywaydb.version>
     <com.zaxxer.HikariCP.version>5.0.0</com.zaxxer.HikariCP.version>
     <org.postgresql.version>42.3.0</org.postgresql.version>
     <!-- Logging -->
