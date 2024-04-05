@@ -139,6 +139,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <dependency>
       <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
       <artifactId>flyway-database-postgresql</artifactId>
     </dependency>
 
