@@ -20,10 +20,10 @@ import jakarta.websocket.server.ServerEndpointConfig;
 import java.net.InetSocketAddress;
 import java.util.EnumSet;
 import java.util.Optional;
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.websocket.jakarta.server.config.JakartaWebSocketServletContainerInitializer;
 import org.flywaydb.core.Flyway;
 import org.jboss.resteasy.plugins.guice.GuiceResteasyBootstrapServletContextListener;
@@ -60,11 +60,14 @@ public class Boot {
     Server server =
         new Server(new InetSocketAddress(ChatsConstant.SERVER_HOST, ChatsConstant.SERVER_PORT));
     ContextHandlerCollection handlers = new ContextHandlerCollection();
-    ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+
+    org.eclipse.jetty.servlet.ServletContextHandler wsContext =
+        new org.eclipse.jetty.servlet.ServletContextHandler(
+            org.eclipse.jetty.servlet.ServletContextHandler.SESSIONS);
 
     if (eventDispatcherConnection != null) {
       JakartaWebSocketServletContainerInitializer.configure(
-          context,
+          wsContext,
           (servletContext, wsContainer) -> {
             wsContainer.setDefaultMaxTextMessageBufferSize(65535);
             wsContainer.addEndpoint(
@@ -92,12 +95,15 @@ public class Boot {
             }
           });
     }
+
+    ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
     context.addEventListener(resteasyListener);
     context.addServlet(new ServletHolder(HttpServletDispatcher.class), "/*");
 
     videoServerEventListener.start();
 
     handlers.addHandler(context);
+    handlers.addHandler(wsContext);
     server.setHandler(handlers);
     server.start();
     server.join();
