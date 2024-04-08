@@ -50,7 +50,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Previewer -->
     <preview-sdk.version>1.0.2</preview-sdk.version>
     <!-- Jetty -->
-    <org.eclipse.jetty.version>11.0.20</org.eclipse.jetty.version>
+    <org.eclipse.jetty.version>12.0.8</org.eclipse.jetty.version>
     <org.eclipse.jetty.servlet.version>12.0.8</org.eclipse.jetty.servlet.version>
     <org.eclipse.jetty.websocket.version>11.0.20</org.eclipse.jetty.websocket.version>
     <jakarta.api.version>1.1.2</jakarta.api.version>
@@ -67,7 +67,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <jakarta.api.version>8.0.0</jakarta.api.version>
     <!-- Database -->
     <org.flywaydb.version>10.11.0</org.flywaydb.version>
-    <com.zaxxer.HikariCP.version>5.0.0</com.zaxxer.HikariCP.version>
+    <com.zaxxer.HikariCP.version>5.1.0</com.zaxxer.HikariCP.version>
     <org.postgresql.version>42.7.3</org.postgresql.version>
     <!-- Logging -->
     <org.slf4j-api.version>1.7.32</org.slf4j-api.version>
