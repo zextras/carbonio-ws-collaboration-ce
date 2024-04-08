@@ -36,15 +36,18 @@ SPDX-License-Identifier: AGPL-3.0-only
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>jsr305</artifactId>
     </dependency>
+
     <!-- HTTP client: jersey-client -->
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-client</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-multipart-provider</artifactId>
     </dependency>
+
     <!-- JSON processing: jackson -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -82,11 +85,13 @@ SPDX-License-Identifier: AGPL-3.0-only
       <groupId>org.eclipse.jetty.ee10</groupId>
       <artifactId>jetty-ee10-servlet</artifactId>
     </dependency>
+
     <!-- Guice dependencies -->
     <dependency>
       <groupId>com.google.inject</groupId>
       <artifactId>guice</artifactId>
     </dependency>
+
     <!-- Open API dependencies-->
     <dependency>
       <groupId>io.swagger</groupId>
