@@ -79,8 +79,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     </dependency>
 
     <dependency>
-      <groupId>org.eclipse.jetty.ee10</groupId>
-      <artifactId>jetty-ee10-servlet</artifactId>
+      <groupId>org.eclipse.jetty.ee9</groupId>
+      <artifactId>jetty-ee9-servlet</artifactId>
     </dependency>
     <!-- Guice dependencies -->
     <dependency>
