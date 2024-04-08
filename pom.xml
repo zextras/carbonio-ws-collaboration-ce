@@ -50,9 +50,9 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Previewer -->
     <preview-sdk.version>1.0.2</preview-sdk.version>
     <!-- Jetty -->
-    <org.eclipse.jetty.version>11.0.20</org.eclipse.jetty.version>
+    <org.eclipse.jetty.version>12.0.8</org.eclipse.jetty.version>
     <org.eclipse.jetty.servlet.version>12.0.8</org.eclipse.jetty.servlet.version>
-    <org.eclipse.jetty.websocket.version>11.0.20</org.eclipse.jetty.websocket.version>
+    <org.eclipse.jetty.websocket.version>12.0.8</org.eclipse.jetty.websocket.version>
     <jakarta.api.version>1.1.2</jakarta.api.version>
     <!-- Guice -->
     <com.google.inject.version>7.0.0</com.google.inject.version>
@@ -161,8 +161,14 @@ SPDX-License-Identifier: AGPL-3.0-only
       </dependency>
 
       <dependency>
-        <groupId>org.eclipse.jetty.websocket</groupId>
-        <artifactId>websocket-jakarta-client</artifactId>
+        <groupId>org.eclipse.jetty.ee10.websocket</groupId>
+        <artifactId>jetty-ee10-websocket-jakarta-server</artifactId>
+        <version>${org.eclipse.jetty.websocket.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.eclipse.jetty.ee10.websocket</groupId>
+        <artifactId>jetty-ee10-websocket-jakarta-client</artifactId>
         <version>${org.eclipse.jetty.websocket.version}</version>
       </dependency>
 
