@@ -68,7 +68,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Database -->
     <org.flywaydb.version>10.11.0</org.flywaydb.version>
     <com.zaxxer.HikariCP.version>5.0.0</com.zaxxer.HikariCP.version>
-    <org.postgresql.version>42.3.0</org.postgresql.version>
+    <org.postgresql.version>42.7.3</org.postgresql.version>
     <!-- Logging -->
     <org.slf4j-api.version>1.7.32</org.slf4j-api.version>
     <logback-classic.version>1.2.6</logback-classic.version>
