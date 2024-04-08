@@ -142,10 +142,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>logback-classic</artifactId>
     </dependency>
 
-   <!-- <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-core</artifactId>
-    </dependency>-->
     <dependency>
       <groupId>org.flywaydb</groupId>
       <artifactId>flyway-database-postgresql</artifactId>
@@ -201,12 +197,18 @@ SPDX-License-Identifier: AGPL-3.0-only
               <createDependencyReducedPom>false</createDependencyReducedPom>
               <finalName>carbonio-ws-collaboration-ce-fatjar</finalName>
               <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>com.zextras.carbonio.chats.boot.Chats</mainClass>
                 </transformer>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                   <!-- we need this to append multiple resteasy providers -->
                   <resource>META-INF/services/jakarta.ws.rs.ext.Providers</resource>
+                </transformer>
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/services/org.flywaydb.core.extensibility.Plugin</resource>
                 </transformer>
               </transformers>
             </configuration>
