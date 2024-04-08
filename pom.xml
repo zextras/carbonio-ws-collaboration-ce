@@ -91,8 +91,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <com.rabbitmq.amqp-client.version>5.15.0</com.rabbitmq.amqp-client.version>
     <!-- Web Socket -->
     <jakarta.websocket-api.version>2.0.0</jakarta.websocket-api.version>
-    <!-- Web Socket -->
-    <!--<javax.websocket-api.version>1.1</javax.websocket-api.version>-->
+    <jakarta.el>5.0.0-M1</jakarta.el>
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
     <org.junit.jupiter.version>5.8.2</org.junit.jupiter.version>
@@ -196,6 +195,11 @@ SPDX-License-Identifier: AGPL-3.0-only
         <version>${jakarta.websocket-api.version}</version>
       </dependency>
 
+      <dependency>
+        <groupId>org.glassfish</groupId>
+        <artifactId>jakarta.el</artifactId>
+        <version>${jakarta.el}</version>
+      </dependency>
 
       <!-- Guice dependencies -->
       <dependency>

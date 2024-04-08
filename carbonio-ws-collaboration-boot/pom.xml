@@ -104,6 +104,11 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>jetty-ee10-websocket-jakarta-client</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>org.glassfish</groupId>
+      <artifactId>jakarta.el</artifactId>
+    </dependency>
+
     <!-- Guice dependencies -->
     <dependency>
       <groupId>com.google.inject</groupId>

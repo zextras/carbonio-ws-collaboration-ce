@@ -24,7 +24,6 @@ SPDX-License-Identifier: AGPL-3.0-only
   <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
-    <jakarta.el>5.0.0-M1</jakarta.el>
   </properties>
 
   <dependencies>
@@ -106,8 +105,6 @@ SPDX-License-Identifier: AGPL-3.0-only
     <dependency>
       <groupId>org.glassfish</groupId>
       <artifactId>jakarta.el</artifactId>
-      <version>${jakarta.el}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
