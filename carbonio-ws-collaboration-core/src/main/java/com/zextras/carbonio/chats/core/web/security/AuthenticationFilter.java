@@ -6,15 +6,15 @@ package com.zextras.carbonio.chats.core.web.security;
 
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.container.ContainerRequestFilter;
+import jakarta.ws.rs.ext.Provider;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.container.ContainerRequestContext;
-import javax.ws.rs.container.ContainerRequestFilter;
-import javax.ws.rs.ext.Provider;
 
 @Provider
 @Singleton
@@ -33,36 +33,34 @@ public class AuthenticationFilter implements ContainerRequestFilter {
   public void filter(ContainerRequestContext requestContext) {
     UUID queueId;
     try {
-      queueId = Optional.ofNullable(requestContext.getHeaderString("queue-id"))
-        .map(UUID::fromString).orElse(null);
+      queueId =
+          Optional.ofNullable(requestContext.getHeaderString("queue-id"))
+              .map(UUID::fromString)
+              .orElse(null);
     } catch (IllegalArgumentException e) {
       throw new UnauthorizedException("Invalid queue id");
     }
     Map<AuthenticationMethod, String> credentials = new HashMap<>();
     Optional.ofNullable(requestContext.getCookies().get(AUTHORIZATION_COOKIE))
-      .ifPresent(cookie -> credentials.put(AuthenticationMethod.ZM_AUTH_TOKEN, cookie.getValue()));
+        .ifPresent(
+            cookie -> credentials.put(AuthenticationMethod.ZM_AUTH_TOKEN, cookie.getValue()));
     if (credentials.isEmpty()) {
-      //The user didn't specify any authorization, we're logging him/her as anonymous (useful for healthchecks)
+      // The user didn't specify any authorization, we're logging him/her as anonymous (useful for
+      // healthchecks)
       requestContext.setSecurityContext(
-        SecurityContextImpl.create(
-          UserPrincipal
-            .create((UUID) null)
-            .authCredentials(credentials)
-        )
-      );
+          SecurityContextImpl.create(
+              UserPrincipal.create((UUID) null).authCredentials(credentials)));
     } else {
-      //If the user token is invalid, we won't authenticate him/her as anonymous
+      // If the user token is invalid, we won't authenticate him/her as anonymous
       requestContext.setSecurityContext(
-        SecurityContextImpl.create(
-          UserPrincipal
-            .create(
-              authenticationService.validateCredentials(credentials).map(UUID::fromString)
-                .orElseThrow(UnauthorizedException::new))
-            .authCredentials(credentials)
-            .queueId(queueId)
-        )
-      );
+          SecurityContextImpl.create(
+              UserPrincipal.create(
+                      authenticationService
+                          .validateCredentials(credentials)
+                          .map(UUID::fromString)
+                          .orElseThrow(UnauthorizedException::new))
+                  .authCredentials(credentials)
+                  .queueId(queueId)));
     }
   }
 }
-

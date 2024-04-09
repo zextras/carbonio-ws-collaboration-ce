@@ -16,7 +16,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   <parent>
     <groupId>com.zextras.carbonio.ws-collaboration</groupId>
     <artifactId>carbonio-ws-collaboration-ce</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
   </parent>
 
   <artifactId>carbonio-ws-collaboration-ce-boot</artifactId>
@@ -72,7 +72,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <version>${project.version}</version>
       <exclusions>
         <exclusion>
-          <groupId>javax.ws.rs</groupId>
+          <groupId>jakarta.ws.rs</groupId>
           <artifactId>jsr311-api</artifactId>
         </exclusion>
       </exclusions>
@@ -85,8 +85,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     </dependency>
 
     <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-servlet</artifactId>
+      <groupId>org.eclipse.jetty.ee10</groupId>
+      <artifactId>jetty-ee10-servlet</artifactId>
     </dependency>
 
     <dependency>
@@ -95,13 +95,18 @@ SPDX-License-Identifier: AGPL-3.0-only
     </dependency>
 
     <dependency>
-      <groupId>org.eclipse.jetty.websocket</groupId>
-      <artifactId>websocket-javax-server</artifactId>
+      <groupId>org.eclipse.jetty.ee10.websocket</groupId>
+      <artifactId>jetty-ee10-websocket-jakarta-server</artifactId>
     </dependency>
 
     <dependency>
-      <groupId>org.eclipse.jetty.websocket</groupId>
-      <artifactId>websocket-javax-client</artifactId>
+      <groupId>org.eclipse.jetty.ee10.websocket</groupId>
+      <artifactId>jetty-ee10-websocket-jakarta-client</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.glassfish</groupId>
+      <artifactId>jakarta.el</artifactId>
     </dependency>
 
     <!-- Guice dependencies -->
@@ -112,7 +117,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <!-- RestEasy dependencies -->
     <dependency>
-      <groupId>org.jboss.resteasy</groupId>
+      <groupId>com.federicorispo</groupId>
       <artifactId>resteasy-guice</artifactId>
     </dependency>
 
@@ -137,6 +142,10 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>logback-classic</artifactId>
     </dependency>
 
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
 
   </dependencies>
 
@@ -188,12 +197,14 @@ SPDX-License-Identifier: AGPL-3.0-only
               <createDependencyReducedPom>false</createDependencyReducedPom>
               <finalName>carbonio-ws-collaboration-ce-fatjar</finalName>
               <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>com.zextras.carbonio.chats.boot.Chats</mainClass>
                 </transformer>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                   <!-- we need this to append multiple resteasy providers -->
-                  <resource>META-INF/services/javax.ws.rs.ext.Providers</resource>
+                  <resource>META-INF/services/jakarta.ws.rs.ext.Providers</resource>
                 </transformer>
               </transformers>
             </configuration>

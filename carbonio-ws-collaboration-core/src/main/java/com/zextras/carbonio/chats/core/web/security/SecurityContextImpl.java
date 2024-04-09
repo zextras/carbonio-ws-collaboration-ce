@@ -4,9 +4,8 @@
 
 package com.zextras.carbonio.chats.core.web.security;
 
+import jakarta.ws.rs.core.SecurityContext;
 import java.security.Principal;
-import javax.ws.rs.core.SecurityContext;
-
 
 public class SecurityContextImpl implements SecurityContext {
 

@@ -6,7 +6,7 @@ openapi: 3.0.3
 info:
   title: Zextras Workstream Collaboration CE Chats Api
   description: Zextras Carbonio Workstream Collaboration CE Chats HTTP APIs definition.
-  version: 0.4.0
+  version: 0.5.0
   contact:
     email: smokybeans@zextras.com
 servers:
@@ -665,10 +665,7 @@ components:
       in: query
       name: quality
       schema:
-        allOf:
-          - $ref: '#/components/schemas/ImageQualityEnum'
-        default: medium
-      required: false
+        $ref: '#/components/schemas/ImageQualityEnum'
     queryImageType:
       in: query
       name: output_format

@@ -7,8 +7,8 @@ package com.zextras.carbonio.chats.core.infrastructure.database.impl;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import io.ebean.Database;
 import io.ebean.Transaction;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 public class EbeanDatabaseInfoService implements DatabaseInfoService {
@@ -28,5 +28,4 @@ public class EbeanDatabaseInfoService implements DatabaseInfoService {
       return false;
     }
   }
-
 }

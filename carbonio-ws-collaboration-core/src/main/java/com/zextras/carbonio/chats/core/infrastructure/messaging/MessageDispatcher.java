@@ -8,15 +8,15 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
+import jakarta.annotation.Nullable;
 import java.util.Optional;
-import javax.annotation.Nullable;
 
 public interface MessageDispatcher extends HealthIndicator {
 
   /**
    * Creates a room on XMPP server
    *
-   * @param room     room entity to save
+   * @param room room entity to save
    * @param senderId creation user
    */
   void createRoom(Room room, String senderId);
@@ -32,17 +32,17 @@ public interface MessageDispatcher extends HealthIndicator {
   /**
    * Sends a message to communicate that the room name has changed
    *
-   * @param roomId   room identifier
+   * @param roomId room identifier
    * @param senderId operation user
-   * @param name     new room name
+   * @param name new room name
    */
   void updateRoomName(String roomId, String senderId, String name);
 
   /**
    * Sends a message to communicate that the room description has changed
    *
-   * @param roomId      room identifier
-   * @param senderId    operation user
+   * @param roomId room identifier
+   * @param senderId operation user
    * @param description new room description
    */
   void updateRoomDescription(String roomId, String senderId, String description);
@@ -50,9 +50,9 @@ public interface MessageDispatcher extends HealthIndicator {
   /**
    * Sends a message to communicate that the room picture has changed
    *
-   * @param roomId      room identifier
-   * @param senderId    operation user
-   * @param pictureId   new pictures id
+   * @param roomId room identifier
+   * @param senderId operation user
+   * @param pictureId new pictures id
    * @param pictureName new pictures name
    */
   void updateRoomPicture(String roomId, String senderId, String pictureId, String pictureName);
@@ -60,7 +60,7 @@ public interface MessageDispatcher extends HealthIndicator {
   /**
    * Sends a message to communicate that the room picture is deleted
    *
-   * @param roomId   room identifier
+   * @param roomId room identifier
    * @param senderId operation user
    */
   void deleteRoomPicture(String roomId, String senderId);
@@ -68,8 +68,8 @@ public interface MessageDispatcher extends HealthIndicator {
   /**
    * Invites a member to join a room on XMPP server
    *
-   * @param roomId      room identifier
-   * @param senderId    inviting user identifier
+   * @param roomId room identifier
+   * @param senderId inviting user identifier
    * @param recipientId invited user identifier
    */
   void addRoomMember(String roomId, String senderId, String recipientId);
@@ -77,14 +77,15 @@ public interface MessageDispatcher extends HealthIndicator {
   /**
    * Removes a member from a room on XMPP server
    *
-   * @param roomId     room identifier
-   * @param senderId   operation user identifier
+   * @param roomId room identifier
+   * @param senderId operation user identifier
    * @param idToRemove identifier of the user to remove
    */
   void removeRoomMember(String roomId, String senderId, String idToRemove);
 
   /**
-   * Sets two users in their respective contacts list so that they can both see each other's presence
+   * Sets two users in their respective contacts list so that they can both see each other's
+   * presence
    *
    * @param user1id first user identifier
    * @param user2id second user identifier
@@ -94,37 +95,43 @@ public interface MessageDispatcher extends HealthIndicator {
   /**
    * Sends the attachment
    *
-   * @param roomId      room identifier
-   * @param senderId    operation user identifier
-   * @param metadata    file properties {@link FileMetadata}
+   * @param roomId room identifier
+   * @param senderId operation user identifier
+   * @param metadata file properties {@link FileMetadata}
    * @param description description of the attachment
-   * @param messageId   identifier of XMPP message to create
-   * @param replyId     identifier of the message being replied to
-   * @param area        attachment's area
+   * @param messageId identifier of XMPP message to create
+   * @param replyId identifier of the message being replied to
+   * @param area attachment's area
    */
   void sendAttachment(
-    String roomId, String senderId, FileMetadata metadata, String description,
-    @Nullable String messageId, @Nullable String replyId, @Nullable String area
-  );
+      String roomId,
+      String senderId,
+      FileMetadata metadata,
+      String description,
+      @Nullable String messageId,
+      @Nullable String replyId,
+      @Nullable String area);
 
   /**
    * Forwards a message
    *
-   * @param roomId           room identifier
-   * @param senderId         operation user identifier
+   * @param roomId room identifier
+   * @param senderId operation user identifier
    * @param messageToForward message to forward
-   * @param fileMetadata     file properties {@link FileMetadata}
+   * @param fileMetadata file properties {@link FileMetadata}
    */
   void forwardMessage(
-    String roomId, String senderId, ForwardMessageDto messageToForward, @Nullable FileMetadata fileMetadata
-  );
+      String roomId,
+      String senderId,
+      ForwardMessageDto messageToForward,
+      @Nullable FileMetadata fileMetadata);
 
   /**
    * Returns the attachment identifier into the message if it exists
    *
    * @param message message to parse
-   * @return The attachment identifier of the message wrapped into an {@link Optional} only if it exists
+   * @return The attachment identifier of the message wrapped into an {@link Optional} only if it
+   *     exists
    */
   Optional<String> getAttachmentIdFromMessage(String message);
-
 }

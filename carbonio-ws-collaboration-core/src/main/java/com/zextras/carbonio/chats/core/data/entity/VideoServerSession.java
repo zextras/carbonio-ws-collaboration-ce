@@ -4,22 +4,21 @@
 
 package com.zextras.carbonio.chats.core.data.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.Table;
 import java.util.Objects;
-import javax.persistence.Column;
-import javax.persistence.EmbeddedId;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.MapsId;
-import javax.persistence.Table;
 
 @Entity
 @Table(name = "VIDEOSERVER_SESSION", schema = "CHATS")
 public class VideoServerSession {
 
-  @EmbeddedId
-  private VideoServerSessionId id;
+  @EmbeddedId private VideoServerSessionId id;
 
   @MapsId("userId")
   private String userId;
@@ -74,7 +73,8 @@ public class VideoServerSession {
     return new VideoServerSession();
   }
 
-  public static VideoServerSession create(String userId, String queueId, VideoServerMeeting videoServerMeeting) {
+  public static VideoServerSession create(
+      String userId, String queueId, VideoServerMeeting videoServerMeeting) {
     return new VideoServerSession(userId, queueId, videoServerMeeting);
   }
 
@@ -201,21 +201,36 @@ public class VideoServerSession {
       return false;
     }
     VideoServerSession that = (VideoServerSession) o;
-    return Objects.equals(getId(), that.getId()) && Objects.equals(getUserId(), that.getUserId())
-      && Objects.equals(getVideoServerMeeting(), that.getVideoServerMeeting()) && Objects.equals(
-      getQueueId(), that.getQueueId()) && Objects.equals(getConnectionId(), that.getConnectionId())
-      && Objects.equals(getAudioHandleId(), that.getAudioHandleId()) && Objects.equals(
-      getVideoOutHandleId(), that.getVideoOutHandleId()) && Objects.equals(getVideoInHandleId(),
-      that.getVideoInHandleId()) && Objects.equals(getScreenHandleId(), that.getScreenHandleId())
-      && Objects.equals(audioStreamOn, that.audioStreamOn) && Objects.equals(videoOutStreamOn,
-      that.videoOutStreamOn) && Objects.equals(videoInStreamOn, that.videoInStreamOn)
-      && Objects.equals(screenStreamOn, that.screenStreamOn);
+    return Objects.equals(getId(), that.getId())
+        && Objects.equals(getUserId(), that.getUserId())
+        && Objects.equals(getVideoServerMeeting(), that.getVideoServerMeeting())
+        && Objects.equals(getQueueId(), that.getQueueId())
+        && Objects.equals(getConnectionId(), that.getConnectionId())
+        && Objects.equals(getAudioHandleId(), that.getAudioHandleId())
+        && Objects.equals(getVideoOutHandleId(), that.getVideoOutHandleId())
+        && Objects.equals(getVideoInHandleId(), that.getVideoInHandleId())
+        && Objects.equals(getScreenHandleId(), that.getScreenHandleId())
+        && Objects.equals(audioStreamOn, that.audioStreamOn)
+        && Objects.equals(videoOutStreamOn, that.videoOutStreamOn)
+        && Objects.equals(videoInStreamOn, that.videoInStreamOn)
+        && Objects.equals(screenStreamOn, that.screenStreamOn);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getId(), getUserId(), getVideoServerMeeting(), getQueueId(), getConnectionId(),
-      getAudioHandleId(), getVideoOutHandleId(), getVideoInHandleId(), getScreenHandleId(), audioStreamOn,
-      videoOutStreamOn, videoInStreamOn, screenStreamOn);
+    return Objects.hash(
+        getId(),
+        getUserId(),
+        getVideoServerMeeting(),
+        getQueueId(),
+        getConnectionId(),
+        getAudioHandleId(),
+        getVideoOutHandleId(),
+        getVideoInHandleId(),
+        getScreenHandleId(),
+        audioStreamOn,
+        videoOutStreamOn,
+        videoInStreamOn,
+        screenStreamOn);
   }
 }

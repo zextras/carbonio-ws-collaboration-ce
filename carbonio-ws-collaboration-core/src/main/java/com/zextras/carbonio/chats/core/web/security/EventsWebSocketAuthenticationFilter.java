@@ -5,20 +5,20 @@
 package com.zextras.carbonio.chats.core.web.security;
 
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 public class EventsWebSocketAuthenticationFilter implements Filter {
 
@@ -28,25 +28,28 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
     this.authenticationService = authenticationService;
   }
 
-  public static EventsWebSocketAuthenticationFilter create(AuthenticationService authenticationService) {
+  public static EventsWebSocketAuthenticationFilter create(
+      AuthenticationService authenticationService) {
     return new EventsWebSocketAuthenticationFilter(authenticationService);
   }
 
   @Override
-  public void init(FilterConfig filterConfig) {
-  }
+  public void init(FilterConfig filterConfig) {}
 
   @Override
-  public void doFilter(
-    ServletRequest request, ServletResponse response, FilterChain chain
-  ) throws IOException, ServletException {
+  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+      throws IOException, ServletException {
     HttpServletRequest httpRequest = (HttpServletRequest) request;
     Map<AuthenticationMethod, String> credentials =
-      Arrays.stream(Optional.ofNullable(httpRequest.getCookies()).orElse(new Cookie[]{}))
-        .filter(cookie ->
-          Arrays.stream(AuthenticationMethod.values()).map(AuthenticationMethod::name).collect(Collectors.toList())
-            .contains(cookie.getName()))
-        .collect(Collectors.toMap(c -> AuthenticationMethod.valueOf(c.getName()), Cookie::getValue));
+        Arrays.stream(Optional.ofNullable(httpRequest.getCookies()).orElse(new Cookie[] {}))
+            .filter(
+                cookie ->
+                    Arrays.stream(AuthenticationMethod.values())
+                        .map(AuthenticationMethod::name)
+                        .collect(Collectors.toList())
+                        .contains(cookie.getName()))
+            .collect(
+                Collectors.toMap(c -> AuthenticationMethod.valueOf(c.getName()), Cookie::getValue));
     if (credentials.isEmpty()) {
       HttpServletResponse httpServletResponse = (HttpServletResponse) response;
       httpServletResponse.setStatus(401);
@@ -63,6 +66,5 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
   }
 
   @Override
-  public void destroy() {
-  }
+  public void destroy() {}
 }

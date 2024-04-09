@@ -18,6 +18,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.zextras.carbonio.chats.api.RFC3339DateFormat;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
@@ -76,8 +77,9 @@ public class AttachmentServiceImplTest {
     this.roomService = mock(RoomService.class);
     this.messageDispatcher = mock(MessageDispatcher.class);
     this.objectMapper =
-        new ObjectMapper()
-            .registerModule(new JavaTimeModule())
+        JsonMapper.builder()
+            .addModule(new JavaTimeModule())
+            .build()
             .setDateFormat(new RFC3339DateFormat());
     this.attachmentService =
         new AttachmentServiceImpl(

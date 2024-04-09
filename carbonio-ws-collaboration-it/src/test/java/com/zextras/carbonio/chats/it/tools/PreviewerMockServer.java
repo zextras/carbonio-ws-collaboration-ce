@@ -8,12 +8,10 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import jakarta.annotation.Nullable;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import javax.annotation.Nullable;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
-import org.mockserver.client.MockServerClient;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
@@ -29,13 +27,14 @@ public class PreviewerMockServer extends ClientAndServer implements CloseableRes
     super(remoteHost, remotePort, ports);
   }
 
-  public void verify(String method, String path, @Nullable Map<String, String> queryParameters, int iterationsNumber) {
-    HttpRequest request = request()
-      .withMethod(method)
-      .withPath(path);
-    Optional.ofNullable(queryParameters).ifPresent(parameters ->
-      parameters.forEach(request::withQueryStringParameter
-      ));
+  public void verify(
+      String method,
+      String path,
+      @Nullable Map<String, String> queryParameters,
+      int iterationsNumber) {
+    HttpRequest request = request().withMethod(method).withPath(path);
+    Optional.ofNullable(queryParameters)
+        .ifPresent(parameters -> parameters.forEach(request::withQueryStringParameter));
     verify(request, VerificationTimes.exactly(iterationsNumber));
     clear(request, ClearType.LOG);
   }
@@ -43,11 +42,7 @@ public class PreviewerMockServer extends ClientAndServer implements CloseableRes
   public void setIsAliveResponse(boolean success) {
     HttpRequest request = request().withMethod("GET").withPath("/health/ready/");
     clear(request);
-    when(request)
-      .respond(
-        response()
-          .withStatusCode(success ? 200 : 500)
-      );
+    when(request).respond(response().withStatusCode(success ? 200 : 500));
   }
 
   @Override
@@ -55,5 +50,4 @@ public class PreviewerMockServer extends ClientAndServer implements CloseableRes
     ChatsLogger.debug("Stopping previewer mock...");
     super.close();
   }
-
 }

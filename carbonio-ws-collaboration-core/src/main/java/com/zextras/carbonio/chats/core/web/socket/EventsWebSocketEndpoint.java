@@ -14,21 +14,21 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.servlet.http.HttpSession;
+import jakarta.websocket.EncodeException;
+import jakarta.websocket.OnClose;
+import jakarta.websocket.OnError;
+import jakarta.websocket.OnMessage;
+import jakarta.websocket.OnOpen;
+import jakarta.websocket.Session;
+import jakarta.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.servlet.http.HttpSession;
-import javax.websocket.EncodeException;
-import javax.websocket.OnClose;
-import javax.websocket.OnError;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
-import javax.websocket.Session;
-import javax.websocket.server.ServerEndpoint;
 
 @Singleton
 @ServerEndpoint(value = "/events")
@@ -74,14 +74,16 @@ public class EventsWebSocketEndpoint {
     }
     final Channel channel = optionalChannel.get();
     try {
-      channel.queueDeclare(userQueue, true, false, false, null);
+      channel.queueDeclare(userQueue, false, false, true, null);
       channel.exchangeDeclare(userId.toString(), "direct");
       channel.queueBind(userQueue, userId.toString(), "");
       DeliverCallback deliverCallback =
           (consumerTag, delivery) -> {
             String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
             try {
-              session.getBasicRemote().sendObject(message);
+              if (session.isOpen()) {
+                session.getBasicRemote().sendObject(message);
+              }
             } catch (EncodeException | IOException e) {
               ChatsLogger.warn(
                   String.format(
@@ -120,12 +122,12 @@ public class EventsWebSocketEndpoint {
 
   @OnClose
   public void onClose(Session session) {
-    closeSessionChannel(session);
+    closeSession(session);
   }
 
   @OnError
   public void onError(Session session, Throwable throwable) {
-    closeSessionChannel(session);
+    closeSession(session);
   }
 
   private String getUserIdFromSession(Session session) {
@@ -136,9 +138,29 @@ public class EventsWebSocketEndpoint {
         .orElseThrow(() -> new InternalErrorException("Session user not found!"));
   }
 
-  private void closeSessionChannel(Session session) {
+  private void closeSession(Session session) {
     UUID userId = UUID.fromString(getUserIdFromSession(session));
     UUID queueId = UUID.fromString(session.getId());
+    String userQueue = userId + "/" + queueId;
+    Optional<Channel> optionalChannel = eventDispatcher.getChannel();
+    if (optionalChannel.isEmpty()) {
+      ChatsLogger.error("RabbitMQ connection channel is not up!");
+      return;
+    }
+    final Channel channel = optionalChannel.get();
+    try {
+      channel.queueDelete(userQueue);
+    } catch (IOException e) {
+      ChatsLogger.warn(
+          String.format("Error interacting with RabbitMQ for user/queue '%s'", userQueue));
+      try {
+        channel.close();
+      } catch (IOException | TimeoutException ignored) {
+        ChatsLogger.warn(
+            String.format(
+                "Error closing RabbitMQ connection channel for user/queue '%s'", userQueue));
+      }
+    }
     participantRepository
         .getByQueueId(queueId.toString())
         .ifPresent(

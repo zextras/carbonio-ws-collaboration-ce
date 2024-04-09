@@ -4,14 +4,14 @@
 
 package com.zextras.carbonio.chats.core.exception;
 
+import jakarta.ws.rs.core.Response.Status;
 import java.io.Serializable;
-import javax.ws.rs.core.Response.Status;
 
 public class NotFoundException extends ChatsHttpException implements Serializable {
 
-  private static final long    serialVersionUID = -7586350573263929718L;
-  private static final Status  HTTP_STATUS      = Status.NOT_FOUND;
-  private static final boolean IS_TO_LOG        = false;
+  private static final long serialVersionUID = -7586350573263929718L;
+  private static final Status HTTP_STATUS = Status.NOT_FOUND;
+  private static final boolean IS_TO_LOG = false;
 
   public NotFoundException() {
     super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase());
@@ -38,10 +38,19 @@ public class NotFoundException extends ChatsHttpException implements Serializabl
   }
 
   protected NotFoundException(
-    String error, String debugInfo, Throwable cause, boolean enableSuppression, boolean writableStackTrace
-  ) {
-    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo, cause, enableSuppression,
-      writableStackTrace);
+      String error,
+      String debugInfo,
+      Throwable cause,
+      boolean enableSuppression,
+      boolean writableStackTrace) {
+    super(
+        HTTP_STATUS.getStatusCode(),
+        HTTP_STATUS.getReasonPhrase(),
+        error,
+        debugInfo,
+        cause,
+        enableSuppression,
+        writableStackTrace);
   }
 
   @Override

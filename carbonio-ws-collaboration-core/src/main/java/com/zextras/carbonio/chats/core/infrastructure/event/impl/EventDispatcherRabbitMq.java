@@ -10,13 +10,13 @@ import com.rabbitmq.client.Channel;
 import com.zextras.carbonio.chats.core.data.event.DomainEvent;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class EventDispatcherRabbitMq implements EventDispatcher {
@@ -67,7 +67,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
     Channel eventChannel = channel.get();
     try {
       String queueName = userId + "/" + queueId;
-      eventChannel.queueDeclare(queueName, true, false, false, null);
+      eventChannel.queueDeclare(queueName, false, false, true, null);
       eventChannel.basicPublish(
           "",
           queueName,

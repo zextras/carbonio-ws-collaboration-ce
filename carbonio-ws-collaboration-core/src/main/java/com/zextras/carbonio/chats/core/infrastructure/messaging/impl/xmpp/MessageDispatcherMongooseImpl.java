@@ -15,6 +15,7 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatche
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
 import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
+import jakarta.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -22,7 +23,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.annotation.Nullable;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -38,16 +38,17 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
 
   private static final String DOMAIN = "muclight.carbonio";
 
-  private final String       mongooseimUrl;
+  private final String mongooseimUrl;
   private final ObjectMapper objectMapper;
-  private final String       authToken;
+  private final String authToken;
 
   public MessageDispatcherMongooseImpl(
-    String mongooseimUrl, String username, String password, ObjectMapper objectMapper
-  ) {
+      String mongooseimUrl, String username, String password, ObjectMapper objectMapper) {
     this.mongooseimUrl = mongooseimUrl;
-    this.authToken = String.format("Basic %s",
-      Base64.getEncoder().encodeToString(String.join(":", username, password).getBytes()));
+    this.authToken =
+        String.format(
+            "Basic %s",
+            Base64.getEncoder().encodeToString(String.join(":", username, password).getBytes()));
     this.objectMapper = objectMapper;
   }
 
@@ -62,36 +63,43 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
 
   @Override
   public void createRoom(Room room, String senderId) {
-    String query = "mutation muc_light { muc_light { createRoom ("
-      + String.format("mucDomain: \"%s\", ", DOMAIN)
-      + String.format("id: \"%s\", ", room.getId())
-      + String.format("owner: \"%s\"", userIdToUserDomain(senderId))
-      + ") { jid } } }";
+    String query =
+        "mutation muc_light { muc_light { createRoom ("
+            + String.format("mucDomain: \"%s\", ", DOMAIN)
+            + String.format("id: \"%s\", ", room.getId())
+            + String.format("owner: \"%s\"", userIdToUserDomain(senderId))
+            + ") { jid } } }";
     GraphQlResponse result = executeMutation(GraphQlBody.create(query, "muc_light", Map.of()));
 
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
-          String.format("Error while creating a room: %s", objectMapper.writeValueAsString(result.errors)));
+            String.format(
+                "Error while creating a room: %s", objectMapper.writeValueAsString(result.errors)));
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
     }
     room.getSubscriptions().stream()
-      .filter(member -> !member.getUserId().equals(senderId))
-      .forEach(member -> addRoomMember(room.getId(), senderId, member.getUserId()));
+        .filter(member -> !member.getUserId().equals(senderId))
+        .forEach(member -> addRoomMember(room.getId(), senderId, member.getUserId()));
   }
 
   @Override
   public void deleteRoom(String roomId, String userId) {
-    GraphQlResponse result = executeMutation(GraphQlBody.create(
-      "mutation muc_light { muc_light { deleteRoom (" +
-        String.format("room: \"%s\") ", roomIdToRoomDomain(roomId)) +
-        "} }", "muc_light", Map.of()));
+    GraphQlResponse result =
+        executeMutation(
+            GraphQlBody.create(
+                "mutation muc_light { muc_light { deleteRoom ("
+                    + String.format("room: \"%s\") ", roomIdToRoomDomain(roomId))
+                    + "} }",
+                "muc_light",
+                Map.of()));
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
-          String.format("Error while deleting a room: %s", objectMapper.writeValueAsString(result.errors)));
+            String.format(
+                "Error while deleting a room: %s", objectMapper.writeValueAsString(result.errors)));
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
@@ -100,14 +108,18 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
 
   @Override
   public void updateRoomName(String roomId, String senderId, String name) {
-    GraphQlResponse result = sendStanza(
-      XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-        .type(MessageType.ROOM_NAME_CHANGED)
-        .addConfig("value", StringFormatUtils.encodeToUtf8(name), true).build());
+    GraphQlResponse result =
+        sendStanza(
+            XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+                .type(MessageType.ROOM_NAME_CHANGED)
+                .addConfig("value", StringFormatUtils.encodeToUtf8(name), true)
+                .build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
-          String.format("Error while sending update room name: %s", objectMapper.writeValueAsString(result.errors)));
+            String.format(
+                "Error while sending update room name: %s",
+                objectMapper.writeValueAsString(result.errors)));
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
@@ -116,15 +128,18 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
 
   @Override
   public void updateRoomDescription(String roomId, String senderId, String description) {
-    GraphQlResponse result = sendStanza(
-      XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-        .type(MessageType.ROOM_DESCRIPTION_CHANGED)
-        .addConfig("value", StringFormatUtils.encodeToUtf8(description), true).build());
+    GraphQlResponse result =
+        sendStanza(
+            XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+                .type(MessageType.ROOM_DESCRIPTION_CHANGED)
+                .addConfig("value", StringFormatUtils.encodeToUtf8(description), true)
+                .build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
-          String.format("Error while sending update room description: %s",
-            objectMapper.writeValueAsString(result.errors)));
+            String.format(
+                "Error while sending update room description: %s",
+                objectMapper.writeValueAsString(result.errors)));
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
@@ -132,18 +147,21 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   }
 
   @Override
-  public void updateRoomPicture(String roomId, String senderId, String pictureId, String pictureName) {
-    GraphQlResponse result = sendStanza(
-      XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-        .type(MessageType.ROOM_PICTURE_UPDATED)
-        .addConfig("picture-id", pictureId)
-        .addConfig("picture-name", StringFormatUtils.encodeToUtf8(pictureName), true)
-        .build());
+  public void updateRoomPicture(
+      String roomId, String senderId, String pictureId, String pictureName) {
+    GraphQlResponse result =
+        sendStanza(
+            XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+                .type(MessageType.ROOM_PICTURE_UPDATED)
+                .addConfig("picture-id", pictureId)
+                .addConfig("picture-name", StringFormatUtils.encodeToUtf8(pictureName), true)
+                .build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
-          String.format("Error while sending update room picture: %s",
-            objectMapper.writeValueAsString(result.errors)));
+            String.format(
+                "Error while sending update room picture: %s",
+                objectMapper.writeValueAsString(result.errors)));
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
@@ -152,14 +170,17 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
 
   @Override
   public void deleteRoomPicture(String roomId, String senderId) {
-    GraphQlResponse result = sendStanza(
-      XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-        .type(MessageType.ROOM_PICTURE_DELETED).build());
+    GraphQlResponse result =
+        sendStanza(
+            XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+                .type(MessageType.ROOM_PICTURE_DELETED)
+                .build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
-          String.format("Error while sending update room picture: %s",
-            objectMapper.writeValueAsString(result.errors)));
+            String.format(
+                "Error while sending update room picture: %s",
+                objectMapper.writeValueAsString(result.errors)));
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
@@ -168,16 +189,22 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
 
   @Override
   public void addRoomMember(String roomId, String senderId, String recipientId) {
-    GraphQlResponse result = executeMutation(GraphQlBody.create(
-      "mutation muc_light { muc_light { inviteUser (" +
-        String.format("room: \"%s\", ", roomIdToRoomDomain(roomId)) +
-        String.format("sender: \"%s\", ", userIdToUserDomain(senderId)) +
-        String.format("recipient: \"%s\") ", userIdToUserDomain(recipientId)) +
-        "} }", "muc_light", Map.of()));
+    GraphQlResponse result =
+        executeMutation(
+            GraphQlBody.create(
+                "mutation muc_light { muc_light { inviteUser ("
+                    + String.format("room: \"%s\", ", roomIdToRoomDomain(roomId))
+                    + String.format("sender: \"%s\", ", userIdToUserDomain(senderId))
+                    + String.format("recipient: \"%s\") ", userIdToUserDomain(recipientId))
+                    + "} }",
+                "muc_light",
+                Map.of()));
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
-          String.format("Error while adding a room member: %s", objectMapper.writeValueAsString(result.errors)));
+            String.format(
+                "Error while adding a room member: %s",
+                objectMapper.writeValueAsString(result.errors)));
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
@@ -187,15 +214,21 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
 
   @Override
   public void removeRoomMember(String roomId, String senderId, String idToRemove) {
-    GraphQlResponse result = executeMutation(GraphQlBody.create(
-      "mutation muc_light { muc_light { kickUser (" +
-        String.format("room: \"%s\", ", roomIdToRoomDomain(roomId)) +
-        String.format("user: \"%s\") ", userIdToUserDomain(idToRemove)) +
-        "} }", "muc_light", Map.of()));
+    GraphQlResponse result =
+        executeMutation(
+            GraphQlBody.create(
+                "mutation muc_light { muc_light { kickUser ("
+                    + String.format("room: \"%s\", ", roomIdToRoomDomain(roomId))
+                    + String.format("user: \"%s\") ", userIdToUserDomain(idToRemove))
+                    + "} }",
+                "muc_light",
+                Map.of()));
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
-          String.format("Error while removing a room member: %s", objectMapper.writeValueAsString(result.errors)));
+            String.format(
+                "Error while removing a room member: %s",
+                objectMapper.writeValueAsString(result.errors)));
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
@@ -203,16 +236,20 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
     sendAffiliationMessage(roomId, senderId, idToRemove, false);
   }
 
-  private void sendAffiliationMessage(String roomId, String senderId, String memberId, boolean isAdded) {
-    GraphQlResponse result = sendStanza(
-      XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-        .type(isAdded ? MessageType.MEMBER_ADDED : MessageType.MEMBER_REMOVED)
-        .addConfig("user-id", memberId).build());
+  private void sendAffiliationMessage(
+      String roomId, String senderId, String memberId, boolean isAdded) {
+    GraphQlResponse result =
+        sendStanza(
+            XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+                .type(isAdded ? MessageType.MEMBER_ADDED : MessageType.MEMBER_REMOVED)
+                .addConfig("user-id", memberId)
+                .build());
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
-          String.format("Error while sending affiliation message: %s",
-            objectMapper.writeValueAsString(result.errors)));
+            String.format(
+                "Error while sending affiliation message: %s",
+                objectMapper.writeValueAsString(result.errors)));
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
@@ -221,15 +258,21 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
 
   @Override
   public void addUsersToContacts(String user1id, String user2id) {
-    GraphQlResponse result = executeMutation(GraphQlBody.create(
-      "mutation roster { roster { setMutualSubscription (" +
-        String.format("userA: \"%s\", ", userIdToUserDomain(user1id)) +
-        String.format("userB: \"%s\", ", userIdToUserDomain(user2id)) +
-        "action: CONNECT) } }", "roster", Map.of()));
+    GraphQlResponse result =
+        executeMutation(
+            GraphQlBody.create(
+                "mutation roster { roster { setMutualSubscription ("
+                    + String.format("userA: \"%s\", ", userIdToUserDomain(user1id))
+                    + String.format("userB: \"%s\", ", userIdToUserDomain(user2id))
+                    + "action: CONNECT) } }",
+                "roster",
+                Map.of()));
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
-          String.format("Error while setting users contacts: %s", objectMapper.writeValueAsString(result.errors)));
+            String.format(
+                "Error while setting users contacts: %s",
+                objectMapper.writeValueAsString(result.errors)));
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
@@ -238,19 +281,23 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
 
   @Override
   public void sendAttachment(
-    String roomId, String senderId, FileMetadata metadata, String description, @Nullable String messageId,
-    @Nullable String replyId, @Nullable String area
-  ) {
-    XmppMessageBuilder xmppMsgBuilder = XmppMessageBuilder.create(roomIdToRoomDomain(roomId),
-        userIdToUserDomain(senderId))
-      .type(MessageType.ATTACHMENT_ADDED)
-      .addConfig("attachment-id", metadata.getId())
-      .addConfig("filename", StringFormatUtils.encodeToUtf8(metadata.getName()), true)
-      .addConfig("mime-type", metadata.getMimeType())
-      .addConfig("size", String.valueOf(metadata.getOriginalSize()))
-      .body(description)
-      .messageId(messageId)
-      .replyId(replyId);
+      String roomId,
+      String senderId,
+      FileMetadata metadata,
+      String description,
+      @Nullable String messageId,
+      @Nullable String replyId,
+      @Nullable String area) {
+    XmppMessageBuilder xmppMsgBuilder =
+        XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+            .type(MessageType.ATTACHMENT_ADDED)
+            .addConfig("attachment-id", metadata.getId())
+            .addConfig("filename", StringFormatUtils.encodeToUtf8(metadata.getName()), true)
+            .addConfig("mime-type", metadata.getMimeType())
+            .addConfig("size", String.valueOf(metadata.getOriginalSize()))
+            .body(description)
+            .messageId(messageId)
+            .replyId(replyId);
     if (area != null) {
       xmppMsgBuilder.addConfig("area", area);
     }
@@ -258,7 +305,9 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
-          String.format("Error while sending attachment: %s", objectMapper.writeValueAsString(result.errors)));
+            String.format(
+                "Error while sending attachment: %s",
+                objectMapper.writeValueAsString(result.errors)));
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
@@ -269,18 +318,19 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   public Optional<String> getAttachmentIdFromMessage(String message) {
     if (message.contains("<operation>attachmentAdded</operation>")) {
       try {
-        Element node = DocumentBuilderFactory
-          .newInstance()
-          .newDocumentBuilder()
-          .parse(new ByteArrayInputStream(message.getBytes()))
-          .getDocumentElement();
+        Element node =
+            DocumentBuilderFactory.newInstance()
+                .newDocumentBuilder()
+                .parse(new ByteArrayInputStream(message.getBytes()))
+                .getDocumentElement();
         Element x = (Element) node.getElementsByTagName("x").item(0);
         if (x != null) {
           Element op = (Element) x.getElementsByTagName("operation").item(0);
-          if (op != null && MessageType.ATTACHMENT_ADDED.getName().equals(op.getFirstChild().getNodeValue())) {
+          if (op != null
+              && MessageType.ATTACHMENT_ADDED.getName().equals(op.getFirstChild().getNodeValue())) {
             return Optional.ofNullable(x.getElementsByTagName("attachment-id").item(0))
-              .map(Node::getFirstChild)
-              .map(Node::getNodeValue);
+                .map(Node::getFirstChild)
+                .map(Node::getNodeValue);
           }
         }
       } catch (Exception e) {
@@ -291,26 +341,32 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   }
 
   public void forwardMessage(
-    String roomId, String senderId, ForwardMessageDto messageToForward, @Nullable FileMetadata fileMetadata
-  ) {
-    XmppMessageBuilder xmppMessageBuilder = XmppMessageBuilder
-      .create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-      .messageToForward(messageToForward.getOriginalMessage())
-      .messageToForwardSentAt(messageToForward.getOriginalMessageSentAt())
-      .body(messageToForward.getDescription());
-    Optional.ofNullable(fileMetadata).ifPresent(metadata ->
-      xmppMessageBuilder
-        .type(MessageType.ATTACHMENT_ADDED)
-        .addConfig("attachment-id", metadata.getId())
-        .addConfig("filename", StringFormatUtils.encodeToUtf8(metadata.getName()), true)
-        .addConfig("mime-type", metadata.getMimeType())
-        .addConfig("size", String.valueOf(metadata.getOriginalSize())));
+      String roomId,
+      String senderId,
+      ForwardMessageDto messageToForward,
+      @Nullable FileMetadata fileMetadata) {
+    XmppMessageBuilder xmppMessageBuilder =
+        XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+            .messageToForward(messageToForward.getOriginalMessage())
+            .messageToForwardSentAt(messageToForward.getOriginalMessageSentAt())
+            .body(messageToForward.getDescription());
+    Optional.ofNullable(fileMetadata)
+        .ifPresent(
+            metadata ->
+                xmppMessageBuilder
+                    .type(MessageType.ATTACHMENT_ADDED)
+                    .addConfig("attachment-id", metadata.getId())
+                    .addConfig("filename", StringFormatUtils.encodeToUtf8(metadata.getName()), true)
+                    .addConfig("mime-type", metadata.getMimeType())
+                    .addConfig("size", String.valueOf(metadata.getOriginalSize())));
     String xmppMessage = xmppMessageBuilder.build();
     GraphQlResponse result = sendStanza(xmppMessage);
     if (result.errors != null) {
       try {
         throw new MessageDispatcherException(
-          String.format("Error while sending forward message: %s", objectMapper.writeValueAsString(result.errors)));
+            String.format(
+                "Error while sending forward message: %s",
+                objectMapper.writeValueAsString(result.errors)));
       } catch (JsonProcessingException e) {
         throw new InternalErrorException("Error during parsing the json of response error ", e);
       }
@@ -326,8 +382,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
       request.addHeader("Accept", "application/json");
       request.addHeader("Content-Type", "application/json");
       CloseableHttpResponse response = client.execute(request);
-      return objectMapper.readValue(
-        response.getEntity().getContent(), GraphQlResponse.class);
+      return objectMapper.readValue(response.getEntity().getContent(), GraphQlResponse.class);
     } catch (IOException e) {
       throw new MessageDispatcherException("MongooseIm GraphQL response error", e);
     }
@@ -336,26 +391,27 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   private GraphQlResponse executeQuery(String query) {
     CloseableHttpClient client = HttpClientBuilder.create().build();
     try {
-      HttpGet request = new HttpGet(
-        new URIBuilder(mongooseimUrl)
-          .addParameter("query", query)
-          .build());
+      HttpGet request =
+          new HttpGet(new URIBuilder(mongooseimUrl).addParameter("query", query).build());
       request.addHeader("Authorization", authToken);
       CloseableHttpResponse response = client.execute(request);
-      return objectMapper.readValue(
-        response.getEntity().getContent(), GraphQlResponse.class);
+      return objectMapper.readValue(response.getEntity().getContent(), GraphQlResponse.class);
     } catch (URISyntaxException e) {
-      throw new InternalErrorException(String.format("Unable to write the URI for query '%s'", query), e);
+      throw new InternalErrorException(
+          String.format("Unable to write the URI for query '%s'", query), e);
     } catch (IOException e) {
       throw new MessageDispatcherException("MongooseIm GraphQL response error", e);
     }
   }
 
   private GraphQlResponse sendStanza(String message) {
-    return executeMutation(GraphQlBody.create(
-      "mutation stanza { stanza { sendStanza (" +
-        String.format("stanza: \"\"\"%s\"\"\") ", message) +
-        "{ id } } }", "stanza", Map.of()));
+    return executeMutation(
+        GraphQlBody.create(
+            "mutation stanza { stanza { sendStanza ("
+                + String.format("stanza: \"\"\"%s\"\"\") ", message)
+                + "{ id } } }",
+            "stanza",
+            Map.of()));
   }
 
   private String roomIdToRoomDomain(String roomId) {
@@ -369,7 +425,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   @JsonIgnoreProperties(ignoreUnknown = true)
   private static class GraphQlResponse {
 
-    private Object       data;
+    private Object data;
     private List<Object> errors;
 
     public Object getData() {

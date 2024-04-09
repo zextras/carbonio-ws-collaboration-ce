@@ -6,25 +6,24 @@ package com.zextras.carbonio.chats.core.data.entity;
 
 import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
+import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 import java.time.OffsetDateTime;
 import java.util.Objects;
-import javax.persistence.Column;
-import javax.persistence.EmbeddedId;
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.MapsId;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 
 @Entity
 @Table(name = "ROOM_USER_SETTINGS", schema = "CHATS")
 public class RoomUserSettings {
 
-  @EmbeddedId
-  private SubscriptionId id;
+  @EmbeddedId private SubscriptionId id;
 
   @MapsId("userId")
   private String userId;
@@ -52,8 +51,7 @@ public class RoomUserSettings {
   @WhenModified
   private OffsetDateTime updatedAt;
 
-  public RoomUserSettings() {
-  }
+  public RoomUserSettings() {}
 
   public RoomUserSettings(Room room, String userId) {
     this.id = new SubscriptionId(room.getId(), userId);
@@ -68,7 +66,6 @@ public class RoomUserSettings {
   public static RoomUserSettings create(Room room, String userId) {
     return new RoomUserSettings(room, userId);
   }
-
 
   public SubscriptionId getId() {
     return id;
@@ -132,10 +129,13 @@ public class RoomUserSettings {
       return false;
     }
     RoomUserSettings that = (RoomUserSettings) o;
-    return Objects.equals(id, that.id) && Objects.equals(userId, that.userId)
-      && Objects.equals(room, that.room) && (Objects.equals(mutedUntil, that.mutedUntil)
-      || Objects.equals(mutedUntil.toInstant().toEpochMilli(), that.mutedUntil.toInstant().toEpochMilli()))
-      && Objects.equals(clearedAt, that.clearedAt);
+    return Objects.equals(id, that.id)
+        && Objects.equals(userId, that.userId)
+        && Objects.equals(room, that.room)
+        && (Objects.equals(mutedUntil, that.mutedUntil)
+            || Objects.equals(
+                mutedUntil.toInstant().toEpochMilli(), that.mutedUntil.toInstant().toEpochMilli()))
+        && Objects.equals(clearedAt, that.clearedAt);
   }
 
   @Override

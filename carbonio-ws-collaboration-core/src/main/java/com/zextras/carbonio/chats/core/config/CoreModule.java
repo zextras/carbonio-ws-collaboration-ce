@@ -117,13 +117,13 @@ import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
+import io.ebean.annotation.Platform;
 import io.ebean.config.DatabaseConfig;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.ZoneId;
 import java.util.Optional;
-import javax.inject.Singleton;
-import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 
 public class CoreModule extends AbstractModule {
@@ -267,26 +267,28 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  public Database getDatabase(DataSource dataSource, Clock clock) {
+  public Database getDatabase(HikariDataSource dataSource, Clock clock) {
     DatabaseConfig databaseConfig = new DatabaseConfig();
     databaseConfig.setDataSource(dataSource);
     databaseConfig.setClock(clock);
+    databaseConfig.setDatabasePlatformName(Platform.POSTGRES.toString());
     return DatabaseFactory.create(databaseConfig);
   }
 
   @Singleton
   @Provides
-  public Flyway getFlywayInstance(DataSource dataSource) {
+  public Flyway getFlywayInstance(HikariDataSource dataSource) {
     return Flyway.configure()
         .locations("classpath:migration")
         .schemas("chats")
         .dataSource(dataSource)
+        .validateMigrationNaming(true)
         .load();
   }
 
   @Singleton
   @Provides
-  public DataSource getHikariDataSource(AppConfig appConfig) {
+  public HikariDataSource getHikariDataSource(AppConfig appConfig) {
     HikariConfig config = new HikariConfig();
     config.setJdbcUrl(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).orElseThrow());
     config.setDriverClassName(

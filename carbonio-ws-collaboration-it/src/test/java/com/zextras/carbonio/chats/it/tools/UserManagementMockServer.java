@@ -9,10 +9,10 @@ import static org.mockserver.model.HttpRequest.request;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.usermanagement.entities.UserInfo;
+import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.ClearType;
@@ -33,19 +33,16 @@ public class UserManagementMockServer extends ClientAndServer implements Closeab
   }
 
   public void verify(String method, String path, int iterationsNumber) {
-    HttpRequest request = request()
-      .withMethod(method)
-      .withPath(path);
+    HttpRequest request = request().withMethod(method).withPath(path);
     verify(request, VerificationTimes.exactly(iterationsNumber));
     clear(request, ClearType.LOG);
   }
 
   public void verify(String method, String path, @Nullable String cookies, int iterationsNumber) {
-    HttpRequest request = request()
-      .withMethod(method)
-      .withPath(path);
+    HttpRequest request = request().withMethod(method).withPath(path);
     Optional.ofNullable(cookies)
-      .ifPresent(c -> request.withHeaders(header("Cookie", String.format("ZM_AUTH_TOKEN=%s", c))));
+        .ifPresent(
+            c -> request.withHeaders(header("Cookie", String.format("ZM_AUTH_TOKEN=%s", c))));
 
     verify(request, VerificationTimes.exactly(iterationsNumber));
     clear(request, ClearType.LOG);
@@ -59,18 +56,16 @@ public class UserManagementMockServer extends ClientAndServer implements Closeab
 
   public HttpRequest getUsersBulkRequest(List<String> usersIds) {
     return request()
-      .withMethod("GET")
-      .withPath("/users/?")
-      .withQueryStringParameters(usersIds.stream().map(p -> Parameter.param("userIds", p)).collect(Collectors.toList()));
+        .withMethod("GET")
+        .withPath("/users/?")
+        .withQueryStringParameters(
+            usersIds.stream().map(p -> Parameter.param("userIds", p)).collect(Collectors.toList()));
   }
 
   public void mockUsersBulk(List<String> usersIds, List<UserInfo> usersInfo, boolean success) {
     HttpRequest request = getUsersBulkRequest(usersIds);
     clear(request);
-    when(request).respond(HttpResponse.response()
-      .withStatusCode(200)
-      .withBody(JsonBody.json(usersInfo))
-    );
+    when(request)
+        .respond(HttpResponse.response().withStatusCode(200).withBody(JsonBody.json(usersInfo)));
   }
-
 }
