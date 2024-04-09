@@ -282,7 +282,6 @@ public class CoreModule extends AbstractModule {
         .locations("classpath:migration")
         .schemas("chats")
         .dataSource(dataSource)
-        .validateMigrationNaming(true)
         .load();
   }
 
