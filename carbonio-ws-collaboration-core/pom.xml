@@ -135,7 +135,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
 
-
     <!-- Apache commons -->
     <dependency>
       <groupId>org.apache.commons</groupId>
