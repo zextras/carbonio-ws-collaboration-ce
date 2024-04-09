@@ -11,8 +11,8 @@ import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.CapabilitiesDto;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 
 @Singleton
 public class CapabilityServiceImpl implements CapabilityService {

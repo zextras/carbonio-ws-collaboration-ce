@@ -9,10 +9,10 @@ import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import io.ebean.Database;
 import io.ebean.annotation.Transactional;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Transactional
 @Singleton
@@ -52,12 +52,16 @@ public class EbeanSubscriptionRepository implements SubscriptionRepository {
   @Override
   public List<String> getContacts(String userId) {
     return db.createQuery(Subscription.class)
-      .setDistinct(true)
-      .select("userId")
-      .where().in("id.roomId",
-        db.createQuery(Subscription.class)
-          .select("id.roomId").where()
-          .eq("userId", userId).query())
-      .findSingleAttributeList();
+        .setDistinct(true)
+        .select("userId")
+        .where()
+        .in(
+            "id.roomId",
+            db.createQuery(Subscription.class)
+                .select("id.roomId")
+                .where()
+                .eq("userId", userId)
+                .query())
+        .findSingleAttributeList();
   }
 }

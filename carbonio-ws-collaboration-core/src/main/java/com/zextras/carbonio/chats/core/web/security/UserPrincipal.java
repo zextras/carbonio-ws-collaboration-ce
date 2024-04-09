@@ -4,26 +4,22 @@
 
 package com.zextras.carbonio.chats.core.web.security;
 
+import jakarta.annotation.Nullable;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import javax.annotation.Nullable;
-
 
 public class UserPrincipal implements Principal {
 
-  @Nullable
-  private UUID                              userId;
-  private boolean                           systemUser = false;
-  private UUID                              queueId;
+  @Nullable private UUID userId;
+  private boolean systemUser = false;
+  private UUID queueId;
   private Map<AuthenticationMethod, String> authCredentials;
 
-  public UserPrincipal() {
-
-  }
+  public UserPrincipal() {}
 
   public UserPrincipal(@Nullable UUID userId) {
     this.userId = userId;

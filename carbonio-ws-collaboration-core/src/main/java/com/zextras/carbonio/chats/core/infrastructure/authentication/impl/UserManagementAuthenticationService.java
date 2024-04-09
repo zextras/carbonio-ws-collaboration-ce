@@ -8,10 +8,10 @@ import com.zextras.carbonio.chats.core.infrastructure.authentication.Authenticat
 import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.carbonio.usermanagement.entities.UserId;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Map;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class UserManagementAuthenticationService implements AuthenticationService {
@@ -26,8 +26,13 @@ public class UserManagementAuthenticationService implements AuthenticationServic
   @Override
   public Optional<String> validateCredentials(Map<AuthenticationMethod, String> credentials) {
     return Optional.ofNullable(credentials)
-      .map(credentialMap -> credentialMap.get(AuthenticationMethod.ZM_AUTH_TOKEN))
-      .map(token -> userManagementClient.validateUserToken(token).map(UserId::getUserId).getOrElse(() -> null));
+        .map(credentialMap -> credentialMap.get(AuthenticationMethod.ZM_AUTH_TOKEN))
+        .map(
+            token ->
+                userManagementClient
+                    .validateUserToken(token)
+                    .map(UserId::getUserId)
+                    .getOrElse(() -> null));
   }
 
   @Override

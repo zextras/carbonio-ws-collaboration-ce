@@ -36,15 +36,18 @@ SPDX-License-Identifier: AGPL-3.0-only
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>jsr305</artifactId>
     </dependency>
+
     <!-- HTTP client: jersey-client -->
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-client</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-multipart-provider</artifactId>
     </dependency>
+
     <!-- JSON processing: jackson -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -71,16 +74,22 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>resteasy-jackson2-provider</artifactId>
     </dependency>
 
+    <!-- Jakarta -->
     <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jsr310</artifactId>
+      <groupId>jakarta.platform</groupId>
+      <artifactId>jakarta.jakartaee-api</artifactId>
+      <scope>provided</scope>
     </dependency>
 
-    <!-- JavaEE api -->
     <dependency>
-      <groupId>javax</groupId>
-      <artifactId>javaee-api</artifactId>
-      <scope>provided</scope>
+      <groupId>org.eclipse.jetty.ee10</groupId>
+      <artifactId>jetty-ee10-servlet</artifactId>
+    </dependency>
+
+    <!-- Guice dependencies -->
+    <dependency>
+      <groupId>com.google.inject</groupId>
+      <artifactId>guice</artifactId>
     </dependency>
 
     <!-- Open API dependencies-->
@@ -97,7 +106,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>5.3.0</version>
+        <version>7.4.0</version>
         <executions>
 
           <execution>
@@ -106,6 +115,9 @@ SPDX-License-Identifier: AGPL-3.0-only
               <goal>generate</goal>
             </goals>
             <configuration>
+              <configOptions>
+                <useJakartaEe>true</useJakartaEe>
+              </configOptions>
               <generatorName>jaxrs-resteasy</generatorName>
               <engine>mustache</engine>
               <!-- Openapi files -->
@@ -128,6 +140,9 @@ SPDX-License-Identifier: AGPL-3.0-only
               <goal>generate</goal>
             </goals>
             <configuration>
+              <configOptions>
+                <useJakartaEe>true</useJakartaEe>
+              </configOptions>
               <generatorName>jaxrs-resteasy</generatorName>
               <engine>mustache</engine>
               <!-- Openapi files -->

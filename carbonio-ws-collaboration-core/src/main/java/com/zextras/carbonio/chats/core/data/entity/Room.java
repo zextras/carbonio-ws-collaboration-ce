@@ -7,19 +7,19 @@ package com.zextras.carbonio.chats.core.data.entity;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 import java.time.OffsetDateTime;
 import java.util.List;
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 
 @Entity
 @Table(name = "ROOM", schema = "CHATS")
@@ -39,7 +39,8 @@ public class Room {
   @Enumerated(EnumType.STRING)
   private RoomTypeDto type;
 
-  //This is a redundancy which simplifies querying, allowing us to retrieve this without a join on the attachment table
+  // This is a redundancy which simplifies querying, allowing us to retrieve this without a join on
+  // the attachment table
   @Column(name = "PICTURE_UPDATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
   private OffsetDateTime pictureUpdatedAt;

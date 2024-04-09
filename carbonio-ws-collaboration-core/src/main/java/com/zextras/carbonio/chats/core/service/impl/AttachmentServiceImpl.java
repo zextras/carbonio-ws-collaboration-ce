@@ -30,15 +30,15 @@ import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.IdDto;
 import io.ebean.annotation.Transactional;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class AttachmentServiceImpl implements AttachmentService {

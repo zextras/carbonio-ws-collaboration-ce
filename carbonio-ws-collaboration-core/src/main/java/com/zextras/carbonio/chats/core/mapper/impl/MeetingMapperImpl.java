@@ -9,13 +9,12 @@ import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.mapper.ParticipantMapper;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.MeetingTypeDto;
-
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class MeetingMapperImpl implements MeetingMapper {
@@ -34,13 +33,13 @@ public class MeetingMapperImpl implements MeetingMapper {
       return null;
     }
     return MeetingDto.create()
-      .id(UUID.fromString(meeting.getId()))
-      .roomId(UUID.fromString(meeting.getRoomId()))
-      .meetingType(MeetingTypeDto.fromString(meeting.getMeetingType().toString()))
-      .name(meeting.getName())
-      .createdAt(meeting.getCreatedAt())
-      .active(meeting.getActive())
-      .participants(participantMapper.ent2dto(meeting.getParticipants()));
+        .id(UUID.fromString(meeting.getId()))
+        .roomId(UUID.fromString(meeting.getRoomId()))
+        .meetingType(MeetingTypeDto.fromString(meeting.getMeetingType().toString()))
+        .name(meeting.getName())
+        .createdAt(meeting.getCreatedAt())
+        .active(meeting.getActive())
+        .participants(participantMapper.ent2dto(meeting.getParticipants()));
   }
 
   @Override

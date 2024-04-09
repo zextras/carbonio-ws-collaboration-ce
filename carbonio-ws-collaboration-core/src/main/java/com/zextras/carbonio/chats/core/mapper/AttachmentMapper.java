@@ -6,8 +6,8 @@ package com.zextras.carbonio.chats.core.mapper;
 
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.model.AttachmentDto;
+import jakarta.annotation.Nullable;
 import java.util.List;
-import javax.annotation.Nullable;
 
 public interface AttachmentMapper {
 

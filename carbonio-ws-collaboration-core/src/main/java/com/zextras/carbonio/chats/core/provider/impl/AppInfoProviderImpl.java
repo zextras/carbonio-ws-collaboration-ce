@@ -6,10 +6,10 @@ package com.zextras.carbonio.chats.core.provider.impl;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.provider.AppInfoProvider;
+import jakarta.inject.Singleton;
 import java.io.InputStream;
 import java.util.Optional;
 import java.util.Properties;
-import javax.inject.Singleton;
 
 @Singleton
 public class AppInfoProviderImpl implements AppInfoProvider {
@@ -24,12 +24,15 @@ public class AppInfoProviderImpl implements AppInfoProvider {
 
   @Override
   public Optional<String> getVersion() {
-    return properties == null ? Optional.empty() : Optional.of(properties.getProperty(VERSION_PROP));
+    return properties == null
+        ? Optional.empty()
+        : Optional.of(properties.getProperty(VERSION_PROP));
   }
 
   private void load() {
     Properties properties = new Properties();
-    try (InputStream propertiesStream = this.getClass().getClassLoader().getResourceAsStream("build-information")) {
+    try (InputStream propertiesStream =
+        this.getClass().getClassLoader().getResourceAsStream("build-information")) {
       properties.load(propertiesStream);
       ChatsLogger.info("Internal properties config loaded");
       this.properties = properties;
