@@ -131,11 +131,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>jaxrs-api</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>org.flywaydb</groupId>
-      <artifactId>flyway-database-postgresql</artifactId>
-    </dependency>
-
     <!-- Logging dependencies-->
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -204,6 +199,9 @@ SPDX-License-Identifier: AGPL-3.0-only
                   implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                   <!-- we need this to append multiple resteasy providers -->
                   <resource>META-INF/services/jakarta.ws.rs.ext.Providers</resource>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/services/org.flywaydb.core.extensibility.Plugin</resource>
                 </transformer>
               </transformers>
             </configuration>
