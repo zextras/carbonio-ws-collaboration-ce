@@ -83,13 +83,13 @@ public class Boot {
           new RecoveryListener() {
             @Override
             public void handleRecovery(Recoverable recoverable) {
-              ChatsLogger.warn("VideoServer events connection recovery finished successfully");
+              ChatsLogger.warn("Events connection recovery completed successfully");
               videoServerEventListener.start();
             }
 
             @Override
             public void handleRecoveryStarted(Recoverable recoverable) {
-              ChatsLogger.warn("VideoServer events connection recovery started...");
+              ChatsLogger.warn("Events connection recovery started...");
             }
           });
     }
