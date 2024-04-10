@@ -14,7 +14,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Singleton
 public class MeetingMapperImpl implements MeetingMapper {
@@ -38,6 +37,7 @@ public class MeetingMapperImpl implements MeetingMapper {
         .meetingType(MeetingTypeDto.fromString(meeting.getMeetingType().toString()))
         .name(meeting.getName())
         .createdAt(meeting.getCreatedAt())
+        .startedAt(meeting.getStartedAt())
         .active(meeting.getActive())
         .participants(participantMapper.ent2dto(meeting.getParticipants()));
   }
@@ -48,6 +48,6 @@ public class MeetingMapperImpl implements MeetingMapper {
     if (meetings == null) {
       return List.of();
     }
-    return meetings.stream().map(this::ent2dto).collect(Collectors.toList());
+    return meetings.stream().map(this::ent2dto).toList();
   }
 }

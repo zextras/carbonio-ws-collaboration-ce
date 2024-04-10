@@ -31,6 +31,7 @@ import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import io.ebean.annotation.Transactional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,6 +44,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   private final ParticipantRepository participantRepository;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
+  private final Clock clock;
 
   @Inject
   public ParticipantServiceImpl(
@@ -50,12 +52,14 @@ public class ParticipantServiceImpl implements ParticipantService {
       RoomService roomService,
       ParticipantRepository participantRepository,
       VideoServerService videoServerService,
-      EventDispatcher eventDispatcher) {
+      EventDispatcher eventDispatcher,
+      Clock clock) {
     this.meetingService = meetingService;
     this.roomService = roomService;
     this.participantRepository = participantRepository;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
+    this.clock = clock;
   }
 
   @Override
@@ -104,7 +108,7 @@ public class ParticipantServiceImpl implements ParticipantService {
               participantRepository.insert(
                   Participant.create(meeting, currentUser.getId())
                       .queueId(currentUser.getQueueId().toString())
-                      .createdAt(OffsetDateTime.now()));
+                      .createdAt(OffsetDateTime.now(clock)));
               addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
             });
   }

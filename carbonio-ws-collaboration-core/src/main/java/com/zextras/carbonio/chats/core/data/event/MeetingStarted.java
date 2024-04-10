@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
+import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -13,6 +14,7 @@ public class MeetingStarted extends DomainEvent {
 
   private UUID meetingId;
   private UUID starterUser;
+  private OffsetDateTime startedAt;
 
   public MeetingStarted() {
     super(EVENT_TYPE);
@@ -40,24 +42,27 @@ public class MeetingStarted extends DomainEvent {
     return this;
   }
 
+  public OffsetDateTime getStartedAt() {
+    return startedAt;
+  }
+
+  public MeetingStarted startedAt(OffsetDateTime startedAt) {
+    this.startedAt = startedAt;
+    return this;
+  }
+
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    if (!super.equals(o)) {
-      return false;
-    }
-    MeetingStarted that = (MeetingStarted) o;
+    if (this == o) return true;
+    if (!(o instanceof MeetingStarted that)) return false;
+    if (!super.equals(o)) return false;
     return Objects.equals(getMeetingId(), that.getMeetingId())
-      && Objects.equals(getStarterUser(), that.getStarterUser());
+        && Objects.equals(getStarterUser(), that.getStarterUser())
+        && Objects.equals(getStartedAt(), that.getStartedAt());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getMeetingId(), getStarterUser());
+    return Objects.hash(super.hashCode(), getMeetingId(), getStarterUser(), getStartedAt());
   }
 }

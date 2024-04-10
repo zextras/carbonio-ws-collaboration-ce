@@ -143,25 +143,28 @@ public class Participant {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof Participant)) {
-      return false;
-    }
-    Participant that = (Participant) o;
+    if (this == o) return true;
+    if (!(o instanceof Participant that)) return false;
     return Objects.equals(id, that.id)
-        && Objects.equals(getMeeting(), that.getMeeting())
         && Objects.equals(getUserId(), that.getUserId())
         && Objects.equals(getQueueId(), that.getQueueId())
         && Objects.equals(audioStreamOn, that.audioStreamOn)
         && Objects.equals(videoStreamOn, that.videoStreamOn)
-        && Objects.equals(screenStreamOn, that.screenStreamOn);
+        && Objects.equals(screenStreamOn, that.screenStreamOn)
+        && Objects.equals(getCreatedAt(), that.getCreatedAt())
+        && Objects.equals(getUpdatedAt(), that.getUpdatedAt());
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        id, getMeeting(), getUserId(), getQueueId(), audioStreamOn, videoStreamOn, screenStreamOn);
+        id,
+        getUserId(),
+        getQueueId(),
+        audioStreamOn,
+        videoStreamOn,
+        screenStreamOn,
+        getCreatedAt(),
+        getUpdatedAt());
   }
 }
