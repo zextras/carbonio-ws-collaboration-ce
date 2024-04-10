@@ -106,7 +106,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>7.4.0</version>
+        <version>6.4.0</version>
         <executions>
 
           <execution>
