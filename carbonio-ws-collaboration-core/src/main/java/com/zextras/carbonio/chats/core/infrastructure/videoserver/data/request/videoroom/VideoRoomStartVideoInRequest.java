@@ -10,10 +10,11 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.util.Objects;
 
 /**
- * This class represents the video room request to complete the setup a PeerConnection sending a JSEP SDP answer back to
- * the plugin and start receiving media streams from the other participants.
+ * This class represents the video room request to complete the setup a PeerConnection sending a
+ * JSEP SDP answer back to the plugin and start receiving media streams from the other participants.
  *
- * @see <a href="https://janus.conf.meetecho.com/docs/videoroom.html">VideoRoomUnpublishRequest</a>
+ * @see <a
+ *     href="https://janus.conf.meetecho.com/docs/videoroom.html">VideoRoomStartVideoInRequest</a>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -38,14 +39,8 @@ public class VideoRoomStartVideoInRequest extends VideoRoomRequest {
 
   @Override
   public boolean equals(Object o) {
-
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof VideoRoomStartVideoInRequest)) {
-      return false;
-    }
-    VideoRoomStartVideoInRequest that = (VideoRoomStartVideoInRequest) o;
+    if (this == o) return true;
+    if (!(o instanceof VideoRoomStartVideoInRequest that)) return false;
     return Objects.equals(getRequest(), that.getRequest());
   }
 

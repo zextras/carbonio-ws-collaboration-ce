@@ -565,7 +565,6 @@ public class UsersApiIT {
       CapabilitiesDto capabilities =
           objectMapper.readValue(response.getContentAsString(), CapabilitiesDto.class);
       assertEquals(true, capabilities.isCanVideoCall());
-      assertEquals(false, capabilities.isCanVideoCallRecord());
       assertEquals(false, capabilities.isCanUseVirtualBackground());
       assertEquals(true, capabilities.isCanSeeMessageReads());
       assertEquals(true, capabilities.isCanSeeUsersPresence());
@@ -580,7 +579,6 @@ public class UsersApiIT {
     @DisplayName("Returns configured user capabilities")
     void getCapabilities_configuredValuesTestOk() throws Exception {
       appConfig.set(ConfigName.CAN_VIDEO_CALL, "true");
-      appConfig.set(ConfigName.CAN_VIDEO_CALL_RECORD, "false");
       appConfig.set(ConfigName.CAN_USE_VIRTUAL_BACKGROUND, "false");
       appConfig.set(ConfigName.CAN_SEE_MESSAGE_READS, "false");
       appConfig.set(ConfigName.CAN_SEE_USERS_PRESENCE, "false");
@@ -597,7 +595,6 @@ public class UsersApiIT {
       CapabilitiesDto capabilities =
           objectMapper.readValue(response.getContentAsString(), CapabilitiesDto.class);
       assertEquals(true, capabilities.isCanVideoCall());
-      assertEquals(false, capabilities.isCanVideoCallRecord());
       assertEquals(false, capabilities.isCanUseVirtualBackground());
       assertEquals(false, capabilities.isCanSeeMessageReads());
       assertEquals(false, capabilities.isCanSeeUsersPresence());
@@ -608,7 +605,6 @@ public class UsersApiIT {
       assertEquals(512, capabilities.getMaxUserImageSizeInKb());
 
       appConfig.set(ConfigName.CAN_VIDEO_CALL, null);
-      appConfig.set(ConfigName.CAN_VIDEO_CALL_RECORD, null);
       appConfig.set(ConfigName.CAN_USE_VIRTUAL_BACKGROUND, null);
       appConfig.set(ConfigName.CAN_SEE_MESSAGE_READS, null);
       appConfig.set(ConfigName.CAN_SEE_USERS_PRESENCE, null);

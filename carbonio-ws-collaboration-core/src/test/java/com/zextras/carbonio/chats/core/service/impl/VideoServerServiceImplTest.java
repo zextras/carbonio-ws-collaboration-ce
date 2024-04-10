@@ -81,8 +81,9 @@ public class VideoServerServiceImplTest {
     this.videoServerSessionRepository = mock(VideoServerSessionRepository.class);
 
     when(appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST))
-        .thenReturn(Optional.of("127.0.0.1"));
-    when(appConfig.get(String.class, ConfigName.VIDEO_SERVER_PORT)).thenReturn(Optional.of("8088"));
+        .thenReturn(Optional.of("127.78.0.4"));
+    when(appConfig.get(String.class, ConfigName.VIDEO_SERVER_PORT))
+        .thenReturn(Optional.of("20006"));
     when(appConfig.get(String.class, ConfigName.VIDEO_SERVER_TOKEN))
         .thenReturn(Optional.of("token"));
 
@@ -110,19 +111,14 @@ public class VideoServerServiceImplTest {
   private UUID user2SessionId;
   private UUID user3SessionId;
   private UUID user1AudioHandleId;
-  private UUID user2AudioHandleId;
-  private UUID user3AudioHandleId;
   private UUID user1VideoOutHandleId;
-  private UUID user2VideoOutHandleId;
-  private UUID user3VideoOutHandleId;
   private UUID user1VideoInHandleId;
   private UUID user2VideoInHandleId;
   private UUID user3VideoInHandleId;
   private UUID user1ScreenHandleId;
-  private UUID user2ScreenHandleId;
-  private UUID user3ScreenHandleId;
   private String videoServerURL;
   private String janusEndpoint;
+  private String janusInfoEndpoint;
 
   @BeforeEach
   public void init() {
@@ -142,19 +138,14 @@ public class VideoServerServiceImplTest {
     user2SessionId = UUID.randomUUID();
     user3SessionId = UUID.randomUUID();
     user1AudioHandleId = UUID.randomUUID();
-    user2AudioHandleId = UUID.randomUUID();
-    user3AudioHandleId = UUID.randomUUID();
     user1VideoOutHandleId = UUID.randomUUID();
-    user2VideoOutHandleId = UUID.randomUUID();
-    user3VideoOutHandleId = UUID.randomUUID();
     user1VideoInHandleId = UUID.randomUUID();
     user2VideoInHandleId = UUID.randomUUID();
     user3VideoInHandleId = UUID.randomUUID();
     user1ScreenHandleId = UUID.randomUUID();
-    user2ScreenHandleId = UUID.randomUUID();
-    user3ScreenHandleId = UUID.randomUUID();
-    videoServerURL = "http://127.0.0.1:8088";
+    videoServerURL = "http://127.78.0.4:20006";
     janusEndpoint = "/janus";
+    janusInfoEndpoint = "/info";
   }
 
   @AfterEach
@@ -383,10 +374,11 @@ public class VideoServerServiceImplTest {
     void startMeeting_testErrorAlreadyActive() {
       createVideoServerMeeting(meeting1Id);
 
+      String idMeeting = meeting1Id.toString();
       assertThrows(
           VideoServerException.class,
-          () -> videoServerService.startMeeting(meeting1Id.toString()),
-          "Videoserver meeting " + meeting1Id.toString() + " is already active");
+          () -> videoServerService.startMeeting(idMeeting),
+          "Videoserver meeting " + meeting1Id + " is already active");
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
@@ -779,14 +771,88 @@ public class VideoServerServiceImplTest {
     @Test
     @DisplayName("Try to add a participant in a meeting that does not exist")
     void addMeetingParticipant_testErrorMeetingNotExists() {
+      String idUser = user1Id.toString();
+      String idQueue = queue1Id.toString();
+      String idMeeting = meeting1Id.toString();
+
       assertThrows(
           VideoServerException.class,
-          () ->
-              videoServerService.addMeetingParticipant(
-                  user1Id.toString(), queue1Id.toString(), meeting1Id.toString(), false, true),
-          "No videoserver meeting found for the meeting " + meeting1Id.toString());
+          () -> videoServerService.addMeetingParticipant(idUser, idQueue, idMeeting, false, true),
+          "No videoserver meeting found for the meeting " + meeting1Id);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName(
+        "Try to add a participant in a meeting but video server returns error joining as publisher")
+    void addMeetingParticipant_testErrorJoiningAsPublisher() {
+      createVideoServerMeeting(meeting1Id);
+
+      VideoServerResponse sessionResponse =
+          VideoServerResponse.create()
+              .status("success")
+              .transactionId("transaction-id")
+              .data(VideoServerDataInfo.create().id(user1SessionId.toString()));
+      when(videoServerClient.sendVideoServerRequest(
+              eq(videoServerURL + janusEndpoint), any(VideoServerMessageRequest.class)))
+          .thenReturn(sessionResponse);
+
+      VideoServerResponse videoOutHandleResponse =
+          VideoServerResponse.create()
+              .status("success")
+              .connectionId(user1SessionId.toString())
+              .transactionId("transaction-id")
+              .data(VideoServerDataInfo.create().id(user1VideoOutHandleId.toString()));
+
+      when(videoServerClient.sendVideoServerRequest(
+              eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(videoOutHandleResponse);
+
+      VideoRoomResponse joinPublisherVideoResponse = VideoRoomResponse.create().status("error");
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + user1SessionId.toString()
+                      + "/"
+                      + user1VideoOutHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(joinPublisherVideoResponse);
+
+      String idUser = user1Id.toString();
+      String idQueue = queue1Id.toString();
+      String idMeeting = meeting1Id.toString();
+
+      assertThrows(
+          VideoServerException.class,
+          () -> videoServerService.addMeetingParticipant(idUser, idQueue, idMeeting, false, true),
+          "An error occured while user "
+              + user1Id
+              + " with connection id "
+              + queue1Id
+              + " is joining video room as publisher");
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoServerRequest(
+              eq(videoServerURL + janusEndpoint), any(VideoServerMessageRequest.class));
+      verify(videoServerClient, times(1))
+          .sendVideoServerRequest(
+              eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()),
+              any(VideoServerMessageRequest.class));
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + user1SessionId.toString()
+                      + "/"
+                      + user1VideoOutHandleId.toString()),
+              any(VideoServerMessageRequest.class));
     }
 
     @Test
@@ -800,15 +866,17 @@ public class VideoServerServiceImplTest {
               .videoServerMeeting(videoServerMeeting);
       videoServerMeeting.videoServerSessions(List.of(videoServerSession));
 
+      String idUser = user1Id.toString();
+      String idQueue = queue1Id.toString();
+      String idMeeting = meeting1Id.toString();
+
       assertThrows(
           VideoServerException.class,
-          () ->
-              videoServerService.addMeetingParticipant(
-                  user1Id.toString(), queue1Id.toString(), meeting1Id.toString(), false, true),
+          () -> videoServerService.addMeetingParticipant(idUser, idQueue, idMeeting, false, true),
           "Videoserver session user with user  "
-              + user1Id.toString()
+              + user1Id
               + "is already present in the videoserver meeting "
-              + meeting1Id.toString());
+              + meeting1Id);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
@@ -1282,17 +1350,17 @@ public class VideoServerServiceImplTest {
     @Test
     @DisplayName("Try to update media stream on a meeting that does not exist")
     void updateMediaStream_testErrorMeetingNotExists() {
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
+      MediaStreamSettingsDto mediaStreamSettingsDto =
+          MediaStreamSettingsDto.create()
+              .type(TypeEnum.VIDEO)
+              .enabled(true)
+              .sdp("session-description-protocol");
       assertThrows(
           VideoServerException.class,
-          () ->
-              videoServerService.updateMediaStream(
-                  user1Id.toString(),
-                  meeting1Id.toString(),
-                  MediaStreamSettingsDto.create()
-                      .type(TypeEnum.VIDEO)
-                      .enabled(true)
-                      .sdp("session-description-protocol")),
-          "No videoserver meeting found for the meeting " + meeting1Id.toString());
+          () -> videoServerService.updateMediaStream(idUser, idMeeting, mediaStreamSettingsDto),
+          "No videoserver meeting found for the meeting " + meeting1Id);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
@@ -1301,23 +1369,73 @@ public class VideoServerServiceImplTest {
     @DisplayName("Try to update media stream on a meeting of a participant that is not in")
     void updateMediaStream_testErrorParticipantNotExists() {
       createVideoServerMeeting(meeting1Id);
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
+      MediaStreamSettingsDto mediaStreamSettingsDto =
+          MediaStreamSettingsDto.create()
+              .type(TypeEnum.VIDEO)
+              .enabled(true)
+              .sdp("session-description-protocol");
 
       assertThrows(
           VideoServerException.class,
-          () ->
-              videoServerService.updateMediaStream(
-                  user1Id.toString(),
-                  meeting1Id.toString(),
-                  MediaStreamSettingsDto.create()
-                      .type(TypeEnum.VIDEO)
-                      .enabled(true)
-                      .sdp("session-description-protocol")),
-          "No Videoserver session found for user "
-              + user1Id.toString()
-              + " for the meeting "
-              + meeting1Id.toString());
+          () -> videoServerService.updateMediaStream(idUser, idMeeting, mediaStreamSettingsDto),
+          "No Videoserver session found for user " + user1Id + " for the meeting " + meeting1Id);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName(
+        "Try to update media stream on a meeting but video server returns error publishing video"
+            + " stream")
+    void updateMediaStream_testErrorPublishingVideoStream() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .videoOutHandleId(user1VideoOutHandleId.toString())
+              .videoOutStreamOn(false);
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+
+      VideoRoomResponse publishStreamVideoRoomResponse = VideoRoomResponse.create().status("error");
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + user1SessionId.toString()
+                      + "/"
+                      + user1VideoOutHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(publishStreamVideoRoomResponse);
+
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
+      MediaStreamSettingsDto mediaStreamSettingsDto =
+          MediaStreamSettingsDto.create()
+              .type(TypeEnum.VIDEO)
+              .enabled(true)
+              .sdp("session-description-protocol");
+      assertThrows(
+          VideoServerException.class,
+          () -> videoServerService.updateMediaStream(idUser, idMeeting, mediaStreamSettingsDto),
+          "An error occured while connection id " + queue1Id + " is publishing video stream");
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + user1SessionId.toString()
+                      + "/"
+                      + user1VideoOutHandleId.toString()),
+              any(VideoServerMessageRequest.class));
     }
 
     @Test
@@ -1506,11 +1624,12 @@ public class VideoServerServiceImplTest {
     @Test
     @DisplayName("Try to update audio stream on a meeting that does not exist")
     void updateAudioStream_testErrorMeetingNotExists() {
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
       assertThrows(
           VideoServerException.class,
-          () ->
-              videoServerService.updateAudioStream(user1Id.toString(), meeting1Id.toString(), true),
-          "No videoserver meeting found for the meeting " + meeting1Id.toString());
+          () -> videoServerService.updateAudioStream(idUser, idMeeting, true),
+          "No videoserver meeting found for the meeting " + meeting1Id);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
@@ -1520,16 +1639,71 @@ public class VideoServerServiceImplTest {
     void updateAudioStream_testErrorParticipantNotExists() {
       createVideoServerMeeting(meeting1Id);
 
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
       assertThrows(
           VideoServerException.class,
-          () ->
-              videoServerService.updateAudioStream(user1Id.toString(), meeting1Id.toString(), true),
-          "No Videoserver session found for user "
-              + user1Id.toString()
-              + " for the meeting "
-              + meeting1Id.toString());
+          () -> videoServerService.updateAudioStream(idUser, idMeeting, true),
+          "No Videoserver session found for user " + user1Id + " for the meeting " + meeting1Id);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName(
+        "Try to update audio stream on a meeting but video server returns error enabling audio"
+            + " stream")
+    void updateAudioStream_testErrorEnablingAudioStream() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .audioHandleId(user1AudioHandleId.toString())
+              .audioStreamOn(false);
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+
+      AudioBridgeResponse updateAudioStreamResponse =
+          AudioBridgeResponse.create()
+              .status("error")
+              .pluginData(
+                  AudioBridgePluginData.create()
+                      .plugin("janus.plugin.audiobridge")
+                      .dataInfo(AudioBridgeDataInfo.create().audioBridge("error")));
+      when(videoServerClient.sendAudioBridgeRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + meeting1SessionId.toString()
+                      + "/"
+                      + meeting1AudioHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(updateAudioStreamResponse);
+
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
+      assertThrows(
+          VideoServerException.class,
+          () -> videoServerService.updateAudioStream(idUser, idMeeting, true),
+          "An error occured while setting audio stream status for "
+              + user1Id
+              + " with connection id "
+              + queue1Id);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendAudioBridgeRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + meeting1SessionId.toString()
+                      + "/"
+                      + meeting1AudioHandleId.toString()),
+              any(VideoServerMessageRequest.class));
     }
 
     @Test
@@ -1655,12 +1829,14 @@ public class VideoServerServiceImplTest {
     @Test
     @DisplayName("Try to send answer for media stream on a meeting that does not exist")
     void answerRtcMediaStream_testErrorMeetingNotExists() {
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
       assertThrows(
           VideoServerException.class,
           () ->
               videoServerService.answerRtcMediaStream(
-                  user1Id.toString(), meeting1Id.toString(), "session-description-protocol"),
-          "No videoserver meeting found for the meeting " + meeting1Id.toString());
+                  idUser, idMeeting, "session-description-protocol"),
+          "No videoserver meeting found for the meeting " + meeting1Id);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
@@ -1670,17 +1846,68 @@ public class VideoServerServiceImplTest {
     void answerRtcMediaStream_testErrorParticipantNotExists() {
       createVideoServerMeeting(meeting1Id);
 
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
       assertThrows(
           VideoServerException.class,
           () ->
               videoServerService.answerRtcMediaStream(
-                  user1Id.toString(), meeting1Id.toString(), "session-description-protocol"),
-          "No Videoserver session found for user "
-              + user1Id.toString()
-              + " for the meeting "
-              + meeting1Id.toString());
+                  idUser, idMeeting, "session-description-protocol"),
+          "No Videoserver session found for user " + user1Id + " for the meeting " + meeting1Id);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName(
+        "Try to send answer for media stream on a meeting but video server returns error starting"
+            + " receiving video streams")
+    void answerRtcMediaStream_testErrorStartingReceivingVideoStreams() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .videoInHandleId(user1VideoInHandleId.toString())
+              .videoInStreamOn(false);
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+
+      VideoRoomResponse answerRtcMediaStreamResponse = VideoRoomResponse.create().status("error");
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + user1SessionId.toString()
+                      + "/"
+                      + user1VideoInHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(answerRtcMediaStreamResponse);
+
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.answerRtcMediaStream(
+                  idUser, idMeeting, "session-description-protocol"),
+          "An error occured while session with connection id "
+              + queue1Id
+              + " is starting receiving video streams available in the video room");
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + user1SessionId.toString()
+                      + "/"
+                      + user1VideoInHandleId.toString()),
+              any(VideoServerMessageRequest.class));
     }
   }
 
@@ -2094,19 +2321,21 @@ public class VideoServerServiceImplTest {
     @Test
     @DisplayName("Try to update subscriptions for media stream on a meeting that does not exist")
     void updateSubscriptionsMediaStream_testErrorMeetingNotExists() {
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
+      SubscriptionUpdatesDto subscriptionUpdatesDto =
+          SubscriptionUpdatesDto.create()
+              .subscribe(
+                  List.of(
+                      MediaStreamDto.create()
+                          .type(MediaStreamDto.TypeEnum.VIDEO)
+                          .userId(user2Id.toString())));
       assertThrows(
           VideoServerException.class,
           () ->
               videoServerService.updateSubscriptionsMediaStream(
-                  user1Id.toString(),
-                  meeting1Id.toString(),
-                  SubscriptionUpdatesDto.create()
-                      .subscribe(
-                          List.of(
-                              MediaStreamDto.create()
-                                  .type(MediaStreamDto.TypeEnum.VIDEO)
-                                  .userId(user2Id.toString())))),
-          "No videoserver meeting found for the meeting " + meeting1Id.toString());
+                  idUser, idMeeting, subscriptionUpdatesDto),
+          "No videoserver meeting found for the meeting " + meeting1Id);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
@@ -2116,25 +2345,181 @@ public class VideoServerServiceImplTest {
         "Try to update subscriptions for media stream on a meeting of a participant that is not in")
     void updateSubscriptionsMediaStream_testErrorParticipantNotExists() {
       createVideoServerMeeting(meeting1Id);
-
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
+      SubscriptionUpdatesDto subscriptionUpdatesDto =
+          SubscriptionUpdatesDto.create()
+              .subscribe(
+                  List.of(
+                      MediaStreamDto.create()
+                          .type(MediaStreamDto.TypeEnum.VIDEO)
+                          .userId(user2Id.toString())));
       assertThrows(
           VideoServerException.class,
           () ->
               videoServerService.updateSubscriptionsMediaStream(
-                  user1Id.toString(),
-                  meeting1Id.toString(),
-                  SubscriptionUpdatesDto.create()
-                      .subscribe(
-                          List.of(
-                              MediaStreamDto.create()
-                                  .type(MediaStreamDto.TypeEnum.VIDEO)
-                                  .userId(user2Id.toString())))),
-          "No Videoserver session found for user "
-              + user1Id.toString()
-              + " for the meeting "
-              + meeting1Id.toString());
+                  idUser, idMeeting, subscriptionUpdatesDto),
+          "No Videoserver session found for user " + user1Id + " for the meeting " + meeting1Id);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName(
+        "Try to update subscriptions for media stream on a meeting but video server returns error"
+            + " joining as subscriber")
+    void updateSubscriptionsMediaStream_testErrorJoiningAsSubscriber() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession1 =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString());
+      VideoServerSession videoServerSession2 =
+          VideoServerSession.create()
+              .userId(user2Id.toString())
+              .queueId(queue2Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user2SessionId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession1, videoServerSession2));
+
+      VideoServerResponse videoInHandleResponse =
+          VideoServerResponse.create()
+              .status("success")
+              .connectionId(user1SessionId.toString())
+              .transactionId("transaction-id")
+              .data(VideoServerDataInfo.create().id(user1VideoInHandleId.toString()));
+      when(videoServerClient.sendVideoServerRequest(
+              eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(videoInHandleResponse);
+
+      VideoServerSession videoServerSession1Updated = mock(VideoServerSession.class);
+      when(videoServerSession1Updated.getConnectionId()).thenReturn(user1SessionId.toString());
+      when(videoServerSession1Updated.getVideoInHandleId())
+          .thenReturn(user1VideoInHandleId.toString());
+      when(videoServerSessionRepository.update(any(VideoServerSession.class)))
+          .thenReturn(videoServerSession1Updated);
+
+      VideoRoomResponse joinSubscriberResponse = VideoRoomResponse.create().status("error");
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + user1SessionId.toString()
+                      + "/"
+                      + user1VideoInHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(joinSubscriberResponse);
+
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
+      SubscriptionUpdatesDto subscriptionUpdatesDto =
+          SubscriptionUpdatesDto.create()
+              .subscribe(
+                  List.of(
+                      MediaStreamDto.create()
+                          .type(MediaStreamDto.TypeEnum.VIDEO)
+                          .userId(user2Id.toString())));
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.updateSubscriptionsMediaStream(
+                  idUser, idMeeting, subscriptionUpdatesDto),
+          "An error occured while user "
+              + user1Id
+              + " with connection id "
+              + queue1Id
+              + " is joining video room as subscriber"
+              + meeting1Id);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoServerRequest(
+              eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString()),
+              any(VideoServerMessageRequest.class));
+      verify(videoServerSessionRepository, times(1)).update(any(VideoServerSession.class));
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + user1SessionId.toString()
+                      + "/"
+                      + user1VideoInHandleId.toString()),
+              any(VideoServerMessageRequest.class));
+    }
+
+    @Test
+    @DisplayName(
+        "Try to update subscriptions for media stream on a meeting but video server returns error"
+            + " updating subscriptions")
+    void updateSubscriptionsMediaStream_testErrorUpdatingSubscriptions() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession1 =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .videoInHandleId(user1VideoInHandleId.toString());
+      VideoServerSession videoServerSession2 =
+          VideoServerSession.create()
+              .userId(user2Id.toString())
+              .queueId(queue2Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user2SessionId.toString())
+              .videoInHandleId(user2VideoInHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession1, videoServerSession2));
+
+      VideoRoomResponse updateSubscriptionsMediaStreamResponse =
+          VideoRoomResponse.create().status("error");
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + user1SessionId.toString()
+                      + "/"
+                      + user1VideoInHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(updateSubscriptionsMediaStreamResponse);
+
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
+      SubscriptionUpdatesDto subscriptionUpdatesDto =
+          SubscriptionUpdatesDto.create()
+              .subscribe(
+                  List.of(
+                      MediaStreamDto.create()
+                          .type(MediaStreamDto.TypeEnum.VIDEO)
+                          .userId(user2Id.toString())));
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.updateSubscriptionsMediaStream(
+                  idUser, idMeeting, subscriptionUpdatesDto),
+          "An error occured while user "
+              + user1Id
+              + " with connection id "
+              + queue1Id
+              + " is updating media subscriptions in the video room"
+              + meeting1Id);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + user1SessionId.toString()
+                      + "/"
+                      + user1VideoInHandleId.toString()),
+              any(VideoServerMessageRequest.class));
     }
   }
 
@@ -2206,12 +2591,14 @@ public class VideoServerServiceImplTest {
     @Test
     @DisplayName("Try to send offer for audio stream on a meeting that does not exist")
     void offerRtcAudioStream_testErrorMeetingNotExists() {
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
       assertThrows(
           VideoServerException.class,
           () ->
               videoServerService.offerRtcAudioStream(
-                  user1Id.toString(), meeting1Id.toString(), "session-description-protocol"),
-          "No videoserver meeting found for the meeting " + meeting1Id.toString());
+                  idUser, idMeeting, "session-description-protocol"),
+          "No videoserver meeting found for the meeting " + meeting1Id);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
     }
@@ -2221,17 +2608,115 @@ public class VideoServerServiceImplTest {
     void offerRtcAudioStream_testErrorParticipantNotExists() {
       createVideoServerMeeting(meeting1Id);
 
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
       assertThrows(
           VideoServerException.class,
           () ->
               videoServerService.offerRtcAudioStream(
-                  user1Id.toString(), meeting1Id.toString(), "session-description-protocol"),
-          "No Videoserver session found for user "
-              + user1Id.toString()
-              + " for the meeting "
-              + meeting1Id.toString());
+                  idUser, idMeeting, "session-description-protocol"),
+          "No Videoserver session found for user " + user1Id + " for the meeting " + meeting1Id);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName(
+        "Try to send offer for audio stream on a meeting but video server returns error joining"
+            + " audio room")
+    void offerRtcAudioStream_testErrorJoiningAudioRoom() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .audioHandleId(user1AudioHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+
+      AudioBridgeResponse offerRtcAudioStreamResponse =
+          AudioBridgeResponse.create().status("error");
+      when(videoServerClient.sendAudioBridgeRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + user1SessionId.toString()
+                      + "/"
+                      + user1AudioHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(offerRtcAudioStreamResponse);
+
+      String idUser = user1Id.toString();
+      String idMeeting = meeting1Id.toString();
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.offerRtcAudioStream(
+                  idUser, idMeeting, "session-description-protocol"),
+          "An error occured while user "
+              + user1Id
+              + " with connection id "
+              + queue1Id
+              + " is joining the audio room");
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendAudioBridgeRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + user1SessionId.toString()
+                      + "/"
+                      + user1AudioHandleId.toString()),
+              any(VideoServerMessageRequest.class));
+    }
+  }
+
+  @Nested
+  @DisplayName("Health check tests")
+  class HealthCheckTests {
+
+    @Test
+    @DisplayName("Send is alive request to video server")
+    void isAlive_testOK() {
+      VideoServerResponse sessionResponse =
+          VideoServerResponse.create().status("server_info").transactionId("transaction-id");
+      when(videoServerClient.sendGetInfoRequest(videoServerURL + janusEndpoint + janusInfoEndpoint))
+          .thenReturn(sessionResponse);
+
+      assertTrue(videoServerService.isAlive());
+
+      verify(videoServerClient, times(1))
+          .sendGetInfoRequest(videoServerURL + janusEndpoint + janusInfoEndpoint);
+    }
+
+    @Test
+    @DisplayName("Send is alive request to video server and it returns error")
+    void isAlive_testErrorResponse() {
+      VideoServerResponse sessionResponse =
+          VideoServerResponse.create().status("error").transactionId("transaction-id");
+      when(videoServerClient.sendGetInfoRequest(videoServerURL + janusEndpoint + janusInfoEndpoint))
+          .thenReturn(sessionResponse);
+
+      assertFalse(videoServerService.isAlive());
+
+      verify(videoServerClient, times(1))
+          .sendGetInfoRequest(videoServerURL + janusEndpoint + janusInfoEndpoint);
+    }
+
+    @Test
+    @DisplayName("Send is alive request to video server and it throws exception")
+    void isAlive_testExceptionError() {
+      when(videoServerClient.sendGetInfoRequest(videoServerURL + janusEndpoint + janusInfoEndpoint))
+          .thenThrow(RuntimeException.class);
+
+      assertFalse(videoServerService.isAlive());
+
+      verify(videoServerClient, times(1))
+          .sendGetInfoRequest(videoServerURL + janusEndpoint + janusInfoEndpoint);
     }
   }
 }

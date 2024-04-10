@@ -21,11 +21,11 @@ public interface MeetingService {
   /**
    * Creates a new meeting
    *
-   * @param user
-   * @param name
-   * @param meetingType
-   * @param roomId
-   * @param expiration
+   * @param user who wants to create the meeting
+   * @param name the name chosen for the meeting
+   * @param meetingType the type chosen for the meeting
+   * @param roomId room identifier {@link UUID}
+   * @param expiration meeting expiration timestamp
    * @return {@link MeetingDto}
    */
   MeetingDto createMeeting(
@@ -38,9 +38,9 @@ public interface MeetingService {
   /**
    * Updates a meeting
    *
-   * @param user
-   * @param meetingId
-   * @param started
+   * @param user who wants to update the meeting status
+   * @param meetingId meeting identifier {@link UUID}
+   * @param started boolean used to update the meeting status
    * @return {@link MeetingDto}
    */
   MeetingDto updateMeeting(UserPrincipal user, UUID meetingId, Boolean started);
@@ -93,17 +93,6 @@ public interface MeetingService {
    * @throws ForbiddenException if the current user isn't a member of indicated room
    */
   MeetingDto getMeetingByRoomId(UUID roomId, UserPrincipal currentUser);
-
-  /**
-   * Gets or creates a meeting for the indicated room
-   *
-   * @param roomId room identifier {@link UUID }
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The requested or newly created meeting {@link Meeting}
-   * @throws NotFoundException if the indicated room doesn't exist
-   * @throws ForbiddenException if the current user isn't a member of indicated room
-   */
-  Meeting getsOrCreatesMeetingEntityByRoomId(UUID roomId, UserPrincipal currentUser);
 
   /**
    * Deletes a meeting by identifier.

@@ -307,13 +307,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       String meetingId,
       boolean videoStreamOn,
       boolean audioStreamOn) {
-    VideoServerMeeting videoServerMeeting =
-        videoServerMeetingRepository
-            .getById(meetingId)
-            .orElseThrow(
-                () ->
-                    new VideoServerException(
-                        "No videoserver meeting found for the meeting " + meetingId));
+    VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     if (videoServerMeeting.getVideoServerSessions().stream()
         .anyMatch(videoServerSessionUser -> videoServerSessionUser.getQueueId().equals(queueId))) {
       throw new VideoServerException(
@@ -410,24 +404,8 @@ public class VideoServerServiceImpl implements VideoServerService {
   @Transactional
   public void updateMediaStream(
       String userId, String meetingId, MediaStreamSettingsDto mediaStreamSettingsDto) {
-    VideoServerMeeting videoServerMeeting =
-        videoServerMeetingRepository
-            .getById(meetingId)
-            .orElseThrow(
-                () ->
-                    new VideoServerException(
-                        "No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession =
-        videoServerMeeting.getVideoServerSessions().stream()
-            .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-            .findFirst()
-            .orElseThrow(
-                () ->
-                    new VideoServerException(
-                        "No Videoserver session found for user "
-                            + userId
-                            + " for the meeting "
-                            + meetingId));
+    VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
+    VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
     switch (mediaStreamSettingsDto.getType()) {
       case VIDEO:
         updateVideoStream(
@@ -456,7 +434,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       VideoServerSession videoServerSession,
       boolean enabled,
       String sdp) {
-    if (videoServerSession.hasVideoOutStreamOn() == enabled) {
+    if (Boolean.TRUE.equals(videoServerSession.hasVideoOutStreamOn()) == enabled) {
       ChatsLogger.debug(
           "Video stream status is already updated for session "
               + userId
@@ -477,7 +455,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       VideoServerSession videoServerSession,
       boolean enabled,
       String sdp) {
-    if (videoServerSession.hasScreenStreamOn() == enabled) {
+    if (Boolean.TRUE.equals(videoServerSession.hasScreenStreamOn()) == enabled) {
       ChatsLogger.debug(
           "Screen stream status is already updated for session "
               + userId
@@ -510,25 +488,9 @@ public class VideoServerServiceImpl implements VideoServerService {
   @Override
   @Transactional
   public void updateAudioStream(String userId, String meetingId, boolean enabled) {
-    VideoServerMeeting videoServerMeeting =
-        videoServerMeetingRepository
-            .getById(meetingId)
-            .orElseThrow(
-                () ->
-                    new VideoServerException(
-                        "No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession =
-        videoServerMeeting.getVideoServerSessions().stream()
-            .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-            .findFirst()
-            .orElseThrow(
-                () ->
-                    new VideoServerException(
-                        "No Videoserver session found for user "
-                            + userId
-                            + " for the meeting "
-                            + meetingId));
-    if (enabled == videoServerSession.hasAudioStreamOn()) {
+    VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
+    VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
+    if (Boolean.TRUE.equals(videoServerSession.hasAudioStreamOn()) == enabled) {
       ChatsLogger.debug(
           "Audio stream status is already updated for user "
               + userId
@@ -575,24 +537,8 @@ public class VideoServerServiceImpl implements VideoServerService {
   @Override
   @Transactional
   public void answerRtcMediaStream(String userId, String meetingId, String sdp) {
-    VideoServerMeeting videoServerMeeting =
-        videoServerMeetingRepository
-            .getById(meetingId)
-            .orElseThrow(
-                () ->
-                    new VideoServerException(
-                        "No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession =
-        videoServerMeeting.getVideoServerSessions().stream()
-            .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-            .findFirst()
-            .orElseThrow(
-                () ->
-                    new VideoServerException(
-                        "No Videoserver session found for user "
-                            + userId
-                            + " for the meeting "
-                            + meetingId));
+    VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
+    VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
     Optional.ofNullable(videoServerSession.getVideoInHandleId())
         .ifPresentOrElse(
             handleId -> {
@@ -634,24 +580,8 @@ public class VideoServerServiceImpl implements VideoServerService {
   @Transactional
   public void updateSubscriptionsMediaStream(
       String userId, String meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto) {
-    VideoServerMeeting videoServerMeeting =
-        videoServerMeetingRepository
-            .getById(meetingId)
-            .orElseThrow(
-                () ->
-                    new VideoServerException(
-                        "No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession =
-        videoServerMeeting.getVideoServerSessions().stream()
-            .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-            .findFirst()
-            .orElseThrow(
-                () ->
-                    new VideoServerException(
-                        "No Videoserver session found for user "
-                            + userId
-                            + " for the meeting "
-                            + meetingId));
+    VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
+    VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
     Optional.ofNullable(videoServerSession.getVideoInHandleId())
         .ifPresentOrElse(
             handleId ->
@@ -698,7 +628,7 @@ public class VideoServerServiceImpl implements VideoServerService {
                                                 mediaStreamDto.getType().toString().toUpperCase()))
                                         .userId(mediaStreamDto.getUserId())
                                         .toString()))
-                    .collect(Collectors.toList()));
+                    .toList());
 
     videoRoomResponse =
         sendVideoRoomPluginMessage(connectionId, videoHandleId, videoRoomJoinRequest, null);
@@ -740,7 +670,7 @@ public class VideoServerServiceImpl implements VideoServerService {
                                                         .toUpperCase()))
                                             .userId(mediaStreamDto.getUserId())
                                             .toString()))
-                        .collect(Collectors.toList()))
+                        .toList())
                 .unsubscriptions(
                     subscriptionUpdatesDto.getUnsubscribe().stream()
                         .distinct()
@@ -757,7 +687,7 @@ public class VideoServerServiceImpl implements VideoServerService {
                                                         .toUpperCase()))
                                             .userId(mediaStreamDto.getUserId())
                                             .toString()))
-                        .collect(Collectors.toList())),
+                        .toList()),
             null);
     if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
       throw new VideoServerException(
@@ -772,24 +702,8 @@ public class VideoServerServiceImpl implements VideoServerService {
   @Override
   @Transactional
   public void offerRtcAudioStream(String userId, String meetingId, String sdp) {
-    VideoServerMeeting videoServerMeeting =
-        videoServerMeetingRepository
-            .getById(meetingId)
-            .orElseThrow(
-                () ->
-                    new VideoServerException(
-                        "No videoserver meeting found for the meeting " + meetingId));
-    VideoServerSession videoServerSession =
-        videoServerMeeting.getVideoServerSessions().stream()
-            .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-            .findFirst()
-            .orElseThrow(
-                () ->
-                    new VideoServerException(
-                        "No Videoserver session found for user "
-                            + userId
-                            + " for the meeting "
-                            + meetingId));
+    VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
+    VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
     Optional.ofNullable(videoServerSession.getAudioHandleId())
         .ifPresentOrElse(
             handleId ->
@@ -844,6 +758,35 @@ public class VideoServerServiceImpl implements VideoServerService {
     }
   }
 
+  private VideoServerMeeting getVideoServerMeeting(String meetingId) {
+    return videoServerMeetingRepository
+        .getById(meetingId)
+        .orElseThrow(
+            () ->
+                new VideoServerException(
+                    "No videoserver meeting found for the meeting " + meetingId));
+  }
+
+  private VideoServerSession getVideoServerSession(
+      String userId, VideoServerMeeting videoServerMeeting) {
+    return videoServerMeeting.getVideoServerSessions().stream()
+        .filter(sessionUser -> sessionUser.getUserId().equals(userId))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new VideoServerException(
+                    "No Videoserver session found for user "
+                        + userId
+                        + " for the meeting "
+                        + videoServerMeeting.getMeetingId()));
+  }
+
+  /**
+   * This method allows you to send a request to the video server in order to know if it's alive
+   *
+   * @return true if the video server returns the server_info status, false otherwise
+   * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
+   */
   @Override
   public boolean isAlive() {
     try {

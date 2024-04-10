@@ -8,8 +8,6 @@
 
 DB_SERVICE_NAME="carbonio-ws-collaboration-db"
 DATABASE_NAME="${DB_SERVICE_NAME}"
-DATABASE_USERNAME="${DB_SERVICE_NAME}"
-CONSUL_TOKEN_PATH="/etc/carbonio/ws-collaboration-db/service-discover/token"
 
 function syntax() {
     echo "Syntax: [PGPASSWORD=password] $0 username [host] [port]"
@@ -46,7 +44,7 @@ fi
 
 echo "Database: $POSTGRES_HOST:$POSTGRES_PORT user ${ROOT_DB_USERNAME}"
 
-psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${ROOT_DB_USERNAME}" -d "${DATABASE_NAME}" ${NOT_ASK_FOR_PGPASSWORD} <<EOF
+psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${ROOT_DB_USERNAME}" -d "${DATABASE_NAME}" "${NOT_ASK_FOR_PGPASSWORD}" <<EOF
 DELETE FROM CHATS.MEETING;
 EOF
 

@@ -29,7 +29,6 @@ public interface MeetingRepository {
    */
   List<Meeting> getByRoomsIds(List<String> roomsIds);
 
-
   /**
    * Gets a meeting by the identifier of his room
    *
@@ -41,10 +40,10 @@ public interface MeetingRepository {
   /**
    * Inserts a new row into MEETING table
    *
-   * @param name        name chosen for the meeting
+   * @param name name chosen for the meeting
    * @param meetingType {@link MeetingType} for the meeting
-   * @param roomId      room identifier
-   * @param expiration  {@link OffsetDateTime} expiration timestamp
+   * @param roomId room identifier
+   * @param expiration {@link OffsetDateTime} expiration timestamp
    * @return meeting inserted {@link Meeting}
    */
   Meeting insert(String name, MeetingType meetingType, UUID roomId, OffsetDateTime expiration);

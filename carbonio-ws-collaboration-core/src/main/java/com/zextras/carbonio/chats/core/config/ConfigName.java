@@ -37,7 +37,6 @@ public enum ConfigName {
 
   // behavioral configurations
   CAN_VIDEO_CALL,
-  CAN_VIDEO_CALL_RECORD,
   CAN_USE_VIRTUAL_BACKGROUND,
   CAN_SEE_MESSAGE_READS,
   CAN_SEE_USERS_PRESENCE,

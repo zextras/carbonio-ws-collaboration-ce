@@ -42,7 +42,6 @@ public class CapabilityServiceImplTest {
 
     assertNotNull(capabilities);
     assertEquals(true, capabilities.isCanVideoCall());
-    assertEquals(false, capabilities.isCanVideoCallRecord());
     assertEquals(false, capabilities.isCanUseVirtualBackground());
     assertEquals(true, capabilities.isCanSeeMessageReads());
     assertEquals(true, capabilities.isCanSeeUsersPresence());
@@ -53,7 +52,6 @@ public class CapabilityServiceImplTest {
     assertEquals(512, capabilities.getMaxUserImageSizeInKb());
 
     verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_VIDEO_CALL);
-    verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_VIDEO_CALL_RECORD);
     verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_USE_VIRTUAL_BACKGROUND);
     verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_SEE_MESSAGE_READS);
     verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_SEE_USERS_PRESENCE);
@@ -69,8 +67,6 @@ public class CapabilityServiceImplTest {
   @DisplayName("Returns configured user capabilities")
   public void getCapabilities_configuredValuesTestOk() {
     when(appConfig.get(Boolean.class, ConfigName.CAN_VIDEO_CALL)).thenReturn(Optional.of(true));
-    when(appConfig.get(Boolean.class, ConfigName.CAN_VIDEO_CALL_RECORD))
-        .thenReturn(Optional.of(false));
     when(appConfig.get(Boolean.class, ConfigName.CAN_USE_VIRTUAL_BACKGROUND))
         .thenReturn(Optional.of(false));
     when(appConfig.get(Boolean.class, ConfigName.CAN_SEE_MESSAGE_READS))
@@ -92,7 +88,6 @@ public class CapabilityServiceImplTest {
 
     assertNotNull(capabilities);
     assertEquals(true, capabilities.isCanVideoCall());
-    assertEquals(false, capabilities.isCanVideoCallRecord());
     assertEquals(false, capabilities.isCanUseVirtualBackground());
     assertEquals(false, capabilities.isCanSeeMessageReads());
     assertEquals(false, capabilities.isCanSeeUsersPresence());
@@ -103,7 +98,6 @@ public class CapabilityServiceImplTest {
     assertEquals(512, capabilities.getMaxUserImageSizeInKb());
 
     verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_VIDEO_CALL);
-    verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_VIDEO_CALL_RECORD);
     verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_USE_VIRTUAL_BACKGROUND);
     verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_SEE_MESSAGE_READS);
     verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_SEE_USERS_PRESENCE);

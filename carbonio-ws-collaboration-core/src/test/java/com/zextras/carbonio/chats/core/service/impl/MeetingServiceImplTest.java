@@ -21,7 +21,6 @@ import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.MeetingCreated;
 import com.zextras.carbonio.chats.core.data.event.MeetingDeleted;
 import com.zextras.carbonio.chats.core.data.event.MeetingStarted;
 import com.zextras.carbonio.chats.core.data.event.MeetingStopped;
@@ -52,8 +51,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 
 @UnitTest
 public class MeetingServiceImplTest {
@@ -229,7 +226,7 @@ public class MeetingServiceImplTest {
       when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
       when(roomService.getRoomById(roomId, currentUser))
           .thenReturn(RoomDto.create().members(List.of(MemberDto.create().userId(user1Id))));
-      MeetingDto meetingDto = meetingService.updateMeeting(currentUser, meetingId, true);
+      meetingService.updateMeeting(currentUser, meetingId, true);
       verify(videoServerService, times(1)).startMeeting(meetingId.toString());
       verify(videoServerService, times(0)).stopMeeting(meetingId.toString());
       verify(eventDispatcher, times(1))
@@ -262,22 +259,43 @@ public class MeetingServiceImplTest {
       when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
       when(roomService.getRoomById(roomId, currentUser))
           .thenReturn(RoomDto.create().members(List.of(MemberDto.create().userId(user1Id))));
-      MeetingDto meetingDto = meetingService.updateMeeting(currentUser, meetingId, false);
+      meetingService.updateMeeting(currentUser, meetingId, false);
       verify(videoServerService, times(0)).startMeeting(meetingId.toString());
       verify(videoServerService, times(1)).stopMeeting(meetingId.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString()), MeetingStopped.create().meetingId(meetingId));
     }
+
+    @Test
+    @DisplayName("Activate a meeting that does not exist")
+    void updateMeeting_testErrorMeetingNotExists() {
+      when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.empty());
+
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () -> meetingService.updateMeeting(UserPrincipal.create(user1Id), meeting1Id, true));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format("Not Found - Meeting with id '%s' not found", meeting1Id),
+          exception.getMessage());
+
+      verify(meetingRepository, times(1)).getById(meeting1Id.toString());
+      verifyNoMoreInteractions(meetingRepository);
+      verifyNoInteractions(membersService, videoServerService, eventDispatcher, roomService);
+    }
   }
 
   @Nested
   @DisplayName("List meetings tests")
-  public class ListMeetingTests {
+  class ListMeetingTests {
 
     @Test
     @DisplayName("Returns all meetings of a user with all participants")
-    public void listMeeting_testOk() {
+    void listMeeting_testOk() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       List<UUID> roomsIds = List.of(room1Id, room2Id, room3Id);
       when(roomService.getRoomsIds(currentUser)).thenReturn(roomsIds);
@@ -296,22 +314,19 @@ public class MeetingServiceImplTest {
       assertEquals(4, meeting1Dto.getParticipants().size());
       assertEquals(
           1,
-          (int)
-              meeting1Dto.getParticipants().stream()
-                  .filter(p -> user1Id.equals(p.getUserId()))
-                  .count());
+          meeting1Dto.getParticipants().stream()
+              .filter(p -> user1Id.equals(p.getUserId()))
+              .count());
       assertEquals(
           2,
-          (int)
-              meeting1Dto.getParticipants().stream()
-                  .filter(p -> user2Id.equals(p.getUserId()))
-                  .count());
+          meeting1Dto.getParticipants().stream()
+              .filter(p -> user2Id.equals(p.getUserId()))
+              .count());
       assertEquals(
           1,
-          (int)
-              meeting1Dto.getParticipants().stream()
-                  .filter(p -> user3Id.equals(p.getUserId()))
-                  .count());
+          meeting1Dto.getParticipants().stream()
+              .filter(p -> user3Id.equals(p.getUserId()))
+              .count());
       Optional<ParticipantDto> participant1 =
           meeting1Dto.getParticipants().stream()
               .filter(p -> user1Id.equals(p.getUserId()))
@@ -329,16 +344,14 @@ public class MeetingServiceImplTest {
       assertEquals(2, meeting2Dto.getParticipants().size());
       assertEquals(
           1,
-          (int)
-              meeting2Dto.getParticipants().stream()
-                  .filter(p -> user1Id.equals(p.getUserId()))
-                  .count());
+          meeting2Dto.getParticipants().stream()
+              .filter(p -> user1Id.equals(p.getUserId()))
+              .count());
       assertEquals(
           1,
-          (int)
-              meeting2Dto.getParticipants().stream()
-                  .filter(p -> user3Id.equals(p.getUserId()))
-                  .count());
+          meeting2Dto.getParticipants().stream()
+              .filter(p -> user3Id.equals(p.getUserId()))
+              .count());
       participant1 =
           meeting2Dto.getParticipants().stream()
               .filter(p -> user1Id.equals(p.getUserId()))
@@ -358,7 +371,7 @@ public class MeetingServiceImplTest {
 
     @Test
     @DisplayName("If rooms, which user is member of, hasn't any meetings, it returns an empty list")
-    public void listMeeting_testUserRoomsHasNoMeetings() {
+    void listMeeting_testUserRoomsHasNoMeetings() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       when(roomService.getRoomsIds(currentUser)).thenReturn(List.of(room1Id, room2Id, room3Id));
       when(meetingRepository.getByRoomsIds(
@@ -379,7 +392,7 @@ public class MeetingServiceImplTest {
 
     @Test
     @DisplayName("If the user is not a member of any room, it returns an empty list")
-    public void listMeeting_testUserHasNotRooms() {
+    void listMeeting_testUserHasNotRooms() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
 
       when(roomService.getRoomsIds(currentUser)).thenReturn(List.of());
@@ -398,11 +411,11 @@ public class MeetingServiceImplTest {
 
   @Nested
   @DisplayName("Get meeting by id tests")
-  public class GetMeetingByIdTests {
+  class GetMeetingByIdTests {
 
     @Test
     @DisplayName("Returns the required meeting with all participants")
-    public void getMeetingById_testOk() {
+    void getMeetingById_testOk() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.of(meeting1));
       when(membersService.getByUserIdAndRoomId(user1Id, room1Id))
           .thenReturn(Optional.of(MemberDto.create()));
@@ -417,22 +430,13 @@ public class MeetingServiceImplTest {
       assertEquals(4, meetingDto.getParticipants().size());
       assertEquals(
           1,
-          (int)
-              meetingDto.getParticipants().stream()
-                  .filter(p -> user1Id.equals(p.getUserId()))
-                  .count());
+          meetingDto.getParticipants().stream().filter(p -> user1Id.equals(p.getUserId())).count());
       assertEquals(
           2,
-          (int)
-              meetingDto.getParticipants().stream()
-                  .filter(p -> user2Id.equals(p.getUserId()))
-                  .count());
+          meetingDto.getParticipants().stream().filter(p -> user2Id.equals(p.getUserId())).count());
       assertEquals(
           1,
-          (int)
-              meetingDto.getParticipants().stream()
-                  .filter(p -> user3Id.equals(p.getUserId()))
-                  .count());
+          meetingDto.getParticipants().stream().filter(p -> user3Id.equals(p.getUserId())).count());
       Optional<ParticipantDto> participant1 =
           meetingDto.getParticipants().stream()
               .filter(p -> user1Id.equals(p.getUserId()))
@@ -452,7 +456,7 @@ public class MeetingServiceImplTest {
     @Test
     @DisplayName(
         "If the authenticated user isn't a room meeting member, it throws a 'forbidden' exception")
-    public void getMeetingById_testUserNotRoomMeetingMember() {
+    void getMeetingById_testUserNotRoomMeetingMember() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.of(meeting1));
       when(membersService.getByUserIdAndRoomId(user1Id, room1Id)).thenReturn(Optional.empty());
 
@@ -477,7 +481,7 @@ public class MeetingServiceImplTest {
 
     @Test
     @DisplayName("If the meeting doesn't exists, it throws a 'not found' exception")
-    public void getMeetingById_testMeetingNotExists() {
+    void getMeetingById_testMeetingNotExists() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.empty());
 
       ChatsHttpException exception =
@@ -499,11 +503,11 @@ public class MeetingServiceImplTest {
 
   @Nested
   @DisplayName("Get meeting entity tests")
-  public class GetMeetingEntityTests {
+  class GetMeetingEntityTests {
 
     @Test
     @DisplayName("Returns the required meeting entity with all participants")
-    public void getMeetingEntity_TestOk() {
+    void getMeetingEntity_TestOk() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.of(meeting1));
 
       Optional<Meeting> meeting = meetingService.getMeetingEntity(meeting1Id);
@@ -514,22 +518,19 @@ public class MeetingServiceImplTest {
       assertEquals(4, meeting.get().getParticipants().size());
       assertEquals(
           1,
-          (int)
-              meeting.get().getParticipants().stream()
-                  .filter(p -> user1Id.toString().equals(p.getUserId()))
-                  .count());
+          meeting.get().getParticipants().stream()
+              .filter(p -> user1Id.toString().equals(p.getUserId()))
+              .count());
       assertEquals(
           2,
-          (int)
-              meeting.get().getParticipants().stream()
-                  .filter(p -> user2Id.toString().equals(p.getUserId()))
-                  .count());
+          meeting.get().getParticipants().stream()
+              .filter(p -> user2Id.toString().equals(p.getUserId()))
+              .count());
       assertEquals(
           1,
-          (int)
-              meeting.get().getParticipants().stream()
-                  .filter(p -> user3Id.toString().equals(p.getUserId()))
-                  .count());
+          meeting.get().getParticipants().stream()
+              .filter(p -> user3Id.toString().equals(p.getUserId()))
+              .count());
       Optional<Participant> participant1 =
           meeting.get().getParticipants().stream()
               .filter(p -> user1Id.toString().equals(p.getUserId()))
@@ -547,7 +548,7 @@ public class MeetingServiceImplTest {
 
     @Test
     @DisplayName("If the meeting doesn't exists, it throws a 'not found' exception")
-    public void getMeetingEntity_testMeetingNotExists() {
+    void getMeetingEntity_testMeetingNotExists() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.empty());
 
       ChatsHttpException exception =
@@ -569,11 +570,11 @@ public class MeetingServiceImplTest {
 
   @Nested
   @DisplayName("Get meeting by room id tests")
-  public class GetMeetingByRoomIdTests {
+  class GetMeetingByRoomIdTests {
 
     @Test
     @DisplayName("Returns the meeting of the required with all participants")
-    public void getMeetingByRoomId_testOk() {
+    void getMeetingByRoomId_testOk() {
       when(roomService.getRoomEntityAndCheckUser(room1Id, UserPrincipal.create(user1Id), false))
           .thenReturn(room1);
       when(meetingRepository.getByRoomId(room1Id.toString())).thenReturn(Optional.of(meeting1));
@@ -588,22 +589,13 @@ public class MeetingServiceImplTest {
       assertEquals(4, meetingDto.getParticipants().size());
       assertEquals(
           1,
-          (int)
-              meetingDto.getParticipants().stream()
-                  .filter(p -> user1Id.equals(p.getUserId()))
-                  .count());
+          meetingDto.getParticipants().stream().filter(p -> user1Id.equals(p.getUserId())).count());
       assertEquals(
           2,
-          (int)
-              meetingDto.getParticipants().stream()
-                  .filter(p -> user2Id.equals(p.getUserId()))
-                  .count());
+          meetingDto.getParticipants().stream().filter(p -> user2Id.equals(p.getUserId())).count());
       assertEquals(
           1,
-          (int)
-              meetingDto.getParticipants().stream()
-                  .filter(p -> user3Id.equals(p.getUserId()))
-                  .count());
+          meetingDto.getParticipants().stream().filter(p -> user3Id.equals(p.getUserId())).count());
       Optional<ParticipantDto> participant1 =
           meetingDto.getParticipants().stream()
               .filter(p -> user1Id.equals(p.getUserId()))
@@ -623,7 +615,7 @@ public class MeetingServiceImplTest {
 
     @Test
     @DisplayName("If the room meeting doesn't exists, it throws a 'not found' exception")
-    public void getMeetingByRoomId_testMeetingNotExists() {
+    void getMeetingByRoomId_testMeetingNotExists() {
       when(roomService.getRoomEntityAndCheckUser(room1Id, UserPrincipal.create(user1Id), false))
           .thenReturn(room1);
       when(meetingRepository.getByRoomId(room1Id.toString())).thenReturn(Optional.empty());
@@ -648,72 +640,12 @@ public class MeetingServiceImplTest {
   }
 
   @Nested
-  @DisplayName("Gets or creates meeting entity by room id tests")
-  public class GetsOrCreatesMeetingEntityByRoomIdTests {
-
-    @Test
-    @DisplayName("If meeting exists, correctly returns it")
-    public void getsOrCreatesMeetingEntityByRoomId_textOkMeetingExists() {
-      UserPrincipal userPrincipal = UserPrincipal.create(user1Id).queueId(session1User1Id);
-      when(roomService.getRoomEntityAndCheckUser(room1Id, userPrincipal, false)).thenReturn(room1);
-      when(meetingRepository.getByRoomId(room1Id.toString())).thenReturn(Optional.of(meeting1));
-
-      Meeting meeting = meetingService.getsOrCreatesMeetingEntityByRoomId(room1Id, userPrincipal);
-      assertEquals(meeting1, meeting);
-
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(room1Id, userPrincipal, false);
-      verify(meetingRepository, times(1)).getByRoomId(room1Id.toString());
-      verifyNoMoreInteractions(roomService, meetingRepository);
-      verifyNoInteractions(membersService, videoServerService, eventDispatcher);
-    }
-
-    @Test
-    @DisplayName(
-        "If meeting doesn't exist, it correctly creates a new meeting for the specified room and"
-            + " returns it")
-    public void getsOrCreatesMeetingEntityByRoomId_testOkMeetingNotExists() {
-      UUID meetingId = UUID.randomUUID();
-      Meeting meeting = Meeting.create().id(meetingId.toString()).roomId(room1Id.toString());
-      UserPrincipal userPrincipal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(room1Id, userPrincipal, false)).thenReturn(room1);
-      when(meetingRepository.getByRoomId(room1Id.toString())).thenReturn(Optional.empty());
-      when(meetingRepository.insert(room1.getName(), MeetingType.PERMANENT, room1Id, null))
-          .thenReturn(meeting);
-
-      Meeting meetingEntity;
-      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-        uuid.when(UUID::randomUUID).thenReturn(meetingId);
-        uuid.when(() -> UUID.fromString(room1Id.toString())).thenReturn(room1Id);
-        uuid.when(() -> UUID.fromString(meetingId.toString())).thenReturn(meetingId);
-        meetingEntity = meetingService.getsOrCreatesMeetingEntityByRoomId(room1Id, userPrincipal);
-      }
-
-      assertNotNull(meetingEntity);
-      assertEquals(meetingId.toString(), meetingEntity.getId());
-      assertEquals(room1Id.toString(), meetingEntity.getRoomId());
-
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(room1Id, userPrincipal, false);
-      verify(roomService, times(1)).setMeetingIntoRoom(room1, meetingEntity);
-      verify(meetingRepository, times(1)).getByRoomId(room1Id.toString());
-      verify(meetingRepository, times(1))
-          .insert(room1.getName(), MeetingType.PERMANENT, room1Id, null);
-      verify(videoServerService, times(1)).startMeeting(meetingId.toString());
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
-              MeetingCreated.create().meetingId(meetingId).roomId(room1Id));
-      verifyNoMoreInteractions(roomService, meetingRepository, videoServerService, eventDispatcher);
-      verifyNoInteractions(membersService);
-    }
-  }
-
-  @Nested
   @DisplayName("Delete meeting by id tests")
-  public class DeleteMeetingByIdTests {
+  class DeleteMeetingByIdTests {
 
     @Test
     @DisplayName("Deletes the requested meeting")
-    public void deleteMeetingById_testOk() {
+    void deleteMeetingById_testOk() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.of(meeting1));
       when(roomService.getRoomEntityAndCheckUser(room1Id, UserPrincipal.create(user1Id), false))
           .thenReturn(room1);
@@ -735,7 +667,7 @@ public class MeetingServiceImplTest {
 
     @Test
     @DisplayName("If the meeting doesn't exist, it throws a 'not found' exception")
-    public void deleteMeetingById_testMeetingNotExists() {
+    void deleteMeetingById_testMeetingNotExists() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.empty());
 
       ChatsHttpException exception =
@@ -757,7 +689,7 @@ public class MeetingServiceImplTest {
     @Test
     @DisplayName(
         "If the authenticated user isn't a room meeting member, it throws a 'forbidden' exception")
-    public void getMeetingById_testUserNotRoomMeetingMember() {
+    void getMeetingById_testUserNotRoomMeetingMember() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.of(meeting1));
       when(membersService.getByUserIdAndRoomId(user1Id, room1Id)).thenReturn(Optional.empty());
 
@@ -782,7 +714,7 @@ public class MeetingServiceImplTest {
 
     @Test
     @DisplayName("If the meeting doesn't exists, it throws a 'not found' exception")
-    public void getMeetingById_testMeetingNotExists() {
+    void getMeetingById_testMeetingNotExists() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.empty());
 
       ChatsHttpException exception =

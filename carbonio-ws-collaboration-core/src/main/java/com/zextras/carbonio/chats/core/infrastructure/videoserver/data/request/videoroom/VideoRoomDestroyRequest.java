@@ -20,9 +20,8 @@ public class VideoRoomDestroyRequest extends VideoRoomRequest {
 
   public static final String DESTROY = "destroy";
 
-  private String  request;
-  private String  room;
-  private String  secret;
+  private String request;
+  private String room;
   private Boolean permanent;
 
   public static VideoRoomDestroyRequest create() {
@@ -47,15 +46,6 @@ public class VideoRoomDestroyRequest extends VideoRoomRequest {
     return this;
   }
 
-  public String getSecret() {
-    return secret;
-  }
-
-  public VideoRoomDestroyRequest secret(String secret) {
-    this.secret = secret;
-    return this;
-  }
-
   public Boolean getPermanent() {
     return permanent;
   }
@@ -67,20 +57,15 @@ public class VideoRoomDestroyRequest extends VideoRoomRequest {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof VideoRoomDestroyRequest)) {
-      return false;
-    }
-    VideoRoomDestroyRequest that = (VideoRoomDestroyRequest) o;
-    return Objects.equals(getRequest(), that.getRequest()) && Objects.equals(getRoom(),
-      that.getRoom()) && Objects.equals(getSecret(), that.getSecret()) && Objects.equals(
-      getPermanent(), that.getPermanent());
+    if (this == o) return true;
+    if (!(o instanceof VideoRoomDestroyRequest that)) return false;
+    return Objects.equals(getRequest(), that.getRequest())
+        && Objects.equals(getRoom(), that.getRoom())
+        && Objects.equals(getPermanent(), that.getPermanent());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getRequest(), getRoom(), getSecret(), getPermanent());
+    return Objects.hash(getRequest(), getRoom(), getPermanent());
   }
 }
