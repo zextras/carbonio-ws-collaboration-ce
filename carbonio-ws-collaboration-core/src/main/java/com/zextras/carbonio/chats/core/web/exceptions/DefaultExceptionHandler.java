@@ -4,23 +4,26 @@
 
 package com.zextras.carbonio.chats.core.web.exceptions;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.ext.Provider;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
+import jakarta.ws.rs.ext.Provider;
 
 @Singleton
 @Provider
 public class DefaultExceptionHandler extends ExceptionHandler<Exception> {
 
   @Inject
-  public DefaultExceptionHandler() {
-  }
+  public DefaultExceptionHandler() {}
 
   @Override
   public Response toResponse(Exception exception) {
-    return handleException(exception, exception.getMessage(), Status.INTERNAL_SERVER_ERROR.getStatusCode(),
-      Status.INTERNAL_SERVER_ERROR.getReasonPhrase(), true);
+    return handleException(
+        exception,
+        exception.getMessage(),
+        Status.INTERNAL_SERVER_ERROR.getStatusCode(),
+        Status.INTERNAL_SERVER_ERROR.getReasonPhrase(),
+        true);
   }
 }

@@ -4,10 +4,10 @@
 
 package com.zextras.carbonio.chats.core.data.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 import java.io.Serializable;
 import java.util.Objects;
-import javax.persistence.Column;
-import javax.persistence.Embeddable;
 
 @Embeddable
 public class ParticipantId implements Serializable {
@@ -20,8 +20,7 @@ public class ParticipantId implements Serializable {
   @Column(name = "USER_ID", length = 64, nullable = false)
   private String userId;
 
-  public ParticipantId() {
-  }
+  public ParticipantId() {}
 
   public ParticipantId(String meetingId, String userId) {
     this.meetingId = meetingId;
@@ -35,7 +34,6 @@ public class ParticipantId implements Serializable {
   public static ParticipantId create(String meetingId, String userId) {
     return new ParticipantId(meetingId, userId);
   }
-
 
   public String getMeetingId() {
     return meetingId;
@@ -64,8 +62,8 @@ public class ParticipantId implements Serializable {
       return false;
     }
     ParticipantId that = (ParticipantId) o;
-    return Objects.equals(getMeetingId(), that.getMeetingId()) &&
-      Objects.equals(getUserId(), that.getUserId());
+    return Objects.equals(getMeetingId(), that.getMeetingId())
+        && Objects.equals(getUserId(), that.getUserId());
   }
 
   @Override

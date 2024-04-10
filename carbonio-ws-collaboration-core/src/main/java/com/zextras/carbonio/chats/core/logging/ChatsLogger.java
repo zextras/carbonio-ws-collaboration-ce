@@ -4,25 +4,28 @@
 
 package com.zextras.carbonio.chats.core.logging;
 
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Class for wrapping the methods of the logger
- */
+/** Class for wrapping the methods of the logger */
 public class ChatsLogger {
 
   /**
    * Unique method to wrap slf4j logger
    *
-   * @param state     log state {@link ChatsLoggerLevel}
-   * @param clazz     class from which the log comes
-   * @param message   message to log
+   * @param state log state {@link ChatsLoggerLevel}
+   * @param clazz class from which the log comes
+   * @param message message to log
    * @param throwable exception to log
    */
-  public static void log(ChatsLoggerLevel state, @Nullable Class<?> clazz, String message, @Nullable Throwable throwable) {
-    Logger logger = LoggerFactory.getLogger(clazz == null ? ChatsLogger.class : clazz); //TODO check class
+  public static void log(
+      ChatsLoggerLevel state,
+      @Nullable Class<?> clazz,
+      String message,
+      @Nullable Throwable throwable) {
+    Logger logger =
+        LoggerFactory.getLogger(clazz == null ? ChatsLogger.class : clazz); // TODO check class
     switch (state) {
       case ERROR:
         logger.error(message, throwable);
@@ -42,7 +45,7 @@ public class ChatsLogger {
     }
   }
 
-  //TODO context info
+  // TODO context info
 
   /**
    * Generic log the error message
@@ -56,7 +59,7 @@ public class ChatsLogger {
   /**
    * Log error message from a specific class
    *
-   * @param clazz   class from which the log comes
+   * @param clazz class from which the log comes
    * @param message message to log
    */
   public static void error(Class<?> clazz, String message) {
@@ -66,7 +69,7 @@ public class ChatsLogger {
   /**
    * Generic log error message and exception and exception
    *
-   * @param message   message to log
+   * @param message message to log
    * @param throwable exception to log
    */
   public static void error(String message, Throwable throwable) {
@@ -76,8 +79,8 @@ public class ChatsLogger {
   /**
    * Log error message and exception from a specific class
    *
-   * @param clazz     class from which the log comes
-   * @param message   message to log
+   * @param clazz class from which the log comes
+   * @param message message to log
    * @param throwable exception to log
    */
   public static void error(Class<?> clazz, String message, Throwable throwable) {
@@ -96,7 +99,7 @@ public class ChatsLogger {
   /**
    * Log warn message from a specific class
    *
-   * @param clazz   class from which the log comes
+   * @param clazz class from which the log comes
    * @param message message to log
    */
   public static void warn(Class<?> clazz, String message) {
@@ -106,7 +109,7 @@ public class ChatsLogger {
   /**
    * Generic log warn message and exception
    *
-   * @param message   message to log
+   * @param message message to log
    * @param throwable exception to log
    */
   public static void warn(String message, Throwable throwable) {
@@ -116,8 +119,8 @@ public class ChatsLogger {
   /**
    * Log warn message and exception from a specific class
    *
-   * @param clazz     class from which the log comes
-   * @param message   message to log
+   * @param clazz class from which the log comes
+   * @param message message to log
    * @param throwable exception to log
    */
   public static void warn(Class<?> clazz, String message, Throwable throwable) {
@@ -136,7 +139,7 @@ public class ChatsLogger {
   /**
    * Log info message from a specific class
    *
-   * @param clazz   class from which the log comes
+   * @param clazz class from which the log comes
    * @param message message to log
    */
   public static void info(Class<?> clazz, String message) {
@@ -146,7 +149,7 @@ public class ChatsLogger {
   /**
    * Generic log info message and exception
    *
-   * @param message   message to log
+   * @param message message to log
    * @param throwable exception to log
    */
   public static void info(String message, Throwable throwable) {
@@ -156,8 +159,8 @@ public class ChatsLogger {
   /**
    * Log info message and exception from a specific class
    *
-   * @param clazz     class from which the log comes
-   * @param message   message to log
+   * @param clazz class from which the log comes
+   * @param message message to log
    * @param throwable exception to log
    */
   public static void info(Class<?> clazz, String message, Throwable throwable) {
@@ -176,7 +179,7 @@ public class ChatsLogger {
   /**
    * Log debug message from a specific class
    *
-   * @param clazz   class from which the log comes
+   * @param clazz class from which the log comes
    * @param message message to log
    */
   public static void debug(Class<?> clazz, String message) {
@@ -186,7 +189,7 @@ public class ChatsLogger {
   /**
    * Generic log debug message and exception
    *
-   * @param message   message to log
+   * @param message message to log
    * @param throwable exception to log
    */
   public static void debug(String message, Throwable throwable) {
@@ -196,8 +199,8 @@ public class ChatsLogger {
   /**
    * Log debug message and exception from a specific class
    *
-   * @param clazz     class from which the log comes
-   * @param message   message to log
+   * @param clazz class from which the log comes
+   * @param message message to log
    * @param throwable exception to log
    */
   public static void debug(Class<?> clazz, String message, Throwable throwable) {
@@ -216,7 +219,7 @@ public class ChatsLogger {
   /**
    * Log trace message from a specific class
    *
-   * @param clazz   class from which the log comes
+   * @param clazz class from which the log comes
    * @param message message to log
    */
   public static void trace(Class<?> clazz, String message) {
@@ -226,7 +229,7 @@ public class ChatsLogger {
   /**
    * Generic log trace message and exception
    *
-   * @param message   message to log
+   * @param message message to log
    * @param throwable exception to log
    */
   public static void trace(String message, Throwable throwable) {
@@ -236,8 +239,8 @@ public class ChatsLogger {
   /**
    * Log trace message and exception from a specific class
    *
-   * @param clazz     class from which the log comes
-   * @param message   message to log
+   * @param clazz class from which the log comes
+   * @param message message to log
    * @param throwable exception to log
    */
   public static void trace(Class<?> clazz, String message, Throwable throwable) {

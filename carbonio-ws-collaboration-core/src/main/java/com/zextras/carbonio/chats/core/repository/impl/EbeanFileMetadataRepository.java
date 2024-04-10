@@ -11,11 +11,11 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import io.ebean.Database;
 import io.ebean.ExpressionList;
 import io.ebean.annotation.Transactional;
+import jakarta.annotation.Nullable;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Transactional
 @Singleton
@@ -30,41 +30,43 @@ public class EbeanFileMetadataRepository implements FileMetadataRepository {
 
   @Override
   public Optional<FileMetadata> getById(String fileId) {
-    return db.find(FileMetadata.class)
-      .where()
-      .eq("id", fileId)
-      .findOneOrEmpty();
+    return db.find(FileMetadata.class).where().eq("id", fileId).findOneOrEmpty();
   }
 
   @Override
   public List<String> getIdsByRoomIdAndType(String roomId, FileMetadataType type) {
     return db.find(FileMetadata.class)
-      .where()
-      .eq("roomId", roomId).and().eq("type", type)
-      .select("id")
-      .findSingleAttributeList();
+        .where()
+        .eq("roomId", roomId)
+        .and()
+        .eq("type", type)
+        .select("id")
+        .findSingleAttributeList();
   }
-
 
   @Override
   public List<FileMetadata> getByRoomIdAndType(
-    String roomId, FileMetadataType type, int itemsNumber, @Nullable PaginationFilter paginationFilter
-  ) {
-    ExpressionList<FileMetadata> query = db.find(FileMetadata.class)
-      .where()
-      .eq("roomId", roomId).and()
-      .eq("type", type);
+      String roomId,
+      FileMetadataType type,
+      int itemsNumber,
+      @Nullable PaginationFilter paginationFilter) {
+    ExpressionList<FileMetadata> query =
+        db.find(FileMetadata.class).where().eq("roomId", roomId).and().eq("type", type);
     if (paginationFilter != null) {
-      query.and()
-        .lt("createdAt", paginationFilter.getCreatedAt()).or()
-        .eq("createdAt", paginationFilter.getCreatedAt())
-        .lt("id", paginationFilter.getId());
+      query
+          .and()
+          .lt("createdAt", paginationFilter.getCreatedAt())
+          .or()
+          .eq("createdAt", paginationFilter.getCreatedAt())
+          .lt("id", paginationFilter.getId());
     }
-    return query.order().desc("createdAt")
-      .order().desc("id")
-      .setMaxRows(itemsNumber)
-      .findList();
-
+    return query
+        .orderBy()
+        .desc("createdAt")
+        .orderBy()
+        .desc("id")
+        .setMaxRows(itemsNumber)
+        .findList();
   }
 
   @Override

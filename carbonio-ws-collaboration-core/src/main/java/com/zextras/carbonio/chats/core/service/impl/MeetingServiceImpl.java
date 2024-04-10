@@ -27,6 +27,8 @@ import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.MeetingTypeDto;
 import io.ebean.annotation.Transactional;
 import io.vavr.control.Option;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -35,8 +37,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class MeetingServiceImpl implements MeetingService {

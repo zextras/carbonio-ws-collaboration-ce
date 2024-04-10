@@ -4,12 +4,11 @@
 
 package com.zextras.carbonio.chats.it.tools;
 
+import jakarta.annotation.Nullable;
+import jakarta.ws.rs.core.MediaType;
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Optional;
-import javax.annotation.Nullable;
-import javax.validation.constraints.Null;
-import javax.ws.rs.core.MediaType;
 import org.jboss.resteasy.core.SynchronousDispatcher;
 import org.jboss.resteasy.core.SynchronousExecutionContext;
 import org.jboss.resteasy.mock.MockHttpRequest;
@@ -40,44 +39,54 @@ public class ResteasyRequestDispatcher {
     return sendRequest(request);
   }
 
-  private MockHttpRequest preparePost(String path, @Nullable Map<String, String> requestHeaders, @Nullable String userToken)
-    throws URISyntaxException {
+  private MockHttpRequest preparePost(
+      String path, @Nullable Map<String, String> requestHeaders, @Nullable String userToken)
+      throws URISyntaxException {
     MockHttpRequest request = MockHttpRequest.post(path);
     Optional.ofNullable(requestHeaders).ifPresent(r -> r.forEach(request::header));
-    Optional.ofNullable(userToken).ifPresent(token -> {
-      request.cookie("ZM_AUTH_TOKEN", token);
-      request.header("Cookie", token);
-    });
+    Optional.ofNullable(userToken)
+        .ifPresent(
+            token -> {
+              request.cookie("ZM_AUTH_TOKEN", token);
+              request.header("Cookie", token);
+            });
     request.accept(MediaType.APPLICATION_JSON);
     request.contentType(MediaType.APPLICATION_JSON_TYPE);
     return request;
   }
 
   public MockHttpResponse post(String path, String userToken) throws URISyntaxException {
-    return post(path, (String)null, Map.of(), userToken);
+    return post(path, (String) null, Map.of(), userToken);
   }
 
-  public MockHttpResponse post(String path, String requestBody, @Nullable String userToken) throws URISyntaxException {
+  public MockHttpResponse post(String path, String requestBody, @Nullable String userToken)
+      throws URISyntaxException {
     return post(path, requestBody, Map.of(), userToken);
   }
 
   public MockHttpResponse post(
-    String path, @Nullable String requestBody, Map<String, String> requestHeaders, @Nullable String userToken
-  ) throws URISyntaxException {
+      String path,
+      @Nullable String requestBody,
+      Map<String, String> requestHeaders,
+      @Nullable String userToken)
+      throws URISyntaxException {
     MockHttpRequest request = preparePost(path, requestHeaders, userToken);
     Optional.ofNullable(requestBody).ifPresent(body -> request.content(requestBody.getBytes()));
     return sendRequest(request);
   }
 
   public MockHttpResponse post(
-    String path, byte[] requestBody, Map<String, String> requestHeaders, @Nullable String userToken
-  ) throws URISyntaxException {
+      String path,
+      byte[] requestBody,
+      Map<String, String> requestHeaders,
+      @Nullable String userToken)
+      throws URISyntaxException {
     return sendRequest(preparePost(path, requestHeaders, userToken).content(requestBody));
   }
 
-
-  private MockHttpRequest preparePut(String path, Map<String, String> requestHeaders, @Nullable String userToken)
-    throws URISyntaxException {
+  private MockHttpRequest preparePut(
+      String path, Map<String, String> requestHeaders, @Nullable String userToken)
+      throws URISyntaxException {
     MockHttpRequest request = MockHttpRequest.put(path);
     requestHeaders.forEach(request::header);
     Optional.ofNullable(userToken).ifPresent(token -> request.cookie("ZM_AUTH_TOKEN", token));
@@ -88,28 +97,33 @@ public class ResteasyRequestDispatcher {
   }
 
   public MockHttpResponse put(String path, @Nullable String requestBody, @Nullable String userToken)
-    throws URISyntaxException {
+      throws URISyntaxException {
     return put(path, requestBody, Map.of(), userToken);
   }
 
   public MockHttpResponse put(
-    String path, @Nullable String requestBody, Map<String, String> requestHeaders, @Nullable String userToken
-  )
-    throws URISyntaxException {
+      String path,
+      @Nullable String requestBody,
+      Map<String, String> requestHeaders,
+      @Nullable String userToken)
+      throws URISyntaxException {
     MockHttpRequest request = preparePut(path, requestHeaders, userToken);
     Optional.ofNullable(requestBody).ifPresent(body -> request.content(requestBody.getBytes()));
     return sendRequest(request);
   }
 
   public MockHttpResponse put(
-    String path, byte[] requestBody, Map<String, String> requestHeaders, @Nullable String userToken
-  )
-    throws URISyntaxException {
+      String path,
+      byte[] requestBody,
+      Map<String, String> requestHeaders,
+      @Nullable String userToken)
+      throws URISyntaxException {
     return sendRequest(preparePut(path, requestHeaders, userToken).content(requestBody));
   }
 
-  private MockHttpRequest prepareDelete(String path, Map<String, String> requestHeaders, @Nullable String userToken)
-    throws URISyntaxException {
+  private MockHttpRequest prepareDelete(
+      String path, Map<String, String> requestHeaders, @Nullable String userToken)
+      throws URISyntaxException {
     MockHttpRequest request = MockHttpRequest.delete(path);
     requestHeaders.forEach(request::header);
     Optional.ofNullable(userToken).ifPresent(token -> request.cookie("ZM_AUTH_TOKEN", token));
@@ -119,19 +133,21 @@ public class ResteasyRequestDispatcher {
     return request;
   }
 
-  public MockHttpResponse delete(String path, @Nullable String userToken) throws URISyntaxException {
+  public MockHttpResponse delete(String path, @Nullable String userToken)
+      throws URISyntaxException {
     return sendRequest(prepareDelete(path, Map.of(), userToken));
   }
 
-  public MockHttpResponse delete(String path, Map<String, String> requestHeaders, @Nullable String userToken)
-    throws URISyntaxException {
+  public MockHttpResponse delete(
+      String path, Map<String, String> requestHeaders, @Nullable String userToken)
+      throws URISyntaxException {
     return sendRequest(prepareDelete(path, requestHeaders, userToken));
   }
 
   private MockHttpResponse sendRequest(MockHttpRequest request) {
     MockHttpResponse response = new MockHttpResponse();
-    SynchronousExecutionContext synchronousExecutionContext = new SynchronousExecutionContext(
-      (SynchronousDispatcher) dispatcher, request, response);
+    SynchronousExecutionContext synchronousExecutionContext =
+        new SynchronousExecutionContext((SynchronousDispatcher) dispatcher, request, response);
     request.setAsynchronousContext(synchronousExecutionContext);
     dispatcher.invoke(request, response);
     return response;

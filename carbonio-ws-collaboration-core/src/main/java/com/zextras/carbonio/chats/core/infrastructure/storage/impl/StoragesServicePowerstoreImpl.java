@@ -12,12 +12,12 @@ import com.zextras.filestore.model.BulkDeleteResponseItem;
 import com.zextras.filestore.model.ChatsIdentifier;
 import com.zextras.filestore.model.IdentifierType;
 import com.zextras.filestore.powerstore.api.powerstore.PowerstoreClient;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.File;
 import java.io.InputStream;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import org.apache.commons.io.FileUtils;
 
 @Singleton
@@ -46,19 +46,22 @@ public class StoragesServicePowerstoreImpl implements StoragesService {
   public void saveFile(File file, FileMetadata metadata, String currentUserId) {
     try {
       powerstoreClient.uploadPut(
-        ChatsIdentifier.of(metadata.getId(), currentUserId),
-        FileUtils.openInputStream(file), metadata.getOriginalSize());
+          ChatsIdentifier.of(metadata.getId(), currentUserId),
+          FileUtils.openInputStream(file),
+          metadata.getOriginalSize());
     } catch (Exception e) {
       throw new StorageException("An error occurred while uploading the file", e);
     }
   }
 
   @Override
-  public void copyFile(String sourceId, String sourceOwnerId, String destinationId, String destinationOwnerId) {
+  public void copyFile(
+      String sourceId, String sourceOwnerId, String destinationId, String destinationOwnerId) {
     try {
       powerstoreClient.copy(
-        ChatsIdentifier.of(sourceId, sourceOwnerId),
-        ChatsIdentifier.of(destinationId, destinationOwnerId), false);
+          ChatsIdentifier.of(sourceId, sourceOwnerId),
+          ChatsIdentifier.of(destinationId, destinationOwnerId),
+          false);
     } catch (Exception e) {
       throw new StorageException("An error occurred while coping the file", e);
     }
@@ -77,10 +80,18 @@ public class StoragesServicePowerstoreImpl implements StoragesService {
   @Override
   public List<String> deleteFileList(List<String> fileIds, String currentUserId) {
     try {
-      return fileIds.size() == 0 ? List.of() :
-        powerstoreClient.bulkDelete(IdentifierType.chats, currentUserId, fileIds.stream()
-            .map(BulkDeleteRequestItem::chatsItem).collect(Collectors.toList()))
-          .stream().map(BulkDeleteResponseItem::getNode).collect(Collectors.toList());
+      return fileIds.size() == 0
+          ? List.of()
+          : powerstoreClient
+              .bulkDelete(
+                  IdentifierType.chats,
+                  currentUserId,
+                  fileIds.stream()
+                      .map(BulkDeleteRequestItem::chatsItem)
+                      .collect(Collectors.toList()))
+              .stream()
+              .map(BulkDeleteResponseItem::getNode)
+              .collect(Collectors.toList());
     } catch (Exception e) {
       throw new StorageException("An error occurred while deleting files list", e);
     }

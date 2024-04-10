@@ -10,10 +10,10 @@ import com.zextras.carbonio.chats.core.repository.WaitingParticipantRepository;
 import io.ebean.Database;
 import io.ebean.Query;
 import io.vavr.control.Option;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.UUID;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class EbeanWaitingParticipantRepository implements WaitingParticipantRepository {

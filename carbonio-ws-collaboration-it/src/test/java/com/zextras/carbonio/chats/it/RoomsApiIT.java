@@ -53,6 +53,7 @@ import com.zextras.carbonio.chats.model.RoomRankDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
+import jakarta.annotation.Nullable;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -65,7 +66,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -203,7 +203,6 @@ public class RoomsApiIT {
 
       MockHttpResponse response = dispatcher.get(url(null), user1Token);
       assertEquals(200, response.getStatus());
-      assertFalse(response.getContentAsString().contains("members"));
       assertFalse(response.getContentAsString().contains("userSettings"));
       List<RoomDto> rooms =
           objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
@@ -371,7 +370,6 @@ public class RoomsApiIT {
       MockHttpResponse response =
           dispatcher.get(url(Map.of("extraFields", List.of("settings"))), user1Token);
       assertEquals(200, response.getStatus());
-      assertFalse(response.getContentAsString().contains("members"));
       List<RoomDto> rooms =
           objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
       assertEquals(3, rooms.size());

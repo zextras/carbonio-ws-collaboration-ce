@@ -10,13 +10,12 @@ import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
 import io.ebean.annotation.Transactional;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 
 @Transactional
 @Singleton
@@ -32,47 +31,45 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
   @Override
   public Optional<RoomUserSettings> getByRoomIdAndUserId(String roomId, String userId) {
     return db.find(RoomUserSettings.class)
-      .where()
-      .eq("id", new SubscriptionId(roomId, userId))
-      .findOneOrEmpty();
+        .where()
+        .eq("id", new SubscriptionId(roomId, userId))
+        .findOneOrEmpty();
   }
 
   @Override
-  public Map<String, RoomUserSettings> getMapByRoomsIdsAndUserIdGroupedByRoomsIds(List<String> roomsIds, String userId) {
+  public Map<String, RoomUserSettings> getMapByRoomsIdsAndUserIdGroupedByRoomsIds(
+      List<String> roomsIds, String userId) {
     return db.find(RoomUserSettings.class)
-      .where().eq("userId", userId)
-      .and().in("id.roomId", roomsIds)
-      .setMapKey("id.roomId")
-      .findMap();
+        .where()
+        .eq("userId", userId)
+        .and()
+        .in("id.roomId", roomsIds)
+        .setMapKey("id.roomId")
+        .findMap();
   }
 
   @Override
   public List<RoomUserSettings> getByUserId(String userId) {
-    return db.find(RoomUserSettings.class)
-      .where().eq("userId", userId)
-      .findList();
+    return db.find(RoomUserSettings.class).where().eq("userId", userId).findList();
   }
 
   @Override
   public Map<String, RoomUserSettings> getMapGroupedByUserId(String userId) {
     return db.find(RoomUserSettings.class)
-      .where().eq("userId", userId)
-      .setMapKey("id.roomId")
-      .findMap();
-
+        .where()
+        .eq("userId", userId)
+        .setMapKey("id.roomId")
+        .findMap();
   }
 
   @Override
   public List<RoomUserSettings> getByRoomId(String roomId) {
-    return db.find(RoomUserSettings.class)
-      .where().eq("id.roomId", roomId)
-      .findList();
+    return db.find(RoomUserSettings.class).where().eq("id.roomId", roomId).findList();
   }
 
   @Override
   public void delete(RoomUserSettings userSettings) {
     db.delete(userSettings);
-
   }
 
   @Override
@@ -89,33 +86,36 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
   @Override
   public Optional<Integer> getWorkspaceMaxRank(String userId) {
     return Optional.ofNullable(
-      db.createQuery(RoomUserSettings.class)
-        .select("max(rank)")
-        .where()
-        .eq("userId", userId)
-        .and()
-        .eq("room.type", RoomTypeDto.WORKSPACE)
-        .findSingleAttribute());
+        db.createQuery(RoomUserSettings.class)
+            .select("max(rank)")
+            .where()
+            .eq("userId", userId)
+            .and()
+            .eq("room.type", RoomTypeDto.WORKSPACE)
+            .findSingleAttribute());
   }
 
   @Override
-  public Map<String, RoomUserSettings> getWorkspaceMaxRanksMapGroupedByUsers(List<String> usersIds) {
+  public Map<String, RoomUserSettings> getWorkspaceMaxRanksMapGroupedByUsers(
+      List<String> usersIds) {
     return db.createQuery(RoomUserSettings.class)
-      .select("userId, max(rank)")
-      .where()
-      .eq("room.type", RoomTypeDto.WORKSPACE)
-      .and()
-      .in("userId", usersIds)
-      .setMapKey("userId")
-      .findMap();
+        .select("userId, max(rank)")
+        .where()
+        .eq("room.type", RoomTypeDto.WORKSPACE)
+        .and()
+        .in("userId", usersIds)
+        .setMapKey("userId")
+        .findMap();
   }
 
   @Override
   public Map<String, RoomUserSettings> getWorkspaceMapGroupedByRoomId(String userId) {
     return db.find(RoomUserSettings.class)
-      .where().eq("userId", userId)
-      .and().isNotNull("rank")
-      .setMapKey("id.roomId")
-      .findMap();
+        .where()
+        .eq("userId", userId)
+        .and()
+        .isNotNull("rank")
+        .setMapKey("id.roomId")
+        .findMap();
   }
 }

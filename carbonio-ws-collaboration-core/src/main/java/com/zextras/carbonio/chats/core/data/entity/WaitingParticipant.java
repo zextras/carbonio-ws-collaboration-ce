@@ -5,8 +5,8 @@
 package com.zextras.carbonio.chats.core.data.entity;
 
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
+import jakarta.persistence.*;
 import java.util.Objects;
-import javax.persistence.*;
 
 @Entity
 @Table(name = "WAITING_PARTICIPANT", schema = "CHATS")

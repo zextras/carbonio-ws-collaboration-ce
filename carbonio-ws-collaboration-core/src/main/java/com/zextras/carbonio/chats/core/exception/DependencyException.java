@@ -5,21 +5,23 @@
 package com.zextras.carbonio.chats.core.exception;
 
 import com.zextras.carbonio.chats.core.infrastructure.DependencyType;
-import javax.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.Response.Status;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * This is an abstract class implemented by dependent services exceptions that wrap an HTTP error response. Each class
- * that extends this represents a specific dependent service.
+ * This is an abstract class implemented by dependent services exceptions that wrap an HTTP error
+ * response. Each class that extends this represents a specific dependent service.
  */
 public abstract class DependencyException extends ChatsHttpException {
 
-  private static final long           serialVersionUID             = -8436905681137000221L;
-  private static final int            MANDATORY_HTTP_STATUS_CODE   = Status.INTERNAL_SERVER_ERROR.getStatusCode();
-  private static final String         MANDATORY_HTTP_REASON_PHRASE = Status.INTERNAL_SERVER_ERROR.getReasonPhrase();
-  private static final int            OPTIONAL_HTTP_STATUS_CODE    = 424;
-  private static final String         OPTIONAL_HTTP_REASON_PHRASE  = "Failed dependency";
-  private final        DependencyType type;
+  private static final long serialVersionUID = -8436905681137000221L;
+  private static final int MANDATORY_HTTP_STATUS_CODE =
+      Status.INTERNAL_SERVER_ERROR.getStatusCode();
+  private static final String MANDATORY_HTTP_REASON_PHRASE =
+      Status.INTERNAL_SERVER_ERROR.getReasonPhrase();
+  private static final int OPTIONAL_HTTP_STATUS_CODE = 424;
+  private static final String OPTIONAL_HTTP_REASON_PHRASE = "Failed dependency";
+  private final DependencyType type;
 
   public DependencyException(DependencyType type) {
     super(getHttpStatusCode(type), getHttpStatusPhrase(type));
@@ -51,10 +53,21 @@ public abstract class DependencyException extends ChatsHttpException {
     this.type = type;
   }
 
-  protected DependencyException(DependencyType type, String error, String debugInfo, Throwable cause,
-    boolean enableSuppression, boolean writableStackTrace) {
-    super(getHttpStatusCode(type), getHttpStatusPhrase(type), error, debugInfo, cause, enableSuppression,
-      writableStackTrace);
+  protected DependencyException(
+      DependencyType type,
+      String error,
+      String debugInfo,
+      Throwable cause,
+      boolean enableSuppression,
+      boolean writableStackTrace) {
+    super(
+        getHttpStatusCode(type),
+        getHttpStatusPhrase(type),
+        error,
+        debugInfo,
+        cause,
+        enableSuppression,
+        writableStackTrace);
     this.type = type;
   }
 

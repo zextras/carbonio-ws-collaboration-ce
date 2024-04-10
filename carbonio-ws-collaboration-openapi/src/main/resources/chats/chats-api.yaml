@@ -689,10 +689,7 @@ components:
       in: query
       name: quality
       schema:
-        allOf:
-          - $ref: '#/components/schemas/ImageQualityEnum'
-        default: medium
-      required: false
+        $ref: '#/components/schemas/ImageQualityEnum'
     queryImageType:
       in: query
       name: output_format

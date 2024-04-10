@@ -4,18 +4,16 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
-import javax.servlet.http.HttpSession;
-import javax.websocket.HandshakeResponse;
-import javax.websocket.server.HandshakeRequest;
-import javax.websocket.server.ServerEndpointConfig;
+import jakarta.servlet.http.HttpSession;
+import jakarta.websocket.HandshakeResponse;
+import jakarta.websocket.server.HandshakeRequest;
+import jakarta.websocket.server.ServerEndpointConfig;
 
 public class EventsWebSocketEndpointConfigurator extends ServerEndpointConfig.Configurator {
 
   private final EventsWebSocketEndpoint eventsWebSocketEndpoint;
 
-  public EventsWebSocketEndpointConfigurator(
-    EventsWebSocketEndpoint eventsWebSocketEndpoint
-  ) {
+  public EventsWebSocketEndpointConfigurator(EventsWebSocketEndpoint eventsWebSocketEndpoint) {
     this.eventsWebSocketEndpoint = eventsWebSocketEndpoint;
   }
 
@@ -26,9 +24,9 @@ public class EventsWebSocketEndpointConfigurator extends ServerEndpointConfig.Co
   }
 
   @Override
-  public void modifyHandshake(ServerEndpointConfig config, HandshakeRequest request, HandshakeResponse response) {
+  public void modifyHandshake(
+      ServerEndpointConfig config, HandshakeRequest request, HandshakeResponse response) {
     HttpSession httpSession = (HttpSession) request.getHttpSession();
     config.getUserProperties().put(HttpSession.class.getName(), httpSession);
   }
-
 }

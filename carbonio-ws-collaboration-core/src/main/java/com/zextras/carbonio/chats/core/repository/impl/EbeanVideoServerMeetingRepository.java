@@ -7,10 +7,10 @@ package com.zextras.carbonio.chats.core.repository.impl;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import io.ebean.Database;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.Optional;
 import java.util.UUID;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class EbeanVideoServerMeetingRepository implements VideoServerMeetingRepository {
