@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.matcher.Matchers;
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.zaxxer.hikari.HikariConfig;
@@ -119,6 +120,7 @@ import io.ebean.DatabaseFactory;
 import io.ebean.annotation.Platform;
 import io.ebean.config.DatabaseConfig;
 import jakarta.inject.Singleton;
+import java.io.IOException;
 import java.time.Clock;
 import java.time.ZoneId;
 import java.util.Optional;
@@ -348,7 +350,21 @@ public class CoreModule extends AbstractModule {
           appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(false));
       return Optional.of(factory.newConnection());
     } catch (Exception e) {
-      ChatsLogger.error("getRabbitMqConnection", e);
+      ChatsLogger.error("Message broker error: ", e);
+      return Optional.empty();
+    }
+  }
+
+  @Provides
+  private Optional<Channel> getChannel(Optional<Connection> connection) {
+    if (connection.isEmpty()) {
+      ChatsLogger.error("RabbitMQ connection is not up!");
+      return Optional.empty();
+    }
+    try {
+      return connection.get().openChannel();
+    } catch (IOException e) {
+      ChatsLogger.error("Could not create RabbitMQ channel for websocket");
       return Optional.empty();
     }
   }

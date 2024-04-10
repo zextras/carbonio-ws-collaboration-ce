@@ -15,7 +15,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <groupId>com.zextras.carbonio.ws-collaboration</groupId>
   <artifactId>carbonio-ws-collaboration-ce</artifactId>
-  <version>0.4.0</version>
+  <version>0.5.0</version>
 
   <repositories>
     <repository>
@@ -88,7 +88,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Consul -->
     <com.orbitz.consul.consul-client.version>1.5.3</com.orbitz.consul.consul-client.version>
     <!-- Rabbit MQ -->
-    <com.rabbitmq.amqp-client.version>5.15.0</com.rabbitmq.amqp-client.version>
+    <com.rabbitmq.amqp-client.version>5.20.0</com.rabbitmq.amqp-client.version>
     <!-- Web Socket -->
     <jakarta.websocket-api.version>2.0.0</jakarta.websocket-api.version>
     <jakarta.el>5.0.0-M1</jakarta.el>
@@ -105,7 +105,6 @@ SPDX-License-Identifier: AGPL-3.0-only
     <org.mock-server.version>5.15.0</org.mock-server.version>
     <com.github.fridujo-rabbitmq-mock.version>1.2.0</com.github.fridujo-rabbitmq-mock.version>
 
-
     <!-- Plugins -->
     <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
     <maven-resources-plugin.version>3.2.0</maven-resources-plugin.version>
@@ -118,7 +117,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <dependencyManagement>
     <dependencies>
-
       <!-- Carbonio User Management -->
       <dependency>
         <groupId>com.zextras.carbonio.user-management</groupId>
@@ -405,7 +403,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         <artifactId>amqp-client</artifactId>
         <version>${com.rabbitmq.amqp-client.version}</version>
       </dependency>
-
 
       <!-- Tests dependency -->
       <!-- JUnit Jupiter -->

@@ -73,13 +73,9 @@ public class VideoServerEventListener {
   }
 
   public void start() {
-    if (eventDispatcher.getConnection().isEmpty()) {
-      throw new InternalErrorException("RabbitMQ connection is not up!");
-    }
-    Optional<Channel> optionalChannel = eventDispatcher.createChannel();
+    Optional<Channel> optionalChannel = eventDispatcher.getChannel();
     if (optionalChannel.isEmpty()) {
-      ChatsLogger.error("Could not create RabbitMQ channel for websocket");
-      return;
+      throw new InternalErrorException("RabbitMQ connection channel is not up!");
     }
     final Channel channel = optionalChannel.get();
     try {
