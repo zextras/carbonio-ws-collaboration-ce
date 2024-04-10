@@ -27,6 +27,7 @@ import com.zextras.carbonio.meeting.model.MeetingTypeDto;
 import io.vavr.control.Option;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -42,6 +43,7 @@ public class MeetingServiceImpl implements MeetingService {
   private final MembersService membersService;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
+  private final Clock clock;
 
   @Inject
   public MeetingServiceImpl(
@@ -50,13 +52,15 @@ public class MeetingServiceImpl implements MeetingService {
       RoomService roomService,
       MembersService membersService,
       VideoServerService videoServerService,
-      EventDispatcher eventDispatcher) {
+      EventDispatcher eventDispatcher,
+      Clock clock) {
     this.meetingRepository = meetingRepository;
     this.meetingMapper = meetingMapper;
     this.roomService = roomService;
     this.membersService = membersService;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
+    this.clock = clock;
   }
 
   @Override
@@ -100,8 +104,10 @@ public class MeetingServiceImpl implements MeetingService {
                             if (!Objects.equals(s, meeting.getActive())) {
                               if (Boolean.TRUE.equals(s)) {
                                 videoServerService.startMeeting(meeting.getId());
+                                meeting.startedAt(OffsetDateTime.now(clock));
                               } else {
                                 videoServerService.stopMeeting(meeting.getId());
+                                meeting.startedAt(null);
                               }
                               meeting.active(s);
                             }
@@ -118,6 +124,7 @@ public class MeetingServiceImpl implements MeetingService {
                           ? MeetingStarted.create()
                               .meetingId(UUID.fromString(updatedMeeting.getId()))
                               .starterUser(user.getUUID())
+                              .startedAt(updatedMeeting.getStartedAt())
                           : MeetingStopped.create()
                               .meetingId(UUID.fromString(updatedMeeting.getId())));
                   return updatedMeeting;

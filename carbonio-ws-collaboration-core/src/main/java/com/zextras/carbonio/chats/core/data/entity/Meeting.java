@@ -19,15 +19,10 @@ import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Objects;
 
 @Entity
 @Table(name = "MEETING", schema = "CHATS")
 public class Meeting {
-
-  public static Meeting create() {
-    return new Meeting();
-  }
 
   @Id
   @Column(name = "ID", length = 64, nullable = false)
@@ -51,12 +46,20 @@ public class Meeting {
   @WhenCreated
   private OffsetDateTime createdAt;
 
+  @Column(name = "STARTED_AT")
+  @Temporal(TemporalType.TIMESTAMP)
+  private OffsetDateTime startedAt;
+
   @Column(name = "EXPIRATION")
   @Temporal(TemporalType.TIMESTAMP)
   private OffsetDateTime expiration;
 
   @Column(name = "ACTIVE", nullable = false)
   private Boolean active;
+
+  public static Meeting create() {
+    return new Meeting();
+  }
 
   public String getId() {
     return id;
@@ -116,6 +119,15 @@ public class Meeting {
     return createdAt;
   }
 
+  public OffsetDateTime getStartedAt() {
+    return startedAt;
+  }
+
+  public Meeting startedAt(OffsetDateTime startedAt) {
+    this.startedAt = startedAt;
+    return this;
+  }
+
   public Boolean getActive() {
     return active;
   }
@@ -123,25 +135,5 @@ public class Meeting {
   public Meeting active(Boolean active) {
     this.active = active;
     return this;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    Meeting meeting = (Meeting) o;
-    return Objects.equals(getId(), meeting.getId())
-        && Objects.equals(getRoomId(), meeting.getRoomId())
-        && Objects.equals(getParticipants(), meeting.getParticipants())
-        && Objects.equals(getCreatedAt(), meeting.getCreatedAt());
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(getId(), getRoomId(), getParticipants(), getCreatedAt());
   }
 }

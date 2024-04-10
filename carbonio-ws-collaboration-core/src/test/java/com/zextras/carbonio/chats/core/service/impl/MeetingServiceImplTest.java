@@ -43,7 +43,10 @@ import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.MeetingTypeDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
 import jakarta.ws.rs.core.Response.Status;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -61,6 +64,7 @@ public class MeetingServiceImplTest {
   private final MembersService membersService;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
+  private final Clock clock;
 
   public MeetingServiceImplTest(MeetingMapper meetingMapper) {
     this.meetingRepository = mock(MeetingRepository.class);
@@ -68,6 +72,7 @@ public class MeetingServiceImplTest {
     this.membersService = mock(MembersService.class);
     this.videoServerService = mock(VideoServerService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
+    this.clock = mock(Clock.class);
     this.meetingService =
         new MeetingServiceImpl(
             this.meetingRepository,
@@ -75,7 +80,8 @@ public class MeetingServiceImplTest {
             this.roomService,
             this.membersService,
             this.videoServerService,
-            this.eventDispatcher);
+            this.eventDispatcher,
+            this.clock);
   }
 
   private UUID user1Id;
@@ -98,6 +104,8 @@ public class MeetingServiceImplTest {
 
   @BeforeEach
   public void init() {
+    when(clock.instant()).thenReturn(Instant.parse("2022-01-01T11:00:00Z"));
+    when(clock.getZone()).thenReturn(ZoneId.of("UTC+01:00"));
     user1Id = UUID.randomUUID();
     session1User1Id = UUID.randomUUID();
     user2Id = UUID.randomUUID();
@@ -221,6 +229,7 @@ public class MeetingServiceImplTest {
               .name("test")
               .meetingType(MeetingType.PERMANENT)
               .id(meetingId.toString())
+              .startedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
               .active(true);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
@@ -232,7 +241,10 @@ public class MeetingServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString()),
-              MeetingStarted.create().meetingId(meetingId).starterUser(user1Id));
+              MeetingStarted.create()
+                  .meetingId(meetingId)
+                  .starterUser(user1Id)
+                  .startedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z")));
     }
 
     @Test
@@ -247,6 +259,7 @@ public class MeetingServiceImplTest {
               .name("test")
               .meetingType(MeetingType.PERMANENT)
               .id(meetingId.toString())
+              .startedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
               .active(true);
       Meeting updatedMeeting =
           Meeting.create()

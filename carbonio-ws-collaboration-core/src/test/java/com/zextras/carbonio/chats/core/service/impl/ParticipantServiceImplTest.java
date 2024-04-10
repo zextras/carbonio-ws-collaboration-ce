@@ -44,7 +44,10 @@ import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
 import jakarta.ws.rs.core.Response.Status;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -62,6 +65,7 @@ public class ParticipantServiceImplTest {
   private final ParticipantRepository participantRepository;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
+  private final Clock clock;
 
   public ParticipantServiceImplTest() {
     this.meetingService = mock(MeetingService.class);
@@ -69,13 +73,15 @@ public class ParticipantServiceImplTest {
     this.participantRepository = mock(ParticipantRepository.class);
     this.videoServerService = mock(VideoServerService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
+    this.clock = mock(Clock.class);
     this.participantService =
         new ParticipantServiceImpl(
             this.meetingService,
             this.roomService,
             this.participantRepository,
             this.videoServerService,
-            this.eventDispatcher);
+            this.eventDispatcher,
+            this.clock);
   }
 
   private UUID user1Id;
@@ -100,6 +106,8 @@ public class ParticipantServiceImplTest {
 
   @BeforeEach
   public void init() {
+    when(clock.instant()).thenReturn(Instant.parse("2022-01-01T11:00:00Z"));
+    when(clock.getZone()).thenReturn(ZoneId.of("UTC+01:00"));
     user1Id = UUID.randomUUID();
     user1Queue1 = UUID.randomUUID();
     participant1Session1 =
@@ -108,7 +116,7 @@ public class ParticipantServiceImplTest {
             .audioStreamOn(false)
             .videoStreamOn(false)
             .screenStreamOn(false)
-            .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+            .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
             .build();
     user2Id = UUID.randomUUID();
     user2Queue1 = UUID.randomUUID();
@@ -118,7 +126,7 @@ public class ParticipantServiceImplTest {
             .audioStreamOn(false)
             .videoStreamOn(false)
             .screenStreamOn(false)
-            .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+            .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
             .build();
     user4Id = UUID.randomUUID();
     user4Queue1 = UUID.randomUUID();
@@ -128,7 +136,7 @@ public class ParticipantServiceImplTest {
             .audioStreamOn(true)
             .videoStreamOn(true)
             .screenStreamOn(true)
-            .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+            .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
             .build();
     user3Id = UUID.randomUUID();
     user3Queue1 = UUID.randomUUID();
@@ -183,7 +191,7 @@ public class ParticipantServiceImplTest {
           .insert(
               Participant.create(meeting1, user3Id.toString())
                   .queueId(user3Queue1.toString())
-                  .createdAt(OffsetDateTime.now()));
+                  .createdAt(OffsetDateTime.now(clock)));
       verify(videoServerService, times(1))
           .addMeetingParticipant(
               user3Id.toString(), user3Queue1.toString(), meeting1Id.toString(), false, true);
@@ -360,7 +368,9 @@ public class ParticipantServiceImplTest {
                   .queueId(user1Queue1)
                   .videoStreamOn(true)
                   .screenStreamOn(false)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+                  .audioStreamOn(false)
+                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
+                  .updatedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
                   .build());
       verify(videoServerService, times(1))
           .updateMediaStream(
@@ -434,7 +444,8 @@ public class ParticipantServiceImplTest {
                   .videoStreamOn(false)
                   .audioStreamOn(true)
                   .screenStreamOn(true)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
+                  .updatedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
                   .build());
       verify(videoServerService, times(1))
           .updateMediaStream(
@@ -544,7 +555,8 @@ public class ParticipantServiceImplTest {
               ParticipantBuilder.create(Meeting.create(), user1Id.toString())
                   .queueId(user1Queue1)
                   .audioStreamOn(hasAudioStreamOn)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
+                  .updatedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
                   .build());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -686,7 +698,8 @@ public class ParticipantServiceImplTest {
                   .audioStreamOn(hasAudioStreamOn)
                   .videoStreamOn(true)
                   .screenStreamOn(true)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
+                  .updatedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
                   .build());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -736,7 +749,8 @@ public class ParticipantServiceImplTest {
                   .audioStreamOn(false)
                   .videoStreamOn(true)
                   .screenStreamOn(true)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
+                  .updatedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
                   .build());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -880,7 +894,8 @@ public class ParticipantServiceImplTest {
               ParticipantBuilder.create(Meeting.create(), user1Id.toString())
                   .queueId(user1Queue1)
                   .screenStreamOn(true)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
+                  .updatedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
                   .build());
       verify(videoServerService, times(1))
           .updateMediaStream(
@@ -987,7 +1002,8 @@ public class ParticipantServiceImplTest {
                   .screenStreamOn(false)
                   .audioStreamOn(true)
                   .videoStreamOn(true)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
+                  .updatedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
                   .build());
       verify(videoServerService, times(1))
           .updateMediaStream(
