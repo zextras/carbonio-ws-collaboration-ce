@@ -7,11 +7,13 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.Objects;
 
 /**
  * This class represents the video room request to enable recording on a room.
  *
- * @see <a href="https://janus.conf.meetecho.com/docs/videoroom.html">VideoRoomEnableRecordingRequest</a>
+ * @see <a
+ *     href="https://janus.conf.meetecho.com/docs/videoroom.html">VideoRoomEnableRecordingRequest</a>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -19,9 +21,8 @@ public class VideoRoomEnableRecordingRequest extends VideoRoomRequest {
 
   public static final String ENABLE_RECORDING = "enable_recording";
 
-  private String  request;
-  private String  room;
-  private String  secret;
+  private String request;
+  private String room;
   private Boolean record;
 
   public static VideoRoomEnableRecordingRequest create() {
@@ -46,21 +47,26 @@ public class VideoRoomEnableRecordingRequest extends VideoRoomRequest {
     return this;
   }
 
-  public String getSecret() {
-    return secret;
-  }
-
-  public VideoRoomEnableRecordingRequest secret(String secret) {
-    this.secret = secret;
-    return this;
-  }
-
-  public Boolean isRecord() {
+  public Boolean getRecord() {
     return record;
   }
 
   public VideoRoomEnableRecordingRequest record(boolean record) {
     this.record = record;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof VideoRoomEnableRecordingRequest that)) return false;
+    return Objects.equals(getRequest(), that.getRequest())
+        && Objects.equals(getRoom(), that.getRoom())
+        && Objects.equals(getRecord(), that.getRecord());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(getRequest(), getRoom(), getRecord());
   }
 }

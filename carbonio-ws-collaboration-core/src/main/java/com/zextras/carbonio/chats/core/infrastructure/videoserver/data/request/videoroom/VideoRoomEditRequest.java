@@ -5,9 +5,9 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.Objects;
 
 /**
  * This class represents the video room request to edit a room.
@@ -20,19 +20,10 @@ public class VideoRoomEditRequest extends VideoRoomRequest {
 
   public static final String EDIT = "edit";
 
-  private String  request;
-  private String  room;
-  private String  secret;
-  private String  newDescription;
-  private String  newPin;
-  private Boolean newIsPrivate;
-  @JsonProperty("new_require_pvtid")
-  private Boolean newRequirePvtId;
-  private Long    newBitrate;
-  private Integer newFirFreq;
-  private Integer newPublishers;
-  private String  newRecDir;
-  private Boolean permanent;
+  private String request;
+  private String room;
+
+  private String newRecDir;
 
   public static VideoRoomEditRequest create() {
     return new VideoRoomEditRequest();
@@ -56,78 +47,6 @@ public class VideoRoomEditRequest extends VideoRoomRequest {
     return this;
   }
 
-  public String getSecret() {
-    return secret;
-  }
-
-  public VideoRoomEditRequest secret(String secret) {
-    this.secret = secret;
-    return this;
-  }
-
-  public String getNewDescription() {
-    return newDescription;
-  }
-
-  public VideoRoomEditRequest newDescription(String newDescription) {
-    this.newDescription = newDescription;
-    return this;
-  }
-
-  public String getNewPin() {
-    return newPin;
-  }
-
-  public VideoRoomEditRequest newPin(String newPin) {
-    this.newPin = newPin;
-    return this;
-  }
-
-  public Boolean isNewIsPrivate() {
-    return newIsPrivate;
-  }
-
-  public VideoRoomEditRequest newIsPrivate(boolean newIsPrivate) {
-    this.newIsPrivate = newIsPrivate;
-    return this;
-  }
-
-  public Boolean isNewRequirePvtId() {
-    return newRequirePvtId;
-  }
-
-  public VideoRoomEditRequest newRequirePvtId(boolean newRequirePvtId) {
-    this.newRequirePvtId = newRequirePvtId;
-    return this;
-  }
-
-  public Long getNewBitrate() {
-    return newBitrate;
-  }
-
-  public VideoRoomEditRequest newBitrate(long newBitrate) {
-    this.newBitrate = newBitrate;
-    return this;
-  }
-
-  public Integer getNewFirFreq() {
-    return newFirFreq;
-  }
-
-  public VideoRoomEditRequest newFirFreq(int newFirFreq) {
-    this.newFirFreq = newFirFreq;
-    return this;
-  }
-
-  public Integer getNewPublishers() {
-    return newPublishers;
-  }
-
-  public VideoRoomEditRequest newPublishers(int newPublishers) {
-    this.newPublishers = newPublishers;
-    return this;
-  }
-
   public String getNewRecDir() {
     return newRecDir;
   }
@@ -137,12 +56,17 @@ public class VideoRoomEditRequest extends VideoRoomRequest {
     return this;
   }
 
-  public Boolean isPermanent() {
-    return permanent;
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof VideoRoomEditRequest that)) return false;
+    return Objects.equals(getRequest(), that.getRequest())
+        && Objects.equals(getRoom(), that.getRoom())
+        && Objects.equals(getNewRecDir(), that.getNewRecDir());
   }
 
-  public VideoRoomEditRequest permanent(boolean permanent) {
-    this.permanent = permanent;
-    return this;
+  @Override
+  public int hashCode() {
+    return Objects.hash(getRequest(), getRoom(), getNewRecDir());
   }
 }

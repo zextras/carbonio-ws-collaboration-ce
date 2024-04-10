@@ -13,7 +13,6 @@ import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
 import com.zextras.filestore.powerstore.api.Protocol;
-import com.zextras.filestore.powerstore.api.memcached.MemcachedOptions;
 import com.zextras.filestore.powerstore.api.powerstore.PowerstoreClient;
 import com.zextras.filestore.powerstore.api.powerstore.PowerstoreClient.Builder;
 import com.zextras.filestore.powerstore.api.powerstore.SDKHttpClient;
@@ -52,16 +51,11 @@ public class TestModule extends AbstractModule {
   @Singleton
   @Provides
   private PowerstoreClient getStoragesClient() throws Exception {
-    SDKHttpClient powerStoreHttpClient = SDKHttpClient
-      .builder()
-      .withTimeout(Duration.ofMinutes(1))
-      .build();
+    SDKHttpClient powerStoreHttpClient =
+        SDKHttpClient.builder().withTimeout(Duration.ofMinutes(1)).build();
     return new Builder(powerStoreHttpClient)
-//      .withMemcached(options -> options.withServers("127.0.0.1").withPort(8742))
-      .withNSLookup(options -> options
-        .withServers("127.0.0.1")
-        .withPort(8742)
-        .withProtocol(Protocol.http))
-      .build();
+        .withNSLookup(
+            options -> options.withServers("127.0.0.1").withPort(8742).withProtocol(Protocol.http))
+        .build();
   }
 }

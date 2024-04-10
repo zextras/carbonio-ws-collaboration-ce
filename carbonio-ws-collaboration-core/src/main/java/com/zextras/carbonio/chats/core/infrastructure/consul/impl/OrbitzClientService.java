@@ -10,7 +10,6 @@ import com.orbitz.consul.model.health.ServiceHealth;
 import com.zextras.carbonio.chats.core.infrastructure.consul.ConsulService;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 public class OrbitzClientService implements ConsulService {
 
@@ -26,6 +25,6 @@ public class OrbitzClientService implements ConsulService {
         .map(Service::getMeta)
         .filter(service -> service.containsKey(idMetadata))
         .map(service -> UUID.fromString(service.get(idMetadata)))
-        .collect(Collectors.toList());
+        .toList();
   }
 }

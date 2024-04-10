@@ -4001,7 +4001,8 @@ public class RoomsApiIT {
               MeetingType.PERMANENT,
               List.of(ParticipantBuilder.create(user2Id, user2Queue)),
               true,
-              null);
+              null,
+              List.of());
       integrationTestUtils.updateRoom(roomEntity.meetingId(meetingId.toString()));
 
       meetingTestUtils.updateVideoServerSession(

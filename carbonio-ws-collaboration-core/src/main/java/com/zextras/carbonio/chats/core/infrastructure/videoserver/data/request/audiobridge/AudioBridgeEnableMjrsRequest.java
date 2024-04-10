@@ -7,12 +7,14 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.Objects;
 
 /**
- * This class represents the audio bridge request to enable recording on a room by saving the individual contributions
- * of participants to separate MJR files.
+ * This class represents the audio bridge request to enable recording on a room by saving the
+ * individual contributions of participants to separate MJR files.
  *
- * @see <a href="https://janus.conf.meetecho.com/docs/audiobridge.html">AudioBridgeEnableMjrsRequest</a>
+ * @see <a
+ *     href="https://janus.conf.meetecho.com/docs/audiobridge.html">AudioBridgeEnableMjrsRequest</a>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -20,11 +22,9 @@ public class AudioBridgeEnableMjrsRequest extends AudioBridgeRequest {
 
   public static final String ENABLE_MJRS = "enable_mjrs";
 
-  private String  request;
-  private String  room;
-  private String  secret;
+  private String request;
+  private String room;
   private Boolean mjrs;
-  private String  mjrsDir;
 
   public static AudioBridgeEnableMjrsRequest create() {
     return new AudioBridgeEnableMjrsRequest();
@@ -48,16 +48,7 @@ public class AudioBridgeEnableMjrsRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public String getSecret() {
-    return secret;
-  }
-
-  public AudioBridgeEnableMjrsRequest secret(String secret) {
-    this.secret = secret;
-    return this;
-  }
-
-  public Boolean isMjrs() {
+  public Boolean getMjrs() {
     return mjrs;
   }
 
@@ -66,12 +57,17 @@ public class AudioBridgeEnableMjrsRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public String getMjrsDir() {
-    return mjrsDir;
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof AudioBridgeEnableMjrsRequest that)) return false;
+    return Objects.equals(getRequest(), that.getRequest())
+        && Objects.equals(getRoom(), that.getRoom())
+        && Objects.equals(getMjrs(), that.getMjrs());
   }
 
-  public AudioBridgeEnableMjrsRequest mjrsDir(String mjrsDir) {
-    this.mjrsDir = mjrsDir;
-    return this;
+  @Override
+  public int hashCode() {
+    return Objects.hash(getRequest(), getRoom(), getMjrs());
   }
 }

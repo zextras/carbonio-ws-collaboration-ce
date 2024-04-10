@@ -44,8 +44,8 @@ import org.mockito.Mockito;
 @UnitTest
 class ConsulAppConfigTest {
 
-  private final AppConfig      appConfig;
-  private final Consul         consulClient;
+  private final AppConfig appConfig;
+  private final Consul consulClient;
   private final KeyValueClient keyValueClient;
 
   public ConsulAppConfigTest() {
@@ -65,28 +65,35 @@ class ConsulAppConfigTest {
 
     @Test
     @DisplayName("Correctly retrieves required configurations and cache them")
-    public void loadConfigurations_testOk() {
+    void loadConfigurations_testOk() {
       KVCache kvCache = mock(KVCache.class);
       try (MockedStatic<KVCache> kvCacheMockedStatic = Mockito.mockStatic(KVCache.class)) {
-        kvCacheMockedStatic.when((Verification) KVCache.newCache(eq(keyValueClient), anyString(), eq(10),
-          any(ImmutableQueryOptions.class))).thenReturn(kvCache);
+        kvCacheMockedStatic
+            .when(
+                (Verification)
+                    KVCache.newCache(
+                        eq(keyValueClient), anyString(), eq(10), any(ImmutableQueryOptions.class)))
+            .thenReturn(kvCache);
         ArgumentCaptor<Listener> listenerArgumentCaptor = ArgumentCaptor.forClass(Listener.class);
 
         appConfig.load();
 
-        verify(kvCache, times(5)).addListener(listenerArgumentCaptor.capture());
+        verify(kvCache, times(6)).addListener(listenerArgumentCaptor.capture());
         Listener<String, Value> listener = listenerArgumentCaptor.getValue();
         assertNotNull(listener);
-        listener.notify(Map.of(
-          "db-username",
-          ImmutableValue.builder()
-            .key("carbonio-ws-collaboration-db/db-username")
-            .value(Base64.getEncoder().encodeToString("username".getBytes(StandardCharsets.UTF_8)))
-            .createIndex(0L)
-            .modifyIndex(0L)
-            .lockIndex(0L)
-            .flags(0L).build()
-        ));
+        listener.notify(
+            Map.of(
+                "db-username",
+                ImmutableValue.builder()
+                    .key("carbonio-ws-collaboration-db/db-username")
+                    .value(
+                        Base64.getEncoder()
+                            .encodeToString("username".getBytes(StandardCharsets.UTF_8)))
+                    .createIndex(0L)
+                    .modifyIndex(0L)
+                    .lockIndex(0L)
+                    .flags(0L)
+                    .build()));
         Optional<String> username = appConfig.get(String.class, ConfigName.DATABASE_USERNAME);
         assertTrue(username.isPresent());
         assertEquals("username", username.get());
@@ -100,17 +107,19 @@ class ConsulAppConfigTest {
 
     @Test
     @DisplayName("Correctly retrieves an attribute")
-    public void getAttribute_testOk() {
-      Value mockValue = ImmutableValue.builder()
-        .key("carbonio-ws-collaboration-db/db-password")
-        .value(BaseEncoding.base64().encode("testpsw".getBytes(StandardCharsets.UTF_8)))
-        .createIndex(0L)
-        .modifyIndex(0L)
-        .lockIndex(0L)
-        .flags(0L)
-        .build();
-      when(keyValueClient.getValue(eq("carbonio-ws-collaboration-db/db-password"), any(QueryOptions.class)))
-        .thenReturn(Optional.of(mockValue));
+    void getAttribute_testOk() {
+      Value mockValue =
+          ImmutableValue.builder()
+              .key("carbonio-ws-collaboration-db/db-password")
+              .value(BaseEncoding.base64().encode("testpsw".getBytes(StandardCharsets.UTF_8)))
+              .createIndex(0L)
+              .modifyIndex(0L)
+              .lockIndex(0L)
+              .flags(0L)
+              .build();
+      when(keyValueClient.getValue(
+              eq("carbonio-ws-collaboration-db/db-password"), any(QueryOptions.class)))
+          .thenReturn(Optional.of(mockValue));
       appConfig.load();
       Optional<String> configValue;
       configValue = appConfig.get(String.class, ConfigName.DATABASE_PASSWORD);
@@ -122,35 +131,39 @@ class ConsulAppConfigTest {
       assertEquals("testpsw", configValue.get());
 
       verify(keyValueClient, times(1))
-        .getValue(eq("carbonio-ws-collaboration-db/db-password"), any(ImmutableQueryOptions.class));
-      verify(consulClient, times(6)).keyValueClient();
+          .getValue(
+              eq("carbonio-ws-collaboration-db/db-password"), any(ImmutableQueryOptions.class));
+      verify(consulClient, times(7)).keyValueClient();
     }
 
     @Test
     @DisplayName("Returns en empty optional if the attribute was not retrieved")
-    public void getAttribute_testNotRetrieved() {
-      when(keyValueClient.getValueAsString("carbonio-ws-collaboration-db/db-password")).thenReturn(Optional.empty());
+    void getAttribute_testNotRetrieved() {
+      when(keyValueClient.getValueAsString("carbonio-ws-collaboration-db/db-password"))
+          .thenReturn(Optional.empty());
 
       Optional<String> configValue = appConfig.get(String.class, ConfigName.DATABASE_PASSWORD);
       assertTrue(configValue.isEmpty());
 
       verify(keyValueClient, times(1))
-        .getValue(eq("carbonio-ws-collaboration-db/db-password"), any(ImmutableQueryOptions.class));
+          .getValue(
+              eq("carbonio-ws-collaboration-db/db-password"), any(ImmutableQueryOptions.class));
       verify(consulClient, times(1)).keyValueClient();
       verifyNoMoreInteractions(keyValueClient, consulClient);
     }
 
     @Test
     @DisplayName("Returns en empty optional if and exception is thrown")
-    public void getAttribute_testException() {
+    void getAttribute_testException() {
       when(keyValueClient.getValueAsString("carbonio-ws-collaboration-db/db-password"))
-        .thenThrow(new RuntimeException());
+          .thenThrow(new RuntimeException());
 
       Optional<String> configValue = appConfig.get(String.class, ConfigName.DATABASE_PASSWORD);
       assertTrue(configValue.isEmpty());
 
       verify(keyValueClient, times(1))
-        .getValue(eq("carbonio-ws-collaboration-db/db-password"), any(ImmutableQueryOptions.class));
+          .getValue(
+              eq("carbonio-ws-collaboration-db/db-password"), any(ImmutableQueryOptions.class));
       verify(consulClient, times(1)).keyValueClient();
       verifyNoMoreInteractions(keyValueClient, consulClient);
     }

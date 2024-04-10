@@ -30,6 +30,7 @@ import com.zextras.carbonio.meeting.model.*;
 import io.ebean.annotation.Transactional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -47,6 +48,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   private final WaitingParticipantRepository waitingParticipantRepository;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
+  private final Clock clock;
 
   @Inject
   public ParticipantServiceImpl(
@@ -56,7 +58,8 @@ public class ParticipantServiceImpl implements ParticipantService {
       ParticipantRepository participantRepository,
       WaitingParticipantRepository waitingParticipantRepository,
       VideoServerService videoServerService,
-      EventDispatcher eventDispatcher) {
+      EventDispatcher eventDispatcher,
+      Clock clock) {
     this.meetingService = meetingService;
     this.roomService = roomService;
     this.membersService = membersService;
@@ -64,6 +67,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     this.waitingParticipantRepository = waitingParticipantRepository;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
+    this.clock = clock;
   }
 
   @Override
@@ -123,7 +127,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                                 participantRepository.insert(
                                     Participant.create(meeting, currentUser.getId())
                                         .queueId(currentUser.getQueueId().toString())
-                                        .createdAt(OffsetDateTime.now()));
+                                        .createdAt(OffsetDateTime.now(clock)));
                                 addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
                                 return JoinStatus.ACCEPTED;
                               } else {
@@ -139,7 +143,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                                                     Participant.create(meeting, currentUser.getId())
                                                         .queueId(
                                                             currentUser.getQueueId().toString())
-                                                        .createdAt(OffsetDateTime.now()));
+                                                        .createdAt(OffsetDateTime.now(clock)));
                                                 addMeetingParticipant(
                                                     meeting, joinSettingsDto, currentUser, room);
                                                 waitingParticipantRepository.remove(wp);
@@ -262,7 +266,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                     participantRepository.insert(
                         Participant.create(meeting, currentUser.getId())
                             .queueId(currentUser.getQueueId().toString())
-                            .createdAt(OffsetDateTime.now()));
+                            .createdAt(OffsetDateTime.now(clock)));
                     addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
                     yield JoinStatus.ACCEPTED;
                 });
@@ -398,7 +402,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   public void removeMeetingParticipant(Meeting meeting, Room room, UUID userId) {
     meeting.getParticipants().stream()
         .filter(p -> userId.toString().equals(p.getUserId()))
-        .collect(Collectors.toList())
+        .toList()
         .forEach(participant -> removeMeetingParticipant(participant, meeting, room));
   }
 
@@ -417,13 +421,12 @@ public class ParticipantServiceImpl implements ParticipantService {
   private void removeMeetingParticipant(Participant participant, Meeting meeting, Room room) {
     participantRepository.remove(participant);
     videoServerService.destroyMeetingParticipant(participant.getUserId(), meeting.getId());
-    meeting.getParticipants().remove(participant);
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
         MeetingParticipantLeft.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(UUID.fromString(participant.getUserId())));
-    if (meeting.getParticipants().isEmpty()) {
+    if (participantRepository.getByMeetingId(meeting.getId()).isEmpty()) {
       meetingService.updateMeeting(
           UserPrincipal.create(UUID.fromString(participant.getUserId())),
           UUID.fromString(meeting.getId()),
@@ -453,7 +456,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     boolean mediaStreamEnabled = mediaStreamSettingsDto.isEnabled();
     switch (mediaStreamSettingsDto.getType()) {
       case VIDEO:
-        if (mediaStreamEnabled != participant.hasVideoStreamOn()) {
+        if (Boolean.TRUE.equals(participant.hasVideoStreamOn()) != mediaStreamEnabled) {
           participantRepository.update(participant.videoStreamOn(mediaStreamEnabled));
           videoServerService.updateMediaStream(
               currentUser.getId(), meetingId.toString(), mediaStreamSettingsDto);
@@ -467,12 +470,12 @@ public class ParticipantServiceImpl implements ParticipantService {
                     .meetingId(meetingId)
                     .userId(UUID.fromString(currentUser.getId()))
                     .mediaType(MediaType.VIDEO)
-                    .active(mediaStreamEnabled));
+                    .active(false));
           }
         }
         break;
       case SCREEN:
-        if (mediaStreamEnabled != participant.hasScreenStreamOn()) {
+        if (Boolean.TRUE.equals(participant.hasScreenStreamOn()) != mediaStreamEnabled) {
           participantRepository.update(participant.screenStreamOn(mediaStreamEnabled));
           videoServerService.updateMediaStream(
               currentUser.getId(), meetingId.toString(), mediaStreamSettingsDto);
@@ -486,7 +489,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                     .meetingId(meetingId)
                     .userId(UUID.fromString(currentUser.getId()))
                     .mediaType(MediaType.SCREEN)
-                    .active(mediaStreamEnabled));
+                    .active(false));
           }
         }
         break;
@@ -527,7 +530,7 @@ public class ParticipantServiceImpl implements ParticipantService {
       roomService.getRoomEntityAndCheckUser(
           UUID.fromString(meeting.getRoomId()), currentUser, true);
     }
-    if (enabled != Boolean.TRUE.equals(participant.hasAudioStreamOn())) {
+    if (Boolean.TRUE.equals(participant.hasAudioStreamOn()) != enabled) {
       participantRepository.update(participant.audioStreamOn(enabled));
       videoServerService.updateAudioStream(userId, meetingId.toString(), enabled);
       Optional.ofNullable(audioStreamSettingsDto.getUserToModerate())

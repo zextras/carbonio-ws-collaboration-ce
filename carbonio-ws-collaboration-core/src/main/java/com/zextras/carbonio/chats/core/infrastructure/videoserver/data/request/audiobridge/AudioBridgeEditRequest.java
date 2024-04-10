@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.util.Objects;
 
 /**
  * This class represents the audio bridge request to edit a room.
@@ -19,16 +20,9 @@ public class AudioBridgeEditRequest extends AudioBridgeRequest {
 
   public static final String EDIT = "edit";
 
-  private String  request;
-  private String  room;
-  private String  secret;
-  private String  newDescription;
-  private String  newSecret;
-  private String  newPin;
-  private Boolean newIsPrivate;
-  private String  newRecordDir;
-  private String  newMjrsDir;
-  private Boolean permanent;
+  private String request;
+  private String room;
+  private String newMjrsDir;
 
   public static AudioBridgeEditRequest create() {
     return new AudioBridgeEditRequest();
@@ -52,60 +46,6 @@ public class AudioBridgeEditRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public String getSecret() {
-    return secret;
-  }
-
-  public AudioBridgeEditRequest secret(String secret) {
-    this.secret = secret;
-    return this;
-  }
-
-  public String getNewDescription() {
-    return newDescription;
-  }
-
-  public AudioBridgeEditRequest newDescription(String newDescription) {
-    this.newDescription = newDescription;
-    return this;
-  }
-
-  public String getNewSecret() {
-    return newSecret;
-  }
-
-  public AudioBridgeEditRequest newSecret(String newSecret) {
-    this.newSecret = newSecret;
-    return this;
-  }
-
-  public String getNewPin() {
-    return newPin;
-  }
-
-  public AudioBridgeEditRequest newPin(String newPin) {
-    this.newPin = newPin;
-    return this;
-  }
-
-  public Boolean isNewIsPrivate() {
-    return newIsPrivate;
-  }
-
-  public AudioBridgeEditRequest newIsPrivate(boolean newIsPrivate) {
-    this.newIsPrivate = newIsPrivate;
-    return this;
-  }
-
-  public String getNewRecordDir() {
-    return newRecordDir;
-  }
-
-  public AudioBridgeEditRequest newRecordDir(String newRecordDir) {
-    this.newRecordDir = newRecordDir;
-    return this;
-  }
-
   public String getNewMjrsDir() {
     return newMjrsDir;
   }
@@ -115,12 +55,17 @@ public class AudioBridgeEditRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public Boolean isPermanent() {
-    return permanent;
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof AudioBridgeEditRequest that)) return false;
+    return Objects.equals(getRequest(), that.getRequest())
+        && Objects.equals(getRoom(), that.getRoom())
+        && Objects.equals(getNewMjrsDir(), that.getNewMjrsDir());
   }
 
-  public AudioBridgeEditRequest permanent(boolean permanent) {
-    this.permanent = permanent;
-    return this;
+  @Override
+  public int hashCode() {
+    return Objects.hash(getRequest(), getRoom(), getNewMjrsDir());
   }
 }

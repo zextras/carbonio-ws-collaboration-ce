@@ -41,9 +41,11 @@ import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
 import com.zextras.carbonio.meeting.model.QueueUpdateStatusDto;
 import jakarta.ws.rs.core.Response.Status;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.*;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -63,6 +65,7 @@ public class ParticipantServiceImplTest {
   private final WaitingParticipantRepository waitingParticipantRepository;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
+  private final Clock clock;
 
   public ParticipantServiceImplTest() {
     this.meetingService = mock(MeetingService.class);
@@ -72,15 +75,17 @@ public class ParticipantServiceImplTest {
     this.waitingParticipantRepository = mock(WaitingParticipantRepository.class);
     this.videoServerService = mock(VideoServerService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
+    this.clock = mock(Clock.class);
     this.participantService =
         new ParticipantServiceImpl(
-            this.meetingService,
-            this.roomService,
-            this.membersService,
-            this.participantRepository,
-            this.waitingParticipantRepository,
-            this.videoServerService,
-            this.eventDispatcher);
+            meetingService,
+            roomService,
+            membersService,
+            participantRepository,
+            waitingParticipantRepository,
+            videoServerService,
+            eventDispatcher,
+            clock);
   }
 
   private UUID user1Id;
@@ -111,6 +116,8 @@ public class ParticipantServiceImplTest {
 
   @BeforeEach
   public void init() {
+    when(clock.instant()).thenReturn(Instant.parse("2022-01-01T11:00:00Z"));
+    when(clock.getZone()).thenReturn(ZoneId.systemDefault());
     user1Id = UUID.randomUUID();
     user1Queue1 = UUID.randomUUID();
     participant1Session1 =
@@ -119,7 +126,7 @@ public class ParticipantServiceImplTest {
             .audioStreamOn(false)
             .videoStreamOn(false)
             .screenStreamOn(false)
-            .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+            .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
             .build();
     user2Id = UUID.randomUUID();
     user2Queue1 = UUID.randomUUID();
@@ -129,7 +136,7 @@ public class ParticipantServiceImplTest {
             .audioStreamOn(false)
             .videoStreamOn(false)
             .screenStreamOn(false)
-            .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+            .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
             .build();
     user4Id = UUID.randomUUID();
     user4Queue1 = UUID.randomUUID();
@@ -139,7 +146,7 @@ public class ParticipantServiceImplTest {
             .audioStreamOn(true)
             .videoStreamOn(true)
             .screenStreamOn(true)
-            .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+            .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
             .build();
     user3Id = UUID.randomUUID();
     user3Queue1 = UUID.randomUUID();
@@ -171,16 +178,14 @@ public class ParticipantServiceImplTest {
             .roomId(roomId)
             .createdAt(OffsetDateTime.parse("2022-01-01T12:00:00Z"))
             .meetingType(MeetingType.PERMANENT)
-            .participants(
-                new ArrayList<>(
-                    List.of(participant1Session1, participant2Session1, participant4Session1)))
+            .participants(List.of(participant1Session1, participant2Session1, participant4Session1))
             .build();
     meeting2Id = UUID.randomUUID();
     meeting2 =
         MeetingBuilder.create(meeting2Id)
             .roomId(roomId)
             .createdAt(OffsetDateTime.parse("2022-01-01T12:00:00Z"))
-            .participants(new ArrayList<>(List.of(participant2Session1)))
+            .participants(List.of(participant2Session1))
             .build();
 
     scheduledMeetingId = UUID.randomUUID();
@@ -189,16 +194,17 @@ public class ParticipantServiceImplTest {
             .roomId(scheduledRoomId)
             .createdAt(OffsetDateTime.parse("2022-01-01T12:00:00Z"))
             .meetingType(MeetingType.SCHEDULED)
+            .participants(List.of())
             .build();
   }
 
   @Nested
   @DisplayName("Insert PERMANENT meeting participant tests")
-  public class InsertMeetingParticipantTests {
+  class InsertMeetingParticipantTests {
 
     @Test
     @DisplayName("It inserts the current user as meeting participant")
-    public void insertMeetingParticipant_testOk() {
+    void insertMeetingParticipant_testOk() {
       UserPrincipal currentUser = UserPrincipal.create(user3Id).queueId(user3Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
@@ -215,7 +221,7 @@ public class ParticipantServiceImplTest {
           .insert(
               Participant.create(permanentMeeting, user3Id.toString())
                   .queueId(user3Queue1.toString())
-                  .createdAt(OffsetDateTime.now()));
+                  .createdAt(OffsetDateTime.now(clock)));
       verify(videoServerService, times(1))
           .addMeetingParticipant(
               user3Id.toString(),
@@ -233,7 +239,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("It kicks the previous session if the user was already inside the meeting")
-    public void insertMeetingParticipant_testOkRemovePreviousSessionBeforeJoining() {
+    void insertMeetingParticipant_testOkRemovePreviousSessionBeforeJoining() {
       UUID newQueue = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(newQueue);
       when(meetingService.getMeetingEntity(permanentMeetingId))
@@ -280,7 +286,7 @@ public class ParticipantServiceImplTest {
     @Test
     @DisplayName(
         "If the current user is already a meeting participant, it throws a 'conflict' exception")
-    public void insertMeetingParticipant_testIsAlreadyMeetingParticipant() {
+    void insertMeetingParticipant_testIsAlreadyMeetingParticipant() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
@@ -330,7 +336,7 @@ public class ParticipantServiceImplTest {
           .insert(
               Participant.create(scheduledMeeting, user1Id.toString())
                   .queueId(user1Queue1.toString())
-                  .createdAt(OffsetDateTime.now()));
+                  .createdAt(OffsetDateTime.now(clock)));
       verify(videoServerService, times(1))
           .addMeetingParticipant(
               user1Id.toString(),
@@ -461,7 +467,7 @@ public class ParticipantServiceImplTest {
           .insert(
               Participant.create(scheduledMeeting, user2Id.toString())
                   .queueId(user2Queue1.toString())
-                  .createdAt(OffsetDateTime.now()));
+                  .createdAt(OffsetDateTime.now(clock)));
       verify(videoServerService, times(1))
           .addMeetingParticipant(
               user2Id.toString(),
@@ -636,21 +642,24 @@ public class ParticipantServiceImplTest {
 
   @Nested
   @DisplayName("Remove meeting participant tests")
-  public class RemoveMeetingParticipantTests {
+  class RemoveMeetingParticipantTests {
 
     @Test
     @DisplayName("It removes the current user as meeting participant")
-    public void removeMeetingParticipant_testOk() {
+    void removeMeetingParticipant_testOk() {
       UserPrincipal currentUser = UserPrincipal.create(user4Id).queueId(user4Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
+      when(participantRepository.getByMeetingId(permanentMeetingId.toString()))
+          .thenReturn(List.of(participant2Session1));
 
       participantService.removeMeetingParticipant(permanentMeetingId, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1)).remove(participant4Session1);
+      verify(participantRepository, times(1)).getByMeetingId(permanentMeetingId.toString());
       verify(videoServerService, times(1))
           .destroyMeetingParticipant(user4Id.toString(), permanentMeetingId.toString());
       verify(eventDispatcher, times(1))
@@ -665,16 +674,18 @@ public class ParticipantServiceImplTest {
     @DisplayName(
         "It removes the current user as meeting participant, "
             + "if it's the last one, the meeting is also stopped")
-    public void removeMeetingParticipant_testOkLastParticipant() {
+    void removeMeetingParticipant_testOkLastParticipant() {
       UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(user2Queue1);
       when(meetingService.getMeetingEntity(meeting2Id)).thenReturn(Optional.of(meeting2));
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room);
+      when(participantRepository.getByMeetingId(meeting2Id.toString())).thenReturn(List.of());
 
       participantService.removeMeetingParticipant(meeting2Id, currentUser);
 
       verify(meetingService, times(1)).getMeetingEntity(meeting2Id);
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verify(participantRepository, times(1)).remove(participant2Session1);
+      verify(participantRepository, times(1)).getByMeetingId(meeting2Id.toString());
       verify(videoServerService, times(1))
           .destroyMeetingParticipant(user2Id.toString(), meeting2Id.toString());
       verify(eventDispatcher, times(1))
@@ -689,7 +700,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("If the current user isn't a meeting participant, it ignores it silently")
-    public void removeMeetingParticipant_testIsNotMeetingParticipant() {
+    void removeMeetingParticipant_testIsNotMeetingParticipant() {
       UserPrincipal currentUser = UserPrincipal.create(user3Id).queueId(user3Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
@@ -869,7 +880,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("It enables the video stream for the current user")
-    public void enableVideoStream_testOkEnableWithSessionEqualToCurrent() {
+    void enableVideoStream_testOkEnableWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -885,7 +896,9 @@ public class ParticipantServiceImplTest {
                   .queueId(user1Queue1)
                   .videoStreamOn(true)
                   .screenStreamOn(false)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+                  .audioStreamOn(false)
+                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
+                  .updatedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
                   .build());
       verify(videoServerService, times(1))
           .updateMediaStream(
@@ -899,7 +912,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("If video stream is already enabled for the current user, correctly it ignores")
-    public void enableVideoStream_testOkVideoStreamAlreadyEnabledWithSessionEqualToCurrent() {
+    void enableVideoStream_testOkVideoStreamAlreadyEnabledWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -915,7 +928,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
-    public void enableVideoStream_testErrorMeetingNotExists() {
+    void enableVideoStream_testErrorMeetingNotExists() {
       when(meetingService.getMeetingEntity(permanentMeetingId)).thenReturn(Optional.empty());
 
       ChatsHttpException exception =
@@ -945,7 +958,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("It disables the video stream for the current user")
-    public void disableVideoStream_testOkDisableWithSessionEqualToCurrent() {
+    void disableVideoStream_testOkDisableWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -962,7 +975,7 @@ public class ParticipantServiceImplTest {
                   .videoStreamOn(false)
                   .audioStreamOn(true)
                   .screenStreamOn(true)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
                   .build());
       verify(videoServerService, times(1))
           .updateMediaStream(
@@ -985,7 +998,7 @@ public class ParticipantServiceImplTest {
     @Test
     @DisplayName(
         "If video stream is already disabled for the current session, correctly it ignores")
-    public void disableVideoStream_testOkVideoStreamAlreadyDisabledWithSessionEqualToCurrent() {
+    void disableVideoStream_testOkVideoStreamAlreadyDisabledWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1003,7 +1016,7 @@ public class ParticipantServiceImplTest {
     @DisplayName(
         "If the requested user isn't in the meeting participants, it throws a 'not found'"
             + " exception")
-    public void disableVideoStream_testErrorSessionNotFoundInMeetingParticipants() {
+    void disableVideoStream_testErrorSessionNotFoundInMeetingParticipants() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1030,7 +1043,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
-    public void disableVideoStream_testErrorMeetingNotExists() {
+    void disableVideoStream_testErrorMeetingNotExists() {
       when(meetingService.getMeetingEntity(permanentMeetingId)).thenReturn(Optional.empty());
 
       ChatsHttpException exception =
@@ -1062,7 +1075,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("It enables the audio stream for the current session")
-    public void enableAudioStream_testOkEnableWithSessionEqualToCurrent() {
+    void enableAudioStream_testOkEnableWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1077,7 +1090,7 @@ public class ParticipantServiceImplTest {
               ParticipantBuilder.create(Meeting.create(), user1Id.toString())
                   .queueId(user1Queue1)
                   .audioStreamOn(hasAudioStreamOn)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
                   .build());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -1096,7 +1109,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("If audio stream is already enabled for the current session, correctly it ignores")
-    public void enableAudioStream_testOkAudioStreamAlreadyEnabledWithSessionEqualToCurrent() {
+    void enableAudioStream_testOkAudioStreamAlreadyEnabledWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1113,7 +1126,7 @@ public class ParticipantServiceImplTest {
     @Test
     @DisplayName(
         "If the current session is not the requested session, it throws a 'bad request' exception")
-    public void enableAudioStream_testErrorEnableWithSessionDifferentToCurrent() {
+    void enableAudioStream_testErrorEnableWithSessionDifferentToCurrent() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1145,7 +1158,7 @@ public class ParticipantServiceImplTest {
     @DisplayName(
         "If the requested session isn't in the meeting participants, it throws a 'not found'"
             + " exception")
-    public void enableAudioStream_testErrorSessionNotFoundInMeetingParticipants() {
+    void enableAudioStream_testErrorSessionNotFoundInMeetingParticipants() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1174,7 +1187,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
-    public void enableAudioStream_testErrorMeetingNotExists() {
+    void enableAudioStream_testErrorMeetingNotExists() {
       when(meetingService.getMeetingEntity(permanentMeetingId)).thenReturn(Optional.empty());
 
       ChatsHttpException exception =
@@ -1202,13 +1215,13 @@ public class ParticipantServiceImplTest {
 
   @Nested
   @DisplayName("Disable audio stream tests")
-  public class DisableAudioStreamTests {
+  class DisableAudioStreamTests {
 
     private final boolean hasAudioStreamOn = false;
 
     @Test
     @DisplayName("It disables the audio stream for the current user")
-    public void disableAudioStream_testOkDisableWithSessionEqualToCurrent() {
+    void disableAudioStream_testOkDisableWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1225,7 +1238,7 @@ public class ParticipantServiceImplTest {
                   .audioStreamOn(hasAudioStreamOn)
                   .videoStreamOn(true)
                   .screenStreamOn(true)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
                   .build());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -1240,7 +1253,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("If audio stream is already disabled for the current user, correctly it ignores")
-    public void disableAudioStream_testOkAudioStreamAlreadyDisabledWithSessionEqualToCurrent() {
+    void disableAudioStream_testOkAudioStreamAlreadyDisabledWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1256,7 +1269,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("It disables the audio stream for another user")
-    public void disableAudioStream_testOkDisableWithAnotherSession() {
+    void disableAudioStream_testOkDisableWithAnotherSession() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
@@ -1277,7 +1290,7 @@ public class ParticipantServiceImplTest {
                   .audioStreamOn(false)
                   .videoStreamOn(true)
                   .screenStreamOn(true)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
                   .build());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -1294,7 +1307,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("If audio stream is already disabled for another user, correctly it ignores")
-    public void disableAudioStream_testOkAudioStreamAlreadyDisabledWithAnotherSession() {
+    void disableAudioStream_testOkAudioStreamAlreadyDisabledWithAnotherSession() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
@@ -1316,7 +1329,7 @@ public class ParticipantServiceImplTest {
     @DisplayName(
         "If the requested user isn't in the meeting participants, it throws a 'not found'"
             + " exception")
-    public void disableAudioStream_testErrorSessionNotFoundInMeetingParticipants() {
+    void disableAudioStream_testErrorSessionNotFoundInMeetingParticipants() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1345,7 +1358,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
-    public void disableAudioStream_testErrorMeetingNotExists() {
+    void disableAudioStream_testErrorMeetingNotExists() {
       when(meetingService.getMeetingEntity(permanentMeetingId)).thenReturn(Optional.empty());
 
       ChatsHttpException exception =
@@ -1373,7 +1386,7 @@ public class ParticipantServiceImplTest {
     @Test
     @DisplayName(
         "If the user who performed the action isn't a moderator, it throws a 'forbidden' exception")
-    public void disableAudioStream_testErrorUserIsNotAModerator() {
+    void disableAudioStream_testErrorUserIsNotAModerator() {
       UserPrincipal user = UserPrincipal.create(user1Id).queueId(user1Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
@@ -1408,11 +1421,11 @@ public class ParticipantServiceImplTest {
 
   @Nested
   @DisplayName("Enable screen stream tests")
-  public class EnableScreenStreamTests {
+  class EnableScreenStreamTests {
 
     @Test
     @DisplayName("It enables the screen stream for the current user")
-    public void enableScreenStream_testOkEnableWithSessionEqualToCurrent() {
+    void enableScreenStream_testOkEnableWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1427,7 +1440,7 @@ public class ParticipantServiceImplTest {
               ParticipantBuilder.create(Meeting.create(), user1Id.toString())
                   .queueId(user1Queue1)
                   .screenStreamOn(true)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
                   .build());
       verify(videoServerService, times(1))
           .updateMediaStream(
@@ -1441,7 +1454,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("If screen stream is already enabled for the current user, correctly it ignores")
-    public void enableScreenStream_testOkScreenStreamAlreadyEnabledWithSessionEqualToCurrent() {
+    void enableScreenStream_testOkScreenStreamAlreadyEnabledWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1459,7 +1472,7 @@ public class ParticipantServiceImplTest {
     @DisplayName(
         "If the requested user isn't in the meeting participants, it throws a 'not found'"
             + " exception")
-    public void enableScreenStream_testErrorSessionNotFoundInMeetingParticipants() {
+    void enableScreenStream_testErrorSessionNotFoundInMeetingParticipants() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1489,7 +1502,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
-    public void enableScreenStream_testErrorMeetingNotExists() {
+    void enableScreenStream_testErrorMeetingNotExists() {
       when(meetingService.getMeetingEntity(permanentMeetingId)).thenReturn(Optional.empty());
 
       ChatsHttpException exception =
@@ -1518,11 +1531,11 @@ public class ParticipantServiceImplTest {
 
   @Nested
   @DisplayName("Disable screen stream tests")
-  public class DisableScreenStreamTests {
+  class DisableScreenStreamTests {
 
     @Test
     @DisplayName("It disables the screen stream for the current user")
-    public void disableScreenStream_testOkDisableWithSessionEqualToCurrent() {
+    void disableScreenStream_testOkDisableWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1539,7 +1552,7 @@ public class ParticipantServiceImplTest {
                   .screenStreamOn(false)
                   .audioStreamOn(true)
                   .videoStreamOn(true)
-                  .createdAt(OffsetDateTime.parse("2022-01-01T13:32:00Z"))
+                  .createdAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
                   .build());
       verify(videoServerService, times(1))
           .updateMediaStream(
@@ -1561,7 +1574,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("If screen stream is already disabled for the current user, correctly it ignores")
-    public void disableScreenStream_testOkScreenStreamAlreadyDisabledWithSessionEqualToCurrent() {
+    void disableScreenStream_testOkScreenStreamAlreadyDisabledWithSessionEqualToCurrent() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1579,7 +1592,7 @@ public class ParticipantServiceImplTest {
     @DisplayName(
         "If the requested user isn't in the meeting participants, it throws a 'not found'"
             + " exception")
-    public void disableScreenStream_testErrorSessionNotFoundInMeetingParticipants() {
+    void disableScreenStream_testErrorSessionNotFoundInMeetingParticipants() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1606,7 +1619,7 @@ public class ParticipantServiceImplTest {
 
     @Test
     @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
-    public void disableScreenStream_testErrorMeetingNotExists() {
+    void disableScreenStream_testErrorMeetingNotExists() {
       when(meetingService.getMeetingEntity(permanentMeetingId)).thenReturn(Optional.empty());
 
       ChatsHttpException exception =

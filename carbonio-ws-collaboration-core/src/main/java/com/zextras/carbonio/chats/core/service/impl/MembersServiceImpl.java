@@ -39,7 +39,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Singleton
 public class MembersServiceImpl implements MembersService {
@@ -80,10 +79,8 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  public Optional<MemberDto> getByUserIdAndRoomId(UUID userId, UUID roomId) {
-    return Optional.ofNullable(
-        subscriptionMapper.ent2memberDto(
-            subscriptionRepository.getById(roomId.toString(), userId.toString()).orElse(null)));
+  public Optional<Subscription> getSubscription(UUID userId, UUID roomId) {
+    return subscriptionRepository.getById(roomId.toString(), userId.toString());
   }
 
   @Override
@@ -108,7 +105,7 @@ public class MembersServiceImpl implements MembersService {
     subscription.owner(isOwner);
     subscriptionRepository.update(subscription);
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         isOwner
             ? RoomOwnerPromoted.create().roomId(roomId).userId(userId)
             : RoomOwnerDemoted.create().roomId(roomId).userId(userId));
@@ -188,7 +185,7 @@ public class MembersServiceImpl implements MembersService {
     }
 
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         RoomMemberAdded.create()
             .roomId(UUID.fromString(room.getId()))
             .userId(memberToInsertDto.getUserId())
@@ -220,7 +217,7 @@ public class MembersServiceImpl implements MembersService {
         room.getSubscriptions().stream()
             .filter(Subscription::isOwner)
             .map(Subscription::getUserId)
-            .collect(Collectors.toList());
+            .toList();
     if (owners.size() == 1
         && owners.get(0).equals(userId.toString())
         && room.getSubscriptions().size() > 1) {
@@ -250,7 +247,7 @@ public class MembersServiceImpl implements MembersService {
       messageService.removeRoomMember(room.getId(), currentUser.getId(), userId.toString());
     }
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         RoomMemberRemoved.create().roomId(UUID.fromString(room.getId())).userId(userId));
     // the room isn't updated with subscriptions table. It still has the deleted subscription,
     // so if room has only one subscription, but actually it is empty
@@ -271,7 +268,7 @@ public class MembersServiceImpl implements MembersService {
 
   @Override
   public List<Subscription> initRoomSubscriptions(
-      List<UUID> membersIds, Room room, UserPrincipal requester) {
+      List<UUID> membersIds, Room room, UserPrincipal currentUser) {
     return membersIds.stream()
         .map(
             userId ->
@@ -281,11 +278,11 @@ public class MembersServiceImpl implements MembersService {
                     .room(room)
                     // When we have a one to one, both members are owners
                     .owner(
-                        userId.equals(requester.getUUID())
+                        userId.equals(currentUser.getUUID())
                             || RoomTypeDto.ONE_TO_ONE.equals(room.getType()))
                     .temporary(false)
                     .external(false)
                     .joinedAt(OffsetDateTime.now()))
-        .collect(Collectors.toList());
+        .toList();
   }
 }

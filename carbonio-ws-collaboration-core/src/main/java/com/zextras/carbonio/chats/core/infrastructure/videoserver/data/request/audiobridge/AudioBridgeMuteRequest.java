@@ -10,7 +10,8 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import java.util.Objects;
 
 /**
- * This class represents the audio bridge request to mute/unmute a session in a room or the entire room.
+ * This class represents the audio bridge request to mute/unmute a session in a room or the entire
+ * room.
  *
  * @see <a href="https://janus.conf.meetecho.com/docs/audiobridge.html">AudioBridgeMuteRequest</a>
  */
@@ -18,13 +19,10 @@ import java.util.Objects;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class AudioBridgeMuteRequest extends AudioBridgeRequest {
 
-  public static final String MUTE        = "mute";
-  public static final String UNMUTE      = "unmute";
-  public static final String MUTE_ROOM   = "mute_room";
-  public static final String UNMUTE_ROOM = "unmute_room";
+  public static final String MUTE = "mute";
+  public static final String UNMUTE = "unmute";
 
   private String request;
-  private String secret;
   private String room;
   private String id;
 
@@ -38,15 +36,6 @@ public class AudioBridgeMuteRequest extends AudioBridgeRequest {
 
   public AudioBridgeMuteRequest request(String request) {
     this.request = request;
-    return this;
-  }
-
-  public String getSecret() {
-    return secret;
-  }
-
-  public AudioBridgeMuteRequest secret(String secret) {
-    this.secret = secret;
     return this;
   }
 
@@ -70,20 +59,15 @@ public class AudioBridgeMuteRequest extends AudioBridgeRequest {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof AudioBridgeMuteRequest)) {
-      return false;
-    }
-    AudioBridgeMuteRequest that = (AudioBridgeMuteRequest) o;
-    return Objects.equals(getRequest(), that.getRequest()) && Objects.equals(getSecret(),
-      that.getSecret()) && Objects.equals(getRoom(), that.getRoom()) && Objects.equals(getId(),
-      that.getId());
+    if (this == o) return true;
+    if (!(o instanceof AudioBridgeMuteRequest that)) return false;
+    return Objects.equals(getRequest(), that.getRequest())
+        && Objects.equals(getRoom(), that.getRoom())
+        && Objects.equals(getId(), that.getId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getRequest(), getSecret(), getRoom(), getId());
+    return Objects.hash(getRequest(), getRoom(), getId());
   }
 }

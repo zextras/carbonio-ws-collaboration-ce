@@ -21,22 +21,25 @@ import java.util.Objects;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class AudioBridgeResponse {
 
-  public static final String CREATED   = "created";
-  public static final String EDITED    = "edited";
+  public static final String CREATED = "created";
+  public static final String EDITED = "edited";
   public static final String DESTROYED = "destroyed";
-  public static final String ACK       = "ack";
-
-  public static final String SUCCESS      = "success";
+  public static final String ACK = "ack";
+  public static final String SUCCESS = "success";
   public static final String PARTICIPANTS = "participants";
 
   @JsonProperty("janus")
-  private String                status;
+  private String status;
+
   @JsonProperty("session_id")
-  private String                connectionId;
+  private String connectionId;
+
   @JsonProperty("transaction")
-  private String                transactionId;
+  private String transactionId;
+
   @JsonProperty("sender")
-  private String                handleId;
+  private String handleId;
+
   @JsonProperty("plugindata")
   private AudioBridgePluginData pluginData;
 
@@ -119,14 +122,22 @@ public class AudioBridgeResponse {
       return false;
     }
     AudioBridgeResponse that = (AudioBridgeResponse) o;
-    return Objects.equals(getStatus(), that.getStatus()) && Objects.equals(getConnectionId(),
-      that.getConnectionId()) && Objects.equals(getTransactionId(), that.getTransactionId())
-      && Objects.equals(getHandleId(), that.getHandleId()) && Objects.equals(getPluginData(),
-      that.getPluginData()) && Objects.equals(getError(), that.getError());
+    return Objects.equals(getStatus(), that.getStatus())
+        && Objects.equals(getConnectionId(), that.getConnectionId())
+        && Objects.equals(getTransactionId(), that.getTransactionId())
+        && Objects.equals(getHandleId(), that.getHandleId())
+        && Objects.equals(getPluginData(), that.getPluginData())
+        && Objects.equals(getError(), that.getError());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getStatus(), getConnectionId(), getTransactionId(), getHandleId(), getPluginData(), getError());
+    return Objects.hash(
+        getStatus(),
+        getConnectionId(),
+        getTransactionId(),
+        getHandleId(),
+        getPluginData(),
+        getError());
   }
 }

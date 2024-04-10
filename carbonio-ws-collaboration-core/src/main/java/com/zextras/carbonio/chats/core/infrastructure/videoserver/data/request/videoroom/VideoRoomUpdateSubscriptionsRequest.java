@@ -15,9 +15,11 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * This class represents the video room request to subscribe/unsubscribe to multiple streams available in a room.
+ * This class represents the video room request to subscribe/unsubscribe to multiple streams
+ * available in a room.
  *
- * @see <a href="https://janus.conf.meetecho.com/docs/videoroom.html">VideoRoomUpdateSubscriptionsRequest</a>
+ * @see <a
+ *     href="https://janus.conf.meetecho.com/docs/videoroom.html">VideoRoomUpdateSubscriptionsRequest</a>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -25,10 +27,12 @@ public class VideoRoomUpdateSubscriptionsRequest extends VideoRoomRequest {
 
   public static final String UPDATE = "update";
 
-  private String       request;
+  private String request;
+
   @JsonProperty("subscribe")
   @JsonInclude(Include.NON_EMPTY)
   private List<Stream> subscriptions;
+
   @JsonProperty("unsubscribe")
   @JsonInclude(Include.NON_EMPTY)
   private List<Stream> unsubscriptions;
@@ -66,15 +70,11 @@ public class VideoRoomUpdateSubscriptionsRequest extends VideoRoomRequest {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof VideoRoomUpdateSubscriptionsRequest)) {
-      return false;
-    }
-    VideoRoomUpdateSubscriptionsRequest that = (VideoRoomUpdateSubscriptionsRequest) o;
-    return Objects.equals(getRequest(), that.getRequest()) && Objects.equals(getSubscriptions(),
-      that.getSubscriptions()) && Objects.equals(getUnsubscriptions(), that.getUnsubscriptions());
+    if (this == o) return true;
+    if (!(o instanceof VideoRoomUpdateSubscriptionsRequest that)) return false;
+    return Objects.equals(getRequest(), that.getRequest())
+        && Objects.equals(getSubscriptions(), that.getSubscriptions())
+        && Objects.equals(getUnsubscriptions(), that.getUnsubscriptions());
   }
 
   @Override

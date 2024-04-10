@@ -194,13 +194,8 @@ public class VideoServerSession {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof VideoServerSession)) {
-      return false;
-    }
-    VideoServerSession that = (VideoServerSession) o;
+    if (this == o) return true;
+    if (!(o instanceof VideoServerSession that)) return false;
     return Objects.equals(getId(), that.getId())
         && Objects.equals(getUserId(), that.getUserId())
         && Objects.equals(getVideoServerMeeting(), that.getVideoServerMeeting())

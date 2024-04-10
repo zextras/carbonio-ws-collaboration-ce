@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.mapper.impl;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.type.RecordingStatus;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.mapper.ParticipantMapper;
 import com.zextras.carbonio.meeting.model.MeetingDto;
@@ -14,7 +15,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Singleton
 public class MeetingMapperImpl implements MeetingMapper {
@@ -32,14 +32,24 @@ public class MeetingMapperImpl implements MeetingMapper {
     if (meeting == null) {
       return null;
     }
-    return MeetingDto.create()
-        .id(UUID.fromString(meeting.getId()))
-        .roomId(UUID.fromString(meeting.getRoomId()))
-        .meetingType(MeetingTypeDto.fromString(meeting.getMeetingType().toString()))
-        .name(meeting.getName())
-        .createdAt(meeting.getCreatedAt())
-        .active(meeting.getActive())
-        .participants(participantMapper.ent2dto(meeting.getParticipants()));
+    MeetingDto meetingDto =
+        MeetingDto.create()
+            .id(UUID.fromString(meeting.getId()))
+            .roomId(UUID.fromString(meeting.getRoomId()))
+            .meetingType(MeetingTypeDto.fromString(meeting.getMeetingType().toString()))
+            .name(meeting.getName())
+            .createdAt(meeting.getCreatedAt())
+            .active(meeting.getActive())
+            .participants(participantMapper.ent2dto(meeting.getParticipants()));
+    meeting.getRecordings().stream()
+        .filter(r -> RecordingStatus.STARTED.equals(r.getStatus()))
+        .findFirst()
+        .ifPresent(
+            value ->
+                meetingDto
+                    .recStartedAt(value.getStartedAt())
+                    .recUserId(UUID.fromString(value.getStarterId())));
+    return meetingDto;
   }
 
   @Override
@@ -48,6 +58,6 @@ public class MeetingMapperImpl implements MeetingMapper {
     if (meetings == null) {
       return List.of();
     }
-    return meetings.stream().map(this::ent2dto).collect(Collectors.toList());
+    return meetings.stream().map(this::ent2dto).toList();
   }
 }

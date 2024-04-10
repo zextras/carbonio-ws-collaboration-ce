@@ -7,9 +7,9 @@ package com.zextras.carbonio.chats.it.tools;
 import static org.mockserver.model.HttpRequest.request;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import jakarta.annotation.Nullable;
 import java.util.Map;
 import java.util.Optional;
-import javax.annotation.Nullable;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.ClearType;

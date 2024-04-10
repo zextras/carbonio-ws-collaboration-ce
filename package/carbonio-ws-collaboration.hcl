@@ -20,7 +20,7 @@ services {
     sidecar_service {
       proxy {
         local_service_address = "127.78.0.4"
-        upstreams = [
+        upstreams             = [
           {
             destination_name   = "carbonio-user-management"
             local_bind_address = "127.78.0.4"
@@ -50,6 +50,11 @@ services {
             destination_name   = "carbonio-videoserver"
             local_bind_address = "127.78.0.4"
             local_bind_port    = 20006
+          },
+          {
+            destination_name   = "carbonio-videorecorder"
+            local_bind_address = "127.78.0.4"
+            local_bind_port    = 20007
           }
         ]
       }

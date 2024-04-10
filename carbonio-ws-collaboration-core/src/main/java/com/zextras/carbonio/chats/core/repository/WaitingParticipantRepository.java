@@ -26,7 +26,7 @@ public interface WaitingParticipantRepository {
    *
    * @param meetingId meeting identifier
    * @param userId user identifier
-   * @param queueId user identifier
+   * @param queueId queue identifier
    * @param status the status of the inserted user
    * @return {@link WaitingParticipant} inserted
    */

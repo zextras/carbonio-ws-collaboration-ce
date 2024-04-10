@@ -180,6 +180,7 @@ public class CoreModule extends AbstractModule {
     bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
 
     bind(WaitingParticipantRepository.class).to(EbeanWaitingParticipantRepository.class);
+    bind(RecordingRepository.class).to(EbeanRecordingRepository.class);
 
     bind(HttpClient.class);
     bind(VideoServerService.class).to(VideoServerServiceImpl.class);
@@ -233,7 +234,6 @@ public class CoreModule extends AbstractModule {
     SDKHttpClient powerStoreHttpClient =
         SDKHttpClient.builder().trustAllCertificates().withTimeout(Duration.ofMinutes(1)).build();
     return new Builder(powerStoreHttpClient)
-        //      .withMemcached(MemcachedOptions::withConsul)
         .withNSLookup(options -> options.withConsul().withProtocol(Protocol.https))
         .build();
   }

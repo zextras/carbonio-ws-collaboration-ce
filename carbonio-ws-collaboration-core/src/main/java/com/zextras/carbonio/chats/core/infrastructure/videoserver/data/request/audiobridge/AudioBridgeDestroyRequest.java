@@ -12,7 +12,8 @@ import java.util.Objects;
 /**
  * This class represents the audio bridge request to destroy a room.
  *
- * @see <a href="https://janus.conf.meetecho.com/docs/audiobridge.html">AudioBridgeDestroyRequest</a>
+ * @see <a
+ *     href="https://janus.conf.meetecho.com/docs/audiobridge.html">AudioBridgeDestroyRequest</a>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
@@ -20,9 +21,8 @@ public class AudioBridgeDestroyRequest extends AudioBridgeRequest {
 
   public static final String DESTROY = "destroy";
 
-  private String  request;
-  private String  room;
-  private String  secret;
+  private String request;
+  private String room;
   private Boolean permanent;
 
   public static AudioBridgeDestroyRequest create() {
@@ -47,15 +47,6 @@ public class AudioBridgeDestroyRequest extends AudioBridgeRequest {
     return this;
   }
 
-  public String getSecret() {
-    return secret;
-  }
-
-  public AudioBridgeDestroyRequest secret(String secret) {
-    this.secret = secret;
-    return this;
-  }
-
   public Boolean getPermanent() {
     return permanent;
   }
@@ -67,20 +58,15 @@ public class AudioBridgeDestroyRequest extends AudioBridgeRequest {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof AudioBridgeDestroyRequest)) {
-      return false;
-    }
-    AudioBridgeDestroyRequest that = (AudioBridgeDestroyRequest) o;
-    return Objects.equals(getRequest(), that.getRequest()) && Objects.equals(getRoom(),
-      that.getRoom()) && Objects.equals(getSecret(), that.getSecret()) && Objects.equals(
-      getPermanent(), that.getPermanent());
+    if (this == o) return true;
+    if (!(o instanceof AudioBridgeDestroyRequest that)) return false;
+    return Objects.equals(getRequest(), that.getRequest())
+        && Objects.equals(getRoom(), that.getRoom())
+        && Objects.equals(getPermanent(), that.getPermanent());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getRequest(), getRoom(), getSecret(), getPermanent());
+    return Objects.hash(getRequest(), getRoom(), getPermanent());
   }
 }

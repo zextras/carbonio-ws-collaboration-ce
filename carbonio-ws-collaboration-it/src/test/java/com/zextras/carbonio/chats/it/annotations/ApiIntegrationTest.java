@@ -12,6 +12,7 @@ import com.zextras.carbonio.chats.it.extensions.PreviewerExtension;
 import com.zextras.carbonio.chats.it.extensions.RestEasyExtension;
 import com.zextras.carbonio.chats.it.extensions.StoragesExtension;
 import com.zextras.carbonio.chats.it.extensions.UserManagementExtension;
+import com.zextras.carbonio.chats.it.extensions.VideoRecorderExtension;
 import com.zextras.carbonio.chats.it.extensions.VideoServerExtension;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
@@ -31,5 +32,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(UserManagementExtension.class)
 @ExtendWith(MongooseIMExtension.class)
 @ExtendWith(VideoServerExtension.class)
+@ExtendWith(VideoRecorderExtension.class)
 @ExtendWith(ConsulExtension.class)
 public @interface ApiIntegrationTest {}

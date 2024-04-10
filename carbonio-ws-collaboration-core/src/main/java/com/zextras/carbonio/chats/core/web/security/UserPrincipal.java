@@ -84,13 +84,8 @@ public class UserPrincipal implements Principal {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    UserPrincipal that = (UserPrincipal) o;
+    if (this == o) return true;
+    if (!(o instanceof UserPrincipal that)) return false;
     return Objects.equals(userId, that.userId) && Objects.equals(queueId, that.queueId);
   }
 

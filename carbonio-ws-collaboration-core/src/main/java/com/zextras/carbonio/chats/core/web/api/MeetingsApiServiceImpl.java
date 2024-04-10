@@ -348,4 +348,24 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
         meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
+
+  @Override
+  public Response startRecording(UUID meetingId, SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+    meetingService.startMeetingRecording(meetingId, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
+  public Response stopRecording(
+      UUID meetingId, RecordingFieldsDto recordingFieldsDto, SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+    meetingService.stopMeetingRecording(
+        meetingId, recordingFieldsDto.getName(), recordingFieldsDto.getFolderId(), currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
 }

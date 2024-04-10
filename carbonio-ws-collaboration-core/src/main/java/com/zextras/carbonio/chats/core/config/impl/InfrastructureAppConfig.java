@@ -19,7 +19,9 @@ public class InfrastructureAppConfig extends AppConfig {
   static {
     configs = new HashMap<>();
     configs.put(ConfigName.DATABASE_JDBC_DRIVER, "org.postgresql.Driver");
-    configs.put(ConfigName.DATABASE_JDBC_URL, "jdbc:postgresql://127.78.0.4:20003/carbonio-ws-collaboration-db");
+    configs.put(
+        ConfigName.DATABASE_JDBC_URL,
+        "jdbc:postgresql://127.78.0.4:20003/carbonio-ws-collaboration-db");
     configs.put(ConfigName.XMPP_SERVER_HOST, "127.78.0.4");
     configs.put(ConfigName.XMPP_SERVER_HTTP_PORT, "20004");
     configs.put(ConfigName.USER_MANAGEMENT_HOST, "127.78.0.4");
@@ -32,6 +34,8 @@ public class InfrastructureAppConfig extends AppConfig {
     configs.put(ConfigName.EVENT_DISPATCHER_PORT, "20005");
     configs.put(ConfigName.VIDEO_SERVER_HOST, "127.78.0.4");
     configs.put(ConfigName.VIDEO_SERVER_PORT, "20006");
+    configs.put(ConfigName.VIDEO_RECORDER_HOST, "127.78.0.4");
+    configs.put(ConfigName.VIDEO_RECORDER_PORT, "20007");
   }
 
   public static AppConfig create() {
@@ -51,7 +55,7 @@ public class InfrastructureAppConfig extends AppConfig {
   @Override
   protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigName configName) {
     return Optional.ofNullable(configs.get(configName))
-      .map((stringValue) -> castToGeneric(clazz, stringValue));
+        .map((stringValue) -> castToGeneric(clazz, stringValue));
   }
 
   @Override

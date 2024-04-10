@@ -97,4 +97,29 @@ public interface VideoServerService extends HealthIndicator {
    * @param sdp the offer rtc session description
    */
   void offerRtcAudioStream(String userId, String meetingId, String sdp);
+
+  /**
+   * Updates recording status on a meeting on the VideoServer
+   *
+   * @param meetingId meeting identifier
+   * @param enabled if true the recording is started, otherwise it is stopped
+   */
+  void updateRecording(String meetingId, boolean enabled);
+
+  /**
+   * Sends the request to the video recorder to start the post-processing phase on the meeting
+   * recorded
+   *
+   * @param meetingId meeting identifier
+   * @param meetingName the name of the meeting recorded
+   * @param folderId the folder id where the recording will be saved on Files
+   * @param recordingName the name used to save the recording on Files
+   * @param authToken the token needed to save the recording on Files
+   */
+  void startRecordingPostProcessing(
+      String meetingId,
+      String meetingName,
+      String folderId,
+      String recordingName,
+      String authToken);
 }

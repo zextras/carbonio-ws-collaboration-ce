@@ -279,7 +279,42 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-
+  /meetings/{meetingId}/startRecording:
+    post:
+      tags:
+        - Meetings
+      summary: Start recording on the specified meeting
+      operationId: startRecording
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      responses:
+        204:
+          $ref: '#/components/responses/204StartMeetingRecordingResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/stopRecording:
+    post:
+      tags:
+        - Meetings
+      summary: Stop recording on the specified meeting
+      operationId: stopRecording
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      requestBody:
+        $ref: '#/components/requestBodies/StopMeetingRecordingRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204StopMeetingRecordingResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
 components:
   parameters:
     pathMeetingId:
@@ -347,9 +382,16 @@ components:
       description: request to approve or reject a user inside a meeting
       required: true
       content:
-       application/json:
-         schema:
+        application/json:
+          schema:
             $ref: '#/components/schemas/QueuedUserUpdate'
+    StopMeetingRecordingRequest:
+      description: user request to stop recording on a specific meeting
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RecordingFields'
   responses:
     200CreateMeetingResponse:
       description: The meeting just created
@@ -417,6 +459,10 @@ components:
       description: The answer related to the media stream has been processed and sent successfully
     204SubscribeMediaStreamResponse:
       description: The user subscribed to media streams successfully
+    204StartMeetingRecordingResponse:
+      description: The recording has been started successfully
+    204StopMeetingRecordingResponse:
+      description: The recording has been stopped successfully
 
     400BadRequestResponse:
       description: The request had wrong or missing parameters
@@ -460,25 +506,6 @@ components:
           items:
             type: string
             format: uuid
-    Room:
-      type: object
-      description: Room data for a meeting
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-          description: room identifier
-        type:
-          $ref: "../chats/chats-api.yaml#/components/schemas/RoomType"
-        name:
-          type: string
-          readOnly: true
-          description: room name
-        description:
-          type: string
-          description: room description
-          readOnly: true
     MeetingUser:
       type: object
       description: Defines a user in the access list of a meeting
@@ -569,6 +596,16 @@ components:
           description: entity creation date
         meetingType:
           $ref: '#/components/schemas/MeetingType'
+        recStartedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: start recording timestamp
+        recUserId:
+          type: string
+          format: uuid
+          readOnly: true
+          description: user who started the recording
     PublicMeeting:
       type: object
       description: public Meeting data
@@ -660,3 +697,16 @@ components:
       properties:
         status:
           $ref: '#/components/schemas/QueueUpdateStatus'
+    RecordingFields:
+      type: object
+      description: Recording data used to upload it on Files service
+      properties:
+        name:
+          type: string
+          description: recording name
+          minLength: 1
+          maxLength: 128
+        folderId:
+          type: string
+          description: folder id where the recording will be saved
+      required: [ name, folderId ]

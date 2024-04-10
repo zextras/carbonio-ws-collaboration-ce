@@ -12,7 +12,7 @@ MAIN_SERVICE_NAME="carbonio-ws-collaboration"
 
 CONFIGURATIONS=(
   "$MAIN_SERVICE_NAME/configs/can-video-call:true"
-  "$MAIN_SERVICE_NAME/configs/can-video-call-record:false"
+  "$MAIN_SERVICE_NAME/configs/can-video-call-record:true"
   "$MAIN_SERVICE_NAME/configs/can-use-virtual-background:false"
   "$MAIN_SERVICE_NAME/configs/can-see-message-reads:true"
   "$MAIN_SERVICE_NAME/configs/can-see-users-presence:true"

@@ -6,11 +6,13 @@ package com.zextras.carbonio.chats.it.utils;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
+import com.zextras.carbonio.chats.core.data.entity.Recording;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
+import com.zextras.carbonio.chats.core.repository.RecordingRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 public class MeetingTestUtils {
 
   private final MeetingRepository meetingRepository;
+  private final RecordingRepository recordingRepository;
   private final ParticipantRepository participantRepository;
   private final VideoServerMeetingRepository videoServerMeetingRepository;
   private final VideoServerSessionRepository videoServerSessionRepository;
@@ -33,17 +36,20 @@ public class MeetingTestUtils {
   @Inject
   public MeetingTestUtils(
       MeetingRepository meetingRepository,
+      RecordingRepository recordingRepository,
       ParticipantRepository participantRepository,
       VideoServerMeetingRepository videoServerMeetingRepository,
       VideoServerSessionRepository videoServerSessionRepository) {
     this.meetingRepository = meetingRepository;
+    this.recordingRepository = recordingRepository;
     this.participantRepository = participantRepository;
     this.videoServerMeetingRepository = videoServerMeetingRepository;
     this.videoServerSessionRepository = videoServerSessionRepository;
   }
 
   public UUID generateAndSaveMeeting(UUID roomId, List<ParticipantBuilder> participantBuilders) {
-    return generateAndSaveMeeting(roomId, MeetingType.PERMANENT, participantBuilders, false, null);
+    return generateAndSaveMeeting(
+        roomId, MeetingType.PERMANENT, participantBuilders, false, null, List.of());
   }
 
   public UUID generateAndSaveMeeting(
@@ -51,15 +57,19 @@ public class MeetingTestUtils {
       MeetingType meetingType,
       List<ParticipantBuilder> participantBuilders,
       Boolean active,
-      OffsetDateTime expiration) {
+      OffsetDateTime expiration,
+      List<Recording> recordings) {
     Meeting meeting =
         meetingRepository.insert(
             "Test Meeting for " + roomId.toString(), meetingType, roomId, expiration);
-    meeting.participants(
-        participantBuilders.stream()
-            .map(participantBuilder -> participantBuilder.build(meeting))
-            .collect(Collectors.toList()));
-    meeting.active(active);
+    recordings.forEach(recording -> recordingRepository.insert(recording.meeting(meeting)));
+    meeting
+        .participants(
+            participantBuilders.stream()
+                .map(participantBuilder -> participantBuilder.build(meeting))
+                .collect(Collectors.toList()))
+        .active(active)
+        .recordings(recordings);
     meetingRepository.update(meeting);
     return UUID.fromString(meeting.getId());
   }

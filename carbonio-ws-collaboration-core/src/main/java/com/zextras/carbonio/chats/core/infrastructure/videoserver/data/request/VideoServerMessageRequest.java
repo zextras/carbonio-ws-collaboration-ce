@@ -13,16 +13,18 @@ import java.util.Objects;
 
 /**
  * This class represents a single message/request/action sent to the VideoServer.
- * <p>
- * Its parameters are:
+ *
+ * <p>Its parameters are:
+ *
  * <ul>
- *   <li>janus: the message or the request value you want to send to the VideoServer</li>
- *   <li>transaction: a random string as transaction identifier</li>
- *   <li>plugin: (optional) the plugin name you want to interact with</li>
- *   <li>body: (optional) a request body containing info for the message/request/action needed</li>
- *   <li>apiSecret: (optional) the api secret is required is it's set on VideoServer configuration file</li>
- *   <li>jsep: (optional) SDP offer to negotiate a new PeerConnection or
- *   SDP answer to close the circle and complete the setup of the PeerConnection</li>
+ *   <li>janus: the message or the request value you want to send to the VideoServer
+ *   <li>transaction: a random string as transaction identifier
+ *   <li>plugin: (optional) the plugin name you want to interact with
+ *   <li>body: (optional) a request body containing info for the message/request/action needed
+ *   <li>apiSecret: (optional) the api secret is required is it's set on VideoServer configuration
+ *       file
+ *   <li>jsep: (optional) SDP offer to negotiate a new PeerConnection or SDP answer to close the
+ *       circle and complete the setup of the PeerConnection
  * </ul>
  *
  * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
@@ -32,17 +34,22 @@ import java.util.Objects;
 public class VideoServerMessageRequest {
 
   @JsonProperty("janus")
-  private String                   messageRequest;
+  private String messageRequest;
+
   @JsonProperty("transaction")
-  private String                   transactionId;
+  private String transactionId;
+
   @JsonProperty("plugin")
-  private String                   pluginName;
+  private String pluginName;
+
   @JsonProperty("body")
   private VideoServerPluginRequest videoServerPluginRequest;
+
   @JsonProperty("apisecret")
-  private String                   apiSecret;
+  private String apiSecret;
+
   @JsonProperty("jsep")
-  private RtcSessionDescription    rtcSessionDescription;
+  private RtcSessionDescription rtcSessionDescription;
 
   public static VideoServerMessageRequest create() {
     return new VideoServerMessageRequest();
@@ -79,7 +86,8 @@ public class VideoServerMessageRequest {
     return videoServerPluginRequest;
   }
 
-  public VideoServerMessageRequest videoServerPluginRequest(VideoServerPluginRequest videoServerPluginRequest) {
+  public VideoServerMessageRequest videoServerPluginRequest(
+      VideoServerPluginRequest videoServerPluginRequest) {
     this.videoServerPluginRequest = videoServerPluginRequest;
     return this;
   }
@@ -97,29 +105,30 @@ public class VideoServerMessageRequest {
     return rtcSessionDescription;
   }
 
-  public VideoServerMessageRequest rtcSessionDescription(RtcSessionDescription rtcSessionDescription) {
+  public VideoServerMessageRequest rtcSessionDescription(
+      RtcSessionDescription rtcSessionDescription) {
     this.rtcSessionDescription = rtcSessionDescription;
     return this;
   }
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof VideoServerMessageRequest)) {
-      return false;
-    }
-    VideoServerMessageRequest that = (VideoServerMessageRequest) o;
-    return Objects.equals(getMessageRequest(), that.getMessageRequest()) && Objects.equals(
-      getPluginName(), that.getPluginName()) && Objects.equals(getVideoServerPluginRequest(),
-      that.getVideoServerPluginRequest()) && Objects.equals(getApiSecret(), that.getApiSecret())
-      && Objects.equals(getRtcSessionDescription(), that.getRtcSessionDescription());
+    if (this == o) return true;
+    if (!(o instanceof VideoServerMessageRequest that)) return false;
+    return Objects.equals(getMessageRequest(), that.getMessageRequest())
+        && Objects.equals(getPluginName(), that.getPluginName())
+        && Objects.equals(getVideoServerPluginRequest(), that.getVideoServerPluginRequest())
+        && Objects.equals(getApiSecret(), that.getApiSecret())
+        && Objects.equals(getRtcSessionDescription(), that.getRtcSessionDescription());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getMessageRequest(), getPluginName(), getVideoServerPluginRequest(), getApiSecret(),
-      getRtcSessionDescription());
+    return Objects.hash(
+        getMessageRequest(),
+        getPluginName(),
+        getVideoServerPluginRequest(),
+        getApiSecret(),
+        getRtcSessionDescription());
   }
 }

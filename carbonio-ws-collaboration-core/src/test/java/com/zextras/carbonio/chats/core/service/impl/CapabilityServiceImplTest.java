@@ -24,7 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @UnitTest
-public class CapabilityServiceImplTest {
+class CapabilityServiceImplTest {
 
   private final AppConfig appConfig;
   private final CapabilityService capabilityService;
@@ -36,13 +36,13 @@ public class CapabilityServiceImplTest {
 
   @Test
   @DisplayName("Returns default user capabilities")
-  public void getCapabilities_defaultValuesTestOk() {
+  void getCapabilities_defaultValuesTestOk() {
     CapabilitiesDto capabilities =
         capabilityService.getCapabilities(UserPrincipal.create(UUID.randomUUID()));
 
     assertNotNull(capabilities);
     assertEquals(true, capabilities.isCanVideoCall());
-    assertEquals(false, capabilities.isCanVideoCallRecord());
+    assertEquals(true, capabilities.isCanVideoCallRecord());
     assertEquals(false, capabilities.isCanUseVirtualBackground());
     assertEquals(true, capabilities.isCanSeeMessageReads());
     assertEquals(true, capabilities.isCanSeeUsersPresence());
@@ -67,10 +67,10 @@ public class CapabilityServiceImplTest {
 
   @Test
   @DisplayName("Returns configured user capabilities")
-  public void getCapabilities_configuredValuesTestOk() {
+  void getCapabilities_configuredValuesTestOk() {
     when(appConfig.get(Boolean.class, ConfigName.CAN_VIDEO_CALL)).thenReturn(Optional.of(true));
     when(appConfig.get(Boolean.class, ConfigName.CAN_VIDEO_CALL_RECORD))
-        .thenReturn(Optional.of(false));
+        .thenReturn(Optional.of(true));
     when(appConfig.get(Boolean.class, ConfigName.CAN_USE_VIRTUAL_BACKGROUND))
         .thenReturn(Optional.of(false));
     when(appConfig.get(Boolean.class, ConfigName.CAN_SEE_MESSAGE_READS))
@@ -92,7 +92,7 @@ public class CapabilityServiceImplTest {
 
     assertNotNull(capabilities);
     assertEquals(true, capabilities.isCanVideoCall());
-    assertEquals(false, capabilities.isCanVideoCallRecord());
+    assertEquals(true, capabilities.isCanVideoCallRecord());
     assertEquals(false, capabilities.isCanUseVirtualBackground());
     assertEquals(false, capabilities.isCanSeeMessageReads());
     assertEquals(false, capabilities.isCanSeeUsersPresence());

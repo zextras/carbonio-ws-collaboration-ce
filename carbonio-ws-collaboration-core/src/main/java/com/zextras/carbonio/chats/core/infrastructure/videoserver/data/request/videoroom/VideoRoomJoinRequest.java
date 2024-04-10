@@ -20,21 +20,16 @@ import java.util.Objects;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class VideoRoomJoinRequest extends VideoRoomRequest {
 
-  public static final String JOIN               = "join";
-  public static final String JOIN_AND_CONFIGURE = "joinandconfigure";
+  public static final String JOIN = "join";
 
-  //publisher
+  // publisher
   private String request;
   private String ptype;
   private String room;
   private String id;
-  private String display;
-  private String token;
 
-  //subscriber
-  private Boolean      useMsid;
-  private Boolean      autoupdate;
-  private String       privateId;
+  // subscriber
+  private Boolean useMsid;
   private List<Stream> streams;
 
   public static VideoRoomJoinRequest create() {
@@ -77,48 +72,12 @@ public class VideoRoomJoinRequest extends VideoRoomRequest {
     return this;
   }
 
-  public String getDisplay() {
-    return display;
-  }
-
-  public VideoRoomJoinRequest display(String display) {
-    this.display = display;
-    return this;
-  }
-
-  public String getToken() {
-    return token;
-  }
-
-  public VideoRoomJoinRequest token(String token) {
-    this.token = token;
-    return this;
-  }
-
   public Boolean isUseMsid() {
     return useMsid;
   }
 
   public VideoRoomJoinRequest useMsid(boolean useMsid) {
     this.useMsid = useMsid;
-    return this;
-  }
-
-  public Boolean isAutoupdate() {
-    return autoupdate;
-  }
-
-  public VideoRoomJoinRequest autoupdate(boolean autoupdate) {
-    this.autoupdate = autoupdate;
-    return this;
-  }
-
-  public String getPrivateId() {
-    return privateId;
-  }
-
-  public VideoRoomJoinRequest privateId(String privateId) {
-    this.privateId = privateId;
     return this;
   }
 
@@ -133,24 +92,18 @@ public class VideoRoomJoinRequest extends VideoRoomRequest {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof VideoRoomJoinRequest)) {
-      return false;
-    }
-    VideoRoomJoinRequest that = (VideoRoomJoinRequest) o;
-    return Objects.equals(getRequest(), that.getRequest()) && Objects.equals(getPtype(),
-      that.getPtype()) && Objects.equals(getRoom(), that.getRoom()) && Objects.equals(getId(),
-      that.getId()) && Objects.equals(getDisplay(), that.getDisplay()) && Objects.equals(getToken(),
-      that.getToken()) && Objects.equals(useMsid, that.useMsid) && Objects.equals(autoupdate,
-      that.autoupdate) && Objects.equals(getPrivateId(), that.getPrivateId()) && Objects.equals(
-      getStreams(), that.getStreams());
+    if (this == o) return true;
+    if (!(o instanceof VideoRoomJoinRequest that)) return false;
+    return Objects.equals(getRequest(), that.getRequest())
+        && Objects.equals(getPtype(), that.getPtype())
+        && Objects.equals(getRoom(), that.getRoom())
+        && Objects.equals(getId(), that.getId())
+        && Objects.equals(useMsid, that.useMsid)
+        && Objects.equals(getStreams(), that.getStreams());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getRequest(), getPtype(), getRoom(), getId(), getDisplay(), getToken(), useMsid, autoupdate,
-      getPrivateId(), getStreams());
+    return Objects.hash(getRequest(), getPtype(), getRoom(), getId(), useMsid, getStreams());
   }
 }
