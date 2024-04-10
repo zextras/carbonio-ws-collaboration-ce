@@ -111,8 +111,8 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/JoinMeetingRequest'
       responses:
-        204:
-          $ref: '#/components/responses/204JoinMeetingResponse'
+        200:
+          $ref: '#/components/responses/200JoinMeetingResponse'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
         403:
@@ -321,10 +321,14 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Meeting'
+    200JoinMeetingResponse:
+      description: The result of the join operation for the meeting
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JoinMeetingResult'
     204DeleteMeetingResponse:
       description: The meeting was deleted successfully
-    204JoinMeetingResponse:
-      description: The user joined the meeting successfully
     204LeaveMeetingResponse:
       description: The user exited the meeting successfully
     204AudioStreamResponse:
@@ -366,6 +370,11 @@ components:
           format: date-time
       required:
         - [ name, meetingType ]
+    JoinMeetingResult:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/JoinStatus'
     Room:
       type: object
       description: Room data for a meeting
@@ -407,6 +416,10 @@ components:
       enum:
         - moderator
         - registered
+    JoinStatus:
+      type: string
+      enum:
+        - ACCEPTED
     Participant:
       description: Meeting participant data
       allOf:

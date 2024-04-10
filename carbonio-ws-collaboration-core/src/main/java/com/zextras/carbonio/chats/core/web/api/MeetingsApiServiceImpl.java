@@ -11,7 +11,9 @@ import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
+import com.zextras.carbonio.meeting.model.JoinMeetingResultDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
+import com.zextras.carbonio.meeting.model.JoinStatusDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
 import com.zextras.carbonio.meeting.model.SessionDescriptionProtocolDto;
@@ -134,7 +136,9 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       throw new BadRequestException("Queue identifier is mandatory");
     }
     participantService.insertMeetingParticipant(meetingId, joinSettingsDto, currentUser);
-    return Response.status(Status.NO_CONTENT).build();
+    return Response.status(Status.OK)
+        .entity(new JoinMeetingResultDto().status(JoinStatusDto.ACCEPTED))
+        .build();
   }
 
   /**
