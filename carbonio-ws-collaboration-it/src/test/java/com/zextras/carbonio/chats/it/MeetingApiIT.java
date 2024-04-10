@@ -2162,8 +2162,7 @@ public class MeetingApiIT {
                   JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
               Map.of("queue-id", user1Queue),
               user1Token);
-      assertEquals(204, response.getStatus());
-      assertEquals(0, response.getOutput().length);
+      assertEquals(200, response.getStatus());
 
       Meeting meeting = meetingTestUtils.getMeetingById(meetingId).orElseThrow();
       assertNotNull(meeting);
