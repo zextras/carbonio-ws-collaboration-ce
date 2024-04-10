@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.matcher.Matchers;
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.zaxxer.hikari.HikariConfig;
@@ -116,12 +117,13 @@ import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
+import io.ebean.annotation.Platform;
 import io.ebean.config.DatabaseConfig;
+import jakarta.inject.Singleton;
+import java.io.IOException;
 import java.time.Clock;
 import java.time.ZoneId;
 import java.util.Optional;
-import javax.inject.Singleton;
-import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 
 public class CoreModule extends AbstractModule {
@@ -129,7 +131,7 @@ public class CoreModule extends AbstractModule {
   @Override
   protected void configure() {
     super.configure();
-    //This is bound twice, once for RestEasy injection and one for everything else
+    // This is bound twice, once for RestEasy injection and one for everything else
     bind(JacksonConfig.class);
     bind(ObjectMapper.class).toProvider(JacksonConfig.class);
 
@@ -198,7 +200,8 @@ public class CoreModule extends AbstractModule {
     bind(ProfilingService.class).to(UserManagementProfilingService.class);
     bind(AuthenticationService.class).to(UserManagementAuthenticationService.class);
 
-    bindInterceptor(Matchers.any(), Matchers.annotatedWith(TimedCall.class), new TimedCallInterceptor());
+    bindInterceptor(
+        Matchers.any(), Matchers.annotatedWith(TimedCall.class), new TimedCallInterceptor());
 
     bindExceptionMapper();
 
@@ -217,10 +220,12 @@ public class CoreModule extends AbstractModule {
   @Provides
   private AppConfig getAppConfig() {
     AppConfig appConfig = InfrastructureAppConfig.create().load();
-    Optional.ofNullable(ConsulAppConfig.create(
-      appConfig.get(String.class, ConfigName.CONSUL_HOST).orElseThrow(),
-      appConfig.get(Integer.class, ConfigName.CONSUL_PORT).orElseThrow(),
-      System.getenv("CONSUL_HTTP_TOKEN"))).ifPresent(consulConfig -> appConfig.add(consulConfig.load()));
+    Optional.ofNullable(
+            ConsulAppConfig.create(
+                appConfig.get(String.class, ConfigName.CONSUL_HOST).orElseThrow(),
+                appConfig.get(Integer.class, ConfigName.CONSUL_PORT).orElseThrow(),
+                System.getenv("CONSUL_HTTP_TOKEN")))
+        .ifPresent(consulConfig -> appConfig.add(consulConfig.load()));
     return appConfig;
   }
 
@@ -234,79 +239,89 @@ public class CoreModule extends AbstractModule {
   @Provides
   private StoragesClient getStoragesClient(AppConfig appConfig) {
     return StoragesClient.atUrl(
-      String.format("http://%s:%s",
-        appConfig.get(String.class, ConfigName.STORAGES_HOST).orElseThrow(),
-        appConfig.get(String.class, ConfigName.STORAGES_PORT).orElseThrow()
-      )
-    );
+        String.format(
+            "http://%s:%s",
+            appConfig.get(String.class, ConfigName.STORAGES_HOST).orElseThrow(),
+            appConfig.get(String.class, ConfigName.STORAGES_PORT).orElseThrow()));
   }
 
   @Singleton
   @Provides
   private PreviewClient getPreviewClient(AppConfig appConfig) {
-    return PreviewClient.atURL(String.format("http://%s:%s",
-      appConfig.get(String.class, ConfigName.PREVIEWER_HOST).orElseThrow(),
-      appConfig.get(String.class, ConfigName.PREVIEWER_PORT).orElseThrow()));
+    return PreviewClient.atURL(
+        String.format(
+            "http://%s:%s",
+            appConfig.get(String.class, ConfigName.PREVIEWER_HOST).orElseThrow(),
+            appConfig.get(String.class, ConfigName.PREVIEWER_PORT).orElseThrow()));
   }
 
   @Singleton
   @Provides
   private UserManagementClient getUserManagementClient(AppConfig appConfig) {
     return UserManagementClient.atURL(
-      String.format("http://%s:%s",
-        appConfig.get(String.class, ConfigName.USER_MANAGEMENT_HOST).orElseThrow(),
-        appConfig.get(String.class, ConfigName.USER_MANAGEMENT_PORT).orElseThrow()
-      )
-    );
+        String.format(
+            "http://%s:%s",
+            appConfig.get(String.class, ConfigName.USER_MANAGEMENT_HOST).orElseThrow(),
+            appConfig.get(String.class, ConfigName.USER_MANAGEMENT_PORT).orElseThrow()));
   }
 
   @Singleton
   @Provides
-  public Database getDatabase(DataSource dataSource, Clock clock) {
+  public Database getDatabase(HikariDataSource dataSource, Clock clock) {
     DatabaseConfig databaseConfig = new DatabaseConfig();
     databaseConfig.setDataSource(dataSource);
     databaseConfig.setClock(clock);
+    databaseConfig.setDatabasePlatformName(Platform.POSTGRES.toString());
     return DatabaseFactory.create(databaseConfig);
   }
 
   @Singleton
   @Provides
-  public Flyway getFlywayInstance(DataSource dataSource) {
+  public Flyway getFlywayInstance(HikariDataSource dataSource) {
     return Flyway.configure()
-      .locations("classpath:migration")
-      .schemas("chats")
-      .dataSource(dataSource)
-      .load();
+        .locations("classpath:migration")
+        .schemas("chats")
+        .dataSource(dataSource)
+        .validateMigrationNaming(true)
+        .load();
   }
 
   @Singleton
   @Provides
-  public DataSource getHikariDataSource(AppConfig appConfig) {
+  public HikariDataSource getHikariDataSource(AppConfig appConfig) {
     HikariConfig config = new HikariConfig();
     config.setJdbcUrl(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).orElseThrow());
-    config.setDriverClassName(appConfig.get(String.class, ConfigName.DATABASE_JDBC_DRIVER).orElseThrow());
+    config.setDriverClassName(
+        appConfig.get(String.class, ConfigName.DATABASE_JDBC_DRIVER).orElseThrow());
     config.setPoolName("ws-collaboration-db-pool");
     config.setUsername(
-      appConfig.get(String.class, ConfigName.DATABASE_USERNAME).orElse("carbonio-ws-collaboration-db"));
-    config.setPassword(appConfig.get(String.class, ConfigName.DATABASE_PASSWORD).orElse("password"));
-    config.setIdleTimeout(appConfig.get(Integer.class, ConfigName.HIKARI_IDLE_TIMEOUT).orElse(10000));
+        appConfig
+            .get(String.class, ConfigName.DATABASE_USERNAME)
+            .orElse("carbonio-ws-collaboration-db"));
+    config.setPassword(
+        appConfig.get(String.class, ConfigName.DATABASE_PASSWORD).orElse("password"));
+    config.setIdleTimeout(
+        appConfig.get(Integer.class, ConfigName.HIKARI_IDLE_TIMEOUT).orElse(10000));
     config.setMinimumIdle(appConfig.get(Integer.class, ConfigName.HIKARI_MIN_POOL_SIZE).orElse(1));
-    config.setMaximumPoolSize(appConfig.get(Integer.class, ConfigName.HIKARI_MAX_POOL_SIZE).orElse(2));
+    config.setMaximumPoolSize(
+        appConfig.get(Integer.class, ConfigName.HIKARI_MAX_POOL_SIZE).orElse(2));
     config.setLeakDetectionThreshold(
-      appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(5000));
+        appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(5000));
     return new HikariDataSource(config);
   }
 
   @Singleton
   @Provides
   private MessageDispatcher getMessageDispatcher(AppConfig appConfig, ObjectMapper objectMapper) {
-    return new MessageDispatcherMongooseImpl(String.format("http://%s:%s/%s",
-      appConfig.get(String.class, ConfigName.XMPP_SERVER_HOST).orElseThrow(),
-      appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow(),
-      ChatsConstant.MONGOOSEIM_GRAPHQL_ENDPOINT),
-      appConfig.get(String.class, ConfigName.XMPP_SERVER_USERNAME).orElseThrow(),
-      appConfig.get(String.class, ConfigName.XMPP_SERVER_PASSWORD).orElseThrow(),
-      objectMapper);
+    return new MessageDispatcherMongooseImpl(
+        String.format(
+            "http://%s:%s/%s",
+            appConfig.get(String.class, ConfigName.XMPP_SERVER_HOST).orElseThrow(),
+            appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow(),
+            ChatsConstant.MONGOOSEIM_GRAPHQL_ENDPOINT),
+        appConfig.get(String.class, ConfigName.XMPP_SERVER_USERNAME).orElseThrow(),
+        appConfig.get(String.class, ConfigName.XMPP_SERVER_PASSWORD).orElseThrow(),
+        objectMapper);
   }
 
   @Singleton
@@ -316,22 +331,41 @@ public class CoreModule extends AbstractModule {
       ConnectionFactory factory = new ConnectionFactory();
       factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
       factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
-      factory.setUsername(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_USERNAME).orElseThrow());
-      factory.setPassword(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_PASSWORD).orElseThrow());
+      factory.setUsername(
+          appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_USERNAME).orElseThrow());
+      factory.setPassword(
+          appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_PASSWORD).orElseThrow());
       factory.setVirtualHost(appConfig.get(String.class, ConfigName.VIRTUAL_HOST).orElse("/"));
-      factory.setRequestedHeartbeat(appConfig.get(Integer.class, ConfigName.REQUESTED_HEARTBEAT_IN_SEC).orElse(15));
+      factory.setRequestedHeartbeat(
+          appConfig.get(Integer.class, ConfigName.REQUESTED_HEARTBEAT_IN_SEC).orElse(15));
       factory.setNetworkRecoveryInterval(
-        appConfig.get(Integer.class, ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI).orElse(20000));
-      factory.setConnectionTimeout(appConfig.get(Integer.class, ConfigName.CONNECTION_TIMEOUT_IN_MILLI).orElse(30000));
+          appConfig
+              .get(Integer.class, ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI)
+              .orElse(20000));
+      factory.setConnectionTimeout(
+          appConfig.get(Integer.class, ConfigName.CONNECTION_TIMEOUT_IN_MILLI).orElse(30000));
       factory.setAutomaticRecoveryEnabled(
-        appConfig.get(Boolean.class, ConfigName.AUTOMATIC_RECOVERY_ENABLED).orElse(true));
+          appConfig.get(Boolean.class, ConfigName.AUTOMATIC_RECOVERY_ENABLED).orElse(true));
       factory.setTopologyRecoveryEnabled(
-        appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(false));
+          appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(false));
       return Optional.of(factory.newConnection());
     } catch (Exception e) {
-      ChatsLogger.error("getRabbitMqConnection", e);
+      ChatsLogger.error("Message broker error: ", e);
       return Optional.empty();
     }
   }
 
+  @Provides
+  private Optional<Channel> getChannel(Optional<Connection> connection) {
+    if (connection.isEmpty()) {
+      ChatsLogger.error("RabbitMQ connection is not up!");
+      return Optional.empty();
+    }
+    try {
+      return connection.get().openChannel();
+    } catch (IOException e) {
+      ChatsLogger.error("Could not create RabbitMQ channel for websocket");
+      return Optional.empty();
+    }
+  }
 }

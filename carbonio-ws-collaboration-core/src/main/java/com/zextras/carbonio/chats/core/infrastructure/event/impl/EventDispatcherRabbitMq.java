@@ -7,48 +7,37 @@ package com.zextras.carbonio.chats.core.infrastructure.event.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
 import com.zextras.carbonio.chats.core.data.event.DomainEvent;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class EventDispatcherRabbitMq implements EventDispatcher {
 
-  private final Connection   connection;
+  private final Optional<Channel> channel;
   private final ObjectMapper objectMapper;
 
   @Inject
-  public EventDispatcherRabbitMq(Optional<Connection> connection, ObjectMapper objectMapper) {
-    this.connection = connection.orElse(null);
+  public EventDispatcherRabbitMq(Optional<Channel> channel, ObjectMapper objectMapper) {
+    this.channel = channel;
     this.objectMapper = objectMapper;
   }
 
   @Override
   public boolean isAlive() {
-    return connection != null && connection.isOpen();
+    return channel.isPresent() && channel.get().isOpen();
   }
 
   @Override
-  public Optional<Connection> getConnection() {
-    return Optional.of(connection);
-  }
-
-  @Override
-  public Optional<Channel> createChannel() {
-    try {
-      return Optional.of(connection.createChannel());
-    } catch (IOException e) {
-      ChatsLogger.error("Error creating RabbitMQ connection channel for videoserver events ", e);
-    }
-    return Optional.empty();
+  public Optional<Channel> getChannel() {
+    return channel;
   }
 
   @Override
@@ -71,58 +60,48 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
 
   @Override
   public void sendToUserQueue(String userId, String queueId, DomainEvent event) {
-    if (Optional.ofNullable(connection).isEmpty()) {
-      ChatsLogger.error("RabbitMQ connection is not up!");
+    if (channel.isEmpty()) {
+      ChatsLogger.error("RabbitMQ connection channel is not up!");
       return;
     }
-    Channel channel;
-    try {
-      channel = connection.createChannel();
-    } catch (IOException e) {
-      ChatsLogger.error(String.format("Error creating RabbitMQ connection channel for user '%s'", userId), e);
-      return;
-    }
+    Channel eventChannel = channel.get();
     try {
       String queueName = userId + "/" + queueId;
-      channel.queueDeclare(queueName, true, false, false, null);
-      channel.basicPublish("", queueName, null,
-        objectMapper.writeValueAsString(event).getBytes(StandardCharsets.UTF_8)
-      );
-      channel.close();
+      eventChannel.queueDeclare(queueName, false, false, true, null);
+      eventChannel.basicPublish(
+          "",
+          queueName,
+          null,
+          objectMapper.writeValueAsString(event).getBytes(StandardCharsets.UTF_8));
     } catch (JsonProcessingException e) {
       ChatsLogger.warn("Unable to convert event to json", e);
     } catch (Exception e) {
       ChatsLogger.warn(String.format("Unable to send message to user '%s'", userId), e);
       try {
-        channel.close();
+        eventChannel.close();
       } catch (IOException | TimeoutException ignored) {
-        ChatsLogger.error(String.format("Error closing RabbitMQ connection channel for user '%s'", userId));
+        ChatsLogger.error(
+            String.format("Error closing RabbitMQ connection channel for user '%s'", userId));
       }
     }
   }
 
   private void sendToExchange(String userId, String event) {
-    if (Optional.ofNullable(connection).isEmpty()) {
-      ChatsLogger.warn("RabbitMQ connection is not up!");
+    if (channel.isEmpty()) {
+      ChatsLogger.warn("RabbitMQ connection channel is not up!");
       return;
     }
-    Channel channel;
+    Channel eventChannel = channel.get();
     try {
-      channel = connection.createChannel();
-    } catch (IOException e) {
-      ChatsLogger.error(String.format("Error creating RabbitMQ connection channel for user '%s'", userId), e);
-      return;
-    }
-    try {
-      channel.exchangeDeclare(userId, "direct");
-      channel.basicPublish(userId, "", null, event.getBytes(StandardCharsets.UTF_8));
-      channel.close();
+      eventChannel.exchangeDeclare(userId, "direct");
+      eventChannel.basicPublish(userId, "", null, event.getBytes(StandardCharsets.UTF_8));
     } catch (Exception e) {
       ChatsLogger.warn(String.format("Unable to send message to user '%s'", userId), e);
       try {
-        channel.close();
+        eventChannel.close();
       } catch (IOException | TimeoutException ignored) {
-        ChatsLogger.error(String.format("Error closing RabbitMQ connection channel for user '%s'", userId));
+        ChatsLogger.error(
+            String.format("Error closing RabbitMQ connection channel for user '%s'", userId));
       }
     }
   }

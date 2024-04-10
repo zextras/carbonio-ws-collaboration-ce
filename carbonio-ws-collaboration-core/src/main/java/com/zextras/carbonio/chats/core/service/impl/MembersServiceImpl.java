@@ -32,40 +32,40 @@ import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class MembersServiceImpl implements MembersService {
 
-  private final RoomService                roomService;
-  private final SubscriptionRepository     subscriptionRepository;
+  private final RoomService roomService;
+  private final SubscriptionRepository subscriptionRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
-  private final EventDispatcher            eventDispatcher;
-  private final SubscriptionMapper         subscriptionMapper;
-  private final UserService                userService;
-  private final MessageDispatcher          messageService;
-  private final MeetingService             meetingService;
-  private final ParticipantService         participantService;
-  private final CapabilityService          capabilityService;
+  private final EventDispatcher eventDispatcher;
+  private final SubscriptionMapper subscriptionMapper;
+  private final UserService userService;
+  private final MessageDispatcher messageService;
+  private final MeetingService meetingService;
+  private final ParticipantService participantService;
+  private final CapabilityService capabilityService;
 
   @Inject
   public MembersServiceImpl(
-    RoomService roomService, SubscriptionRepository subscriptionRepository,
-    RoomUserSettingsRepository roomUserSettingsRepository,
-    EventDispatcher eventDispatcher,
-    SubscriptionMapper subscriptionMapper,
-    UserService userService,
-    MessageDispatcher messageDispatcher,
-    MeetingService meetingService,
-    ParticipantService participantService,
-    CapabilityService capabilityService
-  ) {
+      RoomService roomService,
+      SubscriptionRepository subscriptionRepository,
+      RoomUserSettingsRepository roomUserSettingsRepository,
+      EventDispatcher eventDispatcher,
+      SubscriptionMapper subscriptionMapper,
+      UserService userService,
+      MessageDispatcher messageDispatcher,
+      MeetingService meetingService,
+      ParticipantService participantService,
+      CapabilityService capabilityService) {
     this.roomService = roomService;
     this.subscriptionRepository = subscriptionRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
@@ -81,8 +81,8 @@ public class MembersServiceImpl implements MembersService {
   @Override
   public Optional<MemberDto> getByUserIdAndRoomId(UUID userId, UUID roomId) {
     return Optional.ofNullable(
-      subscriptionMapper.ent2memberDto(
-        subscriptionRepository.getById(roomId.toString(), userId.toString()).orElse(null)));
+        subscriptionMapper.ent2memberDto(
+            subscriptionRepository.getById(roomId.toString(), userId.toString()).orElse(null)));
   }
 
   @Override
@@ -92,97 +92,110 @@ public class MembersServiceImpl implements MembersService {
     }
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
-      throw new BadRequestException(String.format("Cannot set owner privileges on %s rooms", room.getType()));
+      throw new BadRequestException(
+          String.format("Cannot set owner privileges on %s rooms", room.getType()));
     }
-    Subscription subscription = room.getSubscriptions().stream()
-      .filter(roomMember -> roomMember.getUserId().equals(userId.toString()))
-      .findAny()
-      .orElseThrow(
-        () -> new ForbiddenException(String.format("User '%s' is not a member of the room", userId)));
+    Subscription subscription =
+        room.getSubscriptions().stream()
+            .filter(roomMember -> roomMember.getUserId().equals(userId.toString()))
+            .findAny()
+            .orElseThrow(
+                () ->
+                    new ForbiddenException(
+                        String.format("User '%s' is not a member of the room", userId)));
 
     subscription.owner(isOwner);
     subscriptionRepository.update(subscription);
     eventDispatcher.sendToUserExchange(
-      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      isOwner
-        ? RoomOwnerPromoted.create().roomId(roomId).userId(userId)
-        : RoomOwnerDemoted.create().roomId(roomId).userId(userId)
-    );
+        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        isOwner
+            ? RoomOwnerPromoted.create().roomId(roomId).userId(userId)
+            : RoomOwnerDemoted.create().roomId(roomId).userId(userId));
   }
 
   @Override
   @Transactional
   public MemberInsertedDto insertRoomMember(
-    UUID roomId, MemberToInsertDto memberToInsertDto,
-    UserPrincipal currentUser
-  ) {
+      UUID roomId, MemberToInsertDto memberToInsertDto, UserPrincipal currentUser) {
     if (!userService.userExists(memberToInsertDto.getUserId(), currentUser)) {
-      throw new NotFoundException(String.format("User with id '%s' was not found", memberToInsertDto.getUserId()));
+      throw new NotFoundException(
+          String.format("User with id '%s' was not found", memberToInsertDto.getUserId()));
     }
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
-      throw new BadRequestException(String.format("Cannot add members to a %s conversation", room.getType()));
+      throw new BadRequestException(
+          String.format("Cannot add members to a %s conversation", room.getType()));
     } else if (RoomTypeDto.GROUP.equals(room.getType())) {
       Integer maxGroupMembers = capabilityService.getCapabilities(currentUser).getMaxGroupMembers();
       if (room.getSubscriptions().size() == maxGroupMembers) {
-        throw new BadRequestException(String.format("Cannot add more members to this %s", room.getType()));
+        throw new BadRequestException(
+            String.format("Cannot add more members to this %s", room.getType()));
       }
     }
     if (room.getSubscriptions().stream()
-      .anyMatch(member -> memberToInsertDto.getUserId().toString().equals(member.getUserId()))) {
-      throw new BadRequestException(String.format("User '%s' is already a room member", memberToInsertDto.getUserId()));
+        .anyMatch(member -> memberToInsertDto.getUserId().toString().equals(member.getUserId()))) {
+      throw new BadRequestException(
+          String.format("User '%s' is already a room member", memberToInsertDto.getUserId()));
     }
-    Subscription subscription = subscriptionRepository.insert(
-      Subscription.create()
-        .room(room)
-        .userId(memberToInsertDto.getUserId().toString())
-        .owner(memberToInsertDto.isOwner())
-        .temporary(false)
-        .external(false)
-        .joinedAt(OffsetDateTime.now())
-    );
+    Subscription subscription =
+        subscriptionRepository.insert(
+            Subscription.create()
+                .room(room)
+                .userId(memberToInsertDto.getUserId().toString())
+                .owner(memberToInsertDto.isOwner())
+                .temporary(false)
+                .external(false)
+                .joinedAt(OffsetDateTime.now()));
     room.getSubscriptions().add(subscription);
     RoomUserSettings settings = null;
     if (memberToInsertDto.isHistoryCleared()) {
-      settings = roomUserSettingsRepository
-        .getByRoomIdAndUserId(roomId.toString(), memberToInsertDto.getUserId().toString())
-        .orElseGet(() -> RoomUserSettings.create(room, memberToInsertDto.getUserId().toString()));
+      settings =
+          roomUserSettingsRepository
+              .getByRoomIdAndUserId(roomId.toString(), memberToInsertDto.getUserId().toString())
+              .orElseGet(
+                  () -> RoomUserSettings.create(room, memberToInsertDto.getUserId().toString()));
       roomUserSettingsRepository.save(settings.clearedAt(OffsetDateTime.now()));
     }
-    messageService.addRoomMember(room.getId(), currentUser.getId(), memberToInsertDto.getUserId().toString());
+    messageService.addRoomMember(
+        room.getId(), currentUser.getId(), memberToInsertDto.getUserId().toString());
 
     eventDispatcher.sendToUserExchange(
-      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomMemberAdded
-        .create()
-        .roomId(UUID.fromString(room.getId()))
-        .userId(memberToInsertDto.getUserId())
-        .isOwner(memberToInsertDto.isOwner())
-    );
+        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        RoomMemberAdded.create()
+            .roomId(UUID.fromString(room.getId()))
+            .userId(memberToInsertDto.getUserId())
+            .isOwner(memberToInsertDto.isOwner()));
     return subscriptionMapper.ent2memberInsertedDto(subscription, settings);
   }
 
   @Override
   @Transactional
   public void deleteRoomMember(UUID roomId, UUID userId, UserPrincipal currentUser) {
-    Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, !currentUser.getUUID().equals(userId));
+    Room room =
+        roomService.getRoomEntityAndCheckUser(
+            roomId, currentUser, !currentUser.getUUID().equals(userId));
     if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
-      throw new BadRequestException(String.format("Cannot remove a member from a %s conversation", room.getType()));
+      throw new BadRequestException(
+          String.format("Cannot remove a member from a %s conversation", room.getType()));
     }
-    if (!currentUser.getUUID().equals(userId) &&
-      room.getSubscriptions().stream().noneMatch(s -> s.getUserId().equals(userId.toString()))) {
+    if (!currentUser.getUUID().equals(userId)
+        && room.getSubscriptions().stream()
+            .noneMatch(s -> s.getUserId().equals(userId.toString()))) {
       throw new NotFoundException("The user is not a room member");
     }
     if (room.getMeetingId() != null) {
-      meetingService.getMeetingEntity(UUID.fromString(room.getMeetingId())).ifPresent(meeting ->
-        participantService.removeMeetingParticipant(meeting, room, userId)
-      );
+      meetingService
+          .getMeetingEntity(UUID.fromString(room.getMeetingId()))
+          .ifPresent(meeting -> participantService.removeMeetingParticipant(meeting, room, userId));
     }
-    List<String> owners = room.getSubscriptions().stream()
-      .filter(Subscription::isOwner)
-      .map(Subscription::getUserId)
-      .collect(Collectors.toList());
-    if (owners.size() == 1 && owners.get(0).equals(userId.toString()) && room.getSubscriptions().size() > 1) {
+    List<String> owners =
+        room.getSubscriptions().stream()
+            .filter(Subscription::isOwner)
+            .map(Subscription::getUserId)
+            .collect(Collectors.toList());
+    if (owners.size() == 1
+        && owners.get(0).equals(userId.toString())
+        && room.getSubscriptions().size() > 1) {
       throw new BadRequestException("Last owner can't leave the room");
     }
 
@@ -190,9 +203,8 @@ public class MembersServiceImpl implements MembersService {
 
     messageService.removeRoomMember(room.getId(), currentUser.getId(), userId.toString());
     eventDispatcher.sendToUserExchange(
-      room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
-      RoomMemberRemoved.create().roomId(UUID.fromString(room.getId())).userId(userId)
-    );
+        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        RoomMemberRemoved.create().roomId(UUID.fromString(room.getId())).userId(userId));
     // the room isn't updated with subscriptions table. It still has the deleted subscription,
     // so if room has only one subscription, but actually it is empty
     if (room.getSubscriptions().size() == 1) {
@@ -203,21 +215,26 @@ public class MembersServiceImpl implements MembersService {
   @Override
   public List<MemberDto> getRoomMembers(UUID roomId, UserPrincipal currentUser) {
     return subscriptionMapper.ent2memberDto(
-      roomService.getRoomEntityAndCheckUser(roomId, currentUser, false).getSubscriptions());
+        roomService.getRoomEntityAndCheckUser(roomId, currentUser, false).getSubscriptions());
   }
 
   @Override
-  public List<Subscription> initRoomSubscriptions(List<UUID> membersIds, Room room, UserPrincipal requester) {
-    return membersIds.stream().map(userId ->
-      Subscription.create()
-        .id(new SubscriptionId(room.getId(), userId.toString()))
-        .userId(userId.toString())
-        .room(room)
-        //When we have a one to one, both members are owners
-        .owner(userId.equals(requester.getUUID()) || RoomTypeDto.ONE_TO_ONE.equals(room.getType()))
-        .temporary(false)
-        .external(false)
-        .joinedAt(OffsetDateTime.now())
-    ).collect(Collectors.toList());
+  public List<Subscription> initRoomSubscriptions(
+      List<UUID> membersIds, Room room, UserPrincipal requester) {
+    return membersIds.stream()
+        .map(
+            userId ->
+                Subscription.create()
+                    .id(new SubscriptionId(room.getId(), userId.toString()))
+                    .userId(userId.toString())
+                    .room(room)
+                    // When we have a one to one, both members are owners
+                    .owner(
+                        userId.equals(requester.getUUID())
+                            || RoomTypeDto.ONE_TO_ONE.equals(room.getType()))
+                    .temporary(false)
+                    .external(false)
+                    .joinedAt(OffsetDateTime.now()))
+        .collect(Collectors.toList());
   }
 }

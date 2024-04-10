@@ -9,12 +9,12 @@ import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import io.ebean.Database;
 import io.vavr.control.Option;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class EbeanMeetingRepository implements MeetingRepository {
@@ -29,38 +29,36 @@ public class EbeanMeetingRepository implements MeetingRepository {
   @Override
   public Optional<Meeting> getById(String meetingId) {
     return db.find(Meeting.class)
-      .fetch("participants")
-      .where()
-      .eq("id", meetingId)
-      .findOneOrEmpty();
+        .fetch("participants")
+        .where()
+        .eq("id", meetingId)
+        .findOneOrEmpty();
   }
 
   @Override
   public List<Meeting> getByRoomsIds(List<String> roomsIds) {
-    return db.find(Meeting.class)
-      .fetch("participants")
-      .where()
-      .in("roomId", roomsIds)
-      .findList();
+    return db.find(Meeting.class).fetch("participants").where().in("roomId", roomsIds).findList();
   }
 
   @Override
   public Optional<Meeting> getByRoomId(String roomId) {
     return db.find(Meeting.class)
-      .fetch("participants")
-      .where()
-      .eq("roomId", roomId)
-      .findOneOrEmpty();
+        .fetch("participants")
+        .where()
+        .eq("roomId", roomId)
+        .findOneOrEmpty();
   }
 
   @Override
-  public Meeting insert(String name, MeetingType meetingType, UUID roomId, OffsetDateTime expiration) {
-    Meeting meeting = Meeting.create()
-      .id(UUID.randomUUID().toString())
-      .name(name)
-      .meetingType(meetingType)
-      .active(false)
-      .roomId(roomId.toString());
+  public Meeting insert(
+      String name, MeetingType meetingType, UUID roomId, OffsetDateTime expiration) {
+    Meeting meeting =
+        Meeting.create()
+            .id(UUID.randomUUID().toString())
+            .name(name)
+            .meetingType(meetingType)
+            .active(false)
+            .roomId(roomId.toString());
     Option.of(expiration).map(meeting::expiration);
     db.insert(meeting);
     return meeting;
@@ -76,5 +74,4 @@ public class EbeanMeetingRepository implements MeetingRepository {
   public void delete(Meeting meeting) {
     db.delete(meeting);
   }
-
 }

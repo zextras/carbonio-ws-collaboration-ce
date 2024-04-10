@@ -9,10 +9,10 @@ import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSessionId;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import io.ebean.Database;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Singleton
 public class EbeanVideoServerSessionRepository implements VideoServerSessionRepository {

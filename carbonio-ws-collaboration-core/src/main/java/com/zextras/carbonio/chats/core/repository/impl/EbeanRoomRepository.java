@@ -10,10 +10,10 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
 import io.ebean.Query;
 import io.ebean.annotation.Transactional;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 @Transactional
 @Singleton
@@ -29,9 +29,10 @@ public class EbeanRoomRepository implements RoomRepository {
   @Override
   public List<String> getIdsByUserId(String userId) {
     return db.find(Room.class)
-      .where().eq("subscriptions.userId", userId)
-      .select("id")
-      .findSingleAttributeList();
+        .where()
+        .eq("subscriptions.userId", userId)
+        .select("id")
+        .findSingleAttributeList();
   }
 
   @Override
@@ -40,34 +41,46 @@ public class EbeanRoomRepository implements RoomRepository {
     if (withSubscriptions) {
       roomQuery = roomQuery.fetch("subscriptions");
     }
-    return roomQuery.where()
-      .eq("subscriptions.userId", userId)
-      .findList();
+    return roomQuery.where().eq("subscriptions.userId", userId).findList();
   }
 
   @Override
   public Optional<Room> getById(String roomId) {
-    return db.find(Room.class)
-      .fetch("subscriptions")
-      .where()
-      .eq("id", roomId)
-      .findOneOrEmpty();
+    return db.find(Room.class).fetch("subscriptions").where().eq("id", roomId).findOneOrEmpty();
   }
 
   @Override
   public Optional<Room> getOneToOneByAllUserIds(String user1Id, String user2Id) {
-    return db.find(Room.class).where()
-      .eq("type", RoomTypeDto.ONE_TO_ONE)
-      .and().raw("id in ( " +
-        "select distinct a.room_id from chats.subscription a " +
-        "inner join chats.subscription b on a.room_id = b.room_id " +
-        "and (a.user_id = '" + user1Id + "' or a.user_id = '" + user2Id + "') " +
-        "and (b.user_id = '" + user1Id + "' or b.user_id = '" + user2Id + "') " +
-        "where (a.user_id = '" + user1Id + "' and b.user_id = '" + user2Id + "') " +
-        "or (a.user_id = '" + user2Id + "' and b.user_id = '" + user1Id + "'))")
-      .findOneOrEmpty();
+    return db.find(Room.class)
+        .where()
+        .eq("type", RoomTypeDto.ONE_TO_ONE)
+        .and()
+        .raw(
+            "id in ( "
+                + "select distinct a.room_id from chats.subscription a "
+                + "inner join chats.subscription b on a.room_id = b.room_id "
+                + "and (a.user_id = '"
+                + user1Id
+                + "' or a.user_id = '"
+                + user2Id
+                + "') "
+                + "and (b.user_id = '"
+                + user1Id
+                + "' or b.user_id = '"
+                + user2Id
+                + "') "
+                + "where (a.user_id = '"
+                + user1Id
+                + "' and b.user_id = '"
+                + user2Id
+                + "') "
+                + "or (a.user_id = '"
+                + user2Id
+                + "' and b.user_id = '"
+                + user1Id
+                + "'))")
+        .findOneOrEmpty();
   }
-
 
   @Override
   public Room insert(Room room) {

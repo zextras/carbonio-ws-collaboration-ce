@@ -4,14 +4,14 @@
 
 package com.zextras.carbonio.chats.core.exception;
 
+import jakarta.ws.rs.core.Response.Status;
 import java.io.Serializable;
-import javax.ws.rs.core.Response.Status;
 
 public class BadRequestException extends ChatsHttpException implements Serializable {
 
-  private static final long    serialVersionUID = 9186731066864545518L;
-  private static final Status  HTTP_STATUS      = Status.BAD_REQUEST;
-  private static final boolean IS_TO_LOG        = false;
+  private static final long serialVersionUID = 9186731066864545518L;
+  private static final Status HTTP_STATUS = Status.BAD_REQUEST;
+  private static final boolean IS_TO_LOG = false;
 
   public BadRequestException() {
     super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase());
@@ -38,11 +38,19 @@ public class BadRequestException extends ChatsHttpException implements Serializa
   }
 
   protected BadRequestException(
-    String error, String debugInfo, Throwable cause, boolean enableSuppression,
-    boolean writableStackTrace
-  ) {
-    super(HTTP_STATUS.getStatusCode(), HTTP_STATUS.getReasonPhrase(), error, debugInfo, cause, enableSuppression,
-      writableStackTrace);
+      String error,
+      String debugInfo,
+      Throwable cause,
+      boolean enableSuppression,
+      boolean writableStackTrace) {
+    super(
+        HTTP_STATUS.getStatusCode(),
+        HTTP_STATUS.getReasonPhrase(),
+        error,
+        debugInfo,
+        cause,
+        enableSuppression,
+        writableStackTrace);
   }
 
   @Override

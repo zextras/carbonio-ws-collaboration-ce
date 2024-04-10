@@ -5,17 +5,15 @@
 package com.zextras.carbonio.chats.core.config;
 
 import com.zextras.carbonio.chats.core.config.impl.AppConfigType;
+import jakarta.annotation.Nullable;
 import java.util.Optional;
-import javax.annotation.Nullable;
 
 @SuppressWarnings("unchecked")
 public abstract class AppConfig {
 
   private AppConfig next;
 
-  /**
-   * Loads all configurations and saves them in cache
-   */
+  /** Loads all configurations and saves them in cache */
   public abstract AppConfig load();
 
   /**
@@ -26,38 +24,43 @@ public abstract class AppConfig {
   public abstract boolean isLoaded();
 
   /**
-   * Retrieves the specified config or returns an empty {@link  Optional}
+   * Retrieves the specified config or returns an empty {@link Optional}
    *
-   * @param clazz      the configuration parameter class (es. {@link Integer}, {@link Boolean} or {@link String})
-   * @param configName configName   the configuration name
-   * @param <T>        the configuration parameter type
+   * @param clazz the configuration parameter class (es. {@link Integer}, {@link Boolean} or {@link
+   *     String})
+   * @param configName configName the configuration name
+   * @param <T> the configuration parameter type
    * @return an {@link Optional} which contains the configuration, if found
    */
   public <T> Optional<T> get(Class<T> clazz, ConfigName configName) {
-    return getConfigByImplementation(clazz, configName).or(() -> {
-      if (next != null) {
-        return next.get(clazz, configName);
-      } else {
-        return Optional.empty();
-      }
-    });
+    return getConfigByImplementation(clazz, configName)
+        .or(
+            () -> {
+              if (next != null) {
+                return next.get(clazz, configName);
+              } else {
+                return Optional.empty();
+              }
+            });
   }
 
   /**
    * Returns the configured value type or an empty optional if it was not found
    *
-   * @param clazz      the configuration parameter class (es. {@link Integer}, {@link Boolean} or {@link String})
+   * @param clazz the configuration parameter class (es. {@link Integer}, {@link Boolean} or {@link
+   *     String})
    * @param configName the configuration name
-   * @param <T>        the configuration parameter type
+   * @param <T> the configuration parameter type
    * @return an {@link Optional} which contains the configuration, if found
    */
-  protected abstract <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigName configName);
+  protected abstract <T> Optional<T> getConfigByImplementation(
+      Class<T> clazz, ConfigName configName);
 
   /**
    * Sets the configuration in the first chain node
    *
    * @param configName configuration key {@link ConfigName}
-   * @param value      configuration value
+   * @param value configuration value
    */
   public AppConfig set(ConfigName configName, String value) {
     if (!setConfigByImplementation(configName, value) && next != null) {
@@ -70,7 +73,7 @@ public abstract class AppConfig {
    * Sets the configuration and returns a boolean value which indicates if is set
    *
    * @param configName configuration key {@link ConfigName}
-   * @param value      configuration value
+   * @param value configuration value
    * @return true if the configuration is set, false otherwise
    */
   protected abstract boolean setConfigByImplementation(ConfigName configName, String value);

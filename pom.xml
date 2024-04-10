@@ -15,7 +15,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <groupId>com.zextras.carbonio.ws-collaboration</groupId>
   <artifactId>carbonio-ws-collaboration-ce</artifactId>
-  <version>0.4.0</version>
+  <version>0.5.0</version>
 
   <repositories>
     <repository>
@@ -50,34 +50,37 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Previewer -->
     <preview-sdk.version>1.0.2</preview-sdk.version>
     <!-- Jetty -->
-    <org.eclipse.jetty.version>10.0.6</org.eclipse.jetty.version>
+    <org.eclipse.jetty.version>12.0.8</org.eclipse.jetty.version>
+    <org.eclipse.jetty.servlet.version>12.0.8</org.eclipse.jetty.servlet.version>
+    <org.eclipse.jetty.websocket.version>12.0.8</org.eclipse.jetty.websocket.version>
     <jakarta.api.version>1.1.2</jakarta.api.version>
     <!-- Guice -->
-    <com.google.inject.version>5.0.1</com.google.inject.version>
+    <com.google.inject.version>7.0.0</com.google.inject.version>
     <!-- Rest easy -->
-    <org.jboss.resteasy.version>4.7.2.Final</org.jboss.resteasy.version>
+    <org.jboss.resteasy.version>6.2.7.Final</org.jboss.resteasy.version>
+    <resteasy.guice>6.2.7-alpha</resteasy.guice>
     <org.jboss.resteasy.jaxrs-api.version>3.0.12.Final</org.jboss.resteasy.jaxrs-api.version>
-    <javax.ws.rs.version>2.1.1</javax.ws.rs.version>
+    <jakarta.ws.rs.version>3.1.0</jakarta.ws.rs.version>
     <!-- Ebean -->
-    <io.ebean.version>12.12.3</io.ebean.version>
-    <!-- JavaEE api -->
-    <javax.javaee-api.version>8.0</javax.javaee-api.version>
+    <io.ebean.version>14.0.0</io.ebean.version>
+    <!-- Jakarta api -->
+    <jakarta.api.version>8.0.0</jakarta.api.version>
     <!-- Database -->
-    <org.flywaydb.version>8.0.5</org.flywaydb.version>
-    <com.zaxxer.HikariCP.version>5.0.0</com.zaxxer.HikariCP.version>
-    <org.postgresql.version>42.3.0</org.postgresql.version>
+    <org.flywaydb.version>10.11.0</org.flywaydb.version>
+    <com.zaxxer.HikariCP.version>5.1.0</com.zaxxer.HikariCP.version>
+    <org.postgresql.version>42.7.3</org.postgresql.version>
     <!-- Logging -->
     <org.slf4j-api.version>1.7.32</org.slf4j-api.version>
     <logback-classic.version>1.2.6</logback-classic.version>
     <!-- Jackson -->
-    <com.fasterxml.jackson.version>2.13.0</com.fasterxml.jackson.version>
+    <com.fasterxml.jackson.version>2.16.2</com.fasterxml.jackson.version>
     <org.openapitools.jackson-databind-nullable.version>0.2.2</org.openapitools.jackson-databind-nullable.version>
     <!-- Utilities -->
     <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
     <org.apache.commons.text.version>1.10.0</org.apache.commons.text.version>
     <!-- Open api-->
     <io.swagger.version>1.6.3</io.swagger.version>
-    <org.hibernate.validator.version>5.2.4.Final</org.hibernate.validator.version>
+    <org.hibernate.validator.version>8.0.1.Final</org.hibernate.validator.version>
     <!-- @Nullable annotation -->
     <com.google.code.findbugs.jsr305.version>3.0.2</com.google.code.findbugs.jsr305.version>
     <!-- Dotenv file support -->
@@ -85,10 +88,10 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Consul -->
     <com.orbitz.consul.consul-client.version>1.5.3</com.orbitz.consul.consul-client.version>
     <!-- Rabbit MQ -->
-    <com.rabbitmq.amqp-client.version>5.15.0</com.rabbitmq.amqp-client.version>
+    <com.rabbitmq.amqp-client.version>5.20.0</com.rabbitmq.amqp-client.version>
     <!-- Web Socket -->
-    <javax.websocket-api.version>1.1</javax.websocket-api.version>
-
+    <jakarta.websocket-api.version>2.0.0</jakarta.websocket-api.version>
+    <jakarta.el>5.0.0-M1</jakarta.el>
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
     <org.junit.jupiter.version>5.8.2</org.junit.jupiter.version>
@@ -102,7 +105,6 @@ SPDX-License-Identifier: AGPL-3.0-only
     <org.mock-server.version>5.15.0</org.mock-server.version>
     <com.github.fridujo-rabbitmq-mock.version>1.2.0</com.github.fridujo-rabbitmq-mock.version>
 
-
     <!-- Plugins -->
     <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
     <maven-resources-plugin.version>3.2.0</maven-resources-plugin.version>
@@ -115,7 +117,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <dependencyManagement>
     <dependencies>
-
       <!-- Carbonio User Management -->
       <dependency>
         <groupId>com.zextras.carbonio.user-management</groupId>
@@ -145,29 +146,58 @@ SPDX-License-Identifier: AGPL-3.0-only
       </dependency>
 
       <dependency>
-        <groupId>org.eclipse.jetty</groupId>
-        <artifactId>jetty-servlet</artifactId>
-        <version>${org.eclipse.jetty.version}</version>
+        <groupId>org.eclipse.jetty.ee10</groupId>
+        <artifactId>jetty-ee10-servlet</artifactId>
+        <version>${org.eclipse.jetty.servlet.version}</version>
       </dependency>
 
       <dependency>
         <groupId>org.eclipse.jetty.websocket</groupId>
-        <artifactId>websocket-javax-server</artifactId>
-        <version>${org.eclipse.jetty.version}</version>
+        <artifactId>websocket-jakarta-server</artifactId>
+        <version>${org.eclipse.jetty.websocket.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.mortbay.jasper</groupId>
+            <artifactId>apache-el</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
 
       <dependency>
-        <groupId>org.eclipse.jetty.websocket</groupId>
-        <artifactId>websocket-javax-client</artifactId>
-        <version>${org.eclipse.jetty.version}</version>
+        <groupId>org.eclipse.jetty.ee10.websocket</groupId>
+        <artifactId>jetty-ee10-websocket-jakarta-server</artifactId>
+        <version>${org.eclipse.jetty.websocket.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.mortbay.jasper</groupId>
+            <artifactId>apache-el</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+
+      <dependency>
+        <groupId>org.eclipse.jetty.ee10.websocket</groupId>
+        <artifactId>jetty-ee10-websocket-jakarta-client</artifactId>
+        <version>${org.eclipse.jetty.websocket.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.mortbay.jasper</groupId>
+            <artifactId>apache-el</artifactId>
+          </exclusion>
+        </exclusions>
       </dependency>
 
       <dependency>
         <groupId>jakarta.websocket</groupId>
         <artifactId>jakarta.websocket-api</artifactId>
-        <version>${jakarta.api.version}</version>
+        <version>${jakarta.websocket-api.version}</version>
       </dependency>
 
+      <dependency>
+        <groupId>org.glassfish</groupId>
+        <artifactId>jakarta.el</artifactId>
+        <version>${jakarta.el}</version>
+      </dependency>
 
       <!-- Guice dependencies -->
       <dependency>
@@ -178,9 +208,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 
       <!-- RestEasy dependencies -->
       <dependency>
-        <groupId>org.jboss.resteasy</groupId>
+        <groupId>com.federicorispo</groupId>
         <artifactId>resteasy-guice</artifactId>
-        <version>${org.jboss.resteasy.version}</version>
+        <version>${resteasy.guice}</version>
       </dependency>
 
       <dependency>
@@ -220,9 +250,9 @@ SPDX-License-Identifier: AGPL-3.0-only
       </dependency>
 
       <dependency>
-        <groupId>javax.ws.rs</groupId>
-        <artifactId>javax.ws.rs-api</artifactId>
-        <version>${javax.ws.rs.version}</version>
+        <groupId>jakarta.ws.rs</groupId>
+        <artifactId>jakarta.ws.rs-api</artifactId>
+        <version>${jakarta.ws.rs.version}</version>
       </dependency>
 
       <dependency>
@@ -238,29 +268,29 @@ SPDX-License-Identifier: AGPL-3.0-only
       </dependency>
 
       <dependency>
-        <groupId>org.hibernate</groupId>
+        <groupId>org.hibernate.validator</groupId>
         <artifactId>hibernate-validator-cdi</artifactId>
         <version>${org.hibernate.validator.version}</version>
       </dependency>
 
-      <!-- JavaEE api -->
+      <!-- Jakarta -->
       <dependency>
-        <groupId>javax</groupId>
-        <artifactId>javaee-api</artifactId>
-        <version>${javax.javaee-api.version}</version>
+        <groupId>jakarta.platform</groupId>
+        <artifactId>jakarta.jakartaee-api</artifactId>
+        <version>${jakarta.api.version}</version>
       </dependency>
 
       <!-- Ebean dependencies -->
       <dependency>
         <groupId>io.ebean</groupId>
-        <artifactId>ebean</artifactId>
+        <artifactId>ebean-postgres</artifactId>
         <version>${io.ebean.version}</version>
       </dependency>
 
       <!-- Database dependencies -->
       <dependency>
         <groupId>org.flywaydb</groupId>
-        <artifactId>flyway-core</artifactId>
+        <artifactId>flyway-database-postgresql</artifactId>
         <version>${org.flywaydb.version}</version>
       </dependency>
 
@@ -373,14 +403,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         <artifactId>amqp-client</artifactId>
         <version>${com.rabbitmq.amqp-client.version}</version>
       </dependency>
-
-      <!-- Web Socket -->
-      <dependency>
-        <groupId>javax.websocket</groupId>
-        <artifactId>javax.websocket-api</artifactId>
-        <version>${javax.websocket-api.version}</version>
-      </dependency>
-
 
       <!-- Tests dependency -->
       <!-- JUnit Jupiter -->

@@ -6,14 +6,14 @@ package com.zextras.carbonio.chats.core.data.entity;
 
 import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
 import java.time.OffsetDateTime;
 import java.util.Objects;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 
 @Entity
 @Table(name = "CHATS_USER", schema = "CHATS")
@@ -88,9 +88,12 @@ public class User {
       return false;
     }
     User user = (User) o;
-    return Objects.equals(id, user.id) && (Objects.equals(pictureUpdatedAt, user.pictureUpdatedAt)
-      || Objects.equals(pictureUpdatedAt.toInstant().toEpochMilli(), user.pictureUpdatedAt.toInstant().toEpochMilli()))
-      && Objects.equals(statusMessage, user.statusMessage);
+    return Objects.equals(id, user.id)
+        && (Objects.equals(pictureUpdatedAt, user.pictureUpdatedAt)
+            || Objects.equals(
+                pictureUpdatedAt.toInstant().toEpochMilli(),
+                user.pictureUpdatedAt.toInstant().toEpochMilli()))
+        && Objects.equals(statusMessage, user.statusMessage);
   }
 
   @Override

@@ -8,8 +8,8 @@ import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberInsertedDto;
+import jakarta.annotation.Nullable;
 import java.util.List;
-import javax.annotation.Nullable;
 
 public interface SubscriptionMapper {
 
@@ -33,12 +33,11 @@ public interface SubscriptionMapper {
   /**
    * Converts {@link Subscription} to {@link MemberInsertedDto} with current user settings
    *
-   * @param subscription     {@link Subscription} to convert
+   * @param subscription {@link Subscription} to convert
    * @param roomUserSettings current user settings {@link RoomUserSettings}
    * @return conversation result {@link MemberInsertedDto}
    */
   @Nullable
   MemberInsertedDto ent2memberInsertedDto(
-    @Nullable Subscription subscription, @Nullable RoomUserSettings roomUserSettings
-  );
+      @Nullable Subscription subscription, @Nullable RoomUserSettings roomUserSettings);
 }

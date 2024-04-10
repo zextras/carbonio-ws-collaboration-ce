@@ -29,6 +29,7 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Sub
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import io.vavr.MatchError;
+import jakarta.inject.Inject;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -36,7 +37,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
 
 public class VideoServerEventListener {
 
@@ -73,13 +73,9 @@ public class VideoServerEventListener {
   }
 
   public void start() {
-    if (eventDispatcher.getConnection().isEmpty()) {
-      throw new InternalErrorException("RabbitMQ connection is not up!");
-    }
-    Optional<Channel> optionalChannel = eventDispatcher.createChannel();
+    Optional<Channel> optionalChannel = eventDispatcher.getChannel();
     if (optionalChannel.isEmpty()) {
-      ChatsLogger.error("Could not create RabbitMQ channel for websocket");
-      return;
+      throw new InternalErrorException("RabbitMQ connection channel is not up!");
     }
     final Channel channel = optionalChannel.get();
     try {

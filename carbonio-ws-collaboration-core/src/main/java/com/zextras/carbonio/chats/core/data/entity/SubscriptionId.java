@@ -4,10 +4,10 @@
 
 package com.zextras.carbonio.chats.core.data.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 import java.io.Serializable;
 import java.util.Objects;
-import javax.persistence.Column;
-import javax.persistence.Embeddable;
 
 @Embeddable
 public class SubscriptionId implements Serializable {
@@ -20,11 +20,11 @@ public class SubscriptionId implements Serializable {
   @Column(name = "ROOM_ID", length = 64, nullable = false)
   private String roomId;
 
-  public SubscriptionId() {
-  }
+  public SubscriptionId() {}
 
   /**
    * Create a new instance of subscription identifier
+   *
    * @param roomId room identifier
    * @param userId user identifier
    */
