@@ -594,6 +594,11 @@ components:
           format: date-time
           readOnly: true
           description: entity creation date
+        startedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: meeting starting time
         meetingType:
           $ref: '#/components/schemas/MeetingType'
         recStartedAt:

@@ -125,6 +125,7 @@ public class MeetingServiceImpl implements MeetingService {
                                   meeting.active(s);
                                   if (Boolean.TRUE.equals(s)) {
                                     videoServerService.startMeeting(meeting.getId());
+                                    meeting.startedAt(OffsetDateTime.now(clock));
                                   } else {
                                     meeting.getRecordings().stream()
                                         .filter(r -> RecordingStatus.STARTED.equals(r.getStatus()))
@@ -143,6 +144,7 @@ public class MeetingServiceImpl implements MeetingService {
                                                   recording.status(RecordingStatus.STOPPED));
                                             });
                                     videoServerService.stopMeeting(meeting.getId());
+                                    meeting.startedAt(null);
                                     addedReceivers =
                                         participantService.getQueue(meetingId).stream()
                                             .map(UUID::toString)
@@ -167,6 +169,7 @@ public class MeetingServiceImpl implements MeetingService {
                           ? MeetingStarted.create()
                               .meetingId(UUID.fromString(updatedMeeting.getId()))
                               .starterUser(user.getUUID())
+                              .startedAt(updatedMeeting.getStartedAt())
                           : MeetingStopped.create()
                               .meetingId(UUID.fromString(updatedMeeting.getId())));
                   return updatedMeeting;

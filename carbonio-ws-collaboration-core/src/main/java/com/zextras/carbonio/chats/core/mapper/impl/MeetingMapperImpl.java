@@ -39,6 +39,7 @@ public class MeetingMapperImpl implements MeetingMapper {
             .meetingType(MeetingTypeDto.fromString(meeting.getMeetingType().toString()))
             .name(meeting.getName())
             .createdAt(meeting.getCreatedAt())
+            .startedAt(meeting.getStartedAt())
             .active(meeting.getActive())
             .participants(participantMapper.ent2dto(meeting.getParticipants()));
     meeting.getRecordings().stream()

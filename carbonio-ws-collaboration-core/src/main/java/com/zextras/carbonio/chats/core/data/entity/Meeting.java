@@ -24,10 +24,6 @@ import java.util.List;
 @Table(name = "MEETING", schema = "CHATS")
 public class Meeting {
 
-  public static Meeting create() {
-    return new Meeting();
-  }
-
   @Id
   @Column(name = "ID", length = 64, nullable = false)
   private String id;
@@ -50,6 +46,10 @@ public class Meeting {
   @WhenCreated
   private OffsetDateTime createdAt;
 
+  @Column(name = "STARTED_AT")
+  @Temporal(TemporalType.TIMESTAMP)
+  private OffsetDateTime startedAt;
+
   @Column(name = "EXPIRATION")
   @Temporal(TemporalType.TIMESTAMP)
   private OffsetDateTime expiration;
@@ -59,6 +59,10 @@ public class Meeting {
 
   @OneToMany(mappedBy = "meeting", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
   private List<Recording> recordings;
+
+  public static Meeting create() {
+    return new Meeting();
+  }
 
   public String getId() {
     return id;
@@ -116,6 +120,15 @@ public class Meeting {
 
   public OffsetDateTime getCreatedAt() {
     return createdAt;
+  }
+
+  public OffsetDateTime getStartedAt() {
+    return startedAt;
+  }
+
+  public Meeting startedAt(OffsetDateTime startedAt) {
+    this.startedAt = startedAt;
+    return this;
   }
 
   public Boolean getActive() {

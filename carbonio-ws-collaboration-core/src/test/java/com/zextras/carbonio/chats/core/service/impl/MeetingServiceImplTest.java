@@ -238,6 +238,7 @@ public class MeetingServiceImplTest {
               .name("test")
               .meetingType(MeetingType.PERMANENT)
               .id(meetingId.toString())
+              .startedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
               .active(true);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
@@ -251,7 +252,10 @@ public class MeetingServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString()),
-              MeetingStarted.create().meetingId(meetingId).starterUser(user1Id));
+              MeetingStarted.create()
+                  .meetingId(meetingId)
+                  .starterUser(user1Id)
+                  .startedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z")));
       verifyNoMoreInteractions(videoServerService, meetingRepository, recordingRepository);
     }
 
@@ -267,6 +271,7 @@ public class MeetingServiceImplTest {
               .name("test")
               .meetingType(MeetingType.PERMANENT)
               .id(meetingId.toString())
+              .startedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
               .active(true);
       Meeting updatedMeeting =
           Meeting.create()
