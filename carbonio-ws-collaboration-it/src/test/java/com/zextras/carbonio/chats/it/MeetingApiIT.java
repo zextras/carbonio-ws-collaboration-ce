@@ -143,6 +143,33 @@ public class MeetingApiIT {
     }
 
     @Test
+    @DisplayName("Fail to create meeting if already present")
+    void createMeetingRoom_testKO() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+          Room.create()
+              .id(room1Id.toString())
+              .type(RoomTypeDto.GROUP)
+              .name("room1")
+              .description("Room one")
+              .meetingId(UUID.randomUUID().toString()),
+          List.of(
+              RoomMemberField.create().id(user1Id).owner(true),
+              RoomMemberField.create().id(user2Id),
+              RoomMemberField.create().id(user3Id)));
+
+      MockHttpResponse response =
+          dispatcher.post(
+              URL,
+              objectMapper.writeValueAsString(
+                  NewMeetingDataDto.create()
+                      .name("test")
+                      .meetingType(MeetingTypeDto.PERMANENT)
+                      .roomId(room1Id)),
+              user1Token);
+      assertEquals(409, response.getStatus());
+    }
+
+    @Test
     @DisplayName("Create a meeting Bad Request")
     void createMeeting_testKO() throws Exception {
       MockHttpResponse response =
