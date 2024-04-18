@@ -18,6 +18,7 @@ import com.zextras.carbonio.chats.core.data.event.MeetingStopped;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.data.type.RecordingStatus;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
+import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -92,19 +93,23 @@ public class MeetingServiceImpl implements MeetingService {
         Option.of(roomService.getRoomEntityAndCheckUser(roomId, user, false))
             .map(
                 room -> {
-                  Meeting meeting =
-                      meetingRepository.insert(
-                          name,
-                          MeetingType.valueOf(meetingType.toString().toUpperCase()),
-                          UUID.fromString(room.getId()),
-                          null);
-                  roomService.setMeetingIntoRoom(room, meeting);
-                  eventDispatcher.sendToUserExchange(
-                      room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
-                      MeetingCreated.create()
-                          .meetingId(UUID.fromString(meeting.getId()))
-                          .roomId(roomId));
-                  return meeting;
+                  if (room.getMeetingId() == null) {
+                    Meeting meeting =
+                        meetingRepository.insert(
+                            name,
+                            MeetingType.valueOf(meetingType.toString().toUpperCase()),
+                            UUID.fromString(room.getId()),
+                            null);
+                    roomService.setMeetingIntoRoom(room, meeting);
+                    eventDispatcher.sendToUserExchange(
+                        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
+                        MeetingCreated.create()
+                            .meetingId(UUID.fromString(meeting.getId()))
+                            .roomId(roomId));
+                    return meeting;
+                  } else {
+                    throw new ConflictException("Room has already an associated meeting");
+                  }
                 })
             .getOrElseThrow(() -> new RuntimeException("Room not found")));
   }
