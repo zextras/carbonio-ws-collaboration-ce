@@ -3120,13 +3120,19 @@ public class RoomsApiIT {
     void deleteRoomMember_userRemoveItselfTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
-          roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
+          roomId,
+          RoomTypeDto.GROUP,
+          "room",
+          List.of(user1Id, user2Id, user3Id),
+          List.of(user1Id),
+          null,
+          null);
       mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
       String hopedXmppAffiliationMessage =
           String.format(
                   "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
                       + " type='groupchat'>",
-                  user3Id, roomId)
+                  user1Id, roomId)
               + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
               + "<operation>memberRemoved</operation>"
               + String.format("<user-id>%s</user-id>", user3Id)
