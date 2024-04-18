@@ -244,7 +244,14 @@ public class MembersServiceImpl implements MembersService {
                 }
               });
     } else {
-      messageService.removeRoomMember(room.getId(), currentUser.getId(), userId.toString());
+      messageService.removeRoomMember(
+          room.getId(),
+          room.getSubscriptions().stream()
+              .filter(Subscription::isOwner)
+              .toList()
+              .get(0)
+              .getUserId(),
+          userId.toString());
     }
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),

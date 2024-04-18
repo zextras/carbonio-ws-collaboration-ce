@@ -627,7 +627,7 @@ public class MembersServiceImplTest {
       room.subscriptions(
           List.of(
               Subscription.create(room, user1Id.toString()).owner(false),
-              Subscription.create(room, user2Id.toString()).owner(false),
+              Subscription.create(room, user2Id.toString()).owner(true),
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
       when(roomService.getRoomEntityAndCheckUser(roomId, principal, false)).thenReturn(room);
@@ -641,7 +641,7 @@ public class MembersServiceImplTest {
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
               RoomMemberRemoved.create().roomId(roomId).userId(user1Id));
       verify(messageDispatcher, times(1))
-          .removeRoomMember(roomId.toString(), user1Id.toString(), user1Id.toString());
+          .removeRoomMember(roomId.toString(), user2Id.toString(), user1Id.toString());
       verifyNoMoreInteractions(
           roomService, subscriptionRepository, eventDispatcher, messageDispatcher);
       verifyNoInteractions(roomUserSettingsRepository);
