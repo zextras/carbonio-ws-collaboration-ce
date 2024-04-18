@@ -26,6 +26,7 @@ import com.zextras.carbonio.chats.core.data.event.MeetingStarted;
 import com.zextras.carbonio.chats.core.data.event.MeetingStopped;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
+import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
@@ -96,6 +97,7 @@ public class MeetingServiceImplTest {
   private UUID room2Id;
   private UUID room3Id;
   private Room room1;
+  private Room room2;
 
   private UUID meeting1Id;
   private UUID meeting2Id;
@@ -115,6 +117,7 @@ public class MeetingServiceImplTest {
     session1User3Id = UUID.randomUUID();
 
     room1Id = UUID.randomUUID();
+    meeting1Id = UUID.randomUUID();
     room1 = Room.create();
     room1
         .id(room1Id.toString())
@@ -127,9 +130,10 @@ public class MeetingServiceImplTest {
                 Subscription.create(room1, user2Id.toString()).owner(false),
                 Subscription.create(room1, user3Id.toString()).owner(false)));
     room2Id = UUID.randomUUID();
+    room2 = Room.create();
+    room2.id(room2Id.toString()).meetingId(meeting1Id.toString());
     room3Id = UUID.randomUUID();
 
-    meeting1Id = UUID.randomUUID();
     meeting1 = Meeting.create();
     meeting1
         .id(meeting1Id.toString())
@@ -203,6 +207,20 @@ public class MeetingServiceImplTest {
           meetingService.createMeeting(user, meetingName, MeetingTypeDto.PERMANENT, room1Id, null);
       assertEquals(createdMeeting.getId(), meetingId);
       assertEquals(createdMeeting.getRoomId(), room1Id);
+    }
+
+    @Test
+    @DisplayName("Fail to create meeting if already present")
+    void createMeetingFromRoom_testKO() {
+      UserPrincipal user = UserPrincipal.create(user1Id);
+      String meetingName = "test";
+      when(roomService.getRoomEntityAndCheckUser(room2Id, user, false)).thenReturn(room2);
+
+      assertThrows(
+          ConflictException.class,
+          () ->
+              meetingService.createMeeting(
+                  user, meetingName, MeetingTypeDto.PERMANENT, room2Id, null));
     }
   }
 
