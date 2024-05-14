@@ -349,7 +349,9 @@ public class UsersApiIT {
                   "fileName",
                   "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067",
                   "mimeType",
-                  fileMock.getMimeType()),
+                  fileMock.getMimeType(),
+                  "Content-Length",
+                  String.valueOf(fileMock.getSize())),
               account.getToken());
       clock.fixTimeAt(null);
 
@@ -387,7 +389,9 @@ public class UsersApiIT {
                   "fileName",
                   Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
                   "mimeType",
-                  fileMock.getMimeType()),
+                  fileMock.getMimeType(),
+                  "Content-Length",
+                  String.valueOf(fileMock.getSize())),
               null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -431,7 +435,9 @@ public class UsersApiIT {
                   "fileName",
                   "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
                   "mimeType",
-                  fileMock.getMimeType()),
+                  fileMock.getMimeType(),
+                  "Content-Length",
+                  String.valueOf(fileMock.getSize())),
               account2.getToken());
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);

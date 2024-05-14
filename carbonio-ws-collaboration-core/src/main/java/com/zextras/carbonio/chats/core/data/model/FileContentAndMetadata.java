@@ -5,20 +5,20 @@
 package com.zextras.carbonio.chats.core.data.model;
 
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
-import java.io.File;
+import java.io.InputStream;
 
 public class FileContentAndMetadata {
 
-  private final File         file;
+  private final InputStream  fileStream;
   private final FileMetadata metadata;
 
-  public FileContentAndMetadata(File file, FileMetadata metadata) {
-    this.file = file;
+  public FileContentAndMetadata(InputStream fileStream, FileMetadata metadata) {
+    this.fileStream = fileStream;
     this.metadata = metadata;
   }
 
-  public File getFile() {
-    return file;
+  public InputStream getFileStream() {
+    return fileStream;
   }
 
   public FileMetadata getMetadata() {

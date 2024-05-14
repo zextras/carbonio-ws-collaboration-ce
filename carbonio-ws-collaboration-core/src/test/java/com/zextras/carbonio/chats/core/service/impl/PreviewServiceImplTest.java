@@ -4,6 +4,14 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
@@ -30,31 +38,15 @@ import com.zextras.carbonio.preview.queries.enums.ServiceType;
 import com.zextras.carbonio.preview.queries.enums.Shape;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 @UnitTest
 class PreviewServiceImplTest {
@@ -128,8 +120,7 @@ class PreviewServiceImplTest {
 
     verify(previewClient,times(1)).getPreviewOfImage(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
-    assertEquals(new String(Files.readAllBytes(previewImageResponse.getContent().toPath())),
-      "image");
+    assertEquals(new String(previewImageResponse.getContent().readAllBytes()), "image");
     assertEquals(previewImageResponse.getLength(),5);
     assertEquals(previewImageResponse.getMimeType(),"image/jpeg");
   }
@@ -169,8 +160,7 @@ class PreviewServiceImplTest {
 
     verify(previewClient,times(1)).getThumbnailOfImage(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
-    assertEquals(new String(Files.readAllBytes(previewImageResponse.getContent().toPath())),
-      "image");
+    assertEquals(new String(previewImageResponse.getContent().readAllBytes()),"image");
     assertEquals(previewImageResponse.getLength(),5);
     assertEquals(previewImageResponse.getMimeType(),"image/jpeg");
   }
@@ -206,7 +196,7 @@ class PreviewServiceImplTest {
 
     verify(previewClient,times(1)).getPreviewOfPdf(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
-    assertEquals(new String(Files.readAllBytes(previewImageResponse.getContent().toPath())),
+    assertEquals(new String(previewImageResponse.getContent().readAllBytes()),
       "pdf");
     assertEquals(previewImageResponse.getLength(),3);
     assertEquals(previewImageResponse.getMimeType(),"application/pdf");
@@ -247,8 +237,7 @@ class PreviewServiceImplTest {
 
     verify(previewClient,times(1)).getThumbnailOfPdf(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
-    assertEquals(new String(Files.readAllBytes(previewImageResponse.getContent().toPath())),
-      "pdf");
+    assertEquals(new String(previewImageResponse.getContent().readAllBytes()), "pdf");
     assertEquals(previewImageResponse.getLength(),3);
     assertEquals(previewImageResponse.getMimeType(),"application/pdf");
   }

@@ -45,7 +45,7 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
             .orElseThrow(UnauthorizedException::new);
     FileContentAndMetadata attachment = attachmentService.getAttachmentById(fileId, currentUser);
     return Response.status(Status.OK)
-        .entity(attachment.getFile())
+        .entity(attachment.getFileStream())
         .header("Content-Type", attachment.getMetadata().getMimeType())
         .header("Content-Length", attachment.getMetadata().getOriginalSize())
         .header(

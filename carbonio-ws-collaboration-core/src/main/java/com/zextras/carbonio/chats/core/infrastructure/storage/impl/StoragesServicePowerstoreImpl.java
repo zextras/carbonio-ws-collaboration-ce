@@ -14,11 +14,9 @@ import com.zextras.filestore.model.IdentifierType;
 import com.zextras.filestore.powerstore.api.powerstore.PowerstoreClient;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.io.File;
 import java.io.InputStream;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.commons.io.FileUtils;
 
 @Singleton
 public class StoragesServicePowerstoreImpl implements StoragesService {
@@ -31,23 +29,20 @@ public class StoragesServicePowerstoreImpl implements StoragesService {
   }
 
   @Override
-  public File getFileById(String fileId, String ownerId) {
+  public InputStream getFileStreamById(String fileId, String ownerId) {
     try {
-      InputStream in = powerstoreClient.download(ChatsIdentifier.of(fileId, ownerId));
-      File file = File.createTempFile(fileId, ".tmp");
-      FileUtils.copyInputStreamToFile(in, file);
-      return file;
+      return powerstoreClient.download(ChatsIdentifier.of(fileId, ownerId));
     } catch (Exception e) {
       throw new StorageException(String.format("Cannot retrieve the file '%s'", fileId), e);
     }
   }
 
   @Override
-  public void saveFile(File file, FileMetadata metadata, String currentUserId) {
+  public void saveFile(InputStream file, FileMetadata metadata, String currentUserId) {
     try {
       powerstoreClient.uploadPut(
           ChatsIdentifier.of(metadata.getId(), currentUserId),
-          FileUtils.openInputStream(file),
+          file,
           metadata.getOriginalSize());
     } catch (Exception e) {
       throw new StorageException("An error occurred while uploading the file", e);

@@ -14,7 +14,6 @@ import com.zextras.carbonio.preview.queries.enums.Format;
 import com.zextras.carbonio.preview.queries.enums.Quality;
 import com.zextras.carbonio.preview.queries.enums.Shape;
 import io.vavr.control.Option;
-import java.io.File;
 import java.util.UUID;
 
 /**

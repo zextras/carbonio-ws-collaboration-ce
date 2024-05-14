@@ -53,7 +53,7 @@ import io.ebean.annotation.Transactional;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.io.File;
+import java.io.InputStream;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -489,14 +489,15 @@ public class RoomServiceImpl implements RoomService {
             .getById(roomId.toString())
             .orElseThrow(
                 () -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
-    File file = storagesService.getFileById(metadata.getId(), metadata.getUserId());
-    return new FileContentAndMetadata(file, metadata);
+    return new FileContentAndMetadata(
+      storagesService.getFileStreamById(metadata.getId(), metadata.getUserId()),
+      metadata);
   }
 
   @Override
   @Transactional
   public void setRoomPicture(
-      UUID roomId, File image, String mimeType, String fileName, UserPrincipal currentUser) {
+      UUID roomId, InputStream image, String mimeType, Long contentLength, String fileName, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (!RoomTypeDto.GROUP.equals(room.getType())) {
       throw new BadRequestException("The room picture can only be set to group type rooms");
@@ -505,7 +506,7 @@ public class RoomServiceImpl implements RoomService {
         appConfig
             .get(Integer.class, ConfigName.MAX_ROOM_IMAGE_SIZE_IN_KB)
             .orElse(CONFIGURATIONS_DEFAULT_VALUES.MAX_ROOM_IMAGE_SIZE_IN_KB);
-    if (image.length() > maxImageSizeKb * 1024) {
+    if (contentLength > maxImageSizeKb * 1024) {
       throw new BadRequestException(
           String.format(
               "The size of room picture exceeds the maximum value of %d kB", maxImageSizeKb));
@@ -524,7 +525,7 @@ public class RoomServiceImpl implements RoomService {
                         .type(FileMetadataType.ROOM_AVATAR)
                         .roomId(roomId.toString()))
             .name(fileName)
-            .originalSize(image.length())
+            .originalSize(contentLength)
             .mimeType(mimeType)
             .userId(currentUser.getId());
     room.pictureUpdatedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone()));

@@ -131,6 +131,13 @@ SPDX-License-Identifier: AGPL-3.0-only
               <output>${project.build.directory}/generated-sources/chats</output>
               <modelNameSuffix>dto</modelNameSuffix>
               <skipValidateSpec>true</skipValidateSpec>
+              <typeMappings>
+                <typeMapping>binary=InputStream</typeMapping>
+                <typeMapping>file=InputStream</typeMapping>
+              </typeMappings>
+              <importMappings>
+                <importMapping>InputStream=java.io.InputStream</importMapping>
+              </importMappings>
             </configuration>
           </execution>
 

@@ -17,7 +17,7 @@ import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomRankDto;
 import jakarta.annotation.Nullable;
-import java.io.File;
+import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -139,14 +139,15 @@ public interface RoomService {
   /**
    * Sets a new room picture
    *
-   * @param roomId room identifier {@link UUID }
-   * @param image image to set {@link File}
-   * @param mimeType image mime type
-   * @param fileName image file name
-   * @param currentUser current authenticated user {@link UserPrincipal}
+   * @param roomId        room identifier {@link UUID }
+   * @param imageStream   image to set {@link InputStream}
+   * @param mimeType      image mime type
+   * @param contentLength image size
+   * @param fileName      image file name
+   * @param currentUser   current authenticated user {@link UserPrincipal}
    */
   void setRoomPicture(
-      UUID roomId, File image, String mimeType, String fileName, UserPrincipal currentUser);
+      UUID roomId, InputStream imageStream, String mimeType, Long contentLength, String fileName, UserPrincipal currentUser);
 
   /**
    * Deletes the room pictures

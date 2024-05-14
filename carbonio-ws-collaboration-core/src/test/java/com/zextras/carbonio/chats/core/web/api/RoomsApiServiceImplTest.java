@@ -26,7 +26,7 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
-import java.io.File;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -89,7 +89,7 @@ class RoomsApiServiceImplTest {
   @DisplayName("Insert attachment tests")
   class InsertAttachmentTest {
 
-    File attachment = mock(File.class);
+    InputStream attachment = mock(InputStream.class);
 
     @Test
     @DisplayName("Insert attachment with area, correct format")
@@ -101,6 +101,7 @@ class RoomsApiServiceImplTest {
               roomOneToOne1Id,
               StringFormatUtils.encodeToUtf8("fileName"),
               "image/jpeg",
+              1024L,
               attachment,
               null,
               "message-id",
@@ -113,12 +114,12 @@ class RoomsApiServiceImplTest {
               roomOneToOne1Id,
               attachment,
               "image/jpeg",
-              "fileName",
-              "",
-              "message-id",
-              "reply-id",
-              "10x5",
-              Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal()).get());
+            1024L,
+            "fileName",
+            "",
+            "message-id",
+            "reply-id",
+            "10x5", Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal()).get());
 
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
     }
@@ -133,6 +134,7 @@ class RoomsApiServiceImplTest {
               roomOneToOne1Id,
               StringFormatUtils.encodeToUtf8("fileName"),
               "image/jpeg",
+              1024L,
               attachment,
               null,
               "message-id",
@@ -144,13 +146,12 @@ class RoomsApiServiceImplTest {
           .addAttachment(
               roomOneToOne1Id,
               attachment,
-              "image/jpeg",
-              "fileName",
-              "",
-              "message-id",
-              "reply-id",
-              null,
-              Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal()).get());
+              "image/jpeg", 1024L,
+            "fileName",
+            "",
+            "message-id",
+            "reply-id",
+            null, Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal()).get());
 
       assertEquals(Status.CREATED.getStatusCode(), response.getStatus());
     }
@@ -165,6 +166,7 @@ class RoomsApiServiceImplTest {
               roomOneToOne1Id,
               StringFormatUtils.encodeToUtf8("fileName"),
               "image/jpeg",
+              1024L,
               attachment,
               null,
               "message-id",

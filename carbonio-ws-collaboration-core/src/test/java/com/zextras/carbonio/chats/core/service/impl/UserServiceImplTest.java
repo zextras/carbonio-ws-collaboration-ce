@@ -44,7 +44,7 @@ import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
 import jakarta.ws.rs.core.Response.Status;
-import java.io.File;
+import java.io.InputStream;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -375,16 +375,16 @@ class UserServiceImplTest {
               .name("pfp")
               .originalSize(123L);
       when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.of(pfpMetadata));
-      File file = new File("test");
-      when(storagesService.getFileById(userId.toString(), userId.toString())).thenReturn(file);
+      InputStream fileStream = mock(InputStream.class);
+      when(storagesService.getFileStreamById(userId.toString(), userId.toString())).thenReturn(fileStream);
 
       FileContentAndMetadata picture =
           userService.getUserPicture(userId, UserPrincipal.create(userId));
 
-      assertEquals(file, picture.getFile());
+      assertEquals(fileStream, picture.getFileStream());
       assertEquals(pfpMetadata.getId(), picture.getMetadata().getId());
       verify(fileMetadataRepository, times(1)).getById(userId.toString());
-      verify(storagesService, times(1)).getFileById(userId.toString(), userId.toString());
+      verify(storagesService, times(1)).getFileStreamById(userId.toString(), userId.toString());
     }
 
     @Test
@@ -414,8 +414,7 @@ class UserServiceImplTest {
     void setUserPicture_testOkInsert() {
       UUID userId = UUID.randomUUID();
       when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.empty());
-      File file = mock(File.class);
-      when(file.length()).thenReturn(123L);
+      InputStream fileStream = mock(InputStream.class);
       List<String> contactsIds = List.of("a", "b", "c");
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contactsIds);
       when(userRepository.getById(userId.toString())).thenReturn(Optional.empty());
@@ -429,7 +428,7 @@ class UserServiceImplTest {
                   .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
 
       userService.setUserPicture(
-          userId, file, "image/jpeg", "picture", UserPrincipal.create(userId));
+          userId, fileStream, "image/jpeg", 123L, "picture", UserPrincipal.create(userId));
 
       FileMetadata expectedMetadata =
           FileMetadataBuilder.create()
@@ -452,7 +451,7 @@ class UserServiceImplTest {
       verify(clock, times(1)).instant();
       verify(clock, times(1)).getZone();
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
-      verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
+      verify(storagesService, times(1)).saveFile(fileStream, expectedMetadata, userId.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               contactsIds,
@@ -482,8 +481,7 @@ class UserServiceImplTest {
                       .id(userId.toString())
                       .type(FileMetadataType.USER_AVATAR)
                       .userId(userId.toString())));
-      File file = mock(File.class);
-      when(file.length()).thenReturn(123L);
+      InputStream file = mock(InputStream.class);
       List<String> contactsIds = List.of("a", "b", "c");
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contactsIds);
       User user =
@@ -501,7 +499,7 @@ class UserServiceImplTest {
                   .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
 
       userService.setUserPicture(
-          userId, file, "image/jpeg", "picture", UserPrincipal.create(userId));
+          userId, file, "image/jpeg", 123L, "picture", UserPrincipal.create(userId));
 
       FileMetadata expectedMetadata =
           FileMetadataBuilder.create()
@@ -544,13 +542,13 @@ class UserServiceImplTest {
     @DisplayName("If the picture is not an image, It throws a BadRequestException")
     void setUserPicture_failsIfPictureIsNotAnImage() {
       UUID userId = UUID.randomUUID();
-      File file = mock(File.class);
+      InputStream fileStream = mock(InputStream.class);
       ChatsHttpException exception =
           assertThrows(
               BadRequestException.class,
               () ->
                   userService.setUserPicture(
-                      userId, file, "text/html", "picture", UserPrincipal.create(userId)));
+                      userId, fileStream, "text/html", 123L, "picture", UserPrincipal.create(userId)));
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -561,14 +559,13 @@ class UserServiceImplTest {
     @DisplayName("If the file is too large, It throws a 'bad request' exception")
     void setUserPicture_failsIfPictureIsTooBig() {
       UUID userId = UUID.randomUUID();
-      File file = mock(File.class);
-      when(file.length()).thenReturn(600L * 1024);
+      InputStream file = mock(InputStream.class);
       ChatsHttpException exception =
           assertThrows(
               BadRequestException.class,
               () ->
                   userService.setUserPicture(
-                      userId, file, "image/jpeg", "picture", UserPrincipal.create(userId)));
+                      userId, file, "image/jpeg", 600L * 1024, "picture", UserPrincipal.create(userId)));
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
@@ -582,13 +579,13 @@ class UserServiceImplTest {
     void setUserPicture_failsIfUserIsNotAuthenticatedUser() {
       UUID user1Id = UUID.randomUUID();
       UUID user2Id = UUID.randomUUID();
-      File file = mock(File.class);
+      InputStream fileStream = mock(InputStream.class);
       ForbiddenException exception =
           assertThrows(
               ForbiddenException.class,
               () ->
                   userService.setUserPicture(
-                      user2Id, file, "image/jpeg", "picture", UserPrincipal.create(user1Id)));
+                      user2Id, fileStream, "image/jpeg", 123L, "picture", UserPrincipal.create(user1Id)));
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());

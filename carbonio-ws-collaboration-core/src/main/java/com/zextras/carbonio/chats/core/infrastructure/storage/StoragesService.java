@@ -6,19 +6,19 @@ package com.zextras.carbonio.chats.core.infrastructure.storage;
 
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
-import java.io.File;
+import java.io.InputStream;
 import java.util.List;
 
 public interface StoragesService extends HealthIndicator {
 
   /**
-   * Retrieves the file associated to the identifier
+   * Retrieves the file stream associated to the identifier
    *
    * @param fileId  file identifier
    * @param ownerId identifier of the owner of the file
-   * @return Required file {@link File}
+   * @return Stream of Required file {@link InputStream}
    */
-  File getFileById(String fileId, String ownerId);
+  InputStream getFileStreamById(String fileId, String ownerId);
 
   /**
    * Saves a file on the repository
@@ -27,7 +27,7 @@ public interface StoragesService extends HealthIndicator {
    * @param metadata      file metadata {@link FileMetadata}
    * @param currentUserId identifier of the current user
    */
-  void saveFile(File file, FileMetadata metadata, String currentUserId);
+  void saveFile(InputStream file, FileMetadata metadata, String currentUserId);
 
   /**
    * Copies a file

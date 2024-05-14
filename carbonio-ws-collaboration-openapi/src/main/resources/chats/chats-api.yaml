@@ -152,6 +152,7 @@ paths:
         - $ref: '#/components/parameters/pathRoomId'
         - $ref: '#/components/parameters/headerFileName'
         - $ref: '#/components/parameters/headerMimeType'
+        - $ref: '#/components/parameters/headerContentLength'
       requestBody:
         $ref: '#/components/requestBodies/UpdateRoomPictureRequest'
       responses:
@@ -401,6 +402,7 @@ paths:
         - $ref: '#/components/parameters/pathUserId'
         - $ref: '#/components/parameters/headerFileName'
         - $ref: '#/components/parameters/headerMimeType'
+        - $ref: '#/components/parameters/headerContentLength'
       requestBody:
         $ref: '#/components/requestBodies/UpdateUserPictureRequest'
       responses:
@@ -462,6 +464,7 @@ paths:
         - $ref: '#/components/parameters/headerMessageId'
         - $ref: '#/components/parameters/headerReplyId'
         - $ref: '#/components/parameters/headerArea'
+        - $ref: '#/components/parameters/headerContentLength'
       requestBody:
         $ref: '#/components/requestBodies/InsertAttachmentRequest'
       responses:
@@ -757,6 +760,13 @@ components:
       description: content type
       schema:
         type: string
+      required: true
+    headerContentLength:
+      in: header
+      name: Content-Length
+      description: content length
+      schema:
+        type: long
       required: true
     headerDescription:
       in: header

@@ -23,11 +23,6 @@ import com.zextras.carbonio.preview.queries.Query;
 import com.zextras.carbonio.preview.queries.enums.ServiceType;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
-import org.apache.commons.io.FileUtils;
-
-
-import java.io.File;
-import java.time.Instant;
 import java.util.UUID;
 
 @Singleton
@@ -52,11 +47,9 @@ public class PreviewServiceImpl implements PreviewService {
 
   private FileResponse remapBlobToDataFile(Try<BlobResponse> response) {
     return response.map(bResp ->
-      Try.of(() -> {
-        File file = File.createTempFile(Instant.now().toString(), ".tmp");
-        FileUtils.copyInputStreamToFile(bResp.getContent(), file);
-        return new FileResponse(file, bResp.getLength(),bResp.getMimeType());
-      }).getOrElseThrow(t -> new RuntimeException(t))
+      Try.of(() ->
+        new FileResponse(bResp.getContent(), bResp.getLength(),bResp.getMimeType())
+      ).getOrElseThrow(t -> new PreviewException(t))
     ).getOrElseThrow(t-> new PreviewException(t));
   }
 

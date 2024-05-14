@@ -28,7 +28,7 @@ import com.zextras.carbonio.chats.model.UserDto;
 import io.ebean.annotation.Transactional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.io.File;
+import java.io.InputStream;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -130,14 +130,15 @@ public class UserServiceImpl implements UserService {
             .getById(userId.toString())
             .orElseThrow(
                 () -> new NotFoundException(String.format("File with id '%s' not found", userId)));
-    File file = storagesService.getFileById(metadata.getId(), metadata.getUserId());
-    return new FileContentAndMetadata(file, metadata);
+    return new FileContentAndMetadata(
+      storagesService.getFileStreamById(metadata.getId(), metadata.getUserId()),
+      metadata);
   }
 
   @Override
   @Transactional
   public void setUserPicture(
-      UUID userId, File image, String mimeType, String fileName, UserPrincipal currentUser) {
+      UUID userId, InputStream image, String mimeType, Long contentLength, String fileName, UserPrincipal currentUser) {
     if (!currentUser.getUUID().equals(userId)) {
       throw new ForbiddenException("The picture can be change only from its owner");
     }
@@ -145,7 +146,7 @@ public class UserServiceImpl implements UserService {
         appConfig
             .get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB)
             .orElse(CONFIGURATIONS_DEFAULT_VALUES.MAX_USER_IMAGE_SIZE_IN_KB);
-    if (image.length() > maxImageSizeKb * 1024) {
+    if (contentLength > maxImageSizeKb * 1024) {
       throw new BadRequestException(
           String.format("The user picture cannot be greater than %d kB", maxImageSizeKb));
     }
@@ -159,7 +160,7 @@ public class UserServiceImpl implements UserService {
                 () ->
                     FileMetadata.create().id(userId.toString()).type(FileMetadataType.USER_AVATAR))
             .name(fileName)
-            .originalSize(image.length())
+            .originalSize(contentLength)
             .mimeType(mimeType)
             .userId(currentUser.getId());
     fileMetadataRepository.save(metadata);
