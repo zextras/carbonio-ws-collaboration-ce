@@ -120,7 +120,7 @@ class PreviewServiceImplTest {
 
     verify(previewClient, times(1)).getPreviewOfImage(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
-    assertEquals(new String(previewImageResponse.getContent().readAllBytes()), "image");
+    assertEquals("image", new String(previewImageResponse.getContent().readAllBytes()));
     assertEquals(previewImageResponse.getLength(), 5);
     assertEquals(previewImageResponse.getMimeType(), "image/jpeg");
   }
@@ -160,7 +160,7 @@ class PreviewServiceImplTest {
 
     verify(previewClient, times(1)).getThumbnailOfImage(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
-    assertEquals(new String(previewImageResponse.getContent().readAllBytes()), "image");
+    assertEquals("image", new String(previewImageResponse.getContent().readAllBytes()));
     assertEquals(previewImageResponse.getLength(), 5);
     assertEquals(previewImageResponse.getMimeType(), "image/jpeg");
   }
@@ -196,7 +196,7 @@ class PreviewServiceImplTest {
 
     verify(previewClient, times(1)).getPreviewOfPdf(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
-    assertEquals(new String(previewImageResponse.getContent().readAllBytes()), "pdf");
+    assertEquals("pdf", new String(previewImageResponse.getContent().readAllBytes()));
     assertEquals(previewImageResponse.getLength(), 3);
     assertEquals(previewImageResponse.getMimeType(), "application/pdf");
   }
@@ -236,7 +236,7 @@ class PreviewServiceImplTest {
 
     verify(previewClient, times(1)).getThumbnailOfPdf(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
-    assertEquals(new String(previewImageResponse.getContent().readAllBytes()), "pdf");
+    assertEquals("pdf", new String(previewImageResponse.getContent().readAllBytes()));
     assertEquals(previewImageResponse.getLength(), 3);
     assertEquals(previewImageResponse.getMimeType(), "application/pdf");
   }
