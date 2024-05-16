@@ -1840,14 +1840,16 @@ public class RoomsApiIT {
       MockHttpResponse response =
           dispatcher.put(
               url(roomId),
-              fileMock.getId().getBytes(),
+              fileMock.getFileBytes(),
               Map.of(
                   "Content-Type",
                   "application/octet-stream",
                   "fileName",
                   "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067",
                   "mimeType",
-                  fileMock.getMimeType()),
+                  fileMock.getMimeType(),
+                  "Content-Length",
+                  String.valueOf(fileMock.getSize())),
               user1Token);
       mongooseImMockServer.verify(mongooseImMockServer.getSendStanzaRequest(hoped));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
@@ -1879,7 +1881,9 @@ public class RoomsApiIT {
                   "fileName",
                   Base64.getEncoder().encodeToString(fileMock.getName().getBytes()),
                   "mimeType",
-                  fileMock.getMimeType()),
+                  fileMock.getMimeType(),
+                  "Content-Length",
+                  String.valueOf(fileMock.getSize())),
               null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1922,7 +1926,9 @@ public class RoomsApiIT {
                   "fileName",
                   "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
                   "mimeType",
-                  fileMock.getMimeType()),
+                  fileMock.getMimeType(),
+                  "Content-Length",
+                  String.valueOf(fileMock.getSize())),
               user3Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -1949,7 +1955,9 @@ public class RoomsApiIT {
                   "fileName",
                   "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
                   "mimeType",
-                  fileMock.getMimeType()),
+                  fileMock.getMimeType(),
+                  "Content-Length",
+                  String.valueOf(fileMock.getSize())),
               user3Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -3589,6 +3597,7 @@ public class RoomsApiIT {
                     "fileName",
                         "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
                     "mimeType", fileMock.getMimeType(),
+                    "Content-Length", String.valueOf(fileMock.getSize()),
                     "messageId", ""),
                 user1Token);
       }
@@ -3655,6 +3664,7 @@ public class RoomsApiIT {
                     "fileName",
                         "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
                     "mimeType", fileMock.getMimeType(),
+                    "Content-Length", String.valueOf(fileMock.getSize()),
                     "description", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073",
                     "messageId", "the-xmpp-message-id",
                     "replyId", ""),
@@ -3725,6 +3735,7 @@ public class RoomsApiIT {
                     "fileName",
                         "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
                     "mimeType", fileMock.getMimeType(),
+                        "Content-Length", String.valueOf(fileMock.getSize()),
                     "description", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073",
                     "messageId", "the-xmpp-message-id",
                     "replyId", "message-id-to-reply"),
@@ -3791,6 +3802,7 @@ public class RoomsApiIT {
                     "fileName",
                         "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
                     "mimeType", fileMock.getMimeType(),
+                        "Content-Length", String.valueOf(fileMock.getSize()),
                     "messageId", "the-xmpp-message-id",
                     "area", "15x20"),
                 user1Token);
@@ -3874,7 +3886,9 @@ public class RoomsApiIT {
                   "fileName",
                   "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
                   "mimeType",
-                  fileMock.getMimeType()),
+                  fileMock.getMimeType(),
+                  "Content-Length",
+                  String.valueOf(fileMock.getSize())),
               null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -3900,7 +3914,9 @@ public class RoomsApiIT {
                   "fileName",
                   "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
                   "mimeType",
-                  fileMock.getMimeType()),
+                  fileMock.getMimeType(),
+                  "Content-Length",
+                  String.valueOf(fileMock.getSize())),
               user3Token);
 
       assertEquals(403, response.getStatus());

@@ -26,7 +26,7 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
-import java.io.File;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -89,7 +89,7 @@ class RoomsApiServiceImplTest {
   @DisplayName("Insert attachment tests")
   class InsertAttachmentTest {
 
-    File attachment = mock(File.class);
+    InputStream attachment = mock(InputStream.class);
 
     @Test
     @DisplayName("Insert attachment with area, correct format")
@@ -101,6 +101,7 @@ class RoomsApiServiceImplTest {
               roomOneToOne1Id,
               StringFormatUtils.encodeToUtf8("fileName"),
               "image/jpeg",
+              123L,
               attachment,
               null,
               "message-id",
@@ -113,6 +114,7 @@ class RoomsApiServiceImplTest {
               roomOneToOne1Id,
               attachment,
               "image/jpeg",
+              123L,
               "fileName",
               "",
               "message-id",
@@ -133,6 +135,7 @@ class RoomsApiServiceImplTest {
               roomOneToOne1Id,
               StringFormatUtils.encodeToUtf8("fileName"),
               "image/jpeg",
+              123L,
               attachment,
               null,
               "message-id",
@@ -145,6 +148,7 @@ class RoomsApiServiceImplTest {
               roomOneToOne1Id,
               attachment,
               "image/jpeg",
+              123L,
               "fileName",
               "",
               "message-id",
@@ -165,6 +169,7 @@ class RoomsApiServiceImplTest {
               roomOneToOne1Id,
               StringFormatUtils.encodeToUtf8("fileName"),
               "image/jpeg",
+              123L,
               attachment,
               null,
               "message-id",

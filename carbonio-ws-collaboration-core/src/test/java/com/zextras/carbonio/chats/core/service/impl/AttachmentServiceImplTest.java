@@ -43,8 +43,7 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import java.io.File;
-import java.nio.file.Files;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.Base64;
@@ -344,15 +343,14 @@ public class AttachmentServiceImplTest {
                       .updatedAt(OffsetDateTime.now())
                       .build()));
       when(storagesService.getFileById(attachmentUuid.toString(), user1Id.toString()))
-          .thenReturn(Files.createFile(tempDir.resolve("temp.txt")).toFile());
+          .thenReturn(mock(InputStream.class));
       FileContentAndMetadata attachmentById =
           attachmentService.getAttachmentById(attachmentUuid, currentUser);
 
       assertNotNull(attachmentById);
-      assertNotNull(attachmentById.getFile());
+      assertNotNull(attachmentById.getFileStream());
       assertNotNull(attachmentById.getMetadata());
       assertEquals(attachmentUuid.toString(), attachmentById.getMetadata().getId());
-      assertEquals("temp.txt", attachmentById.getFile().getName());
       verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
@@ -575,13 +573,13 @@ public class AttachmentServiceImplTest {
       OffsetDateTime attachmentDate = OffsetDateTime.parse("2022-01-01T00:00:00Z");
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
-      File attachmentFile = tempDir.resolve("temp.pdf").toFile();
-      Files.writeString(attachmentFile.toPath(), "test!");
+      InputStream attachmentStream = mock(InputStream.class);
+
       FileMetadataBuilder metadataBulder =
           FileMetadataBuilder.create()
               .id(attachmentUuid.toString())
               .name("temp.pdf")
-              .originalSize(attachmentFile.length())
+              .originalSize(123L)
               .mimeType("application/pdf")
               .type(FileMetadataType.ATTACHMENT)
               .userId(user1Id.toString())
@@ -597,8 +595,9 @@ public class AttachmentServiceImplTest {
         uuid.when(() -> UUID.fromString(attachmentUuid.toString())).thenReturn(attachmentUuid);
         attachmentService.addAttachment(
             roomId,
-            attachmentFile,
+            attachmentStream,
             "application/pdf",
+            123L,
             "temp.pdf",
             "description",
             "",
@@ -608,7 +607,7 @@ public class AttachmentServiceImplTest {
       }
 
       verify(storagesService, times(1))
-          .saveFile(attachmentFile, savedMetadata, currentUser.toString());
+          .saveFile(attachmentStream, savedMetadata, currentUser.toString());
       verifyNoMoreInteractions(storagesService);
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verifyNoMoreInteractions(fileMetadataRepository);
@@ -621,8 +620,7 @@ public class AttachmentServiceImplTest {
     void addAttachment_testRoomNotFound() throws Exception {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      File attachmentFile = tempDir.resolve("temp.pdf").toFile();
-      Files.writeString(attachmentFile.toPath(), "test!");
+      InputStream attachmentStream = mock(InputStream.class);
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false))
           .thenThrow(new NotFoundException());
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -634,8 +632,9 @@ public class AttachmentServiceImplTest {
                 () ->
                     attachmentService.addAttachment(
                         roomId,
-                        attachmentFile,
+                        attachmentStream,
                         "application/pdf",
+                        123L,
                         "temp.pdf",
                         "description",
                         null,
@@ -651,8 +650,7 @@ public class AttachmentServiceImplTest {
     void addAttachment_testForbidden() throws Exception {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      File attachmentFile = tempDir.resolve("temp.pdf").toFile();
-      Files.writeString(attachmentFile.toPath(), "test!");
+      InputStream attachmentStream = mock(InputStream.class);
       when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false))
           .thenThrow(new ForbiddenException());
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -663,8 +661,9 @@ public class AttachmentServiceImplTest {
             () ->
                 attachmentService.addAttachment(
                     roomId,
-                    attachmentFile,
+                    attachmentStream,
                     "application/pdf",
+                    123L,
                     "temp.pdf",
                     "description",
                     null,
@@ -679,13 +678,12 @@ public class AttachmentServiceImplTest {
     void addAttachment_testInternalException() throws Exception {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      File attachmentFile = tempDir.resolve("temp.pdf").toFile();
-      Files.writeString(attachmentFile.toPath(), "test!");
+      InputStream attachmentStream = mock(InputStream.class);
       FileMetadata expectedMetadata =
           FileMetadataBuilder.create()
               .id(attachmentUuid.toString())
               .name("temp.pdf")
-              .originalSize(attachmentFile.length())
+              .originalSize(123L)
               .mimeType("application/pdf")
               .type(FileMetadataType.ATTACHMENT)
               .userId(user1Id.toString())
@@ -695,7 +693,7 @@ public class AttachmentServiceImplTest {
       when(fileMetadataRepository.save(expectedMetadata)).thenReturn(expectedMetadata);
       doThrow(new InternalErrorException())
           .when(storagesService)
-          .saveFile(attachmentFile, expectedMetadata, user1Id.toString());
+          .saveFile(attachmentStream, expectedMetadata, user1Id.toString());
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
@@ -704,8 +702,9 @@ public class AttachmentServiceImplTest {
             () ->
                 attachmentService.addAttachment(
                     roomId,
-                    attachmentFile,
+                    attachmentStream,
                     "application/pdf",
+                    123L,
                     "temp.pdf",
                     "description",
                     "",

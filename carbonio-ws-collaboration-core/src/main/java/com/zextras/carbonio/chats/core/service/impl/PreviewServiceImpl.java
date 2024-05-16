@@ -23,11 +23,7 @@ import com.zextras.carbonio.preview.queries.Query;
 import com.zextras.carbonio.preview.queries.enums.ServiceType;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
-import org.apache.commons.io.FileUtils;
 
-
-import java.io.File;
-import java.time.Instant;
 import java.util.UUID;
 
 @Singleton
@@ -52,22 +48,20 @@ public class PreviewServiceImpl implements PreviewService {
 
   private FileResponse remapBlobToDataFile(Try<BlobResponse> response) {
     return response.map(bResp ->
-      Try.of(() -> {
-        File file = File.createTempFile(Instant.now().toString(), ".tmp");
-        FileUtils.copyInputStreamToFile(bResp.getContent(), file);
-        return new FileResponse(file, bResp.getLength(),bResp.getMimeType());
-      }).getOrElseThrow(t -> new RuntimeException(t))
-    ).getOrElseThrow(t-> new PreviewException(t));
+      new FileResponse(bResp.getContent(), bResp.getLength(), bResp.getMimeType())
+    ).getOrElseThrow(t -> new PreviewException(t));
   }
 
   @Override
-  public FileResponse getImage(UserPrincipal user,
-                               UUID fileId,
-                               String area,
-                               Option<ImageQualityEnumDto> quality,
-                               Option<ImageTypeEnumDto> outputFormat,
-                               Option<Boolean> crop) {
-    validateUser(fileId,user);
+  public FileResponse getImage(
+    UserPrincipal user,
+    UUID fileId,
+    String area,
+    Option<ImageQualityEnumDto> quality,
+    Option<ImageTypeEnumDto> outputFormat,
+    Option<Boolean> crop
+  ) {
+    validateUser(fileId, user);
 
     Query.QueryBuilder parameters = new Query.QueryBuilder()
       .setFileOwnerId(user.getId())
@@ -83,13 +77,15 @@ public class PreviewServiceImpl implements PreviewService {
   }
 
   @Override
-  public FileResponse getImageThumbnail(UserPrincipal user,
-                                        UUID fileId,
-                                        String area,
-                                        Option<ImageQualityEnumDto> quality,
-                                        Option<ImageTypeEnumDto> outputFormat,
-                                        Option<ImageShapeEnumDto> shape) {
-    validateUser(fileId,user);
+  public FileResponse getImageThumbnail(
+    UserPrincipal user,
+    UUID fileId,
+    String area,
+    Option<ImageQualityEnumDto> quality,
+    Option<ImageTypeEnumDto> outputFormat,
+    Option<ImageShapeEnumDto> shape
+  ) {
+    validateUser(fileId, user);
 
     Query.QueryBuilder parameters = new Query.QueryBuilder()
       .setFileOwnerId(user.getId())
@@ -106,7 +102,7 @@ public class PreviewServiceImpl implements PreviewService {
 
   @Override
   public FileResponse getPDF(UserPrincipal user, UUID fileId, Integer firstPage, Integer lastPage) {
-    validateUser(fileId,user);
+    validateUser(fileId, user);
 
     Query.QueryBuilder parameters = new Query.QueryBuilder()
       .setFileOwnerId(user.getId())
@@ -120,13 +116,15 @@ public class PreviewServiceImpl implements PreviewService {
   }
 
   @Override
-  public FileResponse getPDFThumbnail(UserPrincipal user,
-                                      UUID fileId,
-                                      String area,
-                                      Option<ImageQualityEnumDto> quality,
-                                      Option<ImageTypeEnumDto> outputFormat,
-                                      Option<ImageShapeEnumDto> shape) {
-    validateUser(fileId,user);
+  public FileResponse getPDFThumbnail(
+    UserPrincipal user,
+    UUID fileId,
+    String area,
+    Option<ImageQualityEnumDto> quality,
+    Option<ImageTypeEnumDto> outputFormat,
+    Option<ImageShapeEnumDto> shape
+  ) {
+    validateUser(fileId, user);
 
     Query.QueryBuilder parameters = new Query.QueryBuilder()
       .setFileOwnerId(user.getId())
@@ -141,9 +139,10 @@ public class PreviewServiceImpl implements PreviewService {
     return remapBlobToDataFile(previewClient.getThumbnailOfPdf(parameters.build()));
   }
 
-  private void validateUser(UUID fileId, UserPrincipal user){
+  private void validateUser(UUID fileId, UserPrincipal user) {
     FileMetadata originMetadata = fileMetadataRepository.getById(fileId.toString())
-      .orElseThrow(() -> new com.zextras.carbonio.chats.core.exception.NotFoundException(String.format("File with id '%s' not found", fileId)));
+      .orElseThrow(() -> new com.zextras.carbonio.chats.core.exception.NotFoundException(
+        String.format("File with id '%s' not found", fileId)));
     roomService.getRoomEntityAndCheckUser(UUID.fromString(originMetadata.getRoomId()), user, false);
   }
 

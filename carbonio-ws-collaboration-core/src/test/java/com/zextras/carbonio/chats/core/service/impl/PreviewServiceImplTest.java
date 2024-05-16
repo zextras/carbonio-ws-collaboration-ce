@@ -40,7 +40,6 @@ import io.vavr.control.Option;
 import io.vavr.control.Try;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -121,8 +120,7 @@ class PreviewServiceImplTest {
 
     verify(previewClient, times(1)).getPreviewOfImage(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
-    assertEquals(new String(Files.readAllBytes(previewImageResponse.getContent().toPath())),
-      "image");
+    assertEquals(new String(previewImageResponse.getContent().readAllBytes()), "image");
     assertEquals(previewImageResponse.getLength(), 5);
     assertEquals(previewImageResponse.getMimeType(), "image/jpeg");
   }
@@ -162,8 +160,7 @@ class PreviewServiceImplTest {
 
     verify(previewClient, times(1)).getThumbnailOfImage(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
-    assertEquals(new String(Files.readAllBytes(previewImageResponse.getContent().toPath())),
-      "image");
+    assertEquals(new String(previewImageResponse.getContent().readAllBytes()), "image");
     assertEquals(previewImageResponse.getLength(), 5);
     assertEquals(previewImageResponse.getMimeType(), "image/jpeg");
   }
@@ -199,8 +196,7 @@ class PreviewServiceImplTest {
 
     verify(previewClient, times(1)).getPreviewOfPdf(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
-    assertEquals(new String(Files.readAllBytes(previewImageResponse.getContent().toPath())),
-      "pdf");
+    assertEquals(new String(previewImageResponse.getContent().readAllBytes()), "pdf");
     assertEquals(previewImageResponse.getLength(), 3);
     assertEquals(previewImageResponse.getMimeType(), "application/pdf");
   }
@@ -240,8 +236,7 @@ class PreviewServiceImplTest {
 
     verify(previewClient, times(1)).getThumbnailOfPdf(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
-    assertEquals(new String(Files.readAllBytes(previewImageResponse.getContent().toPath())),
-      "pdf");
+    assertEquals(new String(previewImageResponse.getContent().readAllBytes()), "pdf");
     assertEquals(previewImageResponse.getLength(), 3);
     assertEquals(previewImageResponse.getMimeType(), "application/pdf");
   }
