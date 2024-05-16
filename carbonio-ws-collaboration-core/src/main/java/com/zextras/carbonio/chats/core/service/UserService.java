@@ -7,7 +7,7 @@ package com.zextras.carbonio.chats.core.service;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
-import java.io.File;
+import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
 
@@ -53,13 +53,14 @@ public interface UserService {
   /**
    * Sets a new user picture
    *
-   * @param userId      room identifier {@link UUID }
-   * @param image       image to set {@link File}
-   * @param mimeType    image mime type
-   * @param fileName    image file name
-   * @param currentUser current authenticated user {@link UserPrincipal}
+   * @param userId        room identifier {@link UUID }
+   * @param image         image stream to set {@link InputStream}
+   * @param mimeType      image mime type
+   * @param contentLength image size
+   * @param fileName      image file name
+   * @param currentUser   current authenticated user {@link UserPrincipal}
    **/
-  void setUserPicture(UUID userId, File image, String mimeType, String fileName, UserPrincipal currentUser);
+  void setUserPicture(UUID userId, InputStream image, String mimeType, Long contentLength, String fileName, UserPrincipal currentUser);
 
   /**
    * Deletes the user picture

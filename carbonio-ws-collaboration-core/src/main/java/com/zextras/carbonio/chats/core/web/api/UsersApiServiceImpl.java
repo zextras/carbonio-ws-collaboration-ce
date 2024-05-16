@@ -18,7 +18,7 @@ import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
-import java.io.File;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Optional;
@@ -53,7 +53,7 @@ public class UsersApiServiceImpl implements UsersApiService {
             .orElseThrow(UnauthorizedException::new);
     FileContentAndMetadata picture = userService.getUserPicture(userId, currentUser);
     return Response.status(Status.OK)
-        .entity(picture.getFile())
+        .entity(picture.getFileStream())
         .header("Content-Type", picture.getMetadata().getMimeType())
         .header("Content-Length", picture.getMetadata().getOriginalSize())
         .header(
@@ -80,7 +80,8 @@ public class UsersApiServiceImpl implements UsersApiService {
       UUID userId,
       String headerFileName,
       String headerMimeType,
-      File body,
+      Long contentLength,
+      InputStream body,
       SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
@@ -99,6 +100,7 @@ public class UsersApiServiceImpl implements UsersApiService {
         body,
         Optional.of(headerMimeType)
             .orElseThrow(() -> new BadRequestException("Mime type not found")),
+        contentLength,
         fileName,
         currentUser);
     return Response.status(Status.NO_CONTENT).build();

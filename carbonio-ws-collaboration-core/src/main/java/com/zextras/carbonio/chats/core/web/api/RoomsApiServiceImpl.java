@@ -29,7 +29,7 @@ import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
-import java.io.File;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Optional;
@@ -151,7 +151,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
             .orElseThrow(UnauthorizedException::new);
     FileContentAndMetadata roomPicture = roomService.getRoomPicture(roomId, currentUser);
     return Response.status(Status.OK)
-        .entity(roomPicture.getFile())
+        .entity(roomPicture.getFileStream())
         .header("Content-Type", roomPicture.getMetadata().getMimeType())
         .header("Content-Length", roomPicture.getMetadata().getOriginalSize())
         .header(
@@ -166,7 +166,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       UUID roomId,
       String headerFileName,
       String headerMimeType,
-      File body,
+      Long contentLength,
+      InputStream body,
       SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
@@ -185,6 +186,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
         body,
         Optional.of(headerMimeType)
             .orElseThrow(() -> new BadRequestException("Mime type not found")),
+        contentLength,
         filename,
         currentUser);
     return Response.status(Status.NO_CONTENT).build();
@@ -316,7 +318,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       UUID roomId,
       String fileName,
       String mimeType,
-      File body,
+      Long contentLength,
+      InputStream body,
       String description,
       String messageId,
       String replyId,
@@ -348,6 +351,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
                   body,
                   Optional.of(mimeType)
                       .orElseThrow(() -> new BadRequestException("Mime type not found")),
+                  contentLength,
                   name,
                   desc,
                   "".equals(messageId) ? null : messageId,

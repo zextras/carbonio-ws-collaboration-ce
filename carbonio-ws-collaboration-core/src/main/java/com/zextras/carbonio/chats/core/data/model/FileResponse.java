@@ -4,21 +4,20 @@
 
 package com.zextras.carbonio.chats.core.data.model;
 
-
-import java.io.File;
+import java.io.InputStream;
 
 public class FileResponse {
-  private final File content;
-  private final long length;
-  private final String mimeType;
+  private final InputStream content;
+  private final long        length;
+  private final String      mimeType;
 
-  public FileResponse(File content, long length, String mimeType) {
+  public FileResponse(InputStream content, long length, String mimeType) {
     this.content = content;
     this.length = length;
     this.mimeType = mimeType;
   }
 
-  public File getContent() {
+  public InputStream getContent() {
     return this.content;
   }
 

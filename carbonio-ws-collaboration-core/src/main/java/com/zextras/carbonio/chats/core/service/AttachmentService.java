@@ -13,7 +13,7 @@ import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.IdDto;
 import jakarta.annotation.Nullable;
-import java.io.File;
+import java.io.InputStream;
 import java.util.UUID;
 
 public interface AttachmentService {
@@ -23,7 +23,7 @@ public interface AttachmentService {
    *
    * @param fileId identifier of attachment file to delete {@link UUID}
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The attachment file requested {@link File}
+   * @return The attachment file requested {@link InputStream}
    */
   FileContentAndMetadata getAttachmentById(UUID fileId, UserPrincipal currentUser);
 
@@ -53,8 +53,9 @@ public interface AttachmentService {
    * Saves a room's attachment file
    *
    * @param roomId identifier of the room attachment {@link UUID}
-   * @param file file to save {@link File}
+   * @param file file stream to save {@link InputStream}
    * @param mimeType file mime type
+   * @param contentLength file size
    * @param fileName file name
    * @param description file description
    * @param messageId identifier of XMPP message to create
@@ -65,8 +66,9 @@ public interface AttachmentService {
    */
   IdDto addAttachment(
       UUID roomId,
-      File file,
+      InputStream file,
       String mimeType,
+      Long contentLength,
       String fileName,
       String description,
       @Nullable String messageId,

@@ -33,8 +33,8 @@ import io.ebean.annotation.Transactional;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
@@ -76,8 +76,9 @@ public class AttachmentServiceImpl implements AttachmentService {
                 () -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
     roomService.getRoomEntityAndCheckUser(
         UUID.fromString(metadata.getRoomId()), currentUser, false);
-    File file = storagesService.getFileById(metadata.getId(), metadata.getUserId());
-    return new FileContentAndMetadata(file, metadata);
+    return new FileContentAndMetadata(
+      storagesService.getFileById(metadata.getId(), metadata.getUserId()),
+      metadata);
   }
 
   @Override
@@ -138,8 +139,9 @@ public class AttachmentServiceImpl implements AttachmentService {
   @Transactional
   public IdDto addAttachment(
       UUID roomId,
-      File file,
+      InputStream file,
       String mimeType,
+      Long contentLength,
       String fileName,
       String description,
       @Nullable String messageId,
@@ -152,7 +154,7 @@ public class AttachmentServiceImpl implements AttachmentService {
         FileMetadata.create()
             .id(id.toString())
             .name(fileName)
-            .originalSize(file.length())
+            .originalSize(contentLength)
             .mimeType(mimeType)
             .type(FileMetadataType.ATTACHMENT)
             .userId(currentUser.getId())

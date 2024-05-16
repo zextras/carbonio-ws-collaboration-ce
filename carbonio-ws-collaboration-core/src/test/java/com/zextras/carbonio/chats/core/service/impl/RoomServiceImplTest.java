@@ -67,7 +67,7 @@ import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import jakarta.ws.rs.core.Response.Status;
-import java.io.File;
+import java.io.InputStream;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -1393,14 +1393,14 @@ class RoomServiceImplTest {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       when(fileMetadataRepository.getById(roomGroup1Id.toString()))
           .thenReturn(Optional.of(pfpMetadata));
-      File file = new File("test");
+      InputStream fileStream = mock(InputStream.class);
       when(storagesService.getFileById(roomGroup1Id.toString(), user2Id.toString()))
-          .thenReturn(file);
+          .thenReturn(fileStream);
 
       FileContentAndMetadata roomPicture =
           roomService.getRoomPicture(roomGroup1Id, UserPrincipal.create(user1Id));
 
-      assertEquals(file, roomPicture.getFile());
+      assertEquals(fileStream, roomPicture.getFileStream());
       assertEquals(pfpMetadata.getId(), roomPicture.getMetadata().getId());
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
       verify(fileMetadataRepository, times(1)).getById(roomGroup1Id.toString());
@@ -1422,14 +1422,14 @@ class RoomServiceImplTest {
       when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
       when(fileMetadataRepository.getById(roomGroup2Id.toString()))
           .thenReturn(Optional.of(pfpMetadata));
-      File file = new File("test");
+      InputStream fileStream = mock(InputStream.class);
       when(storagesService.getFileById(roomGroup2Id.toString(), user2Id.toString()))
-          .thenReturn(file);
+          .thenReturn(fileStream);
 
       FileContentAndMetadata roomPicture =
           roomService.getRoomPicture(roomGroup2Id, UserPrincipal.create(user1Id).systemUser(true));
 
-      assertEquals(file, roomPicture.getFile());
+      assertEquals(fileStream, roomPicture.getFileStream());
       assertEquals(pfpMetadata.getId(), roomPicture.getMetadata().getId());
       verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
       verify(fileMetadataRepository, times(1)).getById(roomGroup2Id.toString());
@@ -1464,13 +1464,12 @@ class RoomServiceImplTest {
     void setRoomPicture_testOkInsert() {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       when(fileMetadataRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.empty());
-      File file = mock(File.class);
-      when(file.length()).thenReturn(123L);
+      InputStream fileStream = mock(InputStream.class);
       when(storagesService.getFileById(roomGroup1Id.toString(), user2Id.toString()))
-          .thenReturn(file);
+          .thenReturn(fileStream);
 
       roomService.setRoomPicture(
-          roomGroup1Id, file, "image/jpeg", "picture", UserPrincipal.create(user1Id));
+          roomGroup1Id, fileStream, "image/jpeg", 123L, "picture", UserPrincipal.create(user1Id));
 
       roomGroup1.pictureUpdatedAt(
           OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()));
@@ -1488,7 +1487,7 @@ class RoomServiceImplTest {
       verify(roomRepository, times(1)).update(roomGroup1);
       verify(fileMetadataRepository, times(1)).getById(roomGroup1Id.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
-      verify(storagesService, times(1)).saveFile(file, expectedMetadata, user1Id.toString());
+      verify(storagesService, times(1)).saveFile(fileStream, expectedMetadata, user1Id.toString());
       verify(storagesService, times(0)).deleteFile(anyString(), anyString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -1515,13 +1514,12 @@ class RoomServiceImplTest {
                       .type(FileMetadataType.ROOM_AVATAR)
                       .roomId(roomGroup1Id.toString())
                       .userId("fake-old-user")));
-      File file = mock(File.class);
-      when(file.length()).thenReturn(123L);
+      InputStream fileStream = mock(InputStream.class);
       when(storagesService.getFileById(roomGroup1Id.toString(), user2Id.toString()))
-          .thenReturn(file);
+          .thenReturn(fileStream);
 
       roomService.setRoomPicture(
-          roomGroup1Id, file, "image/jpeg", "picture", UserPrincipal.create(user1Id));
+          roomGroup1Id, fileStream, "image/jpeg", 123L, "picture", UserPrincipal.create(user1Id));
 
       roomGroup1.pictureUpdatedAt(
           OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()));
@@ -1539,7 +1537,7 @@ class RoomServiceImplTest {
       verify(roomRepository, times(1)).update(roomGroup1);
       verify(fileMetadataRepository, times(1)).getById(roomGroup1Id.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
-      verify(storagesService, times(1)).saveFile(file, expectedMetadata, user1Id.toString());
+      verify(storagesService, times(1)).saveFile(fileStream, expectedMetadata, user1Id.toString());
       verify(storagesService, times(1)).deleteFile("123", "fake-old-user");
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -1564,17 +1562,16 @@ class RoomServiceImplTest {
                       .id("123")
                       .type(FileMetadataType.ROOM_AVATAR)
                       .roomId(roomGroup2Id.toString())));
-      File file = mock(File.class);
-      when(file.length()).thenReturn(123L);
+      InputStream fileStream = mock(InputStream.class);
       when(storagesService.getFileById(roomGroup2Id.toString(), user2Id.toString()))
-          .thenReturn(file);
+          .thenReturn(fileStream);
 
       roomService.setRoomPicture(
           roomGroup2Id,
-          file,
+          fileStream,
           "image/jpeg",
-          "picture",
-          UserPrincipal.create(user1Id).systemUser(true));
+          123L,
+        "picture", UserPrincipal.create(user1Id).systemUser(true));
 
       roomGroup2.pictureUpdatedAt(
           OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()));
@@ -1592,7 +1589,7 @@ class RoomServiceImplTest {
       verify(roomRepository, times(1)).update(roomGroup2);
       verify(fileMetadataRepository, times(1)).getById(roomGroup2Id.toString());
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
-      verify(storagesService, times(1)).saveFile(file, expectedMetadata, user1Id.toString());
+      verify(storagesService, times(1)).saveFile(fileStream, expectedMetadata, user1Id.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user2Id.toString(), user3Id.toString()),
@@ -1609,13 +1606,13 @@ class RoomServiceImplTest {
     @DisplayName("If the user is not a room member, It throws a ForbiddenException")
     void setRoomPicture_failsIfUserIsNotPartOfTheRoom() {
       when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-      File file = mock(File.class);
+      InputStream fileStream = mock(InputStream.class);
       ForbiddenException exception =
           assertThrows(
               ForbiddenException.class,
               () ->
                   roomService.setRoomPicture(
-                      roomGroup2Id, file, "image/jpeg", "picture", UserPrincipal.create(user1Id)));
+                      roomGroup2Id, fileStream, "image/jpeg", 123L, "picture", UserPrincipal.create(user1Id)));
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -1629,13 +1626,13 @@ class RoomServiceImplTest {
     @DisplayName("If the user is not a room owner, it throws a ForbiddenException")
     void setRoomPicture_failsIfUserIsNotOwner() {
       when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-      File file = mock(File.class);
+      InputStream fileStream = mock(InputStream.class);
       ForbiddenException exception =
           assertThrows(
               ForbiddenException.class,
               () ->
                   roomService.setRoomPicture(
-                      roomGroup2Id, file, "image/jpeg", "picture", UserPrincipal.create(user3Id)));
+                      roomGroup2Id, fileStream, "image/jpeg", 123L, "picture", UserPrincipal.create(user3Id)));
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -1649,14 +1646,13 @@ class RoomServiceImplTest {
     @DisplayName("If the file is too large, It throws a BadRequestException")
     void setRoomPicture_failsIfPictureIsTooBig() {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-      File file = mock(File.class);
-      when(file.length()).thenReturn(600L * 1024);
+      InputStream fileStream = mock(InputStream.class);
       BadRequestException exception =
           assertThrows(
               BadRequestException.class,
               () ->
                   roomService.setRoomPicture(
-                      roomGroup1Id, file, "image/jpeg", "picture", UserPrincipal.create(user1Id)));
+                      roomGroup1Id, fileStream, "image/jpeg", 600L * 1024, "picture", UserPrincipal.create(user1Id)));
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
@@ -1670,17 +1666,17 @@ class RoomServiceImplTest {
     void setRoomPicture_failsIfRoomIsNotAGroup() {
       when(roomRepository.getById(roomOneToOne2Id.toString()))
           .thenReturn(Optional.of(roomOneToOne2));
-      File file = mock(File.class);
+      InputStream fileStream = mock(InputStream.class);
       BadRequestException exception =
           assertThrows(
               BadRequestException.class,
               () ->
                   roomService.setRoomPicture(
                       roomOneToOne2Id,
-                      file,
+                      fileStream,
                       "image/jpeg",
-                      "picture",
-                      UserPrincipal.create(user1Id)));
+                      123L,
+                    "picture", UserPrincipal.create(user1Id)));
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
@@ -1692,13 +1688,13 @@ class RoomServiceImplTest {
     @DisplayName("If the picture is not an image, It throws a BadRequestException")
     void setRoomPicture_failsIfPictureIsNotAnImage() {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-      File file = mock(File.class);
+      InputStream fileStream = mock(InputStream.class);
       BadRequestException exception =
           assertThrows(
               BadRequestException.class,
               () ->
                   roomService.setRoomPicture(
-                      roomGroup1Id, file, "text/html", "picture", UserPrincipal.create(user1Id)));
+                      roomGroup1Id, fileStream, "text/html", 123L, "picture", UserPrincipal.create(user1Id)));
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - The room picture must be an image", exception.getMessage());
