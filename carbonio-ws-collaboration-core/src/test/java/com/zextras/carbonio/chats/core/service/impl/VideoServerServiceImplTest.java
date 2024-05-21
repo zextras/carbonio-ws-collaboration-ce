@@ -39,6 +39,7 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.a
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeMuteRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomCreateRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomDestroyRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomEditRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomEnableRecordingRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomJoinRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomPublishRequest;
@@ -132,6 +133,7 @@ public class VideoServerServiceImplTest {
   private UUID user2VideoInHandleId;
   private UUID user3VideoInHandleId;
   private UUID user1ScreenHandleId;
+  private String recordingPath;
   private String videoServerURL;
   private String videoRecorderURL;
   private String janusEndpoint;
@@ -168,6 +170,7 @@ public class VideoServerServiceImplTest {
     janusEndpoint = "/janus";
     janusInfoEndpoint = "/info";
     postProcessorEndpoint = "/PostProcessor/meeting";
+    recordingPath = "/var/lib/videoserver/recordings/meeting";
   }
 
   @AfterEach
@@ -378,10 +381,6 @@ public class VideoServerServiceImplTest {
                       .description("audio_room_" + meeting1Id)
                       .isPrivate(false)
                       .record(false)
-                      .mjrsDir(
-                          "/var/lib/videoserver/recordings/meeting_"
-                              + meeting1Id
-                              + "/20220101T120000")
                       .samplingRate(16000L)
                       .audioActivePackets(10L)
                       .audioLevelAverage(65)
@@ -403,10 +402,6 @@ public class VideoServerServiceImplTest {
                       .description("video_room_" + meeting1Id)
                       .isPrivate(false)
                       .record(false)
-                      .recDir(
-                          "/var/lib/videoserver/recordings/meeting_"
-                              + meeting1Id
-                              + "/20220101T120000")
                       .publishers(100)
                       .bitrate(600L * 1024)
                       .bitrateCap(true)
@@ -1337,7 +1332,7 @@ public class VideoServerServiceImplTest {
               .videoServerPluginRequest(
                   VideoRoomPublishRequest.create()
                       .request("publish")
-                      .filename("video" + "_" + user1Id + "_" + "20220101T120000"))
+                      .filename("screen" + "_" + user1Id + "_" + "20220101T120000"))
               .rtcSessionDescription(
                   RtcSessionDescription.create()
                       .type(RtcType.OFFER)
@@ -2915,7 +2910,7 @@ public class VideoServerServiceImplTest {
 
       ArgumentCaptor<VideoServerMessageRequest> videoRoomRequestCaptor =
           ArgumentCaptor.forClass(VideoServerMessageRequest.class);
-      verify(videoServerClient, times(1))
+      verify(videoServerClient, times(2))
           .sendVideoRoomRequest(
               eq(
                   videoServerURL
@@ -2926,8 +2921,19 @@ public class VideoServerServiceImplTest {
                       + meeting1VideoHandleId.toString()
                       + serverQPm),
               videoRoomRequestCaptor.capture());
-      assertEquals(1, videoRoomRequestCaptor.getAllValues().size());
-      VideoServerMessageRequest videoRoomEnableRecordRequest = videoRoomRequestCaptor.getValue();
+      assertEquals(2, videoRoomRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest videoRoomEditRequest = videoRoomRequestCaptor.getAllValues().get(0);
+      assertEquals("message", videoRoomEditRequest.getMessageRequest());
+      assertEquals("token", videoRoomEditRequest.getApiSecret());
+      VideoRoomEditRequest videoRoomEditRoomRequest =
+          (VideoRoomEditRequest) videoRoomEditRequest.getVideoServerPluginRequest();
+      assertEquals("edit", videoRoomEditRoomRequest.getRequest());
+      assertEquals(meeting1VideoRoomId.toString(), videoRoomEditRoomRequest.getRoom());
+      assertEquals(
+          recordingPath + "_" + meeting1Id + "/" + "20220101T120000",
+          videoRoomEditRoomRequest.getNewRecDir());
+      VideoServerMessageRequest videoRoomEnableRecordRequest =
+          videoRoomRequestCaptor.getAllValues().get(1);
       assertEquals("message", videoRoomEnableRecordRequest.getMessageRequest());
       assertEquals("token", videoRoomEnableRecordRequest.getApiSecret());
       VideoRoomEnableRecordingRequest videoRoomEnableRecordingRequest =
@@ -2959,6 +2965,19 @@ public class VideoServerServiceImplTest {
       String serverQPm = getServerIdQueryParam(serverId);
       createVideoServerMeeting(serverId, meeting1Id);
 
+      VideoRoomResponse videoRoomEditResponse = VideoRoomResponse.create().status("success");
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + meeting1SessionId.toString()
+                      + "/"
+                      + meeting1VideoHandleId.toString()
+                      + serverQPm),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(videoRoomEditResponse);
+
       AudioBridgeResponse audioBridgeResponse = AudioBridgeResponse.create().status("error");
       when(videoServerClient.sendAudioBridgeRequest(
               eq(
@@ -2984,6 +3003,17 @@ public class VideoServerServiceImplTest {
               + meeting1Id);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(
+                  videoServerURL
+                      + janusEndpoint
+                      + "/"
+                      + meeting1SessionId.toString()
+                      + "/"
+                      + meeting1VideoHandleId.toString()
+                      + serverQPm),
+              any(VideoServerMessageRequest.class));
       verify(videoServerClient, times(1))
           .sendAudioBridgeRequest(
               eq(
@@ -3018,6 +3048,7 @@ public class VideoServerServiceImplTest {
                       + serverQPm),
               any(VideoServerMessageRequest.class)))
           .thenReturn(audioBridgeResponse);
+      VideoRoomResponse videoRoomEditResponse = VideoRoomResponse.create().status("success");
       VideoRoomResponse videoRoomResponse = VideoRoomResponse.create().status("error");
       when(videoServerClient.sendVideoRoomRequest(
               eq(
@@ -3029,7 +3060,7 @@ public class VideoServerServiceImplTest {
                       + meeting1VideoHandleId.toString()
                       + serverQPm),
               any(VideoServerMessageRequest.class)))
-          .thenReturn(videoRoomResponse);
+          .thenReturn(videoRoomEditResponse, videoRoomResponse);
 
       String idMeeting = meeting1Id.toString();
       assertThrows(
@@ -3054,7 +3085,7 @@ public class VideoServerServiceImplTest {
                       + meeting1AudioHandleId.toString()
                       + serverQPm),
               any(VideoServerMessageRequest.class));
-      verify(videoServerClient, times(1))
+      verify(videoServerClient, times(2))
           .sendVideoRoomRequest(
               eq(
                   videoServerURL

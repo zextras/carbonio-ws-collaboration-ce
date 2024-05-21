@@ -15,6 +15,9 @@
       },
       "carbonio-videoserver/": {
         "policy": "read"
+      },
+      "carbonio-videorecorder/": {
+        "policy": "read"
       }
     }
   ],

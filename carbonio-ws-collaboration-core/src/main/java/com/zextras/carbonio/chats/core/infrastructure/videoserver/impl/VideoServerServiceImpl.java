@@ -30,6 +30,7 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.a
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeMuteRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomCreateRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomDestroyRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomEditRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomEnableRecordingRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomJoinRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomPublishRequest;
@@ -135,27 +136,18 @@ public class VideoServerServiceImpl implements VideoServerService {
 
     UUID chosenServer = healthyVideoservers.get(random.nextInt(healthyVideoservers.size()));
 
-    String filePath =
-        recordingPath
-            + REC_SUB_DIR
-            + "_"
-            + meetingId
-            + "/"
-            + OffsetDateTime.now(clock)
-                .format(DateTimeFormatter.ofPattern(DATE_TIME_DEFAULT_FORMAT));
-
     VideoServerResponse videoServerResponse = createNewConnection(chosenServer, meetingId);
     String connectionId = videoServerResponse.getDataId();
     videoServerResponse =
         attachToPlugin(chosenServer, connectionId, JANUS_AUDIOBRIDGE_PLUGIN, meetingId);
     String audioHandleId = videoServerResponse.getDataId();
     AudioBridgeResponse audioBridgeResponse =
-        createAudioBridgeRoom(chosenServer, meetingId, connectionId, audioHandleId, filePath);
+        createAudioBridgeRoom(chosenServer, meetingId, connectionId, audioHandleId);
     videoServerResponse =
         attachToPlugin(chosenServer, connectionId, JANUS_VIDEOROOM_PLUGIN, meetingId);
     String videoHandleId = videoServerResponse.getDataId();
     VideoRoomResponse videoRoomResponse =
-        createVideoRoom(chosenServer, meetingId, connectionId, videoHandleId, filePath);
+        createVideoRoom(chosenServer, meetingId, connectionId, videoHandleId);
 
     videoServerMeetingRepository.insert(
         chosenServer,
@@ -191,11 +183,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private AudioBridgeResponse createAudioBridgeRoom(
-      UUID serverId,
-      String meetingId,
-      String connectionId,
-      String audioHandleId,
-      String recordingPath) {
+      UUID serverId, String meetingId, String connectionId, String audioHandleId) {
     AudioBridgeResponse audioBridgeResponse =
         sendAudioBridgePluginMessage(
             serverId,
@@ -208,7 +196,6 @@ public class VideoServerServiceImpl implements VideoServerService {
                 .description(AudioBridgeCreateRequest.DESCRIPTION_DEFAULT + meetingId)
                 .isPrivate(false)
                 .record(false)
-                .mjrsDir(recordingPath)
                 .samplingRate(AudioBridgeCreateRequest.SAMPLING_RATE_DEFAULT)
                 .audioActivePackets(AudioBridgeCreateRequest.AUDIO_ACTIVE_PACKETS_DEFAULT)
                 .audioLevelAverage(AudioBridgeCreateRequest.AUDIO_LEVEL_AVERAGE_DEFAULT)
@@ -227,11 +214,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private VideoRoomResponse createVideoRoom(
-      UUID serverId,
-      String meetingId,
-      String connectionId,
-      String videoHandleId,
-      String recordingPath) {
+      UUID serverId, String meetingId, String connectionId, String videoHandleId) {
     VideoRoomResponse videoRoomResponse =
         sendVideoRoomPluginMessage(
             serverId,
@@ -244,7 +227,6 @@ public class VideoServerServiceImpl implements VideoServerService {
                 .description(VideoRoomCreateRequest.DESCRIPTION_DEFAULT + meetingId)
                 .isPrivate(false)
                 .record(false)
-                .recDir(recordingPath)
                 .publishers(VideoRoomCreateRequest.MAX_PUBLISHERS_DEFAULT)
                 .bitrate(VideoRoomCreateRequest.BITRATE_DEFAULT)
                 .bitrateCap(true)
@@ -537,7 +519,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       VideoServerSession videoServerSession,
       boolean enabled,
       String sdp) {
-    if (Boolean.TRUE.equals(videoServerSession.hasVideoOutStreamOn()) == enabled) {
+    if (videoServerSession.hasVideoOutStreamOn() == enabled) {
       ChatsLogger.debug(
           "Video stream status is already updated for session "
               + userId
@@ -550,7 +532,8 @@ public class VideoServerServiceImpl implements VideoServerService {
             userId,
             videoServerSession.getConnectionId(),
             videoServerSession.getVideoOutHandleId(),
-            sdp);
+            sdp,
+            MediaType.VIDEO.toString().toLowerCase());
       }
       videoServerSessionRepository.update(videoServerSession.videoOutStreamOn(enabled));
     }
@@ -563,7 +546,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       VideoServerSession videoServerSession,
       boolean enabled,
       String sdp) {
-    if (Boolean.TRUE.equals(videoServerSession.hasScreenStreamOn()) == enabled) {
+    if (videoServerSession.hasScreenStreamOn() == enabled) {
       ChatsLogger.debug(
           "Screen stream status is already updated for session "
               + userId
@@ -576,7 +559,8 @@ public class VideoServerServiceImpl implements VideoServerService {
             userId,
             videoServerSession.getConnectionId(),
             videoServerSession.getScreenHandleId(),
-            sdp);
+            sdp,
+            MediaType.SCREEN.toString().toLowerCase());
       }
       videoServerSessionRepository.update(videoServerSession.screenStreamOn(enabled));
     }
@@ -587,7 +571,8 @@ public class VideoServerServiceImpl implements VideoServerService {
       String userId,
       String connectionId,
       String videoHandleId,
-      String sessionDescriptionProtocol) {
+      String sessionDescriptionProtocol,
+      String mediaType) {
     VideoRoomResponse videoRoomResponse =
         sendVideoRoomPluginMessage(
             serverId,
@@ -596,7 +581,7 @@ public class VideoServerServiceImpl implements VideoServerService {
             VideoRoomPublishRequest.create()
                 .request(VideoRoomPublishRequest.PUBLISH)
                 .filename(
-                    VideoRoomPublishRequest.FILENAME_DEFAULT
+                    mediaType
                         + "_"
                         + userId
                         + "_"
@@ -614,7 +599,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   public void updateAudioStream(String userId, String meetingId, boolean enabled) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
-    if (Boolean.TRUE.equals(videoServerSession.hasAudioStreamOn()) == enabled) {
+    if (videoServerSession.hasAudioStreamOn() == enabled) {
       ChatsLogger.debug(
           "Audio stream status is already updated for user "
               + userId
@@ -919,14 +904,32 @@ public class VideoServerServiceImpl implements VideoServerService {
 
   @Override
   public void updateRecording(String meetingId, boolean enabled) {
+    String filePath =
+        recordingPath
+            + REC_SUB_DIR
+            + "_"
+            + meetingId
+            + "/"
+            + OffsetDateTime.now(clock)
+                .format(DateTimeFormatter.ofPattern(DATE_TIME_DEFAULT_FORMAT));
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
+    if (enabled) {
+      editVideoRoom(
+          UUID.fromString(videoServerMeeting.getServerId()),
+          videoServerMeeting.getConnectionId(),
+          videoServerMeeting.getVideoHandleId(),
+          videoServerMeeting.getVideoRoomId(),
+          filePath,
+          videoServerMeeting.getMeetingId());
+    }
     updateAudioBridgeRoomRecordingStatus(
         UUID.fromString(videoServerMeeting.getServerId()),
         videoServerMeeting.getConnectionId(),
         videoServerMeeting.getAudioHandleId(),
         videoServerMeeting.getAudioRoomId(),
         enabled,
-        videoServerMeeting.getMeetingId());
+        videoServerMeeting.getMeetingId(),
+        filePath);
     updateVideoRoomRecordingStatus(
         UUID.fromString(videoServerMeeting.getServerId()),
         videoServerMeeting.getConnectionId(),
@@ -942,7 +945,8 @@ public class VideoServerServiceImpl implements VideoServerService {
       String audioHandleId,
       String audioRoomId,
       boolean enabled,
-      String meetingId) {
+      String meetingId,
+      String recordingPath) {
     AudioBridgeResponse audioBridgeResponse =
         sendAudioBridgePluginMessage(
             serverId,
@@ -951,7 +955,8 @@ public class VideoServerServiceImpl implements VideoServerService {
             AudioBridgeEnableMjrsRequest.create()
                 .request(AudioBridgeEnableMjrsRequest.ENABLE_MJRS)
                 .room(audioRoomId)
-                .mjrs(enabled),
+                .mjrs(enabled)
+                .mjrsDir(recordingPath),
             null);
     if (!AudioBridgeResponse.SUCCESS.equals(audioBridgeResponse.getStatus())) {
       throw new VideoServerException(
@@ -959,6 +964,34 @@ public class VideoServerServiceImpl implements VideoServerService {
               + connectionId
               + " with plugin "
               + audioHandleId
+              + " for the meeting "
+              + meetingId);
+    }
+  }
+
+  private void editVideoRoom(
+      UUID serverId,
+      String connectionId,
+      String videoHandleId,
+      String videoRoomId,
+      String filePath,
+      String meetingId) {
+    VideoRoomResponse videoRoomResponse =
+        sendVideoRoomPluginMessage(
+            serverId,
+            connectionId,
+            videoHandleId,
+            VideoRoomEditRequest.create()
+                .request(VideoRoomEditRequest.EDIT)
+                .room(videoRoomId)
+                .newRecDir(filePath),
+            null);
+    if (!VideoRoomResponse.SUCCESS.equals(videoRoomResponse.getStatus())) {
+      throw new VideoServerException(
+          "An error occurred when setting rec dir on videoroom room for the connection "
+              + connectionId
+              + " with plugin "
+              + videoHandleId
               + " for the meeting "
               + meetingId);
     }

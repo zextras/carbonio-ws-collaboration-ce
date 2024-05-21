@@ -97,7 +97,7 @@ public class ConsulAppConfig extends AppConfig {
         ConfigName.TOPOLOGY_RECOVERY_ENABLED,
         "carbonio-ws-collaboration/broker/topology-recovery-enabled");
     namesMapping.put(ConfigName.VIDEO_SERVER_TOKEN, "carbonio-videoserver/api-secret");
-    namesMapping.put(ConfigName.VIDEO_RECORDINGS_PATH, "carbonio-videorecorder/recording-path");
+    namesMapping.put(ConfigName.VIDEO_RECORDINGS_PATH, "carbonio-videorecorder/recordings-path");
   }
 
   private boolean loaded = false;

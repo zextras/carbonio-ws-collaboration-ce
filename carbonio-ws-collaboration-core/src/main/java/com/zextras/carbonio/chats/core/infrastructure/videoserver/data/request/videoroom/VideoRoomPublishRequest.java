@@ -20,8 +20,6 @@ public class VideoRoomPublishRequest extends VideoRoomRequest {
 
   public static final String PUBLISH = "publish";
 
-  public static final String FILENAME_DEFAULT = "video";
-
   private String request;
   private String filename;
 

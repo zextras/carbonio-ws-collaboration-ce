@@ -25,6 +25,7 @@ public class AudioBridgeEnableMjrsRequest extends AudioBridgeRequest {
   private String request;
   private String room;
   private Boolean mjrs;
+  private String mjrsDir;
 
   public static AudioBridgeEnableMjrsRequest create() {
     return new AudioBridgeEnableMjrsRequest();
@@ -57,17 +58,27 @@ public class AudioBridgeEnableMjrsRequest extends AudioBridgeRequest {
     return this;
   }
 
+  public String getMjrsDir() {
+    return mjrsDir;
+  }
+
+  public AudioBridgeEnableMjrsRequest mjrsDir(String mjrsDir) {
+    this.mjrsDir = mjrsDir;
+    return this;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (!(o instanceof AudioBridgeEnableMjrsRequest that)) return false;
     return Objects.equals(getRequest(), that.getRequest())
         && Objects.equals(getRoom(), that.getRoom())
-        && Objects.equals(getMjrs(), that.getMjrs());
+        && Objects.equals(getMjrs(), that.getMjrs())
+        && Objects.equals(getMjrsDir(), that.getMjrsDir());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getRequest(), getRoom(), getMjrs());
+    return Objects.hash(getRequest(), getRoom(), getMjrs(), getMjrsDir());
   }
 }
