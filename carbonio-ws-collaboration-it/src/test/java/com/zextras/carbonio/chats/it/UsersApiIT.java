@@ -48,6 +48,8 @@ import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 @ApiIntegrationTest
 public class UsersApiIT {
@@ -327,6 +329,7 @@ public class UsersApiIT {
     void updateUserPicture_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
+      UUID accountId = account.getUUID();
       clock.fixTimeAt(Instant.parse("2022-01-01T00:00:00Z"));
       storageMockServer.mockUpload(
           fileMock,
@@ -335,21 +338,27 @@ public class UsersApiIT {
               .digestAlgorithm("")
               .size(fileMock.getSize()),
           true);
+      byte[] fileBytes = fileMock.getFileBytes();
 
-      MockHttpResponse response =
-          dispatcher.put(
-              url(account.getUUID()),
-              fileMock.getFileBytes(),
-              Map.of(
-                  "Content-Type",
-                  "application/octet-stream",
-                  "fileName",
-                  "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067",
-                  "mimeType",
-                  fileMock.getMimeType(),
-                  "Content-Length",
-                  String.valueOf(fileMock.getSize())),
-              account.getToken());
+      MockHttpResponse response;
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
+        uuid.when(() -> UUID.fromString(account.getId())).thenReturn(accountId);
+        response =
+            dispatcher.put(
+                url(account.getUUID()),
+                fileBytes,
+                Map.of(
+                    "Content-Type",
+                    "application/octet-stream",
+                    "fileName",
+                    "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067",
+                    "mimeType",
+                    fileMock.getMimeType(),
+                    "Content-Length",
+                    String.valueOf(fileMock.getSize())),
+                account.getToken());
+      }
       clock.fixTimeAt(null);
 
       assertEquals(204, response.getStatus());
@@ -385,7 +394,7 @@ public class UsersApiIT {
                   fileMock.getMimeType(),
                   "Content-Length",
                   String.valueOf(fileMock.getSize())),
-                null);
+              null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }

@@ -61,7 +61,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Singleton
 public class RoomServiceImpl implements RoomService {
@@ -165,7 +164,7 @@ public class RoomServiceImpl implements RoomService {
     }
     UUID finalId = UUID.fromString(room.getId());
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         RoomCreated.create().roomId(finalId));
     return roomMapper.ent2dto(
         room,
@@ -216,7 +215,7 @@ public class RoomServiceImpl implements RoomService {
         .filter(memberId -> !userService.userExists(memberId, currentUser))
         .findFirst()
         .ifPresent(
-            (uuid) -> {
+            uuid -> {
               throw new NotFoundException(
                   String.format("User with identifier '%s' not found", uuid));
             });
@@ -245,9 +244,7 @@ public class RoomServiceImpl implements RoomService {
     if (changed) {
       roomRepository.update(room);
       eventDispatcher.sendToUserExchange(
-          room.getSubscriptions().stream()
-              .map(Subscription::getUserId)
-              .collect(Collectors.toList()),
+          room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
           RoomUpdated.create()
               .roomId(roomId)
               .name(room.getName())
@@ -280,7 +277,7 @@ public class RoomServiceImpl implements RoomService {
     roomRepository.delete(roomId.toString());
     messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId());
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         RoomDeleted.create().roomId(roomId));
   }
 
@@ -334,7 +331,7 @@ public class RoomServiceImpl implements RoomService {
   public List<UUID> getRoomsIds(UserPrincipal currentUser) {
     return roomRepository.getIdsByUserId(currentUser.getId()).stream()
         .map(UUID::fromString)
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Override
@@ -376,18 +373,22 @@ public class RoomServiceImpl implements RoomService {
     getRoomEntityAndCheckUser(roomId, currentUser, false);
     FileMetadata metadata =
         fileMetadataRepository
-            .getById(roomId.toString())
+            .find(null, roomId.toString(), FileMetadataType.ROOM_AVATAR)
             .orElseThrow(
                 () -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
     return new FileContentAndMetadata(
-      storagesService.getFileById(metadata.getId(), metadata.getUserId()),
-      metadata);
+        storagesService.getFileById(metadata.getId(), metadata.getUserId()), metadata);
   }
 
   @Override
   @Transactional
   public void setRoomPicture(
-      UUID roomId, InputStream image, String mimeType, Long contentLength, String fileName, UserPrincipal currentUser) {
+      UUID roomId,
+      InputStream image,
+      String mimeType,
+      Long contentLength,
+      String fileName,
+      UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (!RoomTypeDto.GROUP.equals(room.getType())) {
       throw new BadRequestException("The room picture can only be set to group type rooms");
@@ -404,35 +405,33 @@ public class RoomServiceImpl implements RoomService {
     if (!mimeType.startsWith("image/")) {
       throw new BadRequestException("The room picture must be an image");
     }
-    Optional<FileMetadata> oldMetadata = fileMetadataRepository.getById(roomId.toString());
-    Optional<String> oldUser = oldMetadata.map(FileMetadata::getUserId);
+    Optional<FileMetadata> oldMetadata =
+        fileMetadataRepository.find(null, roomId.toString(), FileMetadataType.ROOM_AVATAR);
+    room.pictureUpdatedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone()));
     FileMetadata metadata =
-        oldMetadata
-            .orElseGet(
-                () ->
-                    FileMetadata.create()
-                        .id(roomId.toString())
-                        .type(FileMetadataType.ROOM_AVATAR)
-                        .roomId(roomId.toString()))
+        FileMetadata.create()
+            .id(UUID.randomUUID().toString())
+            .type(FileMetadataType.ROOM_AVATAR)
+            .roomId(roomId.toString())
             .name(fileName)
             .originalSize(contentLength)
             .mimeType(mimeType)
             .userId(currentUser.getId());
-    room.pictureUpdatedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone()));
-    fileMetadataRepository.save(metadata);
     roomRepository.update(room);
-    if (oldUser.isPresent()) {
+    if (oldMetadata.isPresent()) {
+      fileMetadataRepository.delete(oldMetadata.get());
       try {
-        storagesService.deleteFile(metadata.getId(), oldUser.get());
+        storagesService.deleteFile(oldMetadata.get().getId(), oldMetadata.get().getUserId());
       } catch (Exception e) {
         ChatsLogger.warn("Could not delete older group profile picture: " + e.getMessage());
       }
     }
+    fileMetadataRepository.save(metadata);
     storagesService.saveFile(image, metadata, currentUser.getId());
     messageDispatcher.updateRoomPicture(
         room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         RoomPictureChanged.create()
             .roomId(UUID.fromString(room.getId()))
             .updatedAt(room.getPictureUpdatedAt()));
@@ -444,7 +443,7 @@ public class RoomServiceImpl implements RoomService {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     FileMetadata metadata =
         fileMetadataRepository
-            .getById(roomId.toString())
+            .find(null, roomId.toString(), FileMetadataType.ROOM_AVATAR)
             .orElseThrow(
                 () -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
     fileMetadataRepository.delete(metadata);
@@ -452,7 +451,7 @@ public class RoomServiceImpl implements RoomService {
     storagesService.deleteFile(metadata.getId(), metadata.getUserId());
     messageDispatcher.deleteRoomPicture(room.getId(), currentUser.getId());
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         RoomPictureDeleted.create().roomId(UUID.fromString(room.getId())));
   }
 

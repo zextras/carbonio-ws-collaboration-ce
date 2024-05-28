@@ -10,7 +10,9 @@ import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import io.ebean.Database;
 import io.ebean.ExpressionList;
+import io.ebean.Query;
 import io.ebean.annotation.Transactional;
+import io.vavr.control.Option;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -31,6 +33,15 @@ public class EbeanFileMetadataRepository implements FileMetadataRepository {
   @Override
   public Optional<FileMetadata> getById(String fileId) {
     return db.find(FileMetadata.class).where().eq("id", fileId).findOneOrEmpty();
+  }
+
+  @Override
+  public Optional<FileMetadata> find(String userId, String roomId, FileMetadataType type) {
+    Query<FileMetadata> query = db.find(FileMetadata.class);
+    Option.of(userId).map(p -> query.where().eq("userId", p));
+    Option.of(roomId).map(p -> query.where().eq("roomId", p));
+    Option.of(type).map(p -> query.where().eq("type", p));
+    return query.findOneOrEmpty();
   }
 
   @Override
@@ -60,7 +71,13 @@ public class EbeanFileMetadataRepository implements FileMetadataRepository {
           .eq("createdAt", paginationFilter.getCreatedAt())
           .lt("id", paginationFilter.getId());
     }
-    return query.order().desc("createdAt").order().desc("id").setMaxRows(itemsNumber).findList();
+    return query
+        .orderBy()
+        .desc("createdAt")
+        .orderBy()
+        .desc("id")
+        .setMaxRows(itemsNumber)
+        .findList();
   }
 
   @Override
