@@ -4,7 +4,6 @@
 
 package com.zextras.carbonio.chats.it.utils;
 
-import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,12 +12,6 @@ import java.util.Objects;
 import java.util.UUID;
 
 public class MockedFiles {
-
-  private static final UUID snoopyId = MockedAccount.getAccount(MockedAccountType.SNOOPY).getUUID();
-  private static final UUID charlieBrownId =
-      MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN).getUUID();
-  private static final UUID lucyVanPeltId =
-      MockedAccount.getAccount(MockedAccountType.LUCY_VAN_PELT).getUUID();
 
   private static final Map<MockedFileType, FileMock> mapMockedFile =
       Map.of(
@@ -41,16 +34,20 @@ public class MockedFiles {
               .mimeType("application/pdf")
               .name("peanuts.pdf"),
           MockedFileType.SNOOPY_IMAGE,
-          FileMock.create().id(snoopyId).size(13705).mimeType("image/jpg").name("snoopy.jpg"),
+          FileMock.create()
+              .id(UUID.randomUUID())
+              .size(13705)
+              .mimeType("image/jpg")
+              .name("snoopy.jpg"),
           MockedFileType.CHARLIE_BROWN_LARGE_IMAGE,
           FileMock.create()
-              .id(charlieBrownId)
+              .id(UUID.randomUUID())
               .size(1920054L)
               .mimeType("image/bmp")
               .name("charlie-brown.bmp"),
           MockedFileType.LUCY_VAN_PELT_PDF,
           FileMock.create()
-              .id(lucyVanPeltId)
+              .id(UUID.randomUUID())
               .size(143845L)
               .mimeType("application/pdf")
               .name("lucy-van-pelt.pdf"),
@@ -77,7 +74,7 @@ public class MockedFiles {
       Map.of(
           MockedFileType.SNOOPY_PREVIEW,
           FileMock.create()
-              .id(snoopyId)
+              .id(UUID.randomUUID())
               .size(4408)
               .mimeType("image/jpg")
               .name("snoopy-preview.jpg"));

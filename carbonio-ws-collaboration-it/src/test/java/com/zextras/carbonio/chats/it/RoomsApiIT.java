@@ -1812,17 +1812,19 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Given a room identifier and a picture file, correctly updates the room pictures")
     void updateRoomPicture_testOk() throws Exception {
-      FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
-      UUID roomId = UUID.fromString(fileMock.getId());
+      FileMock existingImage = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
+      FileMock newImage = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+      UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
-          roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
-      storageMockServer.mockUpload(
-          fileMock,
-          new StorageMockServer.UploadResponse()
-              .digest("")
-              .digestAlgorithm("")
-              .size(fileMock.getSize()),
-          true);
+          roomId,
+          RoomTypeDto.GROUP,
+          "room1",
+          List.of(user1Id, user2Id, user3Id),
+          List.of(user1Id),
+          null,
+          OffsetDateTime.parse("2022-01-01T13:00:00Z"));
+      integrationTestUtils.generateAndSaveFileMetadata(
+          existingImage, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
       String hoped =
           String.format(
                   "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
@@ -1830,31 +1832,46 @@ public class RoomsApiIT {
                   user1Id, roomId)
               + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
               + "<operation>roomPictureUpdated</operation>"
-              + String.format("<picture-id>%s</picture-id>", roomId)
+              + String.format("<picture-id>%s</picture-id>", newImage.getId())
               + "<picture-name"
               + " encoded='UTF-8'>\\\\u0073\\\\u006e\\\\u006f\\\\u006f\\\\u0070\\\\u0079\\\\u002e\\\\u006a\\\\u0070\\\\u0067</picture-name>"
               + "</x><body/></message>";
       mongooseImMockServer.mockSendStanza(hoped, true);
+      storageMockServer.mockDelete(existingImage.getId(), true);
+      storageMockServer.mockUpload(
+          newImage,
+          new StorageMockServer.UploadResponse()
+              .digest("")
+              .digestAlgorithm("")
+              .size(newImage.getSize()),
+          true);
       Instant now = Instant.now();
       clock.fixTimeAt(now);
-      MockHttpResponse response =
-          dispatcher.put(
-              url(roomId),
-              fileMock.getFileBytes(),
-              Map.of(
-                  "Content-Type",
-                  "application/octet-stream",
-                  "fileName",
-                  "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067",
-                  "mimeType",
-                  fileMock.getMimeType(),
-                  "Content-Length",
-                  String.valueOf(fileMock.getSize())),
-              user1Token);
+      MockHttpResponse response;
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(newImage.getUUID());
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        response =
+            dispatcher.put(
+                url(roomId),
+                newImage.getFileBytes(),
+                Map.of(
+                    "Content-Type",
+                    "application/octet-stream",
+                    "fileName",
+                    "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067",
+                    "mimeType",
+                    newImage.getMimeType(),
+                    "Content-Length",
+                    String.valueOf(newImage.getSize())),
+                user1Token);
+      }
       mongooseImMockServer.verify(mongooseImMockServer.getSendStanzaRequest(hoped));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       // TODO: 01/03/22 verify event dispatcher iterations
-      storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
+      storageMockServer.verify("DELETE", "/delete", existingImage.getId(), 1);
+      storageMockServer.verify("PUT", "/upload", newImage.getId(), 1);
       Optional<Room> room = roomRepository.getById(roomId.toString());
       assertTrue(room.isPresent());
       assertEquals(
@@ -3731,14 +3748,20 @@ public class RoomsApiIT {
                 url(roomId),
                 fileMock.getFileBytes(),
                 Map.of(
-                    "Content-Type", "application/octet-stream",
+                    "Content-Type",
+                    "application/octet-stream",
                     "fileName",
-                        "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
-                    "mimeType", fileMock.getMimeType(),
-                        "Content-Length", String.valueOf(fileMock.getSize()),
-                    "description", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073",
-                    "messageId", "the-xmpp-message-id",
-                    "replyId", "message-id-to-reply"),
+                    "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
+                    "mimeType",
+                    fileMock.getMimeType(),
+                    "Content-Length",
+                    String.valueOf(fileMock.getSize()),
+                    "description",
+                    "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073",
+                    "messageId",
+                    "the-xmpp-message-id",
+                    "replyId",
+                    "message-id-to-reply"),
                 user1Token);
       }
 
@@ -3798,13 +3821,18 @@ public class RoomsApiIT {
                 url(roomId),
                 fileMock.getFileBytes(),
                 Map.of(
-                    "Content-Type", "application/octet-stream",
+                    "Content-Type",
+                    "application/octet-stream",
                     "fileName",
-                        "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
-                    "mimeType", fileMock.getMimeType(),
-                        "Content-Length", String.valueOf(fileMock.getSize()),
-                    "messageId", "the-xmpp-message-id",
-                    "area", "15x20"),
+                    "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
+                    "mimeType",
+                    fileMock.getMimeType(),
+                    "Content-Length",
+                    String.valueOf(fileMock.getSize()),
+                    "messageId",
+                    "the-xmpp-message-id",
+                    "area",
+                    "15x20"),
                 user1Token);
       }
 

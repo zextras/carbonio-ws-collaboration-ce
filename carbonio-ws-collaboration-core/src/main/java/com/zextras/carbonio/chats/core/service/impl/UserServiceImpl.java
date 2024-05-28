@@ -34,7 +34,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Singleton
 public class UserServiceImpl implements UserService {
@@ -115,7 +114,7 @@ public class UserServiceImpl implements UserService {
                       });
               return userDto;
             })
-        .collect(Collectors.toList());
+        .toList();
   }
 
   @Override
@@ -127,18 +126,22 @@ public class UserServiceImpl implements UserService {
   public FileContentAndMetadata getUserPicture(UUID userId, UserPrincipal currentUser) {
     FileMetadata metadata =
         fileMetadataRepository
-            .getById(userId.toString())
+            .find(userId.toString(), null, FileMetadataType.USER_AVATAR)
             .orElseThrow(
                 () -> new NotFoundException(String.format("File with id '%s' not found", userId)));
     return new FileContentAndMetadata(
-      storagesService.getFileById(metadata.getId(), metadata.getUserId()),
-      metadata);
+        storagesService.getFileById(metadata.getId(), metadata.getUserId()), metadata);
   }
 
   @Override
   @Transactional
   public void setUserPicture(
-      UUID userId, InputStream image, String mimeType, Long contentLength, String fileName, UserPrincipal currentUser) {
+      UUID userId,
+      InputStream image,
+      String mimeType,
+      Long contentLength,
+      String fileName,
+      UserPrincipal currentUser) {
     if (!currentUser.getUUID().equals(userId)) {
       throw new ForbiddenException("The picture can be change only from its owner");
     }
@@ -153,12 +156,12 @@ public class UserServiceImpl implements UserService {
     if (!mimeType.startsWith("image/")) {
       throw new BadRequestException("The user picture must be an image");
     }
-    Optional<FileMetadata> oldMetadata = fileMetadataRepository.getById(userId.toString());
+    Optional<FileMetadata> oldMetadata =
+        fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR);
     FileMetadata metadata =
         oldMetadata
-            .orElseGet(
-                () ->
-                    FileMetadata.create().id(userId.toString()).type(FileMetadataType.USER_AVATAR))
+            .orElseGet(() -> FileMetadata.create().id(UUID.randomUUID().toString()))
+            .type(FileMetadataType.USER_AVATAR)
             .name(fileName)
             .originalSize(contentLength)
             .mimeType(mimeType)
@@ -187,7 +190,7 @@ public class UserServiceImpl implements UserService {
     }
     FileMetadata metadata =
         fileMetadataRepository
-            .getById(userId.toString())
+            .find(userId.toString(), null, FileMetadataType.USER_AVATAR)
             .orElseThrow(
                 () -> new NotFoundException(String.format("File with id '%s' not found", userId)));
     fileMetadataRepository.delete(metadata);
