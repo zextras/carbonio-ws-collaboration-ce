@@ -16,7 +16,6 @@ import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import java.io.InputStream;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Singleton
 public class StoragesServicePowerstoreImpl implements StoragesService {
@@ -41,9 +40,7 @@ public class StoragesServicePowerstoreImpl implements StoragesService {
   public void saveFile(InputStream file, FileMetadata metadata, String currentUserId) {
     try {
       powerstoreClient.uploadPut(
-          ChatsIdentifier.of(metadata.getId(), currentUserId),
-          file,
-          metadata.getOriginalSize());
+          ChatsIdentifier.of(metadata.getId(), currentUserId), file, metadata.getOriginalSize());
     } catch (Exception e) {
       throw new StorageException("An error occurred while uploading the file", e);
     }
@@ -63,10 +60,9 @@ public class StoragesServicePowerstoreImpl implements StoragesService {
   }
 
   @Override
-  public String deleteFile(String fileId, String ownerId) {
+  public void deleteFile(String fileId, String ownerId) {
     try {
       powerstoreClient.delete(ChatsIdentifier.of(fileId, ownerId));
-      return fileId;
     } catch (Exception e) {
       throw new StorageException("An error occurred while deleting the file", e);
     }
@@ -75,18 +71,16 @@ public class StoragesServicePowerstoreImpl implements StoragesService {
   @Override
   public List<String> deleteFileList(List<String> fileIds, String currentUserId) {
     try {
-      return fileIds.size() == 0
+      return fileIds.isEmpty()
           ? List.of()
           : powerstoreClient
               .bulkDelete(
                   IdentifierType.chats,
                   currentUserId,
-                  fileIds.stream()
-                      .map(BulkDeleteRequestItem::chatsItem)
-                      .collect(Collectors.toList()))
+                  fileIds.stream().map(BulkDeleteRequestItem::chatsItem).toList())
               .stream()
               .map(BulkDeleteResponseItem::getNode)
-              .collect(Collectors.toList());
+              .toList();
     } catch (Exception e) {
       throw new StorageException("An error occurred while deleting files list", e);
     }

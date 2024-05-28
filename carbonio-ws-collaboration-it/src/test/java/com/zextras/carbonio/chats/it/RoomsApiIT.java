@@ -2674,10 +2674,19 @@ public class RoomsApiIT {
     @Test
     @DisplayName("Given a room identifier and a picture file, correctly updates the room pictures")
     void updateRoomPicture_testOk() throws Exception {
-      FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
-      UUID roomId = UUID.fromString(fileMock.getId());
+      FileMock existingImage = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
+      FileMock newImage = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
+      UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
-          roomId, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+          roomId,
+          RoomTypeDto.GROUP,
+          "room1",
+          List.of(user1Id, user2Id, user3Id),
+          List.of(user1Id),
+          null,
+          OffsetDateTime.parse("2022-01-01T13:00:00Z"));
+      integrationTestUtils.generateAndSaveFileMetadata(
+          existingImage, FileMetadataType.ROOM_AVATAR, user1Id, roomId);
       String hoped =
           String.format(
                   "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
@@ -2685,30 +2694,37 @@ public class RoomsApiIT {
                   user1Id, roomId)
               + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
               + "<operation>roomPictureUpdated</operation>"
-              + String.format("<picture-id>%s</picture-id>", roomId)
+              + String.format("<picture-id>%s</picture-id>", newImage.getId())
               + "<picture-name"
               + " encoded='UTF-8'>\\\\u0073\\\\u006e\\\\u006f\\\\u006f\\\\u0070\\\\u0079\\\\u002e\\\\u006a\\\\u0070\\\\u0067</picture-name>"
               + "</x><body/></message>";
       mongooseImMockServer.mockSendStanza(hoped, true);
       storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
-      storageMockServer.mockUploadPut(fileMock.getId(), user1Id.toString(), true);
+      storageMockServer.mockDelete(existingImage.getId(), user1Id.toString(), true);
+      storageMockServer.mockUploadPut(newImage.getId(), user1Id.toString(), true);
 
       Instant now = Instant.now();
       clock.fixTimeAt(now);
-      MockHttpResponse response =
-          dispatcher.put(
-              url(roomId),
-              fileMock.getFileBytes(),
-              Map.of(
-                  "Content-Type",
-                  "application/octet-stream",
-                  "fileName",
-                  "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067",
-                  "mimeType",
-                  fileMock.getMimeType(),
-                  "Content-Length",
-                  String.valueOf(fileMock.getSize())),
-              user1Token);
+      MockHttpResponse response;
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(newImage.getUUID());
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        response =
+            dispatcher.put(
+                url(roomId),
+                newImage.getFileBytes(),
+                Map.of(
+                    "Content-Type",
+                    "application/octet-stream",
+                    "fileName",
+                    "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067",
+                    "mimeType",
+                    newImage.getMimeType(),
+                    "Content-Length",
+                    String.valueOf(newImage.getSize())),
+                user1Token);
+      }
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
       Optional<Room> room = roomRepository.getById(roomId.toString());
@@ -2721,9 +2737,12 @@ public class RoomsApiIT {
       mongooseImMockServer.verify(mongooseImMockServer.getSendStanzaRequest(hoped));
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
+          VerificationTimes.exactly(2));
+      storageMockServer.verify(
+          storageMockServer.getDeleteRequest(existingImage.getId(), user1Id.toString()),
           VerificationTimes.exactly(1));
       storageMockServer.verify(
-          storageMockServer.getUploadPutRequest(fileMock.getId(), user1Id.toString()),
+          storageMockServer.getUploadPutRequest(newImage.getId(), user1Id.toString()),
           VerificationTimes.exactly(1));
 
       // TODO: 01/03/22 verify event dispatcher iterations
@@ -2820,7 +2839,8 @@ public class RoomsApiIT {
                   "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
                   "mimeType",
                   fileMock.getMimeType(),
-                  "Content-Length", String.valueOf(fileMock.getSize())),
+                  "Content-Length",
+                  String.valueOf(fileMock.getSize())),
               user3Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -5076,7 +5096,8 @@ public class RoomsApiIT {
                   "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
                   "mimeType",
                   fileMock.getMimeType(),
-                  "Content-Length", String.valueOf(fileMock.getSize())),
+                  "Content-Length",
+                  String.valueOf(fileMock.getSize())),
               null);
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);

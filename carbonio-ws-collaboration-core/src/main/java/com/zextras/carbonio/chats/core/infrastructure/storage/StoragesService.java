@@ -14,7 +14,7 @@ public interface StoragesService extends HealthIndicator {
   /**
    * Retrieves the file stream associated to the identifier
    *
-   * @param fileId  file identifier
+   * @param fileId file identifier
    * @param ownerId identifier of the owner of the file
    * @return Stream of Required file {@link InputStream}
    */
@@ -23,8 +23,8 @@ public interface StoragesService extends HealthIndicator {
   /**
    * Saves a file on the repository
    *
-   * @param file          file to save
-   * @param metadata      file metadata {@link FileMetadata}
+   * @param file file to save
+   * @param metadata file metadata {@link FileMetadata}
    * @param currentUserId identifier of the current user
    */
   void saveFile(InputStream file, FileMetadata metadata, String currentUserId);
@@ -32,26 +32,26 @@ public interface StoragesService extends HealthIndicator {
   /**
    * Copies a file
    *
-   * @param sourceId           identifier of the source file
-   * @param sourceOwnerId      identifier of the source file owner
-   * @param destinationId      identifier of the destination file
+   * @param sourceId identifier of the source file
+   * @param sourceOwnerId identifier of the source file owner
+   * @param destinationId identifier of the destination file
    * @param destinationOwnerId identifier of the destination file owner
    */
-  void copyFile(String sourceId, String sourceOwnerId, String destinationId, String destinationOwnerId);
+  void copyFile(
+      String sourceId, String sourceOwnerId, String destinationId, String destinationOwnerId);
 
   /**
    * Deletes a file from the repository
    *
-   * @param fileId  file identifier
+   * @param fileId file identifier
    * @param ownerId identifier of the owner of the file
-   * @return deleted file identifier
    */
-  String deleteFile(String fileId, String ownerId);
+  void deleteFile(String fileId, String ownerId);
 
   /**
    * Deletes file list by their identifiers
    *
-   * @param fileIds       identifiers list of files to delete
+   * @param fileIds identifiers list of files to delete
    * @param currentUserId identifier of the current user
    * @return identifiers list of files deleted
    */

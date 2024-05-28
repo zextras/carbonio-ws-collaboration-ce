@@ -58,6 +58,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 @UnitTest
 class UserServiceImplTest {
@@ -105,7 +106,7 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("Returns the user with every info")
-    public void getUserById_testOk() {
+    void getUserById_testOk() {
       UUID requestedUserId = UUID.randomUUID();
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId);
       when(userRepository.getById(requestedUserId.toString()))
@@ -135,7 +136,7 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("Returns the user with the profiling info if it's not found in out db")
-    public void getUserById_testDbNotFound() {
+    void getUserById_testDbNotFound() {
       UUID requestedUserId = UUID.randomUUID();
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId);
       when(userRepository.getById(requestedUserId.toString())).thenReturn(Optional.empty());
@@ -159,7 +160,7 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("Throws NotFoundException if the user was not found using the profiling service")
-    public void getUserById_testProfilingNotFound() {
+    void getUserById_testProfilingNotFound() {
       UUID requestedUserId = UUID.randomUUID();
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId);
       when(userRepository.getById(requestedUserId.toString())).thenReturn(Optional.empty());
@@ -178,7 +179,7 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("Returns all the users with every info")
-    public void getUsersByIds_testOk() {
+    void getUsersByIds_testOk() {
       UUID requestedUserId1 = UUID.randomUUID();
       UUID requestedUserId2 = UUID.randomUUID();
       UUID requestedUserId3 = UUID.randomUUID();
@@ -246,7 +247,7 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("Don't returns duplicates")
-    public void getUsersByIds_testNoDuplicates() {
+    void getUsersByIds_testNoDuplicates() {
       UUID requestedUserId1 = UUID.randomUUID();
       List<String> requestedUserIds =
           Arrays.asList(requestedUserId1.toString(), requestedUserId1.toString());
@@ -276,7 +277,7 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("Returns empty list")
-    public void getUsersByIds_testEmptyList() {
+    void getUsersByIds_testEmptyList() {
       UserPrincipal currentPrincipal = UserPrincipal.create(UUID.randomUUID());
       when(userRepository.getByIds(Collections.emptyList())).thenReturn(Collections.emptyList());
       when(profilingService.getByIds(currentPrincipal, Collections.emptyList()))
@@ -287,7 +288,7 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("Returns the user with the profiling info if it's not found in out db")
-    public void getUsersByIds_testDbNotFound() {
+    void getUsersByIds_testDbNotFound() {
       UUID requestedUserId = UUID.randomUUID();
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId);
       when(userRepository.getByIds(Collections.singletonList(requestedUserId.toString())))
@@ -315,7 +316,7 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("Return an empty list if the user was not found using the profiling service")
-    public void getUserById_testProfilingNotFound() {
+    void getUserById_testProfilingNotFound() {
       UUID requestedUserId = UUID.randomUUID();
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId);
       when(userRepository.getByIds(Collections.singletonList(requestedUserId.toString())))
@@ -338,7 +339,7 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("Returns true if the user exists in the profiler")
-    public void userExists_testOk() {
+    void userExists_testOk() {
       UUID requestedUserId = UUID.randomUUID();
       UserPrincipal currentPrincipal = UserPrincipal.create(UUID.randomUUID());
       when(profilingService.getById(currentPrincipal, requestedUserId))
@@ -348,7 +349,7 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("Returns true if the user exists in the profiler")
-    public void userExists_testUserDoesNotExist() {
+    void userExists_testUserDoesNotExist() {
       UUID requestedUserId = UUID.randomUUID();
       UserPrincipal currentPrincipal = UserPrincipal.create(UUID.randomUUID());
       when(profilingService.getById(currentPrincipal, requestedUserId))
@@ -374,16 +375,19 @@ class UserServiceImplTest {
               .id(userId.toString())
               .name("pfp")
               .originalSize(123L);
-      when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.of(pfpMetadata));
+      when(fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR))
+          .thenReturn(Optional.of(pfpMetadata));
       InputStream fileStream = mock(InputStream.class);
-      when(storagesService.getFileStreamById(userId.toString(), userId.toString())).thenReturn(fileStream);
+      when(storagesService.getFileStreamById(userId.toString(), userId.toString()))
+          .thenReturn(fileStream);
 
       FileContentAndMetadata picture =
           userService.getUserPicture(userId, UserPrincipal.create(userId));
 
       assertEquals(fileStream, picture.getFileStream());
       assertEquals(pfpMetadata.getId(), picture.getMetadata().getId());
-      verify(fileMetadataRepository, times(1)).getById(userId.toString());
+      verify(fileMetadataRepository, times(1))
+          .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
       verify(storagesService, times(1)).getFileStreamById(userId.toString(), userId.toString());
     }
 
@@ -413,7 +417,8 @@ class UserServiceImplTest {
     @DisplayName("It sets the user picture if it didn't exists")
     void setUserPicture_testOkInsert() {
       UUID userId = UUID.randomUUID();
-      when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.empty());
+      when(fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR))
+          .thenReturn(Optional.empty());
       InputStream fileStream = mock(InputStream.class);
       List<String> contactsIds = List.of("a", "b", "c");
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contactsIds);
@@ -430,18 +435,17 @@ class UserServiceImplTest {
       userService.setUserPicture(
           userId, fileStream, "image/jpeg", 123L, "picture", UserPrincipal.create(userId));
 
-      FileMetadata expectedMetadata =
-          FileMetadataBuilder.create()
-              .id(userId.toString())
-              .mimeType("image/jpeg")
-              .type(FileMetadataType.USER_AVATAR)
-              .name("picture")
-              .originalSize(123L)
-              .userId(userId.toString())
-              .build();
       verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB);
-      verify(fileMetadataRepository, times(1)).getById(userId.toString());
-      verify(fileMetadataRepository, times(1)).save(expectedMetadata);
+      verify(fileMetadataRepository, times(1))
+          .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
+      ArgumentCaptor<FileMetadata> fileMetadataCaptor = ArgumentCaptor.forClass(FileMetadata.class);
+      verify(fileMetadataRepository, times(1)).save(fileMetadataCaptor.capture());
+      FileMetadata fileMetadata = fileMetadataCaptor.getValue();
+      assertEquals("image/jpeg", fileMetadata.getMimeType());
+      assertEquals(FileMetadataType.USER_AVATAR, fileMetadata.getType());
+      assertEquals("picture", fileMetadata.getName());
+      assertEquals(123L, fileMetadata.getOriginalSize());
+      assertEquals(userId.toString(), fileMetadata.getUserId());
       verify(userRepository, times(1)).getById(userId.toString());
       verify(userRepository, times(1))
           .save(
@@ -451,13 +455,13 @@ class UserServiceImplTest {
       verify(clock, times(1)).instant();
       verify(clock, times(1)).getZone();
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
-      verify(storagesService, times(1)).saveFile(fileStream, expectedMetadata, userId.toString());
+      verify(storagesService, times(1)).saveFile(fileStream, fileMetadata, userId.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               contactsIds,
               UserPictureChanged.create()
                   .userId(userId)
-                  .imageId(UUID.fromString(expectedMetadata.getId()))
+                  .imageId(UUID.fromString(fileMetadata.getId()))
                   .updatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
       verifyNoMoreInteractions(
           fileMetadataRepository,
@@ -474,13 +478,13 @@ class UserServiceImplTest {
     @DisplayName("It update the user picture if it already exists")
     void setUserPicture_testOkUpdate() {
       UUID userId = UUID.randomUUID();
-      when(fileMetadataRepository.getById(userId.toString()))
-          .thenReturn(
-              Optional.of(
-                  FileMetadata.create()
-                      .id(userId.toString())
-                      .type(FileMetadataType.USER_AVATAR)
-                      .userId(userId.toString())));
+      FileMetadata fileMetadata =
+          FileMetadata.create()
+              .id(userId.toString())
+              .type(FileMetadataType.USER_AVATAR)
+              .userId(userId.toString());
+      when(fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR))
+          .thenReturn(Optional.of(fileMetadata));
       InputStream file = mock(InputStream.class);
       List<String> contactsIds = List.of("a", "b", "c");
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contactsIds);
@@ -511,7 +515,8 @@ class UserServiceImplTest {
               .userId(userId.toString())
               .build();
       verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB);
-      verify(fileMetadataRepository, times(1)).getById(userId.toString());
+      verify(fileMetadataRepository, times(1))
+          .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(clock, times(1)).instant();
       verify(clock, times(1)).getZone();
@@ -548,7 +553,12 @@ class UserServiceImplTest {
               BadRequestException.class,
               () ->
                   userService.setUserPicture(
-                      userId, fileStream, "text/html", 123L, "picture", UserPrincipal.create(userId)));
+                      userId,
+                      fileStream,
+                      "text/html",
+                      123L,
+                      "picture",
+                      UserPrincipal.create(userId)));
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -565,7 +575,12 @@ class UserServiceImplTest {
               BadRequestException.class,
               () ->
                   userService.setUserPicture(
-                      userId, file, "image/jpeg", 600L * 1024, "picture", UserPrincipal.create(userId)));
+                      userId,
+                      file,
+                      "image/jpeg",
+                      600L * 1024,
+                      "picture",
+                      UserPrincipal.create(userId)));
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
@@ -585,7 +600,12 @@ class UserServiceImplTest {
               ForbiddenException.class,
               () ->
                   userService.setUserPicture(
-                      user2Id, fileStream, "image/jpeg", 123L, "picture", UserPrincipal.create(user1Id)));
+                      user2Id,
+                      fileStream,
+                      "image/jpeg",
+                      123L,
+                      "picture",
+                      UserPrincipal.create(user1Id)));
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -600,10 +620,11 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("Correctly deletes the user picture")
-    public void deleteUserPicture_testOk() {
+    void deleteUserPicture_testOk() {
       UUID userId = UUID.randomUUID();
       FileMetadata metadata = FileMetadata.create().id(userId.toString()).userId(userId.toString());
-      when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.of(metadata));
+      when(fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR))
+          .thenReturn(Optional.of(metadata));
       List<String> contacts = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contacts);
       User user =
@@ -613,7 +634,8 @@ class UserServiceImplTest {
       when(userRepository.getById(userId.toString())).thenReturn(Optional.of(user));
       userService.deleteUserPicture(userId, UserPrincipal.create(userId));
 
-      verify(fileMetadataRepository, times(1)).getById(userId.toString());
+      verify(fileMetadataRepository, times(1))
+          .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
       verify(fileMetadataRepository, times(1)).delete(metadata);
       verify(userRepository, times(1)).getById(userId.toString());
       verify(userRepository, times(1)).save(user.pictureUpdatedAt(null));
@@ -634,17 +656,19 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("Correctly deletes the user picture by a system user")
-    public void deleteUserPicture_bySystemUser() {
+    void deleteUserPicture_bySystemUser() {
       UUID userId = UUID.randomUUID();
       FileMetadata metadata = FileMetadata.create().id(userId.toString()).userId(userId.toString());
-      when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.of(metadata));
+      when(fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR))
+          .thenReturn(Optional.of(metadata));
       List<String> contacts = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
       when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contacts);
 
       userService.deleteUserPicture(
           userId, UserPrincipal.create(UUID.randomUUID()).systemUser(true));
 
-      verify(fileMetadataRepository, times(1)).getById(userId.toString());
+      verify(fileMetadataRepository, times(1))
+          .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
       verify(fileMetadataRepository, times(1)).delete(metadata);
       verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
       verify(eventDispatcher, times(1))
@@ -656,7 +680,7 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("If user is not the picture owner, it throws a ForbiddenException")
-    public void deleteUserPicture_userNotPictureOwner() {
+    void deleteUserPicture_userNotPictureOwner() {
       ChatsHttpException exception =
           assertThrows(
               ForbiddenException.class,
@@ -674,9 +698,10 @@ class UserServiceImplTest {
 
     @Test
     @DisplayName("If the user hasn't its picture, it throws a BadRequestException")
-    public void deleteUserPicture_fileNotFound() {
+    void deleteUserPicture_fileNotFound() {
       UUID userId = UUID.randomUUID();
-      when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.empty());
+      when(fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR))
+          .thenReturn(Optional.empty());
 
       ChatsHttpException exception =
           assertThrows(
@@ -687,7 +712,8 @@ class UserServiceImplTest {
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
           String.format("Not Found - File with id '%s' not found", userId), exception.getMessage());
-      verify(fileMetadataRepository, times(1)).getById(userId.toString());
+      verify(fileMetadataRepository, times(1))
+          .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
       verifyNoMoreInteractions(fileMetadataRepository);
       verifyNoInteractions(storagesService, eventDispatcher, subscriptionRepository);
     }

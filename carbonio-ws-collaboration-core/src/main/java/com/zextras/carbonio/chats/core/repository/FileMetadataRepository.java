@@ -22,6 +22,16 @@ public interface FileMetadataRepository {
   Optional<FileMetadata> getById(String fileId);
 
   /**
+   * Gets file metadata info from FILE_METADATA table by userId and/or roomId and type
+   *
+   * @param userId user identifier
+   * @param roomId room identifier
+   * @param type file metadata type {@link FileMetadataType}
+   * @return The required file metadata
+   */
+  Optional<FileMetadata> find(String userId, String roomId, FileMetadataType type);
+
+  /**
    * Gets all identifiers of file metadata by the room identifier and type
    *
    * @param roomId room identifier

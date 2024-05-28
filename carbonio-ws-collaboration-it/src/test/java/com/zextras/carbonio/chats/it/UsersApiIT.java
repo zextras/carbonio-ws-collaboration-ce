@@ -48,6 +48,8 @@ import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockserver.verify.VerificationTimes;
 
 @ApiIntegrationTest
@@ -255,7 +257,7 @@ public class UsersApiIT {
       integrationTestUtils.generateAndSaveFileMetadata(
           fileMock, FileMetadataType.USER_AVATAR, account.getUUID(), null);
       storageMockServer.mockNSLookupUrl(account.getId(), true);
-      storageMockServer.mockDownload(account.getId(), account.getId(), fileMock, true);
+      storageMockServer.mockDownload(fileMock.getId(), account.getId(), fileMock, true);
 
       MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
       assertEquals(200, response.getStatus());
@@ -274,7 +276,7 @@ public class UsersApiIT {
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(account.getId()), VerificationTimes.exactly(1));
       storageMockServer.verify(
-          storageMockServer.getDownloadRequest(account.getId(), account.getId()),
+          storageMockServer.getDownloadRequest(fileMock.getId(), account.getId()),
           VerificationTimes.exactly(1));
     }
 
@@ -333,26 +335,32 @@ public class UsersApiIT {
     void updateUserPicture_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
+      UUID accountId = account.getUUID();
       clock.fixTimeAt(Instant.parse("2022-01-01T00:00:00Z"));
 
       storageMockServer.mockNSLookupUrl(account.getId(), true);
-      storageMockServer.mockUploadPut(account.getId(), account.getId(), true);
+      storageMockServer.mockUploadPut(fileMock.getId(), account.getId(), true);
       byte[] fileBytes = fileMock.getFileBytes();
 
-      MockHttpResponse response =
-          dispatcher.put(
-              url(account.getUUID()),
-              fileBytes,
-              Map.of(
-                  "Content-Type",
-                  "application/octet-stream",
-                  "fileName",
-                  "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067",
-                  "mimeType",
-                  fileMock.getMimeType(),
-                  "Content-Length",
-                  String.valueOf(fileMock.getSize())),
-              account.getToken());
+      MockHttpResponse response;
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(fileMock.getUUID());
+        uuid.when(() -> UUID.fromString(account.getId())).thenReturn(accountId);
+        response =
+            dispatcher.put(
+                url(account.getUUID()),
+                fileBytes,
+                Map.of(
+                    "Content-Type",
+                    "application/octet-stream",
+                    "fileName",
+                    "\\u0073\\u006e\\u006f\\u006f\\u0070\\u0079\\u002e\\u006a\\u0070\\u0067",
+                    "mimeType",
+                    fileMock.getMimeType(),
+                    "Content-Length",
+                    String.valueOf(fileMock.getSize())),
+                account.getToken());
+      }
       clock.fixTimeAt(null);
 
       assertEquals(204, response.getStatus());
@@ -368,7 +376,7 @@ public class UsersApiIT {
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(account.getId()), VerificationTimes.exactly(1));
       storageMockServer.verify(
-          storageMockServer.getUploadPutRequest(account.getId(), account.getId()),
+          storageMockServer.getUploadPutRequest(fileMock.getId(), account.getId()),
           VerificationTimes.exactly(1));
       // TODO: 01/03/22 verify event dispatcher iterations
     }
@@ -515,7 +523,7 @@ public class UsersApiIT {
       integrationTestUtils.generateAndSaveUser(
           account.getUUID(), "hello", OffsetDateTime.ofInstant(clock.instant(), clock.getZone()));
       storageMockServer.mockNSLookupUrl(account.getId(), true);
-      storageMockServer.mockDelete(account.getId(), account.getId(), true);
+      storageMockServer.mockDelete(fileMock.getId(), account.getId(), true);
 
       MockHttpResponse response = dispatcher.delete(url(account.getUUID()), account.getToken());
       assertEquals(204, response.getStatus());
@@ -531,7 +539,7 @@ public class UsersApiIT {
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(account.getId()), VerificationTimes.exactly(1));
       storageMockServer.verify(
-          storageMockServer.getDeleteRequest(account.getId(), account.getId()),
+          storageMockServer.getDeleteRequest(fileMock.getId(), account.getId()),
           VerificationTimes.exactly(1));
     }
 
