@@ -21,6 +21,7 @@ public class StringFormatUtils {
     StringBuilder result = new StringBuilder();
     for (int i = 0; i < toEncode.length(); i++) {
       try {
+        
         result.append(encodeSingleCharToUtf8(toEncode.substring(i, i + 1)));
       } catch (UnsupportedEncodingException ignored) {
       }
