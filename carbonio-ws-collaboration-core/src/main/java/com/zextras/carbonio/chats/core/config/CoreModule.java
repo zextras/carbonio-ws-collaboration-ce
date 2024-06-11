@@ -96,7 +96,6 @@ import com.zextras.carbonio.meeting.api.PublicApi;
 import com.zextras.carbonio.meeting.api.PublicApiService;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
-import com.zextras.filestore.powerstore.api.Protocol;
 import com.zextras.filestore.powerstore.api.powerstore.PowerstoreClient;
 import com.zextras.filestore.powerstore.api.powerstore.PowerstoreClient.Builder;
 import com.zextras.filestore.powerstore.api.powerstore.SDKHttpClient;
@@ -230,11 +229,15 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private PowerstoreClient getStoragesClient() throws Exception {
+  private PowerstoreClient getStoragesClient(AppConfig appConfig) throws Exception {
     SDKHttpClient powerStoreHttpClient =
         SDKHttpClient.builder().trustAllCertificates().withTimeout(Duration.ofMinutes(1)).build();
     return new Builder(powerStoreHttpClient)
-        .withNSLookup(options -> options.withConsul().withProtocol(Protocol.https))
+        .withNSLookup(
+            options ->
+                options.withSidecar(
+                    appConfig.get(String.class, ConfigName.MAILBOX_NSLOOKUP_HOST).orElseThrow(),
+                    appConfig.get(Integer.class, ConfigName.MAILBOX_NSLOOKUP_PORT).orElseThrow()))
         .build();
   }
 

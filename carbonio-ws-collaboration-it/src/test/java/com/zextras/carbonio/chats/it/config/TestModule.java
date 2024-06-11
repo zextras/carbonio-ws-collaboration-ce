@@ -12,7 +12,6 @@ import com.rabbitmq.client.Connection;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
-import com.zextras.filestore.powerstore.api.Protocol;
 import com.zextras.filestore.powerstore.api.powerstore.PowerstoreClient;
 import com.zextras.filestore.powerstore.api.powerstore.PowerstoreClient.Builder;
 import com.zextras.filestore.powerstore.api.powerstore.SDKHttpClient;
@@ -52,10 +51,9 @@ public class TestModule extends AbstractModule {
   @Provides
   private PowerstoreClient getStoragesClient() throws Exception {
     SDKHttpClient powerStoreHttpClient =
-        SDKHttpClient.builder().withTimeout(Duration.ofMinutes(1)).build();
+        SDKHttpClient.builder().withTimeout(Duration.ofMinutes(1)).trustAllCertificates().build();
     return new Builder(powerStoreHttpClient)
-        .withNSLookup(
-            options -> options.withServers("127.0.0.1").withPort(8742).withProtocol(Protocol.http))
+        .withNSLookup(options -> options.withSidecar("127.0.0.1", 8742))
         .build();
   }
 }

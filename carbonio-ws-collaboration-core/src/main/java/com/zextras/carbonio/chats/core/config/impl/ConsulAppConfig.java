@@ -18,6 +18,7 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.annotation.Nullable;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,10 +35,10 @@ public class ConsulAppConfig extends AppConfig {
   private final String consulToken;
   private final Map<String, String> cache;
 
-  private static Map<ConfigName, String> namesMapping;
+  private static final Map<ConfigName, String> namesMapping;
 
   static {
-    namesMapping = new HashMap<>();
+    namesMapping = new EnumMap<>(ConfigName.class);
     namesMapping.put(ConfigName.DATABASE_USERNAME, "carbonio-ws-collaboration-db/db-username");
     namesMapping.put(ConfigName.DATABASE_PASSWORD, "carbonio-ws-collaboration-db/db-password");
     namesMapping.put(

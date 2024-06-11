@@ -55,6 +55,11 @@ services {
             destination_name   = "carbonio-videorecorder"
             local_bind_address = "127.78.0.4"
             local_bind_port    = 20007
+          },
+          {
+            destination_name   = "carbonio-mailbox-nslookup"
+            local_bind_address = "127.78.0.4"
+            local_bind_port    = 20008
           }
         ]
       }
