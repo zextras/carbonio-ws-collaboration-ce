@@ -6,8 +6,6 @@ package com.zextras.carbonio.chats.core.web.security;
 
 import jakarta.annotation.Nullable;
 import java.security.Principal;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,9 +13,8 @@ import java.util.UUID;
 public class UserPrincipal implements Principal {
 
   @Nullable private UUID userId;
-  private boolean systemUser = false;
   private UUID queueId;
-  private Map<AuthenticationMethod, String> authCredentials;
+  @Nullable private String authToken;
 
   public UserPrincipal() {}
 
@@ -51,15 +48,6 @@ public class UserPrincipal implements Principal {
     return this;
   }
 
-  public boolean isSystemUser() {
-    return systemUser;
-  }
-
-  public UserPrincipal systemUser(boolean systemUser) {
-    this.systemUser = systemUser;
-    return this;
-  }
-
   public UUID getQueueId() {
     return queueId;
   }
@@ -69,16 +57,12 @@ public class UserPrincipal implements Principal {
     return this;
   }
 
-  public Map<AuthenticationMethod, String> getAuthCredentials() {
-    return new HashMap<>(authCredentials);
+  public Optional<String> getAuthToken() {
+    return Optional.ofNullable(authToken);
   }
 
-  public Optional<String> getAuthCredentialFor(AuthenticationMethod method) {
-    return Optional.ofNullable(authCredentials).map(credentialsMap -> credentialsMap.get(method));
-  }
-
-  public UserPrincipal authCredentials(Map<AuthenticationMethod, String> authCredentials) {
-    this.authCredentials = authCredentials;
+  public UserPrincipal authToken(@Nullable String authToken) {
+    this.authToken = authToken;
     return this;
   }
 

@@ -22,8 +22,6 @@ import java.util.stream.Collectors;
 @Singleton
 public class UserManagementProfilingService implements ProfilingService {
 
-  private static final String AUTH_COOKIE = "ZM_AUTH_TOKEN";
-
   private final UserManagementClient userManagementClient;
 
   @Inject
@@ -33,13 +31,12 @@ public class UserManagementProfilingService implements ProfilingService {
 
   @Override
   public Optional<UserProfile> getById(UserPrincipal principal, UUID userId) {
-    String token =
-        principal
-            .getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN)
-            .orElseThrow(ForbiddenException::new);
+    String token = principal.getAuthToken().orElseThrow(ForbiddenException::new);
     return Optional.ofNullable(
         userManagementClient
-            .getUserById(String.format("%s=%s", AUTH_COOKIE, token), userId.toString())
+            .getUserById(
+                String.format("%s=%s", AuthenticationMethod.ZM_AUTH_TOKEN.name(), token),
+                userId.toString())
             .map(
                 userInfo ->
                     UserProfile.create(userInfo.getId().getUserId())
@@ -52,12 +49,9 @@ public class UserManagementProfilingService implements ProfilingService {
 
   @Override
   public List<UserProfile> getByIds(UserPrincipal principal, List<String> userIds) {
-    String token =
-        principal
-            .getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN)
-            .orElseThrow(ForbiddenException::new);
+    String token = principal.getAuthToken().orElseThrow(ForbiddenException::new);
     return userManagementClient
-        .getUsers(String.join("=", AUTH_COOKIE, token), userIds)
+        .getUsers(String.join("=", AuthenticationMethod.ZM_AUTH_TOKEN.name(), token), userIds)
         .getOrElseThrow((fail) -> new ProfilingException(fail))
         .stream()
         .map(

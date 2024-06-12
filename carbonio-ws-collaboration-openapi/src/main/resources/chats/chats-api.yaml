@@ -1287,17 +1287,7 @@ components:
           type: boolean
           default: false
           description: indicates whether it is the owner
-        temporary:
-          type: boolean
-          default: false
-          readOnly: true
-          description: indicates whether it is temporary
-        external:
-          type: boolean
-          default: false
-          readOnly: true
-          description: indicates whether it is external user
-      required: [ userId, owner, temporary, external ]
+      required: [ userId, owner ]
     MemberToInsert:
       type: object
       description: Information about the member to insert in the room
@@ -1310,7 +1300,7 @@ components:
               description: |
                 indicates whether it can see previous messages,
                 after it has been added to the room
-          required: [ userId, owner, temporary, external, historyCleared ]
+          required: [ userId, owner, historyCleared ]
     MemberInserted:
       type: object
       description: Information about the member to inserted in the room
@@ -1324,7 +1314,7 @@ components:
               description: |
                 room clear history timestamp,
                 returned only if the room history has been cleared at least once
-          required: [ userId, owner, temporary, external, clearedAt ]
+          required: [ userId, owner, clearedAt ]
     Attachment:
       type: object
       description: Attachment of a message

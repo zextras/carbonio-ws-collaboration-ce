@@ -16,9 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class EventsWebSocketAuthenticationFilter implements Filter {
 
@@ -40,22 +38,17 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
   public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
       throws IOException, ServletException {
     HttpServletRequest httpRequest = (HttpServletRequest) request;
-    Map<AuthenticationMethod, String> credentials =
+    Optional<String> authToken =
         Arrays.stream(Optional.ofNullable(httpRequest.getCookies()).orElse(new Cookie[] {}))
-            .filter(
-                cookie ->
-                    Arrays.stream(AuthenticationMethod.values())
-                        .map(AuthenticationMethod::name)
-                        .collect(Collectors.toList())
-                        .contains(cookie.getName()))
-            .collect(
-                Collectors.toMap(c -> AuthenticationMethod.valueOf(c.getName()), Cookie::getValue));
-    if (credentials.isEmpty()) {
+            .filter(cookie -> AuthenticationMethod.ZM_AUTH_TOKEN.name().equals(cookie.getName()))
+            .findAny()
+            .map(Cookie::getValue);
+    if (authToken.isEmpty()) {
       HttpServletResponse httpServletResponse = (HttpServletResponse) response;
       httpServletResponse.setStatus(401);
       return;
     }
-    Optional<String> userId = authenticationService.validateCredentials(credentials);
+    Optional<String> userId = authenticationService.validateCredentials(authToken.get());
     if (userId.isEmpty()) {
       HttpServletResponse httpServletResponse = (HttpServletResponse) response;
       httpServletResponse.setStatus(401);

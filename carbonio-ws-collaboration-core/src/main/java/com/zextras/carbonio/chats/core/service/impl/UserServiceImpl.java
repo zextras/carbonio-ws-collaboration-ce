@@ -185,7 +185,7 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public void deleteUserPicture(UUID userId, UserPrincipal currentUser) {
-    if (!currentUser.getUUID().equals(userId) && !currentUser.isSystemUser()) {
+    if (!currentUser.getUUID().equals(userId)) {
       throw new ForbiddenException("The picture can be removed only from its owner");
     }
     FileMetadata metadata =

@@ -5,9 +5,9 @@
 package com.zextras.carbonio.chats.core.web.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -43,14 +43,12 @@ class AuthenticationFilterTest {
 
     @Test
     @DisplayName("Sets the correct security context")
-    public void filter_testOk() {
+    void filter_testOk() {
       UUID userId = UUID.randomUUID();
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
-      Map<AuthenticationMethod, String> credentials =
-          Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "token");
-      when(authenticationService.validateCredentials(credentials))
+      when(authenticationService.validateCredentials("token"))
           .thenReturn(Optional.of(userId.toString()));
 
       authenticationFilter.filter(requestContext);
@@ -59,15 +57,15 @@ class AuthenticationFilterTest {
           ArgumentCaptor.forClass(SecurityContextImpl.class);
       verify(requestContext, times(1)).setSecurityContext(contextCaptor.capture());
       SecurityContextImpl capturedContext = contextCaptor.getValue();
-      assertEquals(userId.toString(), ((UserPrincipal) capturedContext.getUserPrincipal()).getId());
-      assertEquals(
-          credentials, ((UserPrincipal) capturedContext.getUserPrincipal()).getAuthCredentials());
-      assertFalse(((UserPrincipal) capturedContext.getUserPrincipal()).isSystemUser());
+      UserPrincipal userPrincipal = (UserPrincipal) capturedContext.getUserPrincipal();
+      assertEquals(userId.toString(), userPrincipal.getId());
+      assertTrue(userPrincipal.getAuthToken().isPresent());
+      assertEquals("token", userPrincipal.getAuthToken().get());
     }
 
     @Test
     @DisplayName("Creates empty user principal if no token is present")
-    public void filter_testTokenNotAuthenticated() {
+    void filter_testTokenNotAuthenticated() {
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies()).thenReturn(Map.of());
 
@@ -82,13 +80,11 @@ class AuthenticationFilterTest {
 
     @Test
     @DisplayName("Throws an unauthorized exception if the token is not valid")
-    public void filter_testTokenNotValid() {
+    void filter_testTokenNotValid() {
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
-      Map<AuthenticationMethod, String> credentials =
-          Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "token");
-      when(authenticationService.validateCredentials(credentials)).thenReturn(Optional.empty());
+      when(authenticationService.validateCredentials("token")).thenReturn(Optional.empty());
 
       assertThrows(UnauthorizedException.class, () -> authenticationFilter.filter(requestContext));
     }

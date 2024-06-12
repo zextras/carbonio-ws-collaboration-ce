@@ -5,8 +5,6 @@
 package com.zextras.carbonio.chats.core.infrastructure.authentication;
 
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
-import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
-import java.util.Map;
 import java.util.Optional;
 
 public interface AuthenticationService extends HealthIndicator {
@@ -14,9 +12,8 @@ public interface AuthenticationService extends HealthIndicator {
   /**
    * Validates the user's credentials
    *
-   * @param credentials a map of possible credentials related to the user
+   * @param authToken the token needed to be authenticated
    * @return the user's identifier if the token is valid
    */
-  Optional<String> validateCredentials(Map<AuthenticationMethod, String> credentials);
-
+  Optional<String> validateCredentials(String authToken);
 }
