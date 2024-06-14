@@ -589,30 +589,6 @@ class RoomServiceImplTest {
 
     @Test
     @DisplayName(
-        "If the user is a system user, it returns the required room with all members and room user"
-            + " settings")
-    void getRoomById_testWithSystemUser() {
-      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-      when(roomUserSettingsRepository.getByRoomIdAndUserId(
-              roomGroup2Id.toString(), user2Id.toString()))
-          .thenReturn(
-              Optional.of(
-                  RoomUserSettings.create(roomGroup2, user2Id.toString())
-                      .mutedUntil(OffsetDateTime.now())));
-      RoomDto room =
-          roomService.getRoomById(roomGroup2Id, UserPrincipal.create(user2Id).systemUser(true));
-
-      assertEquals(roomGroup2Id, room.getId());
-      assertEquals(2, room.getMembers().size());
-      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user2Id)));
-      assertTrue(room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user3Id)));
-      assertNotNull(room.getUserSettings());
-      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
-      assertTrue(room.getUserSettings().isMuted());
-    }
-
-    @Test
-    @DisplayName(
         "If the user didn't set anything, it correctly returns the required room with all members"
             + " and default room user settings")
     void getRoomById_testMemberWithoutSettings() {
@@ -2085,21 +2061,6 @@ class RoomServiceImplTest {
     }
 
     @Test
-    @DisplayName("If the user is a system user, it returns the requested room")
-    void getRoomAndCheckUser_testOkSystemUserAndNotARoomMember() {
-      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-      Room room =
-          roomService.getRoomEntityAndCheckUser(
-              roomGroup2Id, UserPrincipal.create(user1Id).systemUser(true), false);
-
-      assertEquals(roomGroup2.getId(), room.getId());
-      assertEquals(roomGroup2.getName(), room.getName());
-
-      verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
-      verifyNoMoreInteractions(roomRepository);
-    }
-
-    @Test
     @DisplayName("If the user isn't a room member throws 'forbidden' exception")
     void getRoomAndCheckUser_testAuthenticatedUserIsNotARoomMember() {
       when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
@@ -2173,37 +2134,6 @@ class RoomServiceImplTest {
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
       verify(storagesService, times(1))
           .getFileStreamById(roomGroup1Id.toString(), user2Id.toString());
-    }
-
-    @Test
-    @DisplayName("If the user is a system user, it returns the room picture")
-    void getRoomPicture_testOkWithSystemUser() {
-      FileMetadata pfpMetadata =
-          FileMetadata.create()
-              .type(FileMetadataType.ROOM_AVATAR)
-              .roomId(roomGroup2Id.toString())
-              .userId(user2Id.toString())
-              .mimeType("mime/type")
-              .id(roomGroup2Id.toString())
-              .name("pfp")
-              .originalSize(123L);
-      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-      when(fileMetadataRepository.find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR))
-          .thenReturn(Optional.of(pfpMetadata));
-      InputStream fileStream = mock(InputStream.class);
-      when(storagesService.getFileStreamById(roomGroup2Id.toString(), user2Id.toString()))
-          .thenReturn(fileStream);
-
-      FileContentAndMetadata roomPicture =
-          roomService.getRoomPicture(roomGroup2Id, UserPrincipal.create(user1Id).systemUser(true));
-
-      assertEquals(fileStream, roomPicture.getFileStream());
-      assertEquals(pfpMetadata.getId(), roomPicture.getMetadata().getId());
-      verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
-      verify(fileMetadataRepository, times(1))
-          .find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR);
-      verify(storagesService, times(1))
-          .getFileStreamById(roomGroup2Id.toString(), user2Id.toString());
     }
 
     @Test
@@ -2318,59 +2248,6 @@ class RoomServiceImplTest {
       verify(messageDispatcher, times(1))
           .updateRoomPicture(
               roomGroup1Id.toString(), user1Id.toString(), fileMetadata.getId(), "picture");
-    }
-
-    @Test
-    @DisplayName("If the user is a system user and not a member, it sets the room picture")
-    void setRoomPicture_testOkWithSystemUser() {
-      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-      FileMetadata existingMetadata =
-          FileMetadata.create()
-              .id("123")
-              .type(FileMetadataType.ROOM_AVATAR)
-              .roomId(roomGroup2Id.toString());
-      when(fileMetadataRepository.find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR))
-          .thenReturn(Optional.of(existingMetadata));
-      InputStream fileStream = mock(InputStream.class);
-      when(storagesService.getFileStreamById(roomGroup2Id.toString(), user2Id.toString()))
-          .thenReturn(fileStream);
-
-      roomService.setRoomPicture(
-          roomGroup2Id,
-          fileStream,
-          "image/jpeg",
-          123L,
-          "picture",
-          UserPrincipal.create(user1Id).systemUser(true));
-
-      roomGroup2.pictureUpdatedAt(
-          OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()));
-      verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
-      verify(roomRepository, times(1)).update(roomGroup2);
-      verify(fileMetadataRepository, times(1))
-          .find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR);
-      ArgumentCaptor<FileMetadata> fileMetadataCaptor = ArgumentCaptor.forClass(FileMetadata.class);
-      verify(fileMetadataRepository, times(1)).delete(existingMetadata);
-      verify(fileMetadataRepository, times(1)).save(fileMetadataCaptor.capture());
-      FileMetadata fileMetadata = fileMetadataCaptor.getValue();
-      assertEquals(roomGroup2.getId(), fileMetadata.getRoomId());
-      assertEquals("image/jpeg", fileMetadata.getMimeType());
-      assertEquals(FileMetadataType.ROOM_AVATAR, fileMetadata.getType());
-      assertEquals("picture", fileMetadata.getName());
-      assertEquals(123L, fileMetadata.getOriginalSize());
-      assertEquals(user1Id.toString(), fileMetadata.getUserId());
-      verify(storagesService, times(1)).saveFile(fileStream, fileMetadata, user1Id.toString());
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              List.of(user2Id.toString(), user3Id.toString()),
-              RoomPictureChanged.create()
-                  .roomId(roomGroup2Id)
-                  .updatedAt(
-                      OffsetDateTime.ofInstant(
-                          Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
-      verify(messageDispatcher, times(1))
-          .updateRoomPicture(
-              roomGroup2Id.toString(), user1Id.toString(), fileMetadata.getId(), "picture");
     }
 
     @Test
@@ -2529,43 +2406,6 @@ class RoomServiceImplTest {
               any(RoomPictureDeleted.class));
       verifyNoMoreInteractions(
           roomRepository, fileMetadataRepository, storagesService, eventDispatcher);
-    }
-
-    @Test
-    @DisplayName("Correctly deletes the room picture by a system user")
-    void deleteRoomPicture_bySystemUser() {
-      FileMetadata metadata =
-          FileMetadata.create()
-              .type(FileMetadataType.ROOM_AVATAR)
-              .roomId(roomGroup2Id.toString())
-              .userId(user2Id.toString())
-              .mimeType("mime/type")
-              .id(roomGroup2Id.toString())
-              .name("pfp")
-              .originalSize(123L);
-      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-      when(fileMetadataRepository.find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR))
-          .thenReturn(Optional.of(metadata));
-
-      roomService.deleteRoomPicture(roomGroup2Id, UserPrincipal.create(user1Id).systemUser(true));
-
-      verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
-      verify(roomRepository, times(1)).update(roomGroup2.pictureUpdatedAt(null));
-      verify(fileMetadataRepository, times(1))
-          .find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR);
-      verify(fileMetadataRepository, times(1)).delete(metadata);
-      verify(storagesService, times(1)).deleteFile(roomGroup2Id.toString(), user2Id.toString());
-      verify(messageDispatcher, times(1))
-          .deleteRoomPicture(roomGroup2Id.toString(), user1Id.toString());
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(
-              eq(List.of(user2Id.toString(), user3Id.toString())), any(RoomPictureDeleted.class));
-      verifyNoMoreInteractions(
-          roomRepository,
-          fileMetadataRepository,
-          storagesService,
-          messageDispatcher,
-          eventDispatcher);
     }
 
     @Test

@@ -20,7 +20,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @ApiIntegrationTest
-public class AuthApiIT {
+class AuthApiIT {
 
   private final UserManagementMockServer userManagementMockServer;
   private final ResteasyRequestDispatcher dispatcher;
@@ -39,19 +39,19 @@ public class AuthApiIT {
 
   @Test
   @DisplayName("Correctly gets the authenticated token")
-  public void getToken_testOk() throws Exception {
+  void getToken_testOk() throws Exception {
     String url = "/auth/token";
     MockUserProfile account = MockedAccount.getAccounts().get(0);
     MockHttpResponse response = dispatcher.get(url, account.getToken());
     assertEquals(Status.OK.getStatusCode(), response.getStatus());
     TokenDto token = objectMapper.readValue(response.getContentAsString(), TokenDto.class);
     assertEquals(account.getToken(), token.getZmToken());
-    userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
+    userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
   }
 
   @Test
   @DisplayName("If there isn't an authenticated token return a status code 401")
-  public void getToken_testErrorUnauthenticatedUser() throws Exception {
+  void getToken_testErrorUnauthenticatedUser() throws Exception {
     String url = "/auth/token";
     MockHttpResponse response = dispatcher.get(url, null);
     assertEquals(Status.UNAUTHORIZED.getStatusCode(), response.getStatus());

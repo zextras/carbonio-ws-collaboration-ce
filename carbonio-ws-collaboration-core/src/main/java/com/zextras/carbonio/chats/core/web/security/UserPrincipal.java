@@ -4,20 +4,21 @@
 
 package com.zextras.carbonio.chats.core.web.security;
 
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import jakarta.annotation.Nullable;
 import java.security.Principal;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
 public class UserPrincipal implements Principal {
 
+  private UserType userType;
   @Nullable private UUID userId;
-  private boolean systemUser = false;
   private UUID queueId;
-  private Map<AuthenticationMethod, String> authCredentials;
+  private String email;
+  private String name;
+  @Nullable private String authToken;
 
   public UserPrincipal() {}
 
@@ -35,11 +36,25 @@ public class UserPrincipal implements Principal {
 
   @Override
   public String getName() {
-    return userId != null ? userId.toString() : null;
+    return name;
+  }
+
+  public UserPrincipal name(String name) {
+    this.name = name;
+    return this;
   }
 
   public String getId() {
     return userId != null ? userId.toString() : null;
+  }
+
+  public UserType getUserType() {
+    return userType;
+  }
+
+  public UserPrincipal userType(UserType userType) {
+    this.userType = userType;
+    return this;
   }
 
   public UUID getUUID() {
@@ -48,15 +63,6 @@ public class UserPrincipal implements Principal {
 
   public UserPrincipal id(UUID userId) {
     this.userId = userId;
-    return this;
-  }
-
-  public boolean isSystemUser() {
-    return systemUser;
-  }
-
-  public UserPrincipal systemUser(boolean systemUser) {
-    this.systemUser = systemUser;
     return this;
   }
 
@@ -69,16 +75,21 @@ public class UserPrincipal implements Principal {
     return this;
   }
 
-  public Map<AuthenticationMethod, String> getAuthCredentials() {
-    return new HashMap<>(authCredentials);
+  public String getEmail() {
+    return email;
   }
 
-  public Optional<String> getAuthCredentialFor(AuthenticationMethod method) {
-    return Optional.ofNullable(authCredentials).map(credentialsMap -> credentialsMap.get(method));
+  public UserPrincipal email(String email) {
+    this.email = email;
+    return this;
   }
 
-  public UserPrincipal authCredentials(Map<AuthenticationMethod, String> authCredentials) {
-    this.authCredentials = authCredentials;
+  public Optional<String> getAuthToken() {
+    return Optional.ofNullable(authToken);
+  }
+
+  public UserPrincipal authToken(@Nullable String authToken) {
+    this.authToken = authToken;
     return this;
   }
 
@@ -86,12 +97,15 @@ public class UserPrincipal implements Principal {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (!(o instanceof UserPrincipal that)) return false;
-    return Objects.equals(userId, that.userId) && Objects.equals(queueId, that.queueId);
+    return getUserType() == that.getUserType()
+        && Objects.equals(userId, that.userId)
+        && Objects.equals(getQueueId(), that.getQueueId())
+        && Objects.equals(getEmail(), that.getEmail());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(userId, queueId);
+    return Objects.hash(getUserType(), userId, getQueueId(), getEmail());
   }
 
   @Override

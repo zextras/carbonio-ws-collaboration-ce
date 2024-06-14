@@ -40,7 +40,6 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
-import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -54,7 +53,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -910,9 +908,7 @@ public class MeetingServiceImplTest {
                       .owner(true)));
 
       meetingService.startMeetingRecording(
-          meeting1Id,
-          UserPrincipal.create(user1Id)
-              .authCredentials(Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "fake-token")));
+          meeting1Id, UserPrincipal.create(user1Id).authToken("fake-token"));
 
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(membersService, times(1)).getSubscription(user1Id, room1Id);
@@ -1132,8 +1128,7 @@ public class MeetingServiceImplTest {
           meeting1Id,
           "rec-name",
           "rec-dir-id",
-          UserPrincipal.create(user1Id)
-              .authCredentials(Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "fake-token")));
+          UserPrincipal.create(user1Id).authToken("fake-token"));
 
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(membersService, times(1)).getSubscription(user1Id, room1Id);
@@ -1172,8 +1167,7 @@ public class MeetingServiceImplTest {
           meeting1Id,
           "rec-name",
           "rec-dir-id",
-          UserPrincipal.create(user1Id)
-              .authCredentials(Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "fake-token")));
+          UserPrincipal.create(user1Id).authToken("fake-token"));
 
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(membersService, times(1)).getSubscription(user1Id, room1Id);
@@ -1194,9 +1188,7 @@ public class MeetingServiceImplTest {
                       meeting1Id,
                       "rec-name",
                       "rec-dir-id",
-                      UserPrincipal.create(user1Id)
-                          .authCredentials(
-                              Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "fake-token"))));
+                      UserPrincipal.create(user1Id).authToken("fake-token")));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -1224,9 +1216,7 @@ public class MeetingServiceImplTest {
                       meeting1Id,
                       "rec-name",
                       "rec-dir-id",
-                      UserPrincipal.create(user1Id)
-                          .authCredentials(
-                              Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "fake-token"))));
+                      UserPrincipal.create(user1Id).authToken("fake-token")));
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -1264,9 +1254,7 @@ public class MeetingServiceImplTest {
                       meeting1Id,
                       "rec-name",
                       "rec-dir-id",
-                      UserPrincipal.create(user1Id)
-                          .authCredentials(
-                              Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "fake-token"))));
+                      UserPrincipal.create(user1Id).authToken("fake-token")));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -1295,9 +1283,7 @@ public class MeetingServiceImplTest {
                       meeting1Id,
                       "rec-name",
                       "rec-dir-id",
-                      UserPrincipal.create(user1Id)
-                          .authCredentials(
-                              Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "fake-token"))));
+                      UserPrincipal.create(user1Id).authToken("fake-token")));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
@@ -1331,9 +1317,7 @@ public class MeetingServiceImplTest {
                       meeting1Id,
                       "rec-name",
                       "rec-dir-id",
-                      UserPrincipal.create(user1Id)
-                          .authCredentials(
-                              Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "fake-token"))));
+                      UserPrincipal.create(user1Id).authToken("fake-token")));
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());

@@ -25,6 +25,7 @@ import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
+import com.zextras.carbonio.chats.model.UserDto.TypeEnum;
 import io.ebean.annotation.Transactional;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -73,11 +74,12 @@ public class UserServiceImpl implements UserService {
         profilingService
             .getById(currentUser, userId)
             .map(
-                profile ->
+                p ->
                     UserDto.create()
-                        .id(UUID.fromString(profile.getId()))
-                        .email(profile.getEmail())
-                        .name(profile.getName()))
+                        .id(UUID.fromString(p.getId()))
+                        .email(p.getEmail())
+                        .name(p.getName())
+                        .type(TypeEnum.valueOf(p.getType().name())))
             .orElseThrow(
                 () ->
                     new NotFoundException(
@@ -101,7 +103,8 @@ public class UserServiceImpl implements UserService {
                 UserDto.create()
                     .id(UUID.fromString(p.getId()))
                     .email(p.getEmail())
-                    .name(p.getName()))
+                    .name(p.getName())
+                    .type(TypeEnum.valueOf(p.getType().name())))
         .map(
             userDto -> {
               users.stream()
@@ -185,7 +188,7 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public void deleteUserPicture(UUID userId, UserPrincipal currentUser) {
-    if (!currentUser.getUUID().equals(userId) && !currentUser.isSystemUser()) {
+    if (!currentUser.getUUID().equals(userId)) {
       throw new ForbiddenException("The picture can be removed only from its owner");
     }
     FileMetadata metadata =

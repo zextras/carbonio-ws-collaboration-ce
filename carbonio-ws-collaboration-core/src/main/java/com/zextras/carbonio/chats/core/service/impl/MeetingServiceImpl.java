@@ -31,7 +31,6 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
-import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.MeetingTypeDto;
@@ -299,10 +298,7 @@ public class MeetingServiceImpl implements MeetingService {
               .startedAt(OffsetDateTime.now(clock))
               .starterId(currentUser.getId())
               .status(RecordingStatus.STARTED)
-              .token(
-                  currentUser
-                      .getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN)
-                      .orElse(null)));
+              .token(currentUser.getAuthToken().orElse(null)));
       eventDispatcher.sendToUserExchange(
           meeting.getParticipants().stream().map(Participant::getUserId).toList(),
           MeetingRecordingStarted.create()
@@ -344,9 +340,7 @@ public class MeetingServiceImpl implements MeetingService {
                   meeting.getName(),
                   folderId,
                   recordingName,
-                  currentUser
-                      .getAuthCredentialFor(AuthenticationMethod.ZM_AUTH_TOKEN)
-                      .orElse(null));
+                  currentUser.getAuthToken().orElse(null));
               recordingRepository.update(recording.status(RecordingStatus.STOPPED));
               eventDispatcher.sendToUserExchange(
                   meeting.getParticipants().stream().map(Participant::getUserId).toList(),

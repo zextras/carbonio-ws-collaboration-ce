@@ -13,7 +13,6 @@ import jakarta.annotation.Nullable;
 import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Singleton
 public class SubscriptionMapperImpl implements SubscriptionMapper {
@@ -26,16 +25,14 @@ public class SubscriptionMapperImpl implements SubscriptionMapper {
     }
     return MemberDto.create()
         .userId(UUID.fromString(subscription.getUserId()))
-        .owner(subscription.isOwner())
-        .temporary(subscription.isTemporary())
-        .external(subscription.isExternal());
+        .owner(subscription.isOwner());
   }
 
   @Override
   public List<MemberDto> ent2memberDto(@Nullable List<Subscription> subscriptions) {
     return subscriptions == null
         ? List.of()
-        : subscriptions.stream().map(this::ent2memberDto).collect(Collectors.toList());
+        : subscriptions.stream().map(this::ent2memberDto).toList();
   }
 
   @Override
@@ -47,8 +44,6 @@ public class SubscriptionMapperImpl implements SubscriptionMapper {
     }
     return MemberInsertedDto.create()
         .owner(subscription.isOwner())
-        .temporary(subscription.isTemporary())
-        .external(subscription.isExternal())
         .userId(UUID.fromString(subscription.getUserId()))
         .clearedAt(roomUserSettings == null ? null : roomUserSettings.getClearedAt());
   }

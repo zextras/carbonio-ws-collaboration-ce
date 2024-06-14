@@ -30,6 +30,7 @@ import com.zextras.carbonio.chats.core.data.event.UserPictureDeleted;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
@@ -43,6 +44,7 @@ import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
+import com.zextras.carbonio.chats.model.UserDto.TypeEnum;
 import jakarta.ws.rs.core.Response.Status;
 import java.io.InputStream;
 import java.time.Clock;
@@ -122,7 +124,8 @@ class UserServiceImplTest {
                   UserProfile.create(requestedUserId)
                       .email("test@example.com")
                       .domain("mydomain.com")
-                      .name("test user")));
+                      .name("test user")
+                      .type(UserType.INTERNAL)));
 
       UserDto userById = userService.getUserById(requestedUserId, currentPrincipal);
 
@@ -132,6 +135,7 @@ class UserServiceImplTest {
       assertEquals("my status!", userById.getStatusMessage());
       assertEquals("test user", userById.getName());
       assertEquals("test@example.com", userById.getEmail());
+      assertEquals(TypeEnum.INTERNAL, userById.getType());
     }
 
     @Test
@@ -146,7 +150,8 @@ class UserServiceImplTest {
                   UserProfile.create(requestedUserId)
                       .email("test@example.com")
                       .domain("mydomain.com")
-                      .name("test user")));
+                      .name("test user")
+                      .type(UserType.INTERNAL)));
 
       UserDto userById = userService.getUserById(requestedUserId, currentPrincipal);
 
@@ -156,6 +161,7 @@ class UserServiceImplTest {
       assertNull(userById.getStatusMessage());
       assertEquals("test user", userById.getName());
       assertEquals("test@example.com", userById.getEmail());
+      assertEquals(TypeEnum.INTERNAL, userById.getType());
     }
 
     @Test
@@ -212,15 +218,18 @@ class UserServiceImplTest {
                   UserProfile.create(requestedUserId1)
                       .email("test1@example.com")
                       .domain("mydomain.com")
-                      .name("test user 1"),
+                      .name("test user 1")
+                      .type(UserType.INTERNAL),
                   UserProfile.create(requestedUserId2)
                       .email("test2@example.com")
                       .domain("mydomain.com")
-                      .name("test user 2"),
+                      .name("test user 2")
+                      .type(UserType.INTERNAL),
                   UserProfile.create(requestedUserId3)
                       .email("test3@example.com")
                       .domain("mydomain.com")
-                      .name("test user 3")));
+                      .name("test user 3")
+                      .type(UserType.INTERNAL)));
 
       List<UserDto> usersById = userService.getUsersByIds(requestedUserIds, currentPrincipal);
 
@@ -231,18 +240,21 @@ class UserServiceImplTest {
       assertEquals("my status 1", usersById.get(0).getStatusMessage());
       assertEquals("test user 1", usersById.get(0).getName());
       assertEquals("test1@example.com", usersById.get(0).getEmail());
+      assertEquals(TypeEnum.INTERNAL, usersById.get(0).getType());
       assertEquals(requestedUserId2, usersById.get(1).getId());
       assertEquals(
           OffsetDateTime.parse("2022-02-02T00:00:00Z"), usersById.get(1).getPictureUpdatedAt());
       assertEquals("my status 2", usersById.get(1).getStatusMessage());
       assertEquals("test user 2", usersById.get(1).getName());
       assertEquals("test2@example.com", usersById.get(1).getEmail());
+      assertEquals(TypeEnum.INTERNAL, usersById.get(0).getType());
       assertEquals(requestedUserId3, usersById.get(2).getId());
       assertEquals(
           OffsetDateTime.parse("2022-03-03T00:00:00Z"), usersById.get(2).getPictureUpdatedAt());
       assertEquals("my status 3", usersById.get(2).getStatusMessage());
       assertEquals("test user 3", usersById.get(2).getName());
       assertEquals("test3@example.com", usersById.get(2).getEmail());
+      assertEquals(TypeEnum.INTERNAL, usersById.get(2).getType());
     }
 
     @Test
@@ -267,7 +279,8 @@ class UserServiceImplTest {
                   UserProfile.create(requestedUserId1)
                       .email("test1@example.com")
                       .domain("mydomain.com")
-                      .name("test user 1")));
+                      .name("test user 1")
+                      .type(UserType.INTERNAL)));
 
       List<UserDto> usersById = userService.getUsersByIds(requestedUserIds, currentPrincipal);
 
@@ -300,7 +313,8 @@ class UserServiceImplTest {
                   UserProfile.create(requestedUserId)
                       .email("test@example.com")
                       .domain("mydomain.com")
-                      .name("test user")));
+                      .name("test user")
+                      .type(UserType.INTERNAL)));
 
       List<UserDto> usersById =
           userService.getUsersByIds(
@@ -312,6 +326,7 @@ class UserServiceImplTest {
       assertNull(usersById.get(0).getStatusMessage());
       assertEquals("test user", usersById.get(0).getName());
       assertEquals("test@example.com", usersById.get(0).getEmail());
+      assertEquals(TypeEnum.INTERNAL, usersById.get(0).getType());
     }
 
     @Test
@@ -395,7 +410,8 @@ class UserServiceImplTest {
     @DisplayName("If the user hasn't its picture, it throws a BadRequestException")
     void getUserPicture_fileNotFound() {
       UUID userId = UUID.randomUUID();
-      when(fileMetadataRepository.getById(userId.toString())).thenReturn(Optional.empty());
+      when(fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR))
+          .thenReturn(Optional.empty());
 
       ChatsHttpException exception =
           assertThrows(
@@ -652,30 +668,6 @@ class UserServiceImplTest {
           subscriptionRepository,
           eventDispatcher);
       verifyNoInteractions(profilingService, appConfig, clock);
-    }
-
-    @Test
-    @DisplayName("Correctly deletes the user picture by a system user")
-    void deleteUserPicture_bySystemUser() {
-      UUID userId = UUID.randomUUID();
-      FileMetadata metadata = FileMetadata.create().id(userId.toString()).userId(userId.toString());
-      when(fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR))
-          .thenReturn(Optional.of(metadata));
-      List<String> contacts = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
-      when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contacts);
-
-      userService.deleteUserPicture(
-          userId, UserPrincipal.create(UUID.randomUUID()).systemUser(true));
-
-      verify(fileMetadataRepository, times(1))
-          .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
-      verify(fileMetadataRepository, times(1)).delete(metadata);
-      verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(eq(contacts), any(UserPictureDeleted.class));
-      verify(subscriptionRepository, times(1)).getContacts(userId.toString());
-      verifyNoMoreInteractions(
-          fileMetadataRepository, storagesService, eventDispatcher, subscriptionRepository);
     }
 
     @Test

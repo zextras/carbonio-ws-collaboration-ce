@@ -30,8 +30,11 @@ import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
 import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.UserDto;
+import com.zextras.carbonio.chats.model.UserDto.TypeEnum;
 import com.zextras.carbonio.usermanagement.entities.UserId;
 import com.zextras.carbonio.usermanagement.entities.UserInfo;
+import com.zextras.carbonio.usermanagement.enumerations.UserStatus;
+import com.zextras.carbonio.usermanagement.enumerations.UserType;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -104,6 +107,29 @@ public class UsersApiIT {
       assertEquals("332a9527-3388-4207-be77-6d7e2978a723", user.getId().toString());
       assertEquals("snoopy@peanuts.com", user.getEmail());
       assertEquals("Snoopy", user.getName());
+      assertEquals(TypeEnum.INTERNAL, user.getType());
+      assertEquals("hello", user.getStatusMessage());
+      assertEquals(
+          clock.instant().toEpochMilli(), user.getPictureUpdatedAt().toInstant().toEpochMilli());
+    }
+
+    @Test
+    @DisplayName("Returns the requested guest user")
+    void getUser_testGuestOk() throws Exception {
+      UUID userId = UUID.fromString("7156b7fa-78a8-47e3-8b50-102d1db31edc");
+      OffsetDateTime ofdt = OffsetDateTime.now();
+      clock.fixTimeAt(ofdt.toInstant());
+      integrationTestUtils.generateAndSaveUser(userId, "hello", ofdt);
+
+      MockHttpResponse mockHttpResponse =
+          dispatcher.get(url(userId), "8asYvWwPbNg8ESoQ4W0uWHKiDajA0zQ1riOckkfk");
+      assertEquals(200, mockHttpResponse.getStatus());
+      UserDto user =
+          objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
+      assertEquals("7156b7fa-78a8-47e3-8b50-102d1db31edc", user.getId().toString());
+      assertEquals("harlock@external.com", user.getEmail());
+      assertEquals("Capitan Harlock", user.getName());
+      assertEquals(TypeEnum.GUEST, user.getType());
       assertEquals("hello", user.getStatusMessage());
       assertEquals(
           clock.instant().toEpochMilli(), user.getPictureUpdatedAt().toInstant().toEpochMilli());
@@ -139,7 +165,7 @@ public class UsersApiIT {
           Arrays.asList(
               "332a9527-3388-4207-be77-6d7e2978a723",
               "82735f6d-4c6c-471e-99d9-4eef91b1ec45",
-              "ea7b9b61-bef5-4cf4-80cb-19612c42593a");
+              "7156b7fa-78a8-47e3-8b50-102d1db31edc");
       integrationTestUtils.generateAndSaveUser(
           UUID.fromString(userIds.get(0)),
           "status message 1",
@@ -149,19 +175,25 @@ public class UsersApiIT {
               new UserId("332a9527-3388-4207-be77-6d7e2978a723"),
               "snoopy@peanuts.com",
               "Snoopy",
-              "peanuts.com");
+              "peanuts.com",
+              UserStatus.ACTIVE,
+              UserType.INTERNAL);
       UserInfo user2 =
           new UserInfo(
               new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"),
               "charlie.brown@peanuts.com",
               "Charlie Brown",
-              "peanuts.com");
+              "peanuts.com",
+              UserStatus.ACTIVE,
+              UserType.INTERNAL);
       UserInfo user3 =
           new UserInfo(
-              new UserId("ea7b9b61-bef5-4cf4-80cb-19612c42593a"),
-              "lucy.van.pelt@peanuts.com",
-              "Lucy van Pelt",
-              "peanuts.com");
+              new UserId("7156b7fa-78a8-47e3-8b50-102d1db31edc"),
+              "harlock@external.com",
+              "Capitan Harlock",
+              "external.com",
+              UserStatus.ACTIVE,
+              UserType.GUEST);
       userManagementMockServer.mockUsersBulk(userIds, List.of(user1, user2, user3), true);
 
       MockHttpResponse mockHttpResponse =
@@ -172,15 +204,18 @@ public class UsersApiIT {
       assertEquals("332a9527-3388-4207-be77-6d7e2978a723", users.get(0).getId().toString());
       assertEquals("snoopy@peanuts.com", users.get(0).getEmail());
       assertEquals("Snoopy", users.get(0).getName());
+      assertEquals(TypeEnum.INTERNAL, users.get(0).getType());
       assertEquals("status message 1", users.get(0).getStatusMessage());
       assertEquals(
           OffsetDateTime.parse("0001-01-01T00:00:00Z"), users.get(0).getPictureUpdatedAt());
       assertEquals("82735f6d-4c6c-471e-99d9-4eef91b1ec45", users.get(1).getId().toString());
       assertEquals("charlie.brown@peanuts.com", users.get(1).getEmail());
       assertEquals("Charlie Brown", users.get(1).getName());
-      assertEquals("ea7b9b61-bef5-4cf4-80cb-19612c42593a", users.get(2).getId().toString());
-      assertEquals("lucy.van.pelt@peanuts.com", users.get(2).getEmail());
-      assertEquals("Lucy van Pelt", users.get(2).getName());
+      assertEquals(TypeEnum.INTERNAL, users.get(1).getType());
+      assertEquals("7156b7fa-78a8-47e3-8b50-102d1db31edc", users.get(2).getId().toString());
+      assertEquals("harlock@external.com", users.get(2).getEmail());
+      assertEquals("Capitan Harlock", users.get(2).getName());
+      assertEquals(TypeEnum.GUEST, users.get(2).getType());
     }
 
     @Test
@@ -200,13 +235,17 @@ public class UsersApiIT {
               new UserId("332a9527-3388-4207-be77-6d7e2978a723"),
               "snoopy@peanuts.com",
               "Snoopy",
-              "peanuts.com");
+              "peanuts.com",
+              UserStatus.ACTIVE,
+              UserType.INTERNAL);
       UserInfo user2 =
           new UserInfo(
               new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"),
               "charlie.brown@peanuts.com",
               "Charlie Brown",
-              "peanuts.com");
+              "peanuts.com",
+              UserStatus.ACTIVE,
+              UserType.INTERNAL);
       userManagementMockServer.mockUsersBulk(userIds, List.of(user1, user2), true);
 
       MockHttpResponse mockHttpResponse =
@@ -217,12 +256,14 @@ public class UsersApiIT {
       assertEquals("332a9527-3388-4207-be77-6d7e2978a723", users.get(0).getId().toString());
       assertEquals("snoopy@peanuts.com", users.get(0).getEmail());
       assertEquals("Snoopy", users.get(0).getName());
+      assertEquals(TypeEnum.INTERNAL, users.get(0).getType());
       assertEquals("status message 1", users.get(0).getStatusMessage());
       assertEquals(
           OffsetDateTime.parse("0001-01-01T00:00:00Z"), users.get(0).getPictureUpdatedAt());
       assertEquals("82735f6d-4c6c-471e-99d9-4eef91b1ec45", users.get(1).getId().toString());
       assertEquals("charlie.brown@peanuts.com", users.get(1).getEmail());
       assertEquals("Charlie Brown", users.get(1).getName());
+      assertEquals(TypeEnum.INTERNAL, users.get(1).getType());
     }
 
     @Test
@@ -271,8 +312,7 @@ public class UsersApiIT {
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
 
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(account.getId()), VerificationTimes.exactly(1));
       storageMockServer.verify(
@@ -297,8 +337,7 @@ public class UsersApiIT {
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
     }
 
     @Test
@@ -317,8 +356,7 @@ public class UsersApiIT {
       assertEquals(424, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
     }
   }
 
@@ -371,8 +409,7 @@ public class UsersApiIT {
           OffsetDateTime.ofInstant(
               Instant.parse("2022-01-01T00:00:00Z"), ZoneOffset.systemDefault()),
           user.get().getPictureUpdatedAt());
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(account.getId()), VerificationTimes.exactly(1));
       storageMockServer.verify(
@@ -420,8 +457,7 @@ public class UsersApiIT {
               account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
     }
 
     @Test
@@ -449,8 +485,7 @@ public class UsersApiIT {
               account2.getToken());
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account2.getToken()), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", account2.getToken(), 1);
     }
 
     @Test
@@ -474,8 +509,7 @@ public class UsersApiIT {
               account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
     }
 
     @Test
@@ -500,8 +534,7 @@ public class UsersApiIT {
               account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
     }
   }
 
@@ -534,8 +567,7 @@ public class UsersApiIT {
       assertTrue(user.isPresent());
       assertNull(user.get().getPictureUpdatedAt());
 
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(account.getId()), VerificationTimes.exactly(1));
       storageMockServer.verify(
@@ -570,8 +602,7 @@ public class UsersApiIT {
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
     }
   }
 

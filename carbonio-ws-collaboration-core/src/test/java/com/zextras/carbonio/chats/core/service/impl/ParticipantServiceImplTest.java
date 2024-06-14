@@ -832,12 +832,7 @@ public class ParticipantServiceImplTest {
       verify(membersService, times(1))
           .insertRoomMember(
               roomId,
-              MemberToInsertDto.create()
-                  .userId(user2Id)
-                  .historyCleared(false)
-                  .external(false)
-                  .owner(false)
-                  .temporary(false),
+              MemberToInsertDto.create().userId(user2Id).historyCleared(false).owner(false),
               currentUser);
       DomainEvent event =
           MeetingWaitingParticipantAccepted.create()

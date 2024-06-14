@@ -236,7 +236,7 @@ public class RoomsApiIT {
               .anyMatch(child -> RoomTypeDto.CHANNEL.equals(child.getType())));
       assertTrue(workspace.getChildren().stream().anyMatch(child -> child.getMembers().isEmpty()));
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -319,7 +319,7 @@ public class RoomsApiIT {
               .anyMatch(child -> RoomTypeDto.CHANNEL.equals(child.getType())));
       assertTrue(workspace.getChildren().stream().anyMatch(child -> child.getMembers().isEmpty()));
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -405,7 +405,7 @@ public class RoomsApiIT {
               .anyMatch(child -> RoomTypeDto.CHANNEL.equals(child.getType())));
       assertTrue(workspace.getChildren().stream().anyMatch(child -> child.getMembers().isEmpty()));
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -487,7 +487,7 @@ public class RoomsApiIT {
       assertTrue(
           workspace.getChildren().stream().anyMatch(child -> child.getUserSettings().isMuted()));
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -499,7 +499,7 @@ public class RoomsApiIT {
       List<RoomDto> rooms =
           objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
       assertEquals(0, rooms.size());
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -577,7 +577,7 @@ public class RoomsApiIT {
             "GET", String.format("/users/id/%s", user2Id), user1Token, 1);
         userManagementMockServer.verify(
             "GET", String.format("/users/id/%s", user3Id), user1Token, 1);
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
         assertEquals("testRoom", room.getName());
@@ -632,7 +632,7 @@ public class RoomsApiIT {
 
         assertEquals(400, response.getStatus());
         assertEquals(0, response.getOutput().length);
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       }
 
       @Test
@@ -649,7 +649,7 @@ public class RoomsApiIT {
 
         assertEquals(400, response.getStatus());
         assertEquals(0, response.getOutput().length);
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       }
     }
 
@@ -712,7 +712,7 @@ public class RoomsApiIT {
             "GET", String.format("/users/id/%s", user2Id), user1Token, 1);
         userManagementMockServer.verify(
             "GET", String.format("/users/id/%s", user3Id), user1Token, 1);
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
         assertEquals("testRoom", room.getName());
@@ -767,7 +767,7 @@ public class RoomsApiIT {
 
         assertEquals(400, response.getStatus());
         assertEquals(0, response.getOutput().length);
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       }
 
       @Test
@@ -793,7 +793,7 @@ public class RoomsApiIT {
                   user1Token);
         }
         clock.removeFixTime();
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
         assertEquals("testRoom", room.getName());
@@ -860,7 +860,7 @@ public class RoomsApiIT {
         clock.removeFixTime();
         userManagementMockServer.verify(
             "GET", String.format("/users/id/%s", user2Id), user1Token, 1);
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
         assertNull(room.getName());
@@ -911,7 +911,7 @@ public class RoomsApiIT {
         assertEquals(400, response.getStatus());
         assertEquals(0, response.getContentAsString().length());
         mongooseImMockServer.verifyZeroInteractions();
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       }
 
       @Test
@@ -928,7 +928,7 @@ public class RoomsApiIT {
         assertEquals(400, response.getStatus());
         assertEquals(0, response.getContentAsString().length());
         mongooseImMockServer.verifyZeroInteractions();
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       }
 
       @Test
@@ -952,7 +952,7 @@ public class RoomsApiIT {
         assertEquals(409, response.getStatus());
         assertEquals(0, response.getOutput().length);
         mongooseImMockServer.verifyZeroInteractions();
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       }
 
       @Test
@@ -970,7 +970,7 @@ public class RoomsApiIT {
         assertEquals(400, response.getStatus());
         assertEquals(0, response.getContentAsString().length());
         mongooseImMockServer.verifyZeroInteractions();
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       }
     }
 
@@ -1005,7 +1005,7 @@ public class RoomsApiIT {
             "GET", String.format("/users/id/%s", user2Id), user1Token, 1);
         userManagementMockServer.verify(
             "GET", String.format("/users/id/%s", user3Id), user1Token, 1);
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
         assertEquals("testRoom", room.getName());
@@ -1070,7 +1070,7 @@ public class RoomsApiIT {
             "GET", String.format("/users/id/%s", user2Id), user1Token, 1);
         userManagementMockServer.verify(
             "GET", String.format("/users/id/%s", user3Id), user1Token, 1);
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
         assertEquals("testRoom", room.getName());
@@ -1111,7 +1111,7 @@ public class RoomsApiIT {
 
         assertEquals(400, response.getStatus());
         assertEquals(0, response.getOutput().length);
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       }
     }
 
@@ -1163,7 +1163,7 @@ public class RoomsApiIT {
                   user1Token);
         }
         clock.removeFixTime();
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
         assertEquals("testRoom", room.getName());
@@ -1254,7 +1254,7 @@ public class RoomsApiIT {
                   user1Token);
         }
         clock.removeFixTime();
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
         assertEquals(201, response.getStatus());
         RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
         assertEquals("testRoom", room.getName());
@@ -1307,7 +1307,7 @@ public class RoomsApiIT {
                         .parentId(UUID.randomUUID())
                         .membersIds(List.of(user2Id, user3Id))),
                 user1Token);
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
         assertEquals(400, response.getStatus());
         assertTrue(response.getContentAsString().isEmpty());
       }
@@ -1326,7 +1326,7 @@ public class RoomsApiIT {
                         .description("Test room")
                         .type(RoomTypeDto.CHANNEL)),
                 user1Token);
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
         assertEquals(400, response.getStatus());
         assertTrue(response.getContentAsString().isEmpty());
       }
@@ -1346,7 +1346,7 @@ public class RoomsApiIT {
                         .type(RoomTypeDto.CHANNEL)
                         .parentId(UUID.randomUUID())),
                 user1Token);
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
         assertEquals(404, response.getStatus());
         assertTrue(response.getContentAsString().isEmpty());
       }
@@ -1418,7 +1418,7 @@ public class RoomsApiIT {
 
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -1448,7 +1448,7 @@ public class RoomsApiIT {
 
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -1465,7 +1465,7 @@ public class RoomsApiIT {
 
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -1483,7 +1483,7 @@ public class RoomsApiIT {
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     private String getInsertRoomRequestBody(
@@ -1553,7 +1553,7 @@ public class RoomsApiIT {
       assertTrue(room.getUserSettings().isMuted());
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -1635,7 +1635,7 @@ public class RoomsApiIT {
       assertEquals("channel2", channel2.get().getName());
       assertEquals(1, channel2.get().getRank());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -1707,7 +1707,7 @@ public class RoomsApiIT {
       assertTrue(room.getUserSettings().isMuted());
       assertNull(room.getPictureUpdatedAt());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -1728,7 +1728,7 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.get(url(roomId), user3Token);
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -1743,7 +1743,7 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.get(url(roomId), user3Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
   }
 
@@ -1807,7 +1807,7 @@ public class RoomsApiIT {
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
 
       // TODO: 23/02/22 verify event dispatcher interactions
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hopedXmppMessage1),
           VerificationTimes.exactly(1));
@@ -1859,7 +1859,7 @@ public class RoomsApiIT {
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
 
       // TODO: 23/02/22 verify event dispatcher interactions
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hopedXmppMessage),
           VerificationTimes.exactly(1));
@@ -1906,7 +1906,7 @@ public class RoomsApiIT {
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
 
       // TODO: 23/02/22 verify event dispatcher interactions
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hopedXmppMessage),
           VerificationTimes.exactly(1));
@@ -1921,7 +1921,7 @@ public class RoomsApiIT {
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -1934,7 +1934,7 @@ public class RoomsApiIT {
           dispatcher.put(url(roomId), getUpdateRoomRequestBody(null, "Updated room"), user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -1957,7 +1957,7 @@ public class RoomsApiIT {
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -1985,7 +1985,7 @@ public class RoomsApiIT {
               url(roomId), getUpdateRoomRequestBody("updatedRoom", "Updated room"), user3Token);
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -2002,7 +2002,7 @@ public class RoomsApiIT {
               url(roomId), getUpdateRoomRequestBody("updatedRoom", "Updated room"), user3Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -2019,7 +2019,7 @@ public class RoomsApiIT {
               url(roomId), getUpdateRoomRequestBody("updatedRoom", "Updated room"), user3Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     private String getUpdateRoomRequestBody(@Nullable String name, @Nullable String description) {
@@ -2059,7 +2059,7 @@ public class RoomsApiIT {
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -2081,7 +2081,7 @@ public class RoomsApiIT {
       assertTrue(integrationTestUtils.getRoomById(roomId).isEmpty());
       assertTrue(roomUserSettingsRepository.getByRoomId(roomId.toString()).isEmpty());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
 
       // TODO: 23/02/22 verify event dispatcher interactions
       mongooseImMockServer.verify(
@@ -2120,7 +2120,7 @@ public class RoomsApiIT {
       assertTrue(meetingTestUtils.getMeetingById(meetingId).isEmpty());
       assertTrue(meetingTestUtils.getParticipant(meetingId, "user3Queue").isEmpty());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       mongooseImMockServer.verify(
           mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
           VerificationTimes.exactly(1));
@@ -2196,7 +2196,7 @@ public class RoomsApiIT {
       assertTrue(meetingTestUtils.getMeetingById(meetingId).isEmpty());
       assertTrue(meetingTestUtils.getParticipant(meetingId, "user3Queue").isEmpty());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       mongooseImMockServer.verify(
           mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
           VerificationTimes.exactly(1));
@@ -2285,7 +2285,7 @@ public class RoomsApiIT {
                 .getIdsByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT)
                 .isEmpty());
 
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
         mongooseImMockServer.verify(
             mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
             VerificationTimes.exactly(1));
@@ -2345,7 +2345,7 @@ public class RoomsApiIT {
         assertTrue(snoopy.isPresent());
         assertNull(snoopy.get().getRoomId());
 
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
         mongooseImMockServer.verify(
             mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
             VerificationTimes.exactly(1));
@@ -2409,7 +2409,7 @@ public class RoomsApiIT {
         assertTrue(snoopy.isPresent());
         assertNull(snoopy.get().getRoomId());
 
-        userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+        userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
         mongooseImMockServer.verify(
             mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
             VerificationTimes.exactly(1));
@@ -2440,7 +2440,7 @@ public class RoomsApiIT {
       assertTrue(integrationTestUtils.getRoomById(roomId).isEmpty());
       assertTrue(roomUserSettingsRepository.getByRoomId(roomId.toString()).isEmpty());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
 
       // TODO: 23/02/22 verify event dispatcher interactions
     }
@@ -2485,7 +2485,7 @@ public class RoomsApiIT {
       assertTrue(integrationTestUtils.getRoomById(workspaceId).isEmpty());
       assertTrue(roomUserSettingsRepository.getByRoomId(workspaceId.toString()).isEmpty());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       mongooseImMockServer.verify(
           mongooseImMockServer.getDeleteRoomRequest(channel1Id.toString()),
           VerificationTimes.exactly(1));
@@ -2525,7 +2525,7 @@ public class RoomsApiIT {
       assertTrue(
           integrationTestUtils.getRoomById(workspaceId).orElseThrow().getChildren().isEmpty());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       mongooseImMockServer.verify(
           mongooseImMockServer.getDeleteRoomRequest(channelId.toString()),
           VerificationTimes.exactly(1));
@@ -2548,7 +2548,7 @@ public class RoomsApiIT {
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -2563,7 +2563,7 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.delete(url(roomId), user3Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
   }
 
@@ -2601,7 +2601,7 @@ public class RoomsApiIT {
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
           VerificationTimes.exactly(1));
@@ -2630,7 +2630,7 @@ public class RoomsApiIT {
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -2643,7 +2643,7 @@ public class RoomsApiIT {
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -2659,7 +2659,7 @@ public class RoomsApiIT {
       assertEquals(424, response.getStatus());
       assertEquals(0, response.getOutput().length);
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
   }
 
@@ -2733,7 +2733,7 @@ public class RoomsApiIT {
           OffsetDateTime.ofInstant(now, clock.getZone()).toEpochSecond(),
           room.get().getUpdatedAt().toEpochSecond());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       mongooseImMockServer.verify(mongooseImMockServer.getSendStanzaRequest(hoped));
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
@@ -2786,7 +2786,7 @@ public class RoomsApiIT {
               user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -2815,7 +2815,7 @@ public class RoomsApiIT {
               user3Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -2844,7 +2844,7 @@ public class RoomsApiIT {
               user3Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -2872,7 +2872,7 @@ public class RoomsApiIT {
               user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -2900,7 +2900,7 @@ public class RoomsApiIT {
               user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -2928,7 +2928,7 @@ public class RoomsApiIT {
               user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
   }
 
@@ -2979,7 +2979,7 @@ public class RoomsApiIT {
 
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hoped), VerificationTimes.exactly(1));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
           VerificationTimes.exactly(1));
@@ -3020,7 +3020,7 @@ public class RoomsApiIT {
       assertEquals(404, response.getStatus());
       assertTrue(integrationTestUtils.getFileMetadataById(fileMock.getUUID()).isEmpty());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
   }
 
@@ -3050,7 +3050,7 @@ public class RoomsApiIT {
           MUTED_TO_INFINITY.toInstant(), roomUserSettings.get().getMutedUntil().toInstant());
 
       // TODO: 23/02/22 verify event dispatcher interactions
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -3070,7 +3070,7 @@ public class RoomsApiIT {
       assertEquals(
           MUTED_TO_INFINITY.toInstant(), roomUserSettings.get().getMutedUntil().toInstant());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -3091,7 +3091,7 @@ public class RoomsApiIT {
       assertEquals(
           MUTED_TO_INFINITY.toInstant(), roomUserSettings.get().getMutedUntil().toInstant());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -3123,7 +3123,7 @@ public class RoomsApiIT {
       assertTrue(roomUserSettings.isPresent());
       assertNotNull(roomUserSettings.get().getMutedUntil());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3142,7 +3142,7 @@ public class RoomsApiIT {
 
       assertEquals(400, response.getStatus());
       assertTrue(response.getContentAsString().isEmpty());
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3156,7 +3156,7 @@ public class RoomsApiIT {
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getContentAsString().length());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -3166,7 +3166,7 @@ public class RoomsApiIT {
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getContentAsString().length());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
   }
 
@@ -3193,7 +3193,7 @@ public class RoomsApiIT {
           integrationTestUtils.getRoomUserSettings(roomId, user3Id);
       assertFalse(roomUserSettings.isPresent());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -3212,7 +3212,7 @@ public class RoomsApiIT {
       assertTrue(roomUserSettings.isPresent());
       assertNull(roomUserSettings.get().getMutedUntil());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -3230,7 +3230,7 @@ public class RoomsApiIT {
       assertTrue(roomUserSettings.isPresent());
       assertNull(roomUserSettings.get().getMutedUntil());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -3262,7 +3262,7 @@ public class RoomsApiIT {
       assertTrue(roomUserSettings.isPresent());
       assertNull(roomUserSettings.get().getMutedUntil());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3281,7 +3281,7 @@ public class RoomsApiIT {
 
       assertEquals(400, response.getStatus());
       assertTrue(response.getContentAsString().isEmpty());
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3295,7 +3295,7 @@ public class RoomsApiIT {
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getContentAsString().length());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -3305,7 +3305,7 @@ public class RoomsApiIT {
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getContentAsString().length());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
   }
 
@@ -3331,7 +3331,7 @@ public class RoomsApiIT {
               .getClearedAt());
 
       // TODO: 23/02/22 verify event dispatcher interactions
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -3352,7 +3352,7 @@ public class RoomsApiIT {
                   .readValue(response.getContentAsString(), ClearedDateDto.class)
                   .getClearedAt()));
       // TODO: 23/02/22 verify event dispatcher interactions
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -3366,7 +3366,7 @@ public class RoomsApiIT {
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getContentAsString().length());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -3376,7 +3376,7 @@ public class RoomsApiIT {
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getContentAsString().length());
 
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
   }
 
@@ -3403,7 +3403,7 @@ public class RoomsApiIT {
       assertTrue(members.stream().anyMatch(m -> user1Id.equals(m.getUserId())));
       assertTrue(members.stream().anyMatch(m -> user2Id.equals(m.getUserId())));
       assertTrue(members.stream().anyMatch(m -> user3Id.equals(m.getUserId())));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3425,7 +3425,7 @@ public class RoomsApiIT {
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3438,7 +3438,7 @@ public class RoomsApiIT {
 
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
   }
 
@@ -3495,7 +3495,7 @@ public class RoomsApiIT {
           mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
           VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/users/id/%s", user4Id), user1Token, 1);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3509,7 +3509,7 @@ public class RoomsApiIT {
 
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3583,7 +3583,7 @@ public class RoomsApiIT {
           VerificationTimes.exactly(1));
 
       userManagementMockServer.verify("GET", String.format("/users/id/%s", user4Id), user1Token, 1);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3612,7 +3612,7 @@ public class RoomsApiIT {
 
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3666,7 +3666,7 @@ public class RoomsApiIT {
           mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
           VerificationTimes.exactly(1));
       userManagementMockServer.verify("GET", String.format("/users/id/%s", user4Id), user1Token, 1);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3688,7 +3688,7 @@ public class RoomsApiIT {
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3704,7 +3704,7 @@ public class RoomsApiIT {
 
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -3719,7 +3719,7 @@ public class RoomsApiIT {
 
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3734,7 +3734,7 @@ public class RoomsApiIT {
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3753,38 +3753,26 @@ public class RoomsApiIT {
       assertTrue(response.getContentAsString().isEmpty());
 
       userManagementMockServer.verify("GET", String.format("/users/id/%s", user4Id), user1Token, 1);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     private String getInsertRoomMemberRequestBody(MemberToInsertDto member) {
       return getInsertRoomMemberRequestBody(
-          member.getUserId(),
-          member.isOwner(),
-          member.isTemporary(),
-          member.isExternal(),
-          member.isHistoryCleared());
+          member.getUserId(), member.isOwner(), member.isHistoryCleared());
     }
 
     private String getInsertRoomMemberRequestBody(@Nullable UUID userId) {
-      return getInsertRoomMemberRequestBody(userId, null, null, null, null);
+      return getInsertRoomMemberRequestBody(userId, null, null);
     }
 
     private String getInsertRoomMemberRequestBody(
-        @Nullable UUID userId,
-        @Nullable Boolean owner,
-        @Nullable Boolean temporary,
-        @Nullable Boolean external,
-        @Nullable Boolean historyCleared) {
+        @Nullable UUID userId, @Nullable Boolean owner, @Nullable Boolean historyCleared) {
       StringBuilder stringBuilder = new StringBuilder();
       stringBuilder.append("{");
       Optional.ofNullable(userId)
           .ifPresent(u -> stringBuilder.append(String.format("\"userId\": \"%s\",", u)));
       Optional.ofNullable(owner)
           .ifPresent(o -> stringBuilder.append(String.format("\"owner\": %s,", o)));
-      Optional.ofNullable(temporary)
-          .ifPresent(t -> stringBuilder.append(String.format("\"temporary\": %s,", t)));
-      Optional.ofNullable(external)
-          .ifPresent(e -> stringBuilder.append(String.format("\"external\": %s, ", e)));
       Optional.ofNullable(historyCleared)
           .ifPresent(e -> stringBuilder.append(String.format("\"historyCleared\": %s", e)));
       if (',' == stringBuilder.charAt(stringBuilder.length() - 1)) {
@@ -3844,7 +3832,7 @@ public class RoomsApiIT {
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
           VerificationTimes.exactly(1));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3904,7 +3892,7 @@ public class RoomsApiIT {
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
           VerificationTimes.exactly(1));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -3995,7 +3983,7 @@ public class RoomsApiIT {
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
           VerificationTimes.exactly(1));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
 
       videoServerMockServer.verify(
           videoServerMockServer.getRequest(
@@ -4124,7 +4112,7 @@ public class RoomsApiIT {
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
           VerificationTimes.exactly(1));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       videoServerMockServer.verify(
           videoServerMockServer.getRequest(
               "POST",
@@ -4211,7 +4199,7 @@ public class RoomsApiIT {
       assertEquals(4, roomUserSettingsRepository.getByUserId(user2Id.toString()).size());
 
       // TODO: 25/02/22 verify event dispatcher
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -4234,7 +4222,7 @@ public class RoomsApiIT {
 
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -4249,7 +4237,7 @@ public class RoomsApiIT {
 
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -4264,7 +4252,7 @@ public class RoomsApiIT {
 
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -4313,7 +4301,7 @@ public class RoomsApiIT {
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage),
           VerificationTimes.exactly(1));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
   }
 
@@ -4345,7 +4333,7 @@ public class RoomsApiIT {
               .isOwner());
 
       // TODO: 25/02/22 verify event dispatcher interactions
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -4366,7 +4354,7 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.put(url(UUID.randomUUID(), user2Id), null, user1Token);
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -4380,7 +4368,7 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.put(url(roomId, user2Id), null, user3Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -4394,7 +4382,7 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.put(url(roomId, user4Id), null, user1Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -4412,7 +4400,7 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.put(url(roomId, user2Id), null, user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -4442,7 +4430,7 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.put(url(channelId, user2Id), null, user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
   }
 
@@ -4482,7 +4470,7 @@ public class RoomsApiIT {
               .isOwner());
 
       // TODO: 28/02/22 verify event dispatcher interactions
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -4512,7 +4500,7 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -4526,7 +4514,7 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -4544,7 +4532,7 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -4574,7 +4562,7 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.delete(url(channelId, user2Id), user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
   }
 
@@ -4643,8 +4631,8 @@ public class RoomsApiIT {
           List.of(file3.getId(), file4.getId(), file1.getId(), file2.getId()),
           attachments.getAttachments().stream()
               .map(attachment -> attachment.getId().toString())
-              .collect(Collectors.toList()));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+              .toList());
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -4705,9 +4693,9 @@ public class RoomsApiIT {
           List.of(file3.getId(), file1.getId()),
           attachmentsPage1.getAttachments().stream()
               .map(attachment -> attachment.getId().toString())
-              .collect(Collectors.toList()));
+              .toList());
       assertNotNull(attachmentsPage1.getFilter());
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
 
       MockHttpResponse response2 =
           dispatcher.get(
@@ -4721,9 +4709,9 @@ public class RoomsApiIT {
           List.of(file4.getId(), file2.getId()),
           attachmentsPage2.getAttachments().stream()
               .map(attachment -> attachment.getId().toString())
-              .collect(Collectors.toList()));
+              .toList());
       assertNull(attachmentsPage2.getFilter());
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -4748,7 +4736,7 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.get(url(roomId), user3Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
   }
 
@@ -4806,7 +4794,7 @@ public class RoomsApiIT {
       assertEquals(201, response.getStatus());
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hoped), VerificationTimes.exactly(1));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
           VerificationTimes.exactly(1));
@@ -4875,7 +4863,7 @@ public class RoomsApiIT {
       assertEquals(201, response.getStatus());
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hoped), VerificationTimes.exactly(1));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
           VerificationTimes.exactly(1));
@@ -4947,7 +4935,7 @@ public class RoomsApiIT {
       assertEquals(201, response.getStatus());
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hoped), VerificationTimes.exactly(1));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
           VerificationTimes.exactly(1));
@@ -5014,7 +5002,7 @@ public class RoomsApiIT {
       assertEquals(201, response.getStatus());
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hoped), VerificationTimes.exactly(1));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
           VerificationTimes.exactly(1));
@@ -5130,7 +5118,7 @@ public class RoomsApiIT {
 
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
+      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
   }
 
