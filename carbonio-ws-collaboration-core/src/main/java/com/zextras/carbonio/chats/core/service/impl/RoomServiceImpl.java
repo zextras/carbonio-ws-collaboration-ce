@@ -343,21 +343,19 @@ public class RoomServiceImpl implements RoomService {
             .orElseThrow(() -> new NotFoundException(String.format("Room '%s'", roomId)));
     List<Subscription> subscriptions = room.getSubscriptions();
 
-    if (!currentUser.isSystemUser()) {
-      Subscription member =
-          subscriptions.stream()
-              .filter(subscription -> subscription.getUserId().equals(currentUser.getId()))
-              .findAny()
-              .orElseThrow(
-                  () ->
-                      new ForbiddenException(
-                          String.format(
-                              "User '%s' is not a member of room '%s'",
-                              currentUser.getId(), roomId)));
-      if (mustBeOwner && !member.isOwner()) {
-        throw new ForbiddenException(
-            String.format("User '%s' is not an owner of room '%s'", currentUser.getId(), roomId));
-      }
+    Subscription member =
+        subscriptions.stream()
+            .filter(subscription -> subscription.getUserId().equals(currentUser.getId()))
+            .findAny()
+            .orElseThrow(
+                () ->
+                    new ForbiddenException(
+                        String.format(
+                            "User '%s' is not a member of room '%s'",
+                            currentUser.getId(), roomId)));
+    if (mustBeOwner && !member.isOwner()) {
+      throw new ForbiddenException(
+          String.format("User '%s' is not an owner of room '%s'", currentUser.getId(), roomId));
     }
     return room;
   }

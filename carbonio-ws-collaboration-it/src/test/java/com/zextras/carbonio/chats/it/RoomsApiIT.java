@@ -2679,33 +2679,21 @@ public class RoomsApiIT {
 
     private String getInsertRoomMemberRequestBody(MemberToInsertDto member) {
       return getInsertRoomMemberRequestBody(
-          member.getUserId(),
-          member.isOwner(),
-          member.isTemporary(),
-          member.isExternal(),
-          member.isHistoryCleared());
+          member.getUserId(), member.isOwner(), member.isHistoryCleared());
     }
 
     private String getInsertRoomMemberRequestBody(@Nullable UUID userId) {
-      return getInsertRoomMemberRequestBody(userId, null, null, null, null);
+      return getInsertRoomMemberRequestBody(userId, null, null);
     }
 
     private String getInsertRoomMemberRequestBody(
-        @Nullable UUID userId,
-        @Nullable Boolean owner,
-        @Nullable Boolean temporary,
-        @Nullable Boolean external,
-        @Nullable Boolean historyCleared) {
+        @Nullable UUID userId, @Nullable Boolean owner, @Nullable Boolean historyCleared) {
       StringBuilder stringBuilder = new StringBuilder();
       stringBuilder.append("{");
       Optional.ofNullable(userId)
           .ifPresent(u -> stringBuilder.append(String.format("\"userId\": \"%s\",", u)));
       Optional.ofNullable(owner)
           .ifPresent(o -> stringBuilder.append(String.format("\"owner\": %s,", o)));
-      Optional.ofNullable(temporary)
-          .ifPresent(t -> stringBuilder.append(String.format("\"temporary\": %s,", t)));
-      Optional.ofNullable(external)
-          .ifPresent(e -> stringBuilder.append(String.format("\"external\": %s, ", e)));
       Optional.ofNullable(historyCleared)
           .ifPresent(e -> stringBuilder.append(String.format("\"historyCleared\": %s", e)));
       if (',' == stringBuilder.charAt(stringBuilder.length() - 1)) {

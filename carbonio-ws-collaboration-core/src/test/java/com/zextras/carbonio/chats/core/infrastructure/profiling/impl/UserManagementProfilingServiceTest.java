@@ -15,14 +15,14 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.ProfilingException;
-import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.carbonio.usermanagement.entities.UserId;
 import com.zextras.carbonio.usermanagement.entities.UserInfo;
+import com.zextras.carbonio.usermanagement.enumerations.UserStatus;
+import com.zextras.carbonio.usermanagement.enumerations.UserType;
 import com.zextras.carbonio.usermanagement.exceptions.UserNotFound;
 import io.vavr.control.Try;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test;
 class UserManagementProfilingServiceTest {
 
   private final UserManagementProfilingService profilingService;
-  private final UserManagementClient           userManagementClient;
+  private final UserManagementClient userManagementClient;
 
   public UserManagementProfilingServiceTest() {
     this.userManagementClient = mock(UserManagementClient.class);
@@ -52,14 +52,21 @@ class UserManagementProfilingServiceTest {
 
     @Test
     @DisplayName("Returns the requested user correctly mapped")
-    public void getById_testOk() {
+    void getById_testOk() {
       UUID randomUUID = UUID.randomUUID();
-      when(userManagementClient.getUserById("ZM_AUTH_TOKEN=cookie", randomUUID.toString())).thenReturn(
-        Try.success(new UserInfo(new UserId(randomUUID.toString()), "email@test.com", "name hello", "mydomain.com")));
-      Map<AuthenticationMethod, String> credentials = Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "cookie");
-      Optional<UserProfile> userProfile = profilingService.getById(
-        UserPrincipal.create(randomUUID).authCredentials(credentials), randomUUID
-      );
+      when(userManagementClient.getUserById("ZM_AUTH_TOKEN=cookie", randomUUID.toString()))
+          .thenReturn(
+              Try.success(
+                  new UserInfo(
+                      new UserId(randomUUID.toString()),
+                      "email@test.com",
+                      "name hello",
+                      "mydomain.com",
+                      UserStatus.ACTIVE,
+                      UserType.INTERNAL)));
+      Optional<UserProfile> userProfile =
+          profilingService.getById(
+              UserPrincipal.create(randomUUID).authToken("cookie"), randomUUID);
 
       assertTrue(userProfile.isPresent());
       assertEquals(randomUUID.toString(), userProfile.get().getId());
@@ -70,44 +77,39 @@ class UserManagementProfilingServiceTest {
 
     @Test
     @DisplayName("Returns an empty optional if the user was not found")
-    public void getById_testNotFound() {
+    void getById_testNotFound() {
       UUID randomUUID = UUID.randomUUID();
       when(userManagementClient.getUserById("ZM_AUTH_TOKEN=cookie", randomUUID.toString()))
-        .thenReturn(
-          Try.failure(new UserNotFound(randomUUID.toString()))
-        );
-      Map<AuthenticationMethod, String> credentials = Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "cookie");
-      Optional<UserProfile> userProfile = profilingService.getById(
-        UserPrincipal.create(randomUUID).authCredentials(credentials), randomUUID
-      );
+          .thenReturn(Try.failure(new UserNotFound(randomUUID.toString())));
+      Optional<UserProfile> userProfile =
+          profilingService.getById(
+              UserPrincipal.create(randomUUID).authToken("cookie"), randomUUID);
 
       assertTrue(userProfile.isEmpty());
     }
 
     @Test
     @DisplayName("Throws a forbidden exception when the user doesn't have an authentication token")
-    public void getById_testForbiddenException() {
+    void getById_testForbiddenException() {
       UUID randomUUID = UUID.randomUUID();
-      Map<AuthenticationMethod, String> credentials = Map.of();
-      assertThrows(ForbiddenException.class, () -> profilingService.getById(
-        UserPrincipal.create(randomUUID).authCredentials(credentials), randomUUID
-      ));
+      assertThrows(
+          ForbiddenException.class,
+          () ->
+              profilingService.getById(
+                  UserPrincipal.create(randomUUID).authToken(null), randomUUID));
     }
 
     @Test
     @DisplayName("Throws an exception when the call fails for any other reason")
-    public void getById_testException() {
+    void getById_testException() {
       UUID randomUUID = UUID.randomUUID();
       when(userManagementClient.getUserById("ZM_AUTH_TOKEN=cookie", randomUUID.toString()))
-        .thenReturn(
-          Try.failure(new Exception())
-        );
-      Map<AuthenticationMethod, String> credentials = Map.of(AuthenticationMethod.ZM_AUTH_TOKEN, "cookie");
-      assertThrows(ProfilingException.class, () -> profilingService.getById(
-        UserPrincipal.create(randomUUID).authCredentials(credentials), randomUUID
-      ));
+          .thenReturn(Try.failure(new Exception()));
+      assertThrows(
+          ProfilingException.class,
+          () ->
+              profilingService.getById(
+                  UserPrincipal.create(randomUUID).authToken("cookie"), randomUUID));
     }
-
   }
-
 }

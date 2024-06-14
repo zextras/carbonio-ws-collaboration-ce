@@ -32,6 +32,8 @@ import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.UserDto;
 import com.zextras.carbonio.usermanagement.entities.UserId;
 import com.zextras.carbonio.usermanagement.entities.UserInfo;
+import com.zextras.carbonio.usermanagement.enumerations.UserStatus;
+import com.zextras.carbonio.usermanagement.enumerations.UserType;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -148,19 +150,25 @@ public class UsersApiIT {
               new UserId("332a9527-3388-4207-be77-6d7e2978a723"),
               "snoopy@peanuts.com",
               "Snoopy",
-              "peanuts.com");
+              "peanuts.com",
+              UserStatus.ACTIVE,
+              UserType.INTERNAL);
       UserInfo user2 =
           new UserInfo(
               new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"),
               "charlie.brown@peanuts.com",
               "Charlie Brown",
-              "peanuts.com");
+              "peanuts.com",
+              UserStatus.ACTIVE,
+              UserType.INTERNAL);
       UserInfo user3 =
           new UserInfo(
               new UserId("ea7b9b61-bef5-4cf4-80cb-19612c42593a"),
               "lucy.van.pelt@peanuts.com",
               "Lucy van Pelt",
-              "peanuts.com");
+              "peanuts.com",
+              UserStatus.ACTIVE,
+              UserType.INTERNAL);
       userManagementMockServer.mockUsersBulk(userIds, List.of(user1, user2, user3), true);
 
       MockHttpResponse mockHttpResponse =
@@ -199,13 +207,17 @@ public class UsersApiIT {
               new UserId("332a9527-3388-4207-be77-6d7e2978a723"),
               "snoopy@peanuts.com",
               "Snoopy",
-              "peanuts.com");
+              "peanuts.com",
+              UserStatus.ACTIVE,
+              UserType.INTERNAL);
       UserInfo user2 =
           new UserInfo(
               new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"),
               "charlie.brown@peanuts.com",
               "Charlie Brown",
-              "peanuts.com");
+              "peanuts.com",
+              UserStatus.ACTIVE,
+              UserType.INTERNAL);
       userManagementMockServer.mockUsersBulk(userIds, List.of(user1, user2), true);
 
       MockHttpResponse mockHttpResponse =

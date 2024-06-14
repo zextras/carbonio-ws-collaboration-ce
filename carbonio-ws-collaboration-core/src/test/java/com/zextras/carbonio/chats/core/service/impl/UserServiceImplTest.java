@@ -656,30 +656,6 @@ class UserServiceImplTest {
     }
 
     @Test
-    @DisplayName("Correctly deletes the user picture by a system user")
-    void deleteUserPicture_bySystemUser() {
-      UUID userId = UUID.randomUUID();
-      FileMetadata metadata = FileMetadata.create().id(userId.toString()).userId(userId.toString());
-      when(fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR))
-          .thenReturn(Optional.of(metadata));
-      List<String> contacts = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
-      when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contacts);
-
-      userService.deleteUserPicture(
-          userId, UserPrincipal.create(UUID.randomUUID()).systemUser(true));
-
-      verify(fileMetadataRepository, times(1))
-          .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
-      verify(fileMetadataRepository, times(1)).delete(metadata);
-      verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
-      verify(eventDispatcher, times(1))
-          .sendToUserExchange(eq(contacts), any(UserPictureDeleted.class));
-      verify(subscriptionRepository, times(1)).getContacts(userId.toString());
-      verifyNoMoreInteractions(
-          fileMetadataRepository, storagesService, eventDispatcher, subscriptionRepository);
-    }
-
-    @Test
     @DisplayName("If user is not the picture owner, it throws a ForbiddenException")
     void deleteUserPicture_userNotPictureOwner() {
       ChatsHttpException exception =
