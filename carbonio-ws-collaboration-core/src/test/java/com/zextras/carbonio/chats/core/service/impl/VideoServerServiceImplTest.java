@@ -296,12 +296,13 @@ public class VideoServerServiceImplTest {
               createVideoRoomRequestCaptor.capture());
       verify(videoServerMeetingRepository, times(1))
           .insert(
-              meeting1Id.toString(),
-              meeting1SessionId.toString(),
-              meeting1AudioHandleId.toString(),
-              meeting1VideoHandleId.toString(),
-              meeting1AudioRoomId.toString(),
-              meeting1VideoRoomId.toString());
+              VideoServerMeeting.create()
+                  .meetingId(meeting1Id.toString())
+                  .connectionId(meeting1SessionId.toString())
+                  .audioHandleId(meeting1AudioHandleId.toString())
+                  .videoHandleId(meeting1VideoHandleId.toString())
+                  .audioRoomId(meeting1AudioRoomId.toString())
+                  .videoRoomId(meeting1VideoRoomId.toString()));
 
       assertEquals(1, createConnectionRequestCaptor.getAllValues().size());
       assertEquals(
@@ -373,8 +374,8 @@ public class VideoServerServiceImplTest {
     @DisplayName("Try to start a meeting that is already active")
     void startMeeting_testErrorAlreadyActive() {
       createVideoServerMeeting(meeting1Id);
-
       String idMeeting = meeting1Id.toString();
+
       assertThrows(
           VideoServerException.class,
           () -> videoServerService.startMeeting(idMeeting),
@@ -707,12 +708,10 @@ public class VideoServerServiceImplTest {
               joinPublisherScreenRequestCaptor.capture());
       verify(videoServerSessionRepository, times(1))
           .insert(
-              videoServerMeeting,
-              user1Id.toString(),
-              queue1Id.toString(),
-              user1SessionId.toString(),
-              user1VideoOutHandleId.toString(),
-              user1ScreenHandleId.toString());
+              VideoServerSession.create(user1Id.toString(), queue1Id.toString(), videoServerMeeting)
+                  .connectionId(user1SessionId.toString())
+                  .videoOutHandleId(user1VideoOutHandleId.toString())
+                  .screenHandleId(user1ScreenHandleId.toString()));
 
       assertEquals(1, createConnectionRequestCaptor.getAllValues().size());
       assertEquals(

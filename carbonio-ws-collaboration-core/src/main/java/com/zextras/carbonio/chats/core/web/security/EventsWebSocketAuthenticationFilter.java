@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.web.security;
 
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
@@ -50,6 +51,7 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
     }
     Optional<String> userId = authenticationService.validateCredentials(authToken.get());
     if (userId.isEmpty()) {
+      ChatsLogger.warn("Websocket authentication failed for token " + authToken.get());
       HttpServletResponse httpServletResponse = (HttpServletResponse) response;
       httpServletResponse.setStatus(401);
       return;

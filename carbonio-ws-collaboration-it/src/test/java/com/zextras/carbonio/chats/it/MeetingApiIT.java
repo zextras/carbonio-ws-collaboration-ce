@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockserver.model.HttpResponse.response;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,6 +38,7 @@ import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
 import com.zextras.carbonio.meeting.model.SessionDescriptionProtocolDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -934,8 +934,7 @@ public class MeetingApiIT {
                   ParticipantBuilder.create(user3Id, user3Queue)
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
-              true,
-              null);
+              true);
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
           "connectionId",
@@ -1038,8 +1037,7 @@ public class MeetingApiIT {
                   ParticipantBuilder.create(user3Id, user3Queue)
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
-              true,
-              null);
+              true);
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
           "connectionId",
@@ -1093,8 +1091,7 @@ public class MeetingApiIT {
                   ParticipantBuilder.create(user3Id, user3Queue)
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
-              true,
-              null);
+              true);
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
           "connectionId",
@@ -1148,8 +1145,7 @@ public class MeetingApiIT {
                   ParticipantBuilder.create(user3Id, user3Queue)
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
-              true,
-              null);
+              true);
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
           "connectionId",
@@ -1215,8 +1211,7 @@ public class MeetingApiIT {
                   ParticipantBuilder.create(user3Id, user3Queue)
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
-              true,
-              null);
+              true);
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
           "connectionId",
@@ -1281,8 +1276,7 @@ public class MeetingApiIT {
                   ParticipantBuilder.create(user3Id, user3Queue)
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
-              true,
-              null);
+              true);
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
           "connectionId",
@@ -1360,8 +1354,7 @@ public class MeetingApiIT {
                   ParticipantBuilder.create(user3Id, user3Queue)
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
-              true,
-              null);
+              true);
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
           "connectionId",
@@ -1439,8 +1432,7 @@ public class MeetingApiIT {
                   ParticipantBuilder.create(user3Id, user3Queue)
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
-              true,
-              null);
+              true);
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
           "connectionId",
@@ -1542,8 +1534,7 @@ public class MeetingApiIT {
                   ParticipantBuilder.create(user3Id, user3Queue)
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
-              true,
-              null);
+              true);
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
           "connectionId",
@@ -2129,7 +2120,7 @@ public class MeetingApiIT {
   }
 
   @Nested
-  @DisplayName("Join meeting Tests")
+  @DisplayName("Join permanent meeting Tests")
   class JoinMeetingTests {
 
     private String url(UUID meetingId) {
@@ -2204,6 +2195,8 @@ public class MeetingApiIT {
               Map.of("queue-id", user1Queue),
               user1Token);
       assertEquals(200, response.getStatus());
+      assertEquals(
+          "{\"status\":\"ACCEPTED\"}", new String(response.getOutput(), StandardCharsets.UTF_8));
 
       Meeting meeting = meetingTestUtils.getMeetingById(meetingId).orElseThrow();
       assertNotNull(meeting);
@@ -2516,8 +2509,7 @@ public class MeetingApiIT {
                   ParticipantBuilder.create(user1Id, user1Queue)
                       .audioStreamOn(true)
                       .videoStreamOn(true)),
-              true,
-              null);
+              true);
       integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
       meetingTestUtils.insertVideoServerSession(
           meetingTestUtils.insertVideoServerMeeting(

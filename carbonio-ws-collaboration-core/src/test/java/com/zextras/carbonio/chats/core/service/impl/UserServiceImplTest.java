@@ -378,7 +378,7 @@ class UserServiceImplTest {
       when(fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR))
           .thenReturn(Optional.of(pfpMetadata));
       InputStream fileStream = mock(InputStream.class);
-      when(storagesService.getFileById(userId.toString(), userId.toString()))
+      when(storagesService.getFileStreamById(userId.toString(), userId.toString()))
           .thenReturn(fileStream);
 
       FileContentAndMetadata picture =
@@ -388,7 +388,7 @@ class UserServiceImplTest {
       assertEquals(pfpMetadata.getId(), picture.getMetadata().getId());
       verify(fileMetadataRepository, times(1))
           .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
-      verify(storagesService, times(1)).getFileById(userId.toString(), userId.toString());
+      verify(storagesService, times(1)).getFileStreamById(userId.toString(), userId.toString());
     }
 
     @Test

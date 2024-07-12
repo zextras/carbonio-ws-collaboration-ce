@@ -4,9 +4,9 @@
 
 package com.zextras.carbonio.chats.core.web.exceptions;
 
+import com.google.inject.Inject;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
@@ -30,8 +30,8 @@ public abstract class ExceptionHandler<E extends Throwable> implements Exception
     if (isToLog) {
       ChatsLogger.error(
           String.format(
-              "An error occurred on %s at %s", getRequestUri(), getExceptionPosition(exception)),
-          exception);
+              "An error occurred on %s %n at %s %n %s",
+              getRequestUri(), getExceptionPosition(exception), msg));
     }
     return Response.status(httpStatusCode).type(httpStatusPhrase).build();
   }
@@ -53,7 +53,7 @@ public abstract class ExceptionHandler<E extends Throwable> implements Exception
       return "Unable to find request uri";
     } else {
       String path = uriInfo.getAbsolutePath().getPath();
-      if (uriInfo.getQueryParameters() != null && uriInfo.getQueryParameters().size() > 0) {
+      if (uriInfo.getQueryParameters() != null && !uriInfo.getQueryParameters().isEmpty()) {
         path +=
             "?"
                 + uriInfo.getQueryParameters().entrySet().stream()

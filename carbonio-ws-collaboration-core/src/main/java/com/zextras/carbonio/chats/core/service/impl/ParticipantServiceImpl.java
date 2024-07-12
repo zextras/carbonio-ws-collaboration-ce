@@ -4,10 +4,13 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.event.*;
 import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantClashed;
@@ -29,8 +32,6 @@ import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import io.ebean.annotation.Transactional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -164,14 +165,19 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   @Override
   @Transactional
-  public void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, UUID queueId) {
-    meeting.getParticipants().stream()
-        .filter(
-            p ->
-                userId.toString().equals(p.getUserId())
-                    && queueId.toString().equals(p.getQueueId()))
-        .findFirst()
-        .ifPresent(participant -> removeMeetingParticipant(participant, meeting, room));
+  public void removeMeetingParticipant(UUID queueId) {
+    participantRepository
+        .getByQueueId(queueId.toString())
+        .ifPresent(
+            participant ->
+                roomService
+                    .getRoom(UUID.fromString(participant.getMeeting().getRoomId()))
+                    .ifPresent(
+                        room ->
+                            removeMeetingParticipant(
+                                participant.getMeeting(),
+                                room,
+                                UUID.fromString(participant.getUserId()))));
   }
 
   private void removeMeetingParticipant(Participant participant, Meeting meeting, Room room) {

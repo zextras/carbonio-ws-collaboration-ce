@@ -4,17 +4,16 @@
 
 package com.zextras.carbonio.chats.core.repository.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
 import io.ebean.Database;
 import io.ebean.annotation.Transactional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
-@Transactional
 @Singleton
 public class EbeanSubscriptionRepository implements SubscriptionRepository {
 
@@ -50,6 +49,7 @@ public class EbeanSubscriptionRepository implements SubscriptionRepository {
   }
 
   @Override
+  @Transactional
   public List<String> getContacts(String userId) {
     return db.createQuery(Subscription.class)
         .setDistinct(true)

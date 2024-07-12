@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.web.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -24,8 +26,6 @@ import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
@@ -83,7 +83,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
-
     if (insertRoomRequestDto.getType().equals(RoomTypeDto.ONE_TO_ONE)
         && (insertRoomRequestDto.getName() != null
             || insertRoomRequestDto.getDescription() != null)) {
@@ -282,7 +281,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
-    modifyOwner(roomId, userId, true, currentUser);
+    membersService.setOwner(roomId, userId, true, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -292,12 +291,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
-    modifyOwner(roomId, userId, false, currentUser);
+    membersService.setOwner(roomId, userId, false, currentUser);
     return Response.status(Status.NO_CONTENT).build();
-  }
-
-  private void modifyOwner(UUID roomId, UUID userId, boolean isOwner, UserPrincipal currentUser) {
-    membersService.setOwner(roomId, userId, isOwner, currentUser);
   }
 
   @Override

@@ -9,39 +9,37 @@ section="admin"
 priority="optional"
 url="https://www.zextras.com/"
 depends=(
-  "pending-setups"
   "carbonio-openjdk"
-  "service-discover"
   "jq"
+  "pending-setups"
+  "service-discover"
 )
 backup=(
   "etc/carbonio/ws-collaboration/logback.xml"
   "etc/zextras/service-discover/carbonio-ws-collaboration.hcl"
 )
 source=(
-  "carbonio-ws-collaboration"
   "carbonio-ws-collaboration-configs"
-  "carbonio-ws-collaboration-meeting-cleanup"
-  "carbonio-ws-collaboration.service"
-  "carbonio-ws-collaboration.hcl"
-  "carbonio-ws-collaboration-sidecar.service"
   "carbonio-ws-collaboration-setup.sh"
-  "policies.json"
+  "carbonio-ws-collaboration-sidecar.service"
+  "carbonio-ws-collaboration.hcl"
+  "carbonio-ws-collaboration.service"
+  "carbonio-ws-collaboration"
   "intentions.json"
-  "service-protocol.json"
   "logback.xml"
+  "policies.json"
+  "service-protocol.json"
 )
-sha256sums=('ce7262f2c01e4f6c700265f88892d7572dc546d2ff328506dfd7f5502c6b6b0b'
-  '2be6bc8344cea01c26110d0834468efb62200248b4824ac3427780975f693c07'
-  '2b87e3164efe958c431a67ae0430e3c1eebc10c896de05d91df6b424df338e5b'
-  '065df465181989a3c7c550cd2dd82f5a969466e1497634492f22b7dfd93d1448'
-  '2a100067cad353f0a14addbcd97fea02c5b05b096e37ef9004f45a226048b836'
-  '1320c458d4daa43b2b11cd694d472b635c2de547a67531605cbc2ac2afbd8b9a'
+sha256sums=('0ab411e66f63b6384c5aaf8537e5a8ef3135db162fa2a052266d6a847f5e9812'
   '97256a878d94c5239c422049c9360ca18e1c34c74b3e6ac2a93e51ae0419b423'
-  '7dbc2225d51fb07c1e3e5577f8ba80d8cd9634c7c47f5b0ab1edbc949d97ff21'
+  '1320c458d4daa43b2b11cd694d472b635c2de547a67531605cbc2ac2afbd8b9a'
+  'e077e36d3824463d6618b7075a540037773457cc6b8ff1f105ea5e64dd3e750a'
+  'e081604be153b45a556ebb5515124a11c2d0870a978a583344f8f7be37e307ae'
+  'ce7262f2c01e4f6c700265f88892d7572dc546d2ff328506dfd7f5502c6b6b0b'
   '58c69efd45348762b3c603ecb8a7d3df5e4ada730b00a760d02d3f376a455d08'
-  'd3741e4103a786c40a319248258ee5a25a39174a6ba80973b5877bb8a5e2bf72'
-  'a993f63dbfa8273d92f004c6db2886f17d9876d36c65ab757456ab99c0a3f3c3')
+  'a993f63dbfa8273d92f004c6db2886f17d9876d36c65ab757456ab99c0a3f3c3'
+  '7dbc2225d51fb07c1e3e5577f8ba80d8cd9634c7c47f5b0ab1edbc949d97ff21'
+  'd3741e4103a786c40a319248258ee5a25a39174a6ba80973b5877bb8a5e2bf72')
 
 package() {
   cd "${srcdir}"/../../ws-collaboration
@@ -51,7 +49,6 @@ package() {
   cd "${srcdir}"
   install -Dm 755 carbonio-ws-collaboration "${pkgdir}/usr/bin/carbonio-ws-collaboration"
   install -Dm 755 carbonio-ws-collaboration-configs "${pkgdir}/usr/bin/carbonio-ws-collaboration-configs"
-  install -Dm 755 carbonio-ws-collaboration-meeting-cleanup "${pkgdir}/usr/bin/carbonio-ws-collaboration-meeting-cleanup"
   install -Dm 644 logback.xml "${pkgdir}/etc/carbonio/ws-collaboration/logback.xml"
   install -Dm 644 carbonio-ws-collaboration.service "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration.service"
   install -Dm 644 carbonio-ws-collaboration-sidecar.service "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration-sidecar.service"

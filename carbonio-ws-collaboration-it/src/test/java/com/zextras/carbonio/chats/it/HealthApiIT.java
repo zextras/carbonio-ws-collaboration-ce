@@ -15,7 +15,6 @@ import com.zextras.carbonio.chats.model.DependencyHealthTypeDto;
 import com.zextras.carbonio.chats.model.HealthStatusDto;
 import com.zextras.carbonio.chats.model.HealthStatusTypeDto;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -103,7 +102,7 @@ public class HealthApiIT {
       List<DependencyHealthDto> failedDependencies =
           healthStatus.getDependencies().stream()
               .filter(dependency -> !dependency.isIsHealthy())
-              .collect(Collectors.toList());
+              .toList();
       assertEquals(1, failedDependencies.size());
       assertEquals(DependencyHealthTypeDto.PREVIEWER_SERVICE, failedDependencies.get(0).getName());
       mongooseImMockServer.verify(
@@ -128,7 +127,7 @@ public class HealthApiIT {
       List<DependencyHealthDto> failedDependencies =
           healthStatus.getDependencies().stream()
               .filter(dependency -> !dependency.isIsHealthy())
-              .collect(Collectors.toList());
+              .toList();
       assertEquals(1, failedDependencies.size());
       assertEquals(DependencyHealthTypeDto.XMPP_SERVER, failedDependencies.get(0).getName());
       mongooseImMockServer.verify(
@@ -184,7 +183,7 @@ public class HealthApiIT {
     void isReady_testError() throws Exception {
       mongooseImMockServer.mockIsAlive(false);
       MockHttpResponse response = dispatcher.get("/health/ready");
-      assertEquals(500, response.getStatus());
+      assertEquals(424, response.getStatus());
       mongooseImMockServer.verify(
           mongooseImMockServer.getIsAliveRequest(), VerificationTimes.exactly(1));
     }

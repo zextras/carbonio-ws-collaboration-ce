@@ -4,7 +4,7 @@
 
 package com.zextras.carbonio.chats.core.web.utility;
 
-import jakarta.inject.Singleton;
+import com.google.inject.Singleton;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;

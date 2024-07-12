@@ -42,7 +42,7 @@ public class CapabilityServiceImplTest {
 
     assertNotNull(capabilities);
     assertEquals(true, capabilities.isCanVideoCall());
-    assertEquals(false, capabilities.isCanUseVirtualBackground());
+    assertEquals(true, capabilities.isCanUseVirtualBackground());
     assertEquals(true, capabilities.isCanSeeMessageReads());
     assertEquals(true, capabilities.isCanSeeUsersPresence());
     assertEquals(10, capabilities.getEditMessageTimeLimitInMinutes());

@@ -4,16 +4,14 @@
 
 package com.zextras.carbonio.chats.core.repository.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.User;
 import com.zextras.carbonio.chats.core.repository.UserRepository;
 import io.ebean.Database;
-import io.ebean.annotation.Transactional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
-@Transactional
 @Singleton
 public class EbeanUserRepository implements UserRepository {
 
@@ -21,7 +19,6 @@ public class EbeanUserRepository implements UserRepository {
 
   @Inject
   public EbeanUserRepository(Database database) {
-
     this.database = database;
   }
 

@@ -884,6 +884,39 @@ class RoomServiceImplTest {
     }
 
     @Test
+    @DisplayName("Deletes the required group room and the related room picture")
+    void deleteRoom_groupWithRoomPictureTestOk() {
+      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
+      FileMetadata pfpMetadata =
+          FileMetadata.create()
+              .type(FileMetadataType.ROOM_AVATAR)
+              .roomId(roomGroup2Id.toString())
+              .userId(user2Id.toString())
+              .mimeType("mime/type")
+              .id(UUID.randomUUID().toString())
+              .name("pfp")
+              .originalSize(123L);
+      when(fileMetadataRepository.find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR))
+          .thenReturn(Optional.of(pfpMetadata));
+
+      roomService.deleteRoom(roomGroup2Id, UserPrincipal.create(user2Id));
+
+      verify(fileMetadataRepository, times(1))
+          .find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR);
+      verify(fileMetadataRepository, times(1)).delete(pfpMetadata);
+      verifyNoMoreInteractions(fileMetadataRepository);
+      verify(storagesService, times(1)).deleteFile(pfpMetadata.getId(), user2Id.toString());
+      verifyNoMoreInteractions(storagesService);
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user2Id.toString(), user3Id.toString()),
+              RoomDeleted.create().roomId(roomGroup2Id));
+      verifyNoMoreInteractions(eventDispatcher);
+      verify(messageDispatcher, times(1)).deleteRoom(roomGroup2Id.toString(), user2Id.toString());
+      verifyNoMoreInteractions(messageDispatcher);
+    }
+
+    @Test
     @DisplayName("Deletes the required group room and the associated meeting")
     void deleteRoom_groupWithMeetingTestOk() {
       UUID meetingId = UUID.randomUUID();
@@ -1347,14 +1380,14 @@ class RoomServiceImplTest {
               .roomId(roomGroup1Id.toString())
               .userId(user2Id.toString())
               .mimeType("mime/type")
-              .id(roomGroup1Id.toString())
+              .id(UUID.randomUUID().toString())
               .name("pfp")
               .originalSize(123L);
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       when(fileMetadataRepository.find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR))
           .thenReturn(Optional.of(pfpMetadata));
       InputStream fileStream = mock(InputStream.class);
-      when(storagesService.getFileById(roomGroup1Id.toString(), user2Id.toString()))
+      when(storagesService.getFileStreamById(pfpMetadata.getId(), user2Id.toString()))
           .thenReturn(fileStream);
 
       FileContentAndMetadata roomPicture =
@@ -1365,7 +1398,7 @@ class RoomServiceImplTest {
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
       verify(fileMetadataRepository, times(1))
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
-      verify(storagesService, times(1)).getFileById(roomGroup1Id.toString(), user2Id.toString());
+      verify(storagesService, times(1)).getFileStreamById(pfpMetadata.getId(), user2Id.toString());
     }
 
     @Test
@@ -1398,9 +1431,8 @@ class RoomServiceImplTest {
       when(fileMetadataRepository.find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR))
           .thenReturn(Optional.empty());
       InputStream fileStream = mock(InputStream.class);
-      when(storagesService.getFileById(roomGroup1Id.toString(), user2Id.toString()))
+      when(storagesService.getFileStreamById(roomGroup1Id.toString(), user2Id.toString()))
           .thenReturn(fileStream);
-
       roomService.setRoomPicture(
           roomGroup1Id, fileStream, "image/jpeg", 123L, "picture", UserPrincipal.create(user1Id));
 
@@ -1446,7 +1478,7 @@ class RoomServiceImplTest {
       when(fileMetadataRepository.find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR))
           .thenReturn(Optional.of(existingMetadata));
       InputStream fileStream = mock(InputStream.class);
-      when(storagesService.getFileById(roomGroup1Id.toString(), user2Id.toString()))
+      when(storagesService.getFileStreamById(roomGroup1Id.toString(), user2Id.toString()))
           .thenReturn(fileStream);
 
       roomService.setRoomPicture(
@@ -1487,14 +1519,14 @@ class RoomServiceImplTest {
     @DisplayName("If the user is not a room member, It throws a ForbiddenException")
     void setRoomPicture_failsIfUserIsNotPartOfTheRoom() {
       when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-      InputStream fileStream = mock(InputStream.class);
+      InputStream file = mock(InputStream.class);
       ForbiddenException exception =
           assertThrows(
               ForbiddenException.class,
               () ->
                   roomService.setRoomPicture(
                       roomGroup2Id,
-                      fileStream,
+                      file,
                       "image/jpeg",
                       123L,
                       "picture",
@@ -1512,14 +1544,14 @@ class RoomServiceImplTest {
     @DisplayName("If the user is not a room owner, it throws a ForbiddenException")
     void setRoomPicture_failsIfUserIsNotOwner() {
       when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
-      InputStream fileStream = mock(InputStream.class);
+      InputStream file = mock(InputStream.class);
       ForbiddenException exception =
           assertThrows(
               ForbiddenException.class,
               () ->
                   roomService.setRoomPicture(
                       roomGroup2Id,
-                      fileStream,
+                      file,
                       "image/jpeg",
                       123L,
                       "picture",
@@ -1537,14 +1569,14 @@ class RoomServiceImplTest {
     @DisplayName("If the file is too large, It throws a BadRequestException")
     void setRoomPicture_failsIfPictureIsTooBig() {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-      InputStream fileStream = mock(InputStream.class);
+      InputStream file = mock(InputStream.class);
       BadRequestException exception =
           assertThrows(
               BadRequestException.class,
               () ->
                   roomService.setRoomPicture(
                       roomGroup1Id,
-                      fileStream,
+                      file,
                       "image/jpeg",
                       600L * 1024,
                       "picture",
@@ -1562,14 +1594,14 @@ class RoomServiceImplTest {
     void setRoomPicture_failsIfRoomIsNotAGroup() {
       when(roomRepository.getById(roomOneToOne2Id.toString()))
           .thenReturn(Optional.of(roomOneToOne2));
-      InputStream fileStream = mock(InputStream.class);
+      InputStream file = mock(InputStream.class);
       BadRequestException exception =
           assertThrows(
               BadRequestException.class,
               () ->
                   roomService.setRoomPicture(
                       roomOneToOne2Id,
-                      fileStream,
+                      file,
                       "image/jpeg",
                       123L,
                       "picture",
@@ -1585,14 +1617,14 @@ class RoomServiceImplTest {
     @DisplayName("If the picture is not an image, It throws a BadRequestException")
     void setRoomPicture_failsIfPictureIsNotAnImage() {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-      InputStream fileStream = mock(InputStream.class);
+      InputStream file = mock(InputStream.class);
       BadRequestException exception =
           assertThrows(
               BadRequestException.class,
               () ->
                   roomService.setRoomPicture(
                       roomGroup1Id,
-                      fileStream,
+                      file,
                       "text/html",
                       123L,
                       "picture",
@@ -1616,7 +1648,7 @@ class RoomServiceImplTest {
               .roomId(roomGroup1Id.toString())
               .userId(user2Id.toString())
               .mimeType("mime/type")
-              .id(roomGroup1Id.toString())
+              .id(UUID.randomUUID().toString())
               .name("pfp")
               .originalSize(123L);
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
@@ -1630,7 +1662,7 @@ class RoomServiceImplTest {
       verify(fileMetadataRepository, times(1))
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
       verify(fileMetadataRepository, times(1)).delete(metadata);
-      verify(storagesService, times(1)).deleteFile(roomGroup1Id.toString(), user2Id.toString());
+      verify(storagesService, times(1)).deleteFile(metadata.getId(), user2Id.toString());
       verify(messageDispatcher, times(1))
           .deleteRoomPicture(roomGroup1Id.toString(), user1Id.toString());
       verify(eventDispatcher, times(1))
