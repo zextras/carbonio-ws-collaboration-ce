@@ -88,7 +88,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Consul -->
     <com.orbitz.consul.consul-client.version>1.5.3</com.orbitz.consul.consul-client.version>
     <!-- Rabbit MQ -->
-    <com.rabbitmq.amqp-client.version>5.20.0</com.rabbitmq.amqp-client.version>
+    <com.rabbitmq.amqp-client.version>5.21.0</com.rabbitmq.amqp-client.version>
     <!-- Web Socket -->
     <jakarta.websocket-api.version>2.0.0</jakarta.websocket-api.version>
     <jakarta.el>5.0.0-M1</jakarta.el>

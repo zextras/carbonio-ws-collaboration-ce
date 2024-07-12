@@ -7,7 +7,10 @@ package com.zextras.carbonio.chats.core.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.google.inject.Singleton;
 import com.google.inject.matcher.Matchers;
+import com.orbitz.consul.Consul;
+import com.orbitz.consul.ConsulException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -27,6 +30,7 @@ import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
 import com.zextras.carbonio.chats.core.config.impl.InfrastructureAppConfig;
+import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.consul.ConsulService;
@@ -45,7 +49,6 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerSer
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerHttpClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceImpl;
-import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.logging.aop.TimedCallInterceptor;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
@@ -103,12 +106,13 @@ import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.annotation.Platform;
 import io.ebean.config.DatabaseConfig;
-import jakarta.inject.Singleton;
 import java.io.IOException;
+import java.net.URL;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.util.Optional;
+import java.util.concurrent.TimeoutException;
 import org.flywaydb.core.Flyway;
 
 public class CoreModule extends AbstractModule {
@@ -223,6 +227,23 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
+  private Consul getConsul(AppConfig appConfig) {
+    try {
+      return Consul.builder()
+          .withUrl(
+              new URL(
+                  "http",
+                  appConfig.get(String.class, ConfigName.CONSUL_HOST).orElseThrow(),
+                  appConfig.get(Integer.class, ConfigName.CONSUL_PORT).orElseThrow(),
+                  ""))
+          .build();
+    } catch (Exception e) {
+      throw new ConsulException("Unable to connect to consul ", e);
+    }
+  }
+
+  @Singleton
+  @Provides
   private Clock getClock() {
     return Clock.system(ZoneId.systemDefault());
   }
@@ -298,9 +319,9 @@ public class CoreModule extends AbstractModule {
         appConfig.get(String.class, ConfigName.DATABASE_PASSWORD).orElse("password"));
     config.setIdleTimeout(
         appConfig.get(Integer.class, ConfigName.HIKARI_IDLE_TIMEOUT).orElse(10000));
-    config.setMinimumIdle(appConfig.get(Integer.class, ConfigName.HIKARI_MIN_POOL_SIZE).orElse(1));
+    config.setMinimumIdle(appConfig.get(Integer.class, ConfigName.HIKARI_MIN_POOL_SIZE).orElse(10));
     config.setMaximumPoolSize(
-        appConfig.get(Integer.class, ConfigName.HIKARI_MAX_POOL_SIZE).orElse(2));
+        appConfig.get(Integer.class, ConfigName.HIKARI_MAX_POOL_SIZE).orElse(10));
     config.setLeakDetectionThreshold(
         appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(5000));
     return new HikariDataSource(config);
@@ -320,48 +341,43 @@ public class CoreModule extends AbstractModule {
         objectMapper);
   }
 
-  @Singleton
   @Provides
-  private Optional<Connection> getRabbitMqConnection(AppConfig appConfig) {
+  private Connection getRabbitMqConnection(AppConfig appConfig) {
+    ConnectionFactory factory = new ConnectionFactory();
+    factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
+    factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
+    factory.setUsername(
+        appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_USERNAME).orElseThrow());
+    factory.setPassword(
+        appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_PASSWORD).orElseThrow());
+    factory.setVirtualHost(appConfig.get(String.class, ConfigName.VIRTUAL_HOST).orElse("/"));
+    factory.setRequestedHeartbeat(
+        appConfig.get(Integer.class, ConfigName.REQUESTED_HEARTBEAT_IN_SEC).orElse(60));
+    factory.setNetworkRecoveryInterval(
+        appConfig.get(Integer.class, ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI).orElse(30000));
+    factory.setConnectionTimeout(
+        appConfig.get(Integer.class, ConfigName.CONNECTION_TIMEOUT_IN_MILLI).orElse(60000));
+    factory.setAutomaticRecoveryEnabled(
+        appConfig.get(Boolean.class, ConfigName.AUTOMATIC_RECOVERY_ENABLED).orElse(true));
+    factory.setTopologyRecoveryEnabled(
+        appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(false));
     try {
-      ConnectionFactory factory = new ConnectionFactory();
-      factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
-      factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
-      factory.setUsername(
-          appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_USERNAME).orElseThrow());
-      factory.setPassword(
-          appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_PASSWORD).orElseThrow());
-      factory.setVirtualHost(appConfig.get(String.class, ConfigName.VIRTUAL_HOST).orElse("/"));
-      factory.setRequestedHeartbeat(
-          appConfig.get(Integer.class, ConfigName.REQUESTED_HEARTBEAT_IN_SEC).orElse(15));
-      factory.setNetworkRecoveryInterval(
-          appConfig
-              .get(Integer.class, ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI)
-              .orElse(20000));
-      factory.setConnectionTimeout(
-          appConfig.get(Integer.class, ConfigName.CONNECTION_TIMEOUT_IN_MILLI).orElse(30000));
-      factory.setAutomaticRecoveryEnabled(
-          appConfig.get(Boolean.class, ConfigName.AUTOMATIC_RECOVERY_ENABLED).orElse(true));
-      factory.setTopologyRecoveryEnabled(
-          appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(false));
-      return Optional.of(factory.newConnection());
-    } catch (Exception e) {
-      ChatsLogger.error("Message broker error: ", e);
-      return Optional.empty();
+      return factory.newConnection();
+    } catch (IOException | TimeoutException e) {
+      throw new EventDispatcherException("Could not create connection with message broker", e);
     }
   }
 
   @Provides
-  private Optional<Channel> getChannel(Optional<Connection> connection) {
-    if (connection.isEmpty()) {
-      ChatsLogger.error("RabbitMQ connection is not up!");
-      return Optional.empty();
+  private Channel getRabbitMqChannel(Connection connection) {
+    if (connection == null || !connection.isOpen()) {
+      throw new EventDispatcherException("Message broker connection is not up!");
     }
     try {
-      return connection.get().openChannel();
+      return connection.createChannel();
     } catch (IOException e) {
-      ChatsLogger.error("Could not create RabbitMQ channel for websocket");
-      return Optional.empty();
+      throw new EventDispatcherException(
+          "Could not create channel on message broker connection", e);
     }
   }
 }

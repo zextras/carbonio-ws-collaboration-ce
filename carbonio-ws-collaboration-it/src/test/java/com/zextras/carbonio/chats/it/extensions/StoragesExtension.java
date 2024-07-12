@@ -22,35 +22,44 @@ import org.mockserver.model.ClearType;
 
 public class StoragesExtension implements AfterEachCallback, BeforeAllCallback, ParameterResolver {
 
-  private final static Namespace EXTENSION_NAMESPACE = Namespace.create(StoragesExtension.class);
-  private static final String    SERVER_HOST         = "127.0.0.1";
-  private static final int       SERVER_PORT         = 8742;
-  private final static String    CLIENT_STORE_ENTRY  = "storages_client";
+  private static final Namespace EXTENSION_NAMESPACE = Namespace.create(StoragesExtension.class);
+  private static final String SERVER_HOST = "127.0.0.1";
+  private static final int SERVER_PORT = 8742;
+  private static final String CLIENT_STORE_ENTRY = "storages_client";
 
   @Override
   public void beforeAll(ExtensionContext context) {
-    context.getRoot().getStore(EXTENSION_NAMESPACE).getOrComputeIfAbsent(CLIENT_STORE_ENTRY, (key) -> {
-      ChatsLogger.debug("Starting Storages mock...");
-      StorageMockServer client = new StorageMockServer(SERVER_PORT);
-      InMemoryConfigStore.set(ConfigName.STORAGES_HOST, SERVER_HOST);
-      InMemoryConfigStore.set(ConfigName.STORAGES_PORT, Integer.toString(SERVER_PORT));
-      return client;
-    }, StorageMockServer.class);
+    context
+        .getRoot()
+        .getStore(EXTENSION_NAMESPACE)
+        .getOrComputeIfAbsent(
+            CLIENT_STORE_ENTRY,
+            (key) -> {
+              ChatsLogger.debug("Starting Storages mock...");
+              StorageMockServer client = new StorageMockServer(SERVER_PORT);
+              InMemoryConfigStore.set(ConfigName.STORAGES_HOST, SERVER_HOST);
+              InMemoryConfigStore.set(ConfigName.STORAGES_PORT, Integer.toString(SERVER_PORT));
+              return client;
+            },
+            StorageMockServer.class);
   }
 
   @Override
   public boolean supportsParameter(
-    ParameterContext parameterContext, ExtensionContext extensionContext
-  ) throws ParameterResolutionException {
+      ParameterContext parameterContext, ExtensionContext extensionContext)
+      throws ParameterResolutionException {
     return parameterContext.getParameter().getType().equals(StorageMockServer.class);
   }
 
   @Override
-  public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext)
-    throws ParameterResolutionException {
+  public Object resolveParameter(
+      ParameterContext parameterContext, ExtensionContext extensionContext)
+      throws ParameterResolutionException {
     if (parameterContext.getParameter().getType().equals(StorageMockServer.class)) {
-      return Optional.ofNullable(extensionContext.getRoot().getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
-        .orElseThrow(() -> new ParameterResolutionException(parameterContext.getParameter().getName()));
+      return Optional.ofNullable(
+              extensionContext.getRoot().getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
+          .orElseThrow(
+              () -> new ParameterResolutionException(parameterContext.getParameter().getName()));
     } else {
       throw new ParameterResolutionException(parameterContext.getParameter().getName());
     }
@@ -59,9 +68,7 @@ public class StoragesExtension implements AfterEachCallback, BeforeAllCallback, 
   @Override
   public void afterEach(ExtensionContext context) {
     Optional.ofNullable(context.getRoot().getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
-      .map(mock -> (StorageMockServer) mock)
-      .ifPresent(
-        mock -> mock.clear(request(), ClearType.LOG)
-      );
+        .map(mock -> (StorageMockServer) mock)
+        .ifPresent(mock -> mock.clear(request(), ClearType.LOG));
   }
 }

@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.it.utils;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Recording;
@@ -16,13 +18,9 @@ import com.zextras.carbonio.chats.core.repository.RecordingRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Singleton
 public class MeetingTestUtils {
@@ -49,7 +47,7 @@ public class MeetingTestUtils {
 
   public UUID generateAndSaveMeeting(UUID roomId, List<ParticipantBuilder> participantBuilders) {
     return generateAndSaveMeeting(
-        roomId, MeetingType.PERMANENT, participantBuilders, false, null, List.of());
+        roomId, MeetingType.PERMANENT, participantBuilders, false, List.of());
   }
 
   public UUID generateAndSaveMeeting(
@@ -57,17 +55,20 @@ public class MeetingTestUtils {
       MeetingType meetingType,
       List<ParticipantBuilder> participantBuilders,
       Boolean active,
-      OffsetDateTime expiration,
       List<Recording> recordings) {
     Meeting meeting =
         meetingRepository.insert(
-            "Test Meeting for " + roomId.toString(), meetingType, roomId, expiration);
+            Meeting.create()
+                .id(UUID.randomUUID().toString())
+                .name("Test Meeting for " + roomId.toString())
+                .meetingType(meetingType)
+                .roomId(roomId.toString()));
     recordings.forEach(recording -> recordingRepository.insert(recording.meeting(meeting)));
     meeting
         .participants(
             participantBuilders.stream()
                 .map(participantBuilder -> participantBuilder.build(meeting))
-                .collect(Collectors.toList()))
+                .toList())
         .active(active)
         .recordings(recordings);
     meetingRepository.update(meeting);
@@ -89,15 +90,15 @@ public class MeetingTestUtils {
       String videoHandleId,
       String audioRoomId,
       String videoRoomId) {
-    // TODO put real server id
     return videoServerMeetingRepository.insert(
-        UUID.randomUUID(),
-        meetingId,
-        connectionId,
-        audioHandleId,
-        videoHandleId,
-        audioRoomId,
-        videoRoomId);
+        VideoServerMeeting.create()
+            .serverId(UUID.randomUUID().toString())
+            .meetingId(meetingId)
+            .connectionId(connectionId)
+            .audioHandleId(audioHandleId)
+            .videoHandleId(videoHandleId)
+            .audioRoomId(audioRoomId)
+            .videoRoomId(videoRoomId));
   }
 
   public VideoServerSession insertVideoServerSession(
@@ -108,7 +109,10 @@ public class MeetingTestUtils {
       String videoOutHandleId,
       String screenHandleId) {
     return videoServerSessionRepository.insert(
-        videoServerMeeting, userId, queueId, connectionId, videoOutHandleId, screenHandleId);
+        VideoServerSession.create(userId, queueId, videoServerMeeting)
+            .connectionId(connectionId)
+            .videoOutHandleId(videoOutHandleId)
+            .screenHandleId(screenHandleId));
   }
 
   public VideoServerSession updateVideoServerSession(VideoServerSession videoServerSession) {

@@ -4,20 +4,18 @@
 
 package com.zextras.carbonio.chats.core.repository.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
-import io.ebean.annotation.Transactional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@Transactional
 @Singleton
 public class EbeanRoomUserSettingsRepository implements RoomUserSettingsRepository {
 

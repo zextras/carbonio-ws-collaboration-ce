@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.storage.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -12,8 +14,6 @@ import com.zextras.filestore.model.BulkDeleteResponseItem;
 import com.zextras.filestore.model.ChatsIdentifier;
 import com.zextras.filestore.model.IdentifierType;
 import com.zextras.filestore.powerstore.api.powerstore.PowerstoreClient;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.io.InputStream;
 import java.util.List;
 

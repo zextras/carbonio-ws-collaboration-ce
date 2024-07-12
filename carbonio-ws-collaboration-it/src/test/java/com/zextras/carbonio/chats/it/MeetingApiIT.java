@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockserver.model.HttpResponse.response;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -43,7 +42,6 @@ import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
 import com.zextras.carbonio.meeting.model.SessionDescriptionProtocolDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
-import jakarta.ws.rs.HttpMethod;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -57,9 +55,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockserver.model.HttpRequest;
-import org.mockserver.model.HttpResponse;
-import org.mockserver.model.JsonBody;
 import org.mockserver.verify.VerificationTimes;
 
 @ApiIntegrationTest
@@ -129,89 +124,6 @@ public class MeetingApiIT {
     room1Id = UUID.fromString("26c15cd7-619d-4cbd-a221-486efb1bfc9d");
     room2Id = UUID.fromString("0367dedb-a5d8-451f-bbc8-22e70d8a777a");
     room3Id = UUID.fromString("e110c21d-8c73-4096-b449-166264399ac8");
-  }
-
-  public void mockVideoServer(UUID serverId) {
-    consulMockServer
-        .when(HttpRequest.request().withMethod(HttpMethod.GET).withPath("/v1/status/leader"))
-        .respond(HttpResponse.response().withStatusCode(200));
-    consulMockServer
-        .when(
-            HttpRequest.request()
-                .withMethod(HttpMethod.GET)
-                .withPath("/v1/health/service/carbonio-videoserver")
-                .withQueryStringParameter("passing", "true"))
-        .respond(
-            HttpResponse.response()
-                .withBody(
-                    JsonBody.json(
-                        "[\n"
-                            + "    {\n"
-                            + "        \"Node\": {\n"
-                            + "            \"ID\": \"6cb11082-d1ab-52d3-ecc9-ee3f82a3fc2d\",\n"
-                            + "            \"Node\": \"test-node\",\n"
-                            + "            \"Address\": \"172.27.27.207\",\n"
-                            + "            \"Datacenter\": \"dc\",\n"
-                            + "            \"TaggedAddresses\": {\n"
-                            + "                \"lan\": \"172.27.27.207\",\n"
-                            + "                \"lan_ipv4\": \"172.27.27.207\",\n"
-                            + "                \"wan\": \"172.27.27.207\",\n"
-                            + "                \"wan_ipv4\": \"172.27.27.207\"\n"
-                            + "            },\n"
-                            + "            \"Meta\": {\n"
-                            + "                \"consul-network-segment\": \"\"\n"
-                            + "            },\n"
-                            + "            \"CreateIndex\": 224570,\n"
-                            + "            \"ModifyIndex\": 224573\n"
-                            + "        },\n"
-                            + "        \"Service\": {\n"
-                            + "            \"ID\": \"carbonio-videoserver\",\n"
-                            + "            \"Service\": \"carbonio-videoserver\",\n"
-                            + "            \"Tags\": [],\n"
-                            + "            \"Address\": \"\",\n"
-                            + "            \"Meta\": {\n"
-                            + "                \"service_id\": \""
-                            + serverId
-                            + "\"\n"
-                            + "            },\n"
-                            + "            \"Port\": 10000,\n"
-                            + "            \"Weights\": {\n"
-                            + "                \"Passing\": 1,\n"
-                            + "                \"Warning\": 1\n"
-                            + "            },\n"
-                            + "            \"EnableTagOverride\": false,\n"
-                            + "            \"Proxy\": {\n"
-                            + "                \"Mode\": \"\",\n"
-                            + "                \"MeshGateway\": {},\n"
-                            + "                \"Expose\": {}\n"
-                            + "            },\n"
-                            + "            \"Connect\": {},\n"
-                            + "            \"CreateIndex\": 224584,\n"
-                            + "            \"ModifyIndex\": 224944\n"
-                            + "        },\n"
-                            + "        \"Checks\": [\n"
-                            + "            {\n"
-                            + "                \"Node\": \"test-node\",\n"
-                            + "                \"CheckID\": \"serfHealth\",\n"
-                            + "                \"Name\": \"Serf Health Status\",\n"
-                            + "                \"Status\": \"passing\",\n"
-                            + "                \"Notes\": \"\",\n"
-                            + "                \"Output\": \"Agent alive and reachable\",\n"
-                            + "                \"ServiceID\": \"\",\n"
-                            + "                \"ServiceName\": \"\",\n"
-                            + "                \"ServiceTags\": [],\n"
-                            + "                \"Type\": \"\",\n"
-                            + "                \"Interval\": \"\",\n"
-                            + "                \"Timeout\": \"\",\n"
-                            + "                \"ExposedPort\": 0,\n"
-                            + "                \"Definition\": {},\n"
-                            + "                \"CreateIndex\": 224570,\n"
-                            + "                \"ModifyIndex\": 483600\n"
-                            + "            }\n"
-                            + "        ]\n"
-                            + "    }\n"
-                            + "]"))
-                .withStatusCode(200));
   }
 
   @Nested
@@ -317,7 +229,8 @@ public class MeetingApiIT {
     @BeforeEach
     void init() {
       UUID serverId = UUID.randomUUID();
-      mockVideoServer(serverId);
+      consulMockServer.mockConsulLeaderResponse();
+      consulMockServer.mockResponseForVideoserver(serverId);
     }
 
     @Test
@@ -1052,7 +965,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of());
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
@@ -1158,7 +1070,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of(
                   Recording.create()
                       .id(UUID.randomUUID().toString())
@@ -1335,7 +1246,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of());
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
@@ -1392,7 +1302,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of());
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
@@ -1449,7 +1358,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of());
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
@@ -1518,7 +1426,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of());
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
@@ -1586,7 +1493,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of());
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
@@ -1667,7 +1573,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of());
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
@@ -1748,7 +1653,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of());
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
@@ -1853,7 +1757,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of());
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
@@ -2411,7 +2314,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of(
                   Recording.create()
                       .id(UUID.randomUUID().toString())
@@ -2851,7 +2753,7 @@ public class MeetingApiIT {
 
       UUID meetingId =
           meetingTestUtils.generateAndSaveMeeting(
-              room1Id, MeetingType.SCHEDULED, Collections.emptyList(), true, null, List.of());
+              room1Id, MeetingType.SCHEDULED, Collections.emptyList(), true, List.of());
       meetingTestUtils.insertVideoServerMeeting(
           meetingId.toString(),
           "connectionId",
@@ -2957,7 +2859,7 @@ public class MeetingApiIT {
 
       UUID meetingId =
           meetingTestUtils.generateAndSaveMeeting(
-              room1Id, MeetingType.SCHEDULED, Collections.emptyList(), true, null, List.of());
+              room1Id, MeetingType.SCHEDULED, Collections.emptyList(), true, List.of());
       meetingTestUtils.insertVideoServerMeeting(
           meetingId.toString(),
           "connectionId",
@@ -3010,9 +2912,14 @@ public class MeetingApiIT {
 
       UUID meetingId =
           meetingTestUtils.generateAndSaveMeeting(
-              room1Id, MeetingType.SCHEDULED, Collections.emptyList(), true, null, List.of());
+              room1Id, MeetingType.SCHEDULED, Collections.emptyList(), true, List.of());
       waitingParticipantRepository.insert(
-          meetingId.toString(), user2Id.toString(), user2Queue, JoinStatus.ACCEPTED);
+          WaitingParticipant.create()
+              .id(UUID.randomUUID().toString())
+              .meetingId(meetingId.toString())
+              .userId(user2Id.toString())
+              .queueId(user2Queue)
+              .status(JoinStatus.ACCEPTED));
       meetingTestUtils.insertVideoServerMeeting(
           meetingId.toString(),
           "connectionId",
@@ -3286,7 +3193,6 @@ public class MeetingApiIT {
                       .audioStreamOn(true)
                       .videoStreamOn(true)),
               true,
-              null,
               List.of());
       integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
       meetingTestUtils.insertVideoServerSession(
@@ -3412,7 +3318,6 @@ public class MeetingApiIT {
                       .audioStreamOn(true)
                       .videoStreamOn(true)),
               true,
-              null,
               List.of(
                   Recording.create()
                       .id(UUID.randomUUID().toString())
@@ -3679,9 +3584,19 @@ public class MeetingApiIT {
                       .audioStreamOn(true)
                       .videoStreamOn(false)));
       waitingParticipantRepository.insert(
-          meetingId.toString(), user2Id.toString(), user2Queue, JoinStatus.WAITING);
+          WaitingParticipant.create()
+              .id(UUID.randomUUID().toString())
+              .meetingId(meetingId.toString())
+              .userId(user2Id.toString())
+              .queueId(user2Queue)
+              .status(JoinStatus.WAITING));
       waitingParticipantRepository.insert(
-          meetingId.toString(), user3Id.toString(), user3Queue, JoinStatus.WAITING);
+          WaitingParticipant.create()
+              .id(UUID.randomUUID().toString())
+              .meetingId(meetingId.toString())
+              .userId(user3Id.toString())
+              .queueId(user3Queue)
+              .status(JoinStatus.WAITING));
 
       MockHttpResponse response = dispatcher.get(url(meetingId), user1Token);
       assertEquals(200, response.getStatus());
@@ -3724,7 +3639,12 @@ public class MeetingApiIT {
                       .audioStreamOn(true)
                       .videoStreamOn(false)));
       waitingParticipantRepository.insert(
-          meetingId.toString(), user2Id.toString(), user2Queue, JoinStatus.WAITING);
+          WaitingParticipant.create()
+              .id(UUID.randomUUID().toString())
+              .meetingId(meetingId.toString())
+              .userId(user2Id.toString())
+              .queueId(user2Queue)
+              .status(JoinStatus.WAITING));
       MockHttpResponse response =
           dispatcher.post(
               url(meetingId) + "/" + user2Id,
@@ -5716,7 +5636,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of());
       meetingTestUtils.insertVideoServerMeeting(
           meeting1Id.toString(),
@@ -5818,7 +5737,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of(
                   Recording.create()
                       .id(UUID.randomUUID().toString())
@@ -5861,7 +5779,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               false,
-              null,
               List.of());
 
       MockHttpResponse response = dispatcher.post(url(meeting1Id), user1Token);
@@ -5898,7 +5815,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of());
 
       MockHttpResponse response = dispatcher.post(url(meeting1Id), user2Token);
@@ -5944,7 +5860,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of(
                   Recording.create()
                       .id(UUID.randomUUID().toString())
@@ -6066,7 +5981,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of());
 
       MockHttpResponse response =
@@ -6108,7 +6022,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               false,
-              null,
               List.of(
                   Recording.create()
                       .id(UUID.randomUUID().toString())
@@ -6156,7 +6069,6 @@ public class MeetingApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)),
               true,
-              null,
               List.of(
                   Recording.create()
                       .id(UUID.randomUUID().toString())

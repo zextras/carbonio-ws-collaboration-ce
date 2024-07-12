@@ -7,6 +7,8 @@ package com.zextras.carbonio.chats.core.data.entity;
 import com.zextras.carbonio.chats.core.data.type.RecordingStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -39,6 +41,7 @@ public class Recording {
   private String token;
 
   @Column(name = "STATUS", length = 32, nullable = false)
+  @Enumerated(EnumType.STRING)
   private RecordingStatus status;
 
   public static Recording create() {

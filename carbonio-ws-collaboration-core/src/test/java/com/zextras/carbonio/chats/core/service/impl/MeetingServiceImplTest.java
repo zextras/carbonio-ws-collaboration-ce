@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -198,12 +199,13 @@ public class MeetingServiceImplTest {
       UUID meetingId = UUID.randomUUID();
       Meeting meeting =
           Meeting.create()
-              .roomId(room1Id.toString())
+              .id(meetingId.toString())
+              .name(meetingName)
               .meetingType(meetingType)
-              .active(false)
-              .id(meetingId.toString());
+              .roomId(room1Id.toString())
+              .active(false);
       when(roomService.getRoomEntityAndCheckUser(room1Id, user, false)).thenReturn(room1);
-      when(meetingRepository.insert(meetingName, meetingType, room1Id, null)).thenReturn(meeting);
+      when(meetingRepository.insert(any(Meeting.class))).thenReturn(meeting);
 
       MeetingDto createdMeeting =
           meetingService.createMeeting(user, meetingName, MeetingTypeDto.PERMANENT, room1Id, null);

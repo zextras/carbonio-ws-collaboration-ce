@@ -1582,6 +1582,39 @@ class RoomServiceImplTest {
     }
 
     @Test
+    @DisplayName("Deletes the required group room and the related room picture")
+    void deleteRoom_groupWithRoomPictureTestOk() {
+      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
+      FileMetadata pfpMetadata =
+          FileMetadata.create()
+              .type(FileMetadataType.ROOM_AVATAR)
+              .roomId(roomGroup2Id.toString())
+              .userId(user2Id.toString())
+              .mimeType("mime/type")
+              .id(UUID.randomUUID().toString())
+              .name("pfp")
+              .originalSize(123L);
+      when(fileMetadataRepository.find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR))
+          .thenReturn(Optional.of(pfpMetadata));
+
+      roomService.deleteRoom(roomGroup2Id, UserPrincipal.create(user2Id));
+
+      verify(fileMetadataRepository, times(1))
+          .find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR);
+      verify(fileMetadataRepository, times(1)).delete(pfpMetadata);
+      verifyNoMoreInteractions(fileMetadataRepository);
+      verify(storagesService, times(1)).deleteFile(pfpMetadata.getId(), user2Id.toString());
+      verifyNoMoreInteractions(storagesService);
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user2Id.toString(), user3Id.toString()),
+              RoomDeleted.create().roomId(roomGroup2Id));
+      verifyNoMoreInteractions(eventDispatcher);
+      verify(messageDispatcher, times(1)).deleteRoom(roomGroup2Id.toString(), user2Id.toString());
+      verifyNoMoreInteractions(messageDispatcher);
+    }
+
+    @Test
     @DisplayName("Deletes the required group room and the associated meeting")
     void deleteRoom_groupWithMeetingTestOk() {
       UUID meetingId = UUID.randomUUID();
@@ -2114,14 +2147,14 @@ class RoomServiceImplTest {
               .roomId(roomGroup1Id.toString())
               .userId(user2Id.toString())
               .mimeType("mime/type")
-              .id(roomGroup1Id.toString())
+              .id(UUID.randomUUID().toString())
               .name("pfp")
               .originalSize(123L);
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       when(fileMetadataRepository.find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR))
           .thenReturn(Optional.of(pfpMetadata));
       InputStream fileStream = mock(InputStream.class);
-      when(storagesService.getFileStreamById(roomGroup1Id.toString(), user2Id.toString()))
+      when(storagesService.getFileStreamById(pfpMetadata.getId(), user2Id.toString()))
           .thenReturn(fileStream);
 
       FileContentAndMetadata roomPicture =
@@ -2132,8 +2165,7 @@ class RoomServiceImplTest {
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
       verify(fileMetadataRepository, times(1))
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
-      verify(storagesService, times(1))
-          .getFileStreamById(roomGroup1Id.toString(), user2Id.toString());
+      verify(storagesService, times(1)).getFileStreamById(pfpMetadata.getId(), user2Id.toString());
     }
 
     @Test
@@ -2383,7 +2415,7 @@ class RoomServiceImplTest {
               .roomId(roomGroup1Id.toString())
               .userId(user2Id.toString())
               .mimeType("mime/type")
-              .id(roomGroup1Id.toString())
+              .id(UUID.randomUUID().toString())
               .name("pfp")
               .originalSize(123L);
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
@@ -2397,7 +2429,7 @@ class RoomServiceImplTest {
       verify(fileMetadataRepository, times(1))
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
       verify(fileMetadataRepository, times(1)).delete(metadata);
-      verify(storagesService, times(1)).deleteFile(roomGroup1Id.toString(), user2Id.toString());
+      verify(storagesService, times(1)).deleteFile(metadata.getId(), user2Id.toString());
       verify(messageDispatcher, times(1))
           .deleteRoomPicture(roomGroup1Id.toString(), user1Id.toString());
       verify(eventDispatcher, times(1))

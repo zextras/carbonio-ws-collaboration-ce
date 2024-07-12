@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.it.utils;
 
+import com.google.inject.Inject;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
@@ -18,8 +19,6 @@ import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import jakarta.annotation.Nullable;
-import jakarta.inject.Inject;
-import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,20 +32,17 @@ public class IntegrationTestUtils {
   private final FileMetadataRepository fileMetadataRepository;
   private final UserRepository userRepository;
   private final RoomUserSettingsRepository roomUserSettingsRepository;
-  private final Clock clock;
 
   @Inject
   public IntegrationTestUtils(
       RoomRepository roomRepository,
       FileMetadataRepository fileMetadataRepository,
       UserRepository userRepository,
-      RoomUserSettingsRepository roomUserSettingsRepository,
-      Clock clock) {
+      RoomUserSettingsRepository roomUserSettingsRepository) {
     this.roomRepository = roomRepository;
     this.fileMetadataRepository = fileMetadataRepository;
     this.userRepository = userRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
-    this.clock = clock;
   }
 
   public Room generateAndSaveRoom(

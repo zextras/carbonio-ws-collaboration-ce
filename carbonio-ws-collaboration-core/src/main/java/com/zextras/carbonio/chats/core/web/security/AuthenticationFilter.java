@@ -4,11 +4,12 @@
 
 package com.zextras.carbonio.chats.core.web.security;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.core.Cookie;
@@ -57,6 +58,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                                         .authToken(token))))
                     .onFailure(
                         throwable -> {
+                          ChatsLogger.warn(
+                              "Authentication failed for token "
+                                  + token
+                                  + "\n "
+                                  + throwable.getMessage());
                           throw new UnauthorizedException(throwable);
                         }),
             () ->

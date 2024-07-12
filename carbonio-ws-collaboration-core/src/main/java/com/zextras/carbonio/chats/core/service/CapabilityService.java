@@ -10,5 +10,4 @@ import com.zextras.carbonio.chats.model.CapabilitiesDto;
 public interface CapabilityService {
 
   CapabilitiesDto getCapabilities(UserPrincipal currentUser);
-
 }

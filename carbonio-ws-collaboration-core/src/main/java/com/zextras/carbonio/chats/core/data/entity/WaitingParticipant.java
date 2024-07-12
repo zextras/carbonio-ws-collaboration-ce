@@ -13,19 +13,19 @@ import java.util.Objects;
 public class WaitingParticipant {
 
   @Id
-  @Column(name = "ID", length = 64, nullable = false)
+  @Column(name = "ID", length = 36, nullable = false)
   private String id;
 
-  @Column(name = "USER_ID", length = 64, nullable = false)
+  @Column(name = "USER_ID", length = 36, nullable = false)
   private String userId;
 
-  @Column(name = "MEETING_ID", length = 64, nullable = false)
+  @Column(name = "MEETING_ID", length = 36, nullable = false)
   private String meetingId;
 
-  @Column(name = "QUEUE_ID", length = 64, nullable = false)
+  @Column(name = "QUEUE_ID", length = 36, nullable = false)
   private String queueId;
 
-  @Column(name = "STATUS", nullable = false)
+  @Column(name = "STATUS", length = 32, nullable = false)
   @Enumerated(EnumType.STRING)
   private JoinStatus status;
 

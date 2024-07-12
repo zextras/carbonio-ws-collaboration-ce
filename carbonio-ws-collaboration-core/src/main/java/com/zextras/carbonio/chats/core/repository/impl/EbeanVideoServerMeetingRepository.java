@@ -4,13 +4,12 @@
 
 package com.zextras.carbonio.chats.core.repository.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import io.ebean.Database;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.util.Optional;
-import java.util.UUID;
 
 @Singleton
 public class EbeanVideoServerMeetingRepository implements VideoServerMeetingRepository {
@@ -32,23 +31,7 @@ public class EbeanVideoServerMeetingRepository implements VideoServerMeetingRepo
   }
 
   @Override
-  public VideoServerMeeting insert(
-      UUID serverId,
-      String meetingId,
-      String connectionId,
-      String audioHandleId,
-      String videoHandleId,
-      String audioRoomId,
-      String videoRoomId) {
-    VideoServerMeeting videoServerMeeting =
-        VideoServerMeeting.create()
-            .serverId(serverId.toString())
-            .meetingId(meetingId)
-            .connectionId(connectionId)
-            .audioHandleId(audioHandleId)
-            .videoHandleId(videoHandleId)
-            .audioRoomId(audioRoomId)
-            .videoRoomId(videoRoomId);
+  public VideoServerMeeting insert(VideoServerMeeting videoServerMeeting) {
     db.insert(videoServerMeeting);
     return videoServerMeeting;
   }

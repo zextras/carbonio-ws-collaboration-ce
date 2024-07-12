@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.infrastructure.DependencyType;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
@@ -19,10 +21,7 @@ import com.zextras.carbonio.chats.model.DependencyHealthDto;
 import com.zextras.carbonio.chats.model.DependencyHealthTypeDto;
 import com.zextras.carbonio.chats.model.HealthStatusDto;
 import com.zextras.carbonio.chats.model.HealthStatusTypeDto;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Singleton
 public class HealthcheckServiceImpl implements HealthcheckService {
@@ -68,7 +67,7 @@ public class HealthcheckServiceImpl implements HealthcheckService {
                         DependencyHealthDto.create()
                             .name(dependency.getDependencyHealthType())
                             .isHealthy(dependency.isAlive()))
-                .collect(Collectors.toList()));
+                .toList());
   }
 
   private HealthStatusTypeDto checkServiceStatus() {

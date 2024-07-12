@@ -4,9 +4,9 @@
 
 package com.zextras.carbonio.chats.core.provider.impl;
 
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.provider.AppInfoProvider;
-import jakarta.inject.Singleton;
 import java.io.InputStream;
 import java.util.Optional;
 import java.util.Properties;

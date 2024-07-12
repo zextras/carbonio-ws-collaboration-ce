@@ -4,16 +4,15 @@
 
 package com.zextras.carbonio.chats.core.repository.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.WaitingParticipant;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.repository.WaitingParticipantRepository;
 import io.ebean.Database;
 import io.ebean.Query;
 import io.vavr.control.Option;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.util.List;
-import java.util.UUID;
 
 @Singleton
 public class EbeanWaitingParticipantRepository implements WaitingParticipantRepository {
@@ -35,17 +34,9 @@ public class EbeanWaitingParticipantRepository implements WaitingParticipantRepo
   }
 
   @Override
-  public WaitingParticipant insert(
-      String meetingId, String userId, String queueId, JoinStatus status) {
-    WaitingParticipant wp =
-        new WaitingParticipant()
-            .id(UUID.randomUUID().toString())
-            .meetingId(meetingId)
-            .userId(userId)
-            .queueId(queueId)
-            .status(status);
-    db.save(wp);
-    return wp;
+  public WaitingParticipant insert(WaitingParticipant waitingParticipant) {
+    db.save(waitingParticipant);
+    return waitingParticipant;
   }
 
   @Override

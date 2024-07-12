@@ -16,7 +16,7 @@ public class ChatsConstant {
 
     public static final boolean CAN_VIDEO_CALL = true;
     public static final boolean CAN_VIDEO_CALL_RECORD = true;
-    public static final boolean CAN_USE_VIRTUAL_BACKGROUND = false;
+    public static final boolean CAN_USE_VIRTUAL_BACKGROUND = true;
     public static final boolean CAN_SEE_MESSAGE_READS = true;
     public static final boolean CAN_SEE_USERS_PRESENCE = true;
     public static final int MAX_USER_IMAGE_SIZE_IN_KB = 512;

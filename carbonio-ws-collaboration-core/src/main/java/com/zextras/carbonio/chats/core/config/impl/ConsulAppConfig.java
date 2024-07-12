@@ -4,7 +4,6 @@
 
 package com.zextras.carbonio.chats.core.config.impl;
 
-import com.google.common.net.HostAndPort;
 import com.orbitz.consul.Consul;
 import com.orbitz.consul.cache.ConsulCache;
 import com.orbitz.consul.cache.KVCache;
@@ -16,6 +15,7 @@ import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.annotation.Nullable;
+import java.net.URL;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -52,8 +52,10 @@ public class ConsulAppConfig extends AppConfig {
         "carbonio-ws-collaboration/hikari/leak-detection-threshold");
     namesMapping.put(ConfigName.XMPP_SERVER_USERNAME, "carbonio-message-dispatcher/api/username");
     namesMapping.put(ConfigName.XMPP_SERVER_PASSWORD, "carbonio-message-dispatcher/api/password");
-    namesMapping.put(ConfigName.EVENT_DISPATCHER_USER_USERNAME, "carbonio-message-broker/username");
-    namesMapping.put(ConfigName.EVENT_DISPATCHER_USER_PASSWORD, "carbonio-message-broker/password");
+    namesMapping.put(
+        ConfigName.EVENT_DISPATCHER_USER_USERNAME, "carbonio-message-broker/default/username");
+    namesMapping.put(
+        ConfigName.EVENT_DISPATCHER_USER_PASSWORD, "carbonio-message-broker/default/password");
     namesMapping.put(ConfigName.CAN_VIDEO_CALL, "carbonio-ws-collaboration/configs/can-video-call");
     namesMapping.put(
         ConfigName.CAN_VIDEO_CALL_RECORD,
@@ -126,7 +128,7 @@ public class ConsulAppConfig extends AppConfig {
     try {
       return create(
           Consul.builder()
-              .withHostAndPort(HostAndPort.fromParts(consulHost, consulPort))
+              .withUrl(new URL("http", consulHost, consulPort, ""))
               .withReadTimeoutMillis(CONSUL_CLIENT_READ_TIMEOUT_SECONDS * 1000)
               .withClientConfiguration(
                   new ClientConfig(

@@ -18,7 +18,6 @@ import com.zextras.carbonio.chats.model.DependencyHealthTypeDto;
 import com.zextras.carbonio.chats.model.HealthStatusDto;
 import com.zextras.carbonio.chats.model.HealthStatusTypeDto;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -58,11 +57,11 @@ public class HealthApiIT {
 
   @Nested
   @DisplayName("Gets health status tests")
-  public class GetsHealthStatusTests {
+  class GetsHealthStatusTests {
 
     @Test
     @DisplayName("Returns the success health status")
-    public void getHealthStatus_TestOk() throws Exception {
+    void getHealthStatus_TestOk() throws Exception {
       mongooseImMockServer.mockIsAlive(true);
       videoServerMockServer.mockRequestedResponse(
           "GET", "/janus/info", "{\"janus\":\"server_info\"}", true);
@@ -87,7 +86,7 @@ public class HealthApiIT {
 
     @Test
     @DisplayName("Returns the health status when previewer isn't alive")
-    public void getHealthStatus_TestWarn() throws Exception {
+    void getHealthStatus_TestWarn() throws Exception {
       mongooseImMockServer.mockIsAlive(true);
       videoServerMockServer.mockRequestedResponse(
           "GET", "/janus/info", "{\"janus\":\"server_info\"}", true);
@@ -102,7 +101,7 @@ public class HealthApiIT {
       List<DependencyHealthDto> failedDependencies =
           healthStatus.getDependencies().stream()
               .filter(dependency -> !dependency.isIsHealthy())
-              .collect(Collectors.toList());
+              .toList();
       assertEquals(1, failedDependencies.size());
       assertEquals(DependencyHealthTypeDto.PREVIEWER_SERVICE, failedDependencies.get(0).getName());
       mongooseImMockServer.verify(
@@ -113,7 +112,7 @@ public class HealthApiIT {
 
     @Test
     @DisplayName("Returns the health status when xmpp server isn't alive")
-    public void getHealthStatus_TestError() throws Exception {
+    void getHealthStatus_TestError() throws Exception {
       videoServerMockServer.mockRequestedResponse(
           "GET", "/janus/info", "{\"janus\":\"server_info\"}", true);
       mongooseImMockServer.mockIsAlive(false);
@@ -127,7 +126,7 @@ public class HealthApiIT {
       List<DependencyHealthDto> failedDependencies =
           healthStatus.getDependencies().stream()
               .filter(dependency -> !dependency.isIsHealthy())
-              .collect(Collectors.toList());
+              .toList();
       assertEquals(1, failedDependencies.size());
       assertEquals(DependencyHealthTypeDto.XMPP_SERVER, failedDependencies.get(0).getName());
       mongooseImMockServer.verify(
@@ -139,11 +138,11 @@ public class HealthApiIT {
 
   @Nested
   @DisplayName("Checks live tests")
-  public class ChecksLiveTests {
+  class ChecksLiveTests {
 
     @Test
     @DisplayName("Checks correct live test")
-    public void isLive_testOk() throws Exception {
+    void isLive_testOk() throws Exception {
       MockHttpResponse response = dispatcher.get("/health/live");
       assertEquals(204, response.getStatus());
     }
@@ -151,11 +150,11 @@ public class HealthApiIT {
 
   @Nested
   @DisplayName("Checks ready tests")
-  public class ChecksReadyTests {
+  class ChecksReadyTests {
 
     @Test
     @DisplayName("Checks correct ready test")
-    public void isReady_testOk() throws Exception {
+    void isReady_testOk() throws Exception {
       mongooseImMockServer.mockIsAlive(true);
       videoServerMockServer.mockRequestedResponse(
           "GET", "/janus/info", "{\"janus\":\"server_info\"}", true);
@@ -169,7 +168,7 @@ public class HealthApiIT {
 
     @Test
     @DisplayName("Checks warn ready test")
-    public void isReady_testWarn() throws Exception {
+    void isReady_testWarn() throws Exception {
       mongooseImMockServer.mockIsAlive(true);
       previewerMockServer.setIsAliveResponse(false);
       MockHttpResponse response = dispatcher.get("/health/ready");
@@ -180,10 +179,10 @@ public class HealthApiIT {
 
     @Test
     @DisplayName("Checks error ready test")
-    public void isReady_testError() throws Exception {
+    void isReady_testError() throws Exception {
       mongooseImMockServer.mockIsAlive(false);
       MockHttpResponse response = dispatcher.get("/health/ready");
-      assertEquals(500, response.getStatus());
+      assertEquals(424, response.getStatus());
       mongooseImMockServer.verify(
           mongooseImMockServer.getIsAliveRequest(), VerificationTimes.exactly(1));
     }

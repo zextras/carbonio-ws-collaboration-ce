@@ -4,35 +4,18 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.videoserver;
 
+import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
+import java.util.List;
+import java.util.Optional;
 
 public interface VideoServerService extends HealthIndicator {
-
-  /**
-   * Performs all the actions necessary to create a 'meeting' on the VideoServer
-   *
-   * @param meetingId meeting identifier
-   */
   void startMeeting(String meetingId);
 
-  /**
-   * Performs all the actions necessary to delete a 'meeting' on the VideoServer
-   *
-   * @param meetingId meeting identifier
-   */
   void stopMeeting(String meetingId);
 
-  /**
-   * Performs all the actions necessary to add a 'participant' to a 'meeting' on the VideoServer
-   *
-   * @param userId participant's user identifier
-   * @param queueId participant's message queue identifier
-   * @param meetingId id of the meeting
-   * @param videoStreamOn true if participant wants to join with video, false otherwise
-   * @param audioStreamOn true if participant wants to join with audio, false otherwise
-   */
   void addMeetingParticipant(
       String userId,
       String queueId,
@@ -40,82 +23,26 @@ public interface VideoServerService extends HealthIndicator {
       boolean videoStreamOn,
       boolean audioStreamOn);
 
-  /**
-   * Performs all the actions necessary to destroy a 'participant' in a 'meeting' on the VideoServer
-   *
-   * @param userId participant's user identifier
-   * @param meetingId id of the meeting
-   */
   void destroyMeetingParticipant(String userId, String meetingId);
 
-  /**
-   * Updates the audio stream status for the user's session in the meeting
-   *
-   * @param userId participant's user identifier
-   * @param meetingId identification of the meeting on which to perform the operation
-   * @param enabled if true the audio stream is enabled, otherwise it is disabled
-   */
+  Optional<VideoServerSession> getSession(String connectionId);
+
+  List<VideoServerSession> getSessions(String meetingId);
+
   void updateAudioStream(String userId, String meetingId, boolean enabled);
 
-  /**
-   * Updates the media stream status for the user's session in the meeting
-   *
-   * @param userId participant's user identifier
-   * @param meetingId identification of the meeting on which to perform the operation
-   * @param mediaStreamSettingsDto user settings request to update the media stream status
-   */
   void updateMediaStream(
       String userId, String meetingId, MediaStreamSettingsDto mediaStreamSettingsDto);
 
-  /**
-   * Completes WebRTC negotiation with VideoServer for the PeerConnection setup related to media
-   * stream.
-   *
-   * @param userId participant's user identifier
-   * @param meetingId identification of the meeting on which to perform the operation
-   * @param sdp the offer rtc session description
-   */
   void answerRtcMediaStream(String userId, String meetingId, String sdp);
 
-  /**
-   * Update subscriptions of the current session to the desired media streams
-   *
-   * @param userId participant's user identifier
-   * @param meetingId identification of the meeting on which to perform the operation
-   * @param subscriptionUpdatesDto contains all media streams which user wants to update
-   *     subscriptions for
-   */
   void updateSubscriptionsMediaStream(
       String userId, String meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto);
 
-  /**
-   * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to audio
-   * stream.
-   *
-   * @param userId participant's user identifier
-   * @param meetingId identification of the meeting on which to perform the operation
-   * @param sdp the offer rtc session description
-   */
   void offerRtcAudioStream(String userId, String meetingId, String sdp);
 
-  /**
-   * Updates recording status on a meeting on the VideoServer
-   *
-   * @param meetingId meeting identifier
-   * @param enabled if true the recording is started, otherwise it is stopped
-   */
   void updateRecording(String meetingId, boolean enabled);
 
-  /**
-   * Sends the request to the video recorder to start the post-processing phase on the meeting
-   * recorded
-   *
-   * @param meetingId meeting identifier
-   * @param meetingName the name of the meeting recorded
-   * @param folderId the folder id where the recording will be saved on Files
-   * @param recordingName the name used to save the recording on Files
-   * @param authToken the token needed to save the recording on Files
-   */
   void startRecordingPostProcessing(
       String meetingId,
       String meetingName,

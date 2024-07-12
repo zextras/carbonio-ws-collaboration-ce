@@ -134,29 +134,29 @@ public class VideoServerServiceImpl implements VideoServerService {
     List<UUID> healthyVideoservers =
         consulService.getHealthyServices(VIDEOSERVER_SERVICE_NAME, VIDEOSERVER_SERVICE_METADATA);
 
-    UUID chosenServer = healthyVideoservers.get(random.nextInt(healthyVideoservers.size()));
+    UUID serverId = healthyVideoservers.get(random.nextInt(healthyVideoservers.size()));
 
-    VideoServerResponse videoServerResponse = createNewConnection(chosenServer, meetingId);
+    VideoServerResponse videoServerResponse = createNewConnection(serverId, meetingId);
     String connectionId = videoServerResponse.getDataId();
     videoServerResponse =
-        attachToPlugin(chosenServer, connectionId, JANUS_AUDIOBRIDGE_PLUGIN, meetingId);
+        attachToPlugin(serverId, connectionId, JANUS_AUDIOBRIDGE_PLUGIN, meetingId);
     String audioHandleId = videoServerResponse.getDataId();
     AudioBridgeResponse audioBridgeResponse =
-        createAudioBridgeRoom(chosenServer, meetingId, connectionId, audioHandleId);
-    videoServerResponse =
-        attachToPlugin(chosenServer, connectionId, JANUS_VIDEOROOM_PLUGIN, meetingId);
+        createAudioBridgeRoom(serverId, meetingId, connectionId, audioHandleId);
+    videoServerResponse = attachToPlugin(serverId, connectionId, JANUS_VIDEOROOM_PLUGIN, meetingId);
     String videoHandleId = videoServerResponse.getDataId();
     VideoRoomResponse videoRoomResponse =
-        createVideoRoom(chosenServer, meetingId, connectionId, videoHandleId);
+        createVideoRoom(serverId, meetingId, connectionId, videoHandleId);
 
     videoServerMeetingRepository.insert(
-        chosenServer,
-        meetingId,
-        connectionId,
-        audioHandleId,
-        videoHandleId,
-        audioBridgeResponse.getRoom(),
-        videoRoomResponse.getRoom());
+        VideoServerMeeting.create()
+            .serverId(serverId.toString())
+            .meetingId(meetingId)
+            .connectionId(connectionId)
+            .audioHandleId(audioHandleId)
+            .videoHandleId(videoHandleId)
+            .audioRoomId(audioBridgeResponse.getRoom())
+            .videoRoomId(videoRoomResponse.getRoom()));
   }
 
   private VideoServerResponse createNewConnection(UUID serverId, String meetingId) {
@@ -398,7 +398,10 @@ public class VideoServerServiceImpl implements VideoServerService {
         videoServerMeeting.getVideoRoomId(),
         MediaType.SCREEN);
     videoServerSessionRepository.insert(
-        videoServerMeeting, userId, queueId, connectionId, videoOutHandleId, screenHandleId);
+        VideoServerSession.create(userId, queueId, videoServerMeeting)
+            .connectionId(connectionId)
+            .videoOutHandleId(videoOutHandleId)
+            .screenHandleId(screenHandleId));
   }
 
   private void joinVideoRoomAsPublisher(
@@ -479,6 +482,16 @@ public class VideoServerServiceImpl implements VideoServerService {
                         videoServerSessionRepository.remove(videoServerSession);
                       });
             });
+  }
+
+  @Override
+  public Optional<VideoServerSession> getSession(String connectionId) {
+    return videoServerSessionRepository.getByConnectionId(connectionId);
+  }
+
+  @Override
+  public List<VideoServerSession> getSessions(String meetingId) {
+    return videoServerSessionRepository.getByMeetingId(meetingId);
   }
 
   @Override

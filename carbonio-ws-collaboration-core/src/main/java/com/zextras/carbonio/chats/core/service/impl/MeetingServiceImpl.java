@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Recording;
@@ -35,8 +37,6 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.MeetingTypeDto;
 import io.vavr.control.Option;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Collections;
@@ -95,10 +95,13 @@ public class MeetingServiceImpl implements MeetingService {
                   if (room.getMeetingId() == null) {
                     Meeting meeting =
                         meetingRepository.insert(
-                            name,
-                            MeetingType.valueOf(meetingType.toString().toUpperCase()),
-                            UUID.fromString(room.getId()),
-                            null);
+                            Meeting.create()
+                                .id(UUID.randomUUID().toString())
+                                .name(name)
+                                .meetingType(
+                                    MeetingType.valueOf(meetingType.toString().toUpperCase()))
+                                .active(false)
+                                .roomId(roomId.toString()));
                     roomService.setMeetingIntoRoom(room, meeting);
                     eventDispatcher.sendToUserExchange(
                         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
@@ -107,10 +110,12 @@ public class MeetingServiceImpl implements MeetingService {
                             .roomId(roomId));
                     return meeting;
                   } else {
-                    throw new ConflictException("Room has already an associated meeting");
+                    throw new ConflictException(
+                        String.format("Room %s has already an associated meeting", roomId));
                   }
                 })
-            .getOrElseThrow(() -> new RuntimeException("Room not found")));
+            .getOrElseThrow(
+                () -> new NotFoundException(String.format("Room %s not found", roomId))));
   }
 
   @Override

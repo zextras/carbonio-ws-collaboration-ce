@@ -23,9 +23,9 @@ import org.mockserver.model.ClearType;
 public class ConsulExtension implements AfterEachCallback, BeforeAllCallback, ParameterResolver {
 
   private static final String SERVER_HOST = "localhost";
-  private static final int SERVER_PORT = 8500;
+  private static final int SERVER_PORT = 8787;
   private static final Namespace EXTENSION_NAMESPACE = Namespace.create(ConsulExtension.class);
-  private static final String CLIENT_STORE_ENTRY = "consul__client";
+  private static final String CLIENT_STORE_ENTRY = "consul_client";
 
   @Override
   public void beforeAll(ExtensionContext context) {

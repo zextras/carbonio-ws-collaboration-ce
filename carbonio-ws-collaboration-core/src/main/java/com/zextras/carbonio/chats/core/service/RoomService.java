@@ -100,6 +100,14 @@ public interface RoomService {
   void muteRoom(UUID roomId, UserPrincipal currentUser);
 
   /**
+   * Unmutes notification for the specified room
+   *
+   * @param roomId room identifier {@link UUID }
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   */
+  void unmuteRoom(UUID roomId, UserPrincipal currentUser);
+
+  /**
    * Clears all messages for the specified room
    *
    * @param roomId room identifier {@link UUID }
@@ -107,14 +115,6 @@ public interface RoomService {
    * @return date since messages were cleared
    */
   OffsetDateTime clearRoomHistory(UUID roomId, UserPrincipal currentUser);
-
-  /**
-   * Unmutes notification for the specified room
-   *
-   * @param roomId room identifier {@link UUID }
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   */
-  void unmuteRoom(UUID roomId, UserPrincipal currentUser);
 
   /**
    * Updates a room information
@@ -139,15 +139,20 @@ public interface RoomService {
   /**
    * Sets a new room picture
    *
-   * @param roomId        room identifier {@link UUID }
-   * @param imageStream   image to set {@link InputStream}
-   * @param mimeType      image mime type
+   * @param roomId room identifier {@link UUID }
+   * @param imageStream image to set {@link InputStream}
+   * @param mimeType image mime type
    * @param contentLength image size
-   * @param fileName      image file name
-   * @param currentUser   current authenticated user {@link UserPrincipal}
+   * @param fileName image file name
+   * @param currentUser current authenticated user {@link UserPrincipal}
    */
   void setRoomPicture(
-      UUID roomId, InputStream imageStream, String mimeType, Long contentLength, String fileName, UserPrincipal currentUser);
+      UUID roomId,
+      InputStream imageStream,
+      String mimeType,
+      Long contentLength,
+      String fileName,
+      UserPrincipal currentUser);
 
   /**
    * Deletes the room pictures

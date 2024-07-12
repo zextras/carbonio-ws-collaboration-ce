@@ -623,7 +623,7 @@ public class UsersApiIT {
           objectMapper.readValue(response.getContentAsString(), CapabilitiesDto.class);
       assertEquals(true, capabilities.isCanVideoCall());
       assertEquals(true, capabilities.isCanVideoCallRecord());
-      assertEquals(false, capabilities.isCanUseVirtualBackground());
+      assertEquals(true, capabilities.isCanUseVirtualBackground());
       assertEquals(true, capabilities.isCanSeeMessageReads());
       assertEquals(true, capabilities.isCanSeeUsersPresence());
       assertEquals(10, capabilities.getEditMessageTimeLimitInMinutes());

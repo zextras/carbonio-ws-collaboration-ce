@@ -4,14 +4,14 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.authentication.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.carbonio.usermanagement.entities.UserId;
 import com.zextras.carbonio.usermanagement.entities.UserMyself;
 import io.vavr.control.Try;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.util.Optional;
 
 @Singleton

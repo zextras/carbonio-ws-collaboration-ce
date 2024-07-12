@@ -4,10 +4,13 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.entity.WaitingParticipant;
 import com.zextras.carbonio.chats.core.data.event.*;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -17,7 +20,6 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
-import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.WaitingParticipantRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
@@ -28,15 +30,13 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.meeting.model.*;
 import io.ebean.annotation.Transactional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import org.jetbrains.annotations.NotNull;
 
 @Singleton
 public class ParticipantServiceImpl implements ParticipantService {
@@ -81,7 +81,6 @@ public class ParticipantServiceImpl implements ParticipantService {
                 () ->
                     new NotFoundException(
                         String.format("Meeting with id '%s' not found", meetingId)));
-
     return insertMeetingParticipant(meeting, joinSettingsDto, currentUser);
   }
 
@@ -172,20 +171,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                                             })
                                     .orElseGet(
                                         () -> {
-                                          waitingParticipantRepository.insert(
-                                              meeting.getId(),
-                                              currentUser.getId(),
-                                              currentUser.getQueueId().toString(),
-                                              JoinStatus.WAITING);
-                                          eventDispatcher.sendToUserExchange(
-                                              room.getSubscriptions().stream()
-                                                  .filter(Subscription::isOwner)
-                                                  .map(Subscription::getUserId)
-                                                  .collect(Collectors.toList()),
-                                              new MeetingWaitingParticipantJoined()
-                                                  .meetingId(UUID.fromString(meeting.getId()))
-                                                  .userId(UUID.fromString(currentUser.getId())));
-                                          return JoinStatus.WAITING;
+                                          return addWaitingParticipant(meeting, currentUser, room);
                                         });
                               }
                             })
@@ -213,7 +199,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                                                     room.getSubscriptions().stream()
                                                         .filter(Subscription::isOwner)
                                                         .map(Subscription::getUserId)
-                                                        .collect(Collectors.toList()),
+                                                        .toList(),
                                                     new MeetingWaitingParticipantJoined()
                                                         .meetingId(UUID.fromString(meeting.getId()))
                                                         .userId(
@@ -243,20 +229,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                                             })
                                     .orElseGet(
                                         () -> {
-                                          waitingParticipantRepository.insert(
-                                              meeting.getId(),
-                                              currentUser.getId(),
-                                              currentUser.getQueueId().toString(),
-                                              JoinStatus.WAITING);
-                                          eventDispatcher.sendToUserExchange(
-                                              room.getSubscriptions().stream()
-                                                  .filter(Subscription::isOwner)
-                                                  .map(Subscription::getUserId)
-                                                  .collect(Collectors.toList()),
-                                              new MeetingWaitingParticipantJoined()
-                                                  .meetingId(UUID.fromString(meeting.getId()))
-                                                  .userId(UUID.fromString(currentUser.getId())));
-                                          return JoinStatus.WAITING;
+                                          return addWaitingParticipant(meeting, currentUser, room);
                                         }));
                   case PERMANENT:
                     room.getSubscriptions().stream()
@@ -272,13 +245,24 @@ public class ParticipantServiceImpl implements ParticipantService {
                 });
   }
 
-  @Override
-  public List<UUID> getQueue(UUID meetingId) {
-    return waitingParticipantRepository
-        .find(meetingId.toString(), null, JoinStatus.WAITING)
-        .stream()
-        .map(wp -> UUID.fromString(wp.getUserId()))
-        .collect(Collectors.toList());
+  private @NotNull JoinStatus addWaitingParticipant(
+      Meeting meeting, UserPrincipal currentUser, Room room) {
+    waitingParticipantRepository.insert(
+        WaitingParticipant.create()
+            .id(UUID.randomUUID().toString())
+            .meetingId(meeting.getId())
+            .userId(currentUser.getId())
+            .queueId(currentUser.getQueueId().toString())
+            .status(JoinStatus.WAITING));
+    eventDispatcher.sendToUserExchange(
+        room.getSubscriptions().stream()
+            .filter(Subscription::isOwner)
+            .map(Subscription::getUserId)
+            .toList(),
+        new MeetingWaitingParticipantJoined()
+            .meetingId(UUID.fromString(meeting.getId()))
+            .userId(UUID.fromString(currentUser.getId())));
+    return JoinStatus.WAITING;
   }
 
   private boolean isOwner(Room room, String userId) {
@@ -287,74 +271,6 @@ public class ParticipantServiceImpl implements ParticipantService {
         .findFirst()
         .map(Subscription::isOwner)
         .orElse(false);
-  }
-
-  @Override
-  public void updateQueue(
-      UUID meetingId, UUID userId, QueueUpdateStatusDto status, UserPrincipal currentUser) {
-    Meeting meeting =
-        meetingService
-            .getMeetingEntity(meetingId)
-            .orElseThrow(() -> new NotFoundException("Meeting not found"));
-    Room room =
-        roomService
-            .getRoom(UUID.fromString(meeting.getRoomId()))
-            .orElseThrow(
-                () -> {
-                  ChatsLogger.error(
-                      "Not found room %s associated with meeting %s"
-                          .formatted(meeting.getRoomId(), meetingId));
-                  return new RuntimeException();
-                });
-    boolean moderator = isOwner(room, currentUser.getId());
-    if (status.equals(QueueUpdateStatusDto.ACCEPTED) && !moderator
-        || status.equals(QueueUpdateStatusDto.REJECTED)
-            && (!moderator && !Objects.equals(userId.toString(), currentUser.getId()))) {
-      throw new ForbiddenException();
-    }
-    waitingParticipantRepository.find(meetingId.toString(), userId.toString(), null).stream()
-        .findFirst()
-        .ifPresentOrElse(
-            wp -> {
-              DomainEvent event =
-                  switch (status) {
-                    case ACCEPTED:
-                      wp.status(JoinStatus.ACCEPTED);
-                      waitingParticipantRepository.update(wp);
-                      try {
-                        this.membersService.insertRoomMember(
-                            UUID.fromString(meeting.getRoomId()),
-                            new MemberToInsertDto()
-                                .userId(userId)
-                                .owner(false)
-                                .historyCleared(false),
-                            currentUser);
-                      } catch (BadRequestException ignored) {
-                      }
-                      yield MeetingWaitingParticipantAccepted.create()
-                          .meetingId(meetingId)
-                          .userId(UUID.fromString(wp.getUserId()));
-                    case REJECTED:
-                      waitingParticipantRepository.remove(wp);
-                      yield MeetingWaitingParticipantRejected.create()
-                          .meetingId(meetingId)
-                          .userId(UUID.fromString(wp.getUserId()));
-                  };
-              eventDispatcher.sendToUserExchange(
-                  room.getSubscriptions().stream()
-                      .filter(Subscription::isOwner)
-                      .map(Subscription::getUserId)
-                      .collect(Collectors.toList()),
-                  event);
-              eventDispatcher.sendToUserQueue(wp.getUserId(), wp.getQueueId(), event);
-            },
-            () -> {
-              throw new NotFoundException("User not in queue");
-            });
-  }
-
-  public void clearQueue(UUID meetingId) {
-    waitingParticipantRepository.clear(meetingId.toString());
   }
 
   private void addMeetingParticipant(
@@ -366,7 +282,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         joinSettingsDto.isVideoStreamEnabled(),
         joinSettingsDto.isAudioStreamEnabled());
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingParticipantJoined.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(currentUser.getUUID()));
@@ -375,7 +291,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   private void destroyMeetingParticipant(Meeting meeting, UserPrincipal currentUser, Room room) {
     videoServerService.destroyMeetingParticipant(currentUser.getId(), meeting.getId());
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingParticipantLeft.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(currentUser.getUUID()));
@@ -408,21 +324,26 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   @Override
   @Transactional
-  public void removeMeetingParticipant(Meeting meeting, Room room, UUID userId, UUID queueId) {
-    meeting.getParticipants().stream()
-        .filter(
-            p ->
-                userId.toString().equals(p.getUserId())
-                    && queueId.toString().equals(p.getQueueId()))
-        .findFirst()
-        .ifPresent(participant -> removeMeetingParticipant(participant, meeting, room));
+  public void removeMeetingParticipant(UUID queueId) {
+    participantRepository
+        .getByQueueId(queueId.toString())
+        .ifPresent(
+            participant ->
+                roomService
+                    .getRoom(UUID.fromString(participant.getMeeting().getRoomId()))
+                    .ifPresent(
+                        room ->
+                            removeMeetingParticipant(
+                                participant.getMeeting(),
+                                room,
+                                UUID.fromString(participant.getUserId()))));
   }
 
   private void removeMeetingParticipant(Participant participant, Meeting meeting, Room room) {
     participantRepository.remove(participant);
     videoServerService.destroyMeetingParticipant(participant.getUserId(), meeting.getId());
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).collect(Collectors.toList()),
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingParticipantLeft.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(UUID.fromString(participant.getUserId())));
@@ -462,10 +383,7 @@ public class ParticipantServiceImpl implements ParticipantService {
               currentUser.getId(), meetingId.toString(), mediaStreamSettingsDto);
           if (!mediaStreamEnabled) {
             eventDispatcher.sendToUserExchange(
-                meeting.getParticipants().stream()
-                    .map(Participant::getUserId)
-                    .distinct()
-                    .collect(Collectors.toList()),
+                meeting.getParticipants().stream().map(Participant::getUserId).distinct().toList(),
                 MeetingMediaStreamChanged.create()
                     .meetingId(meetingId)
                     .userId(UUID.fromString(currentUser.getId()))
@@ -481,10 +399,7 @@ public class ParticipantServiceImpl implements ParticipantService {
               currentUser.getId(), meetingId.toString(), mediaStreamSettingsDto);
           if (!mediaStreamEnabled) {
             eventDispatcher.sendToUserExchange(
-                meeting.getParticipants().stream()
-                    .map(Participant::getUserId)
-                    .distinct()
-                    .collect(Collectors.toList()),
+                meeting.getParticipants().stream().map(Participant::getUserId).distinct().toList(),
                 MeetingMediaStreamChanged.create()
                     .meetingId(meetingId)
                     .userId(UUID.fromString(currentUser.getId()))
@@ -540,7 +455,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                       meeting.getParticipants().stream()
                           .map(Participant::getUserId)
                           .distinct()
-                          .collect(Collectors.toList()),
+                          .toList(),
                       MeetingAudioStreamChanged.create()
                           .meetingId(meetingId)
                           .userId(UUID.fromString(targetUserId))
@@ -551,7 +466,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                       meeting.getParticipants().stream()
                           .map(Participant::getUserId)
                           .distinct()
-                          .collect(Collectors.toList()),
+                          .toList(),
                       MeetingAudioStreamChanged.create()
                           .meetingId(meetingId)
                           .userId(currentUser.getUUID())
@@ -592,5 +507,80 @@ public class ParticipantServiceImpl implements ParticipantService {
                 () -> new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
     roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.offerRtcAudioStream(currentUser.getId(), meetingId.toString(), sdp);
+  }
+
+  @Override
+  public List<UUID> getQueue(UUID meetingId) {
+    return waitingParticipantRepository
+        .find(meetingId.toString(), null, JoinStatus.WAITING)
+        .stream()
+        .map(wp -> UUID.fromString(wp.getUserId()))
+        .toList();
+  }
+
+  @Override
+  @Transactional
+  public void updateQueue(
+      UUID meetingId, UUID userId, QueueUpdateStatusDto status, UserPrincipal currentUser) {
+    Meeting meeting =
+        meetingService
+            .getMeetingEntity(meetingId)
+            .orElseThrow(
+                () -> new NotFoundException(String.format("Meeting %s not found", meetingId)));
+    Room room =
+        roomService
+            .getRoom(UUID.fromString(meeting.getRoomId()))
+            .orElseThrow(
+                () -> new NotFoundException("No room associated with meeting " + meetingId));
+    boolean moderator = isOwner(room, currentUser.getId());
+    if (status.equals(QueueUpdateStatusDto.ACCEPTED) && !moderator
+        || status.equals(QueueUpdateStatusDto.REJECTED)
+            && (!moderator && !Objects.equals(userId.toString(), currentUser.getId()))) {
+      throw new ForbiddenException();
+    }
+    waitingParticipantRepository.find(meetingId.toString(), userId.toString(), null).stream()
+        .findFirst()
+        .ifPresentOrElse(
+            wp -> {
+              DomainEvent event =
+                  switch (status) {
+                    case ACCEPTED:
+                      wp.status(JoinStatus.ACCEPTED);
+                      waitingParticipantRepository.update(wp);
+                      try {
+                        this.membersService.insertRoomMember(
+                            UUID.fromString(meeting.getRoomId()),
+                            new MemberToInsertDto()
+                                .userId(userId)
+                                .owner(false)
+                                .historyCleared(false),
+                            currentUser);
+                      } catch (BadRequestException ignored) {
+                      }
+                      yield MeetingWaitingParticipantAccepted.create()
+                          .meetingId(meetingId)
+                          .userId(UUID.fromString(wp.getUserId()));
+                    case REJECTED:
+                      waitingParticipantRepository.remove(wp);
+                      yield MeetingWaitingParticipantRejected.create()
+                          .meetingId(meetingId)
+                          .userId(UUID.fromString(wp.getUserId()));
+                  };
+              eventDispatcher.sendToUserExchange(
+                  room.getSubscriptions().stream()
+                      .filter(Subscription::isOwner)
+                      .map(Subscription::getUserId)
+                      .toList(),
+                  event);
+              eventDispatcher.sendToUserQueue(wp.getUserId(), wp.getQueueId(), event);
+            },
+            () -> {
+              throw new NotFoundException(
+                  String.format("User %s not in the meeting %s queue", userId, meetingId));
+            });
+  }
+
+  public void clearQueue(UUID meetingId) {
+    waitingParticipantRepository.clear(meetingId.toString());
   }
 }

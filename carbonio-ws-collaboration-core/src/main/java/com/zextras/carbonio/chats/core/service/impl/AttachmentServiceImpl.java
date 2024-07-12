@@ -8,6 +8,8 @@ import static org.apache.commons.lang3.math.NumberUtils.min;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.builder.IdDtoBuilder;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -21,6 +23,7 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
@@ -32,8 +35,6 @@ import com.zextras.carbonio.chats.model.IdDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
 import jakarta.annotation.Nullable;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Base64;
@@ -78,8 +79,7 @@ public class AttachmentServiceImpl implements AttachmentService {
     roomService.getRoomEntityAndCheckUser(
         UUID.fromString(metadata.getRoomId()), currentUser, false);
     return new FileContentAndMetadata(
-      storagesService.getFileStreamById(metadata.getId(), metadata.getUserId()),
-      metadata);
+        storagesService.getFileStreamById(metadata.getId(), metadata.getUserId()), metadata);
   }
 
   @Override
@@ -233,7 +233,8 @@ public class AttachmentServiceImpl implements AttachmentService {
               fileMetadataRepository.getIdsByRoomIdAndType(
                   roomId.toString(), FileMetadataType.ATTACHMENT),
               currentUser.getId()));
-    } catch (StorageException ignored) {
+    } catch (StorageException e) {
+      ChatsLogger.warn("Error while deleting attachments of room " + roomId, e);
     }
   }
 }

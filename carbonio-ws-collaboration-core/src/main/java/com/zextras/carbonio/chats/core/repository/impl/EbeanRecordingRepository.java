@@ -4,11 +4,11 @@
 
 package com.zextras.carbonio.chats.core.repository.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Recording;
 import com.zextras.carbonio.chats.core.repository.RecordingRepository;
 import io.ebean.Database;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 @Singleton
 public class EbeanRecordingRepository implements RecordingRepository {

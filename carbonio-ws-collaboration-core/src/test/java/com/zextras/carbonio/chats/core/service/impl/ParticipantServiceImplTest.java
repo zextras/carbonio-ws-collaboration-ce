@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -53,6 +54,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 @UnitTest
 public class ParticipantServiceImplTest {
@@ -418,12 +420,17 @@ public class ParticipantServiceImplTest {
       assertEquals(JoinStatus.WAITING, meetingJoinStatus);
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
       verify(roomService, times(1)).getRoom(scheduledRoomId);
-      verify(waitingParticipantRepository, times(1))
-          .insert(
-              scheduledMeetingId.toString(),
-              user2Id.toString(),
-              user2Queue1.toString(),
-              JoinStatus.WAITING);
+
+      ArgumentCaptor<WaitingParticipant> waitingParticipantCaptor =
+          ArgumentCaptor.forClass(WaitingParticipant.class);
+      verify(waitingParticipantRepository, times(1)).insert(waitingParticipantCaptor.capture());
+      WaitingParticipant waitingParticipant = waitingParticipantCaptor.getValue();
+      assertFalse(waitingParticipant.getId().isEmpty());
+      assertEquals(scheduledMeetingId.toString(), waitingParticipant.getMeetingId());
+      assertEquals(user2Id.toString(), waitingParticipant.getUserId());
+      assertEquals(user2Queue1.toString(), waitingParticipant.getQueueId());
+      assertEquals(JoinStatus.WAITING, waitingParticipant.getStatus());
+
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString()),
@@ -548,12 +555,17 @@ public class ParticipantServiceImplTest {
       assertEquals(JoinStatus.WAITING, meetingJoinStatus);
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
       verify(roomService, times(1)).getRoom(scheduledRoomId);
-      verify(waitingParticipantRepository, times(1))
-          .insert(
-              scheduledMeetingId.toString(),
-              user2Id.toString(),
-              user2Queue1.toString(),
-              JoinStatus.WAITING);
+
+      ArgumentCaptor<WaitingParticipant> waitingParticipantCaptor =
+          ArgumentCaptor.forClass(WaitingParticipant.class);
+      verify(waitingParticipantRepository, times(1)).insert(waitingParticipantCaptor.capture());
+      WaitingParticipant waitingParticipant = waitingParticipantCaptor.getValue();
+      assertFalse(waitingParticipant.getId().isEmpty());
+      assertEquals(scheduledMeetingId.toString(), waitingParticipant.getMeetingId());
+      assertEquals(user2Id.toString(), waitingParticipant.getUserId());
+      assertEquals(user2Queue1.toString(), waitingParticipant.getQueueId());
+      assertEquals(JoinStatus.WAITING, waitingParticipant.getStatus());
+
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString()),

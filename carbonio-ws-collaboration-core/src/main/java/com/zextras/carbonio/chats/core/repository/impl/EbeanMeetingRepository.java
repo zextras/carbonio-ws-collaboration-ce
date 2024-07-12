@@ -4,18 +4,14 @@
 
 package com.zextras.carbonio.chats.core.repository.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
-import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import io.ebean.Database;
 import io.ebean.annotation.Transactional;
-import io.vavr.control.Option;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Singleton
 public class EbeanMeetingRepository implements MeetingRepository {
@@ -61,16 +57,7 @@ public class EbeanMeetingRepository implements MeetingRepository {
   }
 
   @Override
-  public Meeting insert(
-      String name, MeetingType meetingType, UUID roomId, OffsetDateTime expiration) {
-    Meeting meeting =
-        Meeting.create()
-            .id(UUID.randomUUID().toString())
-            .name(name)
-            .meetingType(meetingType)
-            .active(false)
-            .roomId(roomId.toString());
-    Option.of(expiration).map(meeting::expiration);
+  public Meeting insert(Meeting meeting) {
     db.insert(meeting);
     return meeting;
   }

@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.repository.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
@@ -14,12 +16,9 @@ import io.ebean.Query;
 import io.ebean.annotation.Transactional;
 import io.vavr.control.Option;
 import jakarta.annotation.Nullable;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
-@Transactional
 @Singleton
 public class EbeanFileMetadataRepository implements FileMetadataRepository {
 
@@ -56,6 +55,7 @@ public class EbeanFileMetadataRepository implements FileMetadataRepository {
   }
 
   @Override
+  @Transactional
   public List<FileMetadata> getByRoomIdAndType(
       String roomId,
       FileMetadataType type,
@@ -98,7 +98,7 @@ public class EbeanFileMetadataRepository implements FileMetadataRepository {
 
   @Override
   public void deleteByIds(List<String> ids) {
-    if (ids.size() > 0) {
+    if (!ids.isEmpty()) {
       db.deleteAll(FileMetadata.class, ids);
     }
   }

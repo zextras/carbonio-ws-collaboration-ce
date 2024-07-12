@@ -10,60 +10,17 @@ import java.util.Optional;
 
 public interface ParticipantRepository {
 
-  /**
-   * Retrieves a participant by its user identifier
-   *
-   * @param userId user identifier
-   * @return required {@link Participant} wrapped in a {@link Optional}
-   */
   Optional<Participant> getByUserId(String userId);
 
-  /**
-   * Retrieves a participant by its queue identifier
-   *
-   * @param queueId queue identifier
-   * @return required {@link Participant} wrapped in a {@link Optional}
-   */
   Optional<Participant> getByQueueId(String queueId);
 
-  /**
-   * Retrieves a participant by its row identifier
-   *
-   * @param meetingId meeting identifier
-   * @param userId    user identifier
-   * @return required {@link Participant} wrapped in a {@link Optional}
-   */
   Optional<Participant> getById(String meetingId, String userId);
 
-  /**
-   * Retrieves the list of meeting participants
-   *
-   * @param meetingId meeting identifier
-   * @return the {@link List} of the meeting {@link Participant}
-   */
   List<Participant> getByMeetingId(String meetingId);
 
-  /**
-   * Inserts a new {@link Participant}
-   *
-   * @param participant {@link Participant} to insert
-   * @return {@link Participant} inserted
-   */
   Participant insert(Participant participant);
 
-  /**
-   * Updates the {@link Participant}
-   *
-   * @param participant {@link Participant} to update
-   * @return {@link Participant} updated
-   */
   Participant update(Participant participant);
 
-  /**
-   * Removes the meeting participant
-   *
-   * @param participant meeting participant to remove
-   * @return true if the deletion was successful, false otherwise
-   */
   boolean remove(Participant participant);
 }

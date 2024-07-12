@@ -20,7 +20,6 @@ backup=(
 )
 source=(
   "carbonio-ws-collaboration-configs"
-  "carbonio-ws-collaboration-meeting-cleanup"
   "carbonio-ws-collaboration-setup.sh"
   "carbonio-ws-collaboration-sidecar.service"
   "carbonio-ws-collaboration.hcl"
@@ -31,12 +30,11 @@ source=(
   "policies.json"
   "service-protocol.json"
 )
-sha256sums=('5eb685acf4a3542072313e7b7a4cb546f8a650d868457d929d2adb2a6520dc1d'
-  '2b87e3164efe958c431a67ae0430e3c1eebc10c896de05d91df6b424df338e5b'
+sha256sums=('a826c07e9d178928ce73fd13558f69aa7a6e4fd031d915349248a8bb0485c0f0'
   '97256a878d94c5239c422049c9360ca18e1c34c74b3e6ac2a93e51ae0419b423'
   '1320c458d4daa43b2b11cd694d472b635c2de547a67531605cbc2ac2afbd8b9a'
-  '3eb0ea7c2b205c3488aaae074f61b1e0336506f00a676abb787fdd49a11cf5c1'
-  '9b083698d7bece4672bfa76dda4a5c0761606c969c3e39a524fbcb82ff39e1bb'
+  'c95f68a17217815c18b53ca7ad53d61604fc82b76d4c2d9326c666137ba78233'
+  '8d7bd1dcc9b2fd7cf28377b280e59051e74b35a6f0daba5c8c925896ac44e196'
   'ce7262f2c01e4f6c700265f88892d7572dc546d2ff328506dfd7f5502c6b6b0b'
   '58c69efd45348762b3c603ecb8a7d3df5e4ada730b00a760d02d3f376a455d08'
   'a993f63dbfa8273d92f004c6db2886f17d9876d36c65ab757456ab99c0a3f3c3'
@@ -51,7 +49,6 @@ package() {
   cd "${srcdir}"
   install -Dm 755 carbonio-ws-collaboration "${pkgdir}/usr/bin/carbonio-ws-collaboration"
   install -Dm 755 carbonio-ws-collaboration-configs "${pkgdir}/usr/bin/carbonio-ws-collaboration-configs"
-  install -Dm 755 carbonio-ws-collaboration-meeting-cleanup "${pkgdir}/usr/bin/carbonio-ws-collaboration-meeting-cleanup"
   install -Dm 644 logback.xml "${pkgdir}/etc/carbonio/ws-collaboration/logback.xml"
   install -Dm 644 carbonio-ws-collaboration.service "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration.service"
   install -Dm 644 carbonio-ws-collaboration-sidecar.service "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration-sidecar.service"
