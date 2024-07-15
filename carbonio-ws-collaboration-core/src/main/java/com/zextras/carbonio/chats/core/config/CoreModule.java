@@ -9,8 +9,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.matcher.Matchers;
-import com.orbitz.consul.Consul;
-import com.orbitz.consul.ConsulException;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -123,7 +121,6 @@ import io.ebean.DatabaseFactory;
 import io.ebean.annotation.Platform;
 import io.ebean.config.DatabaseConfig;
 import java.io.IOException;
-import java.net.URL;
 import java.time.Clock;
 import java.time.ZoneId;
 import java.util.Optional;
@@ -231,23 +228,6 @@ public class CoreModule extends AbstractModule {
                 System.getenv("CONSUL_HTTP_TOKEN")))
         .ifPresent(consulConfig -> appConfig.add(consulConfig.load()));
     return appConfig;
-  }
-
-  @Singleton
-  @Provides
-  private Consul getConsul(AppConfig appConfig) {
-    try {
-      return Consul.builder()
-          .withUrl(
-              new URL(
-                  "http",
-                  appConfig.get(String.class, ConfigName.CONSUL_HOST).orElseThrow(),
-                  appConfig.get(Integer.class, ConfigName.CONSUL_PORT).orElseThrow(),
-                  ""))
-          .build();
-    } catch (Exception e) {
-      throw new ConsulException("Unable to connect to consul ", e);
-    }
   }
 
   @Singleton
