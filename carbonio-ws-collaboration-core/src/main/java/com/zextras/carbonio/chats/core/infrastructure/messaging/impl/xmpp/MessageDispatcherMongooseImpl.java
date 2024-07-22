@@ -9,7 +9,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
-import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.MessageDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
@@ -36,7 +35,12 @@ import org.w3c.dom.Node;
 
 public class MessageDispatcherMongooseImpl implements MessageDispatcher {
 
-  private static final String DOMAIN = "muclight.carbonio";
+  private static final String PARSING_ERROR = "Error during parsing the json of response error ";
+  private static final String ATTACHMENT_ID = "attachment-id";
+
+  private static final String DOMAIN = "carbonio";
+  private static final String MUC_LIGHT = "muc_light";
+  private static final String MUC_DOMAIN = "muclight.carbonio";
 
   private final String mongooseimUrl;
   private final ObjectMapper objectMapper;
@@ -55,7 +59,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   @Override
   public boolean isAlive() {
     try {
-      return executeQuery("query checkAuth { checkAuth { authStatus } }").getErrors() == null;
+      return executeHealthCheckQuery().getErrors() == null;
     } catch (Exception e) {
       return false;
     }
@@ -65,19 +69,20 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   public void createRoom(Room room, String senderId) {
     String query =
         "mutation muc_light { muc_light { createRoom ("
-            + String.format("mucDomain: \"%s\", ", DOMAIN)
+            + String.format("mucDomain: \"%s\", ", MUC_DOMAIN)
             + String.format("id: \"%s\", ", room.getId())
             + String.format("owner: \"%s\"", userIdToUserDomain(senderId))
             + ") { jid } } }";
-    GraphQlResponse result = executeMutation(GraphQlBody.create(query, "muc_light", Map.of()));
+    GraphQlResponse result = executeMutation(GraphQlBody.create(query, MUC_LIGHT, Map.of()));
 
-    if (result.errors != null) {
+    if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
             String.format(
-                "Error while creating a room: %s", objectMapper.writeValueAsString(result.errors)));
+                "Error while creating a room: %s",
+                objectMapper.writeValueAsString(result.getErrors())));
       } catch (JsonProcessingException e) {
-        throw new InternalErrorException("Error during parsing the json of response error ", e);
+        throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
     room.getSubscriptions().stream()
@@ -93,15 +98,16 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
                 "mutation muc_light { muc_light { deleteRoom ("
                     + String.format("room: \"%s\") ", roomIdToRoomDomain(roomId))
                     + "} }",
-                "muc_light",
+                MUC_LIGHT,
                 Map.of()));
-    if (result.errors != null) {
+    if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
             String.format(
-                "Error while deleting a room: %s", objectMapper.writeValueAsString(result.errors)));
+                "Error while deleting a room: %s",
+                objectMapper.writeValueAsString(result.getErrors())));
       } catch (JsonProcessingException e) {
-        throw new InternalErrorException("Error during parsing the json of response error ", e);
+        throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
   }
@@ -114,14 +120,14 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
                 .type(MessageType.ROOM_NAME_CHANGED)
                 .addConfig("value", StringFormatUtils.encodeToUtf8(name), true)
                 .build());
-    if (result.errors != null) {
+    if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
             String.format(
                 "Error while sending update room name: %s",
-                objectMapper.writeValueAsString(result.errors)));
+                objectMapper.writeValueAsString(result.getErrors())));
       } catch (JsonProcessingException e) {
-        throw new InternalErrorException("Error during parsing the json of response error ", e);
+        throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
   }
@@ -134,14 +140,14 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
                 .type(MessageType.ROOM_DESCRIPTION_CHANGED)
                 .addConfig("value", StringFormatUtils.encodeToUtf8(description), true)
                 .build());
-    if (result.errors != null) {
+    if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
             String.format(
                 "Error while sending update room description: %s",
-                objectMapper.writeValueAsString(result.errors)));
+                objectMapper.writeValueAsString(result.getErrors())));
       } catch (JsonProcessingException e) {
-        throw new InternalErrorException("Error during parsing the json of response error ", e);
+        throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
   }
@@ -156,14 +162,14 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
                 .addConfig("picture-id", pictureId)
                 .addConfig("picture-name", StringFormatUtils.encodeToUtf8(pictureName), true)
                 .build());
-    if (result.errors != null) {
+    if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
             String.format(
                 "Error while sending update room picture: %s",
-                objectMapper.writeValueAsString(result.errors)));
+                objectMapper.writeValueAsString(result.getErrors())));
       } catch (JsonProcessingException e) {
-        throw new InternalErrorException("Error during parsing the json of response error ", e);
+        throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
   }
@@ -175,14 +181,14 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
             XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
                 .type(MessageType.ROOM_PICTURE_DELETED)
                 .build());
-    if (result.errors != null) {
+    if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
             String.format(
                 "Error while sending update room picture: %s",
-                objectMapper.writeValueAsString(result.errors)));
+                objectMapper.writeValueAsString(result.getErrors())));
       } catch (JsonProcessingException e) {
-        throw new InternalErrorException("Error during parsing the json of response error ", e);
+        throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
   }
@@ -197,16 +203,16 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
                     + String.format("sender: \"%s\", ", userIdToUserDomain(senderId))
                     + String.format("recipient: \"%s\") ", userIdToUserDomain(recipientId))
                     + "} }",
-                "muc_light",
+                MUC_LIGHT,
                 Map.of()));
-    if (result.errors != null) {
+    if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
             String.format(
                 "Error while adding a room member: %s",
-                objectMapper.writeValueAsString(result.errors)));
+                objectMapper.writeValueAsString(result.getErrors())));
       } catch (JsonProcessingException e) {
-        throw new InternalErrorException("Error during parsing the json of response error ", e);
+        throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
     sendAffiliationMessage(roomId, senderId, recipientId, true);
@@ -221,16 +227,16 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
                     + String.format("room: \"%s\", ", roomIdToRoomDomain(roomId))
                     + String.format("user: \"%s\") ", userIdToUserDomain(idToRemove))
                     + "} }",
-                "muc_light",
+                MUC_LIGHT,
                 Map.of()));
-    if (result.errors != null) {
+    if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
             String.format(
                 "Error while removing a room member: %s",
-                objectMapper.writeValueAsString(result.errors)));
+                objectMapper.writeValueAsString(result.getErrors())));
       } catch (JsonProcessingException e) {
-        throw new InternalErrorException("Error during parsing the json of response error ", e);
+        throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
     sendAffiliationMessage(roomId, senderId, idToRemove, false);
@@ -244,14 +250,14 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
                 .type(isAdded ? MessageType.MEMBER_ADDED : MessageType.MEMBER_REMOVED)
                 .addConfig("user-id", memberId)
                 .build());
-    if (result.errors != null) {
+    if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
             String.format(
                 "Error while sending affiliation message: %s",
-                objectMapper.writeValueAsString(result.errors)));
+                objectMapper.writeValueAsString(result.getErrors())));
       } catch (JsonProcessingException e) {
-        throw new InternalErrorException("Error during parsing the json of response error ", e);
+        throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
   }
@@ -267,14 +273,14 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
                     + "action: CONNECT) } }",
                 "roster",
                 Map.of()));
-    if (result.errors != null) {
+    if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
             String.format(
                 "Error while setting users contacts: %s",
-                objectMapper.writeValueAsString(result.errors)));
+                objectMapper.writeValueAsString(result.getErrors())));
       } catch (JsonProcessingException e) {
-        throw new InternalErrorException("Error during parsing the json of response error ", e);
+        throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
   }
@@ -291,7 +297,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
     XmppMessageBuilder xmppMsgBuilder =
         XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
             .type(MessageType.ATTACHMENT_ADDED)
-            .addConfig("attachment-id", metadata.getId())
+            .addConfig(ATTACHMENT_ID, metadata.getId())
             .addConfig("filename", StringFormatUtils.encodeToUtf8(metadata.getName()), true)
             .addConfig("mime-type", metadata.getMimeType())
             .addConfig("size", String.valueOf(metadata.getOriginalSize()))
@@ -302,14 +308,14 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
       xmppMsgBuilder.addConfig("area", area);
     }
     GraphQlResponse result = sendStanza(xmppMsgBuilder.build());
-    if (result.errors != null) {
+    if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
             String.format(
                 "Error while sending attachment: %s",
-                objectMapper.writeValueAsString(result.errors)));
+                objectMapper.writeValueAsString(result.getErrors())));
       } catch (JsonProcessingException e) {
-        throw new InternalErrorException("Error during parsing the json of response error ", e);
+        throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
   }
@@ -328,13 +334,13 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
           Element op = (Element) x.getElementsByTagName("operation").item(0);
           if (op != null
               && MessageType.ATTACHMENT_ADDED.getName().equals(op.getFirstChild().getNodeValue())) {
-            return Optional.ofNullable(x.getElementsByTagName("attachment-id").item(0))
+            return Optional.ofNullable(x.getElementsByTagName(ATTACHMENT_ID).item(0))
                 .map(Node::getFirstChild)
                 .map(Node::getNodeValue);
           }
         }
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw new MessageDispatcherException("Something went wrong while parsing the message: ", e);
       }
     }
     return Optional.empty();
@@ -355,20 +361,20 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
             metadata ->
                 xmppMessageBuilder
                     .type(MessageType.ATTACHMENT_ADDED)
-                    .addConfig("attachment-id", metadata.getId())
+                    .addConfig(ATTACHMENT_ID, metadata.getId())
                     .addConfig("filename", StringFormatUtils.encodeToUtf8(metadata.getName()), true)
                     .addConfig("mime-type", metadata.getMimeType())
                     .addConfig("size", String.valueOf(metadata.getOriginalSize())));
     String xmppMessage = xmppMessageBuilder.build();
     GraphQlResponse result = sendStanza(xmppMessage);
-    if (result.errors != null) {
+    if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
             String.format(
                 "Error while sending forward message: %s",
-                objectMapper.writeValueAsString(result.errors)));
+                objectMapper.writeValueAsString(result.getErrors())));
       } catch (JsonProcessingException e) {
-        throw new InternalErrorException("Error during parsing the json of response error ", e);
+        throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
   }
@@ -388,17 +394,23 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
     }
   }
 
-  private GraphQlResponse executeQuery(String query) {
+  private GraphQlResponse executeHealthCheckQuery() {
     CloseableHttpClient client = HttpClientBuilder.create().build();
     try {
       HttpGet request =
-          new HttpGet(new URIBuilder(mongooseimUrl).addParameter("query", query).build());
+          new HttpGet(
+              new URIBuilder(mongooseimUrl)
+                  .addParameter("query", "query checkAuth { checkAuth { authStatus } }")
+                  .build());
       request.addHeader("Authorization", authToken);
       CloseableHttpResponse response = client.execute(request);
       return objectMapper.readValue(response.getEntity().getContent(), GraphQlResponse.class);
     } catch (URISyntaxException e) {
-      throw new InternalErrorException(
-          String.format("Unable to write the URI for query '%s'", query), e);
+      throw new MessageDispatcherException(
+          String.format(
+              "Unable to write the URI for query '%s'",
+              "query checkAuth { checkAuth { authStatus } }"),
+          e);
     } catch (IOException e) {
       throw new MessageDispatcherException("MongooseIm GraphQL response error", e);
     }
@@ -415,11 +427,11 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   }
 
   private String roomIdToRoomDomain(String roomId) {
-    return String.join("@", roomId, "muclight.carbonio");
+    return String.join("@", roomId, MUC_DOMAIN);
   }
 
   private String userIdToUserDomain(String userId) {
-    return String.join("@", userId, "carbonio");
+    return String.join("@", userId, DOMAIN);
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
@@ -430,10 +442,6 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
 
     public Object getData() {
       return data;
-    }
-
-    public void setData(Object data) {
-      this.data = data;
     }
 
     public List<Object> getErrors() {

@@ -23,8 +23,8 @@ import org.mockserver.model.ClearType;
 public class StoragesExtension implements AfterEachCallback, BeforeAllCallback, ParameterResolver {
 
   private static final Namespace EXTENSION_NAMESPACE = Namespace.create(StoragesExtension.class);
-  private static final String SERVER_HOST = "localhost";
-  private static final int SERVER_PORT = 6794;
+  private static final String SERVER_HOST = "127.0.0.1";
+  private static final int SERVER_PORT = 8742;
   private static final String CLIENT_STORE_ENTRY = "storages_client";
 
   @Override

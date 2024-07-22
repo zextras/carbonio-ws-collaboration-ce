@@ -4,13 +4,13 @@
 
 package com.zextras.carbonio.chats.core.mapper.impl;
 
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import jakarta.annotation.Nullable;
-import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.UUID;
 

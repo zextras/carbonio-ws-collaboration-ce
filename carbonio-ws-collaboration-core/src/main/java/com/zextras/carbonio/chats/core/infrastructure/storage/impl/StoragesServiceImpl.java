@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.storage.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -14,11 +16,8 @@ import com.zextras.filestore.model.ChatsIdentifier;
 import com.zextras.filestore.model.FilesIdentifier;
 import com.zextras.filestore.model.IdentifierType;
 import com.zextras.storages.api.StoragesClient;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.io.InputStream;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Singleton
 public class StoragesServiceImpl implements StoragesService {
@@ -31,7 +30,7 @@ public class StoragesServiceImpl implements StoragesService {
   }
 
   @Override
-  public InputStream getFileById(String fileId, String ownerId) {
+  public InputStream getFileStreamById(String fileId, String ownerId) {
     try {
       return storagesClient.download(ChatsIdentifier.of(fileId, ownerId));
     } catch (Exception e) {
@@ -43,8 +42,7 @@ public class StoragesServiceImpl implements StoragesService {
   public void saveFile(InputStream file, FileMetadata metadata, String currentUserId) {
     try {
       storagesClient.uploadPut(
-        ChatsIdentifier.of(metadata.getId(), currentUserId),
-        file, metadata.getOriginalSize());
+          ChatsIdentifier.of(metadata.getId(), currentUserId), file, metadata.getOriginalSize());
     } catch (Exception e) {
       throw new StorageException("An error occurred while uploading the file", e);
     }
@@ -75,18 +73,16 @@ public class StoragesServiceImpl implements StoragesService {
   @Override
   public List<String> deleteFileList(List<String> fileIds, String currentUserId) {
     try {
-      return fileIds.size() == 0
+      return fileIds.isEmpty()
           ? List.of()
           : storagesClient
               .bulkDelete(
                   IdentifierType.chats,
                   currentUserId,
-                  fileIds.stream()
-                      .map(BulkDeleteRequestItem::chatsItem)
-                      .collect(Collectors.toList()))
+                  fileIds.stream().map(BulkDeleteRequestItem::chatsItem).toList())
               .stream()
               .map(BulkDeleteResponseItem::getNode)
-              .collect(Collectors.toList());
+              .toList();
     } catch (Exception e) {
       throw new StorageException("An error occurred while deleting files list", e);
     }

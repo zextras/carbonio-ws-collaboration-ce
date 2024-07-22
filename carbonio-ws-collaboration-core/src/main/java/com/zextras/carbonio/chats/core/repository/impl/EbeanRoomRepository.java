@@ -4,18 +4,17 @@
 
 package com.zextras.carbonio.chats.core.repository.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
 import io.ebean.Query;
 import io.ebean.annotation.Transactional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
-@Transactional
 @Singleton
 public class EbeanRoomRepository implements RoomRepository {
 
@@ -36,6 +35,7 @@ public class EbeanRoomRepository implements RoomRepository {
   }
 
   @Override
+  @Transactional
   public List<Room> getByUserId(String userId, boolean withSubscriptions) {
     Query<Room> roomQuery = db.find(Room.class);
     if (withSubscriptions) {
@@ -45,11 +45,13 @@ public class EbeanRoomRepository implements RoomRepository {
   }
 
   @Override
+  @Transactional
   public Optional<Room> getById(String roomId) {
     return db.find(Room.class).fetch("subscriptions").where().eq("id", roomId).findOneOrEmpty();
   }
 
   @Override
+  @Transactional
   public Optional<Room> getOneToOneByAllUserIds(String user1Id, String user2Id) {
     return db.find(Room.class)
         .where()

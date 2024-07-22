@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES;
 import com.zextras.carbonio.chats.core.config.ConfigName;
@@ -26,8 +28,6 @@ import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
 import io.ebean.annotation.Transactional;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.io.InputStream;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -130,7 +130,7 @@ public class UserServiceImpl implements UserService {
             .orElseThrow(
                 () -> new NotFoundException(String.format("File with id '%s' not found", userId)));
     return new FileContentAndMetadata(
-        storagesService.getFileById(metadata.getId(), metadata.getUserId()), metadata);
+        storagesService.getFileStreamById(metadata.getId(), metadata.getUserId()), metadata);
   }
 
   @Override

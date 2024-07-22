@@ -4,11 +4,11 @@
 
 package com.zextras.carbonio.chats.core.mapper.impl;
 
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import jakarta.annotation.Nullable;
-import jakarta.inject.Singleton;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;

@@ -4,22 +4,17 @@
 
 package com.zextras.carbonio.chats.boot;
 
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.Recoverable;
-import com.rabbitmq.client.RecoveryListener;
+import com.google.inject.Inject;
 import com.zextras.carbonio.chats.core.config.ChatsConstant;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
-import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
-import jakarta.inject.Inject;
 import jakarta.servlet.DispatcherType;
 import jakarta.websocket.server.ServerEndpointConfig;
 import java.net.InetSocketAddress;
 import java.util.EnumSet;
-import java.util.Optional;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.ee10.websocket.jakarta.server.config.JakartaWebSocketServletContainerInitializer;
@@ -33,7 +28,6 @@ public class Boot {
 
   private final GuiceResteasyBootstrapServletContextListener resteasyListener;
   private final Flyway flyway;
-  private final Connection eventDispatcherConnection;
   private final AuthenticationService authenticationService;
   private final EventsWebSocketEndpoint eventsWebSocketEndpoint;
   private final VideoServerEventListener videoServerEventListener;
@@ -42,13 +36,11 @@ public class Boot {
   public Boot(
       GuiceResteasyBootstrapServletContextListener resteasyListener,
       Flyway flyway,
-      Optional<Connection> eventDispatcherConnection,
       AuthenticationService authenticationService,
       EventsWebSocketEndpoint eventsWebSocketEndpoint,
       VideoServerEventListener videoServerEventListener) {
     this.resteasyListener = resteasyListener;
     this.flyway = flyway;
-    this.eventDispatcherConnection = eventDispatcherConnection.orElse(null);
     this.authenticationService = authenticationService;
     this.eventsWebSocketEndpoint = eventsWebSocketEndpoint;
     this.videoServerEventListener = videoServerEventListener;
@@ -63,36 +55,20 @@ public class Boot {
 
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
 
-    if (eventDispatcherConnection != null) {
-      JakartaWebSocketServletContainerInitializer.configure(
-          context,
-          (servletContext, wsContainer) -> {
-            wsContainer.setDefaultMaxTextMessageBufferSize(65535);
-            wsContainer.addEndpoint(
-                ServerEndpointConfig.Builder.create(EventsWebSocketEndpoint.class, "/events")
-                    .configurator(new EventsWebSocketEndpointConfigurator(eventsWebSocketEndpoint))
-                    .build());
-            servletContext
-                .addFilter(
-                    "eventsWebSocketAuthenticationFilter",
-                    EventsWebSocketAuthenticationFilter.create(authenticationService))
-                .addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, "/events");
-          });
-      Recoverable recoverableConnection = (Recoverable) eventDispatcherConnection;
-      recoverableConnection.addRecoveryListener(
-          new RecoveryListener() {
-            @Override
-            public void handleRecovery(Recoverable recoverable) {
-              ChatsLogger.warn("Events connection recovery completed successfully");
-              videoServerEventListener.start();
-            }
-
-            @Override
-            public void handleRecoveryStarted(Recoverable recoverable) {
-              ChatsLogger.warn("Events connection recovery started...");
-            }
-          });
-    }
+    JakartaWebSocketServletContainerInitializer.configure(
+        context,
+        (servletContext, wsContainer) -> {
+          wsContainer.setDefaultMaxSessionIdleTimeout(0L);
+          wsContainer.addEndpoint(
+              ServerEndpointConfig.Builder.create(EventsWebSocketEndpoint.class, "/events")
+                  .configurator(new EventsWebSocketEndpointConfigurator(eventsWebSocketEndpoint))
+                  .build());
+          servletContext
+              .addFilter(
+                  "eventsWebSocketAuthenticationFilter",
+                  EventsWebSocketAuthenticationFilter.create(authenticationService))
+              .addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, "/events");
+        });
 
     context.addEventListener(resteasyListener);
     context.addServlet(new ServletHolder(HttpServletDispatcher.class), "/*");

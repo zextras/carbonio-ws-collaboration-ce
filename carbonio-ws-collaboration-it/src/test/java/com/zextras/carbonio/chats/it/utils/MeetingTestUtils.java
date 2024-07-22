@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.it.utils;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
@@ -14,13 +16,9 @@ import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import com.zextras.carbonio.chats.it.entity.ParticipantBuilder;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Singleton
 public class MeetingTestUtils {
@@ -43,21 +41,22 @@ public class MeetingTestUtils {
   }
 
   public UUID generateAndSaveMeeting(UUID roomId, List<ParticipantBuilder> participantBuilders) {
-    return generateAndSaveMeeting(roomId, participantBuilders, false, null);
+    return generateAndSaveMeeting(roomId, participantBuilders, false);
   }
 
   public UUID generateAndSaveMeeting(
-      UUID roomId,
-      List<ParticipantBuilder> participantBuilders,
-      Boolean active,
-      OffsetDateTime expiration) {
+      UUID roomId, List<ParticipantBuilder> participantBuilders, Boolean active) {
     Meeting meeting =
         meetingRepository.insert(
-            "Test Meeting for " + roomId.toString(), MeetingType.PERMANENT, roomId, expiration);
+            Meeting.create()
+                .id(UUID.randomUUID().toString())
+                .name("Test Meeting for " + roomId.toString())
+                .meetingType(MeetingType.PERMANENT)
+                .roomId(roomId.toString()));
     meeting.participants(
         participantBuilders.stream()
             .map(participantBuilder -> participantBuilder.build(meeting))
-            .collect(Collectors.toList()));
+            .toList());
     meeting.active(active);
     meetingRepository.update(meeting);
     return UUID.fromString(meeting.getId());
@@ -79,7 +78,13 @@ public class MeetingTestUtils {
       String audioRoomId,
       String videoRoomId) {
     return videoServerMeetingRepository.insert(
-        meetingId, connectionId, audioHandleId, videoHandleId, audioRoomId, videoRoomId);
+        VideoServerMeeting.create()
+            .meetingId(meetingId)
+            .connectionId(connectionId)
+            .audioHandleId(audioHandleId)
+            .videoHandleId(videoHandleId)
+            .audioRoomId(audioRoomId)
+            .videoRoomId(videoRoomId));
   }
 
   public VideoServerSession insertVideoServerSession(
@@ -90,7 +95,10 @@ public class MeetingTestUtils {
       String videoOutHandleId,
       String screenHandleId) {
     return videoServerSessionRepository.insert(
-        videoServerMeeting, userId, queueId, connectionId, videoOutHandleId, screenHandleId);
+        VideoServerSession.create(userId, queueId, videoServerMeeting)
+            .connectionId(connectionId)
+            .videoOutHandleId(videoOutHandleId)
+            .screenHandleId(screenHandleId));
   }
 
   public VideoServerSession updateVideoServerSession(VideoServerSession videoServerSession) {

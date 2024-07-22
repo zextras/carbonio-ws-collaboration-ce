@@ -103,12 +103,13 @@ public class VideoServerServiceImpl implements VideoServerService {
     String videoHandleId = videoServerResponse.getDataId();
     VideoRoomResponse videoRoomResponse = createVideoRoom(meetingId, connectionId, videoHandleId);
     videoServerMeetingRepository.insert(
-        meetingId,
-        connectionId,
-        audioHandleId,
-        videoHandleId,
-        audioBridgeResponse.getRoom(),
-        videoRoomResponse.getRoom());
+        VideoServerMeeting.create()
+            .meetingId(meetingId)
+            .connectionId(connectionId)
+            .audioHandleId(audioHandleId)
+            .videoHandleId(videoHandleId)
+            .audioRoomId(audioBridgeResponse.getRoom())
+            .videoRoomId(videoRoomResponse.getRoom()));
   }
 
   private VideoServerResponse createNewConnection(String meetingId) {
@@ -335,7 +336,10 @@ public class VideoServerServiceImpl implements VideoServerService {
         videoServerMeeting.getVideoRoomId(),
         MediaType.SCREEN);
     videoServerSessionRepository.insert(
-        videoServerMeeting, userId, queueId, connectionId, videoOutHandleId, screenHandleId);
+        VideoServerSession.create(userId, queueId, videoServerMeeting)
+            .connectionId(connectionId)
+            .videoOutHandleId(videoOutHandleId)
+            .screenHandleId(screenHandleId));
   }
 
   private void joinVideoRoomAsPublisher(
@@ -398,6 +402,16 @@ public class VideoServerServiceImpl implements VideoServerService {
               destroyConnection(videoServerSession.getConnectionId(), meetingId);
               videoServerSessionRepository.remove(videoServerSession);
             });
+  }
+
+  @Override
+  public Optional<VideoServerSession> getSession(String connectionId) {
+    return videoServerSessionRepository.getByConnectionId(connectionId);
+  }
+
+  @Override
+  public List<VideoServerSession> getSessions(String meetingId) {
+    return videoServerSessionRepository.getByMeetingId(meetingId);
   }
 
   @Override

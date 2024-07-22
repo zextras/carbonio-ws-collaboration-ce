@@ -4,9 +4,9 @@
 
 package com.zextras.carbonio.chats.core.web.exceptions;
 
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 

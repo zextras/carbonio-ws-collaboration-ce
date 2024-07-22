@@ -2933,7 +2933,7 @@ public class RoomsApiIT {
               roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
       UUID meetingId =
           meetingTestUtils.generateAndSaveMeeting(
-              roomId, List.of(ParticipantBuilder.create(user2Id, user2Queue)), true, null);
+              roomId, List.of(ParticipantBuilder.create(user2Id, user2Queue)), true);
       integrationTestUtils.updateRoom(roomEntity.meetingId(meetingId.toString()));
 
       meetingTestUtils.updateVideoServerSession(
@@ -3669,10 +3669,10 @@ public class RoomsApiIT {
                     "fileName",
                         "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
                     "mimeType", fileMock.getMimeType(),
-                    "Content-Length", String.valueOf(fileMock.getSize()),
                     "description", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073",
                     "messageId", "the-xmpp-message-id",
-                    "replyId", ""),
+                    "replyId", "",
+                    "Content-Length", String.valueOf(fileMock.getSize())),
                 user1Token);
       }
 
@@ -3736,20 +3736,14 @@ public class RoomsApiIT {
                 url(roomId),
                 fileMock.getFileBytes(),
                 Map.of(
-                    "Content-Type",
-                    "application/octet-stream",
+                    "Content-Type", "application/octet-stream",
                     "fileName",
-                    "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
-                    "mimeType",
-                    fileMock.getMimeType(),
-                    "Content-Length",
-                    String.valueOf(fileMock.getSize()),
-                    "description",
-                    "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073",
-                    "messageId",
-                    "the-xmpp-message-id",
-                    "replyId",
-                    "message-id-to-reply"),
+                        "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073\\u002e\\u006a\\u0070\\u0067",
+                    "mimeType", fileMock.getMimeType(),
+                    "Content-Length", String.valueOf(fileMock.getSize()),
+                    "description", "\\u0070\\u0065\\u0061\\u006e\\u0075\\u0074\\u0073",
+                    "messageId", "the-xmpp-message-id",
+                    "replyId", "message-id-to-reply"),
                 user1Token);
       }
 

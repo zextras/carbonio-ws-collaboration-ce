@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES;
 import com.zextras.carbonio.chats.core.config.ConfigName;
@@ -49,8 +51,6 @@ import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.Transactional;
 import jakarta.annotation.Nullable;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import java.io.InputStream;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -271,8 +271,13 @@ public class RoomServiceImpl implements RoomService {
     }
     attachmentService.deleteAttachmentsByRoomId(roomId, currentUser);
     if (room.getPictureUpdatedAt() != null) {
-      fileMetadataRepository.deleteById(room.getId());
-      storagesService.deleteFile(room.getId(), currentUser.getId());
+      fileMetadataRepository
+          .find(null, roomId.toString(), FileMetadataType.ROOM_AVATAR)
+          .ifPresent(
+              metadata -> {
+                fileMetadataRepository.delete(metadata);
+                storagesService.deleteFile(metadata.getId(), metadata.getUserId());
+              });
     }
     roomRepository.delete(roomId.toString());
     messageDispatcher.deleteRoom(roomId.toString(), currentUser.getId());
@@ -296,22 +301,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  public OffsetDateTime clearRoomHistory(UUID roomId, UserPrincipal currentUser) {
-    Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
-    RoomUserSettings settings =
-        roomUserSettingsRepository
-            .getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
-            .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
-    settings =
-        roomUserSettingsRepository.save(
-            settings.clearedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
-    eventDispatcher.sendToUserExchange(
-        currentUser.getId(),
-        RoomHistoryCleared.create().roomId(roomId).clearedAt(settings.getClearedAt()));
-    return settings.getClearedAt();
-  }
-
-  @Override
   @Transactional
   public void unmuteRoom(UUID roomId, UserPrincipal currentUser) {
     getRoomEntityAndCheckUser(roomId, currentUser, false);
@@ -325,6 +314,22 @@ public class RoomServiceImpl implements RoomService {
                     currentUser.getId(), RoomUnmuted.create().roomId(roomId));
               }
             });
+  }
+
+  @Override
+  public OffsetDateTime clearRoomHistory(UUID roomId, UserPrincipal currentUser) {
+    Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
+    RoomUserSettings settings =
+        roomUserSettingsRepository
+            .getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
+            .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
+    settings =
+        roomUserSettingsRepository.save(
+            settings.clearedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
+    eventDispatcher.sendToUserExchange(
+        currentUser.getId(),
+        RoomHistoryCleared.create().roomId(roomId).clearedAt(settings.getClearedAt()));
+    return settings.getClearedAt();
   }
 
   @Override
@@ -361,7 +366,7 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  public Optional<Room> getRoomEntityWithoutChecks(UUID roomId) {
+  public Optional<Room> getRoom(UUID roomId) {
     return roomRepository.getById(roomId.toString());
   }
 
@@ -375,7 +380,7 @@ public class RoomServiceImpl implements RoomService {
             .orElseThrow(
                 () -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
     return new FileContentAndMetadata(
-        storagesService.getFileById(metadata.getId(), metadata.getUserId()), metadata);
+        storagesService.getFileStreamById(metadata.getId(), metadata.getUserId()), metadata);
   }
 
   @Override
@@ -421,7 +426,8 @@ public class RoomServiceImpl implements RoomService {
       try {
         storagesService.deleteFile(oldMetadata.get().getId(), oldMetadata.get().getUserId());
       } catch (Exception e) {
-        ChatsLogger.warn("Could not delete older group profile picture: " + e.getMessage());
+        ChatsLogger.warn(
+            String.format("Unable to delete previous room %s picture: ", roomId) + e.getMessage());
       }
     }
     fileMetadataRepository.save(metadata);

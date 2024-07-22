@@ -4,18 +4,14 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
-import com.zextras.carbonio.chats.core.exception.InternalErrorException;
-import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
-import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.EncodeException;
 import jakarta.websocket.OnClose;
@@ -28,31 +24,23 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.TimeoutException;
 
 @Singleton
 @ServerEndpoint(value = "/events")
 public class EventsWebSocketEndpoint {
 
-  private static final int MAX_IDLE_TIMEOUT = 90000;
+  private static final String PING = "ping";
+  private static final String PONG = "pong";
 
-  private final EventDispatcher eventDispatcher;
+  private final Channel channel;
   private final ObjectMapper objectMapper;
-  private final ParticipantRepository participantRepository;
-  private final RoomRepository roomRepository;
   private final ParticipantService participantService;
 
   @Inject
   public EventsWebSocketEndpoint(
-      EventDispatcher eventDispatcher,
-      ObjectMapper objectMapper,
-      ParticipantRepository participantRepository,
-      RoomRepository roomRepository,
-      ParticipantService participantService) {
-    this.eventDispatcher = eventDispatcher;
+      Channel channel, ObjectMapper objectMapper, ParticipantService participantService) {
+    this.channel = channel;
     this.objectMapper = objectMapper;
-    this.participantRepository = participantRepository;
-    this.roomRepository = roomRepository;
     this.participantService = participantService;
   }
 
@@ -61,18 +49,14 @@ public class EventsWebSocketEndpoint {
     UUID userId = UUID.fromString(getUserIdFromSession(session));
     UUID queueId = UUID.fromString(session.getId());
     String userQueue = userId + "/" + queueId;
-
-    session.setMaxIdleTimeout(MAX_IDLE_TIMEOUT);
+    session.setMaxIdleTimeout(0L);
     session
         .getBasicRemote()
         .sendObject(objectMapper.writeValueAsString(SessionOutEvent.create(queueId)));
-
-    Optional<Channel> optionalChannel = eventDispatcher.getChannel();
-    if (optionalChannel.isEmpty()) {
-      ChatsLogger.error("RabbitMQ connection channel is not up!");
+    if (channel == null || !channel.isOpen()) {
+      ChatsLogger.error("Event websocket handler channel is not up!");
       return;
     }
-    final Channel channel = optionalChannel.get();
     try {
       channel.queueDeclare(userQueue, false, false, true, null);
       channel.exchangeDeclare(userId.toString(), "direct");
@@ -87,47 +71,57 @@ public class EventsWebSocketEndpoint {
             } catch (EncodeException | IOException e) {
               ChatsLogger.warn(
                   String.format(
-                      "Error sending RabbitMQ message to websocket for user/queue '%s'. Message:"
-                          + " ''%s",
-                      userQueue, message),
-                  e);
+                      "Error sending event message to websocket for user/queue '%s'%nMessage: '%s'",
+                      userQueue, message));
             }
           };
       channel.basicConsume(userQueue, true, deliverCallback, consumerTag -> {});
-    } catch (IOException e) {
+    } catch (Exception e) {
       ChatsLogger.warn(
-          String.format("Error interacting with RabbitMQ for user/queue '%s'", userQueue));
-      try {
-        channel.close();
-      } catch (IOException | TimeoutException ignored) {
-        ChatsLogger.warn(
-            String.format(
-                "Error closing RabbitMQ connection channel for user/queue '%s'", userQueue));
-      }
+          String.format("Error interacting with message broker for user/queue '%s'", userQueue));
     }
   }
 
   @OnMessage
-  public void onMessage(Session session, String message) throws EncodeException, IOException {
+  public void onMessage(Session session, String message) {
     try {
-      if (objectMapper.readValue(message, PingPongDtoEvent.class).getType().equals("ping")) {
+      if (objectMapper.readValue(message, PingPongDtoEvent.class).getType().equals(PING)
+          && session.isOpen()) {
         session
             .getBasicRemote()
-            .sendObject(objectMapper.writeValueAsString(PingPongDtoEvent.create("pong")));
+            .sendObject(objectMapper.writeValueAsString(PingPongDtoEvent.create()));
       }
-    } catch (JsonProcessingException e) {
-      // intentionally left blank
+    } catch (Exception e) {
+      UUID userId = UUID.fromString(getUserIdFromSession(session));
+      UUID queueId = UUID.fromString(session.getId());
+      String userQueue = userId + "/" + queueId;
+      ChatsLogger.warn(String.format("Error sending pong to user/queue '%s'", userQueue));
     }
   }
 
   @OnClose
   public void onClose(Session session) {
+    UUID userId = UUID.fromString(getUserIdFromSession(session));
+    UUID queueId = UUID.fromString(session.getId());
+    String userQueue = userId + "/" + queueId;
     closeSession(session);
+    ChatsLogger.info(String.format("Closed websocket session for user/queue '%s'", userQueue));
   }
 
   @OnError
   public void onError(Session session, Throwable throwable) {
+    UUID userId = UUID.fromString(getUserIdFromSession(session));
+    UUID queueId = UUID.fromString(session.getId());
+    String userQueue = userId + "/" + queueId;
     closeSession(session);
+    ChatsLogger.warn(
+        String.format("Closed websocket session for user/queue '%s' due to an error", userQueue));
+    try {
+      session.close();
+    } catch (Exception e) {
+      ChatsLogger.warn(
+          String.format("Error closing websocket session for user/queue '%s'", userQueue));
+    }
   }
 
   private String getUserIdFromSession(Session session) {
@@ -135,48 +129,30 @@ public class EventsWebSocketEndpoint {
             (String)
                 ((HttpSession) session.getUserProperties().get(HttpSession.class.getName()))
                     .getAttribute("userId"))
-        .orElseThrow(() -> new InternalErrorException("Session user not found!"));
+        .orElseThrow(() -> new NotFoundException("Session user not found!"));
   }
 
   private void closeSession(Session session) {
     UUID userId = UUID.fromString(getUserIdFromSession(session));
     UUID queueId = UUID.fromString(session.getId());
     String userQueue = userId + "/" + queueId;
-    Optional<Channel> optionalChannel = eventDispatcher.getChannel();
-    if (optionalChannel.isEmpty()) {
-      ChatsLogger.error("RabbitMQ connection channel is not up!");
+    if (channel == null || !channel.isOpen()) {
+      ChatsLogger.error("Event websocket handler channel is not up!");
       return;
     }
-    final Channel channel = optionalChannel.get();
     try {
       channel.queueDelete(userQueue);
-    } catch (IOException e) {
-      ChatsLogger.warn(
-          String.format("Error interacting with RabbitMQ for user/queue '%s'", userQueue));
-      try {
-        channel.close();
-      } catch (IOException | TimeoutException ignored) {
-        ChatsLogger.warn(
-            String.format(
-                "Error closing RabbitMQ connection channel for user/queue '%s'", userQueue));
-      }
+    } catch (Exception e) {
+      ChatsLogger.warn(String.format("Error deleting queue for user/queue '%s'", userQueue));
     }
-    participantRepository
-        .getByQueueId(queueId.toString())
-        .ifPresent(
-            participant ->
-                roomRepository
-                    .getById(participant.getMeeting().getRoomId())
-                    .ifPresent(
-                        room ->
-                            participantService.removeMeetingParticipant(
-                                participant.getMeeting(), room, userId, queueId)));
+    participantService.removeMeetingParticipant(queueId);
   }
 
   private static class SessionOutEvent {
 
+    private static final String WEBSOCKET_CONNECTED = "websocketConnected";
+
     private final UUID queueId;
-    private final String type = "websocketConnected";
 
     public SessionOutEvent(UUID queueId) {
       this.queueId = queueId;
@@ -191,7 +167,7 @@ public class EventsWebSocketEndpoint {
     }
 
     public String getType() {
-      return type;
+      return WEBSOCKET_CONNECTED;
     }
   }
 
@@ -199,8 +175,8 @@ public class EventsWebSocketEndpoint {
 
     private String type;
 
-    private static PingPongDtoEvent create(String type) {
-      return new PingPongDtoEvent().type(type);
+    private static PingPongDtoEvent create() {
+      return new PingPongDtoEvent().type(PONG);
     }
 
     public String getType() {

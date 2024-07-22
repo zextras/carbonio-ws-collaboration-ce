@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.web.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.api.PreviewApiService;
 import com.zextras.carbonio.chats.core.data.model.FileResponse;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
@@ -13,8 +15,6 @@ import com.zextras.carbonio.chats.model.ImageQualityEnumDto;
 import com.zextras.carbonio.chats.model.ImageShapeEnumDto;
 import com.zextras.carbonio.chats.model.ImageTypeEnumDto;
 import io.vavr.control.Option;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import java.util.Optional;

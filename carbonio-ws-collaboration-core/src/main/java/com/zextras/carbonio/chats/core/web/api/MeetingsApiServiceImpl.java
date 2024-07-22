@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.web.api;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
@@ -18,8 +20,6 @@ import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
 import com.zextras.carbonio.meeting.model.SessionDescriptionProtocolDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
@@ -133,7 +133,8 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
     if (currentUser.getQueueId() == null) {
-      throw new BadRequestException("Queue identifier is mandatory");
+      throw new BadRequestException(
+          "Queue identifier not specified for user " + currentUser.getId());
     }
     participantService.insertMeetingParticipant(meetingId, joinSettingsDto, currentUser);
     return Response.status(Status.OK)

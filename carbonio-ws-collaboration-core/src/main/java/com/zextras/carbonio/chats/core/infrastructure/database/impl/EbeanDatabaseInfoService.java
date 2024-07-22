@@ -4,11 +4,10 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.database.impl;
 
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import io.ebean.Database;
-import io.ebean.Transaction;
-import jakarta.inject.Inject;
-import jakarta.inject.Singleton;
 
 @Singleton
 public class EbeanDatabaseInfoService implements DatabaseInfoService {
@@ -22,10 +21,6 @@ public class EbeanDatabaseInfoService implements DatabaseInfoService {
 
   @Override
   public boolean isAlive() {
-    try (Transaction transaction = database.beginTransaction()) {
-      return true;
-    } catch (Exception e) {
-      return false;
-    }
+    return database.sqlQuery("SELECT 1 AS health_check").findOneOrEmpty().isPresent();
   }
 }
