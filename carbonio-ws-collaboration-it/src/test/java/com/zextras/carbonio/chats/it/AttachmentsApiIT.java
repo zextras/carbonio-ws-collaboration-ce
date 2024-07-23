@@ -101,8 +101,8 @@ public class AttachmentsApiIT {
     }
 
     @Test
-    @DisplayName("Correctly returns the image type attachment file for requested id")
-    void getImageTypeAttachment_testOk() throws Exception {
+    @DisplayName("Correctly returns the image mime type attachment file for requested id")
+    void getImageMimeTypeAttachment_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       fileMetadataRepository.save(
           integrationTestUtils.generateAndSaveFileMetadata(
@@ -194,6 +194,37 @@ public class AttachmentsApiIT {
     @DisplayName("Correctly returns the xlsx mime type attachment file for requested id")
     void getXlsxMimeTypeAttachment_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.CALC_XLSX);
+      fileMetadataRepository.save(
+          integrationTestUtils.generateAndSaveFileMetadata(
+              fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
+      storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
+      storageMockServer.mockDownload(fileMock.getId(), user1Id.toString(), fileMock, true);
+
+      MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user1Token);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+      assertArrayEquals(fileMock.getFileBytes(), response.getOutput());
+      assertEquals(
+          String.format("inline; filename=\"%s\"", fileMock.getName()),
+          response.getOutputHeaders().get("Content-Disposition").get(0));
+      assertEquals(
+          fileMock.getMimeType(),
+          response.getOutputHeaders().get("Content-Type").get(0).toString());
+      assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
+      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
+      storageMockServer.verify(
+          storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
+          VerificationTimes.exactly(1));
+      storageMockServer.verify(
+          storageMockServer.getDownloadRequest(fileMock.getId(), user1Id.toString()),
+          VerificationTimes.exactly(1));
+    }
+
+    @Test
+    @DisplayName(
+        "Correctly returns the application octet-stream mime type attachment file for requested id")
+    void getApplicationOctetStreamMimeTypeAttachment_testOk() throws Exception {
+      FileMock fileMock = MockedFiles.get(MockedFileType.TEST_ZX);
       fileMetadataRepository.save(
           integrationTestUtils.generateAndSaveFileMetadata(
               fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
