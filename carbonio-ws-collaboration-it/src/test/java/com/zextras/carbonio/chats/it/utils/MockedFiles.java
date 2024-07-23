@@ -68,7 +68,13 @@ public class MockedFiles {
               .id(UUID.randomUUID())
               .size(5106L)
               .mimeType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-              .name("calc.xlsx"));
+              .name("calc.xlsx"),
+          MockedFileType.TEST_ZX,
+          FileMock.create()
+              .id(UUID.randomUUID())
+              .size(5L)
+              .mimeType("application/octet-stream")
+              .name("test.zx"));
 
   private static final Map<MockedFileType, FileMock> mapMockedPreviews =
       Map.of(
@@ -105,7 +111,8 @@ public class MockedFiles {
     LUCY_VAN_PELT_PDF,
     DOCUMENT_DOCX,
     PRESENTATION_PPTX,
-    CALC_XLSX
+    CALC_XLSX,
+    TEST_ZX
   }
 
   public static class FileMock {
