@@ -71,7 +71,6 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   @Override
-  @Transactional
   public JoinStatus insertMeetingParticipant(
       UUID meetingId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser) {
     Meeting meeting =
@@ -356,7 +355,6 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   @Override
-  @Transactional
   public void updateMediaStream(
       UUID meetingId, MediaStreamSettingsDto mediaStreamSettingsDto, UserPrincipal currentUser) {
     Meeting meeting =
@@ -414,7 +412,6 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   @Override
-  @Transactional
   public void updateAudioStream(
       UUID meetingId, AudioStreamSettingsDto audioStreamSettingsDto, UserPrincipal currentUser) {
     Meeting meeting =
@@ -519,7 +516,6 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   @Override
-  @Transactional
   public void updateQueue(
       UUID meetingId, UUID userId, QueueUpdateStatusDto status, UserPrincipal currentUser) {
     Meeting meeting =
@@ -548,7 +544,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                       wp.status(JoinStatus.ACCEPTED);
                       waitingParticipantRepository.update(wp);
                       try {
-                        this.membersService.insertRoomMember(
+                        membersService.insertRoomMember(
                             UUID.fromString(meeting.getRoomId()),
                             new MemberToInsertDto()
                                 .userId(userId)

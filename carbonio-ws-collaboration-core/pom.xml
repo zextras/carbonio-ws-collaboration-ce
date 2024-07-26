@@ -135,7 +135,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
 
-
     <!-- Apache commons -->
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -170,6 +169,13 @@ SPDX-License-Identifier: AGPL-3.0-only
        <groupId>jakarta.websocket</groupId>
        <artifactId>jakarta.websocket-api</artifactId>
      </dependency>
+
+    <!-- Cache -->
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+      <version>${caffeine.cache.version}</version>
+    </dependency>
 
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
@@ -223,7 +229,6 @@ SPDX-License-Identifier: AGPL-3.0-only
     </testResources>
 
     <plugins>
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>

@@ -112,7 +112,6 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  @Transactional
   public MemberInsertedDto insertRoomMember(
       UUID roomId, MemberToInsertDto memberToInsertDto, UserPrincipal currentUser) {
     if (!userService.userExists(memberToInsertDto.getUserId(), currentUser)) {
@@ -264,7 +263,6 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  @Transactional
   public List<MemberDto> getRoomMembers(UUID roomId, UserPrincipal currentUser) {
     Room room = roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
     if (RoomTypeDto.CHANNEL.equals(room.getType())) {

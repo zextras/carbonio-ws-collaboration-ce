@@ -69,7 +69,6 @@ public class AttachmentServiceImpl implements AttachmentService {
   }
 
   @Override
-  @Transactional
   public FileContentAndMetadata getAttachmentById(UUID fileId, UserPrincipal currentUser) {
     FileMetadata metadata =
         fileMetadataRepository
@@ -83,7 +82,6 @@ public class AttachmentServiceImpl implements AttachmentService {
   }
 
   @Override
-  @Transactional
   public AttachmentsPaginationDto getAttachmentInfoByRoomId(
       UUID roomId, Integer itemsNumber, @Nullable String filter, UserPrincipal currentUser) {
     roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
@@ -124,7 +122,6 @@ public class AttachmentServiceImpl implements AttachmentService {
   }
 
   @Override
-  @Transactional
   public AttachmentDto getAttachmentInfoById(UUID fileId, UserPrincipal currentUser) {
     FileMetadata metadata =
         fileMetadataRepository
@@ -137,7 +134,6 @@ public class AttachmentServiceImpl implements AttachmentService {
   }
 
   @Override
-  @Transactional
   public IdDto addAttachment(
       UUID roomId,
       InputStream file,

@@ -312,7 +312,6 @@ public class UsersApiIT {
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
 
-      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(account.getId()), VerificationTimes.exactly(1));
       storageMockServer.verify(
@@ -336,8 +335,6 @@ public class UsersApiIT {
       MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
-
-      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
     }
 
     @Test
@@ -355,8 +352,6 @@ public class UsersApiIT {
       MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
       assertEquals(424, response.getStatus());
       assertEquals(0, response.getOutput().length);
-
-      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
     }
   }
 
@@ -409,13 +404,11 @@ public class UsersApiIT {
           OffsetDateTime.ofInstant(
               Instant.parse("2022-01-01T00:00:00Z"), ZoneOffset.systemDefault()),
           user.get().getPictureUpdatedAt());
-      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(account.getId()), VerificationTimes.exactly(1));
       storageMockServer.verify(
           storageMockServer.getUploadPutRequest(fileMock.getId(), account.getId()),
           VerificationTimes.exactly(1));
-      // TODO: 01/03/22 verify event dispatcher iterations
     }
 
     @Test
@@ -457,7 +450,6 @@ public class UsersApiIT {
               account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
     }
 
     @Test
@@ -485,7 +477,6 @@ public class UsersApiIT {
               account2.getToken());
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", "/users/myself/", account2.getToken(), 1);
     }
 
     @Test
@@ -509,7 +500,6 @@ public class UsersApiIT {
               account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
     }
 
     @Test
@@ -534,7 +524,6 @@ public class UsersApiIT {
               account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
     }
   }
 
@@ -567,7 +556,6 @@ public class UsersApiIT {
       assertTrue(user.isPresent());
       assertNull(user.get().getPictureUpdatedAt());
 
-      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(account.getId()), VerificationTimes.exactly(1));
       storageMockServer.verify(
@@ -601,8 +589,6 @@ public class UsersApiIT {
       MockHttpResponse response = dispatcher.delete(url(account.getUUID()), account.getToken());
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
-
-      userManagementMockServer.verify("GET", "/users/myself/", account.getToken(), 1);
     }
   }
 

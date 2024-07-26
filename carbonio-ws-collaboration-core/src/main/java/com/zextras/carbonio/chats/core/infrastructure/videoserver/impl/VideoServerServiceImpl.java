@@ -495,7 +495,6 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
-  @Transactional
   public void updateMediaStream(
       String userId, String meetingId, MediaStreamSettingsDto mediaStreamSettingsDto) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
@@ -608,7 +607,6 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
-  @Transactional
   public void updateAudioStream(String userId, String meetingId, boolean enabled) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
@@ -659,7 +657,6 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
-  @Transactional
   public void answerRtcMediaStream(String userId, String meetingId, String sdp) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
@@ -707,7 +704,6 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
-  @Transactional
   public void updateSubscriptionsMediaStream(
       String userId, String meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
@@ -845,7 +841,6 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
-  @Transactional
   public void offerRtcAudioStream(String userId, String meetingId, String sdp) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);

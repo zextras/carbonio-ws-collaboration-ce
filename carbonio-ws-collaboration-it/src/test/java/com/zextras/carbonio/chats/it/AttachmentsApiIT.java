@@ -17,7 +17,6 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
-import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedFiles;
@@ -45,7 +44,6 @@ public class AttachmentsApiIT {
   private final ObjectMapper objectMapper;
   private final IntegrationTestUtils integrationTestUtils;
   private final StorageMockServer storageMockServer;
-  private final UserManagementMockServer userManagementMockServer;
 
   public AttachmentsApiIT(
       AttachmentsApi attachmentsApi,
@@ -53,14 +51,12 @@ public class AttachmentsApiIT {
       ObjectMapper objectMapper,
       ResteasyRequestDispatcher dispatcher,
       IntegrationTestUtils integrationTestUtils,
-      StorageMockServer storageMockServer,
-      UserManagementMockServer userManagementMockServer) {
+      StorageMockServer storageMockServer) {
     this.fileMetadataRepository = fileMetadataRepository;
     this.objectMapper = objectMapper;
     this.dispatcher = dispatcher;
     this.integrationTestUtils = integrationTestUtils;
     this.storageMockServer = storageMockServer;
-    this.userManagementMockServer = userManagementMockServer;
     this.dispatcher.getRegistry().addSingletonResource(attachmentsApi);
   }
 
@@ -121,7 +117,6 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
           VerificationTimes.exactly(1));
@@ -151,7 +146,6 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
           VerificationTimes.exactly(1));
@@ -181,7 +175,6 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
           VerificationTimes.exactly(1));
@@ -211,7 +204,6 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
           VerificationTimes.exactly(1));
@@ -242,7 +234,6 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
           VerificationTimes.exactly(1));
@@ -274,7 +265,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -285,7 +275,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -297,7 +286,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
   }
 
@@ -327,7 +315,6 @@ public class AttachmentsApiIT {
           objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
       assertEquals(savedMetadata.getId(), attachment.getId().toString());
       assertEquals(roomId, attachment.getRoomId());
-      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -353,7 +340,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -364,7 +350,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -376,7 +361,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
   }
 
@@ -404,7 +388,6 @@ public class AttachmentsApiIT {
       MockHttpResponse response = dispatcher.delete(url(fileMetadata.getId()), user2Token);
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
       assertTrue(fileMetadataRepository.getById(fileMetadata.getId()).isEmpty());
-      userManagementMockServer.verify("GET", "/users/myself/", user2Token, 1);
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user2Id.toString()),
           VerificationTimes.exactly(1));
@@ -429,7 +412,6 @@ public class AttachmentsApiIT {
       MockHttpResponse response = dispatcher.delete(url(fileMetadata.getId()), user1Token);
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
       assertTrue(fileMetadataRepository.getById(fileMetadata.getId()).isEmpty());
-      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
 
       storageMockServer.verify(
           storageMockServer.getNSLookupUrlRequest(user2Id.toString()),
@@ -462,7 +444,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", "/users/myself/", user3Token, 1);
     }
 
     @Test
@@ -478,7 +459,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", "/users/myself/", user2Token, 1);
     }
 
     @Test
@@ -489,7 +469,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
 
     @Test
@@ -501,7 +480,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", "/users/myself/", user1Token, 1);
     }
   }
 }

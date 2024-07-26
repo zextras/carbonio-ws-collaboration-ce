@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp;
 
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
+import com.zextras.carbonio.chats.core.exception.MessageDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
 import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import java.io.ByteArrayInputStream;
@@ -226,12 +227,15 @@ public class XmppMessageBuilder {
         Optional.ofNullable(to)
             .orElseThrow(
                 () ->
-                    new InternalErrorException("Cannot create an XMPP message without recipient")));
+                    new MessageDispatcherException(
+                        "Cannot create an XMPP message without recipient")));
     element.setAttribute(
         "from",
         Optional.ofNullable(from)
             .orElseThrow(
-                () -> new InternalErrorException("Cannot create an XMPP message without sender")));
+                () ->
+                    new MessageDispatcherException(
+                        "Cannot create an XMPP message without sender")));
     Optional.ofNullable(messageId).ifPresent(id -> element.setAttribute("id", id));
     element.setAttribute("type", "groupchat");
     return element;

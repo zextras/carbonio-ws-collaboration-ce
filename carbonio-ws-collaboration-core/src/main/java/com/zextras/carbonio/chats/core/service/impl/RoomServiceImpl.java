@@ -144,7 +144,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public RoomDto getRoomById(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
@@ -170,14 +169,12 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public RoomDto createRoom(RoomCreationFieldsDto roomCreationFields, UserPrincipal currentUser) {
     createRoomValidation(roomCreationFields, currentUser);
     List<UUID> membersIds = new ArrayList<>(roomCreationFields.getMembersIds());
     if (!RoomTypeDto.CHANNEL.equals(roomCreationFields.getType())) {
       membersIds.add(UUID.fromString(currentUser.getId()));
     }
-
     UUID newRoomId = UUID.randomUUID();
     Room room =
         Room.create()
@@ -301,7 +298,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public RoomDto updateRoom(
       UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
@@ -382,7 +378,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public void muteRoom(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
@@ -399,7 +394,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public void unmuteRoom(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
     if (RoomTypeDto.WORKSPACE.equals(room.getType())) {
@@ -481,7 +475,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public FileContentAndMetadata getRoomPicture(UUID roomId, UserPrincipal currentUser) {
     getRoomEntityAndCheckUser(roomId, currentUser, false);
     FileMetadata metadata =
@@ -494,7 +487,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public void setRoomPicture(
       UUID roomId,
       InputStream image,
@@ -570,7 +562,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public void updateWorkspacesRank(List<RoomRankDto> roomRankDto, UserPrincipal currentUser) {
     List<RoomRankDto> roomRankList = new ArrayList<>(roomRankDto);
     if (roomRankList.size()

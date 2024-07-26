@@ -91,27 +91,25 @@ SPDX-License-Identifier: AGPL-3.0-only
     <com.rabbitmq.amqp-client.version>5.21.0</com.rabbitmq.amqp-client.version>
     <!-- Web Socket -->
     <jakarta.websocket-api.version>2.0.0</jakarta.websocket-api.version>
+    <caffeine.cache.version>3.1.8</caffeine.cache.version>
     <jakarta.el>5.0.0-M1</jakarta.el>
+
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
     <org.junit.jupiter.version>5.8.2</org.junit.jupiter.version>
     <org.junit-pioneer.version>1.7.0</org.junit-pioneer.version>
-
     <!-- Mockito -->
     <org.mockito.version>5.0.0</org.mockito.version>
-
     <!-- Integration Tests dependency -->
     <org.testcontainers.version>1.18.0</org.testcontainers.version>
     <org.mock-server.version>5.15.0</org.mock-server.version>
     <com.github.fridujo-rabbitmq-mock.version>1.2.0</com.github.fridujo-rabbitmq-mock.version>
-
     <!-- Plugins -->
     <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
     <maven-resources-plugin.version>3.2.0</maven-resources-plugin.version>
     <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
     <maven-failsafe-plugin.version>3.0.0-M5</maven-failsafe-plugin.version>
     <jacoco-maven-plugin.version>0.8.7</jacoco-maven-plugin.version>
-
     <ebean-maven-plugin.version>13.6.5</ebean-maven-plugin.version>
   </properties>
 
@@ -403,6 +401,12 @@ SPDX-License-Identifier: AGPL-3.0-only
         <groupId>com.rabbitmq</groupId>
         <artifactId>amqp-client</artifactId>
         <version>${com.rabbitmq.amqp-client.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.github.ben-manes.caffeine</groupId>
+        <artifactId>caffeine</artifactId>
+        <version>${caffeine.cache.version}</version>
       </dependency>
 
       <!-- Tests dependency -->

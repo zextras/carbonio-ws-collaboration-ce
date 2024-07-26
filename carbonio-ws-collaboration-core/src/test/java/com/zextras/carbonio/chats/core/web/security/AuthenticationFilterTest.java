@@ -14,16 +14,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
-import com.zextras.carbonio.usermanagement.entities.UserId;
-import com.zextras.carbonio.usermanagement.entities.UserMyself;
-import io.vavr.control.Try;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Cookie;
-import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -47,21 +45,19 @@ class AuthenticationFilterTest {
 
     @Test
     @DisplayName("Sets the correct security context for an internal user")
-    void filter_testOk() {
+    void filter_testInternalUserOk() {
       UUID userId = UUID.randomUUID();
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
-      when(authenticationService.getUserMySelf("token"))
+      when(authenticationService.getUserProfile("token"))
           .thenReturn(
-              Try.success(
-                  new UserMyself(
-                      new UserId(userId.toString()),
-                      "user@example.com",
-                      "User",
-                      "example.com",
-                      Locale.getDefault(),
-                      com.zextras.carbonio.usermanagement.enumerations.UserType.INTERNAL)));
+              Optional.of(
+                  UserProfile.create(userId.toString())
+                      .email("user@example.com")
+                      .name("User")
+                      .domain("example.com")
+                      .type(UserType.INTERNAL)));
 
       authenticationFilter.filter(requestContext);
 
@@ -80,21 +76,19 @@ class AuthenticationFilterTest {
 
     @Test
     @DisplayName("Sets the correct security context for a guest user")
-    void filter_testGuestOk() {
+    void filter_testGuestUserOk() {
       UUID userId = UUID.randomUUID();
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
-      when(authenticationService.getUserMySelf("token"))
+      when(authenticationService.getUserProfile("token"))
           .thenReturn(
-              Try.success(
-                  new UserMyself(
-                      new UserId(userId.toString()),
-                      "guest@example.com",
-                      "Guest",
-                      "example.com",
-                      Locale.getDefault(),
-                      com.zextras.carbonio.usermanagement.enumerations.UserType.GUEST)));
+              Optional.of(
+                  UserProfile.create(userId.toString())
+                      .email("guest@example.com")
+                      .name("Guest")
+                      .domain("example.com")
+                      .type(UserType.GUEST)));
 
       authenticationFilter.filter(requestContext);
 
@@ -132,8 +126,7 @@ class AuthenticationFilterTest {
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
-      when(authenticationService.getUserMySelf("token"))
-          .thenReturn(Try.failure(new UnauthorizedException()));
+      when(authenticationService.getUserProfile("token")).thenReturn(Optional.empty());
 
       assertThrows(UnauthorizedException.class, () -> authenticationFilter.filter(requestContext));
     }

@@ -28,6 +28,7 @@ import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
+import com.zextras.carbonio.chats.core.cache.CacheHandler;
 import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
 import com.zextras.carbonio.chats.core.config.impl.InfrastructureAppConfig;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
@@ -202,6 +203,7 @@ public class CoreModule extends AbstractModule {
     bindExceptionMapper();
 
     bind(VideoServerEventListener.class);
+    bind(CacheHandler.class);
   }
 
   private void bindExceptionMapper() {
