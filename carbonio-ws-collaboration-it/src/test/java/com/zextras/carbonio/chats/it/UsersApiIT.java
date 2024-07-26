@@ -383,7 +383,6 @@ public class UsersApiIT {
           user.get().getPictureUpdatedAt());
       userManagementMockServer.verify(
           "GET", String.format("/auth/token/%s", account.getToken()), 1);
-      // TODO: 01/03/22 verify event dispatcher iterations
       storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
     }
 

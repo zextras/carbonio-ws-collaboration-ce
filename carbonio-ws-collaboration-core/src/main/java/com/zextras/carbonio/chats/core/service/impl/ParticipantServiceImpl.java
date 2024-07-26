@@ -64,7 +64,6 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   @Override
-  @Transactional
   public void insertMeetingParticipant(
       UUID meetingId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser) {
     Meeting meeting =
@@ -197,7 +196,6 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   @Override
-  @Transactional
   public void updateMediaStream(
       UUID meetingId, MediaStreamSettingsDto mediaStreamSettingsDto, UserPrincipal currentUser) {
     Meeting meeting =
@@ -255,7 +253,6 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   @Override
-  @Transactional
   public void updateAudioStream(
       UUID meetingId, AudioStreamSettingsDto audioStreamSettingsDto, UserPrincipal currentUser) {
     Meeting meeting =

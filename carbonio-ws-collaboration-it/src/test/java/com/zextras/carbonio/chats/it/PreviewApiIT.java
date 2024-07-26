@@ -45,7 +45,7 @@ import org.mockserver.model.HttpResponse;
 import org.mockserver.model.MediaType;
 
 @ApiIntegrationTest
-public class PreviewApiIT {
+class PreviewApiIT {
 
   private final ResteasyRequestDispatcher dispatcher;
 
@@ -96,7 +96,7 @@ public class PreviewApiIT {
 
   @Nested
   @DisplayName("Preview image tests")
-  public class PreviewImageTests {
+  class PreviewImageTests {
 
     private HttpRequest mockGetPreviewImageRequest(
         String fileId, String area, Quality quality, Format format, Boolean crop) {
@@ -283,7 +283,7 @@ public class PreviewApiIT {
 
     @Test
     @DisplayName("Correctly returns the image preview for requested id")
-    public void getImagePreview_testOk() throws Exception {
+    void getImagePreview_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(
           fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
@@ -313,7 +313,7 @@ public class PreviewApiIT {
 
     @Test
     @DisplayName("Correctly returns the image thumbnail for requested id")
-    public void getImageThumbnail_testOk() throws Exception {
+    void getImageThumbnail_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(
           fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
@@ -344,7 +344,7 @@ public class PreviewApiIT {
 
     @Test
     @DisplayName("Correctly returns the pdf preview for requested id")
-    public void getPDFPreview_testOk() throws Exception {
+    void getPDFPreview_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_PDF);
       integrationTestUtils.generateAndSaveFileMetadata(
           fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
@@ -361,7 +361,7 @@ public class PreviewApiIT {
 
     @Test
     @DisplayName("Correctly returns the pdf thumbnail for requested id")
-    public void getPDFThumbnail_testOk() throws Exception {
+    void getPDFThumbnail_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_PDF);
       integrationTestUtils.generateAndSaveFileMetadata(
           fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
@@ -392,7 +392,7 @@ public class PreviewApiIT {
 
     @Test
     @DisplayName("Returns 424 if the Previewer server is down")
-    public void getAttachmentPreview_testExceptionPreviewerKO() throws Exception {
+    void getAttachmentPreview_testExceptionPreviewerKO() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(
           fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
@@ -418,7 +418,7 @@ public class PreviewApiIT {
     @Test
     @DisplayName(
         "Given an attachment identifier, if the user is not authenticated return a status code 401")
-    public void getAttachmentPreview_testErrorUnauthenticatedUser() throws Exception {
+    void getAttachmentPreview_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response =
           dispatcher.get(
               previewImageUrl(
@@ -436,7 +436,7 @@ public class PreviewApiIT {
     @DisplayName(
         "Given an attachment identifier, if authenticated user isn't a room member then return a"
             + " status code 404")
-    public void getAttachmentPreview_testErrorUserIsNotARoomMember() throws Exception {
+    void getAttachmentPreview_testErrorUserIsNotARoomMember() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PEANUTS_IMAGE);
       integrationTestUtils.generateAndSaveFileMetadata(
           fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
@@ -458,7 +458,7 @@ public class PreviewApiIT {
     @DisplayName(
         "Given an attachment identifier, if the attachment doesn't exist then return a status code"
             + " 404")
-    public void getAttachmentPreview_testErrorFileNotExists() throws Exception {
+    void getAttachmentPreview_testErrorFileNotExists() throws Exception {
       MockHttpResponse response =
           dispatcher.get(
               previewImageUrl(

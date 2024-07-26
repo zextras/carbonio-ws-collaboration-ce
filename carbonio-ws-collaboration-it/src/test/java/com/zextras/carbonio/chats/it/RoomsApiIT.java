@@ -147,10 +147,10 @@ public class RoomsApiIT {
                       (key, values) ->
                           values.forEach(
                               v -> {
-                                url.append(url.length() > 0 ? "&" : "");
+                                url.append(!url.isEmpty() ? "&" : "");
                                 url.append(String.join("=", key, v));
                               })));
-      return "/rooms" + (url.length() > 0 ? "?" + url : "");
+      return "/rooms" + (!url.isEmpty() ? "?" + url : "");
     }
 
     @Test
@@ -442,7 +442,6 @@ public class RoomsApiIT {
         mongooseImMockServer.verify(
             mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage2),
             VerificationTimes.exactly(1));
-        // TODO: 23/02/22 verify event dispatcher interactions
       }
 
       @Test
@@ -577,7 +576,6 @@ public class RoomsApiIT {
         mongooseImMockServer.verify(
             mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage2),
             VerificationTimes.exactly(1));
-        // TODO: 23/02/22 verify event dispatcher interactions
       }
 
       @Test
@@ -720,7 +718,6 @@ public class RoomsApiIT {
             mongooseImMockServer.getAddUserToContactsRequest(
                 user2Id.toString(), user1Id.toString()),
             VerificationTimes.exactly(1));
-        // TODO: 23/02/22 verify event dispatcher interactions
       }
 
       @Test
@@ -1077,7 +1074,6 @@ public class RoomsApiIT {
       assertEquals(Duration.ofDays(1L), Duration.between(room.getCreatedAt(), room.getUpdatedAt()));
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
 
-      // TODO: 23/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hopedXmppMessage1),
@@ -1129,7 +1125,6 @@ public class RoomsApiIT {
       assertEquals(Duration.ofDays(1L), Duration.between(room.getCreatedAt(), room.getUpdatedAt()));
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
 
-      // TODO: 23/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hopedXmppMessage),
@@ -1176,7 +1171,6 @@ public class RoomsApiIT {
       assertEquals(Duration.ofDays(1L), Duration.between(room.getCreatedAt(), room.getUpdatedAt()));
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
 
-      // TODO: 23/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
       mongooseImMockServer.verify(
           mongooseImMockServer.getSendStanzaRequest(hopedXmppMessage),
@@ -1355,7 +1349,6 @@ public class RoomsApiIT {
 
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
 
-      // TODO: 23/02/22 verify event dispatcher interactions
       mongooseImMockServer.verify(
           mongooseImMockServer.getDeleteRoomRequest(roomId.toString()),
           VerificationTimes.exactly(1));
@@ -1869,7 +1862,6 @@ public class RoomsApiIT {
       }
       mongooseImMockServer.verify(mongooseImMockServer.getSendStanzaRequest(hoped));
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      // TODO: 01/03/22 verify event dispatcher iterations
       storageMockServer.verify("DELETE", "/delete", existingImage.getId(), 1);
       storageMockServer.verify("PUT", "/upload", newImage.getId(), 1);
       Optional<Room> room = roomRepository.getById(roomId.toString());
@@ -2175,7 +2167,6 @@ public class RoomsApiIT {
       assertEquals(
           MUTED_TO_INFINITY.toInstant(), roomUserSettings.get().getMutedUntil().toInstant());
 
-      // TODO: 23/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
     }
 
@@ -2354,7 +2345,6 @@ public class RoomsApiIT {
               .readValue(response.getContentAsString(), ClearedDateDto.class)
               .getClearedAt());
 
-      // TODO: 23/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
     }
 
@@ -2375,7 +2365,6 @@ public class RoomsApiIT {
               objectMapper
                   .readValue(response.getContentAsString(), ClearedDateDto.class)
                   .getClearedAt()));
-      // TODO: 23/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
     }
 
@@ -2746,7 +2735,6 @@ public class RoomsApiIT {
               .findAny()
               .isEmpty());
 
-      // TODO: 25/02/22 verify event dispatcher
       mongooseImMockServer.verify(
           mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user2Id.toString()),
           VerificationTimes.exactly(1));
@@ -2806,7 +2794,6 @@ public class RoomsApiIT {
           meeting.get().getParticipants().stream()
               .noneMatch(participant -> user2Id.toString().equals(participant.getUserId())));
 
-      // TODO: 25/02/22 verify event dispatcher
       mongooseImMockServer.verify(
           mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user2Id.toString()),
           VerificationTimes.exactly(1));
@@ -2897,7 +2884,6 @@ public class RoomsApiIT {
           meeting.get().getParticipants().stream()
               .noneMatch(participant -> user2Id.toString().equals(participant.getUserId())));
 
-      // TODO: 25/02/22 verify event dispatcher
       mongooseImMockServer.verify(
           mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user2Id.toString()),
           VerificationTimes.exactly(1));
@@ -3021,7 +3007,6 @@ public class RoomsApiIT {
               .findAny()
               .isEmpty());
 
-      // TODO: 25/02/22 verify event dispatcher
       mongooseImMockServer.verify(
           mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user2Id.toString()),
           VerificationTimes.exactly(1));
@@ -3165,7 +3150,6 @@ public class RoomsApiIT {
               .findAny()
               .isEmpty());
 
-      // TODO: 25/02/22 verify event dispatcher
       mongooseImMockServer.verify(
           mongooseImMockServer.getRemoveRoomMemberRequest(roomId.toString(), user3Id.toString()),
           VerificationTimes.exactly(1));
@@ -3203,7 +3187,6 @@ public class RoomsApiIT {
               .orElseThrow()
               .isOwner());
 
-      // TODO: 25/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
@@ -3310,7 +3293,6 @@ public class RoomsApiIT {
               .orElseThrow()
               .isOwner());
 
-      // TODO: 28/02/22 verify event dispatcher interactions
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
@@ -3442,7 +3424,7 @@ public class RoomsApiIT {
           List.of(file3.getId(), file4.getId(), file1.getId(), file2.getId()),
           attachments.getAttachments().stream()
               .map(attachment -> attachment.getId().toString())
-              .collect(Collectors.toList()));
+              .toList());
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
@@ -3504,7 +3486,7 @@ public class RoomsApiIT {
           List.of(file3.getId(), file1.getId()),
           attachmentsPage1.getAttachments().stream()
               .map(attachment -> attachment.getId().toString())
-              .collect(Collectors.toList()));
+              .toList());
       assertNotNull(attachmentsPage1.getFilter());
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
 
@@ -3520,7 +3502,7 @@ public class RoomsApiIT {
           List.of(file4.getId(), file2.getId()),
           attachmentsPage2.getAttachments().stream()
               .map(attachment -> attachment.getId().toString())
-              .collect(Collectors.toList()));
+              .toList());
       assertNull(attachmentsPage2.getFilter());
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
@@ -3619,7 +3601,6 @@ public class RoomsApiIT {
               .getFileMetadataByRoomIdAndType(roomId, FileMetadataType.ATTACHMENT)
               .stream()
               .anyMatch(attach -> attach.getId().equals(id.getId().toString())));
-      // TODO: 28/02/22 verify event dispatcher interactions
     }
 
     @Test
@@ -3688,7 +3669,6 @@ public class RoomsApiIT {
               .getFileMetadataByRoomIdAndType(roomId, FileMetadataType.ATTACHMENT)
               .stream()
               .anyMatch(attach -> attach.getId().equals(id.getId().toString())));
-      // TODO: 28/02/22 verify event dispatcher interactions
     }
 
     @Test
@@ -3759,7 +3739,6 @@ public class RoomsApiIT {
               .getFileMetadataByRoomIdAndType(roomId, FileMetadataType.ATTACHMENT)
               .stream()
               .anyMatch(attach -> attach.getId().equals(id.getId().toString())));
-      // TODO: 28/02/22 verify event dispatcher interactions
     }
 
     @Test
@@ -3830,7 +3809,6 @@ public class RoomsApiIT {
               .getFileMetadataByRoomIdAndType(roomId, FileMetadataType.ATTACHMENT)
               .stream()
               .anyMatch(attach -> attach.getId().equals(id.getId().toString())));
-      // TODO: 28/02/22 verify event dispatcher interactions
     }
 
     @Test

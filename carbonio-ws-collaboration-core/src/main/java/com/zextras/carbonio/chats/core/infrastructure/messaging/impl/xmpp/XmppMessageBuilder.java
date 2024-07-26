@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp;
 
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
+import com.zextras.carbonio.chats.core.exception.MessageDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
 import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import java.io.ByteArrayInputStream;
@@ -29,14 +30,14 @@ import org.w3c.dom.ls.LSSerializer;
 
 public class XmppMessageBuilder {
 
-  private final String                  to;
-  private final String                  from;
+  private final String to;
+  private final String from;
   private final List<XmppConfiguration> configurations;
-  private       String                  messageId;
-  private       String                  body;
-  private       String                  replyId;
-  private       String                  messageToForward;
-  private       OffsetDateTime          messageToForwardSentAt;
+  private String messageId;
+  private String body;
+  private String replyId;
+  private String messageToForward;
+  private OffsetDateTime messageToForwardSentAt;
 
   public XmppMessageBuilder(String to, String from) {
     this.to = to;
@@ -97,10 +98,15 @@ public class XmppMessageBuilder {
         message.appendChild(createConfigurationsElement(document));
       }
       message.appendChild(
-        createTextElement(document, "body",
-          Optional.ofNullable(StringFormatUtils.encodeToUtf8(body)).orElse(""), !StringUtils.isEmpty(body)));
-      Optional.ofNullable(replyId).ifPresent(id -> message.appendChild(createReplyElement(document)));
-      Optional.ofNullable(messageToForward).ifPresent(m -> message.appendChild(createForwardedElement(document)));
+          createTextElement(
+              document,
+              "body",
+              Optional.ofNullable(StringFormatUtils.encodeToUtf8(body)).orElse(""),
+              !StringUtils.isEmpty(body)));
+      Optional.ofNullable(replyId)
+          .ifPresent(id -> message.appendChild(createReplyElement(document)));
+      Optional.ofNullable(messageToForward)
+          .ifPresent(m -> message.appendChild(createForwardedElement(document)));
       DOMImplementationLS domImplLS = (DOMImplementationLS) document.getImplementation();
       LSSerializer serializer = domImplLS.createLSSerializer();
       serializer.getDomConfig().setParameter("xml-declaration", false);
@@ -117,67 +123,91 @@ public class XmppMessageBuilder {
 
   private Element createForwardedElement(Document document) {
     Element element = document.createElementNS("urn:xmpp:forward:0", "forwarded");
-    Optional.ofNullable(messageToForwardSentAt).ifPresent(sentAt -> {
-      Element delay = document.createElementNS("urn:xmpp:delay", "delay");
-      delay.setAttribute("stamp", sentAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-      element.appendChild(delay);
-    });
+    Optional.ofNullable(messageToForwardSentAt)
+        .ifPresent(
+            sentAt -> {
+              Element delay = document.createElementNS("urn:xmpp:delay", "delay");
+              delay.setAttribute("stamp", sentAt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+              element.appendChild(delay);
+            });
     if (messageToForward.contains("<body>")) {
-      String body = messageToForward.substring(messageToForward.indexOf("<body>") + 6,
-        messageToForward.indexOf("</body>"));
+      String body =
+          messageToForward.substring(
+              messageToForward.indexOf("<body>") + 6, messageToForward.indexOf("</body>"));
       messageToForward = messageToForward.replace(body, StringEscapeUtils.escapeXml10(body));
     }
     Document documentTag;
     Element messageTag;
     try {
-      documentTag = DocumentBuilderFactory
-        .newInstance()
-        .newDocumentBuilder()
-        .parse(new ByteArrayInputStream(messageToForward.getBytes()));
+      documentTag =
+          DocumentBuilderFactory.newInstance()
+              .newDocumentBuilder()
+              .parse(new ByteArrayInputStream(messageToForward.getBytes()));
     } catch (Exception e) {
       throw new BadRequestException("Cannot read the message to forward", e);
     }
     messageTag = documentTag.getDocumentElement();
-    Optional<Element> forwardedTag = Optional.ofNullable(
-      Optional.ofNullable((Element) messageTag.getElementsByTagName("forwarded").item(0))
-        .orElse(Optional.ofNullable((Element) messageTag.getElementsByTagName("result").item(0))
-          .map(r -> (Element) r.getElementsByTagName("forwarded").item(0)).orElse(null)));
+    Optional<Element> forwardedTag =
+        Optional.ofNullable(
+            Optional.ofNullable((Element) messageTag.getElementsByTagName("forwarded").item(0))
+                .orElse(
+                    Optional.ofNullable((Element) messageTag.getElementsByTagName("result").item(0))
+                        .map(r -> (Element) r.getElementsByTagName("forwarded").item(0))
+                        .orElse(null)));
     int countAtt;
     String textBody;
     if (forwardedTag.isPresent()) {
-      countAtt = forwardedTag
-        .flatMap(f -> Optional.ofNullable(f.getAttributes().getNamedItem("count"))
-          .map(c -> Integer.parseInt(c.getNodeValue()) + 1)).orElse(1);
-      textBody = forwardedTag
-        .flatMap(f -> Optional.ofNullable((Element) f.getElementsByTagName("message").item(0))
-          .flatMap(m -> Optional.ofNullable(m.getElementsByTagName("body").item(0))
-            .map(b -> StringEscapeUtils.unescapeXml(b.getTextContent())))).orElse("");
+      countAtt =
+          forwardedTag
+              .flatMap(
+                  f ->
+                      Optional.ofNullable(f.getAttributes().getNamedItem("count"))
+                          .map(c -> Integer.parseInt(c.getNodeValue()) + 1))
+              .orElse(1);
+      textBody =
+          forwardedTag
+              .flatMap(
+                  f ->
+                      Optional.ofNullable((Element) f.getElementsByTagName("message").item(0))
+                          .flatMap(
+                              m ->
+                                  Optional.ofNullable(m.getElementsByTagName("body").item(0))
+                                      .map(b -> StringEscapeUtils.unescapeXml(b.getTextContent()))))
+              .orElse("");
     } else {
       countAtt = 1;
-      textBody = Optional.ofNullable((Element) messageTag.getElementsByTagName("body").item(0))
-        .map(b -> {
-          String text = StringEscapeUtils.unescapeXml(b.getTextContent());
-          return b.hasAttribute("encoded") ? text : StringFormatUtils.encodeToUtf8(text);
-        }).orElse("");
+      textBody =
+          Optional.ofNullable((Element) messageTag.getElementsByTagName("body").item(0))
+              .map(
+                  b -> {
+                    String text = StringEscapeUtils.unescapeXml(b.getTextContent());
+                    return b.hasAttribute("encoded") ? text : StringFormatUtils.encodeToUtf8(text);
+                  })
+              .orElse("");
     }
     element.setAttribute("count", String.valueOf(countAtt));
 
-    Optional<Element> bodyTag = Optional.ofNullable((Element) messageTag.getElementsByTagName("body").item(0));
+    Optional<Element> bodyTag =
+        Optional.ofNullable((Element) messageTag.getElementsByTagName("body").item(0));
     if (bodyTag.isPresent()) {
       if (!StringUtils.isEmpty(textBody) && !bodyTag.get().hasAttribute("encoded")) {
         bodyTag.get().setAttribute("encoded", "UTF-8");
       }
       bodyTag.get().setTextContent(textBody);
     } else {
-      messageTag.appendChild(
-        createTextElement(documentTag, "body", textBody, true));
+      messageTag.appendChild(createTextElement(documentTag, "body", textBody, true));
     }
 
-    Optional.ofNullable(messageTag.getElementsByTagName("markable").item(0)).ifPresent(messageTag::removeChild);
-    Optional.ofNullable(messageTag.getElementsByTagName("forwarded").item(0)).ifPresent(messageTag::removeChild);
-    Optional.ofNullable(messageTag.getElementsByTagName("reply").item(0)).ifPresent(messageTag::removeChild);
-    Optional.ofNullable(messageTag.getElementsByTagName("stanza-id").item(0)).ifPresent(messageTag::removeChild);
-    Optional.ofNullable(messageTag.getElementsByTagName("x").item(0)).ifPresent(messageTag::removeChild);
+    Optional.ofNullable(messageTag.getElementsByTagName("markable").item(0))
+        .ifPresent(messageTag::removeChild);
+    Optional.ofNullable(messageTag.getElementsByTagName("forwarded").item(0))
+        .ifPresent(messageTag::removeChild);
+    Optional.ofNullable(messageTag.getElementsByTagName("reply").item(0))
+        .ifPresent(messageTag::removeChild);
+    Optional.ofNullable(messageTag.getElementsByTagName("stanza-id").item(0))
+        .ifPresent(messageTag::removeChild);
+    Optional.ofNullable(messageTag.getElementsByTagName("x").item(0))
+        .ifPresent(messageTag::removeChild);
     Node messageTagImported = document.importNode(messageTag, true);
     element.appendChild(messageTagImported);
     return element;
@@ -192,10 +222,20 @@ public class XmppMessageBuilder {
 
   private Element createMessageElement(Document document) {
     Element element = document.createElementNS("jabber:client", "message");
-    element.setAttribute("to", Optional.ofNullable(to)
-      .orElseThrow(() -> new InternalErrorException("Cannot create an XMPP message without recipient")));
-    element.setAttribute("from", Optional.ofNullable(from)
-      .orElseThrow(() -> new InternalErrorException("Cannot create an XMPP message without sender")));
+    element.setAttribute(
+        "to",
+        Optional.ofNullable(to)
+            .orElseThrow(
+                () ->
+                    new MessageDispatcherException(
+                        "Cannot create an XMPP message without recipient")));
+    element.setAttribute(
+        "from",
+        Optional.ofNullable(from)
+            .orElseThrow(
+                () ->
+                    new MessageDispatcherException(
+                        "Cannot create an XMPP message without sender")));
     Optional.ofNullable(messageId).ifPresent(id -> element.setAttribute("id", id));
     element.setAttribute("type", "groupchat");
     return element;
@@ -204,12 +244,15 @@ public class XmppMessageBuilder {
   private Element createConfigurationsElement(Document document) {
     Element element = document.createElementNS("urn:xmpp:muclight:0#configuration", "x");
     configurations.forEach(
-      config -> element.appendChild(
-        createTextElement(document, config.getKey(), config.getValue(), config.isEncoded())));
+        config ->
+            element.appendChild(
+                createTextElement(
+                    document, config.getKey(), config.getValue(), config.isEncoded())));
     return element;
   }
 
-  private Element createTextElement(Document document, String name, String value, boolean isEncoded) {
+  private Element createTextElement(
+      Document document, String name, String value, boolean isEncoded) {
     Element element = document.createElement(name);
     if (isEncoded && !StringUtils.isEmpty(value)) {
       element.setAttribute("encoded", "UTF-8");
@@ -220,8 +263,8 @@ public class XmppMessageBuilder {
 
   private static class XmppConfiguration {
 
-    private final String  key;
-    private final String  value;
+    private final String key;
+    private final String value;
     private final boolean encoded;
 
     public XmppConfiguration(String key, String value, boolean encoded) {

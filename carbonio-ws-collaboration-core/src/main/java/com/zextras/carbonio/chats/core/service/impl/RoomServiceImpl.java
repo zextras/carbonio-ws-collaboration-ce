@@ -132,7 +132,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public RoomDto getRoomById(UUID roomId, UserPrincipal currentUser) {
     return roomMapper.ent2dto(
         getRoomEntityAndCheckUser(roomId, currentUser, false),
@@ -144,7 +143,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public RoomDto createRoom(RoomCreationFieldsDto roomCreationFields, UserPrincipal currentUser) {
     createRoomValidation(roomCreationFields, currentUser);
     List<UUID> membersIds = new ArrayList<>(roomCreationFields.getMembersIds());
@@ -222,7 +220,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public RoomDto updateRoom(
       UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
@@ -287,7 +284,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public void muteRoom(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, false);
     RoomUserSettings settings =
@@ -301,7 +297,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public void unmuteRoom(UUID roomId, UserPrincipal currentUser) {
     getRoomEntityAndCheckUser(roomId, currentUser, false);
     roomUserSettingsRepository
@@ -371,7 +366,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public FileContentAndMetadata getRoomPicture(UUID roomId, UserPrincipal currentUser) {
     getRoomEntityAndCheckUser(roomId, currentUser, false);
     FileMetadata metadata =
@@ -384,7 +378,6 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public void setRoomPicture(
       UUID roomId,
       InputStream image,
