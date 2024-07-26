@@ -71,6 +71,7 @@ public class DatabaseExtension implements BeforeAllCallback, AfterEachCallback {
                       .locations("classpath:migration")
                       .schemas("chats")
                       .dataSource(new HikariDataSource(config))
+                      .validateMigrationNaming(true)
                       .load();
               flyway.migrate();
               return flyway;

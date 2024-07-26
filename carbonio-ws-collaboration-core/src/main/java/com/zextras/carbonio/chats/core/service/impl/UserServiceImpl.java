@@ -27,7 +27,6 @@ import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
-import io.ebean.annotation.Transactional;
 import java.io.InputStream;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -134,7 +133,6 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  @Transactional
   public void setUserPicture(
       UUID userId,
       InputStream image,
@@ -165,7 +163,7 @@ public class UserServiceImpl implements UserService {
             .name(fileName)
             .originalSize(contentLength)
             .mimeType(mimeType)
-            .userId(currentUser.getId());
+            .userId(userId.toString());
     fileMetadataRepository.save(metadata);
     User savedUser =
         userRepository.save(
@@ -173,7 +171,7 @@ public class UserServiceImpl implements UserService {
                 .getById(userId.toString())
                 .orElseGet(() -> User.create().id(userId.toString()))
                 .pictureUpdatedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
-    storagesService.saveFile(image, metadata, currentUser.getId());
+    storagesService.saveFile(image, metadata, userId.toString());
     eventDispatcher.sendToUserExchange(
         subscriptionRepository.getContacts(userId.toString()),
         UserPictureChanged.create()
@@ -183,7 +181,6 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  @Transactional
   public void deleteUserPicture(UUID userId, UserPrincipal currentUser) {
     if (!currentUser.getUUID().equals(userId)) {
       throw new ForbiddenException("The picture can be removed only from its owner");

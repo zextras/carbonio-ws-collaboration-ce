@@ -51,8 +51,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                             .authToken(token)
                             .queueId(queueId))),
             () -> // The user didn't specify any authorization, we're logging him/her as anonymous
-                // (useful for
-                // healthchecks)
+                // (useful for healthchecks)
                 requestContext.setSecurityContext(
                     SecurityContextImpl.create(UserPrincipal.create((UUID) null).authToken(null))));
   }
