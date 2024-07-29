@@ -1,0 +1,80 @@
+#!/bin/bash
+
+# SPDX-FileCopyrightText: 2024 Zextras <https://www.zextras.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# decrypt the bootstrap token, asking the password to the sys admin
+# --setup check for SETUP_CONSUL_TOKEN env. variable and uses it
+# to avoid re-asking for the password
+if [[ $(id -u) -ne 0 ]]; then
+  echo "Please run as root"
+  exit 1
+fi
+
+# Decrypt the bootstrap token, asking the password to the sys admin
+# --setup check for SETUP_CONSUL_TOKEN env. variable and uses it
+# to avoid re-asking for the password
+echo -n "Insert the cluster credential password: "
+# shellcheck disable=SC2155
+export CONSUL_HTTP_TOKEN=$(service-discover bootstrap-token --setup)
+EXIT_CODE="$?"
+echo ""
+if [[ "${EXIT_CODE}" != "0" ]]; then
+  echo "Cannot access to bootstrap token"
+  exit 1;
+fi
+# Limit secret visibility as much as possible
+export -n SETUP_CONSUL_TOKEN
+
+POLICY_NAME='carbonio-ws-collaboration-policy'
+POLICY_DESCRIPTION='Carbonio Workstream Collaboration policy for service and sidecar proxy'
+
+# Create or update policy for the specific service (this will be shared across cluster)
+consul acl policy create -name "${POLICY_NAME}" -description "${POLICY_DESCRIPTION}" -rules  @/etc/carbonio/ws-collaboration/service-discover/policies.json >/dev/null 2>&1
+# shellcheck disable=SC2181
+if [[ "$?" != "0" ]]; then
+    consul acl policy update -no-merge -name "${POLICY_NAME}" -description "${POLICY_DESCRIPTION}" -rules @/etc/carbonio/ws-collaboration/service-discover/policies.json
+    if [[ "$?" != "0" ]]; then
+      echo "Setup failed: Cannot update policy for ${POLICY_NAME}"
+      exit 1
+    fi
+fi
+
+trap 'echo Script for Workstream Collaboration terminated with error' EXIT
+set -e
+# Declare the service as http
+consul config write /etc/carbonio/ws-collaboration/service-discover/service-protocol.json
+
+# Allow other services to contact this service
+consul config write /etc/carbonio/ws-collaboration/service-discover/intentions.json
+
+if [[ ! -f "/etc/carbonio/ws-collaboration/service-discover/token" ]]; then
+    # Create the token
+    consul acl token create -format json -policy-name "${POLICY_NAME}" -description "Token for
+    carbonio-ws-collaboration/$(hostname -A)" |
+      jq -r '.SecretID' > /etc/carbonio/ws-collaboration/service-discover/token;
+    chown carbonio-ws-collaboration:carbonio-ws-collaboration /etc/carbonio/ws-collaboration/service-discover/token
+    chmod 0600 /etc/carbonio/ws-collaboration/service-discover/token
+
+    # To pass the token to consul we need to inject it to a env. variable
+    # since it doesn't accept a file as an argument
+    mkdir -p /etc/systemd/system/carbonio-ws-collaboration.service.d/
+    cat >/etc/systemd/system/carbonio-ws-collaboration.service.d/override.conf <<EOF
+[Service]
+Environment="CONSUL_HTTP_TOKEN=$(cat /etc/carbonio/ws-collaboration/service-discover/token)"
+EOF
+    chmod 0600 /etc/systemd/system/carbonio-ws-collaboration.service.d/override.conf
+    systemctl daemon-reload
+fi
+
+consul reload
+
+carbonio-ws-collaboration-configs
+
+# Limit token visibility as much as possible
+export -n CONSUL_HTTP_TOKEN
+
+systemctl restart carbonio-ws-collaboration.service
+systemctl restart carbonio-ws-collaboration-sidecar.service
+trap - EXIT

@@ -19,43 +19,46 @@ backup=(
   "etc/zextras/service-discover/carbonio-ws-collaboration.hcl"
 )
 source=(
+  "carbonio-ws-collaboration"
   "carbonio-ws-collaboration-configs"
-  "carbonio-ws-collaboration-setup.sh"
-  "carbonio-ws-collaboration-sidecar.service"
+  "carbonio-ws-collaboration-setup"
+  "carbonio-ws-collaboration-pending-setup"
   "carbonio-ws-collaboration.hcl"
   "carbonio-ws-collaboration.service"
-  "carbonio-ws-collaboration"
-  "intentions.json"
+  "carbonio-ws-collaboration-sidecar.service"
   "logback.xml"
+  "intentions.json"
   "policies.json"
   "service-protocol.json"
 )
-sha256sums=('0ab411e66f63b6384c5aaf8537e5a8ef3135db162fa2a052266d6a847f5e9812'
-  '97256a878d94c5239c422049c9360ca18e1c34c74b3e6ac2a93e51ae0419b423'
-  '1320c458d4daa43b2b11cd694d472b635c2de547a67531605cbc2ac2afbd8b9a'
+sha256sums=('0491cce45da900c13141416b2ba9f04de3df067fca2f136f0f03892f1b2c1d1a'
+  '0ab411e66f63b6384c5aaf8537e5a8ef3135db162fa2a052266d6a847f5e9812'
+  '3b7439a5c9e2c84af0508ac9b4e20ca904dbf276a129c4c3c65f1fcb31ac9757'
+  'e9f6604fd073a5cf3cf9b448d6f9f372a64e23f84fc26d7a0fac6d55b11f0c6a'
   'e077e36d3824463d6618b7075a540037773457cc6b8ff1f105ea5e64dd3e750a'
-  'e081604be153b45a556ebb5515124a11c2d0870a978a583344f8f7be37e307ae'
-  'ce7262f2c01e4f6c700265f88892d7572dc546d2ff328506dfd7f5502c6b6b0b'
-  '58c69efd45348762b3c603ecb8a7d3df5e4ada730b00a760d02d3f376a455d08'
+  '37b6593426aa0e5a209def34a25fee30907e40278b9f35cc6e21b62303b7c39a'
+  '1320c458d4daa43b2b11cd694d472b635c2de547a67531605cbc2ac2afbd8b9a'
   'a993f63dbfa8273d92f004c6db2886f17d9876d36c65ab757456ab99c0a3f3c3'
+  '58c69efd45348762b3c603ecb8a7d3df5e4ada730b00a760d02d3f376a455d08'
   '7dbc2225d51fb07c1e3e5577f8ba80d8cd9634c7c47f5b0ab1edbc949d97ff21'
   'd3741e4103a786c40a319248258ee5a25a39174a6ba80973b5877bb8a5e2bf72')
 
 package() {
   cd "${srcdir}"/../../ws-collaboration
-  install -Dm 644 ./carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-fatjar.jar \
-    "${pkgdir}/usr/bin/carbonio/ws-collaboration/carbonio-ws-collaboration.jar"
+  install -Dm 755 ./carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-fatjar.jar \
+    "${pkgdir}/usr/share/carbonio/carbonio-ws-collaboration.jar"
 
   cd "${srcdir}"
   install -Dm 755 carbonio-ws-collaboration "${pkgdir}/usr/bin/carbonio-ws-collaboration"
   install -Dm 755 carbonio-ws-collaboration-configs "${pkgdir}/usr/bin/carbonio-ws-collaboration-configs"
-  install -Dm 644 logback.xml "${pkgdir}/etc/carbonio/ws-collaboration/logback.xml"
+  install -Dm 755 carbonio-ws-collaboration-setup "${pkgdir}/usr/bin/carbonio-ws-collaboration-setup"
+  install -Dm 644 carbonio-ws-collaboration-pending-setup "${pkgdir}/etc/zextras/pending-setups.d/carbonio-ws-collaboration.sh"
+  install -Dm 644 carbonio-ws-collaboration.hcl "${pkgdir}/etc/zextras/service-discover/carbonio-ws-collaboration.hcl"
   install -Dm 644 carbonio-ws-collaboration.service "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration.service"
   install -Dm 644 carbonio-ws-collaboration-sidecar.service "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration-sidecar.service"
-  install -Dm 644 carbonio-ws-collaboration.hcl "${pkgdir}/etc/zextras/service-discover/carbonio-ws-collaboration.hcl"
-  install -Dm 644 carbonio-ws-collaboration-setup.sh "${pkgdir}/etc/zextras/pending-setups.d/carbonio-ws-collaboration.sh"
-  install -Dm 644 policies.json "${pkgdir}/etc/carbonio/ws-collaboration/service-discover/policies.json"
+  install -Dm 644 logback.xml "${pkgdir}/etc/carbonio/ws-collaboration/logback.xml"
   install -Dm 644 intentions.json "${pkgdir}/etc/carbonio/ws-collaboration/service-discover/intentions.json"
+  install -Dm 644 policies.json "${pkgdir}/etc/carbonio/ws-collaboration/service-discover/policies.json"
   install -Dm 644 service-protocol.json "${pkgdir}/etc/carbonio/ws-collaboration/service-discover/service-protocol.json"
 }
 
