@@ -379,6 +379,9 @@ public class VideoServerServiceImpl implements VideoServerService {
     UUID serverId = UUID.fromString(videoServerMeeting.getServerId());
     VideoServerResponse videoServerResponse = createNewConnection(serverId, meetingId);
     String connectionId = videoServerResponse.getDataId();
+    videoServerResponse =
+        attachToPlugin(serverId, connectionId, JANUS_AUDIOBRIDGE_PLUGIN, meetingId);
+    String audioHandleId = videoServerResponse.getDataId();
     videoServerResponse = attachToPlugin(serverId, connectionId, JANUS_VIDEOROOM_PLUGIN, meetingId);
     String videoOutHandleId = videoServerResponse.getDataId();
     joinVideoRoomAsPublisher(
@@ -388,6 +391,8 @@ public class VideoServerServiceImpl implements VideoServerService {
         videoOutHandleId,
         videoServerMeeting.getVideoRoomId(),
         MediaType.VIDEO);
+    videoServerResponse = attachToPlugin(serverId, connectionId, JANUS_VIDEOROOM_PLUGIN, meetingId);
+    String videoInHandleId = videoServerResponse.getDataId();
     videoServerResponse = attachToPlugin(serverId, connectionId, JANUS_VIDEOROOM_PLUGIN, meetingId);
     String screenHandleId = videoServerResponse.getDataId();
     joinVideoRoomAsPublisher(
@@ -400,7 +405,9 @@ public class VideoServerServiceImpl implements VideoServerService {
     videoServerSessionRepository.insert(
         VideoServerSession.create(userId, queueId, videoServerMeeting)
             .connectionId(connectionId)
+            .audioHandleId(audioHandleId)
             .videoOutHandleId(videoOutHandleId)
+            .videoInHandleId(videoInHandleId)
             .screenHandleId(screenHandleId));
   }
 
@@ -662,28 +669,9 @@ public class VideoServerServiceImpl implements VideoServerService {
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
     UUID serverId = UUID.fromString(videoServerMeeting.getServerId());
     Optional.ofNullable(videoServerSession.getVideoInHandleId())
-        .ifPresentOrElse(
-            handleId -> {
-              startVideoIn(serverId, videoServerSession.getConnectionId(), handleId, sdp);
-              videoServerSessionRepository.update(videoServerSession.videoInStreamOn(true));
-            },
-            () -> {
-              VideoServerResponse videoServerResponse =
-                  attachToPlugin(
-                      serverId,
-                      videoServerSession.getConnectionId(),
-                      JANUS_VIDEOROOM_PLUGIN,
-                      meetingId);
-              VideoServerSession videoServerSessionUpdated =
-                  videoServerSessionRepository.update(
-                      videoServerSession.videoInHandleId(videoServerResponse.getDataId()));
-              startVideoIn(
-                  serverId,
-                  videoServerSessionUpdated.getConnectionId(),
-                  videoServerSessionUpdated.getVideoInHandleId(),
-                  sdp);
-              videoServerSessionRepository.update(videoServerSession.videoInStreamOn(true));
-            });
+        .ifPresent(
+            handleId ->
+                startVideoIn(serverId, videoServerSession.getConnectionId(), handleId, sdp));
   }
 
   private void startVideoIn(
@@ -710,31 +698,25 @@ public class VideoServerServiceImpl implements VideoServerService {
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
     UUID serverId = UUID.fromString(videoServerMeeting.getServerId());
     Optional.ofNullable(videoServerSession.getVideoInHandleId())
-        .ifPresentOrElse(
-            handleId ->
+        .ifPresent(
+            handleId -> {
+              if (!videoServerSession.hasVideoInStreamOn()) {
+                joinVideoRoomAsSubscriber(
+                    serverId,
+                    videoServerSession.getConnectionId(),
+                    userId,
+                    videoServerSession.getVideoInHandleId(),
+                    videoServerMeeting.getVideoRoomId(),
+                    subscriptionUpdatesDto.getSubscribe());
+                videoServerSessionRepository.update(videoServerSession.videoInStreamOn(true));
+              } else {
                 updateSubscriptions(
                     serverId,
                     videoServerSession.getConnectionId(),
                     userId,
                     handleId,
-                    subscriptionUpdatesDto),
-            () -> {
-              VideoServerResponse videoServerResponse =
-                  attachToPlugin(
-                      serverId,
-                      videoServerSession.getConnectionId(),
-                      JANUS_VIDEOROOM_PLUGIN,
-                      meetingId);
-              VideoServerSession videoServerSessionUpdated =
-                  videoServerSessionRepository.update(
-                      videoServerSession.videoInHandleId(videoServerResponse.getDataId()));
-              joinVideoRoomAsSubscriber(
-                  serverId,
-                  videoServerSessionUpdated.getConnectionId(),
-                  userId,
-                  videoServerSessionUpdated.getVideoInHandleId(),
-                  videoServerMeeting.getVideoRoomId(),
-                  subscriptionUpdatesDto.getSubscribe());
+                    subscriptionUpdatesDto);
+              }
             });
   }
 
@@ -846,7 +828,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
     UUID serverId = UUID.fromString(videoServerMeeting.getServerId());
     Optional.ofNullable(videoServerSession.getAudioHandleId())
-        .ifPresentOrElse(
+        .ifPresent(
             handleId ->
                 joinAudioBridgeRoom(
                     serverId,
@@ -854,25 +836,7 @@ public class VideoServerServiceImpl implements VideoServerService {
                     videoServerSession.getConnectionId(),
                     handleId,
                     videoServerMeeting.getAudioRoomId(),
-                    sdp),
-            () -> {
-              VideoServerResponse videoServerResponse =
-                  attachToPlugin(
-                      serverId,
-                      videoServerSession.getConnectionId(),
-                      JANUS_AUDIOBRIDGE_PLUGIN,
-                      meetingId);
-              VideoServerSession videoServerSessionUpdated =
-                  videoServerSessionRepository.update(
-                      videoServerSession.audioHandleId(videoServerResponse.getDataId()));
-              joinAudioBridgeRoom(
-                  serverId,
-                  userId,
-                  videoServerSessionUpdated.getConnectionId(),
-                  videoServerSessionUpdated.getAudioHandleId(),
-                  videoServerMeeting.getAudioRoomId(),
-                  sdp);
-            });
+                    sdp));
   }
 
   private void joinAudioBridgeRoom(

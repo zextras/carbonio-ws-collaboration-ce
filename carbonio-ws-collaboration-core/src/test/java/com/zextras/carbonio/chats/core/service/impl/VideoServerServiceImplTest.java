@@ -665,12 +665,26 @@ public class VideoServerServiceImplTest {
               eq(videoServerURL + janusEndpoint + serverQPm), any(VideoServerMessageRequest.class)))
           .thenReturn(sessionResponse);
 
+      VideoServerResponse audioHandleResponse =
+          VideoServerResponse.create()
+              .status("success")
+              .connectionId(user1SessionId.toString())
+              .transactionId("transaction-id")
+              .data(VideoServerDataInfo.create().id(user1AudioHandleId.toString()));
+
       VideoServerResponse videoOutHandleResponse =
           VideoServerResponse.create()
               .status("success")
               .connectionId(user1SessionId.toString())
               .transactionId("transaction-id")
               .data(VideoServerDataInfo.create().id(user1VideoOutHandleId.toString()));
+
+      VideoServerResponse videoInHandleResponse =
+          VideoServerResponse.create()
+              .status("success")
+              .connectionId(user1SessionId.toString())
+              .transactionId("transaction-id")
+              .data(VideoServerDataInfo.create().id(user1VideoInHandleId.toString()));
 
       VideoServerResponse screenHandleResponse =
           VideoServerResponse.create()
@@ -682,7 +696,11 @@ public class VideoServerServiceImplTest {
       when(videoServerClient.sendVideoServerRequest(
               eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString() + serverQPm),
               any(VideoServerMessageRequest.class)))
-          .thenReturn(videoOutHandleResponse, screenHandleResponse);
+          .thenReturn(
+              audioHandleResponse,
+              videoOutHandleResponse,
+              videoInHandleResponse,
+              screenHandleResponse);
 
       VideoRoomResponse joinPublisherVideoResponse =
           VideoRoomResponse.create()
@@ -737,7 +755,7 @@ public class VideoServerServiceImplTest {
           .sendVideoServerRequest(
               eq(videoServerURL + janusEndpoint + serverQPm),
               createConnectionRequestCaptor.capture());
-      verify(videoServerClient, times(2))
+      verify(videoServerClient, times(4))
           .sendVideoServerRequest(
               eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString() + serverQPm),
               createHandleRequestCaptor.capture());
@@ -767,7 +785,9 @@ public class VideoServerServiceImplTest {
           .insert(
               VideoServerSession.create(user1Id.toString(), queue1Id.toString(), videoServerMeeting)
                   .connectionId(user1SessionId.toString())
+                  .audioHandleId(user1AudioHandleId.toString())
                   .videoOutHandleId(user1VideoOutHandleId.toString())
+                  .videoInHandleId(user1VideoInHandleId.toString())
                   .screenHandleId(user1ScreenHandleId.toString()));
 
       assertEquals(1, createConnectionRequestCaptor.getAllValues().size());
@@ -775,17 +795,33 @@ public class VideoServerServiceImplTest {
           VideoServerMessageRequest.create().messageRequest("create").apiSecret("token"),
           createConnectionRequestCaptor.getValue());
 
-      assertEquals(2, createHandleRequestCaptor.getAllValues().size());
-      VideoServerMessageRequest videoOutHandleMessageRequest =
+      assertEquals(4, createHandleRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest audioHandleMessageRequest =
           createHandleRequestCaptor.getAllValues().get(0);
+      assertEquals(
+          VideoServerMessageRequest.create()
+              .messageRequest("attach")
+              .pluginName("janus.plugin.audiobridge")
+              .apiSecret("token"),
+          audioHandleMessageRequest);
+      VideoServerMessageRequest videoOutHandleMessageRequest =
+          createHandleRequestCaptor.getAllValues().get(1);
       assertEquals(
           VideoServerMessageRequest.create()
               .messageRequest("attach")
               .pluginName("janus.plugin.videoroom")
               .apiSecret("token"),
           videoOutHandleMessageRequest);
+      VideoServerMessageRequest videoInHandleMessageRequest =
+          createHandleRequestCaptor.getAllValues().get(2);
+      assertEquals(
+          VideoServerMessageRequest.create()
+              .messageRequest("attach")
+              .pluginName("janus.plugin.videoroom")
+              .apiSecret("token"),
+          videoInHandleMessageRequest);
       VideoServerMessageRequest screenHandleMessageRequest =
-          createHandleRequestCaptor.getAllValues().get(1);
+          createHandleRequestCaptor.getAllValues().get(3);
       assertEquals(
           VideoServerMessageRequest.create()
               .messageRequest("attach")
@@ -856,6 +892,13 @@ public class VideoServerServiceImplTest {
               eq(videoServerURL + janusEndpoint + serverQPm), any(VideoServerMessageRequest.class)))
           .thenReturn(sessionResponse);
 
+      VideoServerResponse audioHandleResponse =
+          VideoServerResponse.create()
+              .status("success")
+              .connectionId(user1SessionId.toString())
+              .transactionId("transaction-id")
+              .data(VideoServerDataInfo.create().id(user1AudioHandleId.toString()));
+
       VideoServerResponse videoOutHandleResponse =
           VideoServerResponse.create()
               .status("success")
@@ -866,7 +909,7 @@ public class VideoServerServiceImplTest {
       when(videoServerClient.sendVideoServerRequest(
               eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString() + serverQPm),
               any(VideoServerMessageRequest.class)))
-          .thenReturn(videoOutHandleResponse);
+          .thenReturn(audioHandleResponse, videoOutHandleResponse);
 
       VideoRoomResponse joinPublisherVideoResponse = VideoRoomResponse.create().status("error");
       when(videoServerClient.sendVideoRoomRequest(
@@ -898,7 +941,7 @@ public class VideoServerServiceImplTest {
       verify(videoServerClient, times(1))
           .sendVideoServerRequest(
               eq(videoServerURL + janusEndpoint + serverQPm), any(VideoServerMessageRequest.class));
-      verify(videoServerClient, times(1))
+      verify(videoServerClient, times(2))
           .sendVideoServerRequest(
               eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString() + serverQPm),
               any(VideoServerMessageRequest.class));
@@ -1898,8 +1941,6 @@ public class VideoServerServiceImplTest {
 
       ArgumentCaptor<VideoServerMessageRequest> answerRtcMediaStreamRequestCaptor =
           ArgumentCaptor.forClass(VideoServerMessageRequest.class);
-      ArgumentCaptor<VideoServerSession> videoServerSessionCaptor =
-          ArgumentCaptor.forClass(VideoServerSession.class);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
       verify(videoServerClient, times(1))
@@ -1913,7 +1954,6 @@ public class VideoServerServiceImplTest {
                       + user1VideoInHandleId.toString()
                       + serverQPm),
               answerRtcMediaStreamRequestCaptor.capture());
-      verify(videoServerSessionRepository, times(1)).update(videoServerSessionCaptor.capture());
 
       assertEquals(1, answerRtcMediaStreamRequestCaptor.getAllValues().size());
       VideoServerMessageRequest answerRtcMediaStreamRequest =
@@ -1928,18 +1968,6 @@ public class VideoServerServiceImplTest {
                       .type(RtcType.ANSWER)
                       .sdp("session-description-protocol")),
           answerRtcMediaStreamRequest);
-
-      assertEquals(1, videoServerSessionCaptor.getAllValues().size());
-      VideoServerSession videoServerSessionUpdated = videoServerSessionCaptor.getValue();
-      assertEquals(
-          VideoServerSession.create()
-              .userId(user1Id.toString())
-              .queueId(queue1Id.toString())
-              .videoServerMeeting(videoServerMeeting)
-              .connectionId(user1SessionId.toString())
-              .videoInHandleId(user1VideoInHandleId.toString())
-              .videoInStreamOn(true),
-          videoServerSessionUpdated);
     }
 
     @Test
@@ -2047,25 +2075,16 @@ public class VideoServerServiceImplTest {
               .userId(user1Id.toString())
               .queueId(queue1Id.toString())
               .videoServerMeeting(videoServerMeeting)
-              .connectionId(user1SessionId.toString());
+              .connectionId(user1SessionId.toString())
+              .videoInHandleId(user1VideoInHandleId.toString());
       VideoServerSession videoServerSession2 =
           VideoServerSession.create()
               .userId(user2Id.toString())
               .queueId(queue2Id.toString())
               .videoServerMeeting(videoServerMeeting)
-              .connectionId(user2SessionId.toString());
+              .connectionId(user2SessionId.toString())
+              .videoInHandleId(user2VideoInHandleId.toString());
       videoServerMeeting.videoServerSessions(List.of(videoServerSession1, videoServerSession2));
-
-      VideoServerResponse videoInHandleResponse =
-          VideoServerResponse.create()
-              .status("success")
-              .connectionId(user1SessionId.toString())
-              .transactionId("transaction-id")
-              .data(VideoServerDataInfo.create().id(user1VideoInHandleId.toString()));
-      when(videoServerClient.sendVideoServerRequest(
-              eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString() + serverQPm),
-              any(VideoServerMessageRequest.class)))
-          .thenReturn(videoInHandleResponse);
 
       VideoRoomResponse joinSubscriberResponse =
           VideoRoomResponse.create()
@@ -2085,13 +2104,6 @@ public class VideoServerServiceImplTest {
               any(VideoServerMessageRequest.class)))
           .thenReturn(joinSubscriberResponse);
 
-      VideoServerSession videoServerSession1Updated = mock(VideoServerSession.class);
-      when(videoServerSession1Updated.getConnectionId()).thenReturn(user1SessionId.toString());
-      when(videoServerSession1Updated.getVideoInHandleId())
-          .thenReturn(user1VideoInHandleId.toString());
-      when(videoServerSessionRepository.update(any(VideoServerSession.class)))
-          .thenReturn(videoServerSession1Updated);
-
       videoServerService.updateSubscriptionsMediaStream(
           user1Id.toString(),
           meeting1Id.toString(),
@@ -2102,19 +2114,12 @@ public class VideoServerServiceImplTest {
                           .type(MediaStreamDto.TypeEnum.VIDEO)
                           .userId(user2Id.toString()))));
 
-      ArgumentCaptor<VideoServerMessageRequest> createHandleRequestCaptor =
-          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
       ArgumentCaptor<VideoServerSession> videoServerSessionCaptor =
           ArgumentCaptor.forClass(VideoServerSession.class);
       ArgumentCaptor<VideoServerMessageRequest> joinSubscriberRequestCaptor =
           ArgumentCaptor.forClass(VideoServerMessageRequest.class);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
-      verify(videoServerClient, times(1))
-          .sendVideoServerRequest(
-              eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString() + serverQPm),
-              createHandleRequestCaptor.capture());
-      verify(videoServerSessionRepository, times(1)).update(videoServerSessionCaptor.capture());
       verify(videoServerClient, times(1))
           .sendVideoRoomRequest(
               eq(
@@ -2126,27 +2131,7 @@ public class VideoServerServiceImplTest {
                       + user1VideoInHandleId.toString()
                       + serverQPm),
               joinSubscriberRequestCaptor.capture());
-
-      assertEquals(1, createHandleRequestCaptor.getAllValues().size());
-      VideoServerMessageRequest videoInHandleMessageRequest =
-          createHandleRequestCaptor.getAllValues().get(0);
-      assertEquals(
-          VideoServerMessageRequest.create()
-              .messageRequest("attach")
-              .pluginName("janus.plugin.videoroom")
-              .apiSecret("token"),
-          videoInHandleMessageRequest);
-
-      assertEquals(1, videoServerSessionCaptor.getAllValues().size());
-      VideoServerSession videoServerSession = videoServerSessionCaptor.getAllValues().get(0);
-      assertEquals(
-          VideoServerSession.create()
-              .userId(user1Id.toString())
-              .queueId(queue1Id.toString())
-              .videoServerMeeting(videoServerMeeting)
-              .connectionId(user1SessionId.toString())
-              .videoInHandleId(user1VideoInHandleId.toString()),
-          videoServerSession);
+      verify(videoServerSessionRepository, times(1)).update(videoServerSessionCaptor.capture());
 
       assertEquals(1, joinSubscriberRequestCaptor.getAllValues().size());
       VideoServerMessageRequest joinSubscriberRequest = joinSubscriberRequestCaptor.getValue();
@@ -2169,6 +2154,18 @@ public class VideoServerServiceImplTest {
                                           .userId(user2Id.toString())
                                           .toString())))),
           joinSubscriberRequest);
+
+      assertEquals(1, videoServerSessionCaptor.getAllValues().size());
+      VideoServerSession videoServerSession = videoServerSessionCaptor.getAllValues().get(0);
+      assertEquals(
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .videoInHandleId(user1VideoInHandleId.toString())
+              .videoInStreamOn(true),
+          videoServerSession);
     }
 
     @Test
@@ -2183,7 +2180,8 @@ public class VideoServerServiceImplTest {
               .queueId(queue1Id.toString())
               .videoServerMeeting(videoServerMeeting)
               .connectionId(user1SessionId.toString())
-              .videoInHandleId(user1VideoInHandleId.toString());
+              .videoInHandleId(user1VideoInHandleId.toString())
+              .videoInStreamOn(true);
       VideoServerSession videoServerSession2 =
           VideoServerSession.create()
               .userId(user2Id.toString())
@@ -2271,7 +2269,8 @@ public class VideoServerServiceImplTest {
               .queueId(queue1Id.toString())
               .videoServerMeeting(videoServerMeeting)
               .connectionId(user1SessionId.toString())
-              .videoInHandleId(user1VideoInHandleId.toString());
+              .videoInHandleId(user1VideoInHandleId.toString())
+              .videoInStreamOn(true);
       VideoServerSession videoServerSession2 =
           VideoServerSession.create()
               .userId(user2Id.toString())
@@ -2359,7 +2358,8 @@ public class VideoServerServiceImplTest {
               .queueId(queue1Id.toString())
               .videoServerMeeting(videoServerMeeting)
               .connectionId(user1SessionId.toString())
-              .videoInHandleId(user1VideoInHandleId.toString());
+              .videoInHandleId(user1VideoInHandleId.toString())
+              .videoInStreamOn(true);
       VideoServerSession videoServerSession2 =
           VideoServerSession.create()
               .userId(user2Id.toString())
@@ -2516,32 +2516,16 @@ public class VideoServerServiceImplTest {
               .userId(user1Id.toString())
               .queueId(queue1Id.toString())
               .videoServerMeeting(videoServerMeeting)
-              .connectionId(user1SessionId.toString());
+              .connectionId(user1SessionId.toString())
+              .videoInHandleId(user1VideoInHandleId.toString());
       VideoServerSession videoServerSession2 =
           VideoServerSession.create()
               .userId(user2Id.toString())
               .queueId(queue2Id.toString())
               .videoServerMeeting(videoServerMeeting)
-              .connectionId(user2SessionId.toString());
+              .connectionId(user2SessionId.toString())
+              .videoInHandleId(user1VideoInHandleId.toString());
       videoServerMeeting.videoServerSessions(List.of(videoServerSession1, videoServerSession2));
-
-      VideoServerResponse videoInHandleResponse =
-          VideoServerResponse.create()
-              .status("success")
-              .connectionId(user1SessionId.toString())
-              .transactionId("transaction-id")
-              .data(VideoServerDataInfo.create().id(user1VideoInHandleId.toString()));
-      when(videoServerClient.sendVideoServerRequest(
-              eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString() + serverQPm),
-              any(VideoServerMessageRequest.class)))
-          .thenReturn(videoInHandleResponse);
-
-      VideoServerSession videoServerSession1Updated = mock(VideoServerSession.class);
-      when(videoServerSession1Updated.getConnectionId()).thenReturn(user1SessionId.toString());
-      when(videoServerSession1Updated.getVideoInHandleId())
-          .thenReturn(user1VideoInHandleId.toString());
-      when(videoServerSessionRepository.update(any(VideoServerSession.class)))
-          .thenReturn(videoServerSession1Updated);
 
       VideoRoomResponse joinSubscriberResponse = VideoRoomResponse.create().status("error");
       when(videoServerClient.sendVideoRoomRequest(
@@ -2579,11 +2563,6 @@ public class VideoServerServiceImplTest {
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
       verify(videoServerClient, times(1))
-          .sendVideoServerRequest(
-              eq(videoServerURL + janusEndpoint + "/" + user1SessionId.toString() + serverQPm),
-              any(VideoServerMessageRequest.class));
-      verify(videoServerSessionRepository, times(1)).update(any(VideoServerSession.class));
-      verify(videoServerClient, times(1))
           .sendVideoRoomRequest(
               eq(
                   videoServerURL
@@ -2610,14 +2589,16 @@ public class VideoServerServiceImplTest {
               .queueId(queue1Id.toString())
               .videoServerMeeting(videoServerMeeting)
               .connectionId(user1SessionId.toString())
-              .videoInHandleId(user1VideoInHandleId.toString());
+              .videoInHandleId(user1VideoInHandleId.toString())
+              .videoInStreamOn(true);
       VideoServerSession videoServerSession2 =
           VideoServerSession.create()
               .userId(user2Id.toString())
               .queueId(queue2Id.toString())
               .videoServerMeeting(videoServerMeeting)
               .connectionId(user2SessionId.toString())
-              .videoInHandleId(user2VideoInHandleId.toString());
+              .videoInHandleId(user2VideoInHandleId.toString())
+              .videoInStreamOn(true);
       videoServerMeeting.videoServerSessions(List.of(videoServerSession1, videoServerSession2));
 
       VideoRoomResponse updateSubscriptionsMediaStreamResponse =

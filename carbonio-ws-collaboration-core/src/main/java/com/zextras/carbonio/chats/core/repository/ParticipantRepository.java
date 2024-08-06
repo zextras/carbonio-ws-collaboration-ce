@@ -10,11 +10,11 @@ import java.util.Optional;
 
 public interface ParticipantRepository {
 
+  Optional<Participant> getById(String meetingId, String userId);
+
   Optional<Participant> getByUserId(String userId);
 
   Optional<Participant> getByQueueId(String queueId);
-
-  Optional<Participant> getById(String meetingId, String userId);
 
   List<Participant> getByMeetingId(String meetingId);
 
