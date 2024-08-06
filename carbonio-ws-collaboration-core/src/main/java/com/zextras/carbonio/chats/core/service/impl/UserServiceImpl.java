@@ -27,6 +27,7 @@ import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
+import io.ebean.annotation.Transactional;
 import java.io.InputStream;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -72,11 +73,11 @@ public class UserServiceImpl implements UserService {
         profilingService
             .getById(currentUser, userId)
             .map(
-                profile ->
+                p ->
                     UserDto.create()
-                        .id(UUID.fromString(profile.getId()))
-                        .email(profile.getEmail())
-                        .name(profile.getName()))
+                        .id(UUID.fromString(p.getId()))
+                        .email(p.getEmail())
+                        .name(p.getName()))
             .orElseThrow(
                 () ->
                     new NotFoundException(
@@ -181,6 +182,7 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
+  @Transactional
   public void deleteUserPicture(UUID userId, UserPrincipal currentUser) {
     if (!currentUser.getUUID().equals(userId)) {
       throw new ForbiddenException("The picture can be removed only from its owner");

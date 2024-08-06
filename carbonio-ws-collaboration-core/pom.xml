@@ -170,6 +170,12 @@ SPDX-License-Identifier: AGPL-3.0-only
        <artifactId>jakarta.websocket-api</artifactId>
      </dependency>
 
+    <!-- Cache -->
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+    </dependency>
+
     <!-- Tests dependency -->
     <!-- JUnit Jupiter -->
     <dependency>

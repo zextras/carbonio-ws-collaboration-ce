@@ -2838,6 +2838,7 @@ public class RoomsApiIT {
                   user2Queue,
                   "connection_" + user2Queue,
                   null,
+                  null,
                   null)
               .audioHandleId("audioHandleId_" + user2Queue));
       videoServerMockServer.mockRequestedResponse(
@@ -2935,6 +2936,7 @@ public class RoomsApiIT {
                   user2Id.toString(),
                   user2Queue,
                   "connection_" + user2Queue,
+                  null,
                   null,
                   null)
               .audioHandleId("audioHandleId_" + user2Queue));
