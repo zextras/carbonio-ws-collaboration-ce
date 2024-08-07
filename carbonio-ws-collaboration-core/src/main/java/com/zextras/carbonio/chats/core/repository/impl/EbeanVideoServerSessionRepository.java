@@ -24,17 +24,17 @@ public class EbeanVideoServerSessionRepository implements VideoServerSessionRepo
   }
 
   @Override
+  public Optional<VideoServerSession> getById(String userId, String meetingId) {
+    return Optional.ofNullable(
+        db.find(VideoServerSession.class, new VideoServerSessionId(userId, meetingId)));
+  }
+
+  @Override
   public Optional<VideoServerSession> getByConnectionId(String connectionId) {
     return db.find(VideoServerSession.class)
         .where()
         .eq("connection_id", connectionId)
         .findOneOrEmpty();
-  }
-
-  @Override
-  public Optional<VideoServerSession> getById(String userId, String meetingId) {
-    return Optional.ofNullable(
-        db.find(VideoServerSession.class, new VideoServerSessionId(userId, meetingId)));
   }
 
   @Override
