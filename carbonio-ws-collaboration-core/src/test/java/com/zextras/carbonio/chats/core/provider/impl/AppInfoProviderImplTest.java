@@ -27,6 +27,6 @@ public class AppInfoProviderImplTest {
   public void getVersion_testOk() {
     Optional<String> version = appInfoProvider.getVersion();
     assertTrue(version.isPresent());
-    assertEquals("1.2.0", version.get());
+    assertEquals("1.3.0", version.get());
   }
 }
