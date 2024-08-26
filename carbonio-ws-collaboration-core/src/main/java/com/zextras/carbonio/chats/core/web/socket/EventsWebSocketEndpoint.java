@@ -101,11 +101,7 @@ public class EventsWebSocketEndpoint {
 
   @OnClose
   public void onClose(Session session) {
-    UUID userId = UUID.fromString(getUserIdFromSession(session));
-    UUID queueId = UUID.fromString(session.getId());
-    String userQueue = userId + "/" + queueId;
     closeSession(session);
-    ChatsLogger.info(String.format("Closed websocket session for user/queue '%s'", userQueue));
   }
 
   @OnError
@@ -114,8 +110,6 @@ public class EventsWebSocketEndpoint {
     UUID queueId = UUID.fromString(session.getId());
     String userQueue = userId + "/" + queueId;
     closeSession(session);
-    ChatsLogger.warn(
-        String.format("Closed websocket session for user/queue '%s' due to an error", userQueue));
     try {
       session.close();
     } catch (Exception e) {
