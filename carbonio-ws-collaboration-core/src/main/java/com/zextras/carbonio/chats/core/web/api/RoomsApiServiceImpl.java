@@ -150,7 +150,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
             .orElseThrow(UnauthorizedException::new);
     FileContentAndMetadata roomPicture = roomService.getRoomPicture(roomId, currentUser);
     return Response.status(Status.OK)
-        .entity(roomPicture.getFileStream())
+        .entity(roomPicture)
         .header("Content-Type", roomPicture.getMetadata().getMimeType())
         .header("Content-Length", roomPicture.getMetadata().getOriginalSize())
         .header(
@@ -359,13 +359,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     }
   }
 
-  /**
-   * Gets the meeting of requested room
-   *
-   * @param roomId          room identifier
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 200 and the requested meeting {@link com.zextras.carbonio.meeting.model.MeetingDto } in the body
-   */
   @Override
   public Response getMeetingByRoomId(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser =

@@ -1,6 +1,6 @@
 pkgname="carbonio-ws-collaboration-ce"
-pkgver="0.6.0"
-pkgrel="1"
+pkgver="0.7.1"
+pkgrel="2"
 pkgdesc="Workstream Collaboration for Carbonio CE"
 maintainer="Zextras <packages@zextras.com>"
 arch=('x86_64')
@@ -41,7 +41,7 @@ sha256sums=('7233d077c9cda00b53f482c30cc86af8ca37362f43f6c7f164d7d28c73447c3e'
   'a993f63dbfa8273d92f004c6db2886f17d9876d36c65ab757456ab99c0a3f3c3'
   '58c69efd45348762b3c603ecb8a7d3df5e4ada730b00a760d02d3f376a455d08'
   '7dbc2225d51fb07c1e3e5577f8ba80d8cd9634c7c47f5b0ab1edbc949d97ff21'
-  'd3741e4103a786c40a319248258ee5a25a39174a6ba80973b5877bb8a5e2bf72')
+  'ef55ad102e9a356478233654a104fb84534170c30f765371cd91fb32c3be3578')
 
 package() {
   cd "${srcdir}"/../../ws-collaboration

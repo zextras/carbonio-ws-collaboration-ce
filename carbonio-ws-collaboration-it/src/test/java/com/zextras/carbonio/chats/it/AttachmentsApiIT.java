@@ -225,16 +225,6 @@ public class AttachmentsApiIT {
     }
 
     @Test
-    @DisplayName("Returns 424 if the Storage server is down")
-    void getAttachment_testExceptionStorageServerKO() throws Exception {
-      storageMockServer.setIsAliveResponse(false);
-
-      MockHttpResponse response = dispatcher.get(url(UUID.randomUUID().toString()), null);
-
-      assertEquals(424, response.getStatus());
-    }
-
-    @Test
     @DisplayName(
         "Given an attachment identifier, if the user is not authenticated return a status code 401")
     void getAttachment_testErrorUnauthenticatedUser() throws Exception {

@@ -31,7 +31,6 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
-import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
@@ -272,8 +271,8 @@ public class RoomServiceImpl implements RoomService {
           .find(null, roomId.toString(), FileMetadataType.ROOM_AVATAR)
           .ifPresent(
               metadata -> {
-                fileMetadataRepository.delete(metadata);
                 storagesService.deleteFile(metadata.getId(), metadata.getUserId());
+                fileMetadataRepository.delete(metadata);
               });
     }
     roomRepository.delete(roomId.toString());
@@ -372,7 +371,7 @@ public class RoomServiceImpl implements RoomService {
         fileMetadataRepository
             .find(null, roomId.toString(), FileMetadataType.ROOM_AVATAR)
             .orElseThrow(
-                () -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
+                () -> new NotFoundException(String.format("Room picture '%s' not found", roomId)));
     return new FileContentAndMetadata(
         storagesService.getFileStreamById(metadata.getId(), metadata.getUserId()), metadata);
   }
@@ -387,7 +386,7 @@ public class RoomServiceImpl implements RoomService {
       UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     if (!RoomTypeDto.GROUP.equals(room.getType())) {
-      throw new BadRequestException("The room picture can only be set to group type rooms");
+      throw new BadRequestException("The room picture can only be set for groups");
     }
     Integer maxImageSizeKb =
         appConfig
@@ -396,37 +395,31 @@ public class RoomServiceImpl implements RoomService {
     if (contentLength > maxImageSizeKb * 1024) {
       throw new BadRequestException(
           String.format(
-              "The size of room picture exceeds the maximum value of %d kB", maxImageSizeKb));
+              "The size of the room picture exceeds the maximum value of %d kB", maxImageSizeKb));
     }
     if (!mimeType.startsWith("image/")) {
       throw new BadRequestException("The room picture must be an image");
     }
     Optional<FileMetadata> oldMetadata =
         fileMetadataRepository.find(null, roomId.toString(), FileMetadataType.ROOM_AVATAR);
-    room.pictureUpdatedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone()));
-    FileMetadata metadata =
+    if (oldMetadata.isPresent()) {
+      storagesService.deleteFile(oldMetadata.get().getId(), oldMetadata.get().getUserId());
+      fileMetadataRepository.delete(oldMetadata.get());
+    }
+    String fileId = UUID.randomUUID().toString();
+    storagesService.saveFile(image, fileId, currentUser.getId(), contentLength);
+    fileMetadataRepository.save(
         FileMetadata.create()
-            .id(UUID.randomUUID().toString())
+            .id(fileId)
             .type(FileMetadataType.ROOM_AVATAR)
             .roomId(roomId.toString())
             .name(fileName)
             .originalSize(contentLength)
             .mimeType(mimeType)
-            .userId(currentUser.getId());
-    roomRepository.update(room);
-    if (oldMetadata.isPresent()) {
-      fileMetadataRepository.delete(oldMetadata.get());
-      try {
-        storagesService.deleteFile(oldMetadata.get().getId(), oldMetadata.get().getUserId());
-      } catch (Exception e) {
-        ChatsLogger.warn(
-            String.format("Unable to delete previous room %s picture: ", roomId) + e.getMessage());
-      }
-    }
-    fileMetadataRepository.save(metadata);
-    storagesService.saveFile(image, metadata, currentUser.getId());
-    messageDispatcher.updateRoomPicture(
-        room.getId(), currentUser.getId(), metadata.getId(), metadata.getName());
+            .userId(currentUser.getId()));
+    roomRepository.update(
+        room.pictureUpdatedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
+    messageDispatcher.updateRoomPicture(room.getId(), currentUser.getId(), fileId, fileName);
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         RoomPictureChanged.create()
@@ -435,17 +428,16 @@ public class RoomServiceImpl implements RoomService {
   }
 
   @Override
-  @Transactional
   public void deleteRoomPicture(UUID roomId, UserPrincipal currentUser) {
     Room room = getRoomEntityAndCheckUser(roomId, currentUser, true);
     FileMetadata metadata =
         fileMetadataRepository
             .find(null, roomId.toString(), FileMetadataType.ROOM_AVATAR)
             .orElseThrow(
-                () -> new NotFoundException(String.format("File with id '%s' not found", roomId)));
+                () -> new NotFoundException(String.format("Room picture '%s' not found", roomId)));
+    storagesService.deleteFile(metadata.getId(), metadata.getUserId());
     fileMetadataRepository.delete(metadata);
     roomRepository.update(room.pictureUpdatedAt(null));
-    storagesService.deleteFile(metadata.getId(), metadata.getUserId());
     messageDispatcher.deleteRoomPicture(room.getId(), currentUser.getId());
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
