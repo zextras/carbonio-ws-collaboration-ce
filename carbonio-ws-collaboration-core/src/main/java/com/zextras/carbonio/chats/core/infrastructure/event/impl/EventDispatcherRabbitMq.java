@@ -53,7 +53,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
   @Override
   public void sendToUserQueue(String userId, String queueId, DomainEvent event) {
     if (channel == null || !channel.isOpen()) {
-      ChatsLogger.error("Event dispatcher channel is not up!");
+      ChatsLogger.error("Unable to send event to user queue: event dispatcher channel is not up!");
       return;
     }
     String queueName = userId + "/" + queueId;
@@ -71,7 +71,7 @@ public class EventDispatcherRabbitMq implements EventDispatcher {
 
   private void sendToExchange(String userId, String event) {
     if (channel == null || !channel.isOpen()) {
-      ChatsLogger.error("Event dispatcher channel is not up!");
+      ChatsLogger.error("Unable to send event to exchange: event dispatcher channel is not up!");
       return;
     }
     try {

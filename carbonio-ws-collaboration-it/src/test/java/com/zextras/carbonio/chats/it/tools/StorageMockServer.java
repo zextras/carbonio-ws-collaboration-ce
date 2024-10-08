@@ -18,7 +18,6 @@ import com.zextras.storages.internal.pojo.StoragesBulkDeleteResponse;
 import com.zextras.storages.internal.pojo.StoragesUploadResponse;
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.ClearType;
@@ -98,7 +97,7 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
                   item.setNode(fileId);
                   return item;
                 })
-            .collect(Collectors.toList()));
+            .toList());
     return request()
         .withMethod("POST")
         .withPath("/bulk-delete")
@@ -120,7 +119,7 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
                     query.setNode(fileId);
                     return query;
                   })
-              .collect(Collectors.toList()));
+              .toList());
       when(request).respond(response().withStatusCode(200).withBody(JsonBody.json(responseBody)));
     } else {
       when(request).respond(response().withStatusCode(500));

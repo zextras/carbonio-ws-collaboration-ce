@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -13,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -44,6 +46,7 @@ import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
+import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -874,13 +877,17 @@ class RoomServiceImplTest {
 
       roomService.deleteRoom(roomGroup1Id, UserPrincipal.create(user1Id));
 
+      verify(messageDispatcher, times(1)).deleteRoom(roomGroup1Id.toString(), user1Id.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
               RoomDeleted.create().roomId(roomGroup1Id));
-      verifyNoMoreInteractions(eventDispatcher);
-      verify(messageDispatcher, times(1)).deleteRoom(roomGroup1Id.toString(), user1Id.toString());
-      verifyNoMoreInteractions(messageDispatcher);
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          storagesService,
+          meetingService,
+          messageDispatcher,
+          eventDispatcher);
     }
 
     @Test
@@ -903,17 +910,19 @@ class RoomServiceImplTest {
 
       verify(fileMetadataRepository, times(1))
           .find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR);
-      verify(fileMetadataRepository, times(1)).delete(pfpMetadata);
-      verifyNoMoreInteractions(fileMetadataRepository);
       verify(storagesService, times(1)).deleteFile(pfpMetadata.getId(), user2Id.toString());
-      verifyNoMoreInteractions(storagesService);
+      verify(fileMetadataRepository, times(1)).delete(pfpMetadata);
+      verify(messageDispatcher, times(1)).deleteRoom(roomGroup2Id.toString(), user2Id.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user2Id.toString(), user3Id.toString()),
               RoomDeleted.create().roomId(roomGroup2Id));
-      verifyNoMoreInteractions(eventDispatcher);
-      verify(messageDispatcher, times(1)).deleteRoom(roomGroup2Id.toString(), user2Id.toString());
-      verifyNoMoreInteractions(messageDispatcher);
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          storagesService,
+          meetingService,
+          messageDispatcher,
+          eventDispatcher);
     }
 
     @Test
@@ -941,14 +950,52 @@ class RoomServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(meetingId);
       verify(meetingService, times(1)).deleteMeeting(meeting, roomGroup1, user1Id);
+      verify(messageDispatcher, times(1)).deleteRoom(roomGroup1Id.toString(), user1Id.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
               RoomDeleted.create().roomId(roomGroup1Id));
-      verify(messageDispatcher, times(1)).deleteRoom(roomGroup1Id.toString(), user1Id.toString());
 
-      verifyNoMoreInteractions(meetingService, eventDispatcher);
-      verifyNoMoreInteractions(messageDispatcher);
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          storagesService,
+          meetingService,
+          messageDispatcher,
+          eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("Re throws an exception if storage service fails during deleting room picture")
+    void deleteRoom_testErrorStorageExceptionDuringDeletingRoomPicture() {
+      when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
+      FileMetadata pfpMetadata =
+          FileMetadata.create()
+              .type(FileMetadataType.ROOM_AVATAR)
+              .roomId(roomGroup2Id.toString())
+              .userId(user2Id.toString())
+              .mimeType("mime/type")
+              .id(UUID.randomUUID().toString())
+              .name("pfp")
+              .originalSize(123L);
+      when(fileMetadataRepository.find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR))
+          .thenReturn(Optional.of(pfpMetadata));
+      doThrow(StorageException.class)
+          .when(storagesService)
+          .deleteFile(pfpMetadata.getId(), user2Id.toString());
+
+      assertThrows(
+          StorageException.class,
+          () -> roomService.deleteRoom(roomGroup2Id, UserPrincipal.create(user2Id)));
+
+      verify(fileMetadataRepository, times(1))
+          .find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR);
+      verify(storagesService, times(1)).deleteFile(pfpMetadata.getId(), user2Id.toString());
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          storagesService,
+          meetingService,
+          messageDispatcher,
+          eventDispatcher);
     }
 
     @Test
@@ -962,6 +1009,13 @@ class RoomServiceImplTest {
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Not Found - Room '%s'", roomGroup1Id), exception.getMessage());
+
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          storagesService,
+          meetingService,
+          messageDispatcher,
+          eventDispatcher);
     }
 
     @Test
@@ -981,6 +1035,13 @@ class RoomServiceImplTest {
           String.format(
               "Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
           exception.getMessage());
+
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          storagesService,
+          meetingService,
+          messageDispatcher,
+          eventDispatcher);
     }
 
     @Test
@@ -999,6 +1060,13 @@ class RoomServiceImplTest {
           String.format(
               "Forbidden - User '%s' is not an owner of room '%s'", user2Id, roomGroup1Id),
           exception.getMessage());
+
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          storagesService,
+          meetingService,
+          messageDispatcher,
+          eventDispatcher);
     }
   }
 
@@ -1399,6 +1467,7 @@ class RoomServiceImplTest {
       verify(fileMetadataRepository, times(1))
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
       verify(storagesService, times(1)).getFileStreamById(pfpMetadata.getId(), user2Id.toString());
+      verifyNoMoreInteractions(roomRepository, fileMetadataRepository, storagesService);
     }
 
     @Test
@@ -1417,6 +1486,39 @@ class RoomServiceImplTest {
           String.format(
               "Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
           exception.getMessage());
+
+      verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
+      verifyNoMoreInteractions(roomRepository, fileMetadataRepository, storagesService);
+    }
+
+    @Test
+    @DisplayName("It throws an exception if storage service fails")
+    void getRoomPicture_testErrorStorageException() {
+      FileMetadata pfpMetadata =
+          FileMetadata.create()
+              .type(FileMetadataType.ROOM_AVATAR)
+              .roomId(roomGroup1Id.toString())
+              .userId(user2Id.toString())
+              .mimeType("mime/type")
+              .id(UUID.randomUUID().toString())
+              .name("pfp")
+              .originalSize(123L);
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      when(fileMetadataRepository.find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR))
+          .thenReturn(Optional.of(pfpMetadata));
+      doThrow(StorageException.class)
+          .when(storagesService)
+          .getFileStreamById(pfpMetadata.getId(), user2Id.toString());
+
+      assertThrows(
+          StorageException.class,
+          () -> roomService.getRoomPicture(roomGroup1Id, UserPrincipal.create(user1Id)));
+
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(fileMetadataRepository, times(1))
+          .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
+      verify(storagesService, times(1)).getFileStreamById(pfpMetadata.getId(), user2Id.toString());
+      verifyNoMoreInteractions(roomRepository, fileMetadataRepository, storagesService);
     }
   }
 
@@ -1430,18 +1532,19 @@ class RoomServiceImplTest {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       when(fileMetadataRepository.find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR))
           .thenReturn(Optional.empty());
+
       InputStream fileStream = mock(InputStream.class);
-      when(storagesService.getFileStreamById(roomGroup1Id.toString(), user2Id.toString()))
-          .thenReturn(fileStream);
       roomService.setRoomPicture(
           roomGroup1Id, fileStream, "image/jpeg", 123L, "picture", UserPrincipal.create(user1Id));
-
       roomGroup1.pictureUpdatedAt(
           OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()));
+
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
       verify(roomRepository, times(1)).update(roomGroup1);
       verify(fileMetadataRepository, times(1))
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
+      verify(storagesService, times(1))
+          .saveFile(eq(fileStream), anyString(), eq(user1Id.toString()), eq(123L));
       ArgumentCaptor<FileMetadata> fileMetadataCaptor = ArgumentCaptor.forClass(FileMetadata.class);
       verify(fileMetadataRepository, times(1)).save(fileMetadataCaptor.capture());
       FileMetadata fileMetadata = fileMetadataCaptor.getValue();
@@ -1450,8 +1553,10 @@ class RoomServiceImplTest {
       assertEquals("picture", fileMetadata.getName());
       assertEquals(123L, fileMetadata.getOriginalSize());
       assertEquals(user1Id.toString(), fileMetadata.getUserId());
-      verify(storagesService, times(1)).saveFile(fileStream, fileMetadata, user1Id.toString());
-      verify(storagesService, times(0)).deleteFile(anyString(), anyString());
+      assertEquals(roomGroup1Id.toString(), fileMetadata.getRoomId());
+      verify(messageDispatcher, times(1))
+          .updateRoomPicture(
+              roomGroup1Id.toString(), user1Id.toString(), fileMetadata.getId(), "picture");
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -1460,9 +1565,12 @@ class RoomServiceImplTest {
                   .updatedAt(
                       OffsetDateTime.ofInstant(
                           Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
-      verify(messageDispatcher, times(1))
-          .updateRoomPicture(
-              roomGroup1Id.toString(), user1Id.toString(), fileMetadata.getId(), "picture");
+      verifyNoMoreInteractions(
+          roomRepository,
+          fileMetadataRepository,
+          storagesService,
+          eventDispatcher,
+          messageDispatcher);
     }
 
     @Test
@@ -1477,31 +1585,34 @@ class RoomServiceImplTest {
               .userId("fake-old-user");
       when(fileMetadataRepository.find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR))
           .thenReturn(Optional.of(existingMetadata));
-      InputStream fileStream = mock(InputStream.class);
-      when(storagesService.getFileStreamById(roomGroup1Id.toString(), user2Id.toString()))
-          .thenReturn(fileStream);
 
+      InputStream fileStream = mock(InputStream.class);
       roomService.setRoomPicture(
           roomGroup1Id, fileStream, "image/jpeg", 123L, "picture", UserPrincipal.create(user1Id));
-
       roomGroup1.pictureUpdatedAt(
           OffsetDateTime.ofInstant(Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault()));
+
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
       verify(roomRepository, times(1)).update(roomGroup1);
       verify(fileMetadataRepository, times(1))
           .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
-      ArgumentCaptor<FileMetadata> fileMetadataCaptor = ArgumentCaptor.forClass(FileMetadata.class);
+      verify(storagesService, times(1)).deleteFile("123", "fake-old-user");
       verify(fileMetadataRepository, times(1)).delete(existingMetadata);
+      verify(storagesService, times(1))
+          .saveFile(eq(fileStream), anyString(), eq(user1Id.toString()), eq(123L));
+      ArgumentCaptor<FileMetadata> fileMetadataCaptor = ArgumentCaptor.forClass(FileMetadata.class);
       verify(fileMetadataRepository, times(1)).save(fileMetadataCaptor.capture());
       FileMetadata fileMetadata = fileMetadataCaptor.getValue();
-      assertEquals(roomGroup1.getId(), fileMetadata.getRoomId());
+      assertNotEquals(existingMetadata.getId(), fileMetadata.getId());
       assertEquals("image/jpeg", fileMetadata.getMimeType());
       assertEquals(FileMetadataType.ROOM_AVATAR, fileMetadata.getType());
       assertEquals("picture", fileMetadata.getName());
       assertEquals(123L, fileMetadata.getOriginalSize());
       assertEquals(user1Id.toString(), fileMetadata.getUserId());
-      verify(storagesService, times(1)).saveFile(fileStream, fileMetadata, user1Id.toString());
-      verify(storagesService, times(1)).deleteFile("123", "fake-old-user");
+      assertEquals(roomGroup1.getId(), fileMetadata.getRoomId());
+      verify(messageDispatcher, times(1))
+          .updateRoomPicture(
+              roomGroup1Id.toString(), user1Id.toString(), fileMetadata.getId(), "picture");
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -1510,9 +1621,85 @@ class RoomServiceImplTest {
                   .updatedAt(
                       OffsetDateTime.ofInstant(
                           Instant.parse("2022-01-01T00:00:00Z"), ZoneId.systemDefault())));
-      verify(messageDispatcher, times(1))
-          .updateRoomPicture(
-              roomGroup1Id.toString(), user1Id.toString(), fileMetadata.getId(), "picture");
+      verifyNoMoreInteractions(
+          roomRepository,
+          fileMetadataRepository,
+          storagesService,
+          eventDispatcher,
+          messageDispatcher);
+    }
+
+    @Test
+    @DisplayName("Throws an exception if storage service fails uploading new picture")
+    void setRoomPicture_testErrorStorageExceptionUploadingNewPicture() {
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      when(fileMetadataRepository.find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR))
+          .thenReturn(Optional.empty());
+      InputStream fileStream = mock(InputStream.class);
+      doThrow(StorageException.class)
+          .when(storagesService)
+          .saveFile(eq(fileStream), anyString(), eq(user1Id.toString()), eq(123L));
+
+      assertThrows(
+          StorageException.class,
+          () ->
+              roomService.setRoomPicture(
+                  roomGroup1Id,
+                  fileStream,
+                  "image/jpeg",
+                  123L,
+                  "picture",
+                  UserPrincipal.create(user1Id)));
+
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(fileMetadataRepository, times(1))
+          .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
+      verify(storagesService, times(1))
+          .saveFile(eq(fileStream), anyString(), eq(user1Id.toString()), eq(123L));
+      verifyNoMoreInteractions(
+          roomRepository,
+          fileMetadataRepository,
+          storagesService,
+          eventDispatcher,
+          messageDispatcher);
+    }
+
+    @Test
+    @DisplayName("Throws an exception if storage service fails updating existing picture")
+    void setRoomPicture_testErrorStorageExceptionUpdatingExistingPicture() {
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      FileMetadata existingMetadata =
+          FileMetadata.create()
+              .id("123")
+              .type(FileMetadataType.ROOM_AVATAR)
+              .roomId(roomGroup1Id.toString())
+              .userId("fake-old-user");
+      when(fileMetadataRepository.find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR))
+          .thenReturn(Optional.of(existingMetadata));
+      doThrow(StorageException.class).when(storagesService).deleteFile("123", "fake-old-user");
+
+      InputStream fileStream = mock(InputStream.class);
+      assertThrows(
+          StorageException.class,
+          () ->
+              roomService.setRoomPicture(
+                  roomGroup1Id,
+                  fileStream,
+                  "image/jpeg",
+                  123L,
+                  "picture",
+                  UserPrincipal.create(user1Id)));
+
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(fileMetadataRepository, times(1))
+          .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
+      verify(storagesService, times(1)).deleteFile("123", "fake-old-user");
+      verifyNoMoreInteractions(
+          roomRepository,
+          fileMetadataRepository,
+          storagesService,
+          eventDispatcher,
+          messageDispatcher);
     }
 
     @Test
@@ -1538,6 +1725,13 @@ class RoomServiceImplTest {
           String.format(
               "Forbidden - User '%s' is not a member of room '%s'", user1Id, roomGroup2Id),
           exception.getMessage());
+      verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
+      verifyNoMoreInteractions(
+          roomRepository,
+          fileMetadataRepository,
+          storagesService,
+          eventDispatcher,
+          messageDispatcher);
     }
 
     @Test
@@ -1563,6 +1757,13 @@ class RoomServiceImplTest {
           String.format(
               "Forbidden - User '%s' is not an owner of room '%s'", user3Id, roomGroup2Id),
           exception.getMessage());
+      verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
+      verifyNoMoreInteractions(
+          roomRepository,
+          fileMetadataRepository,
+          storagesService,
+          eventDispatcher,
+          messageDispatcher);
     }
 
     @Test
@@ -1585,8 +1786,15 @@ class RoomServiceImplTest {
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
           String.format(
-              "Bad Request - The size of room picture exceeds the maximum value of %d kB", 512),
+              "Bad Request - The size of the room picture exceeds the maximum value of %d kB", 512),
           exception.getMessage());
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verifyNoMoreInteractions(
+          roomRepository,
+          fileMetadataRepository,
+          storagesService,
+          eventDispatcher,
+          messageDispatcher);
     }
 
     @Test
@@ -1609,8 +1817,14 @@ class RoomServiceImplTest {
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
-          "Bad Request - The room picture can only be set to group type rooms",
-          exception.getMessage());
+          "Bad Request - The room picture can only be set for groups", exception.getMessage());
+      verify(roomRepository, times(1)).getById(roomOneToOne2Id.toString());
+      verifyNoMoreInteractions(
+          roomRepository,
+          fileMetadataRepository,
+          storagesService,
+          eventDispatcher,
+          messageDispatcher);
     }
 
     @Test
@@ -1632,6 +1846,13 @@ class RoomServiceImplTest {
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - The room picture must be an image", exception.getMessage());
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verifyNoMoreInteractions(
+          roomRepository,
+          fileMetadataRepository,
+          storagesService,
+          eventDispatcher,
+          messageDispatcher);
     }
   }
 
@@ -1642,6 +1863,7 @@ class RoomServiceImplTest {
     @Test
     @DisplayName("Correctly deletes the room picture")
     void deleteRoomPicture_testOk() {
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       FileMetadata metadata =
           FileMetadata.create()
               .type(FileMetadataType.ROOM_AVATAR)
@@ -1651,7 +1873,6 @@ class RoomServiceImplTest {
               .id(UUID.randomUUID().toString())
               .name("pfp")
               .originalSize(123L);
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       when(fileMetadataRepository.find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR))
           .thenReturn(Optional.of(metadata));
 
@@ -1670,7 +1891,46 @@ class RoomServiceImplTest {
               eq(List.of(user1Id.toString(), user2Id.toString(), user3Id.toString())),
               any(RoomPictureDeleted.class));
       verifyNoMoreInteractions(
-          roomRepository, fileMetadataRepository, storagesService, eventDispatcher);
+          roomRepository,
+          fileMetadataRepository,
+          storagesService,
+          messageDispatcher,
+          eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("Throws an exception if storage service fails")
+    void deleteRoomPicture_testErrorStorageException() {
+      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
+      FileMetadata metadata =
+          FileMetadata.create()
+              .type(FileMetadataType.ROOM_AVATAR)
+              .roomId(roomGroup1Id.toString())
+              .userId(user2Id.toString())
+              .mimeType("mime/type")
+              .id(UUID.randomUUID().toString())
+              .name("pfp")
+              .originalSize(123L);
+      when(fileMetadataRepository.find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR))
+          .thenReturn(Optional.of(metadata));
+      doThrow(StorageException.class)
+          .when(storagesService)
+          .deleteFile(metadata.getId(), user2Id.toString());
+
+      assertThrows(
+          StorageException.class,
+          () -> roomService.deleteRoomPicture(roomGroup1Id, UserPrincipal.create(user1Id)));
+
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verify(fileMetadataRepository, times(1))
+          .find(null, roomGroup1Id.toString(), FileMetadataType.ROOM_AVATAR);
+      verify(storagesService, times(1)).deleteFile(metadata.getId(), user2Id.toString());
+      verifyNoMoreInteractions(
+          roomRepository,
+          fileMetadataRepository,
+          storagesService,
+          messageDispatcher,
+          eventDispatcher);
     }
 
     @Test
@@ -1709,7 +1969,7 @@ class RoomServiceImplTest {
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
-          String.format("Not Found - File with id '%s' not found", roomGroup1Id),
+          String.format("Not Found - Room picture '%s' not found", roomGroup1Id),
           exception.getMessage());
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
       verify(fileMetadataRepository, times(1))
