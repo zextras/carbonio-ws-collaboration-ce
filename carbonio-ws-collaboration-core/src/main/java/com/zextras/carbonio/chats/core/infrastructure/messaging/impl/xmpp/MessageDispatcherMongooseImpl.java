@@ -289,7 +289,10 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   public void sendAttachment(
       String roomId,
       String senderId,
-      FileMetadata metadata,
+      String fileId,
+      String fileName,
+      String mimeType,
+      long originalSize,
       String description,
       @Nullable String messageId,
       @Nullable String replyId,
@@ -297,10 +300,10 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
     XmppMessageBuilder xmppMsgBuilder =
         XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
             .type(MessageType.ATTACHMENT_ADDED)
-            .addConfig(ATTACHMENT_ID, metadata.getId())
-            .addConfig("filename", StringFormatUtils.encodeToUtf8(metadata.getName()), true)
-            .addConfig("mime-type", metadata.getMimeType())
-            .addConfig("size", String.valueOf(metadata.getOriginalSize()))
+            .addConfig(ATTACHMENT_ID, fileId)
+            .addConfig("filename", StringFormatUtils.encodeToUtf8(fileName), true)
+            .addConfig("mime-type", mimeType)
+            .addConfig("size", String.valueOf(originalSize))
             .body(description)
             .messageId(messageId)
             .replyId(replyId);

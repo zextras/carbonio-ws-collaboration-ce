@@ -7,6 +7,9 @@ pipeline {
     booleanParam defaultValue: false,
     description: 'Whether to upload the packages in playground repository',
     name: 'PLAYGROUND'
+    booleanParam defaultValue: false,
+    description: 'Whether to run the dependency check',
+    name: 'DEPENDENCY_CHECK'
   }
   options {
     skipDefaultCheckout()
@@ -78,7 +81,10 @@ pipeline {
         }
       }
     }
-    stage('Dependency check'){
+    stage('Dependency check') {
+      when {
+        expression { params.DEPENDENCY_CHECK == true }
+      }
       steps {
         dependencyCheck additionalArguments: '''
           -o "./"
