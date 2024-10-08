@@ -368,8 +368,7 @@ components:
             no more be necessary'
           type: string
           format: date-time
-      required:
-        - [ name, meetingType ]
+      required: [ name, meetingType ]
     JoinMeetingResult:
       type: object
       properties:

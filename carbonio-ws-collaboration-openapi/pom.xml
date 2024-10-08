@@ -31,6 +31,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <groupId>io.swagger</groupId>
       <artifactId>swagger-annotations</artifactId>
     </dependency>
+
     <!-- @Nullable annotation -->
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
@@ -101,14 +102,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <build>
     <finalName>carbonio-ws-collaboration-ce-openapi</finalName>
-
     <plugins>
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>6.4.0</version>
+        <version>7.9.0</version>
         <executions>
-
           <execution>
             <id>ws-collaboration-api</id>
             <goals>
@@ -165,7 +164,6 @@ SPDX-License-Identifier: AGPL-3.0-only
               <skipValidateSpec>true</skipValidateSpec>
             </configuration>
           </execution>
-
         </executions>
       </plugin>
     </plugins>
