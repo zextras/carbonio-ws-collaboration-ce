@@ -47,6 +47,21 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
     clear(request, ClearType.LOG);
   }
 
+  public void setIsAliveResponse(boolean success) {
+    HttpRequest request = request().withMethod("GET").withPath("/health/live");
+    clear(request);
+    when(request).respond(response().withStatusCode(success ? 204 : 500));
+  }
+
+  public void mockUpload(MockedFiles.FileMock fileMock, UploadResponse response, boolean success) {
+    when(request()
+            .withMethod("PUT")
+            .withPath("/upload")
+            .withQueryStringParameter(param("node", fileMock.getId()))
+            .withQueryStringParameter(param("type", "chats")))
+        .respond(response().withStatusCode(success ? 201 : 500).withBody(JsonBody.json(response)));
+  }
+
   public void mockDownload(MockedFiles.FileMock fileMock, boolean success) {
     try {
       when(request()
@@ -63,13 +78,28 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
     }
   }
 
-  public void mockUpload(MockedFiles.FileMock fileMock, UploadResponse response, boolean success) {
-    when(request()
-            .withMethod("PUT")
-            .withPath("/upload")
-            .withQueryStringParameter(param("node", fileMock.getId()))
-            .withQueryStringParameter(param("type", "chats")))
-        .respond(response().withStatusCode(success ? 201 : 500).withBody(JsonBody.json(response)));
+  public HttpRequest getCopyFileRequest(String sourceId, String destinationId) {
+    return request()
+        .withMethod("PUT")
+        .withPath("/copy?")
+        .withQueryStringParameters(
+            param("sourceNode", sourceId),
+            param("sourceVersion", String.valueOf(0)),
+            param("destinationNode", destinationId),
+            param("destinationVersion", String.valueOf(0)),
+            param("type", "files"),
+            param("override", "false"));
+  }
+
+  public void mockCopyFile(String sourceId, String destinationId, boolean success) {
+    StoragesUploadResponse response = new StoragesUploadResponse();
+    response.setQuery(new Query());
+    response.getQuery().setNode(destinationId);
+    response.getQuery().setType("chats");
+    HttpRequest request = getCopyFileRequest(sourceId, destinationId);
+    clear(request);
+    when(request)
+        .respond(response().withStatusCode(success ? 200 : 500).withBody(JsonBody.json(response)));
   }
 
   public void mockDelete(String fileId, boolean success) {
@@ -79,12 +109,6 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
             .withQueryStringParameter(param("node", fileId))
             .withQueryStringParameter(param("type", "chats")))
         .respond(response().withStatusCode(success ? 200 : 500));
-  }
-
-  public void setIsAliveResponse(boolean success) {
-    HttpRequest request = request().withMethod("GET").withPath("/health/live");
-    clear(request);
-    when(request).respond(response().withStatusCode(success ? 204 : 500));
   }
 
   public HttpRequest getBulkDeleteRequest(List<String> requestIds) {
@@ -124,30 +148,6 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
     } else {
       when(request).respond(response().withStatusCode(500));
     }
-  }
-
-  public HttpRequest getCopyFileRequest(String sourceId, String destinationId) {
-    return request()
-        .withMethod("PUT")
-        .withPath("/copy?")
-        .withQueryStringParameters(
-            param("sourceNode", sourceId),
-            param("sourceVersion", String.valueOf(0)),
-            param("destinationNode", destinationId),
-            param("destinationVersion", String.valueOf(0)),
-            param("type", "files"),
-            param("override", "false"));
-  }
-
-  public void mockCopyFile(String sourceId, String destinationId, boolean success) {
-    StoragesUploadResponse response = new StoragesUploadResponse();
-    response.setQuery(new Query());
-    response.getQuery().setNode(destinationId);
-    response.getQuery().setType("chats");
-    HttpRequest request = getCopyFileRequest(sourceId, destinationId);
-    clear(request);
-    when(request)
-        .respond(response().withStatusCode(success ? 200 : 500).withBody(JsonBody.json(response)));
   }
 
   @Override
