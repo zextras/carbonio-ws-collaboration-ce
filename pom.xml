@@ -50,13 +50,13 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Previewer -->
     <preview-sdk.version>1.0.2</preview-sdk.version>
     <!-- Jetty -->
-    <org.eclipse.jetty.version>12.0.13</org.eclipse.jetty.version>
-    <org.eclipse.jetty.servlet.version>12.0.13</org.eclipse.jetty.servlet.version>
-    <org.eclipse.jetty.websocket.version>12.0.13</org.eclipse.jetty.websocket.version>
+    <org.eclipse.jetty.version>12.0.14</org.eclipse.jetty.version>
+    <org.eclipse.jetty.servlet.version>12.0.14</org.eclipse.jetty.servlet.version>
+    <org.eclipse.jetty.websocket.version>12.0.14</org.eclipse.jetty.websocket.version>
     <!-- Guice -->
     <com.google.inject.version>7.0.0</com.google.inject.version>
     <!-- Rest easy -->
-    <org.jboss.resteasy.version>7.0.0.Alpha2</org.jboss.resteasy.version>
+    <org.jboss.resteasy.version>7.0.0.Alpha3</org.jboss.resteasy.version>
     <resteasy.guice>1.0.0.Alpha1</resteasy.guice>
     <org.jboss.resteasy.jaxrs-api.version>3.0.12.Final</org.jboss.resteasy.jaxrs-api.version>
     <jakarta.ws.rs.version>4.0.0</jakarta.ws.rs.version>
