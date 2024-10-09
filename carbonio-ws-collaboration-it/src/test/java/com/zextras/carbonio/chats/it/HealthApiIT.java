@@ -35,7 +35,6 @@ public class HealthApiIT {
       HealthApi healthApi,
       ResteasyRequestDispatcher dispatcher,
       ObjectMapper objectMapper,
-      UserManagementMockServer userManagementMockServer,
       StorageMockServer storageMockServer,
       MongooseImMockServer mongooseImMockServer,
       PreviewerMockServer previewerMockServer,
