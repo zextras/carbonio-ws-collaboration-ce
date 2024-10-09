@@ -121,11 +121,11 @@ SPDX-License-Identifier: AGPL-3.0-only
               <engine>mustache</engine>
               <!-- Openapi files -->
               <inputSpec>${project.basedir}/src/main/resources/chats/chats-api.yaml</inputSpec>
-              <configurationFile>${project.basedir}/src/main/resources/chats/chats-generator-config.json
+              <configurationFile>
+                ${project.basedir}/src/main/resources/chats/chats-generator-config.json
               </configurationFile>
               <templateDirectory>${project.basedir}/src/main/resources/templates</templateDirectory>
-              <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore
-              </ignoreFileOverride>
+              <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore</ignoreFileOverride>
               <!-- Generation options -->
               <output>${project.build.directory}/generated-sources/chats</output>
               <modelNameSuffix>dto</modelNameSuffix>
@@ -153,11 +153,11 @@ SPDX-License-Identifier: AGPL-3.0-only
               <engine>mustache</engine>
               <!-- Openapi files -->
               <inputSpec>${project.basedir}/src/main/resources/meeting/meeting-api.yaml</inputSpec>
-              <configurationFile>${project.basedir}/src/main/resources/meeting/meeting-generator-config.json
+              <configurationFile>
+                ${project.basedir}/src/main/resources/meeting/meeting-generator-config.json
               </configurationFile>
               <templateDirectory>${project.basedir}/src/main/resources/templates</templateDirectory>
-              <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore
-              </ignoreFileOverride>
+              <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore</ignoreFileOverride>
               <!-- Generation options -->
               <output>${project.build.directory}/generated-sources/meeting</output>
               <modelNameSuffix>dto</modelNameSuffix>
