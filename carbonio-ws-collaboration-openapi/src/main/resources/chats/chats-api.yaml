@@ -734,7 +734,8 @@ components:
       name: Content-Length
       description: content length
       schema:
-        type: long
+        type: integer
+        format: int64
       required: true
     headerDescription:
       in: header

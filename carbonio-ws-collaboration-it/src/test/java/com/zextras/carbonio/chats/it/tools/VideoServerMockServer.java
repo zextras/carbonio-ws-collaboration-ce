@@ -41,18 +41,6 @@ public class VideoServerMockServer extends ClientAndServer implements CloseableR
     clear(request, ClearType.LOG);
   }
 
-  public void setIsAliveResponse(boolean success) {
-    HttpRequest request = request().withMethod("GET").withPath("/health/ready/");
-    clear(request);
-    when(request).respond(response().withStatusCode(success ? 200 : 500));
-  }
-
-  @Override
-  public void close() {
-    ChatsLogger.debug("Stopping Video Server mock...");
-    super.close();
-  }
-
   public HttpRequest getRequest(String method, String path, String body) {
     return request()
         .withMethod(method)
@@ -66,6 +54,14 @@ public class VideoServerMockServer extends ClientAndServer implements CloseableR
         .withMethod(method)
         .withPath(path)
         .withHeader(Header.header("content-type", "application/json"));
+  }
+
+  public HttpRequest getIsAliveRequest() {
+    return getRequest("GET", "/janus/info");
+  }
+
+  public void setIsAliveResponse(boolean success) {
+    mockRequestedResponse("GET", "/janus/info", "{\"janus\":\"server_info\"}", success);
   }
 
   public void mockRequestedResponse(
@@ -84,5 +80,11 @@ public class VideoServerMockServer extends ClientAndServer implements CloseableR
     when(request)
         .respond(
             response().withStatusCode(success ? 200 : 500).withBody(JsonBody.json(responseBody)));
+  }
+
+  @Override
+  public void close() {
+    ChatsLogger.debug("Stopping Video Server mock...");
+    super.close();
   }
 }

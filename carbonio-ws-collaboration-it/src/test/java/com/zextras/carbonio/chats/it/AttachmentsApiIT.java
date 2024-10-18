@@ -29,7 +29,6 @@ import jakarta.ws.rs.core.Response.Status;
 import java.util.List;
 import java.util.UUID;
 import org.jboss.resteasy.mock.MockHttpResponse;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -84,11 +83,6 @@ public class AttachmentsApiIT {
   public void init() {
     integrationTestUtils.generateAndSaveRoom(
         roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
-  }
-
-  @AfterEach
-  public void afterEach() {
-    storageMockServer.setIsAliveResponse(true);
   }
 
   @Nested

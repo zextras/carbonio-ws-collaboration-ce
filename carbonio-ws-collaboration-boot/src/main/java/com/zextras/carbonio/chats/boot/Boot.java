@@ -11,6 +11,7 @@ import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticatio
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
+import dev.resteasy.guice.GuiceResteasyBootstrapServletContextListener;
 import jakarta.servlet.DispatcherType;
 import jakarta.websocket.server.ServerEndpointConfig;
 import java.net.InetSocketAddress;
@@ -21,7 +22,6 @@ import org.eclipse.jetty.ee10.websocket.jakarta.server.config.JakartaWebSocketSe
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.flywaydb.core.Flyway;
-import org.jboss.resteasy.plugins.guice.GuiceResteasyBootstrapServletContextListener;
 import org.jboss.resteasy.plugins.server.servlet.HttpServletDispatcher;
 
 public class Boot {

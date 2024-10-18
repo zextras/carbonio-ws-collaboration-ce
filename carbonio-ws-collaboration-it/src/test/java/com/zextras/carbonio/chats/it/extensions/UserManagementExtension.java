@@ -78,6 +78,13 @@ public class UserManagementExtension
     }
   }
 
+  @Override
+  public void afterEach(ExtensionContext context) {
+    Optional.ofNullable(context.getRoot().getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
+        .map(mock -> (UserManagementMockServer) mock)
+        .ifPresent(mock -> mock.clear(request(), ClearType.LOG));
+  }
+
   private void mockResponses(MockServerClient client) {
     mockHealthCheck(client);
     for (MockUserProfile mockAccount : MockedAccount.getAccounts()) {
@@ -127,12 +134,5 @@ public class UserManagementExtension
                 .withMethod("GET")
                 .withPath(String.format("/users/email/%s", userInfo.getEmail())))
         .respond(response().withStatusCode(200).withBody(JsonBody.json(userInfo)));
-  }
-
-  @Override
-  public void afterEach(ExtensionContext context) {
-    Optional.ofNullable(context.getRoot().getStore(EXTENSION_NAMESPACE).get(CLIENT_STORE_ENTRY))
-        .map(mock -> (UserManagementMockServer) mock)
-        .ifPresent(mock -> mock.clear(request(), ClearType.LOG));
   }
 }
