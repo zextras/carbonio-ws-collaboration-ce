@@ -111,12 +111,10 @@ SPDX-License-Identifier: AGPL-3.0-only
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
-
   </dependencies>
 
   <build>
     <finalName>carbonio-ws-collaboration-ce-it</finalName>
-
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -158,9 +156,6 @@ SPDX-License-Identifier: AGPL-3.0-only
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <configuration>
-          <argLine>${failsafeArgLine}</argLine>
-        </configuration>
         <executions>
           <execution>
             <id>integration-tests-execution</id>
@@ -230,7 +225,6 @@ SPDX-License-Identifier: AGPL-3.0-only
               <outputDirectory>${project.parent.reporting.outputDirectory}/jacoco-all-tests</outputDirectory>
               <title>All tests coverage</title>
             </configuration>
-
           </execution>
         </executions>
       </plugin>
