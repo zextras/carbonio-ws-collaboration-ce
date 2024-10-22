@@ -174,7 +174,6 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-
   /rooms/{roomId}/mute:
     put:
       tags:
@@ -1207,12 +1206,9 @@ components:
             type:
               $ref: '#/components/schemas/RoomType'
       properties:
-        membersIds:
-          type: array
+        members:
           items:
-            type: string
-            format: uuid
-          description: members identifiers list to be subscribed to the room
+            $ref: '#/components/schemas/Member'
       required: [ type ]
     Room:
       type: object
@@ -1288,7 +1284,7 @@ components:
           type: boolean
           default: false
           description: indicates whether it is the owner
-      required: [ userId, owner ]
+      required: [ userId ]
     MemberToInsert:
       type: object
       description: Information about the member to insert in the room

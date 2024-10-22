@@ -78,10 +78,8 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  public Optional<MemberDto> getByUserIdAndRoomId(UUID userId, UUID roomId) {
-    return Optional.ofNullable(
-        subscriptionMapper.ent2memberDto(
-            subscriptionRepository.getById(roomId.toString(), userId.toString()).orElse(null)));
+  public Optional<Subscription> getSubscription(UUID userId, UUID roomId) {
+    return subscriptionRepository.getById(roomId.toString(), userId.toString());
   }
 
   @Override
@@ -220,19 +218,16 @@ public class MembersServiceImpl implements MembersService {
   }
 
   @Override
-  public List<Subscription> initRoomSubscriptions(
-      List<UUID> membersIds, Room room, UserPrincipal requester) {
-    return membersIds.stream()
+  public List<Subscription> initRoomSubscriptions(List<MemberDto> members, Room room) {
+    return members.stream()
         .map(
-            userId ->
+            member ->
                 Subscription.create()
-                    .id(new SubscriptionId(room.getId(), userId.toString()))
-                    .userId(userId.toString())
+                    .id(new SubscriptionId(room.getId(), member.getUserId().toString()))
+                    .userId(member.getUserId().toString())
                     .room(room)
                     // When we have a one to one, both members are owners
-                    .owner(
-                        userId.equals(requester.getUUID())
-                            || RoomTypeDto.ONE_TO_ONE.equals(room.getType()))
+                    .owner(member.isOwner() || RoomTypeDto.ONE_TO_ONE.equals(room.getType()))
                     .temporary(false)
                     .external(false)
                     .joinedAt(OffsetDateTime.now()))

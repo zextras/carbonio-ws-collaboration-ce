@@ -121,11 +121,11 @@ public class MembersServiceImplTest {
 
   @Nested
   @DisplayName("Sets or remove a user as room owner tests")
-  public class SetsOwnerTests {
+  class SetsOwnerTests {
 
     @Test
     @DisplayName("Correctly set a user as room owner")
-    public void setOwner_testOk() {
+    void setOwner_testOk() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       Subscription user2subscription = Subscription.create(room, user2Id.toString()).owner(false);
       room.subscriptions(
@@ -148,7 +148,7 @@ public class MembersServiceImplTest {
 
     @Test
     @DisplayName("Correctly remove a user as room owner")
-    public void removeOwner_testOk() {
+    void removeOwner_testOk() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       Subscription user2subscription = Subscription.create(room, user2Id.toString()).owner(true);
       room.subscriptions(
@@ -171,7 +171,7 @@ public class MembersServiceImplTest {
 
     @Test
     @DisplayName("If the user isn't a room member, it throws a 'forbidden' exception")
-    public void setRemoveOwner_userNotARoomMember() {
+    void setRemoveOwner_userNotARoomMember() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(
           List.of(
@@ -195,7 +195,7 @@ public class MembersServiceImplTest {
 
     @Test
     @DisplayName("If the room is a one-to-one room, it throws a 'bad request' exception")
-    public void setRemoveOwner_roomIsOneToOne() {
+    void setRemoveOwner_roomIsOneToOne() {
       Room room = generateRoom(RoomTypeDto.ONE_TO_ONE);
       room.subscriptions(
           List.of(
@@ -218,7 +218,7 @@ public class MembersServiceImplTest {
 
     @Test
     @DisplayName("If the user is the requester, it throws a 'bad request' exception")
-    public void setRemoveOwner_userIsRequester() {
+    void setRemoveOwner_userIsRequester() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(
           List.of(
@@ -241,11 +241,11 @@ public class MembersServiceImplTest {
 
   @Nested
   @DisplayName("Adds a member to a room tests")
-  public class InsertsRoomMemberTests {
+  class InsertsRoomMemberTests {
 
     @Test
     @DisplayName("Correctly adds a user as a member of group room")
-    public void insertGroupRoomMember_testOk() {
+    void insertGroupRoomMember_testOk() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(
           new ArrayList<>(
@@ -283,7 +283,7 @@ public class MembersServiceImplTest {
 
     @Test
     @DisplayName("if the room is a one-to-one room, it throws a 'bad request' exception")
-    public void insertOneToOneRoomMember_testNo() {
+    void insertOneToOneRoomMember_testNo() {
       Room room = generateRoom(RoomTypeDto.ONE_TO_ONE);
       room.subscriptions(
           List.of(
@@ -313,7 +313,7 @@ public class MembersServiceImplTest {
 
     @Test
     @DisplayName("If user is already a room member, it throws a 'bad request' exception")
-    public void insertRoomMember_userIsAlreadyARoomMember() {
+    void insertRoomMember_userIsAlreadyARoomMember() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(
           List.of(
@@ -348,7 +348,7 @@ public class MembersServiceImplTest {
 
     @Test
     @DisplayName("If the user doesn't exist, it throws a 'not found' exception")
-    public void insertRoomMember_userNotExists() {
+    void insertRoomMember_userNotExists() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(
           List.of(
@@ -382,7 +382,7 @@ public class MembersServiceImplTest {
 
     @Test
     @DisplayName("Correctly adds a user as a member of group room clearing history")
-    public void insertRoomMember_historyCleared() {
+    void insertRoomMember_historyCleared() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(
           new ArrayList<>(
@@ -435,7 +435,7 @@ public class MembersServiceImplTest {
     @Test
     @DisplayName(
         "Reached max group members when inviting a user, it throws a 'bad request' exception")
-    public void insertRoomMember_maxGroupMembers() {
+    void insertRoomMember_maxGroupMembers() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(
           List.of(
@@ -469,11 +469,11 @@ public class MembersServiceImplTest {
 
   @Nested
   @DisplayName("Removes a member from a room tests")
-  public class DeletesRoomMemberTests {
+  class DeletesRoomMemberTests {
 
     @Test
     @DisplayName("Correctly removes a member of a group room")
-    public void deleteRoomMember_groupTestOk() {
+    void deleteRoomMember_groupTestOk() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(
           List.of(
@@ -500,7 +500,7 @@ public class MembersServiceImplTest {
 
     @Test
     @DisplayName("Correctly user removes itself of a group room")
-    public void deleteRoomMember_userRemoveItselfTestOk() {
+    void deleteRoomMember_userRemoveItselfTestOk() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(
           List.of(
@@ -527,7 +527,7 @@ public class MembersServiceImplTest {
 
     @Test
     @DisplayName("If user is the last room owner, it throws a 'bad request' exception")
-    public void deleteRoomMember_userIsTheLastOwner() {
+    void deleteRoomMember_userIsTheLastOwner() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(
           List.of(
@@ -552,7 +552,7 @@ public class MembersServiceImplTest {
 
     @Test
     @DisplayName("If room is a one-to-one room, it throws a 'bad request' exception")
-    public void deleteRoomMember_roomIsAOneToOne() {
+    void deleteRoomMember_roomIsAOneToOne() {
       Room room = generateRoom(RoomTypeDto.ONE_TO_ONE);
       room.subscriptions(
           List.of(
@@ -581,11 +581,11 @@ public class MembersServiceImplTest {
 
   @Nested
   @DisplayName("Retrieves all room members list tests")
-  public class GetsRoomMembersTest {
+  class GetsRoomMembersTest {
 
     @Test
     @DisplayName("Correctly gets all group members")
-    public void getGroupMembers_testOk() {
+    void getGroupMembers_testOk() {
       Room room = generateRoom(RoomTypeDto.GROUP);
       room.subscriptions(
           List.of(
@@ -608,16 +608,18 @@ public class MembersServiceImplTest {
 
   @Nested
   @DisplayName("Initialize the room subscriptions")
-  public class InitRoomSubscriptionsTests {
+  class InitRoomSubscriptionsTests {
 
     @Test
     @DisplayName("Correctly initialize a group room subscriptions")
-    public void initRoomSubscriptions_groupRoom() {
+    void initRoomSubscriptions_groupRoom() {
       List<Subscription> subscriptions =
           membersService.initRoomSubscriptions(
-              List.of(user1Id, user2Id, user3Id),
-              generateRoom(RoomTypeDto.GROUP),
-              UserPrincipal.create(user2Id));
+              List.of(
+                  MemberDto.create().userId(user1Id),
+                  MemberDto.create().userId(user2Id).owner(true),
+                  MemberDto.create().userId(user3Id)),
+              generateRoom(RoomTypeDto.GROUP));
       assertNotNull(subscriptions);
       assertEquals(3, subscriptions.size());
 
@@ -636,12 +638,11 @@ public class MembersServiceImplTest {
 
     @Test
     @DisplayName("Correctly initialize a one-to-one room subscriptions")
-    public void initRoomSubscriptions_oneToOneRoom() {
+    void initRoomSubscriptions_oneToOneRoom() {
       List<Subscription> subscriptions =
           membersService.initRoomSubscriptions(
-              List.of(user1Id, user2Id),
-              generateRoom(RoomTypeDto.ONE_TO_ONE),
-              UserPrincipal.create(user2Id));
+              List.of(MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id)),
+              generateRoom(RoomTypeDto.ONE_TO_ONE));
       assertNotNull(subscriptions);
       assertEquals(2, subscriptions.size());
 

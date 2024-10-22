@@ -43,6 +43,7 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
+import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
@@ -54,12 +55,12 @@ import java.io.InputStream;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Singleton
 public class RoomServiceImpl implements RoomService {
@@ -144,14 +145,14 @@ public class RoomServiceImpl implements RoomService {
   @Override
   public RoomDto createRoom(RoomCreationFieldsDto roomCreationFields, UserPrincipal currentUser) {
     createRoomValidation(roomCreationFields, currentUser);
-    List<UUID> membersIds = new ArrayList<>(roomCreationFields.getMembersIds());
-    membersIds.add(UUID.fromString(currentUser.getId()));
-
+    List<MemberDto> members = new ArrayList<>(roomCreationFields.getMembers());
+    // user who creates the room is automatically owner
+    members.add(MemberDto.create().userId(currentUser.getUUID()).owner(true));
     UUID newRoomId = UUID.randomUUID();
     Room room = Room.create().id(newRoomId.toString()).type(roomCreationFields.getType());
     Optional.ofNullable(roomCreationFields.getName()).ifPresent(room::name);
     Optional.ofNullable(roomCreationFields.getDescription()).ifPresent(room::description);
-    room = room.subscriptions(membersService.initRoomSubscriptions(membersIds, room, currentUser));
+    room = room.subscriptions(membersService.initRoomSubscriptions(members, room));
     room = roomRepository.insert(room);
 
     messageDispatcher.createRoom(room, currentUser.getId());
@@ -175,12 +176,17 @@ public class RoomServiceImpl implements RoomService {
 
   private void createRoomValidation(
       RoomCreationFieldsDto roomCreationFields, UserPrincipal currentUser) {
-    Set<UUID> membersSet = new HashSet<>(roomCreationFields.getMembersIds());
+    Set<UUID> membersSet =
+        roomCreationFields.getMembers().stream()
+            .map(MemberDto::getUserId)
+            .collect(Collectors.toSet());
 
-    if (roomCreationFields.getMembersIds().size() != membersSet.size()) {
+    if (roomCreationFields.getMembers().stream().map(MemberDto::getUserId).toList().size()
+        != membersSet.size()) {
       throw new BadRequestException("Members cannot be duplicated");
     }
-    if (roomCreationFields.getMembersIds().stream()
+    if (roomCreationFields.getMembers().stream()
+        .map(MemberDto::getUserId)
         .anyMatch(memberId -> memberId.toString().equals(currentUser.getId()))) {
       throw new BadRequestException("Requester can't be invited to the room");
     }
@@ -191,7 +197,7 @@ public class RoomServiceImpl implements RoomService {
         }
         if (roomRepository
             .getOneToOneByAllUserIds(
-                currentUser.getId(), roomCreationFields.getMembersIds().get(0).toString())
+                currentUser.getId(), roomCreationFields.getMembers().get(0).getUserId().toString())
             .isPresent()) {
           throw new ConflictException("The one to one room already exists for these users");
         }
@@ -208,7 +214,8 @@ public class RoomServiceImpl implements RoomService {
         break;
     }
 
-    roomCreationFields.getMembersIds().stream()
+    roomCreationFields.getMembers().stream()
+        .map(MemberDto::getUserId)
         .filter(memberId -> !userService.userExists(memberId, currentUser))
         .findFirst()
         .ifPresent(

@@ -394,7 +394,11 @@ public class RoomsApiIT {
               dispatcher.post(
                   URL,
                   getInsertRoomRequestBody(
-                      "testRoom", "Test room", RoomTypeDto.GROUP, List.of(user2Id, user3Id)),
+                      "testRoom",
+                      "Test room",
+                      RoomTypeDto.GROUP,
+                      List.of(
+                          MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id))),
                   user1Token);
         }
         clock.removeFixTime();
@@ -409,18 +413,137 @@ public class RoomsApiIT {
         assertEquals("Test room", room.getDescription());
         assertEquals(RoomTypeDto.GROUP, room.getType());
         assertEquals(3, room.getMembers().size());
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
-        assertTrue(
+
+        Optional<MemberDto> user1 =
             room.getMembers().stream()
-                .filter(member -> user1Id.equals(member.getUserId()))
-                .findAny()
-                .orElseThrow()
-                .isOwner());
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
+                .filter(member -> member.getUserId().equals(user1Id))
+                .findFirst();
+        assertTrue(user1.isPresent());
+        assertTrue(user1.get().isOwner());
+        Optional<MemberDto> user2 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user2Id))
+                .findFirst();
+        assertTrue(user2.isPresent());
+        assertFalse(user2.get().isOwner());
+        Optional<MemberDto> user3 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user3Id))
+                .findFirst();
+        assertTrue(user3.isPresent());
+        assertFalse(user3.get().isOwner());
+
+        assertEquals(executionInstant, room.getCreatedAt().toInstant());
+        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+        assertNull(room.getPictureUpdatedAt());
+
+        mongooseImMockServer.verify(
+            mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString()),
+            VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+            mongooseImMockServer.getAddRoomMemberRequest(
+                roomId.toString(), user1Id.toString(), user2Id.toString()),
+            VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+            mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage1),
+            VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+            mongooseImMockServer.getAddRoomMemberRequest(
+                roomId.toString(), user1Id.toString(), user3Id.toString()),
+            VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+            mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage2),
+            VerificationTimes.exactly(1));
+      }
+
+      @Test
+      @DisplayName(
+          "Given creation fields, inserts a new group room settings the owners and returns its"
+              + " data")
+      void insertGroupRoom_testOkWithOwners() throws Exception {
+        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+        clock.fixTimeAt(executionInstant);
+        MockHttpResponse response;
+        UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
+        mongooseImMockServer.mockAddRoomMember(
+            roomId.toString(), user1Id.toString(), user2Id.toString(), true);
+        String hopedXmppAffiliationMessage1 =
+            String.format(
+                    "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
+                        + " type='groupchat'>",
+                    user1Id, roomId)
+                + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+                + "<operation>memberAdded</operation>"
+                + String.format("<user-id>%s</user-id>", user2Id)
+                + "</x>"
+                + "<body/>"
+                + "</message>";
+        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage1, true);
+        mongooseImMockServer.mockAddRoomMember(
+            roomId.toString(), user1Id.toString(), user3Id.toString(), true);
+        String hopedXmppAffiliationMessage2 =
+            String.format(
+                    "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
+                        + " type='groupchat'>",
+                    user1Id, roomId)
+                + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+                + "<operation>memberAdded</operation>"
+                + String.format("<user-id>%s</user-id>", user3Id)
+                + "</x>"
+                + "<body/>"
+                + "</message>";
+        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage2, true);
+        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+          uuid.when(UUID::randomUUID).thenReturn(roomId);
+          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+          uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
+          uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
+          uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+          response =
+              dispatcher.post(
+                  URL,
+                  getInsertRoomRequestBody(
+                      "testRoom",
+                      "Test room",
+                      RoomTypeDto.GROUP,
+                      List.of(
+                          MemberDto.create().userId(user2Id).owner(true),
+                          MemberDto.create().userId(user3Id))),
+                  user1Token);
+        }
+        clock.removeFixTime();
+        userManagementMockServer.verify(
+            "GET", String.format("/users/id/%s", user2Id), user1Token, 1);
+        userManagementMockServer.verify(
+            "GET", String.format("/users/id/%s", user3Id), user1Token, 1);
+        assertEquals(201, response.getStatus());
+        RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
+        assertEquals("testRoom", room.getName());
+        assertEquals("Test room", room.getDescription());
+        assertEquals(RoomTypeDto.GROUP, room.getType());
+        assertEquals(3, room.getMembers().size());
+
+        Optional<MemberDto> user1 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user1Id))
+                .findFirst();
+        assertTrue(user1.isPresent());
+        assertTrue(user1.get().isOwner());
+        Optional<MemberDto> user2 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user2Id))
+                .findFirst();
+        assertTrue(user2.isPresent());
+        assertTrue(user2.get().isOwner());
+        Optional<MemberDto> user3 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user3Id))
+                .findFirst();
+        assertTrue(user3.isPresent());
+        assertFalse(user3.get().isOwner());
+
         assertEquals(executionInstant, room.getCreatedAt().toInstant());
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
@@ -451,7 +574,11 @@ public class RoomsApiIT {
             dispatcher.post(
                 URL,
                 getInsertRoomRequestBody(
-                    null, "Test room", RoomTypeDto.GROUP, List.of(user2Id, user3Id)),
+                    null,
+                    "Test room",
+                    RoomTypeDto.GROUP,
+                    List.of(
+                        MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id))),
                 user1Token);
 
         assertEquals(400, response.getStatus());
@@ -468,7 +595,10 @@ public class RoomsApiIT {
             dispatcher.post(
                 URL,
                 getInsertRoomRequestBody(
-                    "testRoom", "Test room", RoomTypeDto.GROUP, List.of(user2Id)),
+                    "testRoom",
+                    "Test room",
+                    RoomTypeDto.GROUP,
+                    List.of(MemberDto.create().userId(user2Id))),
                 user1Token);
 
         assertEquals(400, response.getStatus());
@@ -528,7 +658,11 @@ public class RoomsApiIT {
               dispatcher.post(
                   URL,
                   getInsertRoomRequestBody(
-                      "testRoom", "Test room", RoomTypeDto.TEMPORARY, List.of(user2Id, user3Id)),
+                      "testRoom",
+                      "Test room",
+                      RoomTypeDto.TEMPORARY,
+                      List.of(
+                          MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id))),
                   user1Token);
         }
         clock.removeFixTime();
@@ -543,18 +677,137 @@ public class RoomsApiIT {
         assertEquals("Test room", room.getDescription());
         assertEquals(RoomTypeDto.TEMPORARY, room.getType());
         assertEquals(3, room.getMembers().size());
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
-        assertTrue(
+
+        Optional<MemberDto> user1 =
             room.getMembers().stream()
-                .filter(member -> user1Id.equals(member.getUserId()))
-                .findAny()
-                .orElseThrow()
-                .isOwner());
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
+                .filter(member -> member.getUserId().equals(user1Id))
+                .findFirst();
+        assertTrue(user1.isPresent());
+        assertTrue(user1.get().isOwner());
+        Optional<MemberDto> user2 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user2Id))
+                .findFirst();
+        assertTrue(user2.isPresent());
+        assertFalse(user2.get().isOwner());
+        Optional<MemberDto> user3 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user3Id))
+                .findFirst();
+        assertTrue(user3.isPresent());
+        assertFalse(user3.get().isOwner());
+
+        assertEquals(executionInstant, room.getCreatedAt().toInstant());
+        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+        assertNull(room.getPictureUpdatedAt());
+
+        mongooseImMockServer.verify(
+            mongooseImMockServer.getCreateRoomRequest(roomId.toString(), user1Id.toString()),
+            VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+            mongooseImMockServer.getAddRoomMemberRequest(
+                roomId.toString(), user1Id.toString(), user2Id.toString()),
+            VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+            mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage1),
+            VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+            mongooseImMockServer.getAddRoomMemberRequest(
+                roomId.toString(), user1Id.toString(), user3Id.toString()),
+            VerificationTimes.exactly(1));
+        mongooseImMockServer.verify(
+            mongooseImMockServer.getSendStanzaRequest(hopedXmppAffiliationMessage2),
+            VerificationTimes.exactly(1));
+      }
+
+      @Test
+      @DisplayName(
+          "Given creation fields, inserts a new temporary room settings the owners and returns its"
+              + " data")
+      void insertTemporaryRoom_testOkWithOwners() throws Exception {
+        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+
+        clock.fixTimeAt(executionInstant);
+        MockHttpResponse response;
+        UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
+        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
+        mongooseImMockServer.mockAddRoomMember(
+            roomId.toString(), user1Id.toString(), user2Id.toString(), true);
+        String hopedXmppAffiliationMessage1 =
+            String.format(
+                    "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
+                        + " type='groupchat'>",
+                    user1Id, roomId)
+                + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+                + "<operation>memberAdded</operation>"
+                + String.format("<user-id>%s</user-id>", user2Id)
+                + "</x>"
+                + "<body/>"
+                + "</message>";
+        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage1, true);
+        mongooseImMockServer.mockAddRoomMember(
+            roomId.toString(), user1Id.toString(), user3Id.toString(), true);
+        String hopedXmppAffiliationMessage2 =
+            String.format(
+                    "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
+                        + " type='groupchat'>",
+                    user1Id, roomId)
+                + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+                + "<operation>memberAdded</operation>"
+                + String.format("<user-id>%s</user-id>", user3Id)
+                + "</x>"
+                + "<body/>"
+                + "</message>";
+        mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage2, true);
+        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+          uuid.when(UUID::randomUUID).thenReturn(roomId);
+          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+          uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
+          uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
+          uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+          response =
+              dispatcher.post(
+                  URL,
+                  getInsertRoomRequestBody(
+                      "testRoom",
+                      "Test room",
+                      RoomTypeDto.TEMPORARY,
+                      List.of(
+                          MemberDto.create().userId(user2Id).owner(true),
+                          MemberDto.create().userId(user3Id))),
+                  user1Token);
+        }
+        clock.removeFixTime();
+        userManagementMockServer.verify(
+            "GET", String.format("/users/id/%s", user2Id), user1Token, 1);
+        userManagementMockServer.verify(
+            "GET", String.format("/users/id/%s", user3Id), user1Token, 1);
+        assertEquals(201, response.getStatus());
+        RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
+        assertEquals("testRoom", room.getName());
+        assertEquals("Test room", room.getDescription());
+        assertEquals(RoomTypeDto.TEMPORARY, room.getType());
+        assertEquals(3, room.getMembers().size());
+
+        Optional<MemberDto> user1 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user1Id))
+                .findFirst();
+        assertTrue(user1.isPresent());
+        assertTrue(user1.get().isOwner());
+        Optional<MemberDto> user2 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user2Id))
+                .findFirst();
+        assertTrue(user2.isPresent());
+        assertTrue(user2.get().isOwner());
+        Optional<MemberDto> user3 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user3Id))
+                .findFirst();
+        assertTrue(user3.isPresent());
+        assertFalse(user3.get().isOwner());
+
         assertEquals(executionInstant, room.getCreatedAt().toInstant());
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
@@ -585,7 +838,11 @@ public class RoomsApiIT {
             dispatcher.post(
                 URL,
                 getInsertRoomRequestBody(
-                    null, "Test room", RoomTypeDto.TEMPORARY, List.of(user2Id, user3Id)),
+                    null,
+                    "Test room",
+                    RoomTypeDto.TEMPORARY,
+                    List.of(
+                        MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id))),
                 user1Token);
 
         assertEquals(400, response.getStatus());
@@ -623,14 +880,14 @@ public class RoomsApiIT {
         assertEquals("Test room", room.getDescription());
         assertEquals(RoomTypeDto.TEMPORARY, room.getType());
         assertEquals(1, room.getMembers().size());
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
-        assertTrue(
+
+        Optional<MemberDto> user1 =
             room.getMembers().stream()
-                .filter(member -> user1Id.equals(member.getUserId()))
-                .findAny()
-                .orElseThrow()
-                .isOwner());
+                .filter(member -> member.getUserId().equals(user1Id))
+                .findFirst();
+        assertTrue(user1.isPresent());
+        assertTrue(user1.get().isOwner());
+
         assertEquals(executionInstant, room.getCreatedAt().toInstant());
         assertEquals(executionInstant, room.getUpdatedAt().toInstant());
         assertNull(room.getPictureUpdatedAt());
@@ -677,7 +934,11 @@ public class RoomsApiIT {
           response =
               dispatcher.post(
                   URL,
-                  getInsertRoomRequestBody(null, null, RoomTypeDto.ONE_TO_ONE, List.of(user2Id)),
+                  getInsertRoomRequestBody(
+                      null,
+                      null,
+                      RoomTypeDto.ONE_TO_ONE,
+                      List.of(MemberDto.create().userId(user2Id))),
                   user1Token);
         }
         clock.removeFixTime();
@@ -727,7 +988,11 @@ public class RoomsApiIT {
             dispatcher.post(
                 URL,
                 getInsertRoomRequestBody(
-                    "testOneToOne", null, RoomTypeDto.ONE_TO_ONE, List.of(user2Id, user3Id)),
+                    "testOneToOne",
+                    null,
+                    RoomTypeDto.ONE_TO_ONE,
+                    List.of(
+                        MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id))),
                 user1Token);
 
         assertEquals(400, response.getStatus());
@@ -744,7 +1009,11 @@ public class RoomsApiIT {
             dispatcher.post(
                 URL,
                 getInsertRoomRequestBody(
-                    null, "Test room", RoomTypeDto.ONE_TO_ONE, List.of(user2Id, user3Id)),
+                    null,
+                    "Test room",
+                    RoomTypeDto.ONE_TO_ONE,
+                    List.of(
+                        MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id))),
                 user1Token);
 
         assertEquals(400, response.getStatus());
@@ -769,7 +1038,11 @@ public class RoomsApiIT {
         MockHttpResponse response =
             dispatcher.post(
                 URL,
-                getInsertRoomRequestBody(null, null, RoomTypeDto.ONE_TO_ONE, List.of(user2Id)),
+                getInsertRoomRequestBody(
+                    null,
+                    null,
+                    RoomTypeDto.ONE_TO_ONE,
+                    List.of(MemberDto.create().userId(user2Id))),
                 user1Token);
         assertEquals(409, response.getStatus());
         assertEquals(0, response.getOutput().length);
@@ -786,7 +1059,11 @@ public class RoomsApiIT {
             dispatcher.post(
                 URL,
                 getInsertRoomRequestBody(
-                    null, null, RoomTypeDto.ONE_TO_ONE, List.of(user2Id, user3Id)),
+                    null,
+                    null,
+                    RoomTypeDto.ONE_TO_ONE,
+                    List.of(
+                        MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id))),
                 user1Token);
 
         assertEquals(400, response.getStatus());
@@ -803,7 +1080,10 @@ public class RoomsApiIT {
           dispatcher.post(
               URL,
               getInsertRoomRequestBody(
-                  null, "Test room", RoomTypeDto.GROUP, List.of(user2Id, user3Id)),
+                  null,
+                  "Test room",
+                  RoomTypeDto.GROUP,
+                  List.of(MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id))),
               user1Token);
 
       assertEquals(400, response.getStatus());
@@ -819,7 +1099,10 @@ public class RoomsApiIT {
           dispatcher.post(
               URL,
               getInsertRoomRequestBody(
-                  "room", "Room", RoomTypeDto.GROUP, List.of(user2Id, user3Id)),
+                  "room",
+                  "Room",
+                  RoomTypeDto.GROUP,
+                  List.of(MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id))),
               null);
 
       assertEquals(401, response.getStatus());
@@ -833,7 +1116,13 @@ public class RoomsApiIT {
           dispatcher.post(
               URL,
               getInsertRoomRequestBody(
-                  "room", "Room", RoomTypeDto.GROUP, List.of(user2Id, user2Id, user3Id)),
+                  "room",
+                  "Room",
+                  RoomTypeDto.GROUP,
+                  List.of(
+                      MemberDto.create().userId(user2Id),
+                      MemberDto.create().userId(user2Id),
+                      MemberDto.create().userId(user3Id))),
               user1Token);
 
       assertEquals(400, response.getStatus());
@@ -850,7 +1139,13 @@ public class RoomsApiIT {
           dispatcher.post(
               URL,
               getInsertRoomRequestBody(
-                  "room", "Room", RoomTypeDto.GROUP, List.of(user1Id, user2Id, user3Id)),
+                  "room",
+                  "Room",
+                  RoomTypeDto.GROUP,
+                  List.of(
+                      MemberDto.create().userId(user1Id),
+                      MemberDto.create().userId(user2Id),
+                      MemberDto.create().userId(user3Id))),
               user1Token);
 
       assertEquals(400, response.getStatus());
@@ -868,7 +1163,10 @@ public class RoomsApiIT {
                   "testRoom",
                   "Test room",
                   RoomTypeDto.GROUP,
-                  List.of(user2Id, user3Id, UUID.randomUUID())),
+                  List.of(
+                      MemberDto.create().userId(user2Id),
+                      MemberDto.create().userId(user3Id),
+                      MemberDto.create().userId(UUID.randomUUID()))),
               user1Token);
 
       assertEquals(404, response.getStatus());
@@ -880,7 +1178,7 @@ public class RoomsApiIT {
         @Nullable String name,
         @Nullable String description,
         @Nullable RoomTypeDto type,
-        @Nullable List<UUID> membersIds) {
+        @Nullable List<MemberDto> members) {
       StringBuilder stringBuilder = new StringBuilder();
 
       Optional.ofNullable(name)
@@ -889,13 +1187,17 @@ public class RoomsApiIT {
           .ifPresent(d -> stringBuilder.append(String.format("\"description\": \"%s\",", d)));
       Optional.ofNullable(type)
           .ifPresent(t -> stringBuilder.append(String.format("\"type\": \"%s\",", t)));
-      Optional.ofNullable(membersIds)
+      Optional.ofNullable(members)
           .ifPresent(
-              ids -> {
-                stringBuilder.append("\"membersIds\": [");
+              memberList -> {
+                stringBuilder.append("\"members\": [");
                 stringBuilder.append(
-                    ids.stream()
-                        .map(id -> String.format("\"%s\"", id))
+                    memberList.stream()
+                        .map(
+                            member ->
+                                String.format(
+                                    "{\"userId\": \"%s\", \"owner\": \"%s\"}",
+                                    member.getUserId(), member.isOwner()))
                         .collect(Collectors.joining(",")));
                 stringBuilder.append("]");
               });
@@ -3374,7 +3676,6 @@ public class RoomsApiIT {
         "Given a room identifier, correctly returns a single paged list of attachments info of the"
             + " required room")
     void listRoomAttachmentInfo_testOkSinglePage() throws Exception {
-
       UUID room1Id = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
@@ -3435,7 +3736,6 @@ public class RoomsApiIT {
         "Given a room identifier, correctly returns multiple paged lists of attachments info of the"
             + " required room")
     void listRoomAttachmentInfo_testOkMultiplePages() throws Exception {
-
       UUID room1Id = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));

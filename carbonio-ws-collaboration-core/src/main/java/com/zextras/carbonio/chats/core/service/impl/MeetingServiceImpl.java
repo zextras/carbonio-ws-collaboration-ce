@@ -163,7 +163,7 @@ public class MeetingServiceImpl implements MeetingService {
                     new NotFoundException(
                         String.format("Meeting with id '%s' not found", meetingId)));
     if (membersService
-        .getByUserIdAndRoomId(currentUser.getUUID(), UUID.fromString(meeting.getRoomId()))
+        .getSubscription(currentUser.getUUID(), UUID.fromString(meeting.getRoomId()))
         .isEmpty()) {
       throw new ForbiddenException(
           String.format(

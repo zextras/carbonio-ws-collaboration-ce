@@ -450,8 +450,8 @@ public class MeetingServiceImplTest {
     @DisplayName("Returns the required meeting with all participants")
     void getMeetingById_testOk() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.of(meeting1));
-      when(membersService.getByUserIdAndRoomId(user1Id, room1Id))
-          .thenReturn(Optional.of(MemberDto.create()));
+      when(membersService.getSubscription(user1Id, room1Id))
+          .thenReturn(Optional.of(Subscription.create()));
 
       MeetingDto meetingDto =
           meetingService.getMeetingById(meeting1Id, UserPrincipal.create(user1Id));
@@ -481,7 +481,7 @@ public class MeetingServiceImplTest {
       assertTrue(participant1.get().isAudioStreamEnabled());
 
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
-      verify(membersService, times(1)).getByUserIdAndRoomId(user1Id, room1Id);
+      verify(membersService, times(1)).getSubscription(user1Id, room1Id);
       verifyNoMoreInteractions(meetingRepository, membersService);
       verifyNoInteractions(roomService, videoServerService, eventDispatcher);
     }
@@ -491,7 +491,7 @@ public class MeetingServiceImplTest {
         "If the authenticated user isn't a room meeting member, it throws a 'forbidden' exception")
     void getMeetingById_testUserNotRoomMeetingMember() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.of(meeting1));
-      when(membersService.getByUserIdAndRoomId(user1Id, room1Id)).thenReturn(Optional.empty());
+      when(membersService.getSubscription(user1Id, room1Id)).thenReturn(Optional.empty());
 
       ChatsHttpException exception =
           assertThrows(
@@ -507,7 +507,7 @@ public class MeetingServiceImplTest {
           exception.getMessage());
 
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
-      verify(membersService, times(1)).getByUserIdAndRoomId(user1Id, room1Id);
+      verify(membersService, times(1)).getSubscription(user1Id, room1Id);
       verifyNoMoreInteractions(meetingRepository, membersService);
       verifyNoInteractions(roomService, videoServerService, eventDispatcher);
     }
@@ -724,7 +724,7 @@ public class MeetingServiceImplTest {
         "If the authenticated user isn't a room meeting member, it throws a 'forbidden' exception")
     void getMeetingById_testUserNotRoomMeetingMember() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.of(meeting1));
-      when(membersService.getByUserIdAndRoomId(user1Id, room1Id)).thenReturn(Optional.empty());
+      when(membersService.getSubscription(user1Id, room1Id)).thenReturn(Optional.empty());
 
       ChatsHttpException exception =
           assertThrows(
@@ -740,7 +740,7 @@ public class MeetingServiceImplTest {
           exception.getMessage());
 
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
-      verify(membersService, times(1)).getByUserIdAndRoomId(user1Id, room1Id);
+      verify(membersService, times(1)).getSubscription(user1Id, room1Id);
       verifyNoMoreInteractions(meetingRepository, membersService);
       verifyNoInteractions(roomService, videoServerService, eventDispatcher);
     }
