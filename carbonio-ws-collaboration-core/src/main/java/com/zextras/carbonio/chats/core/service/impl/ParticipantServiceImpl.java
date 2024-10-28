@@ -216,7 +216,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     boolean mediaStreamEnabled = mediaStreamSettingsDto.isEnabled();
     switch (mediaStreamSettingsDto.getType()) {
       case VIDEO:
-        if (Boolean.TRUE.equals(participant.hasVideoStreamOn()) != mediaStreamEnabled) {
+        if (participant.hasVideoStreamOn() != mediaStreamEnabled) {
           participantRepository.update(participant.videoStreamOn(mediaStreamEnabled));
           videoServerService.updateMediaStream(
               currentUser.getId(), meetingId.toString(), mediaStreamSettingsDto);
@@ -232,7 +232,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
         break;
       case SCREEN:
-        if (Boolean.TRUE.equals(participant.hasScreenStreamOn()) != mediaStreamEnabled) {
+        if (participant.hasScreenStreamOn() != mediaStreamEnabled) {
           participantRepository.update(participant.screenStreamOn(mediaStreamEnabled));
           videoServerService.updateMediaStream(
               currentUser.getId(), meetingId.toString(), mediaStreamSettingsDto);
@@ -283,7 +283,7 @@ public class ParticipantServiceImpl implements ParticipantService {
       roomService.getRoomEntityAndCheckUser(
           UUID.fromString(meeting.getRoomId()), currentUser, true);
     }
-    if (Boolean.TRUE.equals(participant.hasAudioStreamOn()) != enabled) {
+    if (participant.hasAudioStreamOn() != enabled) {
       participantRepository.update(participant.audioStreamOn(enabled));
       videoServerService.updateAudioStream(userId, meetingId.toString(), enabled);
       Optional.ofNullable(audioStreamSettingsDto.getUserToModerate())

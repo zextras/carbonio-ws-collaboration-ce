@@ -925,7 +925,7 @@ public class RoomsApiIT {
                 + "<body/>"
                 + "</message>";
         mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
-        mongooseImMockServer.mockAddUserToContacts(user2Id.toString(), user1Id.toString(), true);
+        mongooseImMockServer.mockAddUserToContacts(user1Id.toString(), user2Id.toString(), true);
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
           uuid.when(UUID::randomUUID).thenReturn(roomId);
           uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
@@ -977,7 +977,7 @@ public class RoomsApiIT {
             VerificationTimes.exactly(1));
         mongooseImMockServer.verify(
             mongooseImMockServer.getAddUserToContactsRequest(
-                user2Id.toString(), user1Id.toString()),
+                user1Id.toString(), user2Id.toString()),
             VerificationTimes.exactly(1));
       }
 
@@ -2758,16 +2758,16 @@ public class RoomsApiIT {
   }
 
   @Nested
-  @DisplayName("Insert a room member tests")
-  class InsertRoomMemberTests {
+  @DisplayName("Insert room members tests")
+  class InsertRoomMembersTests {
 
     private String url(UUID roomId) {
       return String.format("/rooms/%s/members", roomId);
     }
 
     @Test
-    @DisplayName("Given a group room identifier, correctly insert the new room member")
-    void insertRoomMember_groupTestOk() throws Exception {
+    @DisplayName("Given a group room identifier, correctly insert the new room members")
+    void insertRoomMembers_groupTestOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
@@ -2785,16 +2785,18 @@ public class RoomsApiIT {
               + "<body/>"
               + "</message>";
       mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
-      MemberToInsertDto requestMember =
-          MemberToInsertDto.create().userId(user4Id).historyCleared(false);
+      List<MemberToInsertDto> requestMembers =
+          List.of(MemberToInsertDto.create().userId(user4Id).historyCleared(false));
       MockHttpResponse response =
-          dispatcher.post(url(roomId), getInsertRoomMemberRequestBody(requestMember), user1Token);
+          dispatcher.post(url(roomId), getInsertRoomMemberRequestBody(requestMembers), user1Token);
 
       assertEquals(201, response.getStatus());
-      MemberInsertedDto member =
-          objectMapper.readValue(response.getContentAsString(), MemberInsertedDto.class);
-      assertEquals(requestMember.getUserId(), member.getUserId());
-      assertNull(member.getClearedAt());
+      List<MemberInsertedDto> members =
+          objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(1, members.size());
+      MemberInsertedDto memberInsertedDto = members.get(0);
+      assertEquals(user4Id, memberInsertedDto.getUserId());
+      assertNull(memberInsertedDto.getClearedAt());
 
       Optional<Room> room = integrationTestUtils.getRoomById(roomId);
       assertTrue(room.isPresent());
@@ -2815,7 +2817,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if the room is one to one returns status code 400")
-    void insertRoomMember_oneToOneTest() throws Exception {
+    void insertRoomMembers_oneToOneTest() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.ONE_TO_ONE, "room", List.of(user1Id, user2Id));
@@ -2829,8 +2831,8 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName(
-        "Given a group room identifier, correctly insert the new room member clearing the history")
-    void insertRoomMember_historyClearedOk() throws Exception {
+        "Given a group room identifier, correctly insert the new room members clearing the history")
+    void insertRoomMembers_historyClearedOk() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
@@ -2848,16 +2850,18 @@ public class RoomsApiIT {
               + "<body/>"
               + "</message>";
       mongooseImMockServer.mockSendStanza(hopedXmppAffiliationMessage, true);
-      MemberToInsertDto requestMember =
-          MemberToInsertDto.create().userId(user4Id).historyCleared(true);
+      List<MemberToInsertDto> requestMembers =
+          List.of(MemberToInsertDto.create().userId(user4Id).historyCleared(true));
       MockHttpResponse response =
-          dispatcher.post(url(roomId), getInsertRoomMemberRequestBody(requestMember), user1Token);
+          dispatcher.post(url(roomId), getInsertRoomMemberRequestBody(requestMembers), user1Token);
 
       assertEquals(201, response.getStatus());
-      MemberInsertedDto member =
-          objectMapper.readValue(response.getContentAsString(), MemberInsertedDto.class);
-      assertEquals(requestMember.getUserId(), member.getUserId());
-      assertNotNull(member.getClearedAt());
+      List<MemberInsertedDto> members =
+          objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(1, members.size());
+      MemberInsertedDto memberInsertedDto = members.get(0);
+      assertEquals(user4Id, memberInsertedDto.getUserId());
+      assertNotNull(memberInsertedDto.getClearedAt());
 
       Optional<Room> room = integrationTestUtils.getRoomById(roomId);
       assertTrue(room.isPresent());
@@ -2883,8 +2887,8 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName(
-        "Given a room identifier, if there isn't an authenticated user returns status code 401")
-    void insertRoomMember_testErrorUnauthenticatedUser() throws Exception {
+        "Given a room identifier, if there is one unauthenticated user returns status code 401")
+    void insertRoomMembers_testErrorUnauthenticatedUser() throws Exception {
       MockHttpResponse response =
           dispatcher.post(url(UUID.randomUUID()), getInsertRoomMemberRequestBody(user1Id), null);
       assertEquals(401, response.getStatus());
@@ -2893,7 +2897,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName("Given a room identifier, if the room doesn't exist returns status code 404")
-    void insertRoomMember_testRoomNotExist() throws Exception {
+    void insertRoomMembers_testRoomNotExist() throws Exception {
       UUID roomId = UUID.randomUUID();
       MockHttpResponse response =
           dispatcher.post(url(roomId), getInsertRoomMemberRequestBody(user1Id), user1Token);
@@ -2907,7 +2911,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a room identifier, if the authenticated user isn't a room owner returns status code"
             + " 403")
-    void insertRoomMember_testAuthenticateUserNotRoomOwner() throws Exception {
+    void insertRoomMembers_testAuthenticateUserNotRoomOwner() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -2921,8 +2925,8 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName(
-        "Given a room identifier, if the user is already a room member returns status code 400")
-    void insertRoomMember_testUserAlreadyRoomMember() throws Exception {
+        "Given a room identifier, if one user is already a room member returns status code 400")
+    void insertRoomMembers_testUserAlreadyRoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -2935,8 +2939,8 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier, if the user isn't an account returns status code 404")
-    void insertRoomMember_testUserNotHasAccount() throws Exception {
+    @DisplayName("Given a room identifier, if one user isn't an account returns status code 404")
+    void insertRoomMembers_testUserNotHasAccount() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id, user3Id));
@@ -2953,7 +2957,7 @@ public class RoomsApiIT {
     @DisplayName(
         "Given a group room identifier, if the request doesn't contain historyCleared returns"
             + " status code 500")
-    void insertRoomMember_testHistoryClearedNotInitialized() throws Exception {
+    void insertRoomMembers_testHistoryClearedNotInitialized() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
@@ -2968,29 +2972,31 @@ public class RoomsApiIT {
       userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
-    private String getInsertRoomMemberRequestBody(MemberToInsertDto member) {
-      return getInsertRoomMemberRequestBody(
-          member.getUserId(), member.isOwner(), member.isHistoryCleared());
-    }
-
     private String getInsertRoomMemberRequestBody(@Nullable UUID userId) {
-      return getInsertRoomMemberRequestBody(userId, null, null);
+      return getInsertRoomMemberRequestBody(List.of(MemberToInsertDto.create().userId(userId)));
     }
 
-    private String getInsertRoomMemberRequestBody(
-        @Nullable UUID userId, @Nullable Boolean owner, @Nullable Boolean historyCleared) {
+    private String getInsertRoomMemberRequestBody(@Nullable List<MemberToInsertDto> members) {
       StringBuilder stringBuilder = new StringBuilder();
-      stringBuilder.append("{");
-      Optional.ofNullable(userId)
-          .ifPresent(u -> stringBuilder.append(String.format("\"userId\": \"%s\",", u)));
-      Optional.ofNullable(owner)
-          .ifPresent(o -> stringBuilder.append(String.format("\"owner\": %s,", o)));
-      Optional.ofNullable(historyCleared)
-          .ifPresent(e -> stringBuilder.append(String.format("\"historyCleared\": %s", e)));
+      stringBuilder.append("[");
+      Optional.ofNullable(members)
+          .ifPresent(
+              memberList ->
+                  stringBuilder.append(
+                      memberList.stream()
+                          .map(
+                              member ->
+                                  String.format(
+                                      "{\"userId\": \"%s\", \"owner\": \"%s\", \"historyCleared\":"
+                                          + " \"%s\"}",
+                                      member.getUserId(),
+                                      member.isOwner(),
+                                      member.isHistoryCleared()))
+                          .collect(Collectors.joining(","))));
       if (',' == stringBuilder.charAt(stringBuilder.length() - 1)) {
         stringBuilder.deleteCharAt(stringBuilder.length() - 1);
       }
-      stringBuilder.append("}");
+      stringBuilder.append("]");
       return stringBuilder.toString();
     }
   }

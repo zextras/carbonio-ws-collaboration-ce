@@ -8,7 +8,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
-import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.exception.MessageDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
@@ -66,11 +65,11 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   }
 
   @Override
-  public void createRoom(Room room, String senderId) {
+  public void createRoom(String roomId, String senderId, List<String> memberIds) {
     String query =
         "mutation muc_light { muc_light { createRoom ("
             + String.format("mucDomain: \"%s\", ", MUC_DOMAIN)
-            + String.format("id: \"%s\", ", room.getId())
+            + String.format("id: \"%s\", ", roomId)
             + String.format("owner: \"%s\"", userIdToUserDomain(senderId))
             + ") { jid } } }";
     GraphQlResponse result = executeMutation(GraphQlBody.create(query, MUC_LIGHT, Map.of()));
@@ -85,9 +84,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
         throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
-    room.getSubscriptions().stream()
-        .filter(member -> !member.getUserId().equals(senderId))
-        .forEach(member -> addRoomMember(room.getId(), senderId, member.getUserId()));
+    memberIds.forEach(member -> addRoomMember(roomId, senderId, member));
   }
 
   @Override

@@ -26,6 +26,7 @@ import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
@@ -255,13 +256,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   @TimedCall
-  public Response insertRoomMember(
-      UUID roomId, MemberToInsertDto memberToInsertDto, SecurityContext securityContext) {
+  public Response insertRoomMembers(
+      UUID roomId,
+      List<@Valid MemberToInsertDto> memberToInsertDto,
+      SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
     return Response.status(Status.CREATED)
-        .entity(membersService.insertRoomMember(roomId, memberToInsertDto, currentUser))
+        .entity(membersService.insertRoomMembers(roomId, memberToInsertDto, currentUser))
         .build();
   }
 

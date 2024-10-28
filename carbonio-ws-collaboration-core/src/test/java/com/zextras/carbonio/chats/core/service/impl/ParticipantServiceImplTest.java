@@ -76,12 +76,12 @@ public class ParticipantServiceImplTest {
     this.clock = mock(Clock.class);
     this.participantService =
         new ParticipantServiceImpl(
-            this.meetingService,
-            this.roomService,
-            this.participantRepository,
-            this.videoServerService,
-            this.eventDispatcher,
-            this.clock);
+            meetingService,
+            roomService,
+            participantRepository,
+            videoServerService,
+            eventDispatcher,
+            clock);
   }
 
   private UUID user1Id;
