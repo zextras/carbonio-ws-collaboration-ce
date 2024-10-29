@@ -655,7 +655,7 @@ class RoomServiceImplTest {
                 () -> roomService.createRoom(creationFields, mockUserPrincipal));
         assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
         assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-        assertEquals("Bad Request - Too few members (required at least 3)", exception.getMessage());
+        assertEquals("Bad Request - Too few members (required at least 2)", exception.getMessage());
       }
 
       @Test
@@ -685,7 +685,7 @@ class RoomServiceImplTest {
         assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
         assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals(
-            "Bad Request - Too much members (required less than 3)", exception.getMessage());
+            "Bad Request - Too many members (required less than 2)", exception.getMessage());
       }
 
       @Test
@@ -889,7 +889,7 @@ class RoomServiceImplTest {
     class CreateOneToOneRoomTests {
 
       @Test
-      @DisplayName("It creates a one to one room and returns it")
+      @DisplayName("It creates a one-to-one room and returns it")
       void createRoomOneToOne_testOk() {
         UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
         when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(true);
@@ -948,7 +948,7 @@ class RoomServiceImplTest {
 
       @Test
       @DisplayName(
-          "There are less than two members when creating a one to one, it throws a 'bad request'"
+          "There are less than two members when creating a one-to-one, it throws a 'bad request'"
               + " exception")
       void createRoomOneToOne_errorWhenMembersAreLessThanTwo() {
         RoomCreationFieldsDto creationFields =
@@ -964,13 +964,13 @@ class RoomServiceImplTest {
         assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
         assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals(
-            "Bad Request - Only 2 users can participate to a one-to-one room",
+            "Bad Request - Only 2 users can participate in a one-to-one room",
             exception.getMessage());
       }
 
       @Test
       @DisplayName(
-          "There are more than two members when creating a one to one with the requester in it, it"
+          "There are more than two members when creating a one-to-one with the requester in it, it"
               + " throws a 'bad request' exception")
       void createRoomOneToOne_errorWhenMembersAreMoreThanTwo() {
         RoomCreationFieldsDto creationFields =
@@ -988,13 +988,13 @@ class RoomServiceImplTest {
         assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
         assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals(
-            "Bad Request - Only 2 users can participate to a one-to-one room",
+            "Bad Request - Only 2 users can participate in a one-to-one room",
             exception.getMessage());
       }
 
       @Test
       @DisplayName(
-          "Given creation fields for a one to one room, if there is a room with those users returns"
+          "Given creation fields for a one-to-one room, if there is a room with those users returns"
               + " a status code 409")
       void createRoomOneToOne_testOneToOneAlreadyExists() {
         UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
@@ -1014,7 +1014,7 @@ class RoomServiceImplTest {
         assertEquals(Status.CONFLICT.getStatusCode(), exception.getHttpStatusCode());
         assertEquals(Status.CONFLICT.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals(
-            "Conflict - The one to one room already exists for these users",
+            "Conflict - The one-to-one room already exists for these users",
             exception.getMessage());
       }
     }
@@ -1658,7 +1658,7 @@ class RoomServiceImplTest {
     void getRoomAndCheckUser_testOk() {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       Room room =
-          roomService.getRoomEntityAndCheckUser(roomGroup1Id, UserPrincipal.create(user1Id), false);
+          roomService.getRoomAndValidateUser(roomGroup1Id, UserPrincipal.create(user1Id), false);
 
       assertEquals(roomGroup1, room);
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
@@ -1674,7 +1674,7 @@ class RoomServiceImplTest {
           assertThrows(
               ForbiddenException.class,
               () ->
-                  roomService.getRoomEntityAndCheckUser(
+                  roomService.getRoomAndValidateUser(
                       roomGroup2Id, UserPrincipal.create(user1Id), false));
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
@@ -1694,7 +1694,7 @@ class RoomServiceImplTest {
           assertThrows(
               ForbiddenException.class,
               () ->
-                  roomService.getRoomEntityAndCheckUser(
+                  roomService.getRoomAndValidateUser(
                       roomGroup1Id, UserPrincipal.create(user2Id), true));
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());

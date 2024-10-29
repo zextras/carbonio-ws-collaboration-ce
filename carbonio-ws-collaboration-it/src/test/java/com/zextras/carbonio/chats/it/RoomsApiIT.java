@@ -903,7 +903,7 @@ public class RoomsApiIT {
     class InsertOneToOneRoomTests {
 
       @Test
-      @DisplayName("Given creation fields, inserts a new one to one room and returns its data")
+      @DisplayName("Given creation fields, inserts a new one-to-one room and returns its data")
       void insertOneToOneRoom_testOk() throws Exception {
         Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
 
@@ -1024,7 +1024,7 @@ public class RoomsApiIT {
 
       @Test
       @DisplayName(
-          "Given creation fields for a one to one room, if there is a room with those users returns"
+          "Given creation fields for a one-to-one room, if there is a room with those users returns"
               + " a status code 409")
       void insertOneToOneRoom_testAlreadyExists() throws Exception {
         UUID roomId = UUID.randomUUID();
@@ -1492,7 +1492,7 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier, if it is a one to one return status code 400")
+    @DisplayName("Given a room identifier, if it is a one-to-one return status code 400")
     void updateRoom_testErrorUpdateRoom1to1() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
@@ -2816,7 +2816,7 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Given a room identifier, if the room is one to one returns status code 400")
+    @DisplayName("Given a room identifier, if the room is one-to-one returns status code 400")
     void insertRoomMembers_oneToOneTest() throws Exception {
       UUID roomId = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
@@ -3408,7 +3408,7 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName(
-        "Given a room identifier and a member identifier, if the room is a one to one returns"
+        "Given a room identifier and a member identifier, if the room is a one-to-one returns"
             + " status code 403")
     void deleteRoomMember_testErrorRoomOneToOne() throws Exception {
       UUID roomId = UUID.randomUUID();

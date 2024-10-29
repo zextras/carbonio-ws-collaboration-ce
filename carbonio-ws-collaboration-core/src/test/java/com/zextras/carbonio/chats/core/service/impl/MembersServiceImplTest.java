@@ -134,7 +134,7 @@ public class MembersServiceImplTest {
               user2subscription,
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
       membersService.setOwner(roomId, user2Id, true, principal);
 
       verify(subscriptionRepository, times(1)).update(user2subscription.owner(true));
@@ -157,7 +157,7 @@ public class MembersServiceImplTest {
               user2subscription,
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
       membersService.setOwner(roomId, user2Id, false, principal);
 
       verify(subscriptionRepository, times(1)).update(user2subscription.owner(false));
@@ -178,7 +178,7 @@ public class MembersServiceImplTest {
               Subscription.create(room, user1Id.toString()).owner(true),
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
 
       ChatsHttpException exception =
           assertThrows(
@@ -202,7 +202,7 @@ public class MembersServiceImplTest {
               Subscription.create(room, user1Id.toString()).owner(true),
               Subscription.create(room, user2Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
 
       ChatsHttpException exception =
           assertThrows(
@@ -225,7 +225,7 @@ public class MembersServiceImplTest {
               Subscription.create(room, user1Id.toString()).owner(true),
               Subscription.create(room, user2Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user2Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
 
       ChatsHttpException exception =
           assertThrows(
@@ -254,7 +254,7 @@ public class MembersServiceImplTest {
                   Subscription.create(room, user3Id.toString()).owner(false))));
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
       when(capabilityService.getCapabilities(principal))
           .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
       when(userService.userExists(user2Id, principal)).thenReturn(true);
@@ -271,7 +271,7 @@ public class MembersServiceImplTest {
       assertNotNull(memberInsertedDto);
       assertEquals(user2Id, memberInsertedDto.getUserId());
 
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(messageDispatcher, times(1))
           .addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
@@ -295,7 +295,7 @@ public class MembersServiceImplTest {
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
       ChatsHttpException exception =
           assertThrows(
               BadRequestException.class,
@@ -307,7 +307,7 @@ public class MembersServiceImplTest {
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
           "Bad Request - Cannot add members to a one_to_one conversation", exception.getMessage());
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
 
       verifyNoMoreInteractions(roomService, roomUserSettingsRepository);
       verifyNoInteractions(userService, subscriptionRepository, eventDispatcher, messageDispatcher);
@@ -324,7 +324,7 @@ public class MembersServiceImplTest {
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
       when(capabilityService.getCapabilities(principal))
           .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
 
@@ -339,7 +339,7 @@ public class MembersServiceImplTest {
       assertEquals(
           String.format("Bad Request - User '%s' is already a room member", user2Id.toString()),
           exception.getMessage());
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
 
       verifyNoMoreInteractions(roomService);
       verifyNoInteractions(
@@ -360,7 +360,7 @@ public class MembersServiceImplTest {
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
       when(capabilityService.getCapabilities(principal))
           .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
       when(userService.userExists(user2Id, principal)).thenReturn(false);
@@ -376,7 +376,7 @@ public class MembersServiceImplTest {
       assertEquals(
           String.format("Not Found - User with id '%s' not found", user2Id),
           exception.getMessage());
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(1)).userExists(user2Id, principal);
 
       verifyNoMoreInteractions(roomService, userService);
@@ -395,7 +395,7 @@ public class MembersServiceImplTest {
                   Subscription.create(room, user3Id.toString()).owner(false))));
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(subscriptionRepository.insert(any(Subscription.class)))
           .thenReturn(Subscription.create(room, user2Id.toString()));
@@ -414,7 +414,7 @@ public class MembersServiceImplTest {
       assertNotNull(memberInsertedDto);
       assertEquals(user2Id, memberInsertedDto.getUserId());
 
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(messageDispatcher, times(1))
           .addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
@@ -450,7 +450,7 @@ public class MembersServiceImplTest {
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
       when(capabilityService.getCapabilities(principal))
           .thenReturn(CapabilitiesDto.create().maxGroupMembers(3));
       ChatsHttpException exception =
@@ -462,7 +462,7 @@ public class MembersServiceImplTest {
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Cannot add more members to this group", exception.getMessage());
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(capabilityService, times(1)).getCapabilities(principal);
 
       verifyNoMoreInteractions(roomService, capabilityService);
@@ -489,11 +489,11 @@ public class MembersServiceImplTest {
               Subscription.create(room, user2Id.toString()).owner(false),
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
 
       membersService.deleteRoomMember(roomId, user2Id, principal);
 
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(messageDispatcher, times(1))
           .removeRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
       verify(roomUserSettingsRepository, times(1))
@@ -521,11 +521,11 @@ public class MembersServiceImplTest {
               Subscription.create(room, user2Id.toString()).owner(true),
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, false)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, false)).thenReturn(room);
 
       membersService.deleteRoomMember(roomId, user1Id, principal);
 
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, false);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
       verify(messageDispatcher, times(1))
           .removeRoomMember(roomId.toString(), user2Id.toString(), user1Id.toString());
       verify(roomUserSettingsRepository, times(1))
@@ -553,7 +553,7 @@ public class MembersServiceImplTest {
               Subscription.create(room, user2Id.toString()).owner(false),
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, false)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, false)).thenReturn(room);
 
       ChatsHttpException exception =
           assertThrows(
@@ -563,7 +563,7 @@ public class MembersServiceImplTest {
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - Last owner can't leave the room", exception.getMessage());
 
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, false);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
       verifyNoMoreInteractions(roomService);
       verifyNoInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);
     }
@@ -578,7 +578,7 @@ public class MembersServiceImplTest {
               Subscription.create(room, user2Id.toString()).owner(false),
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, true)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
 
       ChatsHttpException exception =
           assertThrows(
@@ -591,7 +591,7 @@ public class MembersServiceImplTest {
           "Bad Request - Cannot remove a member from a one_to_one conversation",
           exception.getMessage());
 
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, true);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verifyNoMoreInteractions(roomService);
       verifyNoInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);
     }
@@ -611,7 +611,7 @@ public class MembersServiceImplTest {
               Subscription.create(room, user2Id.toString()).owner(false),
               Subscription.create(room, user3Id.toString()).owner(false)));
       UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, principal, false)).thenReturn(room);
+      when(roomService.getRoomAndValidateUser(roomId, principal, false)).thenReturn(room);
       List<MemberDto> roomMembers = membersService.getRoomMembers(roomId, principal);
       assertNotNull(roomMembers);
       assertEquals(3, roomMembers.size());
@@ -619,7 +619,7 @@ public class MembersServiceImplTest {
       assertEquals(user2Id, roomMembers.get(1).getUserId());
       assertEquals(user3Id, roomMembers.get(2).getUserId());
 
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, principal, false);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
       verifyNoMoreInteractions(roomService);
     }
   }

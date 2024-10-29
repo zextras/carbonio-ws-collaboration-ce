@@ -51,22 +51,20 @@ import org.mockito.ArgumentCaptor;
 @UnitTest
 class PreviewServiceImplTest {
 
-  private final  RoomService            roomService;
-  private final  FileMetadataRepository fileMetadataRepository;
-  private final  PreviewClient          previewClient;
-  private final  PreviewService         previewService;
-  private static Room                   room1;
-  private static UUID                   user1Id;
-  private static UUID                   user2Id;
+  private final RoomService roomService;
+  private final FileMetadataRepository fileMetadataRepository;
+  private final PreviewClient previewClient;
+  private final PreviewService previewService;
+  private static Room room1;
+  private static UUID user1Id;
+  private static UUID user2Id;
 
   public PreviewServiceImplTest() {
     this.roomService = mock(RoomService.class);
     this.fileMetadataRepository = mock(FileMetadataRepository.class);
     this.previewClient = mock(PreviewClient.class);
-    this.previewService = new PreviewServiceImpl(
-      roomService,
-      fileMetadataRepository,
-      previewClient);
+    this.previewService =
+        new PreviewServiceImpl(roomService, fileMetadataRepository, previewClient);
   }
 
   @BeforeAll
@@ -75,14 +73,14 @@ class PreviewServiceImplTest {
     user2Id = UUID.randomUUID();
     room1 = Room.create();
     room1
-      .id(UUID.randomUUID().toString())
-      .type(RoomTypeDto.GROUP)
-      .name("room1")
-      .description("Room one")
-      .subscriptions(List.of(
-        Subscription.create(room1, user1Id.toString()).owner(true),
-        Subscription.create(room1, user2Id.toString()).owner(false))
-      );
+        .id(UUID.randomUUID().toString())
+        .type(RoomTypeDto.GROUP)
+        .name("room1")
+        .description("Room one")
+        .subscriptions(
+            List.of(
+                Subscription.create(room1, user1Id.toString()).owner(true),
+                Subscription.create(room1, user2Id.toString()).owner(false)));
   }
 
   @Test
@@ -90,33 +88,45 @@ class PreviewServiceImplTest {
   public void getImagePreview() throws IOException {
     UUID fileId = UUID.randomUUID();
     UserPrincipal currentUser = UserPrincipal.create(user1Id);
-    FileMetadata expectedMetadata = FileMetadataBuilder.create().id(fileId.toString())
-      .name("snoopy.jpg").mimeType("image/jpeg").type(FileMetadataType.ATTACHMENT)
-      .userId(user1Id.toString()).roomId(room1.getId()).build();
-    when(fileMetadataRepository.getById(fileId.toString())).thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomEntityAndCheckUser(UUID.fromString(room1.getId()), currentUser, false)).thenReturn(room1);
-    Query parameters = new Query.QueryBuilder()
-      .setFileOwnerId(user1Id.toString())
-      .setServiceType(ServiceType.CHATS)
-      .setFileId(fileId.toString())
-      .setVersion(0)
-      .setPreviewArea("100x100")
-      .setQuality(Quality.HIGH)
-      .setOutputFormat(Format.JPEG)
-      .setCrop(false)
-      .build();
+    FileMetadata expectedMetadata =
+        FileMetadataBuilder.create()
+            .id(fileId.toString())
+            .name("snoopy.jpg")
+            .mimeType("image/jpeg")
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString())
+            .roomId(room1.getId())
+            .build();
+    when(fileMetadataRepository.getById(fileId.toString()))
+        .thenReturn(Optional.of(expectedMetadata));
+    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
+        .thenReturn(room1);
+    Query parameters =
+        new Query.QueryBuilder()
+            .setFileOwnerId(user1Id.toString())
+            .setServiceType(ServiceType.CHATS)
+            .setFileId(fileId.toString())
+            .setVersion(0)
+            .setPreviewArea("100x100")
+            .setQuality(Quality.HIGH)
+            .setOutputFormat(Format.JPEG)
+            .setCrop(false)
+            .build();
     BlobResponse mockBlobResponse = mock(BlobResponse.class);
     when(mockBlobResponse.getContent()).thenReturn(new ByteArrayInputStream("image".getBytes()));
     when(mockBlobResponse.getLength()).thenReturn(5L);
     when(mockBlobResponse.getMimeType()).thenReturn("image/jpeg");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
-    when(previewClient.getPreviewOfImage(any(Query.class))).thenReturn(Try.success(mockBlobResponse));
-    FileResponse previewImageResponse = previewService.getImage(currentUser,
-      fileId,
-      "100x100",
-      Option.of(ImageQualityEnumDto.HIGH),
-      Option.of(ImageTypeEnumDto.JPEG),
-      Option.of(false));
+    when(previewClient.getPreviewOfImage(any(Query.class)))
+        .thenReturn(Try.success(mockBlobResponse));
+    FileResponse previewImageResponse =
+        previewService.getImage(
+            currentUser,
+            fileId,
+            "100x100",
+            Option.of(ImageQualityEnumDto.HIGH),
+            Option.of(ImageTypeEnumDto.JPEG),
+            Option.of(false));
 
     verify(previewClient, times(1)).getPreviewOfImage(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
@@ -130,33 +140,45 @@ class PreviewServiceImplTest {
   public void getImageThumbnail() throws IOException {
     UUID fileId = UUID.randomUUID();
     UserPrincipal currentUser = UserPrincipal.create(user1Id);
-    FileMetadata expectedMetadata = FileMetadataBuilder.create().id(fileId.toString())
-      .name("snoopy.jpg").mimeType("image/jpeg").type(FileMetadataType.ATTACHMENT)
-      .userId(user1Id.toString()).roomId(room1.getId()).build();
-    when(fileMetadataRepository.getById(fileId.toString())).thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomEntityAndCheckUser(UUID.fromString(room1.getId()), currentUser, false)).thenReturn(room1);
-    Query parameters = new Query.QueryBuilder()
-      .setFileOwnerId(user1Id.toString())
-      .setServiceType(ServiceType.CHATS)
-      .setFileId(fileId.toString())
-      .setVersion(0)
-      .setPreviewArea("100x100")
-      .setQuality(Quality.HIGH)
-      .setOutputFormat(Format.JPEG)
-      .setShape(Shape.RECTANGULAR)
-      .build();
+    FileMetadata expectedMetadata =
+        FileMetadataBuilder.create()
+            .id(fileId.toString())
+            .name("snoopy.jpg")
+            .mimeType("image/jpeg")
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString())
+            .roomId(room1.getId())
+            .build();
+    when(fileMetadataRepository.getById(fileId.toString()))
+        .thenReturn(Optional.of(expectedMetadata));
+    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
+        .thenReturn(room1);
+    Query parameters =
+        new Query.QueryBuilder()
+            .setFileOwnerId(user1Id.toString())
+            .setServiceType(ServiceType.CHATS)
+            .setFileId(fileId.toString())
+            .setVersion(0)
+            .setPreviewArea("100x100")
+            .setQuality(Quality.HIGH)
+            .setOutputFormat(Format.JPEG)
+            .setShape(Shape.RECTANGULAR)
+            .build();
     BlobResponse mockBlobResponse = mock(BlobResponse.class);
     when(mockBlobResponse.getContent()).thenReturn(new ByteArrayInputStream("image".getBytes()));
     when(mockBlobResponse.getLength()).thenReturn(5L);
     when(mockBlobResponse.getMimeType()).thenReturn("image/jpeg");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
-    when(previewClient.getThumbnailOfImage(any(Query.class))).thenReturn(Try.success(mockBlobResponse));
-    FileResponse previewImageResponse = previewService.getImageThumbnail(currentUser,
-      fileId,
-      "100x100",
-      Option.of(ImageQualityEnumDto.HIGH),
-      Option.of(ImageTypeEnumDto.JPEG),
-      Option.of(ImageShapeEnumDto.RECTANGULAR));
+    when(previewClient.getThumbnailOfImage(any(Query.class)))
+        .thenReturn(Try.success(mockBlobResponse));
+    FileResponse previewImageResponse =
+        previewService.getImageThumbnail(
+            currentUser,
+            fileId,
+            "100x100",
+            Option.of(ImageQualityEnumDto.HIGH),
+            Option.of(ImageTypeEnumDto.JPEG),
+            Option.of(ImageShapeEnumDto.RECTANGULAR));
 
     verify(previewClient, times(1)).getThumbnailOfImage(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
@@ -170,29 +192,35 @@ class PreviewServiceImplTest {
   public void getPDFPreview() throws IOException {
     UUID fileId = UUID.randomUUID();
     UserPrincipal currentUser = UserPrincipal.create(user1Id);
-    FileMetadata expectedMetadata = FileMetadataBuilder.create().id(fileId.toString())
-      .name("test.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
-      .userId(user1Id.toString()).roomId(room1.getId()).build();
-    when(fileMetadataRepository.getById(fileId.toString())).thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomEntityAndCheckUser(UUID.fromString(room1.getId()), currentUser, false)).thenReturn(room1);
-    Query parameters = new Query.QueryBuilder()
-      .setFileOwnerId(user1Id.toString())
-      .setServiceType(ServiceType.CHATS)
-      .setFileId(fileId.toString())
-      .setVersion(0)
-      .setFirstPage(1)
-      .setLastPage(0)
-      .build();
+    FileMetadata expectedMetadata =
+        FileMetadataBuilder.create()
+            .id(fileId.toString())
+            .name("test.pdf")
+            .mimeType("application/pdf")
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString())
+            .roomId(room1.getId())
+            .build();
+    when(fileMetadataRepository.getById(fileId.toString()))
+        .thenReturn(Optional.of(expectedMetadata));
+    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
+        .thenReturn(room1);
+    Query parameters =
+        new Query.QueryBuilder()
+            .setFileOwnerId(user1Id.toString())
+            .setServiceType(ServiceType.CHATS)
+            .setFileId(fileId.toString())
+            .setVersion(0)
+            .setFirstPage(1)
+            .setLastPage(0)
+            .build();
     BlobResponse mockBlobResponse = mock(BlobResponse.class);
     when(mockBlobResponse.getContent()).thenReturn(new ByteArrayInputStream("pdf".getBytes()));
     when(mockBlobResponse.getLength()).thenReturn(3L);
     when(mockBlobResponse.getMimeType()).thenReturn("application/pdf");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
     when(previewClient.getPreviewOfPdf(any(Query.class))).thenReturn(Try.success(mockBlobResponse));
-    FileResponse previewImageResponse = previewService.getPDF(currentUser,
-      fileId,
-      1,
-      0);
+    FileResponse previewImageResponse = previewService.getPDF(currentUser, fileId, 1, 0);
 
     verify(previewClient, times(1)).getPreviewOfPdf(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
@@ -206,33 +234,45 @@ class PreviewServiceImplTest {
   public void getPDFThumbnail() throws IOException {
     UUID fileId = UUID.randomUUID();
     UserPrincipal currentUser = UserPrincipal.create(user1Id);
-    FileMetadata expectedMetadata = FileMetadataBuilder.create().id(fileId.toString())
-      .name("test.pdf").mimeType("application/pdf").type(FileMetadataType.ATTACHMENT)
-      .userId(user1Id.toString()).roomId(room1.getId()).build();
-    when(fileMetadataRepository.getById(fileId.toString())).thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomEntityAndCheckUser(UUID.fromString(room1.getId()), currentUser, false)).thenReturn(room1);
-    Query parameters = new Query.QueryBuilder()
-      .setFileOwnerId(user1Id.toString())
-      .setServiceType(ServiceType.CHATS)
-      .setFileId(fileId.toString())
-      .setVersion(0)
-      .setPreviewArea("100x100")
-      .setQuality(Quality.HIGH)
-      .setOutputFormat(Format.JPEG)
-      .setShape(Shape.RECTANGULAR)
-      .build();
+    FileMetadata expectedMetadata =
+        FileMetadataBuilder.create()
+            .id(fileId.toString())
+            .name("test.pdf")
+            .mimeType("application/pdf")
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString())
+            .roomId(room1.getId())
+            .build();
+    when(fileMetadataRepository.getById(fileId.toString()))
+        .thenReturn(Optional.of(expectedMetadata));
+    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
+        .thenReturn(room1);
+    Query parameters =
+        new Query.QueryBuilder()
+            .setFileOwnerId(user1Id.toString())
+            .setServiceType(ServiceType.CHATS)
+            .setFileId(fileId.toString())
+            .setVersion(0)
+            .setPreviewArea("100x100")
+            .setQuality(Quality.HIGH)
+            .setOutputFormat(Format.JPEG)
+            .setShape(Shape.RECTANGULAR)
+            .build();
     BlobResponse mockBlobResponse = mock(BlobResponse.class);
     when(mockBlobResponse.getContent()).thenReturn(new ByteArrayInputStream("pdf".getBytes()));
     when(mockBlobResponse.getLength()).thenReturn(3L);
     when(mockBlobResponse.getMimeType()).thenReturn("application/pdf");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
-    when(previewClient.getThumbnailOfPdf(any(Query.class))).thenReturn(Try.success(mockBlobResponse));
-    FileResponse previewImageResponse = previewService.getPDFThumbnail(currentUser,
-      fileId,
-      "100x100",
-      Option.of(ImageQualityEnumDto.HIGH),
-      Option.of(ImageTypeEnumDto.JPEG),
-      Option.of(ImageShapeEnumDto.RECTANGULAR));
+    when(previewClient.getThumbnailOfPdf(any(Query.class)))
+        .thenReturn(Try.success(mockBlobResponse));
+    FileResponse previewImageResponse =
+        previewService.getPDFThumbnail(
+            currentUser,
+            fileId,
+            "100x100",
+            Option.of(ImageQualityEnumDto.HIGH),
+            Option.of(ImageTypeEnumDto.JPEG),
+            Option.of(ImageShapeEnumDto.RECTANGULAR));
 
     verify(previewClient, times(1)).getThumbnailOfPdf(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
@@ -246,19 +286,30 @@ class PreviewServiceImplTest {
   public void getImagePreviewNotAuthorized() {
     UUID fileId = UUID.randomUUID();
     UserPrincipal currentUser = UserPrincipal.create(user1Id);
-    FileMetadata expectedMetadata = FileMetadataBuilder.create().id(fileId.toString())
-      .name("snoopy.jpg").mimeType("image/jpeg").type(FileMetadataType.ATTACHMENT)
-      .userId(user1Id.toString()).roomId(room1.getId()).build();
-    when(fileMetadataRepository.getById(fileId.toString())).thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomEntityAndCheckUser(UUID.fromString(room1.getId()), currentUser, false))
-      .thenThrow(new ForbiddenException());
+    FileMetadata expectedMetadata =
+        FileMetadataBuilder.create()
+            .id(fileId.toString())
+            .name("snoopy.jpg")
+            .mimeType("image/jpeg")
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString())
+            .roomId(room1.getId())
+            .build();
+    when(fileMetadataRepository.getById(fileId.toString()))
+        .thenReturn(Optional.of(expectedMetadata));
+    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
+        .thenThrow(new ForbiddenException());
 
-    assertThrows(ForbiddenException.class, () -> previewService.getImage(currentUser,
-      fileId,
-      "100x100",
-      Option.of(ImageQualityEnumDto.HIGH),
-      Option.of(ImageTypeEnumDto.JPEG),
-      Option.of(false)));
+    assertThrows(
+        ForbiddenException.class,
+        () ->
+            previewService.getImage(
+                currentUser,
+                fileId,
+                "100x100",
+                Option.of(ImageQualityEnumDto.HIGH),
+                Option.of(ImageTypeEnumDto.JPEG),
+                Option.of(false)));
   }
 
   @Test
@@ -266,18 +317,30 @@ class PreviewServiceImplTest {
   public void getImagePreviewPreviewException() {
     UUID fileId = UUID.randomUUID();
     UserPrincipal currentUser = UserPrincipal.create(user1Id);
-    FileMetadata expectedMetadata = FileMetadataBuilder.create().id(fileId.toString())
-      .name("snoopy.jpg").mimeType("image/jpeg").type(FileMetadataType.ATTACHMENT)
-      .userId(user1Id.toString()).roomId(room1.getId()).build();
-    when(fileMetadataRepository.getById(fileId.toString())).thenReturn(Optional.of(expectedMetadata));
-    when(roomService.getRoomEntityAndCheckUser(UUID.fromString(room1.getId()), currentUser, false))
-      .thenReturn(room1);
-    when(previewClient.getPreviewOfImage(any(Query.class))).thenReturn(Try.failure(new RuntimeException()));
-    assertThrows(PreviewException.class, () -> previewService.getImage(currentUser,
-      fileId,
-      "100x100",
-      Option.of(ImageQualityEnumDto.HIGH),
-      Option.of(ImageTypeEnumDto.JPEG),
-      Option.of(false)));
+    FileMetadata expectedMetadata =
+        FileMetadataBuilder.create()
+            .id(fileId.toString())
+            .name("snoopy.jpg")
+            .mimeType("image/jpeg")
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString())
+            .roomId(room1.getId())
+            .build();
+    when(fileMetadataRepository.getById(fileId.toString()))
+        .thenReturn(Optional.of(expectedMetadata));
+    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
+        .thenReturn(room1);
+    when(previewClient.getPreviewOfImage(any(Query.class)))
+        .thenReturn(Try.failure(new RuntimeException()));
+    assertThrows(
+        PreviewException.class,
+        () ->
+            previewService.getImage(
+                currentUser,
+                fileId,
+                "100x100",
+                Option.of(ImageQualityEnumDto.HIGH),
+                Option.of(ImageTypeEnumDto.JPEG),
+                Option.of(false)));
   }
 }

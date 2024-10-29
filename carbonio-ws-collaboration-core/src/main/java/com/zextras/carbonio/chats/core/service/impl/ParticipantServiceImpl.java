@@ -80,7 +80,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   private void insertMeetingParticipant(
       Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser) {
     Room room =
-        roomService.getRoomEntityAndCheckUser(
+        roomService.getRoomAndValidateUser(
             UUID.fromString(meeting.getRoomId()), currentUser, false);
     meeting.getParticipants().stream()
         .filter(participant -> participant.getUserId().equals(currentUser.getId()))
@@ -148,7 +148,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                     new NotFoundException(
                         String.format("Meeting with id '%s' not found", meetingId)));
     Room room =
-        roomService.getRoomEntityAndCheckUser(
+        roomService.getRoomAndValidateUser(
             UUID.fromString(meeting.getRoomId()), currentUser, false);
     removeMeetingParticipant(meeting, room, currentUser.getUUID());
   }
@@ -280,8 +280,7 @@ public class ParticipantServiceImpl implements ParticipantService {
                 "User '%s' cannot enable the audio stream of the user '%s'",
                 currentUser.getId(), userId));
       }
-      roomService.getRoomEntityAndCheckUser(
-          UUID.fromString(meeting.getRoomId()), currentUser, true);
+      roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
     }
     if (participant.hasAudioStreamOn() != enabled) {
       participantRepository.update(participant.audioStreamOn(enabled));
@@ -319,7 +318,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             .getMeetingEntity(meetingId)
             .orElseThrow(
                 () -> new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
+    roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.answerRtcMediaStream(currentUser.getId(), meetingId.toString(), sdp);
   }
 
@@ -331,7 +330,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             .getMeetingEntity(meetingId)
             .orElseThrow(
                 () -> new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
+    roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.updateSubscriptionsMediaStream(
         currentUser.getId(), meetingId.toString(), subscriptionUpdatesDto);
   }
@@ -343,7 +342,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             .getMeetingEntity(meetingId)
             .orElseThrow(
                 () -> new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
+    roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.offerRtcAudioStream(currentUser.getId(), meetingId.toString(), sdp);
   }
 }

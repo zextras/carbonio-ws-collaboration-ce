@@ -73,8 +73,7 @@ public class AttachmentServiceImpl implements AttachmentService {
             .getById(fileId.toString())
             .orElseThrow(
                 () -> new NotFoundException(String.format("Attachment '%s' not found", fileId)));
-    roomService.getRoomEntityAndCheckUser(
-        UUID.fromString(metadata.getRoomId()), currentUser, false);
+    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
     return new FileContentAndMetadata(
         storagesService.getFileStreamById(metadata.getId(), metadata.getUserId()), metadata);
   }
@@ -82,7 +81,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   @Override
   public AttachmentsPaginationDto getAttachmentInfoByRoomId(
       UUID roomId, Integer itemsNumber, @Nullable String filter, UserPrincipal currentUser) {
-    roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
+    roomService.getRoomAndValidateUser(roomId, currentUser, false);
     PaginationFilter paginationFilter = null;
     if (filter != null) {
       try {
@@ -126,8 +125,7 @@ public class AttachmentServiceImpl implements AttachmentService {
             .getById(fileId.toString())
             .orElseThrow(
                 () -> new NotFoundException(String.format("Attachment '%s' not found", fileId)));
-    roomService.getRoomEntityAndCheckUser(
-        UUID.fromString(metadata.getRoomId()), currentUser, false);
+    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
     return attachmentMapper.ent2dto(metadata);
   }
 
@@ -143,7 +141,7 @@ public class AttachmentServiceImpl implements AttachmentService {
       @Nullable String replyId,
       @Nullable String area,
       UserPrincipal currentUser) {
-    roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
+    roomService.getRoomAndValidateUser(roomId, currentUser, false);
     UUID fileId = UUID.randomUUID();
     FileMetadata metadata =
         FileMetadata.create()
@@ -180,7 +178,7 @@ public class AttachmentServiceImpl implements AttachmentService {
                 () ->
                     new NotFoundException(
                         String.format("Attachment '%s' not found", originalAttachmentId)));
-    roomService.getRoomEntityAndCheckUser(
+    roomService.getRoomAndValidateUser(
         UUID.fromString(sourceMetadata.getRoomId()), currentUser, false);
     FileMetadata metadata =
         FileMetadata.create()
@@ -205,7 +203,7 @@ public class AttachmentServiceImpl implements AttachmentService {
             .orElseThrow(
                 () -> new NotFoundException(String.format("Attachment '%s' not found", fileId)));
     Room room =
-        roomService.getRoomEntityAndCheckUser(
+        roomService.getRoomAndValidateUser(
             UUID.fromString(metadata.getRoomId()), currentUser, false);
     room.getSubscriptions().stream()
         .filter(

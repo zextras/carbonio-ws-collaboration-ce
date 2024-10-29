@@ -216,13 +216,13 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   }
 
   @Override
-  public void removeRoomMember(String roomId, String senderId, String idToRemove) {
+  public void removeRoomMember(String roomId, String senderId, String userIdToRemove) {
     GraphQlResponse result =
         executeMutation(
             GraphQlBody.create(
                 "mutation muc_light { muc_light { kickUser ("
                     + String.format("room: \"%s\", ", roomIdToRoomDomain(roomId))
-                    + String.format("user: \"%s\") ", userIdToUserDomain(idToRemove))
+                    + String.format("user: \"%s\") ", userIdToUserDomain(userIdToRemove))
                     + "} }",
                 MUC_LIGHT,
                 Map.of()));
@@ -236,7 +236,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
         throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
-    sendAffiliationMessage(roomId, senderId, idToRemove, false);
+    sendAffiliationMessage(roomId, senderId, userIdToRemove, false);
   }
 
   private void sendAffiliationMessage(
