@@ -1209,6 +1209,7 @@ components:
         members:
           items:
             $ref: '#/components/schemas/Member'
+          description: list of users to add to the room
       required: [ type ]
     Room:
       type: object
@@ -1244,11 +1245,10 @@ components:
               description: |
                 room profile picture update timestamp,
                 returned only if the room picture was set at least once
-            members:
+            children:
               type: array
               items:
-                $ref: '#/components/schemas/Member'
-              description: list of users subscribed to the room
+                $ref: '#/components/schemas/Room'
             userSettings:
               $ref: '#/components/schemas/RoomUserSettings'
       required: [ id, createdAt, updatedAt ]
