@@ -85,7 +85,7 @@ class PreviewServiceImplTest {
 
   @Test
   @DisplayName("Returns the preview of an image")
-  public void getImagePreview() throws IOException {
+  void getImagePreview() throws IOException {
     UUID fileId = UUID.randomUUID();
     UserPrincipal currentUser = UserPrincipal.create(user1Id);
     FileMetadata expectedMetadata =
@@ -131,13 +131,13 @@ class PreviewServiceImplTest {
     verify(previewClient, times(1)).getPreviewOfImage(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
     assertEquals("image", new String(previewImageResponse.getContent().readAllBytes()));
-    assertEquals(previewImageResponse.getLength(), 5);
-    assertEquals(previewImageResponse.getMimeType(), "image/jpeg");
+    assertEquals(5, previewImageResponse.getLength());
+    assertEquals("image/jpeg", previewImageResponse.getMimeType());
   }
 
   @Test
   @DisplayName("Returns the thumbnail of an image")
-  public void getImageThumbnail() throws IOException {
+  void getImageThumbnail() throws IOException {
     UUID fileId = UUID.randomUUID();
     UserPrincipal currentUser = UserPrincipal.create(user1Id);
     FileMetadata expectedMetadata =
@@ -183,13 +183,13 @@ class PreviewServiceImplTest {
     verify(previewClient, times(1)).getThumbnailOfImage(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
     assertEquals("image", new String(previewImageResponse.getContent().readAllBytes()));
-    assertEquals(previewImageResponse.getLength(), 5);
-    assertEquals(previewImageResponse.getMimeType(), "image/jpeg");
+    assertEquals(5, previewImageResponse.getLength());
+    assertEquals("image/jpeg", previewImageResponse.getMimeType());
   }
 
   @Test
   @DisplayName("Returns the preview of a pdf")
-  public void getPDFPreview() throws IOException {
+  void getPDFPreview() throws IOException {
     UUID fileId = UUID.randomUUID();
     UserPrincipal currentUser = UserPrincipal.create(user1Id);
     FileMetadata expectedMetadata =
@@ -225,13 +225,13 @@ class PreviewServiceImplTest {
     verify(previewClient, times(1)).getPreviewOfPdf(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
     assertEquals("pdf", new String(previewImageResponse.getContent().readAllBytes()));
-    assertEquals(previewImageResponse.getLength(), 3);
-    assertEquals(previewImageResponse.getMimeType(), "application/pdf");
+    assertEquals(3, previewImageResponse.getLength());
+    assertEquals("application/pdf", previewImageResponse.getMimeType());
   }
 
   @Test
   @DisplayName("Returns the thumbnail of a pdf")
-  public void getPDFThumbnail() throws IOException {
+  void getPDFThumbnail() throws IOException {
     UUID fileId = UUID.randomUUID();
     UserPrincipal currentUser = UserPrincipal.create(user1Id);
     FileMetadata expectedMetadata =
@@ -277,13 +277,13 @@ class PreviewServiceImplTest {
     verify(previewClient, times(1)).getThumbnailOfPdf(parametersCapture.capture());
     assertEquals(parametersCapture.getValue().toString(), parameters.toString());
     assertEquals("pdf", new String(previewImageResponse.getContent().readAllBytes()));
-    assertEquals(previewImageResponse.getLength(), 3);
-    assertEquals(previewImageResponse.getMimeType(), "application/pdf");
+    assertEquals(3, previewImageResponse.getLength());
+    assertEquals("application/pdf", previewImageResponse.getMimeType());
   }
 
   @Test
   @DisplayName("Returns error if user is not in the room")
-  public void getImagePreviewNotAuthorized() {
+  void getImagePreviewNotAuthorized() {
     UUID fileId = UUID.randomUUID();
     UserPrincipal currentUser = UserPrincipal.create(user1Id);
     FileMetadata expectedMetadata =
@@ -314,7 +314,7 @@ class PreviewServiceImplTest {
 
   @Test
   @DisplayName("Returns error if preview returns an error")
-  public void getImagePreviewPreviewException() {
+  void getImagePreviewPreviewException() {
     UUID fileId = UUID.randomUUID();
     UserPrincipal currentUser = UserPrincipal.create(user1Id);
     FileMetadata expectedMetadata =
