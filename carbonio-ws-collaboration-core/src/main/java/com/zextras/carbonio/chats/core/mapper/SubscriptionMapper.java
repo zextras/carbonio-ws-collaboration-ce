@@ -4,10 +4,8 @@
 
 package com.zextras.carbonio.chats.core.mapper;
 
-import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.model.MemberDto;
-import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import jakarta.annotation.Nullable;
 import java.util.List;
 
@@ -29,15 +27,4 @@ public interface SubscriptionMapper {
    * @return conversation result ({@link List} of {@link MemberDto})
    */
   List<MemberDto> ent2memberDto(@Nullable List<Subscription> subscriptions);
-
-  /**
-   * Converts {@link Subscription} to {@link MemberInsertedDto} with current user settings
-   *
-   * @param subscription {@link Subscription} to convert
-   * @param roomUserSettings current user settings {@link RoomUserSettings}
-   * @return conversation result {@link MemberInsertedDto}
-   */
-  @Nullable
-  MemberInsertedDto ent2memberInsertedDto(
-      @Nullable Subscription subscription, @Nullable RoomUserSettings roomUserSettings);
 }

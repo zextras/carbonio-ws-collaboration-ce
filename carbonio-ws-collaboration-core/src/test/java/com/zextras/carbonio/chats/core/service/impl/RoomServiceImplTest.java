@@ -63,6 +63,7 @@ import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
+import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
@@ -109,34 +110,34 @@ class RoomServiceImplTest {
 
   public RoomServiceImplTest(RoomMapper roomMapper) {
     this.roomRepository = mock(RoomRepository.class);
-    this.attachmentService = mock(AttachmentService.class);
     this.roomUserSettingsRepository = mock(RoomUserSettingsRepository.class);
+    this.fileMetadataRepository = mock(FileMetadataRepository.class);
     this.userService = mock(UserService.class);
     this.membersService = mock(MembersService.class);
+    this.meetingService = mock(MeetingService.class);
+    this.storagesService = mock(StoragesService.class);
+    this.attachmentService = mock(AttachmentService.class);
+    this.capabilityService = mock(CapabilityService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.messageDispatcher = mock(MessageDispatcher.class);
-    this.meetingService = mock(MeetingService.class);
-    this.fileMetadataRepository = mock(FileMetadataRepository.class);
-    this.storagesService = mock(StoragesService.class);
     this.clock = mock(Clock.class);
     this.appConfig = mock(AppConfig.class);
-    this.capabilityService = mock(CapabilityService.class);
     this.roomService =
         new RoomServiceImpl(
             this.roomRepository,
             this.roomUserSettingsRepository,
-            roomMapper,
-            this.eventDispatcher,
-            this.messageDispatcher,
+            this.fileMetadataRepository,
             this.userService,
             this.membersService,
             this.meetingService,
-            this.fileMetadataRepository,
             this.storagesService,
             this.attachmentService,
+            this.capabilityService,
+            this.eventDispatcher,
+            this.messageDispatcher,
+            roomMapper,
             this.clock,
-            this.appConfig,
-            this.capabilityService);
+            this.appConfig);
   }
 
   private UUID user1Id;
@@ -146,11 +147,15 @@ class RoomServiceImplTest {
   private UUID user5Id;
   private UUID roomGroup1Id;
   private UUID roomGroup2Id;
+  private UUID roomTemporary1Id;
+  private UUID roomTemporary2Id;
   private UUID roomOneToOne1Id;
   private UUID roomOneToOne2Id;
 
   private Room roomGroup1;
   private Room roomGroup2;
+  private Room roomTemporary1;
+  private Room roomTemporary2;
   private Room roomOneToOne1;
   private Room roomOneToOne2;
 
@@ -167,6 +172,8 @@ class RoomServiceImplTest {
 
     roomGroup1Id = UUID.fromString("cdc44826-23b0-4e99-bec2-7fb2f00b6b13");
     roomGroup2Id = UUID.fromString("0471809c-e0bb-4bfd-85b6-b7b9a1eca597");
+    roomTemporary1Id = UUID.fromString("823379f7-4cd6-4513-85fe-66494a233e1f");
+    roomTemporary2Id = UUID.fromString("ebbd8c5f-12f3-413d-92f5-6da1cdb8c644");
     roomOneToOne1Id = UUID.fromString("86327874-40f4-47cb-914d-f0ce706d1611");
     roomOneToOne2Id = UUID.fromString("19e5717e-652d-409e-b4fa-87e8dff790c1");
 
@@ -186,13 +193,34 @@ class RoomServiceImplTest {
     roomGroup2
         .id(roomGroup2Id.toString())
         .type(RoomTypeDto.GROUP)
-        .name("room3")
-        .description("Room three")
+        .name("room2")
+        .description("Room two")
         .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z"))
         .subscriptions(
             List.of(
                 Subscription.create(roomGroup2, user2Id.toString()).owner(true),
                 Subscription.create(roomGroup2, user3Id.toString()).owner(false)));
+
+    roomTemporary1 = Room.create();
+    roomTemporary1
+        .id(roomTemporary1Id.toString())
+        .type(RoomTypeDto.TEMPORARY)
+        .name("temporary1")
+        .description("")
+        .subscriptions(
+            List.of(Subscription.create(roomTemporary1, user1Id.toString()).owner(true)));
+
+    roomTemporary2 = Room.create();
+    roomTemporary2
+        .id(roomTemporary2Id.toString())
+        .type(RoomTypeDto.TEMPORARY)
+        .name("temporary2")
+        .description("")
+        .subscriptions(
+            List.of(
+                Subscription.create(roomTemporary2, user1Id.toString()).owner(true),
+                Subscription.create(roomTemporary2, user2Id.toString()).owner(true),
+                Subscription.create(roomTemporary2, user3Id.toString())));
 
     roomOneToOne1 = Room.create();
     roomOneToOne1
@@ -452,14 +480,17 @@ class RoomServiceImplTest {
         when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(true);
         when(userService.userExists(user3Id, mockUserPrincipal)).thenReturn(true);
         when(membersService.initRoomSubscriptions(
-                eq(Arrays.asList(user2Id, user3Id)), any(Room.class), eq(mockUserPrincipal)))
+                eq(
+                    List.of(
+                        MemberDto.create().userId(user1Id).owner(true),
+                        MemberDto.create().userId(user2Id),
+                        MemberDto.create().userId(user3Id))),
+                any(Room.class)))
             .thenReturn(
-                Stream.of(user2Id, user3Id, user1Id)
-                    .map(
-                        userId ->
-                            Subscription.create(roomGroup1, userId.toString())
-                                .owner(userId.equals(user1Id)))
-                    .toList());
+                List.of(
+                    Subscription.create(roomGroup1, user1Id.toString()).owner(true),
+                    Subscription.create(roomGroup1, user2Id.toString()),
+                    Subscription.create(roomGroup1, user3Id.toString())));
         when(roomRepository.insert(roomGroup1)).thenReturn(roomGroup1);
         when(capabilityService.getCapabilities(mockUserPrincipal))
             .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
@@ -469,7 +500,9 @@ class RoomServiceImplTest {
                 .name("room1")
                 .description("Room one")
                 .type(RoomTypeDto.GROUP)
-                .membersIds(List.of(user2Id, user3Id));
+                .members(
+                    List.of(
+                        MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id)));
         RoomDto room;
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
           uuid.when(UUID::randomUUID).thenReturn(roomGroup1Id);
@@ -483,25 +516,120 @@ class RoomServiceImplTest {
         assertEquals(creationFields.getDescription(), room.getDescription());
         assertEquals(creationFields.getType(), room.getType());
         assertEquals(3, room.getMembers().size());
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user1Id)));
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user2Id)));
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> member.getUserId().equals(user3Id)));
-        assertTrue(
+
+        Optional<MemberDto> user1 =
             room.getMembers().stream()
                 .filter(member -> member.getUserId().equals(user1Id))
-                .findAny()
-                .orElseThrow()
-                .isOwner());
+                .findFirst();
+        assertTrue(user1.isPresent());
+        assertTrue(user1.get().isOwner());
+        Optional<MemberDto> user2 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user2Id))
+                .findFirst();
+        assertTrue(user2.isPresent());
+        assertFalse(user2.get().isOwner());
+        Optional<MemberDto> user3 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user3Id))
+                .findFirst();
+        assertTrue(user3.isPresent());
+        assertFalse(user3.get().isOwner());
 
         verify(eventDispatcher, times(1))
             .sendToUserExchange(
                 List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
                 RoomCreated.create().roomId(roomGroup1Id));
         verifyNoMoreInteractions(eventDispatcher);
-        verify(messageDispatcher, times(1)).createRoom(roomGroup1, user1Id.toString());
+        verify(messageDispatcher, times(1))
+            .createRoom(
+                roomGroup1Id.toString(),
+                user1Id.toString(),
+                List.of(user2Id.toString(), user3Id.toString()));
+        verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
+        verifyNoMoreInteractions(messageDispatcher);
+      }
+
+      @Test
+      @DisplayName("It creates the room setting the owners and returns it")
+      void createGroupRoom_testOkWithOwners() {
+        UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id).queueId(UUID.randomUUID());
+        when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(true);
+        when(userService.userExists(user3Id, mockUserPrincipal)).thenReturn(true);
+        when(membersService.initRoomSubscriptions(
+                eq(
+                    List.of(
+                        MemberDto.create().userId(user1Id).owner(true),
+                        MemberDto.create().userId(user2Id).owner(true),
+                        MemberDto.create().userId(user3Id))),
+                any(Room.class)))
+            .thenReturn(
+                List.of(
+                    Subscription.create(roomGroup1, user1Id.toString()).owner(true),
+                    Subscription.create(roomGroup1, user2Id.toString()).owner(true),
+                    Subscription.create(roomGroup1, user3Id.toString())));
+        when(roomRepository.insert(roomGroup1))
+            .thenReturn(
+                roomGroup1.subscriptions(
+                    List.of(
+                        Subscription.create(roomGroup1, user1Id.toString()).owner(true),
+                        Subscription.create(roomGroup1, user2Id.toString()).owner(true),
+                        Subscription.create(roomGroup1, user3Id.toString()).owner(false))));
+        when(capabilityService.getCapabilities(mockUserPrincipal))
+            .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
+
+        RoomCreationFieldsDto creationFields =
+            RoomCreationFieldsDto.create()
+                .name("room1")
+                .description("Room one")
+                .type(RoomTypeDto.GROUP)
+                .members(
+                    List.of(
+                        MemberDto.create().userId(user2Id).owner(true),
+                        MemberDto.create().userId(user3Id)));
+        RoomDto room;
+        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+          uuid.when(UUID::randomUUID).thenReturn(roomGroup1Id);
+          uuid.when(() -> UUID.fromString(roomGroup1.getId())).thenReturn(roomGroup1Id);
+          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+          uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
+          uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
+          room = roomService.createRoom(creationFields, mockUserPrincipal);
+        }
+        assertEquals(creationFields.getName(), room.getName());
+        assertEquals(creationFields.getDescription(), room.getDescription());
+        assertEquals(creationFields.getType(), room.getType());
+        assertEquals(3, room.getMembers().size());
+
+        Optional<MemberDto> user1 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user1Id))
+                .findFirst();
+        assertTrue(user1.isPresent());
+        assertTrue(user1.get().isOwner());
+        Optional<MemberDto> user2 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user2Id))
+                .findFirst();
+        assertTrue(user2.isPresent());
+        assertTrue(user2.get().isOwner());
+        Optional<MemberDto> user3 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user3Id))
+                .findFirst();
+        assertTrue(user3.isPresent());
+        assertFalse(user3.get().isOwner());
+
+        verify(eventDispatcher, times(1))
+            .sendToUserExchange(
+                List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+                RoomCreated.create().roomId(roomGroup1Id));
+        verifyNoMoreInteractions(eventDispatcher);
+        verify(messageDispatcher, times(1))
+            .createRoom(
+                roomGroup1Id.toString(),
+                user1Id.toString(),
+                List.of(user2Id.toString(), user3Id.toString()));
         verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
         verifyNoMoreInteractions(messageDispatcher);
       }
@@ -520,14 +648,14 @@ class RoomServiceImplTest {
                 .name("room1")
                 .description("Room one")
                 .type(RoomTypeDto.GROUP)
-                .membersIds(List.of(user2Id));
+                .members(List.of(MemberDto.create().userId(user2Id)));
         ChatsHttpException exception =
             assertThrows(
                 BadRequestException.class,
                 () -> roomService.createRoom(creationFields, mockUserPrincipal));
         assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
         assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-        assertEquals("Bad Request - Too few members (required at least 3)", exception.getMessage());
+        assertEquals("Bad Request - Too few members (required at least 2)", exception.getMessage());
       }
 
       @Test
@@ -544,7 +672,12 @@ class RoomServiceImplTest {
                 .name("room1")
                 .description("Room one")
                 .type(RoomTypeDto.GROUP)
-                .membersIds(List.of(user2Id, user3Id, user4Id, user5Id));
+                .members(
+                    List.of(
+                        MemberDto.create().userId(user2Id),
+                        MemberDto.create().userId(user3Id),
+                        MemberDto.create().userId(user4Id),
+                        MemberDto.create().userId(user5Id)));
         ChatsHttpException exception =
             assertThrows(
                 BadRequestException.class,
@@ -552,7 +685,202 @@ class RoomServiceImplTest {
         assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
         assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals(
-            "Bad Request - Too much members (required less than 3)", exception.getMessage());
+            "Bad Request - Too many members (required less than 2)", exception.getMessage());
+      }
+
+      @Test
+      @DisplayName("If there are duplicate invites, it throws a 'bad request' exception")
+      void createGroupRoom_testRoomToCreateWithDuplicateInvites() {
+        RoomCreationFieldsDto creationFields =
+            RoomCreationFieldsDto.create()
+                .name("room1")
+                .description("Room one")
+                .type(RoomTypeDto.GROUP)
+                .members(
+                    List.of(
+                        MemberDto.create().userId(user2Id), MemberDto.create().userId(user2Id)));
+        ChatsHttpException exception =
+            assertThrows(
+                BadRequestException.class,
+                () -> roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
+        assertEquals("Bad Request - Members cannot be duplicated", exception.getMessage());
+      }
+
+      @Test
+      @DisplayName("If the current user is invited, it throws a 'bad request' exception")
+      void createGroupRoom_testRoomToCreateWithInvitedUsersListContainsCurrentUser() {
+        RoomCreationFieldsDto creationFields =
+            RoomCreationFieldsDto.create()
+                .name("room1")
+                .description("Room one")
+                .type(RoomTypeDto.GROUP)
+                .members(
+                    List.of(
+                        MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id)));
+        ChatsHttpException exception =
+            assertThrows(
+                BadRequestException.class,
+                () -> roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
+        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
+        assertEquals(
+            "Bad Request - Requester can't be invited to the room", exception.getMessage());
+      }
+
+      @Test
+      @DisplayName("If there is an invitee without account, it throws a 'not found' exception")
+      void createGroupRoom_testInvitedUserWithoutAccount() {
+        UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
+        when(userService.userExists(user3Id, mockUserPrincipal)).thenReturn(true);
+        when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(false);
+        when(capabilityService.getCapabilities(mockUserPrincipal))
+            .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
+
+        RoomCreationFieldsDto creationFields =
+            RoomCreationFieldsDto.create()
+                .name("room1")
+                .description("Room one")
+                .type(RoomTypeDto.GROUP)
+                .members(
+                    List.of(
+                        MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id)));
+        ChatsHttpException exception =
+            assertThrows(
+                NotFoundException.class,
+                () -> roomService.createRoom(creationFields, mockUserPrincipal));
+        assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+        assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+        assertEquals(
+            String.format("Not Found - User with id '%s' not found", user2Id),
+            exception.getMessage());
+      }
+    }
+
+    @Nested
+    @DisplayName("Create temporary room tests")
+    class CreateTemporaryRoomTests {
+
+      @Test
+      @DisplayName("It creates the room and returns it")
+      void createTemporaryRoom_testOk() {
+        UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id).queueId(UUID.randomUUID());
+        when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(true);
+        when(userService.userExists(user3Id, mockUserPrincipal)).thenReturn(true);
+        when(membersService.initRoomSubscriptions(
+                eq(List.of(MemberDto.create().userId(user1Id).owner(true))), any(Room.class)))
+            .thenReturn(
+                List.of(Subscription.create(roomTemporary1, user1Id.toString()).owner(true)));
+        when(roomRepository.insert(roomTemporary1)).thenReturn(roomTemporary1);
+
+        RoomCreationFieldsDto creationFields =
+            RoomCreationFieldsDto.create()
+                .name("temporary1")
+                .description("")
+                .type(RoomTypeDto.TEMPORARY);
+        RoomDto room;
+        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+          uuid.when(UUID::randomUUID).thenReturn(roomTemporary1Id);
+          uuid.when(() -> UUID.fromString(roomTemporary1.getId())).thenReturn(roomTemporary1Id);
+          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+          room = roomService.createRoom(creationFields, mockUserPrincipal);
+        }
+        assertEquals(creationFields.getName(), room.getName());
+        assertEquals(creationFields.getDescription(), room.getDescription());
+        assertEquals(creationFields.getType(), room.getType());
+        assertEquals(1, room.getMembers().size());
+
+        Optional<MemberDto> user1 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user1Id))
+                .findFirst();
+        assertTrue(user1.isPresent());
+        assertTrue(user1.get().isOwner());
+
+        verify(eventDispatcher, times(1))
+            .sendToUserExchange(
+                List.of(user1Id.toString()), RoomCreated.create().roomId(roomTemporary1Id));
+        verifyNoMoreInteractions(eventDispatcher);
+        verify(messageDispatcher, times(1))
+            .createRoom(roomTemporary1Id.toString(), user1Id.toString(), List.of());
+        verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
+        verifyNoMoreInteractions(messageDispatcher);
+      }
+
+      @Test
+      @DisplayName("It creates the room setting the owners and returns it")
+      void createTemporaryRoom_testOkWithOwners() {
+        UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id).queueId(UUID.randomUUID());
+        when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(true);
+        when(userService.userExists(user3Id, mockUserPrincipal)).thenReturn(true);
+        when(membersService.initRoomSubscriptions(
+                eq(
+                    List.of(
+                        MemberDto.create().userId(user1Id).owner(true),
+                        MemberDto.create().userId(user2Id).owner(true),
+                        MemberDto.create().userId(user3Id))),
+                any(Room.class)))
+            .thenReturn(
+                List.of(
+                    Subscription.create(roomTemporary2, user1Id.toString()).owner(true),
+                    Subscription.create(roomTemporary2, user2Id.toString()).owner(true),
+                    Subscription.create(roomTemporary2, user3Id.toString())));
+        when(roomRepository.insert(roomTemporary2)).thenReturn(roomTemporary2);
+
+        RoomCreationFieldsDto creationFields =
+            RoomCreationFieldsDto.create()
+                .name("temporary2")
+                .description("")
+                .type(RoomTypeDto.TEMPORARY)
+                .members(
+                    List.of(
+                        MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id)));
+        RoomDto room;
+        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+          uuid.when(UUID::randomUUID).thenReturn(roomTemporary2Id);
+          uuid.when(() -> UUID.fromString(roomTemporary2.getId())).thenReturn(roomTemporary2Id);
+          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+          uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
+          uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
+          room = roomService.createRoom(creationFields, mockUserPrincipal);
+        }
+        assertEquals(creationFields.getName(), room.getName());
+        assertEquals(creationFields.getDescription(), room.getDescription());
+        assertEquals(creationFields.getType(), room.getType());
+        assertEquals(3, room.getMembers().size());
+
+        Optional<MemberDto> user1 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user1Id))
+                .findFirst();
+        assertTrue(user1.isPresent());
+        assertTrue(user1.get().isOwner());
+        Optional<MemberDto> user2 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user2Id))
+                .findFirst();
+        assertTrue(user2.isPresent());
+        assertTrue(user2.get().isOwner());
+        Optional<MemberDto> user3 =
+            room.getMembers().stream()
+                .filter(member -> member.getUserId().equals(user3Id))
+                .findFirst();
+        assertTrue(user3.isPresent());
+        assertFalse(user3.get().isOwner());
+
+        verify(eventDispatcher, times(1))
+            .sendToUserExchange(
+                List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+                RoomCreated.create().roomId(roomTemporary2Id));
+        verifyNoMoreInteractions(eventDispatcher);
+        verify(messageDispatcher, times(1))
+            .createRoom(
+                roomTemporary2Id.toString(),
+                user1Id.toString(),
+                List.of(user2Id.toString(), user3Id.toString()));
+        verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
+        verifyNoMoreInteractions(messageDispatcher);
       }
     }
 
@@ -561,12 +889,12 @@ class RoomServiceImplTest {
     class CreateOneToOneRoomTests {
 
       @Test
-      @DisplayName("It creates a one to one room and returns it")
+      @DisplayName("It creates a one-to-one room and returns it")
       void createRoomOneToOne_testOk() {
         UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
         when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(true);
         when(membersService.initRoomSubscriptions(
-                eq(List.of(user2Id)), any(Room.class), eq(mockUserPrincipal)))
+                eq(List.of(MemberDto.create().userId(user2Id))), any(Room.class)))
             .thenReturn(
                 Stream.of(user2Id, user1Id)
                     .map(
@@ -581,7 +909,7 @@ class RoomServiceImplTest {
                 .name("room2")
                 .description("Room one")
                 .type(RoomTypeDto.ONE_TO_ONE)
-                .membersIds(List.of(user2Id));
+                .members(List.of(MemberDto.create().userId(user2Id)));
         RoomDto room;
         try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
           uuid.when(UUID::randomUUID).thenReturn(roomOneToOne1Id);
@@ -610,7 +938,9 @@ class RoomServiceImplTest {
                 List.of(user1Id.toString(), user2Id.toString()),
                 RoomCreated.create().roomId(roomOneToOne1Id));
         verifyNoMoreInteractions(eventDispatcher);
-        verify(messageDispatcher, times(1)).createRoom(roomOneToOne1, user1Id.toString());
+        verify(messageDispatcher, times(1))
+            .createRoom(
+                roomOneToOne1Id.toString(), user1Id.toString(), List.of(user2Id.toString()));
         verify(messageDispatcher, times(1))
             .addUsersToContacts(user1Id.toString(), user2Id.toString());
         verifyNoMoreInteractions(messageDispatcher);
@@ -618,7 +948,7 @@ class RoomServiceImplTest {
 
       @Test
       @DisplayName(
-          "There are less than two members when creating a one to one, it throws a 'bad request'"
+          "There are less than two members when creating a one-to-one, it throws a 'bad request'"
               + " exception")
       void createRoomOneToOne_errorWhenMembersAreLessThanTwo() {
         RoomCreationFieldsDto creationFields =
@@ -626,7 +956,7 @@ class RoomServiceImplTest {
                 .name("room1")
                 .description("Room one")
                 .type(RoomTypeDto.ONE_TO_ONE)
-                .membersIds(List.of());
+                .members(List.of());
         ChatsHttpException exception =
             assertThrows(
                 BadRequestException.class,
@@ -634,13 +964,13 @@ class RoomServiceImplTest {
         assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
         assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals(
-            "Bad Request - Only 2 users can participate to a one-to-one room",
+            "Bad Request - Only 2 users can participate in a one-to-one room",
             exception.getMessage());
       }
 
       @Test
       @DisplayName(
-          "There are more than two members when creating a one to one with the requester in it, it"
+          "There are more than two members when creating a one-to-one with the requester in it, it"
               + " throws a 'bad request' exception")
       void createRoomOneToOne_errorWhenMembersAreMoreThanTwo() {
         RoomCreationFieldsDto creationFields =
@@ -648,7 +978,9 @@ class RoomServiceImplTest {
                 .name("room1")
                 .description("Room one")
                 .type(RoomTypeDto.ONE_TO_ONE)
-                .membersIds(List.of(user2Id, user3Id));
+                .members(
+                    List.of(
+                        MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id)));
         ChatsHttpException exception =
             assertThrows(
                 BadRequestException.class,
@@ -656,13 +988,13 @@ class RoomServiceImplTest {
         assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
         assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals(
-            "Bad Request - Only 2 users can participate to a one-to-one room",
+            "Bad Request - Only 2 users can participate in a one-to-one room",
             exception.getMessage());
       }
 
       @Test
       @DisplayName(
-          "Given creation fields for a one to one room, if there is a room with those users returns"
+          "Given creation fields for a one-to-one room, if there is a room with those users returns"
               + " a status code 409")
       void createRoomOneToOne_testOneToOneAlreadyExists() {
         UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
@@ -674,7 +1006,7 @@ class RoomServiceImplTest {
                 .name("room1")
                 .description("Room one")
                 .type(RoomTypeDto.ONE_TO_ONE)
-                .membersIds(List.of(user2Id));
+                .members(List.of(MemberDto.create().userId(user2Id)));
         ChatsHttpException exception =
             assertThrows(
                 ConflictException.class,
@@ -682,70 +1014,9 @@ class RoomServiceImplTest {
         assertEquals(Status.CONFLICT.getStatusCode(), exception.getHttpStatusCode());
         assertEquals(Status.CONFLICT.getReasonPhrase(), exception.getHttpStatusPhrase());
         assertEquals(
-            "Conflict - The one to one room already exists for these users",
+            "Conflict - The one-to-one room already exists for these users",
             exception.getMessage());
       }
-    }
-
-    @Test
-    @DisplayName("If there are duplicate invites, it throws a 'bad request' exception")
-    void createRoom_testRoomToCreateWithDuplicateInvites() {
-      RoomCreationFieldsDto creationFields =
-          RoomCreationFieldsDto.create()
-              .name("room1")
-              .description("Room one")
-              .type(RoomTypeDto.GROUP)
-              .membersIds(List.of(user2Id, user2Id));
-      ChatsHttpException exception =
-          assertThrows(
-              BadRequestException.class,
-              () -> roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Bad Request - Members cannot be duplicated", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("If the current user is invited, it throws a 'bad request' exception")
-    void createRoom_testRoomToCreateWithInvitedUsersListContainsCurrentUser() {
-      RoomCreationFieldsDto creationFields =
-          RoomCreationFieldsDto.create()
-              .name("room1")
-              .description("Room one")
-              .type(RoomTypeDto.GROUP)
-              .membersIds(List.of(user1Id, user2Id));
-      ChatsHttpException exception =
-          assertThrows(
-              BadRequestException.class,
-              () -> roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Bad Request - Requester can't be invited to the room", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("If there is an invitee without account, it throws a 'not found' exception")
-    void createRoom_testInvitedUserWithoutAccount() {
-      UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
-      when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(false);
-      when(capabilityService.getCapabilities(mockUserPrincipal))
-          .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
-
-      RoomCreationFieldsDto creationFields =
-          RoomCreationFieldsDto.create()
-              .name("room1")
-              .description("Room one")
-              .type(RoomTypeDto.GROUP)
-              .membersIds(List.of(user2Id, user3Id));
-      ChatsHttpException exception =
-          assertThrows(
-              NotFoundException.class,
-              () -> roomService.createRoom(creationFields, mockUserPrincipal));
-      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(
-          String.format("Not Found - User with identifier '%s' not found", user2Id),
-          exception.getMessage());
     }
   }
 
@@ -1387,7 +1658,7 @@ class RoomServiceImplTest {
     void getRoomAndCheckUser_testOk() {
       when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
       Room room =
-          roomService.getRoomEntityAndCheckUser(roomGroup1Id, UserPrincipal.create(user1Id), false);
+          roomService.getRoomAndValidateUser(roomGroup1Id, UserPrincipal.create(user1Id), false);
 
       assertEquals(roomGroup1, room);
       verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
@@ -1403,7 +1674,7 @@ class RoomServiceImplTest {
           assertThrows(
               ForbiddenException.class,
               () ->
-                  roomService.getRoomEntityAndCheckUser(
+                  roomService.getRoomAndValidateUser(
                       roomGroup2Id, UserPrincipal.create(user1Id), false));
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
@@ -1423,7 +1694,7 @@ class RoomServiceImplTest {
           assertThrows(
               ForbiddenException.class,
               () ->
-                  roomService.getRoomEntityAndCheckUser(
+                  roomService.getRoomAndValidateUser(
                       roomGroup1Id, UserPrincipal.create(user2Id), true));
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());

@@ -5,10 +5,10 @@
 package com.zextras.carbonio.chats.core.infrastructure.messaging;
 
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
-import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import jakarta.annotation.Nullable;
+import java.util.List;
 import java.util.Optional;
 
 public interface MessageDispatcher extends HealthIndicator {
@@ -16,10 +16,11 @@ public interface MessageDispatcher extends HealthIndicator {
   /**
    * Creates a room on XMPP server
    *
-   * @param room room entity to save
+   * @param roomId identifier of the room to create
    * @param senderId creation user
+   * @param memberIds identifiers of the members invited in this room
    */
-  void createRoom(Room room, String senderId);
+  void createRoom(String roomId, String senderId, List<String> memberIds);
 
   /**
    * Deletes a room on XMPP server
@@ -79,9 +80,9 @@ public interface MessageDispatcher extends HealthIndicator {
    *
    * @param roomId room identifier
    * @param senderId operation user identifier
-   * @param idToRemove identifier of the user to remove
+   * @param userIdToRemove identifier of the user to remove
    */
-  void removeRoomMember(String roomId, String senderId, String idToRemove);
+  void removeRoomMember(String roomId, String senderId, String userIdToRemove);
 
   /**
    * Sets two users in their respective contacts list so that they can both see each other's

@@ -92,11 +92,6 @@ public class EbeanFileMetadataRepository implements FileMetadataRepository {
   }
 
   @Override
-  public void deleteById(String id) {
-    db.delete(FileMetadata.class, id);
-  }
-
-  @Override
   public void deleteByIds(List<String> ids) {
     if (!ids.isEmpty()) {
       db.deleteAll(FileMetadata.class, ids);

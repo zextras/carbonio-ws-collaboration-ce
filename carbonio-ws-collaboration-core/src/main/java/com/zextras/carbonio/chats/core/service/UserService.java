@@ -16,26 +16,27 @@ public interface UserService {
   /**
    * Retrieves info about a user
    *
-   * @param userId      the requested user's {@link UUID}
+   * @param userId the requested user's {@link UUID}
    * @param currentUser the currently authenticated {@link UserPrincipal}
    * @return the requested {@link UserDto}
-   **/
+   */
   UserDto getUserById(UUID userId, UserPrincipal currentUser);
 
   /**
    * Retrieves info about a list of user
    *
-   * @param userIds     list of the requested users' {@link UUID}
+   * @param userIds list of the requested users' {@link UUID}
    * @param currentUser the currently authenticated {@link UserPrincipal}
    * @return the {@link List} of the requested {@link UserDto}
-   **/
+   */
   List<UserDto> getUsersByIds(List<String> userIds, UserPrincipal currentUser);
 
   /**
-   * Checks if a user exists. Current implementations checks the {@link com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService}
-   * to check if the user exists.
+   * Checks if a user exists. Current implementations checks the {@link
+   * com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService} to check if the user
+   * exists.
    *
-   * @param userId      the user whose existance we need to check
+   * @param userId the user whose existence we need to check
    * @param currentUser the current authenticated user
    * @return a {@link Boolean} which indicates if the user exists or not
    */
@@ -44,7 +45,7 @@ public interface UserService {
   /**
    * Gets the user picture
    *
-   * @param userId      user identifier
+   * @param userId user identifier
    * @param currentUser current authenticated user {@link UserPrincipal}
    * @return The user picture
    */
@@ -53,19 +54,25 @@ public interface UserService {
   /**
    * Sets a new user picture
    *
-   * @param userId        room identifier {@link UUID }
-   * @param image         image stream to set {@link InputStream}
-   * @param mimeType      image mime type
+   * @param userId room identifier {@link UUID }
+   * @param image image stream to set {@link InputStream}
+   * @param mimeType image mime type
    * @param contentLength image size
-   * @param fileName      image file name
-   * @param currentUser   current authenticated user {@link UserPrincipal}
-   **/
-  void setUserPicture(UUID userId, InputStream image, String mimeType, Long contentLength, String fileName, UserPrincipal currentUser);
+   * @param fileName image file name
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   */
+  void setUserPicture(
+      UUID userId,
+      InputStream image,
+      String mimeType,
+      Long contentLength,
+      String fileName,
+      UserPrincipal currentUser);
 
   /**
    * Deletes the user picture
    *
-   * @param userId      room identifier {@link UUID }
+   * @param userId room identifier {@link UUID }
    * @param currentUser current authenticated user {@link UserPrincipal}
    */
   void deleteUserPicture(UUID userId, UserPrincipal currentUser);

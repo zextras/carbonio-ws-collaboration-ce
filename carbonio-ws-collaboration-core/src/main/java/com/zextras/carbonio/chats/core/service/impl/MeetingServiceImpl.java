@@ -72,7 +72,7 @@ public class MeetingServiceImpl implements MeetingService {
       UUID roomId,
       OffsetDateTime expiration) {
     return meetingMapper.ent2dto(
-        Option.of(roomService.getRoomEntityAndCheckUser(roomId, user, false))
+        Option.of(roomService.getRoomAndValidateUser(roomId, user, false))
             .map(
                 room -> {
                   if (room.getMeetingId() == null) {
@@ -163,7 +163,7 @@ public class MeetingServiceImpl implements MeetingService {
                     new NotFoundException(
                         String.format("Meeting with id '%s' not found", meetingId)));
     if (membersService
-        .getByUserIdAndRoomId(currentUser.getUUID(), UUID.fromString(meeting.getRoomId()))
+        .getSubscription(currentUser.getUUID(), UUID.fromString(meeting.getRoomId()))
         .isEmpty()) {
       throw new ForbiddenException(
           String.format(
@@ -185,7 +185,7 @@ public class MeetingServiceImpl implements MeetingService {
 
   @Override
   public MeetingDto getMeetingByRoomId(UUID roomId, UserPrincipal currentUser) {
-    roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
+    roomService.getRoomAndValidateUser(roomId, currentUser, false);
     return meetingMapper.ent2dto(
         getMeetingEntityByRoomId(roomId)
             .orElseThrow(
@@ -206,7 +206,7 @@ public class MeetingServiceImpl implements MeetingService {
 
     deleteMeeting(
         meeting,
-        roomService.getRoomEntityAndCheckUser(
+        roomService.getRoomAndValidateUser(
             UUID.fromString(meeting.getRoomId()), currentUser, false),
         currentUser.getUUID());
   }
