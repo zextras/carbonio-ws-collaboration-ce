@@ -4,13 +4,13 @@
 
 package com.zextras.carbonio.chats.core.exception;
 
-
 import com.zextras.carbonio.chats.core.infrastructure.DependencyType;
+import java.io.Serial;
 import java.io.Serializable;
 
 public class MessageDispatcherException extends DependencyException implements Serializable {
 
-  private static final long serialVersionUID = 2549718943520474692L;
+  @Serial private static final long serialVersionUID = 2549718943520474692L;
 
   private static final DependencyType type = DependencyType.XMPP_SERVER;
 
@@ -38,8 +38,12 @@ public class MessageDispatcherException extends DependencyException implements S
     super(type, error, debugInfo, cause);
   }
 
-  protected MessageDispatcherException(String error, String debugInfo, Throwable cause, boolean enableSuppression,
-    boolean writableStackTrace) {
+  protected MessageDispatcherException(
+      String error,
+      String debugInfo,
+      Throwable cause,
+      boolean enableSuppression,
+      boolean writableStackTrace) {
     super(type, error, debugInfo, cause, enableSuppression, writableStackTrace);
   }
 }

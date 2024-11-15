@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -52,6 +53,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -109,6 +111,10 @@ public class MeetingServiceImplTest {
   public void init() {
     when(clock.instant()).thenReturn(Instant.parse("2022-01-01T11:00:00Z"));
     when(clock.getZone()).thenReturn(ZoneId.of("UTC+01:00"));
+    when(videoServerService.startMeeting(anyString()))
+        .thenReturn(CompletableFuture.completedFuture(null));
+    when(videoServerService.stopMeeting(anyString()))
+        .thenReturn(CompletableFuture.completedFuture(null));
     user1Id = UUID.randomUUID();
     session1User1Id = UUID.randomUUID();
     user2Id = UUID.randomUUID();
@@ -227,12 +233,12 @@ public class MeetingServiceImplTest {
   }
 
   @Nested
-  @DisplayName("Update meeting tests")
-  class UpdateMeetingTests {
+  @DisplayName("start meeting tests")
+  class StartMeetingTests {
 
     @Test
-    @DisplayName("Activate a meeting")
-    void updateMeetingStart_testOk() {
+    @DisplayName("Starts a meeting")
+    void startMeeting_testOk() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       UUID meetingId = UUID.randomUUID();
       UUID roomId = UUID.randomUUID();
@@ -255,7 +261,7 @@ public class MeetingServiceImplTest {
       when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
       when(roomService.getRoomById(roomId, currentUser))
           .thenReturn(RoomDto.create().members(List.of(MemberDto.create().userId(user1Id))));
-      meetingService.updateMeeting(currentUser, meetingId, true);
+      meetingService.startMeeting(currentUser, meetingId);
       verify(videoServerService, times(1)).startMeeting(meetingId.toString());
       verify(videoServerService, times(0)).stopMeeting(meetingId.toString());
       verify(eventDispatcher, times(1))
@@ -268,8 +274,34 @@ public class MeetingServiceImplTest {
     }
 
     @Test
-    @DisplayName("Deactivate a meeting")
-    void updateMeetingStop_testOk() {
+    @DisplayName("Starts a meeting that does not exist")
+    void startMeeting_testErrorMeetingNotExists() {
+      when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.empty());
+
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () -> meetingService.startMeeting(UserPrincipal.create(user1Id), meeting1Id));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format("Not Found - Meeting with id '%s' not found", meeting1Id),
+          exception.getMessage());
+
+      verify(meetingRepository, times(1)).getById(meeting1Id.toString());
+      verifyNoMoreInteractions(meetingRepository);
+      verifyNoInteractions(membersService, videoServerService, eventDispatcher, roomService);
+    }
+  }
+
+  @Nested
+  @DisplayName("Stop meeting tests")
+  class StopMeetingTests {
+
+    @Test
+    @DisplayName("Stops a meeting")
+    void stopMeeting_testOk() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       UUID meetingId = UUID.randomUUID();
       UUID roomId = UUID.randomUUID();
@@ -292,7 +324,7 @@ public class MeetingServiceImplTest {
       when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
       when(roomService.getRoomById(roomId, currentUser))
           .thenReturn(RoomDto.create().members(List.of(MemberDto.create().userId(user1Id))));
-      meetingService.updateMeeting(currentUser, meetingId, false);
+      meetingService.stopMeeting(currentUser, meetingId);
       verify(videoServerService, times(0)).startMeeting(meetingId.toString());
       verify(videoServerService, times(1)).stopMeeting(meetingId.toString());
       verify(eventDispatcher, times(1))
@@ -301,14 +333,14 @@ public class MeetingServiceImplTest {
     }
 
     @Test
-    @DisplayName("Activate a meeting that does not exist")
-    void updateMeeting_testErrorMeetingNotExists() {
+    @DisplayName("Stops a meeting that does not exist")
+    void stopMeeting_testErrorMeetingNotExists() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.empty());
 
       ChatsHttpException exception =
           assertThrows(
               NotFoundException.class,
-              () -> meetingService.updateMeeting(UserPrincipal.create(user1Id), meeting1Id, true));
+              () -> meetingService.stopMeeting(UserPrincipal.create(user1Id), meeting1Id));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());

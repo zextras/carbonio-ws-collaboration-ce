@@ -173,7 +173,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
     return Response.status(Status.OK)
-        .entity(meetingService.updateMeeting(currentUser, meetingId, true))
+        .entity(meetingService.startMeeting(currentUser, meetingId))
         .build();
   }
 
@@ -192,7 +192,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
     return Response.status(Status.OK)
-        .entity(meetingService.updateMeeting(currentUser, meetingId, false))
+        .entity(meetingService.stopMeeting(currentUser, meetingId))
         .build();
   }
 

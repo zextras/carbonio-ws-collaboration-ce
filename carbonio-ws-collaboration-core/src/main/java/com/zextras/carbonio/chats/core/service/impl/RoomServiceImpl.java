@@ -329,7 +329,7 @@ public class RoomServiceImpl implements RoomService {
     if (room.getMeetingId() != null) {
       meetingService
           .getMeetingEntity(UUID.fromString(room.getMeetingId()))
-          .ifPresent(meeting -> meetingService.deleteMeeting(meeting, room, currentUser.getUUID()));
+          .ifPresent(meeting -> meetingService.deleteMeeting(currentUser.getId(), meeting, room));
     }
     attachmentService.deleteAttachmentsByRoomId(roomId, currentUser);
     if (room.getPictureUpdatedAt() != null) {

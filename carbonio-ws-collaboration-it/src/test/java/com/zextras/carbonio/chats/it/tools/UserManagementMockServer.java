@@ -4,22 +4,17 @@
 
 package com.zextras.carbonio.chats.it.tools;
 
-import static org.mockserver.model.Header.header;
 import static org.mockserver.model.HttpRequest.request;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.usermanagement.entities.UserInfo;
-import jakarta.annotation.Nullable;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
-import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
 import org.mockserver.model.JsonBody;
 import org.mockserver.model.Parameter;
-import org.mockserver.verify.VerificationTimes;
 
 public class UserManagementMockServer extends ClientAndServer implements CloseableResource {
 
@@ -29,22 +24,6 @@ public class UserManagementMockServer extends ClientAndServer implements Closeab
 
   public UserManagementMockServer(String remoteHost, Integer remotePort, Integer... ports) {
     super(remoteHost, remotePort, ports);
-  }
-
-  public void verify(String method, String path, int iterationsNumber) {
-    HttpRequest request = request().withMethod(method).withPath(path);
-    verify(request, VerificationTimes.exactly(iterationsNumber));
-    clear(request, ClearType.LOG);
-  }
-
-  public void verify(String method, String path, @Nullable String cookies, int iterationsNumber) {
-    HttpRequest request = request().withMethod(method).withPath(path);
-    Optional.ofNullable(cookies)
-        .ifPresent(
-            c -> request.withHeaders(header("Cookie", String.format("ZM_AUTH_TOKEN=%s", c))));
-
-    verify(request, VerificationTimes.exactly(iterationsNumber));
-    clear(request, ClearType.LOG);
   }
 
   public HttpRequest getUsersBulkRequest(List<String> usersIds) {

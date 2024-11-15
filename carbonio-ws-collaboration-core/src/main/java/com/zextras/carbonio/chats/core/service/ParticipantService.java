@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
@@ -15,7 +16,7 @@ import java.util.UUID;
 
 public interface ParticipantService {
 
-  void insertMeetingParticipant(
+  JoinStatus insertMeetingParticipant(
       UUID meetingId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser);
 
   void removeMeetingParticipant(UUID meetingId, UserPrincipal currentUser);

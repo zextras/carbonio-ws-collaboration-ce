@@ -8,16 +8,11 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import jakarta.annotation.Nullable;
-import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
-import org.mockserver.model.ClearType;
 import org.mockserver.model.Header;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.JsonBody;
-import org.mockserver.verify.VerificationTimes;
 
 public class VideoServerMockServer extends ClientAndServer implements CloseableResource {
 
@@ -27,18 +22,6 @@ public class VideoServerMockServer extends ClientAndServer implements CloseableR
 
   public VideoServerMockServer(String remoteHost, Integer remotePort, Integer... ports) {
     super(remoteHost, remotePort, ports);
-  }
-
-  public void verify(
-      String method,
-      String path,
-      @Nullable Map<String, String> queryParameters,
-      int iterationsNumber) {
-    HttpRequest request = request().withMethod(method).withPath(path);
-    Optional.ofNullable(queryParameters)
-        .ifPresent(parameters -> parameters.forEach(request::withQueryStringParameter));
-    verify(request, VerificationTimes.exactly(iterationsNumber));
-    clear(request, ClearType.LOG);
   }
 
   public HttpRequest getRequest(String method, String path, String body) {

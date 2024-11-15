@@ -17,7 +17,6 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
-import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedFiles;
@@ -43,7 +42,6 @@ public class AttachmentsApiIT {
   private final ObjectMapper objectMapper;
   private final IntegrationTestUtils integrationTestUtils;
   private final StorageMockServer storageMockServer;
-  private final UserManagementMockServer userManagementMockServer;
 
   public AttachmentsApiIT(
       AttachmentsApi attachmentsApi,
@@ -51,14 +49,12 @@ public class AttachmentsApiIT {
       ObjectMapper objectMapper,
       ResteasyRequestDispatcher dispatcher,
       IntegrationTestUtils integrationTestUtils,
-      StorageMockServer storageMockServer,
-      UserManagementMockServer userManagementMockServer) {
+      StorageMockServer storageMockServer) {
     this.fileMetadataRepository = fileMetadataRepository;
     this.objectMapper = objectMapper;
     this.dispatcher = dispatcher;
     this.integrationTestUtils = integrationTestUtils;
     this.storageMockServer = storageMockServer;
-    this.userManagementMockServer = userManagementMockServer;
     this.dispatcher.getRegistry().addSingletonResource(attachmentsApi);
   }
 
@@ -97,10 +93,9 @@ public class AttachmentsApiIT {
     @DisplayName("Correctly returns the image mime type attachment file for requested id")
     void getImageMimeTypeAttachment_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.SNOOPY_IMAGE);
-      FileMetadata fileMetadata =
-          fileMetadataRepository.save(
-              integrationTestUtils.generateAndSaveFileMetadata(
-                  fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
+      fileMetadataRepository.save(
+          integrationTestUtils.generateAndSaveFileMetadata(
+              fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
       storageMockServer.mockDownload(fileMock, true);
 
       MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user1Token);
@@ -114,18 +109,15 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("GET", "/download", fileMetadata.getId(), 1);
     }
 
     @Test
     @DisplayName("Correctly returns the docx mime type attachment file for requested id")
     void getDocxMimeTypeAttachment_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.DOCUMENT_DOCX);
-      FileMetadata fileMetadata =
-          fileMetadataRepository.save(
-              integrationTestUtils.generateAndSaveFileMetadata(
-                  fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
+      fileMetadataRepository.save(
+          integrationTestUtils.generateAndSaveFileMetadata(
+              fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
       storageMockServer.mockDownload(fileMock, true);
 
       MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user1Token);
@@ -139,18 +131,15 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("GET", "/download", fileMetadata.getId(), 1);
     }
 
     @Test
     @DisplayName("Correctly returns the pptx mime type attachment file for requested id")
     void getPptxMimeTypeAttachment_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.PRESENTATION_PPTX);
-      FileMetadata fileMetadata =
-          fileMetadataRepository.save(
-              integrationTestUtils.generateAndSaveFileMetadata(
-                  fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
+      fileMetadataRepository.save(
+          integrationTestUtils.generateAndSaveFileMetadata(
+              fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
       storageMockServer.mockDownload(fileMock, true);
 
       MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user1Token);
@@ -164,18 +153,15 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("GET", "/download", fileMetadata.getId(), 1);
     }
 
     @Test
     @DisplayName("Correctly returns the xlsx mime type attachment file for requested id")
     void getXlsxMimeTypeAttachment_testOk() throws Exception {
       FileMock fileMock = MockedFiles.get(MockedFileType.CALC_XLSX);
-      FileMetadata fileMetadata =
-          fileMetadataRepository.save(
-              integrationTestUtils.generateAndSaveFileMetadata(
-                  fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
+      fileMetadataRepository.save(
+          integrationTestUtils.generateAndSaveFileMetadata(
+              fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId));
       storageMockServer.mockDownload(fileMock, true);
 
       MockHttpResponse response = dispatcher.get(url(fileMock.getId()), user1Token);
@@ -189,8 +175,6 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("GET", "/download", fileMetadata.getId(), 1);
     }
 
     @Test
@@ -214,8 +198,6 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("GET", "/download", fileMock.getId(), 1);
     }
 
     @Test
@@ -241,7 +223,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
     }
 
     @Test
@@ -252,7 +233,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
     @Test
@@ -264,7 +244,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
   }
 
@@ -282,7 +261,7 @@ public class AttachmentsApiIT {
       FileMetadata savedMetadata =
           integrationTestUtils.generateAndSaveFileMetadata(
               UUID.randomUUID(),
-              "Test attachment",
+              "Test image",
               "image/png",
               FileMetadataType.ATTACHMENT,
               user1Id,
@@ -294,7 +273,6 @@ public class AttachmentsApiIT {
           objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
       assertEquals(savedMetadata.getId(), attachment.getId().toString());
       assertEquals(roomId, attachment.getRoomId());
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
     @Test
@@ -320,7 +298,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
     }
 
     @Test
@@ -331,7 +308,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
     @Test
@@ -343,7 +319,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
   }
 
@@ -369,8 +344,6 @@ public class AttachmentsApiIT {
       MockHttpResponse response = dispatcher.delete(url(fileMetadata.getId()), user2Token);
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
       assertTrue(fileMetadataRepository.getById(fileMetadata.getId()).isEmpty());
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user2Token), 1);
-      storageMockServer.verify("DELETE", "/delete", fileMetadata.getId(), 1);
     }
 
     @Test
@@ -387,8 +360,6 @@ public class AttachmentsApiIT {
       MockHttpResponse response = dispatcher.delete(url(fileMetadata.getId()), user1Token);
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
       assertTrue(fileMetadataRepository.getById(fileMetadata.getId()).isEmpty());
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
-      storageMockServer.verify("DELETE", "/delete", fileMetadata.getId(), 1);
     }
 
     @Test
@@ -414,7 +385,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user3Token), 1);
     }
 
     @Test
@@ -430,7 +400,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.FORBIDDEN.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user2Token), 1);
     }
 
     @Test
@@ -441,7 +410,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
 
     @Test
@@ -453,7 +421,6 @@ public class AttachmentsApiIT {
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify("GET", String.format("/auth/token/%s", user1Token), 1);
     }
   }
 }

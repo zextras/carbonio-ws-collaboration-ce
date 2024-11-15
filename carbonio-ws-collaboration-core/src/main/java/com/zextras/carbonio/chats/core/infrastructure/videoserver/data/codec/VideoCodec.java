@@ -4,9 +4,7 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.codec;
 
-/**
- * This enum represents all possible values for the video codec usable on the VideoServer.
- */
+/** This enum represents all possible values for the video codec usable on the VideoServer. */
 public enum VideoCodec {
   VP8,
   H264,

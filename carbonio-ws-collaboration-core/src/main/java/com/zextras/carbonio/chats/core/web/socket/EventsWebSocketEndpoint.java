@@ -139,7 +139,7 @@ public class EventsWebSocketEndpoint {
       return;
     }
     try {
-      channel.queueDelete(userQueue);
+      channel.queueDeleteNoWait(userQueue, false, false);
     } catch (Exception e) {
       ChatsLogger.warn(String.format("Error deleting queue for user/queue '%s'", userQueue), e);
     }

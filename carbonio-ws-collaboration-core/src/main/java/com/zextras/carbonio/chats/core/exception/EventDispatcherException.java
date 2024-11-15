@@ -5,12 +5,13 @@
 package com.zextras.carbonio.chats.core.exception;
 
 import com.zextras.carbonio.chats.core.infrastructure.DependencyType;
+import java.io.Serial;
 import java.io.Serializable;
 
 public class EventDispatcherException extends DependencyException implements Serializable {
 
-  private static final long           serialVersionUID = 8760142311571089095L;
-  private static final DependencyType type             = DependencyType.EVENT_DISPATCHER;
+  @Serial private static final long serialVersionUID = 8760142311571089095L;
+  private static final DependencyType type = DependencyType.EVENT_DISPATCHER;
 
   public EventDispatcherException() {
     super(type);
@@ -36,8 +37,12 @@ public class EventDispatcherException extends DependencyException implements Ser
     super(type, error, debugInfo, cause);
   }
 
-  protected EventDispatcherException(String error, String debugInfo, Throwable cause, boolean enableSuppression,
-    boolean writableStackTrace) {
+  protected EventDispatcherException(
+      String error,
+      String debugInfo,
+      Throwable cause,
+      boolean enableSuppression,
+      boolean writableStackTrace) {
     super(type, error, debugInfo, cause, enableSuppression, writableStackTrace);
   }
 }

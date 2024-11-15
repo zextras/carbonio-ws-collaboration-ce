@@ -5,12 +5,13 @@
 package com.zextras.carbonio.chats.core.exception;
 
 import com.zextras.carbonio.chats.core.infrastructure.DependencyType;
+import java.io.Serial;
 import java.io.Serializable;
 
 public class ProfilingException extends DependencyException implements Serializable {
 
-  private static final long           serialVersionUID = 6285897188507170501L;
-  private static final DependencyType type             = DependencyType.PROFILING_SERVICE;
+  @Serial private static final long serialVersionUID = 6285897188507170501L;
+  private static final DependencyType type = DependencyType.PROFILING_SERVICE;
 
   public ProfilingException() {
     super(type);
@@ -36,8 +37,12 @@ public class ProfilingException extends DependencyException implements Serializa
     super(type, error, debugInfo, cause);
   }
 
-  protected ProfilingException(String error, String debugInfo, Throwable cause, boolean enableSuppression,
-    boolean writableStackTrace) {
+  protected ProfilingException(
+      String error,
+      String debugInfo,
+      Throwable cause,
+      boolean enableSuppression,
+      boolean writableStackTrace) {
     super(type, error, debugInfo, cause, enableSuppression, writableStackTrace);
   }
 }
