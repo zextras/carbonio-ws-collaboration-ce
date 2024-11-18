@@ -5,12 +5,13 @@
 package com.zextras.carbonio.chats.core.exception;
 
 import com.zextras.carbonio.chats.core.infrastructure.DependencyType;
+import java.io.Serial;
 import java.io.Serializable;
 
 public class StorageException extends DependencyException implements Serializable {
 
-  private static final long           serialVersionUID = -1921616994011018008L;
-  private static final DependencyType type             = DependencyType.STORAGE_SERVICE;
+  @Serial private static final long serialVersionUID = -1921616994011018008L;
+  private static final DependencyType type = DependencyType.STORAGE_SERVICE;
 
   public StorageException() {
     super(type);
@@ -36,8 +37,12 @@ public class StorageException extends DependencyException implements Serializabl
     super(type, error, debugInfo, cause);
   }
 
-  protected StorageException(String error, String debugInfo, Throwable cause, boolean enableSuppression,
-    boolean writableStackTrace) {
+  protected StorageException(
+      String error,
+      String debugInfo,
+      Throwable cause,
+      boolean enableSuppression,
+      boolean writableStackTrace) {
     super(type, error, debugInfo, cause, enableSuppression, writableStackTrace);
   }
 }

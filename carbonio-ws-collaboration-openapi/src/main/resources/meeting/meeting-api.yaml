@@ -406,7 +406,7 @@ components:
     MeetingType:
       type: string
       description: 'Defines the type of meeting, if permanent it will never be automatically deleted,
-                if scheduled it will be removed after the expiration is passed'
+        if scheduled it will be removed after the expiration is passed'
       enum:
         - permanent
         - scheduled

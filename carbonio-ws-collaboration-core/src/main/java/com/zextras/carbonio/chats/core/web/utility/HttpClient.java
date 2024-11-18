@@ -19,11 +19,16 @@ import org.apache.http.impl.client.HttpClients;
 @Singleton
 public class HttpClient {
 
+  private final CloseableHttpClient client;
+
+  public HttpClient() {
+    this.client = HttpClients.createDefault();
+  }
+
   public CloseableHttpResponse sendPost(String url, Map<String, String> headers, String body)
       throws IOException {
-    CloseableHttpClient httpClient = HttpClients.createDefault();
     try {
-      return httpClient.execute(getHttpPost(url, headers, body));
+      return client.execute(getHttpPost(url, headers, body));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -38,9 +43,8 @@ public class HttpClient {
   }
 
   public CloseableHttpResponse sendGet(String url, Map<String, String> headers) throws IOException {
-    CloseableHttpClient httpClient = HttpClients.createDefault();
     try {
-      return httpClient.execute(getHttpGet(url, headers));
+      return client.execute(getHttpGet(url, headers));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

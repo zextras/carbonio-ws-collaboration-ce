@@ -5,12 +5,13 @@
 package com.zextras.carbonio.chats.core.exception;
 
 import com.zextras.carbonio.chats.core.infrastructure.DependencyType;
+import java.io.Serial;
 import java.io.Serializable;
 
 public class AuthenticationException extends DependencyException implements Serializable {
 
-  private static final long           serialVersionUID = -4633091038679514501L;
-  private static final DependencyType type             = DependencyType.AUTHENTICATION_SERVICE;
+  @Serial private static final long serialVersionUID = -4633091038679514501L;
+  private static final DependencyType type = DependencyType.AUTHENTICATION_SERVICE;
 
   public AuthenticationException() {
     super(type);
@@ -36,8 +37,12 @@ public class AuthenticationException extends DependencyException implements Seri
     super(type, error, debugInfo, cause);
   }
 
-  protected AuthenticationException(String error, String debugInfo, Throwable cause, boolean enableSuppression,
-    boolean writableStackTrace) {
+  protected AuthenticationException(
+      String error,
+      String debugInfo,
+      Throwable cause,
+      boolean enableSuppression,
+      boolean writableStackTrace) {
     super(type, error, debugInfo, cause, enableSuppression, writableStackTrace);
   }
 }

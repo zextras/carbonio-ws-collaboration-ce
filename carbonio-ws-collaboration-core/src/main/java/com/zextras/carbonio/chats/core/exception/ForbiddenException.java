@@ -5,11 +5,12 @@
 package com.zextras.carbonio.chats.core.exception;
 
 import jakarta.ws.rs.core.Response.Status;
+import java.io.Serial;
 import java.io.Serializable;
 
 public class ForbiddenException extends ChatsHttpException implements Serializable {
 
-  private static final long serialVersionUID = -115828843775102406L;
+  @Serial private static final long serialVersionUID = -115828843775102406L;
   private static final Status HTTP_STATUS = Status.FORBIDDEN;
   private static final boolean IS_TO_LOG = false;
 

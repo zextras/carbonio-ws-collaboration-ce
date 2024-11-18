@@ -7,32 +7,35 @@ package com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.exception.MessageDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
 import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
+import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import jakarta.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.Base64;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
+@Singleton
 public class MessageDispatcherMongooseImpl implements MessageDispatcher {
+
+  private static final String MONGOOSEIM_GRAPHQL_ENDPOINT = "/api/graphql";
 
   private static final String PARSING_ERROR = "Error during parsing the json of response error ";
   private static final String ATTACHMENT_ID = "attachment-id";
@@ -41,17 +44,17 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   private static final String MUC_LIGHT = "muc_light";
   private static final String MUC_DOMAIN = "muclight.carbonio";
 
-  private final String mongooseimUrl;
+  private final HttpClient httpClient;
+  private final String mongooseimURL;
   private final ObjectMapper objectMapper;
   private final String authToken;
 
+  @Inject
   public MessageDispatcherMongooseImpl(
-      String mongooseimUrl, String username, String password, ObjectMapper objectMapper) {
-    this.mongooseimUrl = mongooseimUrl;
-    this.authToken =
-        String.format(
-            "Basic %s",
-            Base64.getEncoder().encodeToString(String.join(":", username, password).getBytes()));
+      HttpClient httpClient, String mongooseimURL, String authToken, ObjectMapper objectMapper) {
+    this.httpClient = httpClient;
+    this.mongooseimURL = mongooseimURL;
+    this.authToken = authToken;
     this.objectMapper = objectMapper;
   }
 
@@ -380,39 +383,61 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   }
 
   private GraphQlResponse executeMutation(GraphQlBody body) {
-    CloseableHttpClient client = HttpClientBuilder.create().build();
-    HttpPost request = new HttpPost(mongooseimUrl);
-    try {
-      request.setEntity(new StringEntity(objectMapper.writeValueAsString(body)));
-      request.addHeader("Authorization", authToken);
-      request.addHeader("Accept", "application/json");
-      request.addHeader("Content-Type", "application/json");
-      CloseableHttpResponse response = client.execute(request);
-      return objectMapper.readValue(response.getEntity().getContent(), GraphQlResponse.class);
+    try (CloseableHttpResponse response =
+        httpClient.sendPost(
+            mongooseimURL + MONGOOSEIM_GRAPHQL_ENDPOINT,
+            Map.of(
+                "Authorization",
+                String.format("Basic %s", authToken),
+                "Accept",
+                "application/json",
+                "Content-Type",
+                "application/json"),
+            objectMapper.writeValueAsString(body))) {
+
+      int statusCode = response.getStatusLine().getStatusCode();
+      if (statusCode != HttpStatus.SC_OK) {
+        throw new MessageDispatcherException(
+            "MongooseIm returns error on GraphQL mutation request: " + statusCode);
+      }
+
+      return objectMapper.readValue(
+          IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8),
+          GraphQlResponse.class);
     } catch (IOException e) {
-      throw new MessageDispatcherException("MongooseIm GraphQL response error", e);
+      throw new MessageDispatcherException(
+          "Error occurred executing MongooseIm GraphQL mutation: ", e);
     }
   }
 
   private GraphQlResponse executeHealthCheckQuery() {
-    CloseableHttpClient client = HttpClientBuilder.create().build();
     try {
-      HttpGet request =
-          new HttpGet(
-              new URIBuilder(mongooseimUrl)
-                  .addParameter("query", "query checkAuth { checkAuth { authStatus } }")
-                  .build());
-      request.addHeader("Authorization", authToken);
-      CloseableHttpResponse response = client.execute(request);
-      return objectMapper.readValue(response.getEntity().getContent(), GraphQlResponse.class);
+      String urlWithQuery =
+          new URIBuilder(mongooseimURL + MONGOOSEIM_GRAPHQL_ENDPOINT)
+              .addParameter("query", "query checkAuth { checkAuth { authStatus } }")
+              .build()
+              .toString();
+
+      try (CloseableHttpResponse response =
+          httpClient.sendGet(
+              urlWithQuery, Map.of("Authorization", String.format("Basic %s", authToken)))) {
+
+        int statusCode = response.getStatusLine().getStatusCode();
+        if (statusCode != HttpStatus.SC_OK) {
+          throw new MessageDispatcherException(
+              "MongooseIm returns error on GraphQL health check request: " + statusCode);
+        }
+
+        return objectMapper.readValue(
+            IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8),
+            GraphQlResponse.class);
+      }
     } catch (URISyntaxException e) {
       throw new MessageDispatcherException(
-          String.format(
-              "Unable to write the URI for query '%s'",
-              "query checkAuth { checkAuth { authStatus } }"),
-          e);
+          "Unable to construct URI for GraphQL health check query", e);
     } catch (IOException e) {
-      throw new MessageDispatcherException("MongooseIm GraphQL response error", e);
+      throw new MessageDispatcherException(
+          "Error occurred executing MongooseIm GraphQL health check: ", e);
     }
   }
 
