@@ -5,12 +5,13 @@
 package com.zextras.carbonio.chats.core.exception;
 
 import com.zextras.carbonio.chats.core.infrastructure.DependencyType;
+import java.io.Serial;
 import java.io.Serializable;
 
 public class PreviewException extends DependencyException implements Serializable {
 
-  private static final long           serialVersionUID = 5335428065127434966L;
-  private static final DependencyType type             = DependencyType.PREVIEWER_SERVICE;
+  @Serial private static final long serialVersionUID = 5335428065127434966L;
+  private static final DependencyType type = DependencyType.PREVIEWER_SERVICE;
 
   public PreviewException() {
     super(type);
@@ -36,8 +37,12 @@ public class PreviewException extends DependencyException implements Serializabl
     super(type, error, debugInfo, cause);
   }
 
-  protected PreviewException(String error, String debugInfo, Throwable cause, boolean enableSuppression,
-                             boolean writableStackTrace) {
+  protected PreviewException(
+      String error,
+      String debugInfo,
+      Throwable cause,
+      boolean enableSuppression,
+      boolean writableStackTrace) {
     super(type, error, debugInfo, cause, enableSuppression, writableStackTrace);
   }
 }

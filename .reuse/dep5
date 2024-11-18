@@ -7,10 +7,6 @@ Files: README.md
 Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
-Files: .env.example
-Copyright: 2023 Zextras
-License: CC0-1.0
-
 Files: yap.json
 Copyright: 2023 Zextras
 License: AGPL-3.0-only

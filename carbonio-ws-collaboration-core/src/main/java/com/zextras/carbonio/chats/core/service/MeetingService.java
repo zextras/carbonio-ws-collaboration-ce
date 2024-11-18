@@ -23,7 +23,9 @@ public interface MeetingService {
       UUID roomId,
       OffsetDateTime expiration);
 
-  MeetingDto updateMeeting(UserPrincipal user, UUID meetingId, Boolean started);
+  MeetingDto startMeeting(UserPrincipal user, UUID meetingId);
+
+  MeetingDto stopMeeting(UserPrincipal user, UUID meetingId);
 
   List<MeetingDto> getMeetings(UserPrincipal currentUser);
 
@@ -37,5 +39,5 @@ public interface MeetingService {
 
   void deleteMeetingById(UUID meetingId, UserPrincipal currentUser);
 
-  void deleteMeeting(Meeting meeting, Room room, UUID userId);
+  void deleteMeeting(String userId, Meeting meeting, Room room);
 }

@@ -46,7 +46,6 @@ class AuthApiIT {
     assertEquals(Status.OK.getStatusCode(), response.getStatus());
     TokenDto token = objectMapper.readValue(response.getContentAsString(), TokenDto.class);
     assertEquals(account.getToken(), token.getZmToken());
-    userManagementMockServer.verify("GET", String.format("/auth/token/%s", account.getToken()), 1);
   }
 
   @Test

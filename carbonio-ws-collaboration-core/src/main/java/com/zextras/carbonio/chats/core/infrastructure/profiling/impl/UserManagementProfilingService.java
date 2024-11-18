@@ -17,7 +17,6 @@ import com.zextras.carbonio.usermanagement.exceptions.UserNotFound;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Singleton
 public class UserManagementProfilingService implements ProfilingService {
@@ -44,7 +43,7 @@ public class UserManagementProfilingService implements ProfilingService {
                         .email(userInfo.getEmail())
                         .domain(userInfo.getDomain()))
             .recover(UserNotFound.class, e -> null)
-            .getOrElseThrow((fail) -> new ProfilingException(fail)));
+            .getOrElseThrow(fail -> new ProfilingException(fail)));
   }
 
   @Override
@@ -52,15 +51,15 @@ public class UserManagementProfilingService implements ProfilingService {
     String token = principal.getAuthToken().orElseThrow(ForbiddenException::new);
     return userManagementClient
         .getUsers(String.join("=", AuthenticationMethod.ZM_AUTH_TOKEN.name(), token), userIds)
-        .getOrElseThrow((fail) -> new ProfilingException(fail))
+        .getOrElseThrow(fail -> new ProfilingException(fail))
         .stream()
         .map(
-            u ->
-                UserProfile.create(u.getId().getUserId())
-                    .name(u.getFullName())
-                    .email(u.getEmail())
-                    .domain(u.getDomain()))
-        .collect(Collectors.toList());
+            userInfo ->
+                UserProfile.create(userInfo.getId().getUserId())
+                    .name(userInfo.getFullName())
+                    .email(userInfo.getEmail())
+                    .domain(userInfo.getDomain()))
+        .toList();
   }
 
   @Override

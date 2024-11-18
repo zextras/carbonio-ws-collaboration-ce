@@ -16,7 +16,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   <parent>
     <groupId>com.zextras.carbonio.ws-collaboration</groupId>
     <artifactId>carbonio-ws-collaboration-ce</artifactId>
-    <version>0.7.1</version>
+    <version>0.8.0</version>
   </parent>
 
   <artifactId>carbonio-ws-collaboration-ce-openapi</artifactId>
@@ -31,6 +31,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <groupId>io.swagger</groupId>
       <artifactId>swagger-annotations</artifactId>
     </dependency>
+
     <!-- @Nullable annotation -->
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
@@ -101,14 +102,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <build>
     <finalName>carbonio-ws-collaboration-ce-openapi</finalName>
-
     <plugins>
       <plugin>
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-maven-plugin</artifactId>
-        <version>6.4.0</version>
+        <version>7.9.0</version>
         <executions>
-
           <execution>
             <id>ws-collaboration-api</id>
             <goals>
@@ -122,11 +121,11 @@ SPDX-License-Identifier: AGPL-3.0-only
               <engine>mustache</engine>
               <!-- Openapi files -->
               <inputSpec>${project.basedir}/src/main/resources/chats/chats-api.yaml</inputSpec>
-              <configurationFile>${project.basedir}/src/main/resources/chats/chats-generator-config.json
+              <configurationFile>
+                ${project.basedir}/src/main/resources/chats/chats-generator-config.json
               </configurationFile>
               <templateDirectory>${project.basedir}/src/main/resources/templates</templateDirectory>
-              <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore
-              </ignoreFileOverride>
+              <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore</ignoreFileOverride>
               <!-- Generation options -->
               <output>${project.build.directory}/generated-sources/chats</output>
               <modelNameSuffix>dto</modelNameSuffix>
@@ -154,20 +153,20 @@ SPDX-License-Identifier: AGPL-3.0-only
               <engine>mustache</engine>
               <!-- Openapi files -->
               <inputSpec>${project.basedir}/src/main/resources/meeting/meeting-api.yaml</inputSpec>
-              <configurationFile>${project.basedir}/src/main/resources/meeting/meeting-generator-config.json
+              <configurationFile>
+                ${project.basedir}/src/main/resources/meeting/meeting-generator-config.json
               </configurationFile>
               <templateDirectory>${project.basedir}/src/main/resources/templates</templateDirectory>
-              <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore
-              </ignoreFileOverride>
+              <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore</ignoreFileOverride>
               <!-- Generation options -->
               <output>${project.build.directory}/generated-sources/meeting</output>
               <modelNameSuffix>dto</modelNameSuffix>
               <skipValidateSpec>true</skipValidateSpec>
             </configuration>
           </execution>
-
         </executions>
       </plugin>
     </plugins>
   </build>
+
 </project>

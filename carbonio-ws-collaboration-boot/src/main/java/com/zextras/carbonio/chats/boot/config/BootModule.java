@@ -5,7 +5,7 @@
 package com.zextras.carbonio.chats.boot.config;
 
 import com.zextras.carbonio.chats.core.config.CoreModule;
-import org.jboss.resteasy.plugins.guice.ext.RequestScopeModule;
+import dev.resteasy.guice.ext.RequestScopeModule;
 
 public class BootModule extends RequestScopeModule {
 

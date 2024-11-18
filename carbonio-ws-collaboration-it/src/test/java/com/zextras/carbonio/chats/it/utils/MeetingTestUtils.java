@@ -41,17 +41,20 @@ public class MeetingTestUtils {
   }
 
   public UUID generateAndSaveMeeting(UUID roomId, List<ParticipantBuilder> participantBuilders) {
-    return generateAndSaveMeeting(roomId, participantBuilders, false);
+    return generateAndSaveMeeting(roomId, MeetingType.PERMANENT, participantBuilders, false);
   }
 
   public UUID generateAndSaveMeeting(
-      UUID roomId, List<ParticipantBuilder> participantBuilders, Boolean active) {
+      UUID roomId,
+      MeetingType meetingType,
+      List<ParticipantBuilder> participantBuilders,
+      Boolean active) {
     Meeting meeting =
         meetingRepository.insert(
             Meeting.create()
                 .id(UUID.randomUUID().toString())
                 .name("Test Meeting for " + roomId.toString())
-                .meetingType(MeetingType.PERMANENT)
+                .meetingType(meetingType)
                 .roomId(roomId.toString()));
     meeting.participants(
         participantBuilders.stream()
@@ -92,12 +95,14 @@ public class MeetingTestUtils {
       String userId,
       String queueId,
       String connectionId,
+      String audioHandleId,
       String videoOutHandleId,
       String videoInHandleId,
       String screenHandleId) {
     return videoServerSessionRepository.insert(
         VideoServerSession.create(userId, queueId, videoServerMeeting)
             .connectionId(connectionId)
+            .audioHandleId(audioHandleId)
             .videoOutHandleId(videoOutHandleId)
             .videoInHandleId(videoInHandleId)
             .screenHandleId(screenHandleId));

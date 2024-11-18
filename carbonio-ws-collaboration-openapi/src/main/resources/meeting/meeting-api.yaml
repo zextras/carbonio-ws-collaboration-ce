@@ -6,7 +6,7 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration CE Meeting Api
   description: Zextras Carbonio Workstream Collaboration CE Meeting HTTP APIs definition.
-  version: 0.7.1
+  version: 0.8.0
   contact:
     email: smokybeans@zextras.com
 servers:
@@ -368,8 +368,7 @@ components:
             no more be necessary'
           type: string
           format: date-time
-      required:
-        - [ name, meetingType ]
+      required: [ name, meetingType ]
     JoinMeetingResult:
       type: object
       properties:
@@ -407,7 +406,7 @@ components:
     MeetingType:
       type: string
       description: 'Defines the type of meeting, if permanent it will never be automatically deleted,
-                if scheduled it will be removed after the expiration is passed'
+        if scheduled it will be removed after the expiration is passed'
       enum:
         - permanent
         - scheduled
