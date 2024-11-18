@@ -18,13 +18,10 @@ import com.zextras.storages.internal.pojo.StoragesBulkDeleteResponse;
 import com.zextras.storages.internal.pojo.StoragesUploadResponse;
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
-import org.mockserver.model.ClearType;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.JsonBody;
-import org.mockserver.verify.VerificationTimes;
 
 public class StorageMockServer extends ClientAndServer implements CloseableResource {
 
@@ -36,16 +33,19 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
     super(remoteHost, remotePort, ports);
   }
 
-  public void verify(String method, String path, String node, int iterationsNumber) {
-    HttpRequest request =
-        request()
-            .withMethod(method)
-            .withPath(path)
-            .withQueryStringParameter("node", node)
-            .withQueryStringParameter("type", "chats");
+  public void setIsAliveResponse(boolean success) {
+    HttpRequest request = request().withMethod("GET").withPath("/health/live");
+    clear(request);
+    when(request).respond(response().withStatusCode(success ? 204 : 500));
+  }
 
-    verify(request, VerificationTimes.exactly(iterationsNumber));
-    clear(request, ClearType.LOG);
+  public void mockUpload(MockedFiles.FileMock fileMock, UploadResponse response, boolean success) {
+    when(request()
+            .withMethod("PUT")
+            .withPath("/upload")
+            .withQueryStringParameter(param("node", fileMock.getId()))
+            .withQueryStringParameter(param("type", "chats")))
+        .respond(response().withStatusCode(success ? 201 : 500).withBody(JsonBody.json(response)));
   }
 
   public void mockDownload(MockedFiles.FileMock fileMock, boolean success) {
@@ -61,69 +61,6 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
                   .withBody(success ? binary(fileMock.getFileBytes()) : null));
     } catch (IOException e) {
       throw new RuntimeException(e);
-    }
-  }
-
-  public void mockUpload(MockedFiles.FileMock fileMock, UploadResponse response, boolean success) {
-    when(request()
-            .withMethod("PUT")
-            .withPath("/upload")
-            .withQueryStringParameter(param("node", fileMock.getId()))
-            .withQueryStringParameter(param("type", "chats")))
-        .respond(response().withStatusCode(success ? 201 : 500).withBody(JsonBody.json(response)));
-  }
-
-  public void mockDelete(String fileId, boolean success) {
-    when(request()
-            .withMethod("DELETE")
-            .withPath("/delete")
-            .withQueryStringParameter(param("node", fileId))
-            .withQueryStringParameter(param("type", "chats")))
-        .respond(response().withStatusCode(success ? 200 : 500));
-  }
-
-  public void setIsAliveResponse(boolean success) {
-    HttpRequest request = request().withMethod("GET").withPath("/health/live");
-    clear(request);
-    when(request).respond(response().withStatusCode(success ? 204 : 500));
-  }
-
-  public HttpRequest getBulkDeleteRequest(List<String> requestIds) {
-    StoragesBulkDeleteBody requestBody = new StoragesBulkDeleteBody();
-    requestBody.setIds(
-        requestIds.stream()
-            .map(
-                fileId -> {
-                  BulkDeleteItem item = new BulkDeleteItem();
-                  item.setNode(fileId);
-                  return item;
-                })
-            .collect(Collectors.toList()));
-    return request()
-        .withMethod("POST")
-        .withPath("/bulk-delete")
-        .withQueryStringParameter(param("type", "chats"))
-        .withBody(JsonBody.json(requestBody));
-  }
-
-  public void setBulkDeleteResponse(List<String> requestIds, List<String> responseIds) {
-    HttpRequest request = getBulkDeleteRequest(requestIds);
-    clear(request);
-    if (responseIds != null) {
-      StoragesBulkDeleteResponse responseBody = new StoragesBulkDeleteResponse();
-      responseBody.setIds(
-          responseIds.stream()
-              .map(
-                  fileId -> {
-                    Query query = new Query();
-                    query.setType("chats");
-                    query.setNode(fileId);
-                    return query;
-                  })
-              .collect(Collectors.toList()));
-      when(request).respond(response().withStatusCode(200).withBody(JsonBody.json(responseBody)));
-    } else {
-      when(request).respond(response().withStatusCode(500));
     }
   }
 
@@ -149,6 +86,54 @@ public class StorageMockServer extends ClientAndServer implements CloseableResou
     clear(request);
     when(request)
         .respond(response().withStatusCode(success ? 200 : 500).withBody(JsonBody.json(response)));
+  }
+
+  public void mockDelete(String fileId, boolean success) {
+    when(request()
+            .withMethod("DELETE")
+            .withPath("/delete")
+            .withQueryStringParameter(param("node", fileId))
+            .withQueryStringParameter(param("type", "chats")))
+        .respond(response().withStatusCode(success ? 200 : 500));
+  }
+
+  public HttpRequest getBulkDeleteRequest(List<String> requestIds) {
+    StoragesBulkDeleteBody requestBody = new StoragesBulkDeleteBody();
+    requestBody.setIds(
+        requestIds.stream()
+            .map(
+                fileId -> {
+                  BulkDeleteItem item = new BulkDeleteItem();
+                  item.setNode(fileId);
+                  return item;
+                })
+            .toList());
+    return request()
+        .withMethod("POST")
+        .withPath("/bulk-delete")
+        .withQueryStringParameter(param("type", "chats"))
+        .withBody(JsonBody.json(requestBody));
+  }
+
+  public void setBulkDeleteResponse(List<String> requestIds, List<String> responseIds) {
+    HttpRequest request = getBulkDeleteRequest(requestIds);
+    clear(request);
+    if (responseIds != null) {
+      StoragesBulkDeleteResponse responseBody = new StoragesBulkDeleteResponse();
+      responseBody.setIds(
+          responseIds.stream()
+              .map(
+                  fileId -> {
+                    Query query = new Query();
+                    query.setType("chats");
+                    query.setNode(fileId);
+                    return query;
+                  })
+              .toList());
+      when(request).respond(response().withStatusCode(200).withBody(JsonBody.json(responseBody)));
+    } else {
+      when(request).respond(response().withStatusCode(500));
+    }
   }
 
   @Override

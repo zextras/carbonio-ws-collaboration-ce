@@ -5,12 +5,13 @@
 package com.zextras.carbonio.chats.core.exception;
 
 import com.zextras.carbonio.chats.core.infrastructure.DependencyType;
+import java.io.Serial;
 import java.io.Serializable;
 
 public class DatabaseException extends DependencyException implements Serializable {
 
-  private static final long           serialVersionUID = 6018988481675399724L;
-  private static final DependencyType type             = DependencyType.DATABASE;
+  @Serial private static final long serialVersionUID = 6018988481675399724L;
+  private static final DependencyType type = DependencyType.DATABASE;
 
   public DatabaseException() {
     super(type);
@@ -36,8 +37,12 @@ public class DatabaseException extends DependencyException implements Serializab
     super(type, error, debugInfo, cause);
   }
 
-  protected DatabaseException(String error, String debugInfo, Throwable cause, boolean enableSuppression,
-    boolean writableStackTrace) {
+  protected DatabaseException(
+      String error,
+      String debugInfo,
+      Throwable cause,
+      boolean enableSuppression,
+      boolean writableStackTrace) {
     super(type, error, debugInfo, cause, enableSuppression, writableStackTrace);
   }
 }

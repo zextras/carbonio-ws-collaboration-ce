@@ -5,11 +5,12 @@
 package com.zextras.carbonio.chats.core.exception;
 
 import jakarta.ws.rs.core.Response.Status;
+import java.io.Serial;
 import java.io.Serializable;
 
 public class NotFoundException extends ChatsHttpException implements Serializable {
 
-  private static final long serialVersionUID = -7586350573263929718L;
+  @Serial private static final long serialVersionUID = -7586350573263929718L;
   private static final Status HTTP_STATUS = Status.NOT_FOUND;
   private static final boolean IS_TO_LOG = false;
 

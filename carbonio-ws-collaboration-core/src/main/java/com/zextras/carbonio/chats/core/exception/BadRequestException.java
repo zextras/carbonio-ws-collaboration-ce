@@ -5,11 +5,12 @@
 package com.zextras.carbonio.chats.core.exception;
 
 import jakarta.ws.rs.core.Response.Status;
+import java.io.Serial;
 import java.io.Serializable;
 
 public class BadRequestException extends ChatsHttpException implements Serializable {
 
-  private static final long serialVersionUID = 9186731066864545518L;
+  @Serial private static final long serialVersionUID = 9186731066864545518L;
   private static final Status HTTP_STATUS = Status.BAD_REQUEST;
   private static final boolean IS_TO_LOG = false;
 

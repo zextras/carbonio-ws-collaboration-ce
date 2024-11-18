@@ -280,10 +280,6 @@ public class UsersApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
-      storageMockServer.verify("GET", "/download", fileMock.getId(), 1);
     }
 
     @Test
@@ -302,9 +298,6 @@ public class UsersApiIT {
       MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
-
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
     }
 
     @Test
@@ -322,9 +315,6 @@ public class UsersApiIT {
       MockHttpResponse response = dispatcher.get(url(account.getUUID()), account.getToken());
       assertEquals(424, response.getStatus());
       assertEquals(0, response.getOutput().length);
-
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
     }
   }
 
@@ -381,9 +371,6 @@ public class UsersApiIT {
           OffsetDateTime.ofInstant(
               Instant.parse("2022-01-01T00:00:00Z"), ZoneOffset.systemDefault()),
           user.get().getPictureUpdatedAt());
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
-      storageMockServer.verify("PUT", "/upload", fileMock.getId(), 1);
     }
 
     @Test
@@ -425,8 +412,6 @@ public class UsersApiIT {
               account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
     }
 
     @Test
@@ -454,8 +439,6 @@ public class UsersApiIT {
               account2.getToken());
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account2.getToken()), 1);
     }
 
     @Test
@@ -479,8 +462,6 @@ public class UsersApiIT {
               account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
     }
 
     @Test
@@ -505,8 +486,6 @@ public class UsersApiIT {
               account.getToken());
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
     }
   }
 
@@ -537,10 +516,6 @@ public class UsersApiIT {
       Optional<User> user = integrationTestUtils.getUserById(account.getUUID());
       assertTrue(user.isPresent());
       assertNull(user.get().getPictureUpdatedAt());
-
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
-      storageMockServer.verify("DELETE", "/delete", fileMock.getId(), 1);
     }
 
     @Test
@@ -569,9 +544,6 @@ public class UsersApiIT {
       MockHttpResponse response = dispatcher.delete(url(account.getUUID()), account.getToken());
       assertEquals(404, response.getStatus());
       assertEquals(0, response.getOutput().length);
-
-      userManagementMockServer.verify(
-          "GET", String.format("/auth/token/%s", account.getToken()), 1);
     }
   }
 

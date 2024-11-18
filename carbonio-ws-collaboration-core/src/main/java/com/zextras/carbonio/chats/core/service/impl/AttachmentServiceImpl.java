@@ -32,7 +32,6 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.IdDto;
-import io.ebean.annotation.Transactional;
 import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -73,9 +72,8 @@ public class AttachmentServiceImpl implements AttachmentService {
         fileMetadataRepository
             .getById(fileId.toString())
             .orElseThrow(
-                () -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
-    roomService.getRoomEntityAndCheckUser(
-        UUID.fromString(metadata.getRoomId()), currentUser, false);
+                () -> new NotFoundException(String.format("Attachment '%s' not found", fileId)));
+    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
     return new FileContentAndMetadata(
         storagesService.getFileStreamById(metadata.getId(), metadata.getUserId()), metadata);
   }
@@ -83,7 +81,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   @Override
   public AttachmentsPaginationDto getAttachmentInfoByRoomId(
       UUID roomId, Integer itemsNumber, @Nullable String filter, UserPrincipal currentUser) {
-    roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
+    roomService.getRoomAndValidateUser(roomId, currentUser, false);
     PaginationFilter paginationFilter = null;
     if (filter != null) {
       try {
@@ -126,9 +124,8 @@ public class AttachmentServiceImpl implements AttachmentService {
         fileMetadataRepository
             .getById(fileId.toString())
             .orElseThrow(
-                () -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
-    roomService.getRoomEntityAndCheckUser(
-        UUID.fromString(metadata.getRoomId()), currentUser, false);
+                () -> new NotFoundException(String.format("Attachment '%s' not found", fileId)));
+    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), currentUser, false);
     return attachmentMapper.ent2dto(metadata);
   }
 
@@ -144,22 +141,31 @@ public class AttachmentServiceImpl implements AttachmentService {
       @Nullable String replyId,
       @Nullable String area,
       UserPrincipal currentUser) {
-    roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
-    UUID id = UUID.randomUUID();
+    roomService.getRoomAndValidateUser(roomId, currentUser, false);
+    UUID fileId = UUID.randomUUID();
     FileMetadata metadata =
         FileMetadata.create()
-            .id(id.toString())
+            .id(fileId.toString())
             .name(fileName)
             .originalSize(contentLength)
             .mimeType(mimeType)
             .type(FileMetadataType.ATTACHMENT)
             .userId(currentUser.getId())
             .roomId(roomId.toString());
-    metadata = fileMetadataRepository.save(metadata);
-    storagesService.saveFile(file, metadata, currentUser.getId());
+    storagesService.saveFile(file, fileId.toString(), currentUser.getId(), contentLength);
+    fileMetadataRepository.save(metadata);
     messageDispatcher.sendAttachment(
-        roomId.toString(), currentUser.getId(), metadata, description, messageId, replyId, area);
-    return IdDtoBuilder.create().id(id).build();
+        roomId.toString(),
+        currentUser.getId(),
+        fileId.toString(),
+        fileName,
+        mimeType,
+        contentLength,
+        description,
+        messageId,
+        replyId,
+        area);
+    return IdDtoBuilder.create().id(fileId).build();
   }
 
   @Override
@@ -171,34 +177,33 @@ public class AttachmentServiceImpl implements AttachmentService {
             .orElseThrow(
                 () ->
                     new NotFoundException(
-                        String.format("File with id '%s' not found", originalAttachmentId)));
-    roomService.getRoomEntityAndCheckUser(
+                        String.format("Attachment '%s' not found", originalAttachmentId)));
+    roomService.getRoomAndValidateUser(
         UUID.fromString(sourceMetadata.getRoomId()), currentUser, false);
     FileMetadata metadata =
-        fileMetadataRepository.save(
-            FileMetadata.create()
-                .id(UUID.randomUUID().toString())
-                .name(sourceMetadata.getName())
-                .originalSize(sourceMetadata.getOriginalSize())
-                .mimeType(sourceMetadata.getMimeType())
-                .type(FileMetadataType.ATTACHMENT)
-                .userId(currentUser.getId())
-                .roomId(destinationRoom.getId()));
+        FileMetadata.create()
+            .id(UUID.randomUUID().toString())
+            .name(sourceMetadata.getName())
+            .originalSize(sourceMetadata.getOriginalSize())
+            .mimeType(sourceMetadata.getMimeType())
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(currentUser.getId())
+            .roomId(destinationRoom.getId());
     storagesService.copyFile(
         sourceMetadata.getId(), sourceMetadata.getUserId(), metadata.getId(), currentUser.getId());
+    fileMetadataRepository.save(metadata);
     return metadata;
   }
 
   @Override
-  @Transactional
   public void deleteAttachment(UUID fileId, UserPrincipal currentUser) {
     FileMetadata metadata =
         fileMetadataRepository
             .getById(fileId.toString())
             .orElseThrow(
-                () -> new NotFoundException(String.format("File with id '%s' not found", fileId)));
+                () -> new NotFoundException(String.format("Attachment '%s' not found", fileId)));
     Room room =
-        roomService.getRoomEntityAndCheckUser(
+        roomService.getRoomAndValidateUser(
             UUID.fromString(metadata.getRoomId()), currentUser, false);
     room.getSubscriptions().stream()
         .filter(
@@ -212,8 +217,8 @@ public class AttachmentServiceImpl implements AttachmentService {
                 new ForbiddenException(
                     String.format(
                         "User '%s' can not delete attachment '%s'", currentUser.getId(), fileId)));
-    fileMetadataRepository.delete(metadata);
     storagesService.deleteFile(fileId.toString(), metadata.getUserId());
+    fileMetadataRepository.delete(metadata);
   }
 
   @Override
