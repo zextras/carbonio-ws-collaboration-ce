@@ -47,6 +47,7 @@ Thumbs.db
 *.mov
 *.wmv
 
+.env*
 .openapi-generator/
 Dockerfile
 docker-compose.yml

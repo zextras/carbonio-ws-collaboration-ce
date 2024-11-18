@@ -14,6 +14,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -31,7 +32,6 @@ import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
-import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
@@ -54,6 +54,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -137,8 +138,8 @@ public class AttachmentServiceImplTest {
   }
 
   @Nested
-  @DisplayName("Gets attachment info by room id tests")
-  class GetsAllRoomAttachmentInfoTests {
+  @DisplayName("Get attachment info by room id tests")
+  class GetAttachmentInfoTests {
 
     @Test
     @DisplayName("Returns a single page of attachments info of the required room")
@@ -180,7 +181,7 @@ public class AttachmentServiceImplTest {
       assertEquals(file1Id, attachmentsPagination.getAttachments().get(0).getId());
       assertEquals(file2Id, attachmentsPagination.getAttachments().get(1).getId());
       assertNull(attachmentsPagination.getFilter());
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
 
@@ -243,7 +244,7 @@ public class AttachmentServiceImplTest {
                       PaginationFilter.create(
                           file2Id.toString(), attachmentTimestamp.plusHours(1))));
       assertEquals(expectedFilter, attachmentsPagination.getFilter());
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
 
@@ -283,7 +284,7 @@ public class AttachmentServiceImplTest {
       assertEquals(1, attachmentsPagination.getAttachments().size());
       assertEquals(file2Id, attachmentsPagination.getAttachments().get(0).getId());
       assertNull(attachmentsPagination.getFilter());
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
 
@@ -293,7 +294,7 @@ public class AttachmentServiceImplTest {
             + " 'forbidden' exception")
     void getAttachmentInfoByRoomId_testAuthenticatedUserIsNotARoomMember() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false))
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
           .thenThrow(
               new ForbiddenException(
                   String.format(
@@ -308,7 +309,7 @@ public class AttachmentServiceImplTest {
     @DisplayName("Re throws the exception if the room was not found")
     void getAttachmentInfoByRoomId_testRoomNotFound() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false))
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
           .thenThrow(new NotFoundException());
 
       NotFoundException notFoundException =
@@ -334,7 +335,7 @@ public class AttachmentServiceImplTest {
       assertNotNull(attachmentsPagination);
       assertEquals(0, attachmentsPagination.getAttachments().size());
       assertNull(attachmentsPagination.getFilter());
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
   }
@@ -349,20 +350,20 @@ public class AttachmentServiceImplTest {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user2Id);
 
+      FileMetadata fileMetadata =
+          FileMetadataBuilder.create()
+              .id(attachmentUuid.toString())
+              .name("image1.jpg")
+              .originalSize(0L)
+              .mimeType("image/jpg")
+              .type(FileMetadataType.ATTACHMENT)
+              .userId(user1Id.toString())
+              .roomId(roomId.toString())
+              .createdAt(OffsetDateTime.now())
+              .updatedAt(OffsetDateTime.now())
+              .build();
       when(fileMetadataRepository.getById(attachmentUuid.toString()))
-          .thenReturn(
-              Optional.of(
-                  FileMetadataBuilder.create()
-                      .id(attachmentUuid.toString())
-                      .name("image1.jpg")
-                      .originalSize(0L)
-                      .mimeType("image/jpg")
-                      .type(FileMetadataType.ATTACHMENT)
-                      .userId(user1Id.toString())
-                      .roomId(roomId.toString())
-                      .createdAt(OffsetDateTime.now())
-                      .updatedAt(OffsetDateTime.now())
-                      .build()));
+          .thenReturn(Optional.of(fileMetadata));
 
       when(storagesService.getFileStreamById(attachmentUuid.toString(), user1Id.toString()))
           .thenReturn(mock(InputStream.class));
@@ -373,8 +374,11 @@ public class AttachmentServiceImplTest {
       assertNotNull(attachmentById.getFileStream());
       assertNotNull(attachmentById.getMetadata());
       assertEquals(attachmentUuid.toString(), attachmentById.getMetadata().getId());
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
-      verifyNoMoreInteractions(roomService);
+      verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verify(storagesService, times(1))
+          .getFileStreamById(attachmentUuid.toString(), user1Id.toString());
+      verifyNoMoreInteractions(fileMetadataRepository, roomService, storagesService);
     }
 
     @Test
@@ -389,8 +393,12 @@ public class AttachmentServiceImplTest {
               NotFoundException.class,
               () -> attachmentService.getAttachmentById(attachmentUuid, currentUser));
       assertEquals(
-          String.format("Not Found - File with id '%s' not found", attachmentUuid),
+          String.format("Not Found - Attachment '%s' not found", attachmentUuid),
           notFoundException.getMessage());
+
+      verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
+      verifyNoMoreInteractions(fileMetadataRepository);
+      verifyNoInteractions(roomService, storagesService);
     }
 
     @Test
@@ -412,12 +420,17 @@ public class AttachmentServiceImplTest {
                       .createdAt(OffsetDateTime.now())
                       .updatedAt(OffsetDateTime.now())
                       .build()));
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false))
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
           .thenThrow(new ForbiddenException());
 
       assertThrows(
           ForbiddenException.class,
           () -> attachmentService.getAttachmentById(attachmentUuid, currentUser));
+
+      verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verifyNoMoreInteractions(fileMetadataRepository, roomService);
+      verifyNoInteractions(storagesService);
     }
 
     @Test
@@ -439,7 +452,7 @@ public class AttachmentServiceImplTest {
                       .createdAt(OffsetDateTime.now())
                       .updatedAt(OffsetDateTime.now())
                       .build()));
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false))
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
           .thenThrow(new NotFoundException());
 
       NotFoundException notFoundException =
@@ -447,11 +460,16 @@ public class AttachmentServiceImplTest {
               NotFoundException.class,
               () -> attachmentService.getAttachmentById(attachmentUuid, currentUser));
       assertEquals("Not Found - Not Found", notFoundException.getMessage());
+
+      verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verifyNoMoreInteractions(fileMetadataRepository, roomService);
+      verifyNoInteractions(storagesService);
     }
 
     @Test
-    @DisplayName("Re throws an exception if the file is not found")
-    void getAttachmentById_testFileNotFound() {
+    @DisplayName("Re throws an exception if storages service throws an exception")
+    void getAttachmentById_testStorageException() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       when(fileMetadataRepository.getById(attachmentUuid.toString()))
@@ -469,12 +487,16 @@ public class AttachmentServiceImplTest {
                       .updatedAt(OffsetDateTime.now())
                       .build()));
       when(storagesService.getFileStreamById(attachmentUuid.toString(), user1Id.toString()))
-          .thenThrow(new InternalErrorException());
+          .thenThrow(new StorageException());
       assertThrows(
-          InternalErrorException.class,
+          StorageException.class,
           () -> attachmentService.getAttachmentById(attachmentUuid, currentUser));
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
-      verifyNoMoreInteractions(roomService);
+
+      verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verify(storagesService, times(1))
+          .getFileStreamById(attachmentUuid.toString(), user1Id.toString());
+      verifyNoMoreInteractions(fileMetadataRepository, roomService, storagesService);
     }
   }
 
@@ -507,7 +529,7 @@ public class AttachmentServiceImplTest {
 
       assertNotNull(attachmentInfo);
       assertEquals(attachmentUuid, attachmentInfo.getId());
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
 
@@ -523,7 +545,7 @@ public class AttachmentServiceImplTest {
               NotFoundException.class,
               () -> attachmentService.getAttachmentInfoById(attachmentUuid, currentUser));
       assertEquals(
-          String.format("Not Found - File with id '%s' not found", attachmentUuid),
+          String.format("Not Found - Attachment '%s' not found", attachmentUuid),
           notFoundException.getMessage());
     }
 
@@ -546,7 +568,7 @@ public class AttachmentServiceImplTest {
               .build();
       when(fileMetadataRepository.getById(attachmentUuid.toString()))
           .thenReturn(Optional.of(metadata));
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false))
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
           .thenThrow(new ForbiddenException());
 
       assertThrows(
@@ -573,7 +595,7 @@ public class AttachmentServiceImplTest {
               .build();
       when(fileMetadataRepository.getById(attachmentUuid.toString()))
           .thenReturn(Optional.of(metadata));
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false))
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
           .thenThrow(new NotFoundException());
 
       NotFoundException notFoundException =
@@ -594,9 +616,9 @@ public class AttachmentServiceImplTest {
       UUID attachmentUuid = UUID.randomUUID();
       OffsetDateTime attachmentDate = OffsetDateTime.parse("2022-01-01T00:00:00Z");
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
       InputStream fileStream = mock(InputStream.class);
-      FileMetadataBuilder metadataBulder =
+      FileMetadataBuilder metadataBuilder =
           FileMetadataBuilder.create()
               .id(attachmentUuid.toString())
               .name("temp.pdf")
@@ -605,10 +627,9 @@ public class AttachmentServiceImplTest {
               .type(FileMetadataType.ATTACHMENT)
               .userId(user1Id.toString())
               .roomId(roomId.toString());
-      FileMetadata expectedMetadata = metadataBulder.build();
-      FileMetadata savedMetadata = metadataBulder.clone().createdAt(attachmentDate).build();
+      FileMetadata expectedMetadata = metadataBuilder.build();
+      FileMetadata savedMetadata = metadataBuilder.clone().createdAt(attachmentDate).build();
       when(fileMetadataRepository.save(expectedMetadata)).thenReturn(savedMetadata);
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
@@ -627,51 +648,51 @@ public class AttachmentServiceImplTest {
             currentUser);
       }
 
-      verify(storagesService, times(1)).saveFile(fileStream, savedMetadata, currentUser.toString());
-      verifyNoMoreInteractions(storagesService);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verify(storagesService, times(1))
+          .saveFile(fileStream, attachmentUuid.toString(), currentUser.toString(), 1024L);
       verify(fileMetadataRepository, times(1)).save(expectedMetadata);
-      verifyNoMoreInteractions(fileMetadataRepository);
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
-      verifyNoMoreInteractions(roomService);
+      verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
     }
 
     @Test
-    @DisplayName("Re throws an exception if the user is not a member of the room")
-    void addAttachment_testRoomNotFound() {
+    @DisplayName("Re throws an exception if the room is not found")
+    void addAttachment_testErrorRoomNotFound() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       InputStream fileStream = mock(InputStream.class);
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false))
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
           .thenThrow(new NotFoundException());
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-        NotFoundException notFoundException =
-            assertThrows(
-                NotFoundException.class,
-                () ->
-                    attachmentService.addAttachment(
-                        roomId,
-                        fileStream,
-                        "application/pdf",
-                        1024L,
-                        "temp.pdf",
-                        "description",
-                        null,
-                        null,
-                        null,
-                        currentUser));
-        assertEquals("Not Found - Not Found", notFoundException.getMessage());
+        assertThrows(
+            NotFoundException.class,
+            () ->
+                attachmentService.addAttachment(
+                    roomId,
+                    fileStream,
+                    "application/pdf",
+                    1024L,
+                    "temp.pdf",
+                    "description",
+                    null,
+                    null,
+                    null,
+                    currentUser));
       }
+
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
     }
 
     @Test
     @DisplayName("Re throws an exception if the user is not a member of the room")
-    void addAttachment_testForbidden() {
+    void addAttachment_testErrorForbiddenException() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       InputStream fileStream = mock(InputStream.class);
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false))
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
           .thenThrow(new ForbiddenException());
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
@@ -691,13 +712,16 @@ public class AttachmentServiceImplTest {
                     null,
                     currentUser));
       }
+
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
     }
 
     @Test
     @DisplayName("Throws the exception if you can't add attachments on a channel")
     void addAttachment_testFailsRoomIsAChannel() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room2);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room2);
       assertThrows(
           BadRequestException.class,
           () ->
@@ -713,14 +737,15 @@ public class AttachmentServiceImplTest {
                   null,
                   currentUser));
 
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
     }
 
     @Test
     @DisplayName("Throws the exception if you can't add attachments on a workspace")
     void addAttachment_testFailsRoomIsAWorkspace() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room3);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room3);
       assertThrows(
           BadRequestException.class,
           () ->
@@ -736,35 +761,25 @@ public class AttachmentServiceImplTest {
                   null,
                   currentUser));
 
-      verify(roomService, times(1)).getRoomEntityAndCheckUser(roomId, currentUser, false);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
     }
 
     @Test
-    @DisplayName("Re throws an exception if storages throws an exception")
-    void addAttachment_testInternalException() {
+    @DisplayName("Re throws an exception if storages service throws an exception")
+    void addAttachment_testStorageException() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       InputStream fileStream = mock(InputStream.class);
-      FileMetadata expectedMetadata =
-          FileMetadataBuilder.create()
-              .id(attachmentUuid.toString())
-              .name("temp.pdf")
-              .originalSize(1024L)
-              .mimeType("application/pdf")
-              .type(FileMetadataType.ATTACHMENT)
-              .userId(user1Id.toString())
-              .roomId(roomId.toString())
-              .build();
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
-      when(fileMetadataRepository.save(expectedMetadata)).thenReturn(expectedMetadata);
-      doThrow(new InternalErrorException())
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      doThrow(new StorageException())
           .when(storagesService)
-          .saveFile(fileStream, expectedMetadata, user1Id.toString());
+          .saveFile(fileStream, attachmentUuid.toString(), user1Id.toString(), 1024L);
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         assertThrows(
-            InternalErrorException.class,
+            StorageException.class,
             () ->
                 attachmentService.addAttachment(
                     roomId,
@@ -778,6 +793,177 @@ public class AttachmentServiceImplTest {
                     null,
                     currentUser));
       }
+
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verify(storagesService, times(1))
+          .saveFile(fileStream, attachmentUuid.toString(), currentUser.getId(), 1024L);
+      verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
+    }
+  }
+
+  @Nested
+  @DisplayName("Copy attachment tests")
+  class CopyAttachmentTests {
+
+    @Test
+    @DisplayName("Copies the attachment and returns it")
+    void copyAttachment_testOk() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UUID originalAttachmentId = UUID.randomUUID();
+      FileMetadataBuilder metadataBuilder =
+          FileMetadataBuilder.create()
+              .id(originalAttachmentId.toString())
+              .name("temp.pdf")
+              .originalSize(1024L)
+              .mimeType("application/pdf")
+              .type(FileMetadataType.ATTACHMENT)
+              .userId(user1Id.toString())
+              .roomId(roomId.toString());
+      FileMetadata fileMetadata = metadataBuilder.build();
+      when(fileMetadataRepository.getById(originalAttachmentId.toString()))
+          .thenReturn(Optional.of(fileMetadata));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      UUID attachmentUuid = UUID.randomUUID();
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        attachmentService.copyAttachment(room2, originalAttachmentId, currentUser);
+      }
+
+      verify(fileMetadataRepository, times(1)).getById(originalAttachmentId.toString());
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verify(storagesService, times(1))
+          .copyFile(
+              originalAttachmentId.toString(),
+              user1Id.toString(),
+              attachmentUuid.toString(),
+              user1Id.toString());
+      ArgumentCaptor<FileMetadata> fileMetadataArgumentCaptor =
+          ArgumentCaptor.forClass(FileMetadata.class);
+      verify(fileMetadataRepository, times(1)).save(fileMetadataArgumentCaptor.capture());
+      FileMetadata copiedFileMetadata = fileMetadataArgumentCaptor.getValue();
+      assertEquals(attachmentUuid.toString(), copiedFileMetadata.getId());
+      assertEquals("temp.pdf", copiedFileMetadata.getName());
+      assertEquals(1024L, copiedFileMetadata.getOriginalSize());
+      assertEquals("application/pdf", copiedFileMetadata.getMimeType());
+      assertEquals(FileMetadataType.ATTACHMENT, copiedFileMetadata.getType());
+      assertEquals(user1Id.toString(), copiedFileMetadata.getUserId());
+      assertEquals(roomId.toString(), copiedFileMetadata.getRoomId());
+      verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
+    }
+
+    @Test
+    @DisplayName("Re throws an exception if the room is not found")
+    void copyAttachment_testErrorRoomNotFound() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UUID originalAttachmentId = UUID.randomUUID();
+      FileMetadataBuilder metadataBuilder =
+          FileMetadataBuilder.create()
+              .id(originalAttachmentId.toString())
+              .name("temp.pdf")
+              .originalSize(1024L)
+              .mimeType("application/pdf")
+              .type(FileMetadataType.ATTACHMENT)
+              .userId(user1Id.toString())
+              .roomId(roomId.toString());
+      FileMetadata fileMetadata = metadataBuilder.build();
+      when(fileMetadataRepository.getById(originalAttachmentId.toString()))
+          .thenReturn(Optional.of(fileMetadata));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
+          .thenThrow(NotFoundException.class);
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+
+        assertThrows(
+            NotFoundException.class,
+            () -> attachmentService.copyAttachment(room2, originalAttachmentId, currentUser));
+      }
+
+      verify(fileMetadataRepository, times(1)).getById(originalAttachmentId.toString());
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
+    }
+
+    @Test
+    @DisplayName("Re throws an exception if the member is not part of the room")
+    void copyAttachment_testErrorForbiddenException() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UUID originalAttachmentId = UUID.randomUUID();
+      FileMetadataBuilder metadataBuilder =
+          FileMetadataBuilder.create()
+              .id(originalAttachmentId.toString())
+              .name("temp.pdf")
+              .originalSize(1024L)
+              .mimeType("application/pdf")
+              .type(FileMetadataType.ATTACHMENT)
+              .userId(user1Id.toString())
+              .roomId(roomId.toString());
+      FileMetadata fileMetadata = metadataBuilder.build();
+      when(fileMetadataRepository.getById(originalAttachmentId.toString()))
+          .thenReturn(Optional.of(fileMetadata));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
+          .thenThrow(ForbiddenException.class);
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+
+        assertThrows(
+            ForbiddenException.class,
+            () -> attachmentService.copyAttachment(room2, originalAttachmentId, currentUser));
+      }
+
+      verify(fileMetadataRepository, times(1)).getById(originalAttachmentId.toString());
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
+    }
+
+    @Test
+    @DisplayName("Re throws an exception if storage service fails")
+    void copyAttachment_testErrorStorageException() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UUID originalAttachmentId = UUID.randomUUID();
+      FileMetadataBuilder metadataBuilder =
+          FileMetadataBuilder.create()
+              .id(originalAttachmentId.toString())
+              .name("temp.pdf")
+              .originalSize(1024L)
+              .mimeType("application/pdf")
+              .type(FileMetadataType.ATTACHMENT)
+              .userId(user1Id.toString())
+              .roomId(roomId.toString());
+      FileMetadata fileMetadata = metadataBuilder.build();
+      when(fileMetadataRepository.getById(originalAttachmentId.toString()))
+          .thenReturn(Optional.of(fileMetadata));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      UUID attachmentUuid = UUID.randomUUID();
+      doThrow(StorageException.class)
+          .when(storagesService)
+          .copyFile(
+              originalAttachmentId.toString(),
+              user1Id.toString(),
+              attachmentUuid.toString(),
+              user1Id.toString());
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+
+        assertThrows(
+            StorageException.class,
+            () -> attachmentService.copyAttachment(room2, originalAttachmentId, currentUser));
+      }
+
+      verify(fileMetadataRepository, times(1)).getById(originalAttachmentId.toString());
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verify(storagesService, times(1))
+          .copyFile(
+              originalAttachmentId.toString(),
+              user1Id.toString(),
+              attachmentUuid.toString(),
+              user1Id.toString());
+      verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
     }
   }
 
@@ -801,15 +987,15 @@ public class AttachmentServiceImplTest {
               .build();
       when(fileMetadataRepository.getById(attachmentUuid.toString()))
           .thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
 
       attachmentService.deleteAttachment(attachmentUuid, currentUser);
 
-      verify(fileMetadataRepository, times(1)).delete(expectedMetadata);
       verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
-      verifyNoMoreInteractions(fileMetadataRepository);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
-      verifyNoMoreInteractions(storagesService);
+      verify(fileMetadataRepository, times(1)).delete(expectedMetadata);
+      verifyNoMoreInteractions(fileMetadataRepository, roomService, storagesService);
     }
 
     @Test
@@ -828,15 +1014,15 @@ public class AttachmentServiceImplTest {
               .build();
       when(fileMetadataRepository.getById(attachmentUuid.toString()))
           .thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
 
       attachmentService.deleteAttachment(attachmentUuid, currentUser);
 
-      verify(fileMetadataRepository, times(1)).delete(expectedMetadata);
       verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
-      verifyNoMoreInteractions(fileMetadataRepository);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
-      verifyNoMoreInteractions(storagesService);
+      verify(fileMetadataRepository, times(1)).delete(expectedMetadata);
+      verifyNoMoreInteractions(fileMetadataRepository, roomService, storagesService);
     }
 
     @Test
@@ -846,13 +1032,12 @@ public class AttachmentServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       when(fileMetadataRepository.getById(attachmentUuid.toString())).thenReturn(Optional.empty());
 
-      NotFoundException notFoundException =
-          assertThrows(
-              NotFoundException.class,
-              () -> attachmentService.deleteAttachment(attachmentUuid, currentUser));
-      assertEquals(
-          String.format("Not Found - File with id '%s' not found", attachmentUuid),
-          notFoundException.getMessage());
+      assertThrows(
+          NotFoundException.class,
+          () -> attachmentService.deleteAttachment(attachmentUuid, currentUser));
+
+      verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
+      verifyNoMoreInteractions(fileMetadataRepository, roomService, storagesService);
     }
 
     @Test
@@ -871,14 +1056,16 @@ public class AttachmentServiceImplTest {
               .build();
       when(fileMetadataRepository.getById(attachmentUuid.toString()))
           .thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false))
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
           .thenThrow(new NotFoundException());
 
-      NotFoundException notFoundException =
-          assertThrows(
-              NotFoundException.class,
-              () -> attachmentService.deleteAttachment(attachmentUuid, currentUser));
-      assertEquals("Not Found - Not Found", notFoundException.getMessage());
+      assertThrows(
+          NotFoundException.class,
+          () -> attachmentService.deleteAttachment(attachmentUuid, currentUser));
+
+      verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verifyNoMoreInteractions(fileMetadataRepository, roomService, storagesService);
     }
 
     @Test
@@ -897,14 +1084,19 @@ public class AttachmentServiceImplTest {
               .build();
       when(fileMetadataRepository.getById(attachmentUuid.toString()))
           .thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
-      doThrow(new InternalErrorException())
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      doThrow(new StorageException())
           .when(storagesService)
           .deleteFile(attachmentUuid.toString(), user2Id.toString());
 
       assertThrows(
-          InternalErrorException.class,
+          StorageException.class,
           () -> attachmentService.deleteAttachment(attachmentUuid, currentUser));
+
+      verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
+      verifyNoMoreInteractions(fileMetadataRepository, roomService, storagesService);
     }
 
     @Test
@@ -924,7 +1116,7 @@ public class AttachmentServiceImplTest {
               .build();
       when(fileMetadataRepository.getById(attachmentUuid.toString()))
           .thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomEntityAndCheckUser(roomId, currentUser, false)).thenReturn(room1);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
 
       assertThrows(
           ForbiddenException.class,
@@ -950,10 +1142,10 @@ public class AttachmentServiceImplTest {
 
       attachmentService.deleteAttachmentsByRoomId(roomId, UserPrincipal.create(user1Id));
 
-      verify(storagesService, times(1))
-          .deleteFileList(List.of(file1Id, file2Id), user1Id.toString());
       verify(fileMetadataRepository, times(1))
           .getIdsByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT);
+      verify(storagesService, times(1))
+          .deleteFileList(List.of(file1Id, file2Id), user1Id.toString());
       verify(fileMetadataRepository, times(1)).deleteByIds(List.of(file1Id, file2Id));
       verifyNoMoreInteractions(storagesService, fileMetadataRepository);
     }
@@ -972,10 +1164,10 @@ public class AttachmentServiceImplTest {
 
       attachmentService.deleteAttachmentsByRoomId(roomId, UserPrincipal.create(user1Id));
 
-      verify(storagesService, times(1))
-          .deleteFileList(List.of(file1Id, file2Id), user1Id.toString());
       verify(fileMetadataRepository, times(1))
           .getIdsByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT);
+      verify(storagesService, times(1))
+          .deleteFileList(List.of(file1Id, file2Id), user1Id.toString());
       verify(fileMetadataRepository, times(1)).deleteByIds(List.of(file1Id));
       verifyNoMoreInteractions(storagesService, fileMetadataRepository);
     }
@@ -994,10 +1186,10 @@ public class AttachmentServiceImplTest {
 
       attachmentService.deleteAttachmentsByRoomId(roomId, UserPrincipal.create(user1Id));
 
-      verify(storagesService, times(1))
-          .deleteFileList(List.of(file1Id, file2Id), user1Id.toString());
       verify(fileMetadataRepository, times(1))
           .getIdsByRoomIdAndType(roomId.toString(), FileMetadataType.ATTACHMENT);
+      verify(storagesService, times(1))
+          .deleteFileList(List.of(file1Id, file2Id), user1Id.toString());
       verifyNoMoreInteractions(storagesService, fileMetadataRepository);
     }
   }

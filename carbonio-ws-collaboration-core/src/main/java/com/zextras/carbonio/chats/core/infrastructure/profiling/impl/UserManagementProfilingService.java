@@ -38,12 +38,12 @@ public class UserManagementProfilingService implements ProfilingService {
                 String.format("%s=%s", AuthenticationMethod.ZM_AUTH_TOKEN.name(), token),
                 userId.toString())
             .map(
-                u ->
-                    UserProfile.create(u.getId().getUserId())
-                        .name(u.getFullName())
-                        .email(u.getEmail())
-                        .domain(u.getDomain())
-                        .type(UserType.valueOf(u.getType().name())))
+                userInfo ->
+                    UserProfile.create(userInfo.getId().getUserId())
+                        .name(userInfo.getFullName())
+                        .email(userInfo.getEmail())
+                        .domain(userInfo.getDomain())
+                        .type(UserType.valueOf(userInfo.getType().name())))
             .recover(UserNotFound.class, e -> null)
             .getOrElseThrow(fail -> new ProfilingException(fail)));
   }
@@ -56,12 +56,12 @@ public class UserManagementProfilingService implements ProfilingService {
         .getOrElseThrow(fail -> new ProfilingException(fail))
         .stream()
         .map(
-            u ->
-                UserProfile.create(u.getId().getUserId())
-                    .name(u.getFullName())
-                    .email(u.getEmail())
-                    .domain(u.getDomain())
-                    .type(UserType.valueOf(u.getType().name())))
+            userInfo ->
+                UserProfile.create(userInfo.getId().getUserId())
+                    .name(userInfo.getFullName())
+                    .email(userInfo.getEmail())
+                    .domain(userInfo.getDomain())
+                    .type(UserType.valueOf(userInfo.getType().name())))
         .toList();
   }
 

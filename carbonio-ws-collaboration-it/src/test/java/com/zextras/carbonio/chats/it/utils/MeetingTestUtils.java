@@ -106,12 +106,14 @@ public class MeetingTestUtils {
       String userId,
       String queueId,
       String connectionId,
+      String audioHandleId,
       String videoOutHandleId,
       String videoInHandleId,
       String screenHandleId) {
     return videoServerSessionRepository.insert(
         VideoServerSession.create(userId, queueId, videoServerMeeting)
             .connectionId(connectionId)
+            .audioHandleId(audioHandleId)
             .videoOutHandleId(videoOutHandleId)
             .videoInHandleId(videoInHandleId)
             .screenHandleId(screenHandleId));

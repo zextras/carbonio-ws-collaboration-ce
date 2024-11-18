@@ -54,7 +54,9 @@ public class EventsWebSocketEndpoint {
         .getBasicRemote()
         .sendObject(objectMapper.writeValueAsString(SessionOutEvent.create(queueId)));
     if (channel == null || !channel.isOpen()) {
-      ChatsLogger.error("Event websocket handler channel is not up!");
+      ChatsLogger.error(
+          String.format(
+              "Unable to open session %s: event websocket handler channel is not up!", queueId));
       return;
     }
     try {
@@ -131,15 +133,18 @@ public class EventsWebSocketEndpoint {
     UUID queueId = UUID.fromString(session.getId());
     String userQueue = userId + "/" + queueId;
     if (channel == null || !channel.isOpen()) {
-      ChatsLogger.error("Event websocket handler channel is not up!");
+      ChatsLogger.error(
+          String.format(
+              "Unable to close session %s: event websocket handler channel is not up!", queueId));
       return;
     }
     try {
-      channel.queueDelete(userQueue);
+      channel.queueDeleteNoWait(userQueue, false, false);
     } catch (Exception e) {
-      ChatsLogger.warn(String.format("Error deleting queue for user/queue '%s'", userQueue));
+      ChatsLogger.warn(String.format("Error deleting queue for user/queue '%s'", userQueue), e);
     }
     participantService.removeMeetingParticipant(queueId);
+    participantService.removeFromQueue(queueId);
   }
 
   private static class SessionOutEvent {

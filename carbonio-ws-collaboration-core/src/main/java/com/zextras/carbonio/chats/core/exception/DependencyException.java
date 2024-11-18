@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.exception;
 
 import com.zextras.carbonio.chats.core.infrastructure.DependencyType;
 import jakarta.ws.rs.core.Response.Status;
+import java.io.Serial;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -14,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public abstract class DependencyException extends ChatsHttpException {
 
-  private static final long serialVersionUID = -8436905681137000221L;
+  @Serial private static final long serialVersionUID = -8436905681137000221L;
   private static final int MANDATORY_HTTP_STATUS_CODE =
       Status.INTERNAL_SERVER_ERROR.getStatusCode();
   private static final String MANDATORY_HTTP_REASON_PHRASE =

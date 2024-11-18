@@ -4,7 +4,6 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
-
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
@@ -36,38 +35,43 @@ public class PreviewServiceImpl implements PreviewService {
 
   @Inject
   public PreviewServiceImpl(
-    RoomService roomService,
-    FileMetadataRepository fileMetadataRepository,
-    PreviewClient previewClient
-  ) {
+      RoomService roomService,
+      FileMetadataRepository fileMetadataRepository,
+      PreviewClient previewClient) {
     this.previewClient = previewClient;
     this.roomService = roomService;
     this.fileMetadataRepository = fileMetadataRepository;
   }
 
   private FileResponse remapBlobToDataFile(Try<BlobResponse> response) {
-    return response.map(bResp ->
-      Try.of(() ->
-        new FileResponse(bResp.getContent(), bResp.getLength(),bResp.getMimeType())
-      ).getOrElseThrow(t -> new PreviewException(t))
-    ).getOrElseThrow(t-> new PreviewException(t));
+    return response
+        .map(
+            bResp ->
+                Try.of(
+                        () ->
+                            new FileResponse(
+                                bResp.getContent(), bResp.getLength(), bResp.getMimeType()))
+                    .getOrElseThrow(t -> new PreviewException(t)))
+        .getOrElseThrow(t -> new PreviewException(t));
   }
 
   @Override
-  public FileResponse getImage(UserPrincipal user,
-                               UUID fileId,
-                               String area,
-                               Option<ImageQualityEnumDto> quality,
-                               Option<ImageTypeEnumDto> outputFormat,
-                               Option<Boolean> crop) {
-    validateUser(fileId,user);
+  public FileResponse getImage(
+      UserPrincipal user,
+      UUID fileId,
+      String area,
+      Option<ImageQualityEnumDto> quality,
+      Option<ImageTypeEnumDto> outputFormat,
+      Option<Boolean> crop) {
+    validateUser(fileId, user);
 
-    Query.QueryBuilder parameters = new Query.QueryBuilder()
-      .setFileOwnerId(user.getId())
-      .setServiceType(ServiceType.CHATS)
-      .setFileId(fileId.toString())
-      .setVersion(0)
-      .setPreviewArea(area);
+    Query.QueryBuilder parameters =
+        new Query.QueryBuilder()
+            .setFileOwnerId(user.getId())
+            .setServiceType(ServiceType.CHATS)
+            .setFileId(fileId.toString())
+            .setVersion(0)
+            .setPreviewArea(area);
     quality.map(q -> parameters.setQuality(q.toString().toUpperCase()));
     outputFormat.map(f -> parameters.setOutputFormat(f.toString().toUpperCase()));
     crop.map(parameters::setCrop);
@@ -76,20 +80,22 @@ public class PreviewServiceImpl implements PreviewService {
   }
 
   @Override
-  public FileResponse getImageThumbnail(UserPrincipal user,
-                                        UUID fileId,
-                                        String area,
-                                        Option<ImageQualityEnumDto> quality,
-                                        Option<ImageTypeEnumDto> outputFormat,
-                                        Option<ImageShapeEnumDto> shape) {
-    validateUser(fileId,user);
+  public FileResponse getImageThumbnail(
+      UserPrincipal user,
+      UUID fileId,
+      String area,
+      Option<ImageQualityEnumDto> quality,
+      Option<ImageTypeEnumDto> outputFormat,
+      Option<ImageShapeEnumDto> shape) {
+    validateUser(fileId, user);
 
-    Query.QueryBuilder parameters = new Query.QueryBuilder()
-      .setFileOwnerId(user.getId())
-      .setServiceType(ServiceType.CHATS)
-      .setFileId(fileId.toString())
-      .setVersion(0)
-      .setPreviewArea(area);
+    Query.QueryBuilder parameters =
+        new Query.QueryBuilder()
+            .setFileOwnerId(user.getId())
+            .setServiceType(ServiceType.CHATS)
+            .setFileId(fileId.toString())
+            .setVersion(0)
+            .setPreviewArea(area);
     quality.map(q -> parameters.setQuality(q.toString().toUpperCase()));
     outputFormat.map(f -> parameters.setOutputFormat(f.toString().toUpperCase()));
     shape.map(s -> parameters.setShape(s.toString().toUpperCase()));
@@ -99,13 +105,14 @@ public class PreviewServiceImpl implements PreviewService {
 
   @Override
   public FileResponse getPDF(UserPrincipal user, UUID fileId, Integer firstPage, Integer lastPage) {
-    validateUser(fileId,user);
+    validateUser(fileId, user);
 
-    Query.QueryBuilder parameters = new Query.QueryBuilder()
-      .setFileOwnerId(user.getId())
-      .setServiceType(ServiceType.CHATS)
-      .setFileId(fileId.toString())
-      .setVersion(0);
+    Query.QueryBuilder parameters =
+        new Query.QueryBuilder()
+            .setFileOwnerId(user.getId())
+            .setServiceType(ServiceType.CHATS)
+            .setFileId(fileId.toString())
+            .setVersion(0);
     Option.of(firstPage).peek(parameters::setFirstPage);
     Option.of(lastPage).peek(parameters::setLastPage);
 
@@ -113,20 +120,22 @@ public class PreviewServiceImpl implements PreviewService {
   }
 
   @Override
-  public FileResponse getPDFThumbnail(UserPrincipal user,
-                                      UUID fileId,
-                                      String area,
-                                      Option<ImageQualityEnumDto> quality,
-                                      Option<ImageTypeEnumDto> outputFormat,
-                                      Option<ImageShapeEnumDto> shape) {
-    validateUser(fileId,user);
+  public FileResponse getPDFThumbnail(
+      UserPrincipal user,
+      UUID fileId,
+      String area,
+      Option<ImageQualityEnumDto> quality,
+      Option<ImageTypeEnumDto> outputFormat,
+      Option<ImageShapeEnumDto> shape) {
+    validateUser(fileId, user);
 
-    Query.QueryBuilder parameters = new Query.QueryBuilder()
-      .setFileOwnerId(user.getId())
-      .setServiceType(ServiceType.CHATS)
-      .setFileId(fileId.toString())
-      .setVersion(0)
-      .setPreviewArea(area);
+    Query.QueryBuilder parameters =
+        new Query.QueryBuilder()
+            .setFileOwnerId(user.getId())
+            .setServiceType(ServiceType.CHATS)
+            .setFileId(fileId.toString())
+            .setVersion(0)
+            .setPreviewArea(area);
     quality.map(q -> parameters.setQuality(q.toString().toUpperCase()));
     outputFormat.map(f -> parameters.setOutputFormat(f.toString().toUpperCase()));
     shape.map(s -> parameters.setShape(s.toString().toUpperCase()));
@@ -134,10 +143,15 @@ public class PreviewServiceImpl implements PreviewService {
     return remapBlobToDataFile(previewClient.getThumbnailOfPdf(parameters.build()));
   }
 
-  private void validateUser(UUID fileId, UserPrincipal user){
-    FileMetadata originMetadata = fileMetadataRepository.getById(fileId.toString())
-      .orElseThrow(() -> new com.zextras.carbonio.chats.core.exception.NotFoundException(String.format("File with id '%s' not found", fileId)));
-    roomService.getRoomEntityAndCheckUser(UUID.fromString(originMetadata.getRoomId()), user, false);
+  private void validateUser(UUID fileId, UserPrincipal user) {
+    FileMetadata originMetadata =
+        fileMetadataRepository
+            .getById(fileId.toString())
+            .orElseThrow(
+                () ->
+                    new com.zextras.carbonio.chats.core.exception.NotFoundException(
+                        String.format("File with id '%s' not found", fileId)));
+    roomService.getRoomAndValidateUser(UUID.fromString(originMetadata.getRoomId()), user, false);
   }
 
   @Override

@@ -5,11 +5,9 @@
 package com.zextras.carbonio.chats.core.mapper.impl;
 
 import com.google.inject.Singleton;
-import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.model.MemberDto;
-import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.UUID;
@@ -33,18 +31,5 @@ public class SubscriptionMapperImpl implements SubscriptionMapper {
     return subscriptions == null
         ? List.of()
         : subscriptions.stream().map(this::ent2memberDto).toList();
-  }
-
-  @Override
-  @Nullable
-  public MemberInsertedDto ent2memberInsertedDto(
-      @Nullable Subscription subscription, @Nullable RoomUserSettings roomUserSettings) {
-    if (subscription == null) {
-      return null;
-    }
-    return MemberInsertedDto.create()
-        .owner(subscription.isOwner())
-        .userId(UUID.fromString(subscription.getUserId()))
-        .clearedAt(roomUserSettings == null ? null : roomUserSettings.getClearedAt());
   }
 }

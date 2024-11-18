@@ -17,6 +17,7 @@ import com.zextras.carbonio.chats.core.data.event.MeetingRecordingStarted;
 import com.zextras.carbonio.chats.core.data.event.MeetingRecordingStopped;
 import com.zextras.carbonio.chats.core.data.event.MeetingStarted;
 import com.zextras.carbonio.chats.core.data.event.MeetingStopped;
+import com.zextras.carbonio.chats.core.data.model.RecordingInfo;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.data.type.RecordingStatus;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -25,7 +26,6 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.repository.RecordingRepository;
@@ -36,12 +36,9 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.MeetingTypeDto;
-import io.vavr.control.Option;
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -85,108 +82,126 @@ public class MeetingServiceImpl implements MeetingService {
   public MeetingDto createMeeting(
       UserPrincipal user,
       String name,
-      MeetingTypeDto meetingType,
+      MeetingTypeDto meetingTypeDto,
       UUID roomId,
       OffsetDateTime expiration) {
-    return meetingMapper.ent2dto(
-        Option.of(roomService.getRoomEntityAndCheckUser(roomId, user, false))
-            .map(
-                room -> {
-                  if (room.getMeetingId() == null) {
-                    Meeting meeting =
-                        meetingRepository.insert(
-                            Meeting.create()
-                                .id(UUID.randomUUID().toString())
-                                .name(name)
-                                .meetingType(
-                                    MeetingType.valueOf(meetingType.toString().toUpperCase()))
-                                .active(false)
-                                .roomId(roomId.toString()));
-                    roomService.setMeetingIntoRoom(room, meeting);
-                    eventDispatcher.sendToUserExchange(
-                        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
-                        MeetingCreated.create()
-                            .meetingId(UUID.fromString(meeting.getId()))
-                            .roomId(roomId));
-                    return meeting;
-                  } else {
-                    throw new ConflictException(
-                        String.format("Room %s has already an associated meeting", roomId));
-                  }
-                })
-            .getOrElseThrow(
-                () -> new NotFoundException(String.format("Room %s not found", roomId))));
+    Room room = roomService.getRoomAndValidateUser(roomId, user, false);
+    validateRoomMeeting(room.getId(), room.getMeetingId());
+
+    Meeting meeting = createNewMeeting(name, meetingTypeDto, roomId.toString());
+    roomService.setMeetingIntoRoom(room, meeting);
+    eventDispatcher.sendToUserExchange(
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
+        MeetingCreated.create()
+            .meetingId(UUID.fromString(meeting.getId()))
+            .roomId(UUID.fromString(room.getId())));
+
+    return meetingMapper.ent2dto(meeting);
+  }
+
+  private void validateRoomMeeting(String roomId, String meetingId) {
+    if (meetingId != null) {
+      throw new ConflictException(
+          String.format("Room %s has already an associated meeting", roomId));
+    }
+  }
+
+  private Meeting createNewMeeting(String name, MeetingTypeDto meetingTypeDto, String roomId) {
+    return meetingRepository.insert(
+        Meeting.create()
+            .id(UUID.randomUUID().toString())
+            .name(name)
+            .meetingType(MeetingType.valueOf(meetingTypeDto.toString().toUpperCase()))
+            .active(false)
+            .roomId(roomId));
   }
 
   @Override
-  public MeetingDto updateMeeting(UserPrincipal user, UUID meetingId, Boolean active) {
-    return meetingMapper.ent2dto(
-        meetingRepository
-            .getById(meetingId.toString())
-            .map(
-                meeting -> {
-                  List<String> queuedReceivers =
-                      Option.of(active)
-                          .map(
-                              s -> {
-                                List<String> addedReceivers = Collections.emptyList();
-                                if (!Objects.equals(s, meeting.getActive())) {
-                                  meeting.active(s);
-                                  if (Boolean.TRUE.equals(s)) {
-                                    videoServerService.startMeeting(meeting.getId());
-                                    meeting.startedAt(OffsetDateTime.now(clock));
-                                  } else {
-                                    meeting.getRecordings().stream()
-                                        .filter(r -> RecordingStatus.STARTED.equals(r.getStatus()))
-                                        .findFirst()
-                                        .ifPresent(
-                                            recording -> {
-                                              videoServerService.updateRecording(
-                                                  meeting.getId(), false);
-                                              videoServerService.startRecordingPostProcessing(
-                                                  meeting.getId(),
-                                                  meeting.getName(),
-                                                  null,
-                                                  null,
-                                                  recording.getToken());
-                                              recordingRepository.update(
-                                                  recording.status(RecordingStatus.STOPPED));
-                                            });
-                                    videoServerService.stopMeeting(meeting.getId());
-                                    meeting.startedAt(null);
-                                    addedReceivers =
-                                        participantService.getQueue(meetingId).stream()
-                                            .map(UUID::toString)
-                                            .toList();
-                                    participantService.clearQueue(UUID.fromString(meeting.getId()));
-                                  }
-                                }
-                                return addedReceivers;
-                              })
-                          .get();
-                  Meeting updatedMeeting = meetingRepository.update(meeting);
-                  eventDispatcher.sendToUserExchange(
-                      Stream.concat(
-                              roomService
-                                  .getRoomById(UUID.fromString(meeting.getRoomId()), user)
-                                  .getMembers()
-                                  .stream()
-                                  .map(m -> m.getUserId().toString()),
-                              queuedReceivers.stream())
-                          .toList(),
-                      Boolean.TRUE.equals(active)
-                          ? MeetingStarted.create()
-                              .meetingId(UUID.fromString(updatedMeeting.getId()))
-                              .starterUser(user.getUUID())
-                              .startedAt(updatedMeeting.getStartedAt())
-                          : MeetingStopped.create()
-                              .meetingId(UUID.fromString(updatedMeeting.getId())));
-                  return updatedMeeting;
-                })
-            .orElseThrow(
-                () ->
-                    new NotFoundException(
-                        String.format("Meeting with id '%s' not found", meetingId))));
+  public MeetingDto startMeeting(UserPrincipal user, UUID meetingId) {
+    Meeting meeting = validateMeeting(meetingId);
+
+    Meeting updatedMeeting = activateMeeting(meeting);
+
+    notifyMeetingStarted(user, updatedMeeting);
+
+    return meetingMapper.ent2dto(updatedMeeting);
+  }
+
+  @Override
+  public MeetingDto stopMeeting(UserPrincipal user, UUID meetingId) {
+    Meeting meeting = validateMeeting(meetingId);
+
+    Meeting updatedMeeting = deactivateMeeting(user.getId(), meeting);
+
+    List<String> queuedReceivers = getQueuedUsers(meeting);
+    participantService.clearQueue(UUID.fromString(meeting.getId()));
+
+    notifyMeetingStopped(user, updatedMeeting, queuedReceivers);
+
+    return meetingMapper.ent2dto(updatedMeeting);
+  }
+
+  private Meeting validateMeeting(UUID meetingId) {
+    return meetingRepository
+        .getById(meetingId.toString())
+        .orElseThrow(
+            () ->
+                new NotFoundException(String.format("Meeting with id '%s' not found", meetingId)));
+  }
+
+  private Meeting activateMeeting(Meeting meeting) {
+    videoServerService.startMeeting(meeting.getId());
+    meeting.active(true).startedAt(OffsetDateTime.now(clock));
+    return meetingRepository.update(meeting);
+  }
+
+  private Meeting deactivateMeeting(String userId, Meeting meeting) {
+    RecordingInfo recordingInfo =
+        RecordingInfo.create().meetingId(meeting.getId()).meetingName(meeting.getName());
+    stopRecording(userId, meeting, recordingInfo);
+
+    videoServerService.stopMeeting(meeting.getId());
+    meeting.active(false).startedAt(null);
+    return meetingRepository.update(meeting);
+  }
+
+  private void notifyMeetingStarted(UserPrincipal user, Meeting updatedMeeting) {
+    List<String> allReceivers =
+        roomService
+            .getRoomById(UUID.fromString(updatedMeeting.getRoomId()), user)
+            .getMembers()
+            .stream()
+            .map(m -> m.getUserId().toString())
+            .toList();
+
+    eventDispatcher.sendToUserExchange(
+        allReceivers,
+        MeetingStarted.create()
+            .meetingId(UUID.fromString(updatedMeeting.getId()))
+            .starterUser(user.getUUID())
+            .startedAt(updatedMeeting.getStartedAt()));
+  }
+
+  private List<String> getQueuedUsers(Meeting meeting) {
+    return participantService.getQueue(UUID.fromString(meeting.getId())).stream()
+        .map(UUID::toString)
+        .toList();
+  }
+
+  private void notifyMeetingStopped(
+      UserPrincipal user, Meeting updatedMeeting, List<String> queuedReceivers) {
+    List<String> allReceivers =
+        Stream.concat(
+                roomService
+                    .getRoomById(UUID.fromString(updatedMeeting.getRoomId()), user)
+                    .getMembers()
+                    .stream()
+                    .map(m -> m.getUserId().toString()),
+                queuedReceivers.stream())
+            .toList();
+
+    eventDispatcher.sendToUserExchange(
+        allReceivers, MeetingStopped.create().meetingId(UUID.fromString(updatedMeeting.getId())));
   }
 
   @Override
@@ -199,13 +214,7 @@ public class MeetingServiceImpl implements MeetingService {
 
   @Override
   public MeetingDto getMeetingById(UUID meetingId, UserPrincipal currentUser) {
-    Meeting meeting =
-        meetingRepository
-            .getById(meetingId.toString())
-            .orElseThrow(
-                () ->
-                    new NotFoundException(
-                        String.format("Meeting with id '%s' not found", meetingId)));
+    Meeting meeting = validateMeeting(meetingId);
     if (membersService
         .getSubscription(currentUser.getUUID(), UUID.fromString(meeting.getRoomId()))
         .isEmpty()) {
@@ -229,7 +238,7 @@ public class MeetingServiceImpl implements MeetingService {
 
   @Override
   public MeetingDto getMeetingByRoomId(UUID roomId, UserPrincipal currentUser) {
-    roomService.getRoomEntityAndCheckUser(roomId, currentUser, false);
+    roomService.getRoomAndValidateUser(roomId, currentUser, false);
     return meetingMapper.ent2dto(
         getMeetingEntityByRoomId(roomId)
             .orElseThrow(
@@ -240,31 +249,18 @@ public class MeetingServiceImpl implements MeetingService {
 
   @Override
   public void deleteMeetingById(UUID meetingId, UserPrincipal currentUser) {
-    Meeting meeting =
-        meetingRepository
-            .getById(meetingId.toString())
-            .orElseThrow(
-                () ->
-                    new NotFoundException(
-                        String.format("Meeting with id '%s' not found", meetingId)));
-    deleteMeeting(
-        meeting,
-        roomService.getRoomEntityAndCheckUser(
-            UUID.fromString(meeting.getRoomId()), currentUser, false),
-        currentUser.getUUID());
+    Meeting meeting = validateMeeting(meetingId);
+    Room room =
+        roomService.getRoomAndValidateUser(
+            UUID.fromString(meeting.getRoomId()), currentUser, false);
+    deleteMeeting(currentUser.getId(), meeting, room);
   }
 
   @Override
-  public void deleteMeeting(Meeting meeting, Room room, UUID userId) {
-    meeting.getRecordings().stream()
-        .filter(r -> RecordingStatus.STARTED.equals(r.getStatus()))
-        .findFirst()
-        .ifPresent(
-            recording -> {
-              videoServerService.updateRecording(meeting.getId(), false);
-              videoServerService.startRecordingPostProcessing(
-                  meeting.getId(), meeting.getName(), null, null, recording.getToken());
-            });
+  public void deleteMeeting(String userId, Meeting meeting, Room room) {
+    RecordingInfo recordingInfo =
+        RecordingInfo.create().meetingId(meeting.getId()).meetingName(meeting.getName());
+    stopRecording(userId, meeting, recordingInfo);
     videoServerService.stopMeeting(meeting.getId());
     meetingRepository.delete(meeting);
     eventDispatcher.sendToUserExchange(
@@ -274,13 +270,7 @@ public class MeetingServiceImpl implements MeetingService {
 
   @Override
   public void startMeetingRecording(UUID meetingId, UserPrincipal currentUser) {
-    Meeting meeting =
-        meetingRepository
-            .getById(meetingId.toString())
-            .orElseThrow(
-                () ->
-                    new NotFoundException(
-                        String.format("Meeting with id '%s' not found", meetingId)));
+    Meeting meeting = validateMeeting(meetingId);
     if (Boolean.FALSE.equals(meeting.getActive())) {
       throw new BadRequestException("Can't start recording on this meeting");
     }
@@ -295,7 +285,7 @@ public class MeetingServiceImpl implements MeetingService {
         .filter(r -> RecordingStatus.STARTED.equals(r.getStatus()))
         .findFirst()
         .isEmpty()) {
-      videoServerService.updateRecording(meetingId.toString(), true);
+      videoServerService.startRecording(meetingId.toString());
       recordingRepository.insert(
           Recording.create()
               .id(UUID.randomUUID().toString())
@@ -309,21 +299,13 @@ public class MeetingServiceImpl implements MeetingService {
           MeetingRecordingStarted.create()
               .meetingId(UUID.fromString(meeting.getId()))
               .userId(currentUser.getUUID()));
-    } else {
-      ChatsLogger.debug("Recording is already started for the meeting " + meetingId);
     }
   }
 
   @Override
   public void stopMeetingRecording(
       UUID meetingId, String recordingName, String folderId, UserPrincipal currentUser) {
-    Meeting meeting =
-        meetingRepository
-            .getById(meetingId.toString())
-            .orElseThrow(
-                () ->
-                    new NotFoundException(
-                        String.format("Meeting with id '%s' not found", meetingId)));
+    Meeting meeting = validateMeeting(meetingId);
     if (Boolean.FALSE.equals(meeting.getActive())) {
       throw new BadRequestException("Can't stop recording on this meeting");
     }
@@ -334,26 +316,31 @@ public class MeetingServiceImpl implements MeetingService {
               "User '%s' can't stop recording on the meeting with id '%s'",
               currentUser.getId(), meetingId));
     }
+    RecordingInfo recordingInfo =
+        RecordingInfo.create()
+            .meetingId(meeting.getId())
+            .meetingName(meeting.getName())
+            .recordingName(recordingName)
+            .folderId(folderId);
+    stopRecording(currentUser.getId(), meeting, recordingInfo);
+  }
+
+  private void stopRecording(String userId, Meeting meeting, RecordingInfo recordingInfo) {
     meeting.getRecordings().stream()
         .filter(r -> RecordingStatus.STARTED.equals(r.getStatus()))
         .findFirst()
-        .ifPresentOrElse(
+        .ifPresent(
             recording -> {
-              videoServerService.updateRecording(meetingId.toString(), false);
+              videoServerService.stopRecording(meeting.getId());
               videoServerService.startRecordingPostProcessing(
-                  meetingId.toString(),
-                  meeting.getName(),
-                  folderId,
-                  recordingName,
-                  currentUser.getAuthToken().orElse(null));
+                  recordingInfo.recordingToken(recording.getToken()));
               recordingRepository.update(recording.status(RecordingStatus.STOPPED));
               eventDispatcher.sendToUserExchange(
                   meeting.getParticipants().stream().map(Participant::getUserId).toList(),
                   MeetingRecordingStopped.create()
                       .meetingId(UUID.fromString(meeting.getId()))
-                      .userId(currentUser.getUUID()));
-            },
-            () -> ChatsLogger.debug("Recording is already stopped for the meeting " + meetingId));
+                      .userId(UUID.fromString(userId)));
+            });
   }
 
   private Subscription getSubscription(String userId, Meeting meeting) {

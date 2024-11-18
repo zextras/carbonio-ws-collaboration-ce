@@ -27,7 +27,6 @@ import java.util.UUID;
 @Singleton
 public class UsersApiServiceImpl implements UsersApiService {
 
-  private final int MAX_USER_IDS = 10;
   private final UserService userService;
   private final CapabilityService capabilityService;
 
@@ -53,7 +52,7 @@ public class UsersApiServiceImpl implements UsersApiService {
             .orElseThrow(UnauthorizedException::new);
     FileContentAndMetadata picture = userService.getUserPicture(userId, currentUser);
     return Response.status(Status.OK)
-        .entity(picture.getFileStream())
+        .entity(picture)
         .header("Content-Type", picture.getMetadata().getMimeType())
         .header("Content-Length", picture.getMetadata().getOriginalSize())
         .header(
@@ -68,7 +67,7 @@ public class UsersApiServiceImpl implements UsersApiService {
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
 
-    return (userIds.isEmpty() || userIds.size() > MAX_USER_IDS)
+    return (userIds.isEmpty() || userIds.size() > 10)
         ? Response.status(Status.BAD_REQUEST).build()
         : Response.status(Status.OK)
             .entity(userService.getUsersByIds(userIds, currentUser))

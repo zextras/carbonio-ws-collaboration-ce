@@ -46,8 +46,10 @@ import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService
 import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagementProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServicePowerstoreImpl;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerClient;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerConfigImpl;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerHttpClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceImpl;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
@@ -112,11 +114,14 @@ import java.net.URL;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.ZoneId;
+import java.util.Base64;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import org.flywaydb.core.Flyway;
 
 public class CoreModule extends AbstractModule {
+
+  private static final String URL_PATTERN = "http://%s:%s";
 
   @Override
   protected void configure() {
@@ -186,9 +191,7 @@ public class CoreModule extends AbstractModule {
     bind(WaitingParticipantRepository.class).to(EbeanWaitingParticipantRepository.class);
     bind(RecordingRepository.class).to(EbeanRecordingRepository.class);
 
-    bind(HttpClient.class);
     bind(VideoServerService.class).to(VideoServerServiceImpl.class);
-    bind(VideoServerClient.class).to(VideoServerHttpClient.class);
     bind(VideoServerMeetingRepository.class).to(EbeanVideoServerMeetingRepository.class);
     bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
 
@@ -269,7 +272,7 @@ public class CoreModule extends AbstractModule {
   private PreviewClient getPreviewClient(AppConfig appConfig) {
     return PreviewClient.atURL(
         String.format(
-            "http://%s:%s",
+            URL_PATTERN,
             appConfig.get(String.class, ConfigName.PREVIEWER_HOST).orElseThrow(),
             appConfig.get(String.class, ConfigName.PREVIEWER_PORT).orElseThrow()));
   }
@@ -279,14 +282,14 @@ public class CoreModule extends AbstractModule {
   private UserManagementClient getUserManagementClient(AppConfig appConfig) {
     return UserManagementClient.atURL(
         String.format(
-            "http://%s:%s",
+            URL_PATTERN,
             appConfig.get(String.class, ConfigName.USER_MANAGEMENT_HOST).orElseThrow(),
             appConfig.get(String.class, ConfigName.USER_MANAGEMENT_PORT).orElseThrow()));
   }
 
   @Singleton
   @Provides
-  public Database getDatabase(HikariDataSource dataSource, Clock clock) {
+  private Database getDatabase(HikariDataSource dataSource, Clock clock) {
     DatabaseConfig databaseConfig = new DatabaseConfig();
     databaseConfig.setDataSource(dataSource);
     databaseConfig.setClock(clock);
@@ -296,7 +299,7 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  public Flyway getFlywayInstance(HikariDataSource dataSource) {
+  private Flyway getFlywayInstance(HikariDataSource dataSource) {
     return Flyway.configure()
         .locations("classpath:migration")
         .schemas("chats")
@@ -307,7 +310,7 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  public HikariDataSource getHikariDataSource(AppConfig appConfig) {
+  private HikariDataSource getHikariDataSource(AppConfig appConfig) {
     HikariConfig config = new HikariConfig();
     config.setJdbcUrl(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).orElseThrow());
     config.setDriverClassName(
@@ -331,15 +334,21 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private MessageDispatcher getMessageDispatcher(AppConfig appConfig, ObjectMapper objectMapper) {
+  private MessageDispatcher getMessageDispatcher(
+      AppConfig appConfig, HttpClient httpClient, ObjectMapper objectMapper) {
     return new MessageDispatcherMongooseImpl(
+        httpClient,
         String.format(
-            "http://%s:%s/%s",
+            URL_PATTERN,
             appConfig.get(String.class, ConfigName.XMPP_SERVER_HOST).orElseThrow(),
-            appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow(),
-            ChatsConstant.MONGOOSEIM_GRAPHQL_ENDPOINT),
-        appConfig.get(String.class, ConfigName.XMPP_SERVER_USERNAME).orElseThrow(),
-        appConfig.get(String.class, ConfigName.XMPP_SERVER_PASSWORD).orElseThrow(),
+            appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow()),
+        Base64.getEncoder()
+            .encodeToString(
+                String.join(
+                        ":",
+                        appConfig.get(String.class, ConfigName.XMPP_SERVER_USERNAME).orElseThrow(),
+                        appConfig.get(String.class, ConfigName.XMPP_SERVER_PASSWORD).orElseThrow())
+                    .getBytes()),
         objectMapper);
   }
 
@@ -381,5 +390,32 @@ public class CoreModule extends AbstractModule {
       throw new EventDispatcherException(
           "Could not create channel on message broker connection", e);
     }
+  }
+
+  @Singleton
+  @Provides
+  private VideoServerClient getVideoServerClient(
+      AppConfig appConfig, HttpClient httpClient, ObjectMapper objectMapper) {
+    return new VideoServerHttpClient(
+        httpClient,
+        String.format(
+            URL_PATTERN,
+            appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST).orElseThrow(),
+            appConfig.get(String.class, ConfigName.VIDEO_SERVER_PORT).orElseThrow()),
+        String.format(
+            URL_PATTERN,
+            appConfig.get(String.class, ConfigName.VIDEO_RECORDER_HOST).orElseThrow(),
+            appConfig.get(String.class, ConfigName.VIDEO_RECORDER_PORT).orElseThrow()),
+        objectMapper);
+  }
+
+  @Singleton
+  @Provides
+  private VideoServerConfig getVideoServerConfig(AppConfig appConfig) {
+    return new VideoServerConfigImpl(
+        appConfig.get(String.class, ConfigName.VIDEO_SERVER_TOKEN).orElse(null),
+        appConfig
+            .get(String.class, ConfigName.VIDEO_RECORDINGS_PATH)
+            .orElse(ChatsConstant.VIDEO_RECORDINGS_PATH_DEFAULT));
   }
 }

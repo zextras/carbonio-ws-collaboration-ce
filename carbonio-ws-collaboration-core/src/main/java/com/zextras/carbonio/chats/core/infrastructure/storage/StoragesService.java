@@ -4,7 +4,6 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.storage;
 
-import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import java.io.InputStream;
 import java.util.List;
@@ -23,11 +22,12 @@ public interface StoragesService extends HealthIndicator {
   /**
    * Saves a file on the repository
    *
-   * @param file file to save
-   * @param metadata file metadata {@link FileMetadata}
-   * @param currentUserId identifier of the current user
+   * @param file {@link InputStream} file to save
+   * @param fileId identifier of the file
+   * @param ownerId identifier of the owner of this file
+   * @param originalSize size of the file
    */
-  void saveFile(InputStream file, FileMetadata metadata, String currentUserId);
+  void saveFile(InputStream file, String fileId, String ownerId, long originalSize);
 
   /**
    * Copies a file
@@ -52,8 +52,8 @@ public interface StoragesService extends HealthIndicator {
    * Deletes file list by their identifiers
    *
    * @param fileIds identifiers list of files to delete
-   * @param currentUserId identifier of the current user
+   * @param ownerId identifier of the owner of the files
    * @return identifiers list of files deleted
    */
-  List<String> deleteFileList(List<String> fileIds, String currentUserId);
+  List<String> deleteFileList(List<String> fileIds, String ownerId);
 }

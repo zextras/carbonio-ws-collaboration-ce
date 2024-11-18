@@ -23,7 +23,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
   public static final String ROOM_DEFAULT = "video_";
   public static final String DESCRIPTION_DEFAULT = "video_room_";
   public static final int MAX_PUBLISHERS_DEFAULT = 100;
-  public static final long BITRATE_DEFAULT = 600L * 1024;
+  public static final long BITRATE_DEFAULT = 400L * 1024;
 
   private String request;
   private String room;

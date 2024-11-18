@@ -6,7 +6,6 @@ package com.zextras.carbonio.chats.core.infrastructure.storage.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.filestore.model.BulkDeleteRequestItem;
@@ -37,10 +36,9 @@ public class StoragesServicePowerstoreImpl implements StoragesService {
   }
 
   @Override
-  public void saveFile(InputStream file, FileMetadata metadata, String currentUserId) {
+  public void saveFile(InputStream file, String fileId, String ownerId, long originalSize) {
     try {
-      powerstoreClient.uploadPut(
-          ChatsIdentifier.of(metadata.getId(), currentUserId), file, metadata.getOriginalSize());
+      powerstoreClient.uploadPut(ChatsIdentifier.of(fileId, ownerId), file, originalSize);
     } catch (Exception e) {
       throw new StorageException("An error occurred while uploading the file", e);
     }
@@ -69,14 +67,14 @@ public class StoragesServicePowerstoreImpl implements StoragesService {
   }
 
   @Override
-  public List<String> deleteFileList(List<String> fileIds, String currentUserId) {
+  public List<String> deleteFileList(List<String> fileIds, String ownerId) {
     try {
       return fileIds.isEmpty()
           ? List.of()
           : powerstoreClient
               .bulkDelete(
                   IdentifierType.chats,
-                  currentUserId,
+                  ownerId,
                   fileIds.stream().map(BulkDeleteRequestItem::chatsItem).toList())
               .stream()
               .map(BulkDeleteResponseItem::getNode)

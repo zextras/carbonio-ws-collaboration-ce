@@ -27,6 +27,7 @@ import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomRankDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
@@ -151,7 +152,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
             .orElseThrow(UnauthorizedException::new);
     FileContentAndMetadata roomPicture = roomService.getRoomPicture(roomId, currentUser);
     return Response.status(Status.OK)
-        .entity(roomPicture.getFileStream())
+        .entity(roomPicture)
         .header("Content-Type", roomPicture.getMetadata().getMimeType())
         .header("Content-Length", roomPicture.getMetadata().getOriginalSize())
         .header(
@@ -160,6 +161,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
         .build();
   }
 
+  @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response updateRoomPicture(
       UUID roomId,
@@ -266,13 +268,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   @TimedCall
-  public Response insertRoomMember(
-      UUID roomId, MemberToInsertDto memberToInsertDto, SecurityContext securityContext) {
+  public Response insertRoomMembers(
+      UUID roomId,
+      List<@Valid MemberToInsertDto> memberToInsertDto,
+      SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
     return Response.status(Status.CREATED)
-        .entity(membersService.insertRoomMember(roomId, memberToInsertDto, currentUser))
+        .entity(membersService.insertRoomMembers(roomId, memberToInsertDto, currentUser))
         .build();
   }
 
@@ -382,13 +386,6 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     }
   }
 
-  /**
-   * Gets the meeting of requested room
-   *
-   * @param roomId          room identifier
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
-   * @return a response {@link Response) with status 200 and the requested meeting {@link com.zextras.carbonio.meeting.model.MeetingDto } in the body
-   */
   @Override
   public Response getMeetingByRoomId(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser =

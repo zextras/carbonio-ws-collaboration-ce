@@ -41,5 +41,7 @@ public interface ParticipantService {
   void updateQueue(
       UUID meetingId, UUID userId, QueueUpdateStatusDto status, UserPrincipal currentUser);
 
+  void removeFromQueue(UUID queueId);
+
   void clearQueue(UUID meetingId);
 }

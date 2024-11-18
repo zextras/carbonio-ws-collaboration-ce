@@ -13,6 +13,7 @@ import io.ebean.Database;
 import io.ebean.Query;
 import io.vavr.control.Option;
 import java.util.List;
+import java.util.Optional;
 
 @Singleton
 public class EbeanWaitingParticipantRepository implements WaitingParticipantRepository {
@@ -31,6 +32,11 @@ public class EbeanWaitingParticipantRepository implements WaitingParticipantRepo
     Option.of(userId).map(mId -> query.where().eq("userId", userId));
     Option.of(status).map(s -> query.where().eq("status", status.toString()));
     return query.findList();
+  }
+
+  @Override
+  public Optional<WaitingParticipant> getByQueueId(String queueId) {
+    return db.find(WaitingParticipant.class).where().eq("queue_id", queueId).findOneOrEmpty();
   }
 
   @Override

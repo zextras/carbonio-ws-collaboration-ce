@@ -28,13 +28,11 @@ import jakarta.ws.rs.core.Response.Status;
 import java.util.List;
 import java.util.UUID;
 import org.jboss.resteasy.mock.MockHttpResponse;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockserver.verify.VerificationTimes;
 
 @ApiIntegrationTest
 public class AttachmentsApiIT {
@@ -83,11 +81,6 @@ public class AttachmentsApiIT {
         roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
   }
 
-  @AfterEach
-  public void afterEach() {
-    storageMockServer.setIsAliveResponse(true);
-  }
-
   @Nested
   @DisplayName("Gets attachment test")
   class GetsAttachmentTests {
@@ -117,12 +110,6 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      storageMockServer.verify(
-          storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
-          VerificationTimes.exactly(1));
-      storageMockServer.verify(
-          storageMockServer.getDownloadRequest(fileMock.getId(), user1Id.toString()),
-          VerificationTimes.exactly(1));
     }
 
     @Test
@@ -146,12 +133,6 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      storageMockServer.verify(
-          storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
-          VerificationTimes.exactly(1));
-      storageMockServer.verify(
-          storageMockServer.getDownloadRequest(fileMock.getId(), user1Id.toString()),
-          VerificationTimes.exactly(1));
     }
 
     @Test
@@ -175,12 +156,6 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      storageMockServer.verify(
-          storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
-          VerificationTimes.exactly(1));
-      storageMockServer.verify(
-          storageMockServer.getDownloadRequest(fileMock.getId(), user1Id.toString()),
-          VerificationTimes.exactly(1));
     }
 
     @Test
@@ -204,12 +179,6 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      storageMockServer.verify(
-          storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
-          VerificationTimes.exactly(1));
-      storageMockServer.verify(
-          storageMockServer.getDownloadRequest(fileMock.getId(), user1Id.toString()),
-          VerificationTimes.exactly(1));
     }
 
     @Test
@@ -234,12 +203,6 @@ public class AttachmentsApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-      storageMockServer.verify(
-          storageMockServer.getNSLookupUrlRequest(user1Id.toString()),
-          VerificationTimes.exactly(1));
-      storageMockServer.verify(
-          storageMockServer.getDownloadRequest(fileMock.getId(), user1Id.toString()),
-          VerificationTimes.exactly(1));
     }
 
     @Test
@@ -388,12 +351,6 @@ public class AttachmentsApiIT {
       MockHttpResponse response = dispatcher.delete(url(fileMetadata.getId()), user2Token);
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
       assertTrue(fileMetadataRepository.getById(fileMetadata.getId()).isEmpty());
-      storageMockServer.verify(
-          storageMockServer.getNSLookupUrlRequest(user2Id.toString()),
-          VerificationTimes.exactly(1));
-      storageMockServer.verify(
-          storageMockServer.getDeleteRequest(fileMetadata.getId(), user2Id.toString()),
-          VerificationTimes.exactly(1));
     }
 
     @Test
@@ -412,13 +369,6 @@ public class AttachmentsApiIT {
       MockHttpResponse response = dispatcher.delete(url(fileMetadata.getId()), user1Token);
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
       assertTrue(fileMetadataRepository.getById(fileMetadata.getId()).isEmpty());
-
-      storageMockServer.verify(
-          storageMockServer.getNSLookupUrlRequest(user2Id.toString()),
-          VerificationTimes.exactly(1));
-      storageMockServer.verify(
-          storageMockServer.getDeleteRequest(fileMetadata.getId(), user2Id.toString()),
-          VerificationTimes.exactly(1));
     }
 
     @Test

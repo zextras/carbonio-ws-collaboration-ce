@@ -29,11 +29,9 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.meeting.model.*;
-import io.ebean.annotation.Transactional;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.jetbrains.annotations.NotNull;
@@ -73,175 +71,173 @@ public class ParticipantServiceImpl implements ParticipantService {
   @Override
   public JoinStatus insertMeetingParticipant(
       UUID meetingId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser) {
-    Meeting meeting =
-        meetingService
-            .getMeetingEntity(meetingId)
-            .orElseThrow(
-                () ->
-                    new NotFoundException(
-                        String.format("Meeting with id '%s' not found", meetingId)));
-    return insertMeetingParticipant(meeting, joinSettingsDto, currentUser);
-  }
 
-  private JoinStatus insertMeetingParticipant(
-      Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser) {
-    Room room =
-        roomService
-            .getRoom(UUID.fromString(meeting.getRoomId()))
-            .orElseThrow(
-                () -> new NotFoundException(String.format("Room '%s'", meeting.getRoomId())));
+    Meeting meeting = validateMeeting(meetingId);
+    Room room = validateMeetingRoom(meeting);
+
     return meeting.getParticipants().stream()
         .filter(participant -> participant.getUserId().equals(currentUser.getId()))
         .findFirst()
         .map(
-            participant -> {
-              if (participant.getQueueId().equals(currentUser.getQueueId().toString())) {
-                throw new ConflictException("User is already inserted into the meeting");
-              } else {
-                destroyMeetingParticipant(meeting, currentUser, room);
-                eventDispatcher.sendToUserQueue(
-                    currentUser.getId(),
-                    participant.getQueueId(),
-                    MeetingParticipantClashed.create().meetingId(UUID.fromString(meeting.getId())));
-                participantRepository.update(
-                    participant
-                        .audioStreamOn(false)
-                        .videoStreamOn(false)
-                        .screenStreamOn(false)
-                        .queueId(currentUser.getQueueId().toString()));
-                addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
-              }
-              return JoinStatus.ACCEPTED;
-            })
-        .orElseGet(
-            () ->
-                switch (meeting.getMeetingType()) {
-                  case SCHEDULED:
-                    yield room.getSubscriptions().stream()
-                        .filter(s -> s.getUserId().equals(currentUser.getId()))
-                        .map(
-                            s -> {
-                              if (s.isOwner()) {
-                                participantRepository.insert(
-                                    Participant.create(meeting, currentUser.getId())
-                                        .queueId(currentUser.getQueueId().toString())
-                                        .createdAt(OffsetDateTime.now(clock)));
-                                addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
-                                return JoinStatus.ACCEPTED;
-                              } else {
-                                return waitingParticipantRepository
-                                    .find(meeting.getId(), currentUser.getId(), null)
-                                    .stream()
-                                    .findFirst()
-                                    .map(
-                                        wp ->
-                                            switch (wp.getStatus()) {
-                                              case ACCEPTED:
-                                                participantRepository.insert(
-                                                    Participant.create(meeting, currentUser.getId())
-                                                        .queueId(
-                                                            currentUser.getQueueId().toString())
-                                                        .createdAt(OffsetDateTime.now(clock)));
-                                                addMeetingParticipant(
-                                                    meeting, joinSettingsDto, currentUser, room);
-                                                waitingParticipantRepository.remove(wp);
-                                                yield JoinStatus.ACCEPTED;
-                                              case WAITING:
-                                                // This case should never happen
-                                                // A user already inside the room should always have
-                                                // been accepted or be an Owner, we'll treat it the
-                                                // same ways
-                                                // as if the user was not inside the room and put it
-                                                // on queue on
-                                                // this new tab/device
-                                                if (!Objects.equals(
-                                                    wp.getQueueId(),
-                                                    currentUser.getQueueId().toString())) {
-                                                  eventDispatcher.sendToUserQueue(
-                                                      currentUser.getId(),
-                                                      wp.getQueueId(),
-                                                      MeetingWaitingParticipantClashed.create()
-                                                          .meetingId(
-                                                              UUID.fromString(meeting.getId())));
-                                                  wp.queueId(currentUser.getQueueId().toString());
-                                                  waitingParticipantRepository.update(wp);
-                                                }
-                                                yield JoinStatus.WAITING;
-                                            })
-                                    .orElseGet(
-                                        () -> {
-                                          return addWaitingParticipant(meeting, currentUser, room);
-                                        });
-                              }
-                            })
-                        .findFirst()
-                        .orElseGet(
-                            () ->
-                                waitingParticipantRepository
-                                    .find(meeting.getId(), currentUser.getId(), null)
-                                    .stream()
-                                    .findFirst()
-                                    .map(
-                                        wp ->
-                                            switch (wp.getStatus()) {
-                                              case ACCEPTED:
-                                                // User is accepted but not inside the room, this
-                                                // should not happen
-                                                // since when accepting the moderator also adds the
-                                                // user to the room
-                                                // we'll put the user back on queue
-                                                waitingParticipantRepository.update(
-                                                    wp.status(JoinStatus.WAITING)
-                                                        .queueId(
-                                                            currentUser.getQueueId().toString()));
-                                                eventDispatcher.sendToUserExchange(
-                                                    room.getSubscriptions().stream()
-                                                        .filter(Subscription::isOwner)
-                                                        .map(Subscription::getUserId)
-                                                        .toList(),
-                                                    new MeetingWaitingParticipantJoined()
-                                                        .meetingId(UUID.fromString(meeting.getId()))
-                                                        .userId(
-                                                            UUID.fromString(currentUser.getId())));
-                                                yield JoinStatus.WAITING;
-                                              case WAITING:
-                                                // The user was already in queue, probably on
-                                                // another
-                                                // tab/device,
-                                                // but not already accepted so we'll remove him from
-                                                // queue on the
-                                                // previous tab/device and add it on queue on the
-                                                // new
-                                                // one
-                                                if (!wp.getQueueId()
-                                                    .equals(currentUser.getQueueId().toString())) {
-                                                  eventDispatcher.sendToUserQueue(
-                                                      currentUser.getId(),
-                                                      wp.getQueueId(),
-                                                      MeetingWaitingParticipantClashed.create()
-                                                          .meetingId(
-                                                              UUID.fromString(meeting.getId())));
-                                                  wp.queueId(currentUser.getQueueId().toString());
-                                                  waitingParticipantRepository.update(wp);
-                                                }
-                                                yield JoinStatus.WAITING;
-                                            })
-                                    .orElseGet(
-                                        () -> {
-                                          return addWaitingParticipant(meeting, currentUser, room);
-                                        }));
-                  case PERMANENT:
-                    room.getSubscriptions().stream()
-                        .filter(s -> s.getUserId().equals(currentUser.getId()))
-                        .findFirst()
-                        .orElseThrow(ForbiddenException::new);
-                    participantRepository.insert(
-                        Participant.create(meeting, currentUser.getId())
-                            .queueId(currentUser.getQueueId().toString())
-                            .createdAt(OffsetDateTime.now(clock)));
-                    addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
-                    yield JoinStatus.ACCEPTED;
-                });
+            participant ->
+                handleExistingParticipant(meeting, currentUser, room, participant, joinSettingsDto))
+        .orElseGet(() -> handleNewParticipant(meeting, joinSettingsDto, currentUser, room));
+  }
+
+  // Validates and retrieves the meeting
+  private Meeting validateMeeting(UUID meetingId) {
+    return meetingService
+        .getMeetingEntity(meetingId)
+        .orElseThrow(
+            () -> new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
+  }
+
+  // Validates and retrieves the associated room
+  private Room validateMeetingRoom(Meeting meeting) {
+    return roomService
+        .getRoom(UUID.fromString(meeting.getRoomId()))
+        .orElseThrow(
+            () -> new NotFoundException(String.format("Room '%s' not found", meeting.getRoomId())));
+  }
+
+  // Handles logic when the user is already a participant
+  private JoinStatus handleExistingParticipant(
+      Meeting meeting,
+      UserPrincipal currentUser,
+      Room room,
+      Participant participant,
+      JoinSettingsDto joinSettingsDto) {
+    if (participant.getQueueId().equals(currentUser.getQueueId().toString())) {
+      throw new ConflictException("User is already inserted into the meeting");
+    } else {
+      destroyMeetingParticipantClashed(meeting, participant, currentUser, room);
+      addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
+      participantRepository.update(
+          participant
+              .audioStreamOn(false)
+              .videoStreamOn(false)
+              .screenStreamOn(false)
+              .queueId(currentUser.getQueueId().toString()));
+    }
+    return JoinStatus.ACCEPTED;
+  }
+
+  // Handles logic for new participants based on meeting type
+  private JoinStatus handleNewParticipant(
+      Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser, Room room) {
+
+    return switch (meeting.getMeetingType()) {
+      case SCHEDULED ->
+          handleScheduledMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
+      case PERMANENT ->
+          handlePermanentMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
+    };
+  }
+
+  // Processes joining for a scheduled meeting
+  private JoinStatus handleScheduledMeetingParticipant(
+      Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser, Room room) {
+
+    return room.getSubscriptions().stream()
+        .filter(s -> s.getUserId().equals(currentUser.getId()))
+        .map(
+            s ->
+                s.isOwner()
+                    ? addOwnerAsParticipant(meeting, joinSettingsDto, currentUser, room)
+                    : handleNonOwnerScheduledParticipant(
+                        meeting, currentUser, room, joinSettingsDto))
+        .findFirst()
+        .orElseGet(() -> addWaitingParticipant(meeting, currentUser, room));
+  }
+
+  // Adds an owner as a participant directly
+  private JoinStatus addOwnerAsParticipant(
+      Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser, Room room) {
+
+    return joinMeetingParticipant(meeting, currentUser, room, joinSettingsDto);
+  }
+
+  @NotNull
+  private JoinStatus joinMeetingParticipant(
+      Meeting meeting, UserPrincipal currentUser, Room room, JoinSettingsDto joinSettingsDto) {
+    if (participantRepository.getById(meeting.getId(), currentUser.getId()).isEmpty()) {
+      addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
+      Participant participant =
+          Participant.create(meeting, currentUser.getId())
+              .queueId(currentUser.getQueueId().toString())
+              .createdAt(OffsetDateTime.now(clock));
+      participantRepository.insert(participant);
+    }
+    return JoinStatus.ACCEPTED;
+  }
+
+  // Handles non-owner participants in scheduled meetings
+  private JoinStatus handleNonOwnerScheduledParticipant(
+      Meeting meeting, UserPrincipal currentUser, Room room, JoinSettingsDto joinSettingsDto) {
+
+    return waitingParticipantRepository.find(meeting.getId(), currentUser.getId(), null).stream()
+        .findFirst()
+        .map(wp -> processWaitingParticipant(meeting, currentUser, room, wp, joinSettingsDto))
+        .orElseGet(() -> addWaitingParticipant(meeting, currentUser, room));
+  }
+
+  // Processes a waiting participant’s status, including queue clash handling
+  private JoinStatus processWaitingParticipant(
+      Meeting meeting,
+      UserPrincipal currentUser,
+      Room room,
+      WaitingParticipant wp,
+      JoinSettingsDto joinSettingsDto) {
+
+    return switch (wp.getStatus()) {
+      case ACCEPTED -> acceptWaitingParticipant(meeting, currentUser, room, wp, joinSettingsDto);
+      case WAITING -> handleWaitingClash(currentUser, meeting, wp);
+    };
+  }
+
+  // Accepts a waiting participant into the meeting
+  private JoinStatus acceptWaitingParticipant(
+      Meeting meeting,
+      UserPrincipal currentUser,
+      Room room,
+      WaitingParticipant wp,
+      JoinSettingsDto joinSettingsDto) {
+
+    JoinStatus joinStatus = joinMeetingParticipant(meeting, currentUser, room, joinSettingsDto);
+
+    waitingParticipantRepository.remove(wp);
+
+    return joinStatus;
+  }
+
+  // Handles cases where the user is in the WAITING state but on a different queue
+  private JoinStatus handleWaitingClash(
+      UserPrincipal currentUser, Meeting meeting, WaitingParticipant wp) {
+    // User is already in queue, but on a different tab/device
+    if (!wp.getQueueId().equals(currentUser.getQueueId().toString())) {
+      eventDispatcher.sendToUserQueue(
+          currentUser.getId(),
+          wp.getQueueId(),
+          MeetingWaitingParticipantClashed.create().meetingId(UUID.fromString(meeting.getId())));
+
+      // Update the queue ID to the current user's new queue
+      wp.queueId(currentUser.getQueueId().toString());
+      waitingParticipantRepository.update(wp);
+    }
+    return JoinStatus.WAITING;
+  }
+
+  // Handles joining for a permanent meeting
+  private JoinStatus handlePermanentMeetingParticipant(
+      Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser, Room room) {
+
+    boolean isRoomMember =
+        room.getSubscriptions().stream().anyMatch(s -> s.getUserId().equals(currentUser.getId()));
+    if (!isRoomMember) {
+      throw new ForbiddenException("User cannot join the meeting");
+    }
+
+    return joinMeetingParticipant(meeting, currentUser, room, joinSettingsDto);
   }
 
   private @NotNull JoinStatus addWaitingParticipant(
@@ -287,33 +283,30 @@ public class ParticipantServiceImpl implements ParticipantService {
             .userId(currentUser.getUUID()));
   }
 
-  private void destroyMeetingParticipant(Meeting meeting, UserPrincipal currentUser, Room room) {
+  private void destroyMeetingParticipantClashed(
+      Meeting meeting, Participant participant, UserPrincipal currentUser, Room room) {
     videoServerService.destroyMeetingParticipant(currentUser.getId(), meeting.getId());
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingParticipantLeft.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(currentUser.getUUID()));
+    eventDispatcher.sendToUserQueue(
+        currentUser.getId(),
+        participant.getQueueId(),
+        MeetingParticipantClashed.create().meetingId(UUID.fromString(meeting.getId())));
   }
 
   @Override
-  @Transactional
   public void removeMeetingParticipant(UUID meetingId, UserPrincipal currentUser) {
-    Meeting meeting =
-        meetingService
-            .getMeetingEntity(meetingId)
-            .orElseThrow(
-                () ->
-                    new NotFoundException(
-                        String.format("Meeting with id '%s' not found", meetingId)));
+    Meeting meeting = validateMeeting(meetingId);
     Room room =
-        roomService.getRoomEntityAndCheckUser(
+        roomService.getRoomAndValidateUser(
             UUID.fromString(meeting.getRoomId()), currentUser, false);
     removeMeetingParticipant(meeting, room, currentUser.getUUID());
   }
 
   @Override
-  @Transactional
   public void removeMeetingParticipant(Meeting meeting, Room room, UUID userId) {
     meeting.getParticipants().stream()
         .filter(p -> userId.toString().equals(p.getUserId()))
@@ -322,7 +315,6 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   @Override
-  @Transactional
   public void removeMeetingParticipant(UUID queueId) {
     participantRepository
         .getByQueueId(queueId.toString())
@@ -339,29 +331,24 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   private void removeMeetingParticipant(Participant participant, Meeting meeting, Room room) {
-    participantRepository.remove(participant);
     videoServerService.destroyMeetingParticipant(participant.getUserId(), meeting.getId());
+    participantRepository.remove(participant);
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingParticipantLeft.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(UUID.fromString(participant.getUserId())));
     if (participantRepository.getByMeetingId(meeting.getId()).isEmpty()) {
-      meetingService.updateMeeting(
+      meetingService.stopMeeting(
           UserPrincipal.create(UUID.fromString(participant.getUserId())),
-          UUID.fromString(meeting.getId()),
-          false);
+          UUID.fromString(meeting.getId()));
     }
   }
 
   @Override
   public void updateMediaStream(
       UUID meetingId, MediaStreamSettingsDto mediaStreamSettingsDto, UserPrincipal currentUser) {
-    Meeting meeting =
-        meetingService
-            .getMeetingEntity(meetingId)
-            .orElseThrow(
-                () -> new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
+    Meeting meeting = validateMeeting(meetingId);
     Participant participant =
         meeting.getParticipants().stream()
             .filter(p -> currentUser.getId().equals(p.getUserId()))
@@ -376,9 +363,9 @@ public class ParticipantServiceImpl implements ParticipantService {
     switch (mediaStreamSettingsDto.getType()) {
       case VIDEO:
         if (participant.hasVideoStreamOn() != mediaStreamEnabled) {
-          participantRepository.update(participant.videoStreamOn(mediaStreamEnabled));
           videoServerService.updateMediaStream(
               currentUser.getId(), meetingId.toString(), mediaStreamSettingsDto);
+          participantRepository.update(participant.videoStreamOn(mediaStreamEnabled));
           if (!mediaStreamEnabled) {
             eventDispatcher.sendToUserExchange(
                 meeting.getParticipants().stream().map(Participant::getUserId).distinct().toList(),
@@ -392,9 +379,9 @@ public class ParticipantServiceImpl implements ParticipantService {
         break;
       case SCREEN:
         if (participant.hasScreenStreamOn() != mediaStreamEnabled) {
-          participantRepository.update(participant.screenStreamOn(mediaStreamEnabled));
           videoServerService.updateMediaStream(
               currentUser.getId(), meetingId.toString(), mediaStreamSettingsDto);
+          participantRepository.update(participant.screenStreamOn(mediaStreamEnabled));
           if (!mediaStreamEnabled) {
             eventDispatcher.sendToUserExchange(
                 meeting.getParticipants().stream().map(Participant::getUserId).distinct().toList(),
@@ -414,11 +401,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   @Override
   public void updateAudioStream(
       UUID meetingId, AudioStreamSettingsDto audioStreamSettingsDto, UserPrincipal currentUser) {
-    Meeting meeting =
-        meetingService
-            .getMeetingEntity(meetingId)
-            .orElseThrow(
-                () -> new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
+    Meeting meeting = validateMeeting(meetingId);
     String userId =
         audioStreamSettingsDto.getUserToModerate() == null
             ? currentUser.getId()
@@ -439,12 +422,11 @@ public class ParticipantServiceImpl implements ParticipantService {
                 "User '%s' cannot enable the audio stream of the user '%s'",
                 currentUser.getId(), userId));
       }
-      roomService.getRoomEntityAndCheckUser(
-          UUID.fromString(meeting.getRoomId()), currentUser, true);
+      roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
     }
     if (participant.hasAudioStreamOn() != enabled) {
-      participantRepository.update(participant.audioStreamOn(enabled));
       videoServerService.updateAudioStream(userId, meetingId.toString(), enabled);
+      participantRepository.update(participant.audioStreamOn(enabled));
       Optional.ofNullable(audioStreamSettingsDto.getUserToModerate())
           .ifPresentOrElse(
               targetUserId ->
@@ -473,36 +455,24 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   @Override
   public void answerRtcMediaStream(UUID meetingId, String sdp, UserPrincipal currentUser) {
-    Meeting meeting =
-        meetingService
-            .getMeetingEntity(meetingId)
-            .orElseThrow(
-                () -> new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
+    Meeting meeting = validateMeeting(meetingId);
+    roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.answerRtcMediaStream(currentUser.getId(), meetingId.toString(), sdp);
   }
 
   @Override
   public void updateSubscriptionsMediaStream(
       UUID meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto, UserPrincipal currentUser) {
-    Meeting meeting =
-        meetingService
-            .getMeetingEntity(meetingId)
-            .orElseThrow(
-                () -> new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
+    Meeting meeting = validateMeeting(meetingId);
+    roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.updateSubscriptionsMediaStream(
         currentUser.getId(), meetingId.toString(), subscriptionUpdatesDto);
   }
 
   @Override
   public void offerRtcAudioStream(UUID meetingId, String sdp, UserPrincipal currentUser) {
-    Meeting meeting =
-        meetingService
-            .getMeetingEntity(meetingId)
-            .orElseThrow(
-                () -> new NotFoundException(String.format("Meeting '%s' not found", meetingId)));
-    roomService.getRoomEntityAndCheckUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
+    Meeting meeting = validateMeeting(meetingId);
+    roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.offerRtcAudioStream(currentUser.getId(), meetingId.toString(), sdp);
   }
 
@@ -518,64 +488,119 @@ public class ParticipantServiceImpl implements ParticipantService {
   @Override
   public void updateQueue(
       UUID meetingId, UUID userId, QueueUpdateStatusDto status, UserPrincipal currentUser) {
-    Meeting meeting =
-        meetingService
-            .getMeetingEntity(meetingId)
-            .orElseThrow(
-                () -> new NotFoundException(String.format("Meeting %s not found", meetingId)));
-    Room room =
-        roomService
-            .getRoom(UUID.fromString(meeting.getRoomId()))
-            .orElseThrow(
-                () -> new NotFoundException("No room associated with meeting " + meetingId));
-    boolean moderator = isOwner(room, currentUser.getId());
-    if (status.equals(QueueUpdateStatusDto.ACCEPTED) && !moderator
-        || status.equals(QueueUpdateStatusDto.REJECTED)
-            && (!moderator && !Objects.equals(userId.toString(), currentUser.getId()))) {
-      throw new ForbiddenException();
-    }
+    Meeting meeting = validateMeeting(meetingId);
+    Room room = validateMeetingRoom(meeting);
+
+    // Check if the current user has permission to update the queue
+    validateQueueUpdatePermissions(status, userId, currentUser, room);
+
+    // Process the waiting participant based on the provided status
     waitingParticipantRepository.find(meetingId.toString(), userId.toString(), null).stream()
         .findFirst()
         .ifPresentOrElse(
-            wp -> {
-              DomainEvent event =
-                  switch (status) {
-                    case ACCEPTED:
-                      wp.status(JoinStatus.ACCEPTED);
-                      waitingParticipantRepository.update(wp);
-                      try {
-                        membersService.insertRoomMember(
-                            UUID.fromString(meeting.getRoomId()),
-                            new MemberToInsertDto()
-                                .userId(userId)
-                                .owner(false)
-                                .historyCleared(false),
-                            currentUser);
-                      } catch (BadRequestException ignored) {
-                      }
-                      yield MeetingWaitingParticipantAccepted.create()
-                          .meetingId(meetingId)
-                          .userId(UUID.fromString(wp.getUserId()));
-                    case REJECTED:
-                      waitingParticipantRepository.remove(wp);
-                      yield MeetingWaitingParticipantRejected.create()
-                          .meetingId(meetingId)
-                          .userId(UUID.fromString(wp.getUserId()));
-                  };
-              eventDispatcher.sendToUserExchange(
-                  room.getSubscriptions().stream()
-                      .filter(Subscription::isOwner)
-                      .map(Subscription::getUserId)
-                      .toList(),
-                  event);
-              eventDispatcher.sendToUserQueue(wp.getUserId(), wp.getQueueId(), event);
-            },
+            wp -> processQueueUpdate(status, wp, meetingId, userId, meeting, room, currentUser),
             () -> {
               throw new NotFoundException(
-                  String.format("User %s not in the meeting %s queue", userId, meetingId));
+                  String.format("User '%s' not in the meeting '%s' queue", userId, meetingId));
             });
   }
 
+  private void validateQueueUpdatePermissions(
+      QueueUpdateStatusDto status, UUID userId, UserPrincipal currentUser, Room room) {
+    boolean isModerator = isOwner(room, currentUser.getId());
+    boolean unauthorizedAcceptance = QueueUpdateStatusDto.ACCEPTED.equals(status) && !isModerator;
+    boolean unauthorizedRejection =
+        QueueUpdateStatusDto.REJECTED.equals(status)
+            && (!isModerator && !userId.toString().equals(currentUser.getId()));
+
+    if (unauthorizedAcceptance || unauthorizedRejection) {
+      throw new ForbiddenException("User cannot accept or reject a queued user");
+    }
+  }
+
+  private void processQueueUpdate(
+      QueueUpdateStatusDto status,
+      WaitingParticipant wp,
+      UUID meetingId,
+      UUID userId,
+      Meeting meeting,
+      Room room,
+      UserPrincipal currentUser) {
+    switch (status) {
+      case ACCEPTED -> handleAcceptance(wp, meeting, userId, room, currentUser);
+      case REJECTED -> handleRejection(wp, meetingId, room);
+    }
+  }
+
+  private void handleAcceptance(
+      WaitingParticipant wp, Meeting meeting, UUID userId, Room room, UserPrincipal currentUser) {
+    wp.status(JoinStatus.ACCEPTED);
+    waitingParticipantRepository.update(wp);
+
+    // Insert user as a room member if not already present
+    try {
+      membersService.insertRoomMembers(
+          UUID.fromString(meeting.getRoomId()),
+          List.of(MemberToInsertDto.create().userId(userId).owner(false).historyCleared(false)),
+          currentUser);
+    } catch (BadRequestException ignored) {
+      // Member insertion failure is ignored as the user might already be in the room
+    }
+
+    DomainEvent acceptedEvent =
+        MeetingWaitingParticipantAccepted.create()
+            .meetingId(UUID.fromString(meeting.getId()))
+            .userId(UUID.fromString(wp.getUserId()));
+
+    notifyUsers(room, wp, acceptedEvent);
+  }
+
+  private void handleRejection(WaitingParticipant wp, UUID meetingId, Room room) {
+    waitingParticipantRepository.remove(wp);
+
+    DomainEvent rejectedEvent =
+        MeetingWaitingParticipantRejected.create()
+            .meetingId(meetingId)
+            .userId(UUID.fromString(wp.getUserId()));
+
+    notifyUsers(room, wp, rejectedEvent);
+  }
+
+  private void notifyUsers(Room room, WaitingParticipant wp, DomainEvent event) {
+    // Notify all room owners
+    List<String> ownerIds = getOwnerIds(room);
+    eventDispatcher.sendToUserExchange(ownerIds, event);
+
+    // Notify the user in the queue
+    eventDispatcher.sendToUserQueue(wp.getUserId(), wp.getQueueId(), event);
+  }
+
+  private List<String> getOwnerIds(Room room) {
+    return room.getSubscriptions().stream()
+        .filter(Subscription::isOwner)
+        .map(Subscription::getUserId)
+        .toList();
+  }
+
+  @Override
+  public void removeFromQueue(UUID queueId) {
+    waitingParticipantRepository
+        .getByQueueId(queueId.toString())
+        .ifPresent(
+            wp ->
+                meetingService
+                    .getMeetingEntity(UUID.fromString(wp.getMeetingId()))
+                    .ifPresent(
+                        meeting ->
+                            roomService
+                                .getRoom(UUID.fromString(meeting.getRoomId()))
+                                .ifPresent(
+                                    room ->
+                                        handleRejection(
+                                            wp, UUID.fromString(meeting.getId()), room))));
+  }
+
+  @Override
   public void clearQueue(UUID meetingId) {
     waitingParticipantRepository.clear(meetingId.toString());
   }

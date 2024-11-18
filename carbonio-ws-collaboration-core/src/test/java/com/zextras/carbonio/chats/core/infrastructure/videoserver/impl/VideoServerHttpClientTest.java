@@ -29,11 +29,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -43,26 +43,20 @@ class VideoServerHttpClientTest {
   private final ObjectMapper objectMapper;
   private final VideoServerHttpClient videoServerHttpClient;
 
+  private final String videoServerURL = "http://127.78.0.4:20006";
+  private final String videoRecorderURL = "http://127.78.0.4:20007";
+
+  private final String janusEndpoint = "/janus";
+  private final String janusInfoEndpoint = "/info";
+  private final String postProcessorEndpoint = "/PostProcessor";
+  private final String meetingEndpoint = "/meeting_%s";
+  private final String videoServerRoutingQueryParam = "?service_id=%s";
+
   public VideoServerHttpClientTest() {
     this.httpClient = mock(HttpClient.class);
     this.objectMapper = new ObjectMapper();
-
-    this.videoServerHttpClient = new VideoServerHttpClient(httpClient, objectMapper);
-  }
-
-  private String videoServerURL;
-  private String videoRecorderURL;
-  private String janusEndpoint;
-  private String janusInfoEndpoint;
-  private String postProcessorEndpoint;
-
-  @BeforeEach
-  void init() {
-    videoServerURL = "http://127.78.0.4:20006";
-    videoRecorderURL = "http://127.78.0.4:20007";
-    janusEndpoint = "/janus";
-    janusInfoEndpoint = "/info";
-    postProcessorEndpoint = "/PostProcessor/meeting";
+    this.videoServerHttpClient =
+        new VideoServerHttpClient(httpClient, videoServerURL, videoRecorderURL, objectMapper);
   }
 
   @AfterEach
@@ -88,54 +82,49 @@ class VideoServerHttpClientTest {
   @Test
   @DisplayName("Send get info http request to video server service")
   void sendIsAliveHttpRequestCorrectly() throws IOException {
-    mockResponse(videoServerURL + janusEndpoint + janusInfoEndpoint, 200, PongResponse.create());
+    String url = videoServerURL + janusEndpoint + janusInfoEndpoint;
+    mockResponse(url, 200, PongResponse.create());
 
-    VideoServerResponse videoServerResponse =
-        videoServerHttpClient.sendGetInfoRequest(
-            videoServerURL + janusEndpoint + janusInfoEndpoint);
+    VideoServerResponse videoServerResponse = videoServerHttpClient.sendGetInfoRequest();
 
     assertEquals(VideoServerResponse.create(), videoServerResponse);
 
-    verify(httpClient, times(1))
-        .sendGet(
-            videoServerURL + janusEndpoint + janusInfoEndpoint,
-            Map.of("content-type", "application/json"));
+    verify(httpClient, times(1)).sendGet(url, Map.of("Content-Type", "application/json"));
   }
 
   @Test
   @DisplayName(
       "throws video server exception if video server service returns error sending info request")
   void throwsVideoServerExceptionWhenErrorOccursSendingInfoRequest() throws IOException {
-    mockResponse(videoServerURL + janusEndpoint + janusInfoEndpoint, 404, null);
+    String url = videoServerURL + janusEndpoint + janusInfoEndpoint;
+    mockResponse(url, 404, null);
 
     assertThrows(
         VideoServerException.class,
-        () ->
-            videoServerHttpClient.sendGetInfoRequest(
-                videoServerURL + janusEndpoint + janusInfoEndpoint),
+        videoServerHttpClient::sendGetInfoRequest,
         "Could not get any response by video server");
 
-    verify(httpClient, times(1))
-        .sendGet(
-            videoServerURL + janusEndpoint + janusInfoEndpoint,
-            Map.of("content-type", "application/json"));
+    verify(httpClient, times(1)).sendGet(url, Map.of("Content-Type", "application/json"));
   }
 
   @Test
   @DisplayName("Send video server http request to video server service")
   void sendVideoServerHttpRequestCorrectly() throws IOException {
-    mockResponse(videoServerURL + janusEndpoint, 200, VideoServerResponse.create());
+    String url =
+        videoServerURL + janusEndpoint + String.format(videoServerRoutingQueryParam, "serverId");
+    mockResponse(url, 200, VideoServerResponse.create());
 
     VideoServerResponse videoServerResponse =
-        videoServerHttpClient.sendVideoServerRequest(
-            videoServerURL + janusEndpoint, VideoServerMessageRequest.create());
+        videoServerHttpClient
+            .sendVideoServerRequest("serverId", VideoServerMessageRequest.create())
+            .join();
 
     assertEquals(VideoServerResponse.create(), videoServerResponse);
 
     verify(httpClient, times(1))
         .sendPost(
-            videoServerURL + janusEndpoint,
-            Map.of("content-type", "application/json"),
+            url,
+            Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(VideoServerMessageRequest.create()));
   }
 
@@ -144,37 +133,47 @@ class VideoServerHttpClientTest {
       "throws video server exception if video server service returns error sending video server"
           + " request")
   void throwsVideoServerExceptionWhenErrorOccursSendingVideoServerRequest() throws IOException {
-    mockResponse(videoServerURL + janusEndpoint, 404, null);
+    String url =
+        videoServerURL + janusEndpoint + String.format(videoServerRoutingQueryParam, "serverId");
+    mockResponse(url, 404, null);
 
     assertThrows(
-        VideoServerException.class,
+        CompletionException.class,
         () ->
-            videoServerHttpClient.sendVideoServerRequest(
-                videoServerURL + janusEndpoint, VideoServerMessageRequest.create()),
-        "Could not get any response by video server");
+            videoServerHttpClient
+                .sendVideoServerRequest("serverId", VideoServerMessageRequest.create())
+                .join());
 
     verify(httpClient, times(1))
         .sendPost(
-            videoServerURL + janusEndpoint,
-            Map.of("content-type", "application/json"),
+            url,
+            Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(VideoServerMessageRequest.create()));
   }
 
   @Test
   @DisplayName("Send http request to video server service for audio bridge")
   void sendAudioBridgeHttpRequestCorrectly() throws IOException {
-    mockResponse(videoServerURL + janusEndpoint, 200, AudioBridgeResponse.create());
+    String url =
+        videoServerURL
+            + janusEndpoint
+            + "/connectionId"
+            + "/handleId"
+            + String.format(videoServerRoutingQueryParam, "serverId");
+    mockResponse(url, 200, AudioBridgeResponse.create());
 
     AudioBridgeResponse audioBridgeResponse =
-        videoServerHttpClient.sendAudioBridgeRequest(
-            videoServerURL + janusEndpoint, VideoServerMessageRequest.create());
+        videoServerHttpClient
+            .sendAudioBridgeRequest(
+                "connectionId", "handleId", "serverId", VideoServerMessageRequest.create())
+            .join();
 
     assertEquals(AudioBridgeResponse.create(), audioBridgeResponse);
 
     verify(httpClient, times(1))
         .sendPost(
-            videoServerURL + janusEndpoint,
-            Map.of("content-type", "application/json"),
+            url,
+            Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(VideoServerMessageRequest.create()));
   }
 
@@ -183,37 +182,52 @@ class VideoServerHttpClientTest {
       "throws video server exception if video server service returns error sending audio bridge"
           + " request")
   void throwsVideoServerExceptionWhenErrorOccursSendingAudioBridgeRequest() throws IOException {
-    mockResponse(videoServerURL + janusEndpoint, 404, null);
+    String url =
+        videoServerURL
+            + janusEndpoint
+            + "/connectionId"
+            + "/handleId"
+            + String.format(videoServerRoutingQueryParam, "serverId");
+    mockResponse(url, 404, null);
 
     assertThrows(
-        VideoServerException.class,
+        CompletionException.class,
         () ->
-            videoServerHttpClient.sendAudioBridgeRequest(
-                videoServerURL + janusEndpoint, VideoServerMessageRequest.create()),
-        "Could not get any response by video server");
+            videoServerHttpClient
+                .sendAudioBridgeRequest(
+                    "connectionId", "handleId", "serverId", VideoServerMessageRequest.create())
+                .join());
 
     verify(httpClient, times(1))
         .sendPost(
-            videoServerURL + janusEndpoint,
-            Map.of("content-type", "application/json"),
+            url,
+            Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(VideoServerMessageRequest.create()));
   }
 
   @Test
   @DisplayName("Send http request to video server service for video room")
   void sendVideoRoomHttpRequestCorrectly() throws IOException {
-    mockResponse(videoServerURL + janusEndpoint, 200, VideoRoomResponse.create());
+    String url =
+        videoServerURL
+            + janusEndpoint
+            + "/connectionId"
+            + "/handleId"
+            + String.format(videoServerRoutingQueryParam, "serverId");
+    mockResponse(url, 200, VideoRoomResponse.create());
 
     VideoRoomResponse videoRoomResponse =
-        videoServerHttpClient.sendVideoRoomRequest(
-            videoServerURL + janusEndpoint, VideoServerMessageRequest.create());
+        videoServerHttpClient
+            .sendVideoRoomRequest(
+                "connectionId", "handleId", "serverId", VideoServerMessageRequest.create())
+            .join();
 
     assertEquals(VideoRoomResponse.create(), videoRoomResponse);
 
     verify(httpClient, times(1))
         .sendPost(
-            videoServerURL + janusEndpoint,
-            Map.of("content-type", "application/json"),
+            url,
+            Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(VideoServerMessageRequest.create()));
   }
 
@@ -222,19 +236,26 @@ class VideoServerHttpClientTest {
       "throws video server exception if video server service returns error sending video room"
           + " request")
   void throwsVideoServerExceptionWhenErrorOccursSendingVideoRoomRequest() throws IOException {
-    mockResponse(videoServerURL + janusEndpoint, 404, null);
+    String url =
+        videoServerURL
+            + janusEndpoint
+            + "/connectionId"
+            + "/handleId"
+            + String.format(videoServerRoutingQueryParam, "serverId");
+    mockResponse(url, 404, null);
 
     assertThrows(
-        VideoServerException.class,
+        CompletionException.class,
         () ->
-            videoServerHttpClient.sendVideoRoomRequest(
-                videoServerURL + janusEndpoint, VideoServerMessageRequest.create()),
-        "Could not get any response by video server");
+            videoServerHttpClient
+                .sendVideoRoomRequest(
+                    "connectionId", "handleId", "serverId", VideoServerMessageRequest.create())
+                .join());
 
     verify(httpClient, times(1))
         .sendPost(
-            videoServerURL + janusEndpoint,
-            Map.of("content-type", "application/json"),
+            url,
+            Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(VideoServerMessageRequest.create()));
   }
 
@@ -242,15 +263,18 @@ class VideoServerHttpClientTest {
   @DisplayName("Send http request to video recorder service for the post processing phase")
   void sendVideoRecorderHttpRequestCorrectly() throws IOException {
     UUID meetingId = UUID.randomUUID();
-    mockResponse(videoRecorderURL + postProcessorEndpoint + "_" + meetingId, 200, null);
+    String url =
+        videoRecorderURL + postProcessorEndpoint + String.format(meetingEndpoint, meetingId);
+    mockResponse(url, 200, null);
 
-    videoServerHttpClient.sendVideoRecorderRequest(
-        videoRecorderURL + postProcessorEndpoint + "_" + meetingId, VideoRecorderRequest.create());
+    videoServerHttpClient
+        .sendVideoRecorderRequest(meetingId.toString(), VideoRecorderRequest.create())
+        .join();
 
     verify(httpClient, times(1))
         .sendPost(
-            videoRecorderURL + postProcessorEndpoint + "_" + meetingId,
-            Map.of("content-type", "application/json"),
+            url,
+            Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(VideoRecorderRequest.create()));
   }
 
@@ -260,20 +284,21 @@ class VideoServerHttpClientTest {
           + " processing request")
   void throwsVideoServerExceptionWhenErrorOccursSendingVideoRecorderRequest() throws IOException {
     UUID meetingId = UUID.randomUUID();
-    mockResponse(videoRecorderURL + postProcessorEndpoint + "_" + meetingId, 500, null);
+    String url =
+        videoRecorderURL + postProcessorEndpoint + String.format(meetingEndpoint, meetingId);
+    mockResponse(url, 500, null);
 
     assertThrows(
-        VideoServerException.class,
+        CompletionException.class,
         () ->
-            videoServerHttpClient.sendVideoRecorderRequest(
-                videoRecorderURL + postProcessorEndpoint + "_" + meetingId,
-                VideoRecorderRequest.create()),
-        "Video recorder returns error response: 500");
+            videoServerHttpClient
+                .sendVideoRecorderRequest(meetingId.toString(), VideoRecorderRequest.create())
+                .join());
 
     verify(httpClient, times(1))
         .sendPost(
-            videoRecorderURL + postProcessorEndpoint + "_" + meetingId,
-            Map.of("content-type", "application/json"),
+            url,
+            Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(VideoRecorderRequest.create()));
   }
 }

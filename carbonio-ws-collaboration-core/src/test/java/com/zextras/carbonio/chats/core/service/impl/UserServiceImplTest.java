@@ -11,7 +11,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -35,6 +37,7 @@ import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
+import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -404,6 +407,7 @@ class UserServiceImplTest {
       verify(fileMetadataRepository, times(1))
           .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
       verify(storagesService, times(1)).getFileStreamById(userId.toString(), userId.toString());
+      verifyNoMoreInteractions(fileMetadataRepository, storagesService);
     }
 
     @Test
@@ -421,7 +425,11 @@ class UserServiceImplTest {
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
-          String.format("Not Found - File with id '%s' not found", userId), exception.getMessage());
+          String.format("Not Found - User picture '%s' not found", userId), exception.getMessage());
+
+      verify(fileMetadataRepository, times(1))
+          .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
+      verifyNoMoreInteractions(fileMetadataRepository, storagesService);
     }
   }
 
@@ -462,6 +470,7 @@ class UserServiceImplTest {
       assertEquals("picture", fileMetadata.getName());
       assertEquals(123L, fileMetadata.getOriginalSize());
       assertEquals(userId.toString(), fileMetadata.getUserId());
+      assertEquals(null, fileMetadata.getRoomId());
       verify(userRepository, times(1)).getById(userId.toString());
       verify(userRepository, times(1))
           .save(
@@ -471,7 +480,8 @@ class UserServiceImplTest {
       verify(clock, times(1)).instant();
       verify(clock, times(1)).getZone();
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
-      verify(storagesService, times(1)).saveFile(fileStream, fileMetadata, userId.toString());
+      verify(storagesService, times(1))
+          .saveFile(eq(fileStream), anyString(), eq(userId.toString()), eq(123L));
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               contactsIds,
@@ -501,9 +511,6 @@ class UserServiceImplTest {
               .userId(userId.toString());
       when(fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR))
           .thenReturn(Optional.of(fileMetadata));
-      InputStream file = mock(InputStream.class);
-      List<String> contactsIds = List.of("a", "b", "c");
-      when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contactsIds);
       User user =
           User.create()
               .id(userId.toString())
@@ -517,7 +524,10 @@ class UserServiceImplTest {
               User.create()
                   .id(userId.toString())
                   .pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
+      List<String> contactsIds = List.of("a", "b", "c");
+      when(subscriptionRepository.getContacts(userId.toString())).thenReturn(contactsIds);
 
+      InputStream file = mock(InputStream.class);
       userService.setUserPicture(
           userId, file, "image/jpeg", 123L, "picture", UserPrincipal.create(userId));
 
@@ -533,14 +543,14 @@ class UserServiceImplTest {
       verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB);
       verify(fileMetadataRepository, times(1))
           .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
-      verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(clock, times(1)).instant();
       verify(clock, times(1)).getZone();
       verify(userRepository, times(1)).getById(userId.toString());
       verify(userRepository, times(1))
           .save(user.pictureUpdatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
+      verify(storagesService, times(1)).saveFile(file, userId.toString(), userId.toString(), 123L);
+      verify(fileMetadataRepository, times(1)).save(expectedMetadata);
       verify(subscriptionRepository, times(1)).getContacts(userId.toString());
-      verify(storagesService, times(1)).saveFile(file, expectedMetadata, userId.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               contactsIds,
@@ -548,6 +558,41 @@ class UserServiceImplTest {
                   .userId(userId)
                   .imageId(UUID.fromString(expectedMetadata.getId()))
                   .updatedAt(OffsetDateTime.parse("2022-01-01T00:00:00Z")));
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          userRepository,
+          storagesService,
+          subscriptionRepository,
+          eventDispatcher,
+          clock,
+          appConfig);
+      verifyNoInteractions(profilingService);
+    }
+
+    @Test
+    @DisplayName(
+        "If the specified user is not the authenticated user, it throws a ForbiddenException")
+    void setUserPicture_failsIfUserIsNotAuthenticatedUser() {
+      UUID user1Id = UUID.randomUUID();
+      UUID user2Id = UUID.randomUUID();
+      InputStream fileStream = mock(InputStream.class);
+      ForbiddenException exception =
+          assertThrows(
+              ForbiddenException.class,
+              () ->
+                  userService.setUserPicture(
+                      user2Id,
+                      fileStream,
+                      "image/jpeg",
+                      123L,
+                      "picture",
+                      UserPrincipal.create(user1Id)));
+
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          "Forbidden - The picture can be change only from its owner", exception.getMessage());
+
       verifyNoMoreInteractions(
           fileMetadataRepository,
           userRepository,
@@ -579,6 +624,17 @@ class UserServiceImplTest {
       assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals("Bad Request - The user picture must be an image", exception.getMessage());
+
+      verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB);
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          userRepository,
+          storagesService,
+          subscriptionRepository,
+          eventDispatcher,
+          clock,
+          appConfig);
+      verifyNoInteractions(profilingService);
     }
 
     @Test
@@ -602,31 +658,56 @@ class UserServiceImplTest {
       assertEquals(
           String.format("Bad Request - The user picture cannot be greater than %d kB", 512),
           exception.getMessage());
+
+      verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB);
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          userRepository,
+          storagesService,
+          subscriptionRepository,
+          eventDispatcher,
+          clock,
+          appConfig);
+      verifyNoInteractions(profilingService);
     }
 
     @Test
-    @DisplayName(
-        "If the specified user is not the authenticated user, it throws a ForbiddenException")
-    void setUserPicture_failsIfUserIsNotAuthenticatedUser() {
-      UUID user1Id = UUID.randomUUID();
-      UUID user2Id = UUID.randomUUID();
-      InputStream fileStream = mock(InputStream.class);
-      ForbiddenException exception =
-          assertThrows(
-              ForbiddenException.class,
-              () ->
-                  userService.setUserPicture(
-                      user2Id,
-                      fileStream,
-                      "image/jpeg",
-                      123L,
-                      "picture",
-                      UserPrincipal.create(user1Id)));
+    @DisplayName("Throws an exception if storage service fails")
+    void setUserPicture_testStorageException() {
+      UUID userId = UUID.randomUUID();
+      FileMetadata fileMetadata =
+          FileMetadata.create()
+              .id(userId.toString())
+              .type(FileMetadataType.USER_AVATAR)
+              .userId(userId.toString());
+      when(fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR))
+          .thenReturn(Optional.of(fileMetadata));
 
-      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(
-          "Forbidden - The picture can be change only from its owner", exception.getMessage());
+      InputStream file = mock(InputStream.class);
+      doThrow(new StorageException())
+          .when(storagesService)
+          .saveFile(eq(file), anyString(), eq(userId.toString()), eq(123L));
+
+      assertThrows(
+          StorageException.class,
+          () ->
+              userService.setUserPicture(
+                  userId, file, "image/jpeg", 123L, "picture", UserPrincipal.create(userId)));
+
+      verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB);
+      verify(fileMetadataRepository, times(1))
+          .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
+      verify(storagesService, times(1))
+          .saveFile(eq(file), anyString(), eq(userId.toString()), eq(123L));
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          userRepository,
+          storagesService,
+          subscriptionRepository,
+          eventDispatcher,
+          clock,
+          appConfig);
+      verifyNoInteractions(profilingService);
     }
   }
 
@@ -652,13 +733,13 @@ class UserServiceImplTest {
 
       verify(fileMetadataRepository, times(1))
           .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
-      verify(fileMetadataRepository, times(1)).delete(metadata);
+      verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
       verify(userRepository, times(1)).getById(userId.toString());
       verify(userRepository, times(1)).save(user.pictureUpdatedAt(null));
-      verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
+      verify(fileMetadataRepository, times(1)).delete(metadata);
+      verify(subscriptionRepository, times(1)).getContacts(userId.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(eq(contacts), any(UserPictureDeleted.class));
-      verify(subscriptionRepository, times(1)).getContacts(userId.toString());
 
       verifyNoMoreInteractions(
           fileMetadataRepository,
@@ -703,11 +784,41 @@ class UserServiceImplTest {
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
-          String.format("Not Found - File with id '%s' not found", userId), exception.getMessage());
+          String.format("Not Found - User picture '%s' not found", userId), exception.getMessage());
       verify(fileMetadataRepository, times(1))
           .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
       verifyNoMoreInteractions(fileMetadataRepository);
       verifyNoInteractions(storagesService, eventDispatcher, subscriptionRepository);
+    }
+
+    @Test
+    @DisplayName("Throws an exception if storage service fails")
+    void deleteUserPicture_testStorageFails() {
+      UUID userId = UUID.randomUUID();
+      FileMetadata metadata = FileMetadata.create().id(userId.toString()).userId(userId.toString());
+      when(fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR))
+          .thenReturn(Optional.of(metadata));
+
+      doThrow(new StorageException())
+          .when(storagesService)
+          .deleteFile(userId.toString(), userId.toString());
+
+      assertThrows(
+          StorageException.class,
+          () -> userService.deleteUserPicture(userId, UserPrincipal.create(userId)));
+
+      verify(fileMetadataRepository, times(1))
+          .find(userId.toString(), null, FileMetadataType.USER_AVATAR);
+      verify(storagesService, times(1)).deleteFile(userId.toString(), userId.toString());
+
+      verifyNoMoreInteractions(
+          fileMetadataRepository,
+          userRepository,
+          storagesService,
+          eventDispatcher,
+          subscriptionRepository,
+          eventDispatcher);
+      verifyNoInteractions(profilingService, appConfig, clock);
     }
   }
 }

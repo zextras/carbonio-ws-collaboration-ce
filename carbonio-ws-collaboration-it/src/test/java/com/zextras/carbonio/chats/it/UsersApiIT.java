@@ -53,7 +53,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.mockserver.verify.VerificationTimes;
 
 @ApiIntegrationTest
 public class UsersApiIT {
@@ -311,12 +310,6 @@ public class UsersApiIT {
           fileMock.getMimeType(),
           response.getOutputHeaders().get("Content-Type").get(0).toString());
       assertEquals(fileMock.getSize(), response.getOutputHeaders().get("Content-Length").get(0));
-
-      storageMockServer.verify(
-          storageMockServer.getNSLookupUrlRequest(account.getId()), VerificationTimes.exactly(1));
-      storageMockServer.verify(
-          storageMockServer.getDownloadRequest(fileMock.getId(), account.getId()),
-          VerificationTimes.exactly(1));
     }
 
     @Test
@@ -404,11 +397,6 @@ public class UsersApiIT {
           OffsetDateTime.ofInstant(
               Instant.parse("2022-01-01T00:00:00Z"), ZoneOffset.systemDefault()),
           user.get().getPictureUpdatedAt());
-      storageMockServer.verify(
-          storageMockServer.getNSLookupUrlRequest(account.getId()), VerificationTimes.exactly(1));
-      storageMockServer.verify(
-          storageMockServer.getUploadPutRequest(fileMock.getId(), account.getId()),
-          VerificationTimes.exactly(1));
     }
 
     @Test
@@ -555,12 +543,6 @@ public class UsersApiIT {
       Optional<User> user = integrationTestUtils.getUserById(account.getUUID());
       assertTrue(user.isPresent());
       assertNull(user.get().getPictureUpdatedAt());
-
-      storageMockServer.verify(
-          storageMockServer.getNSLookupUrlRequest(account.getId()), VerificationTimes.exactly(1));
-      storageMockServer.verify(
-          storageMockServer.getDeleteRequest(fileMock.getId(), account.getId()),
-          VerificationTimes.exactly(1));
     }
 
     @Test

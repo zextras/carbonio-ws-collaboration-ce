@@ -28,7 +28,6 @@ import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
 import com.zextras.carbonio.chats.model.UserDto.TypeEnum;
-import io.ebean.annotation.Transactional;
 import java.io.InputStream;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -131,7 +130,7 @@ public class UserServiceImpl implements UserService {
         fileMetadataRepository
             .find(userId.toString(), null, FileMetadataType.USER_AVATAR)
             .orElseThrow(
-                () -> new NotFoundException(String.format("File with id '%s' not found", userId)));
+                () -> new NotFoundException(String.format("User picture '%s' not found", userId)));
     return new FileContentAndMetadata(
         storagesService.getFileStreamById(metadata.getId(), metadata.getUserId()), metadata);
   }
@@ -160,32 +159,32 @@ public class UserServiceImpl implements UserService {
     }
     Optional<FileMetadata> oldMetadata =
         fileMetadataRepository.find(userId.toString(), null, FileMetadataType.USER_AVATAR);
-    FileMetadata metadata =
+    String fileId =
+        oldMetadata.isPresent() ? oldMetadata.get().getId() : UUID.randomUUID().toString();
+    storagesService.saveFile(image, fileId, userId.toString(), contentLength);
+    fileMetadataRepository.save(
         oldMetadata
-            .orElseGet(() -> FileMetadata.create().id(UUID.randomUUID().toString()))
+            .orElseGet(() -> FileMetadata.create().id(fileId))
             .type(FileMetadataType.USER_AVATAR)
             .name(fileName)
             .originalSize(contentLength)
             .mimeType(mimeType)
-            .userId(userId.toString());
-    fileMetadataRepository.save(metadata);
+            .userId(userId.toString()));
     User savedUser =
         userRepository.save(
             userRepository
                 .getById(userId.toString())
                 .orElseGet(() -> User.create().id(userId.toString()))
                 .pictureUpdatedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
-    storagesService.saveFile(image, metadata, userId.toString());
     eventDispatcher.sendToUserExchange(
         subscriptionRepository.getContacts(userId.toString()),
         UserPictureChanged.create()
             .userId(userId)
-            .imageId(UUID.fromString(metadata.getId()))
+            .imageId(UUID.fromString(fileId))
             .updatedAt(savedUser.getPictureUpdatedAt()));
   }
 
   @Override
-  @Transactional
   public void deleteUserPicture(UUID userId, UserPrincipal currentUser) {
     if (!currentUser.getUUID().equals(userId)) {
       throw new ForbiddenException("The picture can be removed only from its owner");
@@ -194,12 +193,12 @@ public class UserServiceImpl implements UserService {
         fileMetadataRepository
             .find(userId.toString(), null, FileMetadataType.USER_AVATAR)
             .orElseThrow(
-                () -> new NotFoundException(String.format("File with id '%s' not found", userId)));
+                () -> new NotFoundException(String.format("User picture '%s' not found", userId)));
+    storagesService.deleteFile(metadata.getId(), metadata.getUserId());
     fileMetadataRepository.delete(metadata);
     userRepository
         .getById(userId.toString())
         .ifPresent(user -> userRepository.save(user.pictureUpdatedAt(null)));
-    storagesService.deleteFile(metadata.getId(), metadata.getUserId());
     eventDispatcher.sendToUserExchange(
         subscriptionRepository.getContacts(userId.toString()),
         UserPictureDeleted.create().userId(userId));

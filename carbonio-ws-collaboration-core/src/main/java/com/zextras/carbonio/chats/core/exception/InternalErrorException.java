@@ -5,11 +5,12 @@
 package com.zextras.carbonio.chats.core.exception;
 
 import jakarta.ws.rs.core.Response.Status;
+import java.io.Serial;
 import java.io.Serializable;
 
 public class InternalErrorException extends ChatsHttpException implements Serializable {
 
-  private static final long serialVersionUID = -6182509366341339610L;
+  @Serial private static final long serialVersionUID = -6182509366341339610L;
   private static final Status HTTP_STATUS = Status.INTERNAL_SERVER_ERROR;
   private static final boolean IS_TO_LOG = true;
 

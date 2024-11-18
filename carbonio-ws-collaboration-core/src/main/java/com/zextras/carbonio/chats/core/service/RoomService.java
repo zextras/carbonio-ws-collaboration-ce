@@ -46,7 +46,7 @@ public interface RoomService {
    * @throws ForbiddenException if the user isn't a room member
    * @throws ForbiddenException if the user isn't a room owner and mustBeOwner is true
    */
-  Room getRoomEntityAndCheckUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner);
+  Room getRoomAndValidateUser(UUID roomId, UserPrincipal currentUser, boolean mustBeOwner);
 
   /**
    * Gets the room entity for internal usage

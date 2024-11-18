@@ -6,7 +6,7 @@ openapi: 3.0.3
 info:
   title: Zextras Workstream Collaboration Chats Api
   description: Zextras Carbonio Workstream Collaboration Chats HTTP APIs definition.
-  version: 1.3.1
+  version: 1.4.0
   contact:
     email: smokybeans@zextras.com
 servers:
@@ -68,9 +68,9 @@ paths:
       summary: Insert a room of the specified type
       description: |
         Inserts a room of the specified type. The user performing the request will be included in the final members
-        list if not specified. If the room is a one to one, only a single member can be specified and name and
-        description are replaced with an empty string. If the room is not a one to
-        one, there must be at least two members specified.
+        list if not specified. If the room is a one-to-one, only a single member can be specified and name and
+        description are replaced with an empty string. If the room is not a one-to-one,
+        there must be at least two members specified.
       operationId: insertRoom
       requestBody:
         $ref: '#/components/requestBodies/InsertRoomRequest'
@@ -174,7 +174,6 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-
   /rooms/{roomId}/mute:
     put:
       tags:
@@ -262,17 +261,17 @@ paths:
       tags:
         - Rooms
         - Members
-      summary: Adds or invites the specified user to the room
+      summary: Add or invite the specified users to the room
       description: |
-        Adds the specified user to the room. This can only be performed by an owner of the given room
-      operationId: insertRoomMember
+        Add the specified users to the room. This can only be performed by an owner of the given room
+      operationId: insertRoomMembers
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
       requestBody:
-        $ref: '#/components/requestBodies/InsertRoomMemberRequest'
+        $ref: '#/components/requestBodies/InsertRoomMembersRequest'
       responses:
         201:
-          $ref: '#/components/responses/200InsertRoomMemberResponse'
+          $ref: '#/components/responses/200InsertRoomMembersResponse'
         400:
           $ref: '#/components/responses/400BadRequestResponse'
         403:
@@ -766,7 +765,8 @@ components:
       name: Content-Length
       description: content length
       schema:
-        type: long
+        type: integer
+        format: int64
       required: true
     headerDescription:
       in: header
@@ -867,13 +867,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/RoomRanks'
-    InsertRoomMemberRequest:
-      description: member to add or invite
+    InsertRoomMembersRequest:
+      description: members to add or invite
       required: true
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/MemberToInsert'
+            $ref: '#/components/schemas/MembersToInsert'
     InsertAttachmentRequest:
       description: file stream
       required: true
@@ -973,12 +973,12 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/Member'
-    200InsertRoomMemberResponse:
-      description: The member added or invited
+    200InsertRoomMembersResponse:
+      description: The members added or invited
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/MemberInserted'
+            $ref: '#/components/schemas/MembersInserted'
     204DeleteRoomMemberResponse:
       description: The member was deleted correctly or it never existed
     204UpdateToOwnerResponse:
@@ -1272,12 +1272,10 @@ components:
               format: uuid
               description: identifier of the referenced workspace
       properties:
-        membersIds:
-          type: array
+        members:
           items:
-            type: string
-            format: uuid
-          description: members identifiers list to be subscribed to the room
+            $ref: '#/components/schemas/Member'
+          description: list of users to add to the room
       required: [ type ]
     Room:
       type: object
@@ -1321,11 +1319,6 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/Room'
-            members:
-              type: array
-              items:
-                $ref: '#/components/schemas/Member'
-              description: list of users subscribed to the room
             userSettings:
               $ref: '#/components/schemas/RoomUserSettings'
       required: [ id, createdAt, updatedAt ]
@@ -1380,20 +1373,31 @@ components:
           type: boolean
           default: false
           description: indicates whether it is the owner
-      required: [ userId, owner ]
+      required: [ userId ]
+    MembersToInsert:
+      type: array
+      description: members to insert in the room
+      items:
+        $ref: '#/components/schemas/MemberToInsert'
     MemberToInsert:
       type: object
-      description: Information about the member to insert in the room
+      description: Information about the members to insert in the room
       allOf:
         - $ref: '#/components/schemas/Member'
         - type: object
           properties:
             historyCleared:
               type: boolean
+              default: false
               description: |
                 indicates whether it can see previous messages,
                 after it has been added to the room
           required: [ userId, owner, historyCleared ]
+    MembersInserted:
+      type: array
+      description: members inserted in the room
+      items:
+        $ref: '#/components/schemas/MemberInserted'
     MemberInserted:
       type: object
       description: Information about the member to inserted in the room
