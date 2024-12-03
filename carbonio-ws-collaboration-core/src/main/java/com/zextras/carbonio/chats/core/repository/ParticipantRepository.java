@@ -12,8 +12,6 @@ public interface ParticipantRepository {
 
   Optional<Participant> getById(String meetingId, String userId);
 
-  Optional<Participant> getByUserId(String userId);
-
   Optional<Participant> getByQueueId(String queueId);
 
   List<Participant> getByMeetingId(String meetingId);

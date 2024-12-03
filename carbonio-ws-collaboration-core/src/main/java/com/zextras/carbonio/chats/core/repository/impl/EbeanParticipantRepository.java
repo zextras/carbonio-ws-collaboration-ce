@@ -29,11 +29,6 @@ public class EbeanParticipantRepository implements ParticipantRepository {
   }
 
   @Override
-  public Optional<Participant> getByUserId(String userId) {
-    return db.find(Participant.class).where().eq("id.userId", userId).findOneOrEmpty();
-  }
-
-  @Override
   public Optional<Participant> getByQueueId(String queueId) {
     return db.find(Participant.class).where().eq("queue_id", queueId).findOneOrEmpty();
   }

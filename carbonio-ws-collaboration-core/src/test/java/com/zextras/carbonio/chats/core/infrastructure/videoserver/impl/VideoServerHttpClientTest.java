@@ -17,7 +17,6 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRecorderRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerMessageRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.PongResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.VideoServerResponse;
@@ -28,7 +27,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
@@ -44,19 +42,16 @@ class VideoServerHttpClientTest {
   private final VideoServerHttpClient videoServerHttpClient;
 
   private final String videoServerURL = "http://127.78.0.4:20006";
-  private final String videoRecorderURL = "http://127.78.0.4:20007";
 
   private final String janusEndpoint = "/janus";
   private final String janusInfoEndpoint = "/info";
-  private final String postProcessorEndpoint = "/PostProcessor";
-  private final String meetingEndpoint = "/meeting_%s";
   private final String videoServerRoutingQueryParam = "?service_id=%s";
 
   public VideoServerHttpClientTest() {
     this.httpClient = mock(HttpClient.class);
     this.objectMapper = new ObjectMapper();
     this.videoServerHttpClient =
-        new VideoServerHttpClient(httpClient, videoServerURL, videoRecorderURL, objectMapper);
+        new VideoServerHttpClient(httpClient, videoServerURL, objectMapper);
   }
 
   @AfterEach
@@ -257,48 +252,5 @@ class VideoServerHttpClientTest {
             url,
             Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(VideoServerMessageRequest.create()));
-  }
-
-  @Test
-  @DisplayName("Send http request to video recorder service for the post processing phase")
-  void sendVideoRecorderHttpRequestCorrectly() throws IOException {
-    UUID meetingId = UUID.randomUUID();
-    String url =
-        videoRecorderURL + postProcessorEndpoint + String.format(meetingEndpoint, meetingId);
-    mockResponse(url, 200, null);
-
-    videoServerHttpClient
-        .sendVideoRecorderRequest(meetingId.toString(), VideoRecorderRequest.create())
-        .join();
-
-    verify(httpClient, times(1))
-        .sendPost(
-            url,
-            Map.of("Content-Type", "application/json"),
-            objectMapper.writeValueAsString(VideoRecorderRequest.create()));
-  }
-
-  @Test
-  @DisplayName(
-      "throws video server exception if video recorder service returns error sending post"
-          + " processing request")
-  void throwsVideoServerExceptionWhenErrorOccursSendingVideoRecorderRequest() throws IOException {
-    UUID meetingId = UUID.randomUUID();
-    String url =
-        videoRecorderURL + postProcessorEndpoint + String.format(meetingEndpoint, meetingId);
-    mockResponse(url, 500, null);
-
-    assertThrows(
-        CompletionException.class,
-        () ->
-            videoServerHttpClient
-                .sendVideoRecorderRequest(meetingId.toString(), VideoRecorderRequest.create())
-                .join());
-
-    verify(httpClient, times(1))
-        .sendPost(
-            url,
-            Map.of("Content-Type", "application/json"),
-            objectMapper.writeValueAsString(VideoRecorderRequest.create()));
   }
 }

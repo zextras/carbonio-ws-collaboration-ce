@@ -16,7 +16,7 @@ import com.zextras.carbonio.chats.core.data.entity.*;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.data.type.RecordingStatus;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRecorderRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videorecorder.data.request.VideoRecorderRequest;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.repository.WaitingParticipantRepository;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
@@ -1461,10 +1461,11 @@ public class MeetingApiIT {
       assertEquals(room1Id.toString(), meeting.getRoomId());
       assertEquals(0, meeting.getParticipants().size());
 
-      List<WaitingParticipant> wp =
-          waitingParticipantRepository.find(meetingId.toString(), user2Id.toString(), null);
-      assertEquals(1, wp.size());
-      assertEquals(JoinStatus.WAITING, wp.get(0).getStatus());
+      Optional<WaitingParticipant> wp =
+          waitingParticipantRepository.getWaitingParticipant(
+              meetingId.toString(), user2Id.toString());
+      assertTrue(wp.isPresent());
+      assertEquals(JoinStatus.WAITING, wp.get().getStatus());
     }
 
     @Test
@@ -2090,10 +2091,11 @@ public class MeetingApiIT {
               user1Token);
 
       assertEquals(204, response.getStatus());
-      List<WaitingParticipant> wp1 =
-          waitingParticipantRepository.find(meetingId.toString(), user2Id.toString(), null);
-      assertEquals(1, wp1.size());
-      WaitingParticipant wp = wp1.get(0);
+      Optional<WaitingParticipant> wp1 =
+          waitingParticipantRepository.getWaitingParticipant(
+              meetingId.toString(), user2Id.toString());
+      assertTrue(wp1.isPresent());
+      WaitingParticipant wp = wp1.get();
       assertEquals(JoinStatus.ACCEPTED, wp.getStatus());
     }
   }

@@ -4,7 +4,6 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.videoserver;
 
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRecorderRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerMessageRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.VideoServerResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.audiobridge.AudioBridgeResponse;
@@ -29,6 +28,4 @@ public interface VideoServerClient {
 
   CompletableFuture<VideoRoomResponse> sendVideoRoomRequest(
       String connectionId, String handleId, String serverId, VideoServerMessageRequest request);
-
-  CompletableFuture<Void> sendVideoRecorderRequest(String meetingId, VideoRecorderRequest request);
 }

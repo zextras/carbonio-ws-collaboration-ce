@@ -8,6 +8,7 @@ import java.util.Objects;
 
 public class RecordingInfo {
 
+  private String serverId;
   private String meetingId;
   private String meetingName;
   private String folderId;
@@ -16,6 +17,15 @@ public class RecordingInfo {
 
   public static RecordingInfo create() {
     return new RecordingInfo();
+  }
+
+  public String getServerId() {
+    return serverId;
+  }
+
+  public RecordingInfo serverId(String serverId) {
+    this.serverId = serverId;
+    return this;
   }
 
   public String getMeetingId() {
@@ -65,9 +75,9 @@ public class RecordingInfo {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
     if (!(o instanceof RecordingInfo that)) return false;
-    return Objects.equals(getMeetingId(), that.getMeetingId())
+    return Objects.equals(getServerId(), that.getServerId())
+        && Objects.equals(getMeetingId(), that.getMeetingId())
         && Objects.equals(getMeetingName(), that.getMeetingName())
         && Objects.equals(getFolderId(), that.getFolderId())
         && Objects.equals(getRecordingName(), that.getRecordingName())
@@ -77,6 +87,11 @@ public class RecordingInfo {
   @Override
   public int hashCode() {
     return Objects.hash(
-        getMeetingId(), getMeetingName(), getFolderId(), getRecordingName(), getRecordingToken());
+        getServerId(),
+        getMeetingId(),
+        getMeetingName(),
+        getFolderId(),
+        getRecordingName(),
+        getRecordingToken());
   }
 }

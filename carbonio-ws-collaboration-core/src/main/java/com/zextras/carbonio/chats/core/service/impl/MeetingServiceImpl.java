@@ -8,7 +8,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
-import com.zextras.carbonio.chats.core.data.entity.Recording;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingCreated;
@@ -25,14 +24,14 @@ import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.videorecorder.VideoRecorderService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
-import com.zextras.carbonio.chats.core.repository.RecordingRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
-import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.WaitingParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.MeetingTypeDto;
@@ -47,33 +46,33 @@ import java.util.stream.Stream;
 public class MeetingServiceImpl implements MeetingService {
 
   private final MeetingRepository meetingRepository;
-  private final RecordingRepository recordingRepository;
   private final MeetingMapper meetingMapper;
   private final RoomService roomService;
   private final MembersService membersService;
-  private final ParticipantService participantService;
+  private final WaitingParticipantService waitingParticipantService;
   private final VideoServerService videoServerService;
+  private final VideoRecorderService videoRecorderService;
   private final EventDispatcher eventDispatcher;
   private final Clock clock;
 
   @Inject
   public MeetingServiceImpl(
       MeetingRepository meetingRepository,
-      RecordingRepository recordingRepository,
       MeetingMapper meetingMapper,
       RoomService roomService,
       MembersService membersService,
-      ParticipantService participantService,
+      WaitingParticipantService waitingParticipantService,
       VideoServerService videoServerService,
+      VideoRecorderService videoRecorderService,
       EventDispatcher eventDispatcher,
       Clock clock) {
     this.meetingRepository = meetingRepository;
-    this.recordingRepository = recordingRepository;
     this.meetingMapper = meetingMapper;
     this.roomService = roomService;
     this.membersService = membersService;
-    this.participantService = participantService;
+    this.waitingParticipantService = waitingParticipantService;
     this.videoServerService = videoServerService;
+    this.videoRecorderService = videoRecorderService;
     this.eventDispatcher = eventDispatcher;
     this.clock = clock;
   }
@@ -134,7 +133,7 @@ public class MeetingServiceImpl implements MeetingService {
     Meeting updatedMeeting = deactivateMeeting(user.getId(), meeting);
 
     List<String> queuedReceivers = getQueuedUsers(meeting);
-    participantService.clearQueue(UUID.fromString(meeting.getId()));
+    waitingParticipantService.clearQueue(UUID.fromString(meeting.getId()));
 
     notifyMeetingStopped(user, updatedMeeting, queuedReceivers);
 
@@ -183,7 +182,7 @@ public class MeetingServiceImpl implements MeetingService {
   }
 
   private List<String> getQueuedUsers(Meeting meeting) {
-    return participantService.getQueue(UUID.fromString(meeting.getId())).stream()
+    return waitingParticipantService.getQueue(UUID.fromString(meeting.getId())).stream()
         .map(UUID::toString)
         .toList();
   }
@@ -286,14 +285,8 @@ public class MeetingServiceImpl implements MeetingService {
         .findFirst()
         .isEmpty()) {
       videoServerService.startRecording(meetingId.toString());
-      recordingRepository.insert(
-          Recording.create()
-              .id(UUID.randomUUID().toString())
-              .meeting(meeting)
-              .startedAt(OffsetDateTime.now(clock))
-              .starterId(currentUser.getId())
-              .status(RecordingStatus.STARTED)
-              .token(currentUser.getAuthToken().orElse(null)));
+      videoRecorderService.saveRecordingStarted(
+          meeting, currentUser.getId(), currentUser.getAuthToken().orElse(null));
       eventDispatcher.sendToUserExchange(
           meeting.getParticipants().stream().map(Participant::getUserId).toList(),
           MeetingRecordingStarted.create()
@@ -332,9 +325,9 @@ public class MeetingServiceImpl implements MeetingService {
         .ifPresent(
             recording -> {
               videoServerService.stopRecording(meeting.getId());
-              videoServerService.startRecordingPostProcessing(
+              videoRecorderService.startRecordingPostProcessing(
                   recordingInfo.recordingToken(recording.getToken()));
-              recordingRepository.update(recording.status(RecordingStatus.STOPPED));
+              videoRecorderService.saveRecordingStopped(recording);
               eventDispatcher.sendToUserExchange(
                   meeting.getParticipants().stream().map(Participant::getUserId).toList(),
                   MeetingRecordingStopped.create()

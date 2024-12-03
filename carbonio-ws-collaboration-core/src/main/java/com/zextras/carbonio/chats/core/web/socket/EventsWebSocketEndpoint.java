@@ -12,6 +12,7 @@ import com.rabbitmq.client.DeliverCallback;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
+import com.zextras.carbonio.chats.core.service.WaitingParticipantService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.EncodeException;
 import jakarta.websocket.OnClose;
@@ -35,13 +36,18 @@ public class EventsWebSocketEndpoint {
   private final Channel channel;
   private final ObjectMapper objectMapper;
   private final ParticipantService participantService;
+  private final WaitingParticipantService waitingParticipantService;
 
   @Inject
   public EventsWebSocketEndpoint(
-      Channel channel, ObjectMapper objectMapper, ParticipantService participantService) {
+      Channel channel,
+      ObjectMapper objectMapper,
+      ParticipantService participantService,
+      WaitingParticipantService waitingParticipantService) {
     this.channel = channel;
     this.objectMapper = objectMapper;
     this.participantService = participantService;
+    this.waitingParticipantService = waitingParticipantService;
   }
 
   @OnOpen
@@ -144,7 +150,7 @@ public class EventsWebSocketEndpoint {
       ChatsLogger.warn(String.format("Error deleting queue for user/queue '%s'", userQueue), e);
     }
     participantService.removeMeetingParticipant(queueId);
-    participantService.removeFromQueue(queueId);
+    waitingParticipantService.removeFromQueue(queueId);
   }
 
   private static class SessionOutEvent {

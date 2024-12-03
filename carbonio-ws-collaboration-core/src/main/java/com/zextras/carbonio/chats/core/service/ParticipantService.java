@@ -9,7 +9,6 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.*;
-import java.util.List;
 import java.util.UUID;
 
 public interface ParticipantService {
@@ -35,13 +34,4 @@ public interface ParticipantService {
       UUID meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto, UserPrincipal currentUser);
 
   void offerRtcAudioStream(UUID meetingId, String sdp, UserPrincipal currentUser);
-
-  List<UUID> getQueue(UUID meetingId);
-
-  void updateQueue(
-      UUID meetingId, UUID userId, QueueUpdateStatusDto status, UserPrincipal currentUser);
-
-  void removeFromQueue(UUID queueId);
-
-  void clearQueue(UUID meetingId);
 }

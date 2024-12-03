@@ -7,6 +7,4 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver;
 public interface VideoServerConfig {
 
   String getApiSecret();
-
-  String getRecordingPath();
 }

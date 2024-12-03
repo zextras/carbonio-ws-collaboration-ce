@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.service.impl;
+package com.zextras.carbonio.chats.core.infrastructure.videoserver.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -20,9 +20,9 @@ import static org.mockito.Mockito.when;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
-import com.zextras.carbonio.chats.core.data.model.RecordingInfo;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.consul.ConsulService;
+import com.zextras.carbonio.chats.core.infrastructure.videorecorder.VideoRecorderConfig;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
@@ -31,7 +31,6 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Med
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcType;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Stream;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRecorderRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerMessageRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeCreateRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeDestroyRequest;
@@ -54,7 +53,6 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.videoroom.VideoRoomDataInfo;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.videoroom.VideoRoomPluginData;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.videoroom.VideoRoomResponse;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceImpl;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
 import com.zextras.carbonio.meeting.model.MediaStreamDto;
@@ -94,12 +92,14 @@ public class VideoServerServiceImplTest {
     when(clock.instant()).thenReturn(Instant.parse("2022-01-01T11:00:00Z"));
     when(clock.getZone()).thenReturn(ZoneId.of("UTC+01:00"));
     VideoServerConfig videoServerConfig = mock(VideoServerConfig.class);
+    VideoRecorderConfig videoRecorderConfig = mock(VideoRecorderConfig.class);
     when(videoServerConfig.getApiSecret()).thenReturn("token");
-    when(videoServerConfig.getRecordingPath()).thenReturn("/var/lib/videoserver/recordings/");
+    when(videoRecorderConfig.getRecordingPath()).thenReturn("/var/lib/videoserver/recordings/");
 
     this.videoServerService =
         new VideoServerServiceImpl(
             videoServerConfig,
+            videoRecorderConfig,
             videoServerClient,
             videoServerMeetingRepository,
             videoServerSessionRepository,
@@ -2908,61 +2908,6 @@ public class VideoServerServiceImplTest {
       assertFalse(videoServerService.isAlive());
 
       verify(videoServerClient, times(1)).sendGetInfoRequest();
-    }
-  }
-
-  @Nested
-  @DisplayName("Start recording post processing tests")
-  class StartRecordingPostProcessingTests {
-
-    @Test
-    @DisplayName("Send request to video recorder for post processing")
-    void startRecordingPostProcessing_testOk() {
-      videoServerService
-          .startRecordingPostProcessing(
-              RecordingInfo.create()
-                  .meetingId(meeting1Id.toString())
-                  .meetingName("meeting-name")
-                  .recordingName("rec-name")
-                  .folderId("rec-dir-id")
-                  .recordingToken("fake-token"))
-          .join();
-
-      verify(videoServerClient, times(1))
-          .sendVideoRecorderRequest(
-              meeting1Id.toString(),
-              VideoRecorderRequest.create()
-                  .meetingId(meeting1Id.toString())
-                  .meetingName("meeting-name")
-                  .audioActivePackets(10L)
-                  .audioLevelAverage(65)
-                  .folderId("rec-dir-id")
-                  .recordingName("rec-name")
-                  .authToken("ZM_AUTH_TOKEN=fake-token"));
-    }
-
-    @Test
-    @DisplayName("Send request to video recorder for post processing without auth token")
-    void startRecordingPostProcessing_testOkWithoutAuhToken() {
-      videoServerService
-          .startRecordingPostProcessing(
-              RecordingInfo.create()
-                  .meetingId(meeting1Id.toString())
-                  .meetingName("meeting-name")
-                  .recordingName("rec-name")
-                  .folderId("rec-dir-id"))
-          .join();
-
-      verify(videoServerClient, times(1))
-          .sendVideoRecorderRequest(
-              meeting1Id.toString(),
-              VideoRecorderRequest.create()
-                  .meetingId(meeting1Id.toString())
-                  .meetingName("meeting-name")
-                  .audioActivePackets(10L)
-                  .audioLevelAverage(65)
-                  .folderId("rec-dir-id")
-                  .recordingName("rec-name"));
     }
   }
 }

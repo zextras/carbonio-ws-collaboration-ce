@@ -9,20 +9,13 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerCon
 public class VideoServerConfigImpl implements VideoServerConfig {
 
   private final String apiSecret;
-  private final String recordingPath;
 
-  public VideoServerConfigImpl(String apiSecret, String recordingPath) {
+  public VideoServerConfigImpl(String apiSecret) {
     this.apiSecret = apiSecret;
-    this.recordingPath = recordingPath;
   }
 
   @Override
   public String getApiSecret() {
     return apiSecret;
-  }
-
-  @Override
-  public String getRecordingPath() {
-    return recordingPath;
   }
 }

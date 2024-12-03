@@ -42,10 +42,18 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.MessageDispatcherMongooseImpl;
+import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
+import com.zextras.carbonio.chats.core.infrastructure.preview.impl.PreviewServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagementProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServicePowerstoreImpl;
+import com.zextras.carbonio.chats.core.infrastructure.videorecorder.VideoRecorderClient;
+import com.zextras.carbonio.chats.core.infrastructure.videorecorder.VideoRecorderConfig;
+import com.zextras.carbonio.chats.core.infrastructure.videorecorder.VideoRecorderService;
+import com.zextras.carbonio.chats.core.infrastructure.videorecorder.impl.VideoRecorderConfigImpl;
+import com.zextras.carbonio.chats.core.infrastructure.videorecorder.impl.VideoRecorderHttpClient;
+import com.zextras.carbonio.chats.core.infrastructure.videorecorder.impl.VideoRecorderServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
@@ -74,18 +82,18 @@ import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
-import com.zextras.carbonio.chats.core.service.PreviewService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
+import com.zextras.carbonio.chats.core.service.WaitingParticipantService;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.CapabilityServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.HealthcheckServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MeetingServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.ParticipantServiceImpl;
-import com.zextras.carbonio.chats.core.service.impl.PreviewServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
+import com.zextras.carbonio.chats.core.service.impl.WaitingParticipantServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.*;
 import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandler;
@@ -188,10 +196,12 @@ public class CoreModule extends AbstractModule {
     bind(ParticipantRepository.class).to(EbeanParticipantRepository.class);
     bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
 
+    bind(WaitingParticipantService.class).to(WaitingParticipantServiceImpl.class);
     bind(WaitingParticipantRepository.class).to(EbeanWaitingParticipantRepository.class);
     bind(RecordingRepository.class).to(EbeanRecordingRepository.class);
 
     bind(VideoServerService.class).to(VideoServerServiceImpl.class);
+    bind(VideoRecorderService.class).to(VideoRecorderServiceImpl.class);
     bind(VideoServerMeetingRepository.class).to(EbeanVideoServerMeetingRepository.class);
     bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
 
@@ -402,6 +412,15 @@ public class CoreModule extends AbstractModule {
             URL_PATTERN,
             appConfig.get(String.class, ConfigName.VIDEO_SERVER_HOST).orElseThrow(),
             appConfig.get(String.class, ConfigName.VIDEO_SERVER_PORT).orElseThrow()),
+        objectMapper);
+  }
+
+  @Singleton
+  @Provides
+  private VideoRecorderClient getVideoRecorderClient(
+      AppConfig appConfig, HttpClient httpClient, ObjectMapper objectMapper) {
+    return new VideoRecorderHttpClient(
+        httpClient,
         String.format(
             URL_PATTERN,
             appConfig.get(String.class, ConfigName.VIDEO_RECORDER_HOST).orElseThrow(),
@@ -413,7 +432,13 @@ public class CoreModule extends AbstractModule {
   @Provides
   private VideoServerConfig getVideoServerConfig(AppConfig appConfig) {
     return new VideoServerConfigImpl(
-        appConfig.get(String.class, ConfigName.VIDEO_SERVER_TOKEN).orElse(null),
+        appConfig.get(String.class, ConfigName.VIDEO_SERVER_TOKEN).orElse(null));
+  }
+
+  @Singleton
+  @Provides
+  private VideoRecorderConfig getVideoRecorderConfig(AppConfig appConfig) {
+    return new VideoRecorderConfigImpl(
         appConfig
             .get(String.class, ConfigName.VIDEO_RECORDINGS_PATH)
             .orElse(ChatsConstant.VIDEO_RECORDINGS_PATH_DEFAULT));

@@ -5,13 +5,14 @@
 package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.WaitingParticipant;
-import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import java.util.List;
 import java.util.Optional;
 
 public interface WaitingParticipantRepository {
 
-  List<WaitingParticipant> find(String meetingId, String userId, JoinStatus status);
+  Optional<WaitingParticipant> getWaitingParticipant(String meetingId, String userId);
+
+  List<WaitingParticipant> getWaitingList(String meetingId);
 
   Optional<WaitingParticipant> getByQueueId(String queueId);
 

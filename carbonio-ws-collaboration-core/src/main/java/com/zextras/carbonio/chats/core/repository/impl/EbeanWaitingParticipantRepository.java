@@ -10,8 +10,6 @@ import com.zextras.carbonio.chats.core.data.entity.WaitingParticipant;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.repository.WaitingParticipantRepository;
 import io.ebean.Database;
-import io.ebean.Query;
-import io.vavr.control.Option;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,12 +24,23 @@ public class EbeanWaitingParticipantRepository implements WaitingParticipantRepo
   }
 
   @Override
-  public List<WaitingParticipant> find(String meetingId, String userId, JoinStatus status) {
-    Query<WaitingParticipant> query = db.find(WaitingParticipant.class);
-    Option.of(meetingId).map(mId -> query.where().eq("meetingId", meetingId));
-    Option.of(userId).map(mId -> query.where().eq("userId", userId));
-    Option.of(status).map(s -> query.where().eq("status", status.toString()));
-    return query.findList();
+  public Optional<WaitingParticipant> getWaitingParticipant(String meetingId, String userId) {
+    return db.find(WaitingParticipant.class)
+        .where()
+        .eq("meetingId", meetingId)
+        .where()
+        .eq("userId", userId)
+        .findOneOrEmpty();
+  }
+
+  @Override
+  public List<WaitingParticipant> getWaitingList(String meetingId) {
+    return db.find(WaitingParticipant.class)
+        .where()
+        .eq("meetingId", meetingId)
+        .where()
+        .eq("status", JoinStatus.WAITING)
+        .findList();
   }
 
   @Override

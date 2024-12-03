@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request;
+package com.zextras.carbonio.chats.core.infrastructure.videorecorder.data.request;
 
 import static org.junit.jupiter.api.Assertions.*;
 

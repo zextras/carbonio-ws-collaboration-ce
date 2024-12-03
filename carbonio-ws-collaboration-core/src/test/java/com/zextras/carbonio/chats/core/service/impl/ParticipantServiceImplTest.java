@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -31,25 +30,21 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
-import com.zextras.carbonio.chats.core.repository.WaitingParticipantRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
-import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.WaitingParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
-import com.zextras.carbonio.meeting.model.QueueUpdateStatusDto;
 import jakarta.ws.rs.core.Response.Status;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.util.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -58,7 +53,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 @UnitTest
 public class ParticipantServiceImplTest {
@@ -66,9 +60,8 @@ public class ParticipantServiceImplTest {
   private final ParticipantService participantService;
   private final MeetingService meetingService;
   private final RoomService roomService;
-  private final MembersService membersService;
   private final ParticipantRepository participantRepository;
-  private final WaitingParticipantRepository waitingParticipantRepository;
+  private final WaitingParticipantService waitingParticipantService;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
   private final Clock clock;
@@ -76,9 +69,8 @@ public class ParticipantServiceImplTest {
   public ParticipantServiceImplTest() {
     this.meetingService = mock(MeetingService.class);
     this.roomService = mock(RoomService.class);
-    this.membersService = mock(MembersService.class);
     this.participantRepository = mock(ParticipantRepository.class);
-    this.waitingParticipantRepository = mock(WaitingParticipantRepository.class);
+    this.waitingParticipantService = mock(WaitingParticipantService.class);
     this.videoServerService = mock(VideoServerService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.clock = mock(Clock.class);
@@ -86,9 +78,8 @@ public class ParticipantServiceImplTest {
         new ParticipantServiceImpl(
             meetingService,
             roomService,
-            membersService,
             participantRepository,
-            waitingParticipantRepository,
+            waitingParticipantService,
             videoServerService,
             eventDispatcher,
             clock);
@@ -471,15 +462,8 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
       verify(roomService, times(1)).getRoom(scheduledRoomId);
 
-      ArgumentCaptor<WaitingParticipant> waitingParticipantCaptor =
-          ArgumentCaptor.forClass(WaitingParticipant.class);
-      verify(waitingParticipantRepository, times(1)).insert(waitingParticipantCaptor.capture());
-      WaitingParticipant waitingParticipant = waitingParticipantCaptor.getValue();
-      assertFalse(waitingParticipant.getId().isEmpty());
-      assertEquals(scheduledMeetingId.toString(), waitingParticipant.getMeetingId());
-      assertEquals(user2Id.toString(), waitingParticipant.getUserId());
-      assertEquals(user2Queue1.toString(), waitingParticipant.getQueueId());
-      assertEquals(JoinStatus.WAITING, waitingParticipant.getStatus());
+      verify(waitingParticipantService, times(1))
+          .addQueuedUser(scheduledMeetingId.toString(), user2Id.toString(), user2Queue1.toString());
 
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -507,9 +491,9 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(scheduledMeetingId))
           .thenReturn(Optional.of(scheduledMeeting));
       when(roomService.getRoom(scheduledRoomId)).thenReturn(Optional.of(scheduledRoom));
-      when(waitingParticipantRepository.find(
-              scheduledMeetingId.toString(), user2Id.toString(), null))
-          .thenReturn(List.of(wp2));
+      when(waitingParticipantService.getWaitingParticipant(
+              scheduledMeetingId.toString(), user2Id.toString()))
+          .thenReturn(Optional.of(wp2));
 
       JoinStatus meetingJoinStatus =
           participantService.insertMeetingParticipant(
@@ -534,7 +518,7 @@ public class ParticipantServiceImplTest {
               scheduledMeetingId.toString(),
               false,
               true);
-      verify(waitingParticipantRepository, times(1)).remove(wp2);
+      verify(waitingParticipantService, times(1)).removeQueuedUser(wp2);
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString()),
@@ -560,9 +544,9 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(scheduledMeetingId))
           .thenReturn(Optional.of(scheduledMeeting));
       when(roomService.getRoom(scheduledRoomId)).thenReturn(Optional.of(scheduledRoom));
-      when(waitingParticipantRepository.find(
-              scheduledMeetingId.toString(), user2Id.toString(), null))
-          .thenReturn(List.of(wp2));
+      when(waitingParticipantService.getWaitingParticipant(
+              scheduledMeetingId.toString(), user2Id.toString()))
+          .thenReturn(Optional.of(wp2));
 
       JoinStatus meetingJoinStatus =
           participantService.insertMeetingParticipant(
@@ -573,7 +557,8 @@ public class ParticipantServiceImplTest {
       assertEquals(JoinStatus.WAITING, meetingJoinStatus);
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
       verify(roomService, times(1)).getRoom(scheduledRoomId);
-      verify(waitingParticipantRepository, times(1)).update(wp2.queueId(newQueue.toString()));
+      verify(waitingParticipantService, times(1))
+          .updateQueuedUser(wp2.queueId(newQueue.toString()));
       verify(eventDispatcher, times(1))
           .sendToUserQueue(
               user2Id.toString(),
@@ -594,9 +579,9 @@ public class ParticipantServiceImplTest {
       when(meetingService.getMeetingEntity(scheduledMeetingId))
           .thenReturn(Optional.of(scheduledMeeting));
       when(roomService.getRoom(scheduledRoomId)).thenReturn(Optional.of(scheduledRoom));
-      when(waitingParticipantRepository.find(
-              scheduledMeetingId.toString(), user2Id.toString(), null))
-          .thenReturn(Collections.emptyList());
+      when(waitingParticipantService.getWaitingParticipant(
+              scheduledMeetingId.toString(), user2Id.toString()))
+          .thenReturn(Optional.empty());
 
       JoinStatus meetingJoinStatus =
           participantService.insertMeetingParticipant(
@@ -608,15 +593,8 @@ public class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
       verify(roomService, times(1)).getRoom(scheduledRoomId);
 
-      ArgumentCaptor<WaitingParticipant> waitingParticipantCaptor =
-          ArgumentCaptor.forClass(WaitingParticipant.class);
-      verify(waitingParticipantRepository, times(1)).insert(waitingParticipantCaptor.capture());
-      WaitingParticipant waitingParticipant = waitingParticipantCaptor.getValue();
-      assertFalse(waitingParticipant.getId().isEmpty());
-      assertEquals(scheduledMeetingId.toString(), waitingParticipant.getMeetingId());
-      assertEquals(user2Id.toString(), waitingParticipant.getUserId());
-      assertEquals(user2Queue1.toString(), waitingParticipant.getQueueId());
-      assertEquals(JoinStatus.WAITING, waitingParticipant.getStatus());
+      verify(waitingParticipantService, times(1))
+          .addQueuedUser(scheduledMeetingId.toString(), user2Id.toString(), user2Queue1.toString());
 
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -699,165 +677,6 @@ public class ParticipantServiceImplTest {
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(meetingService, roomService);
       verifyNoInteractions(participantRepository, videoServerService, eventDispatcher);
-    }
-  }
-
-  @Nested
-  @DisplayName("Queue tests")
-  class QueueTests {
-
-    @Test
-    @DisplayName("Return empty list if no user in queue")
-    void getQueue_testEmpty() {
-      when(waitingParticipantRepository.find(
-              permanentMeetingId.toString(), null, JoinStatus.WAITING))
-          .thenReturn(Collections.emptyList());
-      List<UUID> queuedUsers = participantService.getQueue(permanentMeetingId);
-      assertEquals(Collections.emptyList(), queuedUsers);
-    }
-
-    @Test
-    @DisplayName("Return the list of users in queue")
-    void getQueue_testOk() {
-      when(waitingParticipantRepository.find(
-              permanentMeetingId.toString(), null, JoinStatus.WAITING))
-          .thenReturn(
-              List.of(
-                  new WaitingParticipant().userId(user1Id.toString()),
-                  new WaitingParticipant().userId(user2Id.toString())));
-      List<UUID> queuedUsers = participantService.getQueue(permanentMeetingId);
-      assertEquals(2, queuedUsers.size());
-      assertEquals(List.of(user1Id, user2Id), queuedUsers);
-    }
-
-    @Test
-    @DisplayName("Reject a user from queue")
-    void updateQueue_rejectUser() {
-      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
-      when(meetingService.getMeetingEntity(permanentMeetingId))
-          .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
-      when(waitingParticipantRepository.find(
-              permanentMeetingId.toString(), user2Id.toString(), null))
-          .thenReturn(
-              List.of(
-                  new WaitingParticipant()
-                      .userId(user2Id.toString())
-                      .status(JoinStatus.WAITING)
-                      .queueId(user2Queue1.toString())));
-      participantService.updateQueue(
-          permanentMeetingId, user2Id, QueueUpdateStatusDto.REJECTED, currentUser);
-
-      verify(waitingParticipantRepository, times(1))
-          .remove(
-              WaitingParticipant.create()
-                  .userId(user2Id.toString())
-                  .status(JoinStatus.WAITING)
-                  .queueId(user2Queue1.toString()));
-      DomainEvent event =
-          MeetingWaitingParticipantRejected.create()
-              .meetingId(permanentMeetingId)
-              .userId(UUID.fromString(user2Id.toString()));
-      verify(eventDispatcher).sendToUserExchange(List.of(user1Id.toString()), event);
-      verify(eventDispatcher).sendToUserQueue(user2Id.toString(), user2Queue1.toString(), event);
-    }
-
-    @Test
-    @DisplayName("Exit from the queue from the user")
-    void updateQueue_exitQueueUser() {
-      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
-      when(meetingService.getMeetingEntity(permanentMeetingId))
-          .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
-      when(waitingParticipantRepository.find(
-              permanentMeetingId.toString(), user1Id.toString(), null))
-          .thenReturn(
-              List.of(
-                  new WaitingParticipant()
-                      .userId(user1Id.toString())
-                      .status(JoinStatus.WAITING)
-                      .queueId(user1Queue1.toString())));
-      participantService.updateQueue(
-          permanentMeetingId, user1Id, QueueUpdateStatusDto.REJECTED, currentUser);
-
-      verify(waitingParticipantRepository, times(1))
-          .remove(
-              WaitingParticipant.create()
-                  .userId(user1Id.toString())
-                  .status(JoinStatus.WAITING)
-                  .queueId(user1Queue1.toString()));
-      DomainEvent event =
-          MeetingWaitingParticipantRejected.create()
-              .meetingId(permanentMeetingId)
-              .userId(UUID.fromString(user1Id.toString()));
-      verify(eventDispatcher).sendToUserExchange(List.of(user1Id.toString()), event);
-      verify(eventDispatcher).sendToUserQueue(user1Id.toString(), user1Queue1.toString(), event);
-    }
-
-    @Test
-    @DisplayName("Accept a user from queue")
-    void updateQueue_acceptUser() {
-      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
-      when(meetingService.getMeetingEntity(permanentMeetingId))
-          .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
-      when(waitingParticipantRepository.find(
-              permanentMeetingId.toString(), user2Id.toString(), null))
-          .thenReturn(
-              List.of(
-                  new WaitingParticipant()
-                      .userId(user2Id.toString())
-                      .status(JoinStatus.WAITING)
-                      .queueId(user2Queue1.toString())));
-      participantService.updateQueue(
-          permanentMeetingId, user2Id, QueueUpdateStatusDto.ACCEPTED, currentUser);
-
-      verify(waitingParticipantRepository, times(1))
-          .update(
-              WaitingParticipant.create()
-                  .userId(user2Id.toString())
-                  .status(JoinStatus.ACCEPTED)
-                  .queueId(user2Queue1.toString()));
-      verify(membersService, times(1))
-          .insertRoomMembers(
-              roomId,
-              List.of(
-                  MemberToInsertDto.create().userId(user2Id).owner(false).historyCleared(false)),
-              currentUser);
-      DomainEvent event =
-          MeetingWaitingParticipantAccepted.create()
-              .meetingId(permanentMeetingId)
-              .userId(UUID.fromString(user2Id.toString()));
-      verify(eventDispatcher).sendToUserExchange(List.of(user1Id.toString()), event);
-      verify(eventDispatcher).sendToUserQueue(user2Id.toString(), user2Queue1.toString(), event);
-    }
-
-    @Test
-    @DisplayName("Block a non owner from moderating the queue")
-    void updateQueue_testIsNotOwner() {
-      UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(user2Queue1);
-      when(meetingService.getMeetingEntity(permanentMeetingId))
-          .thenReturn(Optional.of(permanentMeeting));
-      when(roomService.getRoom(roomId)).thenReturn(Optional.of(room));
-      when(waitingParticipantRepository.find(
-              permanentMeetingId.toString(), user3Id.toString(), null))
-          .thenReturn(
-              List.of(
-                  new WaitingParticipant()
-                      .userId(user3Id.toString())
-                      .status(JoinStatus.WAITING)
-                      .queueId(user3Queue1.toString())));
-      ChatsHttpException exception =
-          assertThrows(
-              ForbiddenException.class,
-              () ->
-                  participantService.updateQueue(
-                      permanentMeetingId, user3Id, QueueUpdateStatusDto.REJECTED, currentUser));
-
-      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(
-          "Forbidden - User cannot accept or reject a queued user", exception.getMessage());
     }
   }
 

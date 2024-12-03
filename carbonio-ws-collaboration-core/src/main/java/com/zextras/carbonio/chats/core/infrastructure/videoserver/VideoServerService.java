@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver;
 
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
-import com.zextras.carbonio.chats.core.data.model.RecordingInfo;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
@@ -47,6 +46,4 @@ public interface VideoServerService extends HealthIndicator {
   CompletableFuture<Void> startRecording(String meetingId);
 
   CompletableFuture<Void> stopRecording(String meetingId);
-
-  CompletableFuture<Void> startRecordingPostProcessing(RecordingInfo recordingInfo);
 }

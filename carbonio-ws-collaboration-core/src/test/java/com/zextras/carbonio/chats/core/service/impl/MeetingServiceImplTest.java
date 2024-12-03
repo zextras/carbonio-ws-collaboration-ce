@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,14 +34,14 @@ import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.data.type.RecordingStatus;
 import com.zextras.carbonio.chats.core.exception.*;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.videorecorder.VideoRecorderService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
-import com.zextras.carbonio.chats.core.repository.RecordingRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
-import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.WaitingParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -63,39 +62,38 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 @UnitTest
 public class MeetingServiceImplTest {
 
   private final MeetingService meetingService;
   private final MeetingRepository meetingRepository;
-  private final RecordingRepository recordingRepository;
   private final RoomService roomService;
   private final MembersService membersService;
-  private final ParticipantService participantService;
+  private final WaitingParticipantService waitingParticipantService;
   private final VideoServerService videoServerService;
+  private final VideoRecorderService videoRecorderService;
   private final EventDispatcher eventDispatcher;
   private final Clock clock;
 
   public MeetingServiceImplTest(MeetingMapper meetingMapper) {
     this.meetingRepository = mock(MeetingRepository.class);
-    this.recordingRepository = mock(RecordingRepository.class);
     this.roomService = mock(RoomService.class);
     this.membersService = mock(MembersService.class);
-    this.participantService = mock(ParticipantService.class);
+    this.waitingParticipantService = mock(WaitingParticipantService.class);
     this.videoServerService = mock(VideoServerService.class);
+    this.videoRecorderService = mock(VideoRecorderService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.clock = mock(Clock.class);
     this.meetingService =
         new MeetingServiceImpl(
             meetingRepository,
-            recordingRepository,
             meetingMapper,
             roomService,
             membersService,
-            participantService,
+            waitingParticipantService,
             videoServerService,
+            videoRecorderService,
             eventDispatcher,
             clock);
   }
@@ -129,7 +127,7 @@ public class MeetingServiceImplTest {
         .thenReturn(CompletableFuture.completedFuture(null));
     when(videoServerService.stopRecording(anyString()))
         .thenReturn(CompletableFuture.completedFuture(null));
-    when(videoServerService.startRecordingPostProcessing(any()))
+    when(videoRecorderService.startRecordingPostProcessing(any()))
         .thenReturn(CompletableFuture.completedFuture(null));
 
     user1Id = UUID.randomUUID();
@@ -283,7 +281,7 @@ public class MeetingServiceImplTest {
                   .meetingId(meetingId)
                   .starterUser(user1Id)
                   .startedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z")));
-      verifyNoMoreInteractions(videoServerService, meetingRepository, recordingRepository);
+      verifyNoMoreInteractions(videoServerService, videoRecorderService, meetingRepository);
     }
 
     @Test
@@ -305,7 +303,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verifyNoMoreInteractions(meetingRepository);
       verifyNoInteractions(
-          recordingRepository, membersService, videoServerService, eventDispatcher, roomService);
+          membersService, videoServerService, videoRecorderService, eventDispatcher, roomService);
     }
   }
 
@@ -346,7 +344,7 @@ public class MeetingServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString()), MeetingStopped.create().meetingId(meetingId));
-      verifyNoMoreInteractions(videoServerService, meetingRepository, recordingRepository);
+      verifyNoMoreInteractions(videoServerService, videoRecorderService, meetingRepository);
     }
 
     @Test
@@ -369,7 +367,7 @@ public class MeetingServiceImplTest {
               .meetingType(MeetingType.PERMANENT)
               .id(meetingId.toString())
               .active(false);
-      when(participantService.getQueue(meetingId)).thenReturn(List.of(user2Id));
+      when(waitingParticipantService.getQueue(meetingId)).thenReturn(List.of(user2Id));
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
       when(roomService.getRoomById(roomId, currentUser))
@@ -383,7 +381,7 @@ public class MeetingServiceImplTest {
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString()),
               MeetingStopped.create().meetingId(meetingId));
-      verifyNoMoreInteractions(videoServerService, meetingRepository, recordingRepository);
+      verifyNoMoreInteractions(videoServerService, videoRecorderService, meetingRepository);
     }
 
     @Test
@@ -412,7 +410,7 @@ public class MeetingServiceImplTest {
               .meetingType(MeetingType.PERMANENT)
               .id(meetingId.toString())
               .active(false);
-      when(participantService.getQueue(meetingId)).thenReturn(List.of(user2Id));
+      when(waitingParticipantService.getQueue(meetingId)).thenReturn(List.of(user2Id));
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
       when(roomService.getRoomById(roomId, currentUser))
@@ -423,19 +421,18 @@ public class MeetingServiceImplTest {
       verify(videoServerService, times(0)).startMeeting(meetingId.toString());
       verify(videoServerService, times(1)).stopMeeting(meetingId.toString());
       verify(videoServerService, times(1)).stopRecording(meetingId.toString());
-      verify(videoServerService, times(1))
+      verify(videoRecorderService, times(1))
           .startRecordingPostProcessing(
               RecordingInfo.create()
                   .meetingId(meetingId.toString())
                   .meetingName("test")
                   .recordingToken("fake-token"));
-      Recording recordingUpdated = recording.status(RecordingStatus.STOPPED);
-      verify(recordingRepository, times(1)).update(recordingUpdated);
+      verify(videoRecorderService, times(1)).saveRecordingStopped(recording);
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString()),
               MeetingStopped.create().meetingId(meetingId));
-      verifyNoMoreInteractions(videoServerService, meetingRepository, recordingRepository);
+      verifyNoMoreInteractions(videoServerService, videoRecorderService, meetingRepository);
     }
 
     @Test
@@ -457,7 +454,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verifyNoMoreInteractions(meetingRepository);
       verifyNoInteractions(
-          recordingRepository, membersService, videoServerService, eventDispatcher, roomService);
+          membersService, videoServerService, videoRecorderService, eventDispatcher, roomService);
     }
   }
 
@@ -857,7 +854,7 @@ public class MeetingServiceImplTest {
       verify(roomService, times(1))
           .getRoomAndValidateUser(room1Id, UserPrincipal.create(user1Id), false);
       verify(videoServerService, times(1)).stopRecording(meeting1Id.toString());
-      verify(videoServerService, times(1))
+      verify(videoRecorderService, times(1))
           .startRecordingPostProcessing(
               RecordingInfo.create()
                   .meetingId(meeting1Id.toString())
@@ -968,16 +965,8 @@ public class MeetingServiceImplTest {
       verify(membersService, times(1)).getSubscription(user1Id, room1Id);
       verify(videoServerService, times(1)).startRecording(meeting1Id.toString());
 
-      ArgumentCaptor<Recording> recordingArgumentCaptor = ArgumentCaptor.forClass(Recording.class);
-      verify(recordingRepository, times(1)).insert(recordingArgumentCaptor.capture());
-
-      assertEquals(1, recordingArgumentCaptor.getAllValues().size());
-      Recording recording = recordingArgumentCaptor.getValue();
-      assertFalse(recording.getId().isEmpty());
-      assertEquals(user1Id.toString(), recording.getStarterId());
-      assertEquals(meeting1, recording.getMeeting());
-      assertEquals(OffsetDateTime.parse("2022-01-01T12:00+01:00"), recording.getStartedAt());
-      assertEquals("fake-token", recording.getToken());
+      verify(videoRecorderService, times(1))
+          .saveRecordingStarted(meeting1, user1Id.toString(), "fake-token");
 
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -985,9 +974,9 @@ public class MeetingServiceImplTest {
               MeetingRecordingStarted.create().userId(user1Id).meetingId(meeting1Id));
       verifyNoMoreInteractions(
           meetingRepository,
-          recordingRepository,
           membersService,
           videoServerService,
+          videoRecorderService,
           eventDispatcher);
       verifyNoInteractions(roomService);
     }
@@ -1015,7 +1004,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(membersService, times(1)).getSubscription(user1Id, room1Id);
       verifyNoMoreInteractions(meetingRepository, membersService);
-      verifyNoInteractions(recordingRepository, videoServerService, eventDispatcher, roomService);
+      verifyNoInteractions(videoServerService, videoRecorderService, eventDispatcher, roomService);
     }
 
     @Test
@@ -1038,7 +1027,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verifyNoMoreInteractions(meetingRepository);
       verifyNoInteractions(
-          recordingRepository, membersService, videoServerService, eventDispatcher, roomService);
+          membersService, videoServerService, videoRecorderService, eventDispatcher, roomService);
     }
 
     @Test
@@ -1060,7 +1049,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verifyNoMoreInteractions(meetingRepository);
       verifyNoInteractions(
-          recordingRepository, membersService, videoServerService, eventDispatcher, roomService);
+          membersService, videoServerService, videoRecorderService, eventDispatcher, roomService);
     }
 
     @Test
@@ -1097,7 +1086,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verifyNoMoreInteractions(meetingRepository);
       verifyNoInteractions(
-          recordingRepository, membersService, videoServerService, eventDispatcher, roomService);
+          membersService, videoServerService, videoRecorderService, eventDispatcher, roomService);
     }
 
     @Test
@@ -1121,7 +1110,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(membersService, times(1)).getSubscription(user1Id, room1Id);
       verifyNoMoreInteractions(meetingRepository, membersService);
-      verifyNoInteractions(recordingRepository, videoServerService, eventDispatcher, roomService);
+      verifyNoInteractions(videoServerService, videoRecorderService, eventDispatcher, roomService);
     }
 
     @Test
@@ -1153,7 +1142,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(membersService, times(1)).getSubscription(user1Id, room1Id);
       verifyNoMoreInteractions(meetingRepository, membersService);
-      verifyNoInteractions(recordingRepository, videoServerService, eventDispatcher, roomService);
+      verifyNoInteractions(videoServerService, videoRecorderService, eventDispatcher, roomService);
     }
   }
 
@@ -1188,7 +1177,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(membersService, times(1)).getSubscription(user1Id, room1Id);
       verify(videoServerService, times(1)).stopRecording(meeting1Id.toString());
-      verify(videoServerService, times(1))
+      verify(videoRecorderService, times(1))
           .startRecordingPostProcessing(
               RecordingInfo.create()
                   .meetingId(meeting1Id.toString())
@@ -1196,17 +1185,16 @@ public class MeetingServiceImplTest {
                   .recordingName("rec-name")
                   .folderId("rec-dir-id")
                   .recordingToken("rec-token"));
-      Recording recordingUpdated = recording.status(RecordingStatus.STOPPED);
-      verify(recordingRepository, times(1)).update(recordingUpdated);
+      verify(videoRecorderService, times(1)).saveRecordingStopped(recording);
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
               MeetingRecordingStopped.create().meetingId(meeting1Id).userId(user1Id));
       verifyNoMoreInteractions(
           meetingRepository,
-          recordingRepository,
           membersService,
           videoServerService,
+          videoRecorderService,
           eventDispatcher);
       verifyNoInteractions(roomService);
     }
@@ -1232,7 +1220,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(membersService, times(1)).getSubscription(user1Id, room1Id);
       verifyNoMoreInteractions(meetingRepository, membersService);
-      verifyNoInteractions(recordingRepository, videoServerService, eventDispatcher, roomService);
+      verifyNoInteractions(videoServerService, videoRecorderService, eventDispatcher, roomService);
     }
 
     @Test
@@ -1259,7 +1247,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verifyNoMoreInteractions(meetingRepository);
       verifyNoInteractions(
-          recordingRepository, membersService, videoServerService, eventDispatcher, roomService);
+          membersService, videoServerService, videoRecorderService, eventDispatcher, roomService);
     }
 
     @Test
@@ -1285,7 +1273,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verifyNoMoreInteractions(meetingRepository);
       verifyNoInteractions(
-          recordingRepository, membersService, videoServerService, eventDispatcher, roomService);
+          membersService, videoServerService, videoRecorderService, eventDispatcher, roomService);
     }
 
     @Test
@@ -1326,7 +1314,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verifyNoMoreInteractions(meetingRepository);
       verifyNoInteractions(
-          recordingRepository, membersService, videoServerService, eventDispatcher, roomService);
+          membersService, videoServerService, videoRecorderService, eventDispatcher, roomService);
     }
 
     @Test
@@ -1354,7 +1342,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(membersService, times(1)).getSubscription(user1Id, room1Id);
       verifyNoMoreInteractions(meetingRepository, membersService);
-      verifyNoInteractions(recordingRepository, videoServerService, eventDispatcher, roomService);
+      verifyNoInteractions(videoServerService, videoRecorderService, eventDispatcher, roomService);
     }
 
     @Test
@@ -1390,7 +1378,7 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(membersService, times(1)).getSubscription(user1Id, room1Id);
       verifyNoMoreInteractions(meetingRepository, membersService);
-      verifyNoInteractions(recordingRepository, videoServerService, eventDispatcher, roomService);
+      verifyNoInteractions(videoServerService, videoRecorderService, eventDispatcher, roomService);
     }
   }
 }

@@ -8,9 +8,9 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
-import com.zextras.carbonio.chats.core.data.model.RecordingInfo;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.consul.ConsulService;
+import com.zextras.carbonio.chats.core.infrastructure.videorecorder.VideoRecorderConfig;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
@@ -21,7 +21,6 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Pty
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcType;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Stream;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRecorderRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerMessageRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerPluginRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeCreateRequest;
@@ -43,7 +42,6 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
-import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.meeting.model.MediaStreamDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
@@ -92,6 +90,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   @Inject
   public VideoServerServiceImpl(
       VideoServerConfig videoServerConfig,
+      VideoRecorderConfig videoRecorderConfig,
       VideoServerClient videoServerClient,
       VideoServerMeetingRepository videoServerMeetingRepository,
       VideoServerSessionRepository videoServerSessionRepository,
@@ -104,7 +103,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     this.clock = clock;
     this.random = new Random();
     this.apiSecret = videoServerConfig.getApiSecret();
-    this.recordingPath = videoServerConfig.getRecordingPath();
+    this.recordingPath = videoRecorderConfig.getRecordingPath();
   }
 
   @Override
@@ -1186,44 +1185,6 @@ public class VideoServerServiceImpl implements VideoServerService {
                         + meetingId);
               }
             });
-  }
-
-  /**
-   * This method allows you to send a request to the video recorder to start the post-processing
-   * phase on the meeting recorded
-   *
-   * @param recordingInfo recording info needed by the video recorder
-   * @see <a href="https://janus.conf.meetecho.com/docs/recordings.html">JanusRecordings</a>
-   */
-  @Override
-  public CompletableFuture<Void> startRecordingPostProcessing(RecordingInfo recordingInfo) {
-    return CompletableFuture.supplyAsync(
-        () -> {
-          videoServerClient.sendVideoRecorderRequest(
-              recordingInfo.getMeetingId(),
-              Optional.ofNullable(recordingInfo.getRecordingToken())
-                  .map(
-                      token ->
-                          VideoRecorderRequest.create()
-                              .meetingId(recordingInfo.getMeetingId())
-                              .meetingName(recordingInfo.getMeetingName())
-                              .audioActivePackets(
-                                  AudioBridgeCreateRequest.AUDIO_ACTIVE_PACKETS_DEFAULT)
-                              .audioLevelAverage(
-                                  AudioBridgeCreateRequest.AUDIO_LEVEL_AVERAGE_DEFAULT)
-                              .authToken(AuthenticationMethod.ZM_AUTH_TOKEN + "=" + token)
-                              .folderId(recordingInfo.getFolderId())
-                              .recordingName(recordingInfo.getRecordingName()))
-                  .orElse(
-                      VideoRecorderRequest.create()
-                          .meetingId(recordingInfo.getMeetingId())
-                          .meetingName(recordingInfo.getMeetingName())
-                          .audioActivePackets(AudioBridgeCreateRequest.AUDIO_ACTIVE_PACKETS_DEFAULT)
-                          .audioLevelAverage(AudioBridgeCreateRequest.AUDIO_LEVEL_AVERAGE_DEFAULT)
-                          .folderId(recordingInfo.getFolderId())
-                          .recordingName(recordingInfo.getRecordingName())));
-          return null;
-        });
   }
 
   private VideoServerMeeting getVideoServerMeeting(String meetingId) {

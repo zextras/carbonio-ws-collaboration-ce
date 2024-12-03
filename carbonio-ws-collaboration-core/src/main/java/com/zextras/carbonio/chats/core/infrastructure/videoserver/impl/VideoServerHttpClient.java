@@ -10,7 +10,6 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoRecorderRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerMessageRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.VideoServerResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.audiobridge.AudioBridgeResponse;
@@ -29,24 +28,17 @@ public class VideoServerHttpClient implements VideoServerClient {
 
   private static final String JANUS_ENDPOINT = "/janus";
   private static final String JANUS_INFO_ENDPOINT = "/info";
-  private static final String POST_PROCESSOR_ENDPOINT = "/PostProcessor";
-  private static final String MEETING_ENDPOINT = "/meeting_%s";
   private static final String VIDEOSERVER_ROUTING_QUERYPARAM = "?service_id=%s";
 
   private final HttpClient httpClient;
   private final String videoServerURL;
-  private final String videoRecorderURL;
   private final ObjectMapper objectMapper;
 
   @Inject
   public VideoServerHttpClient(
-      HttpClient httpClient,
-      String videoServerURL,
-      String videoRecorderURL,
-      ObjectMapper objectMapper) {
+      HttpClient httpClient, String videoServerURL, ObjectMapper objectMapper) {
     this.httpClient = httpClient;
     this.videoServerURL = videoServerURL;
-    this.videoRecorderURL = videoRecorderURL;
     this.objectMapper = objectMapper;
   }
 
@@ -204,30 +196,6 @@ public class VideoServerHttpClient implements VideoServerClient {
         });
   }
 
-  @Override
-  public CompletableFuture<Void> sendVideoRecorderRequest(
-      String meetingId, VideoRecorderRequest request) {
-    return CompletableFuture.runAsync(
-        () -> {
-          try (CloseableHttpResponse response =
-              httpClient.sendPost(
-                  buildVideoRecorderUrl(meetingId),
-                  Map.of("Content-Type", "application/json"),
-                  objectMapper.writeValueAsString(request))) {
-
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode != HttpStatus.SC_OK) {
-              throw new VideoServerException(
-                  "Video recorder returns error response: " + statusCode);
-            }
-          } catch (JsonProcessingException e) {
-            throw new VideoServerException("Unable to convert request body to JSON", e);
-          } catch (IOException e) {
-            throw new VideoServerException("Something went wrong executing request", e);
-          }
-        });
-  }
-
   private String buildVideoServerUrl() {
     return videoServerURL + JANUS_ENDPOINT;
   }
@@ -238,10 +206,5 @@ public class VideoServerHttpClient implements VideoServerClient {
 
   private String buildVideoServerUrl(String connectionId, String handleId) {
     return String.join("", buildVideoServerUrl(), String.format("/%s/%s", connectionId, handleId));
-  }
-
-  private String buildVideoRecorderUrl(String meetingId) {
-    return String.join(
-        "", videoRecorderURL, POST_PROCESSOR_ENDPOINT, String.format(MEETING_ENDPOINT, meetingId));
   }
 }
