@@ -8,9 +8,11 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
+import com.zextras.carbonio.chats.core.data.model.RecordingInfo;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.consul.ConsulService;
 import com.zextras.carbonio.chats.core.infrastructure.videorecorder.VideoRecorderConfig;
+import com.zextras.carbonio.chats.core.infrastructure.videorecorder.VideoRecorderService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
@@ -81,6 +83,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   private final VideoServerMeetingRepository videoServerMeetingRepository;
   private final VideoServerSessionRepository videoServerSessionRepository;
   private final ConsulService consulService;
+  private final VideoRecorderService videoRecorderService;
   private final Clock clock;
   private final Random random;
 
@@ -95,11 +98,13 @@ public class VideoServerServiceImpl implements VideoServerService {
       VideoServerMeetingRepository videoServerMeetingRepository,
       VideoServerSessionRepository videoServerSessionRepository,
       ConsulService consulService,
+      VideoRecorderService videoRecorderService,
       Clock clock) {
     this.videoServerClient = videoServerClient;
     this.videoServerMeetingRepository = videoServerMeetingRepository;
     this.videoServerSessionRepository = videoServerSessionRepository;
     this.consulService = consulService;
+    this.videoRecorderService = videoRecorderService;
     this.clock = clock;
     this.random = new Random();
     this.apiSecret = videoServerConfig.getApiSecret();
@@ -1063,7 +1068,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
-  public CompletableFuture<Void> stopRecording(String meetingId) {
+  public CompletableFuture<Void> stopRecording(String meetingId, RecordingInfo recordingInfo) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
 
     UUID serverId = UUID.fromString(videoServerMeeting.getServerId());
@@ -1094,7 +1099,11 @@ public class VideoServerServiceImpl implements VideoServerService {
             videoServerMeeting.getMeetingId());
 
     // Wait for both audio and video updates to complete
-    return CompletableFuture.allOf(audioRecordingFuture, videoRecordingFuture);
+    return CompletableFuture.allOf(audioRecordingFuture, videoRecordingFuture)
+        .thenRun(
+            () ->
+                videoRecorderService.startRecordingPostProcessing(
+                    recordingInfo.serverId(serverId.toString())));
   }
 
   private CompletableFuture<Void> updateAudioBridgeRoomRecordingStatus(

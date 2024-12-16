@@ -20,9 +20,11 @@ import static org.mockito.Mockito.when;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerMeeting;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
+import com.zextras.carbonio.chats.core.data.model.RecordingInfo;
 import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.consul.ConsulService;
 import com.zextras.carbonio.chats.core.infrastructure.videorecorder.VideoRecorderConfig;
+import com.zextras.carbonio.chats.core.infrastructure.videorecorder.VideoRecorderService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
@@ -81,13 +83,15 @@ public class VideoServerServiceImplTest {
   private final VideoServerMeetingRepository videoServerMeetingRepository;
   private final VideoServerSessionRepository videoServerSessionRepository;
   private final VideoServerService videoServerService;
-  private final ConsulService consulServiceMock;
+  private final ConsulService consulService;
+  private final VideoRecorderService videoRecorderService;
 
   public VideoServerServiceImplTest() {
     this.videoServerClient = mock(VideoServerClient.class);
     this.videoServerMeetingRepository = mock(VideoServerMeetingRepository.class);
     this.videoServerSessionRepository = mock(VideoServerSessionRepository.class);
-    this.consulServiceMock = mock(ConsulService.class);
+    this.consulService = mock(ConsulService.class);
+    this.videoRecorderService = mock(VideoRecorderService.class);
     Clock clock = mock(Clock.class);
     when(clock.instant()).thenReturn(Instant.parse("2022-01-01T11:00:00Z"));
     when(clock.getZone()).thenReturn(ZoneId.of("UTC+01:00"));
@@ -103,7 +107,8 @@ public class VideoServerServiceImplTest {
             videoServerClient,
             videoServerMeetingRepository,
             videoServerSessionRepository,
-            consulServiceMock,
+            consulService,
+            videoRecorderService,
             clock);
   }
 
@@ -161,9 +166,14 @@ public class VideoServerServiceImplTest {
   @AfterEach
   public void cleanup() {
     verifyNoMoreInteractions(videoServerClient);
+    verifyNoMoreInteractions(videoRecorderService);
     verifyNoMoreInteractions(videoServerMeetingRepository);
     verifyNoMoreInteractions(videoServerSessionRepository);
-    reset(videoServerClient, videoServerMeetingRepository, videoServerSessionRepository);
+    reset(
+        videoServerClient,
+        videoRecorderService,
+        videoServerMeetingRepository,
+        videoServerSessionRepository);
   }
 
   private VideoServerMeeting createVideoServerMeeting(UUID serverId, UUID meetingId) {
@@ -189,7 +199,7 @@ public class VideoServerServiceImplTest {
     @Test
     @DisplayName("Start a new meeting on a room")
     void startMeeting_testOk() {
-      when(consulServiceMock.getHealthyServices("carbonio-videoserver", "service_id"))
+      when(consulService.getHealthyServices("carbonio-videoserver", "service_id"))
           .thenReturn(List.of(serverId));
       VideoServerResponse sessionResponse =
           VideoServerResponse.create()
@@ -389,7 +399,7 @@ public class VideoServerServiceImplTest {
     @Test
     @DisplayName("Try to start a new meeting but create connection fails")
     void startMeeting_testErrorCreateConnectionFails() {
-      when(consulServiceMock.getHealthyServices("carbonio-videoserver", "service_id"))
+      when(consulService.getHealthyServices("carbonio-videoserver", "service_id"))
           .thenReturn(List.of(serverId));
       when(videoServerClient.sendVideoServerRequest(
               eq(serverId.toString()), any(VideoServerMessageRequest.class)))
@@ -2814,7 +2824,10 @@ public class VideoServerServiceImplTest {
               any(VideoServerMessageRequest.class)))
           .thenReturn(CompletableFuture.completedFuture(videoRoomResponse));
 
-      videoServerService.stopRecording(meeting1Id.toString()).join();
+      videoServerService
+          .stopRecording(
+              meeting1Id.toString(), RecordingInfo.create().meetingId(meeting1Id.toString()))
+          .join();
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
 
@@ -2857,6 +2870,12 @@ public class VideoServerServiceImplTest {
       assertEquals("enable_recording", videoRoomEnableRecordingRequest.getRequest());
       assertEquals(meeting1VideoRoomId.toString(), videoRoomEnableRecordingRequest.getRoom());
       assertFalse(videoRoomEnableRecordingRequest.getRecord());
+
+      verify(videoRecorderService, times(1))
+          .startRecordingPostProcessing(
+              RecordingInfo.create()
+                  .meetingId(meeting1Id.toString())
+                  .serverId(serverId.toString()));
     }
 
     @Test
@@ -2865,7 +2884,10 @@ public class VideoServerServiceImplTest {
       String idMeeting = meeting1Id.toString();
       assertThrows(
           VideoServerException.class,
-          () -> videoServerService.stopRecording(idMeeting).join(),
+          () ->
+              videoServerService
+                  .stopRecording(idMeeting, RecordingInfo.create().serverId("serverId"))
+                  .join(),
           "No videoserver meeting found for the meeting " + meeting1Id);
 
       verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());

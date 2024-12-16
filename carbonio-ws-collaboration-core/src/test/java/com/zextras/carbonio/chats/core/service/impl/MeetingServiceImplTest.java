@@ -125,7 +125,7 @@ public class MeetingServiceImplTest {
         .thenReturn(CompletableFuture.completedFuture(null));
     when(videoServerService.startRecording(anyString()))
         .thenReturn(CompletableFuture.completedFuture(null));
-    when(videoServerService.stopRecording(anyString()))
+    when(videoServerService.stopRecording(anyString(), any(RecordingInfo.class)))
         .thenReturn(CompletableFuture.completedFuture(null));
     when(videoRecorderService.startRecordingPostProcessing(any()))
         .thenReturn(CompletableFuture.completedFuture(null));
@@ -157,6 +157,7 @@ public class MeetingServiceImplTest {
     meeting1
         .id(meeting1Id.toString())
         .roomId(room1Id.toString())
+        .name("test")
         .meetingType(MeetingType.PERMANENT)
         .participants(
             List.of(
@@ -420,9 +421,9 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).update(updatedMeeting);
       verify(videoServerService, times(0)).startMeeting(meetingId.toString());
       verify(videoServerService, times(1)).stopMeeting(meetingId.toString());
-      verify(videoServerService, times(1)).stopRecording(meetingId.toString());
-      verify(videoRecorderService, times(1))
-          .startRecordingPostProcessing(
+      verify(videoServerService, times(1))
+          .stopRecording(
+              meetingId.toString(),
               RecordingInfo.create()
                   .meetingId(meetingId.toString())
                   .meetingName("test")
@@ -853,12 +854,12 @@ public class MeetingServiceImplTest {
       verify(meetingRepository, times(1)).delete(meeting);
       verify(roomService, times(1))
           .getRoomAndValidateUser(room1Id, UserPrincipal.create(user1Id), false);
-      verify(videoServerService, times(1)).stopRecording(meeting1Id.toString());
-      verify(videoRecorderService, times(1))
-          .startRecordingPostProcessing(
+      verify(videoServerService, times(1))
+          .stopRecording(
+              meeting1Id.toString(),
               RecordingInfo.create()
                   .meetingId(meeting1Id.toString())
-                  .meetingName(meeting.getName())
+                  .meetingName("test")
                   .recordingToken("fake-token"));
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -1176,15 +1177,15 @@ public class MeetingServiceImplTest {
 
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verify(membersService, times(1)).getSubscription(user1Id, room1Id);
-      verify(videoServerService, times(1)).stopRecording(meeting1Id.toString());
-      verify(videoRecorderService, times(1))
-          .startRecordingPostProcessing(
+      verify(videoServerService, times(1))
+          .stopRecording(
+              meeting1Id.toString(),
               RecordingInfo.create()
+                  .meetingName("test")
                   .meetingId(meeting1Id.toString())
-                  .meetingName(meeting.getName())
                   .recordingName("rec-name")
-                  .folderId("rec-dir-id")
-                  .recordingToken("rec-token"));
+                  .recordingToken("rec-token")
+                  .folderId("rec-dir-id"));
       verify(videoRecorderService, times(1)).saveRecordingStopped(recording);
       verify(eventDispatcher, times(1))
           .sendToUserExchange(

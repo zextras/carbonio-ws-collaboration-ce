@@ -324,9 +324,8 @@ public class MeetingServiceImpl implements MeetingService {
         .findFirst()
         .ifPresent(
             recording -> {
-              videoServerService.stopRecording(meeting.getId());
-              videoRecorderService.startRecordingPostProcessing(
-                  recordingInfo.recordingToken(recording.getToken()));
+              videoServerService.stopRecording(
+                  meeting.getId(), recordingInfo.recordingToken(recording.getToken()));
               videoRecorderService.saveRecordingStopped(recording);
               eventDispatcher.sendToUserExchange(
                   meeting.getParticipants().stream().map(Participant::getUserId).toList(),
