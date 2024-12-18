@@ -40,4 +40,6 @@ public interface MeetingService {
   void deleteMeetingById(UUID meetingId, UserPrincipal currentUser);
 
   void deleteMeeting(String userId, Meeting meeting, Room room);
+
+  void updateMeeting(Meeting updatedMeeting);
 }
