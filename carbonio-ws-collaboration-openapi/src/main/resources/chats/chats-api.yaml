@@ -674,7 +674,6 @@ components:
       schema:
         allOf:
           - $ref: '#/components/schemas/ImageTypeEnum'
-        default: medium
       required: false
     queryImageCrop:
       in: query
