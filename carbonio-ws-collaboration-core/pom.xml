@@ -16,7 +16,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   <parent>
     <groupId>com.zextras.carbonio.ws-collaboration</groupId>
     <artifactId>carbonio-ws-collaboration</artifactId>
-    <version>1.5.1</version>
+    <version>1.5.2</version>
   </parent>
 
   <artifactId>carbonio-ws-collaboration-core</artifactId>

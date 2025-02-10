@@ -268,6 +268,11 @@ public class MeetingServiceImpl implements MeetingService {
   }
 
   @Override
+  public void updateMeeting(Meeting updatedMeeting) {
+    meetingRepository.update(updatedMeeting);
+  }
+
+  @Override
   public void startMeetingRecording(UUID meetingId, UserPrincipal currentUser) {
     Meeting meeting = validateMeeting(meetingId);
     if (Boolean.FALSE.equals(meeting.getActive())) {

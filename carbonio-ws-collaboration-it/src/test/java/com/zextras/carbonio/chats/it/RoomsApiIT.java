@@ -2010,6 +2010,68 @@ public class RoomsApiIT {
     }
 
     @Test
+    @DisplayName(
+        "Given a room identifier and update name, correctly updates the room name and the"
+            + " associated meeting name")
+    void updateRoomWithMeeting_testOk() throws Exception {
+      UUID roomId = UUID.randomUUID();
+      Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+      Instant insertRoomInstant =
+          executionInstant.minus(Duration.ofDays(1L)).truncatedTo(ChronoUnit.SECONDS);
+      clock.fixTimeAt(insertRoomInstant);
+      Room roomCreated =
+          integrationTestUtils.generateAndSaveRoom(
+              roomId,
+              RoomTypeDto.GROUP,
+              "testRoom",
+              "Test room",
+              List.of(user1Id, user2Id, user3Id),
+              List.of(user1Id),
+              List.of(user1Id),
+              OffsetDateTime.parse("2022-01-01T00:00:00Z"));
+      UUID meetingId = meetingTestUtils.generateAndSaveMeeting(roomId, List.of());
+      integrationTestUtils.updateRoom(roomCreated.meetingId(meetingId.toString()));
+      String hopedXmppMessage1 =
+          String.format(
+                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
+                      + " type='groupchat'>",
+                  user1Id, roomId)
+              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+              + "<operation>roomNameChanged</operation><value"
+              + " encoded='UTF-8'>\\\\u0075\\\\u0070\\\\u0064\\\\u0061\\\\u0074\\\\u0065\\\\u0064\\\\u0052\\\\u006f\\\\u006f\\\\u006d</value>"
+              + "</x><body/></message>";
+      String hopedXmppMessage2 =
+          String.format(
+                  "<message xmlns='jabber:client' from='%s@carbonio' to='%s@muclight.carbonio'"
+                      + " type='groupchat'>",
+                  user1Id, roomId)
+              + "<x xmlns='urn:xmpp:muclight:0#configuration'>"
+              + "<operation>roomDescriptionChanged</operation><value"
+              + " encoded='UTF-8'>\\\\u0055\\\\u0070\\\\u0064\\\\u0061\\\\u0074\\\\u0065\\\\u0064\\\\u0020\\\\u0072\\\\u006f\\\\u006f\\\\u006d</value>"
+              + "</x><body/></message>";
+      mongooseImMockServer.mockSendStanza(hopedXmppMessage1, true);
+      mongooseImMockServer.mockSendStanza(hopedXmppMessage2, true);
+      clock.fixTimeAt(executionInstant);
+      MockHttpResponse response =
+          dispatcher.put(
+              url(roomId), getUpdateRoomRequestBody("updatedRoom", "Updated room"), user1Token);
+      clock.removeFixTime();
+      assertEquals(200, response.getStatus());
+      RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
+      assertEquals("updatedRoom", room.getName());
+      assertEquals("Updated room", room.getDescription());
+      assertEquals(insertRoomInstant, room.getCreatedAt().toInstant());
+      assertEquals(executionInstant, room.getUpdatedAt().toInstant());
+      assertEquals(Duration.ofDays(1L), Duration.between(room.getCreatedAt(), room.getUpdatedAt()));
+      assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
+      Optional<Meeting> meeting = meetingTestUtils.getMeetingById(meetingId);
+      assertTrue(meeting.isPresent());
+      Meeting updatedMeeting = meeting.get();
+      assertEquals(roomId.toString(), updatedMeeting.getRoomId());
+      assertEquals("updatedRoom", updatedMeeting.getName());
+    }
+
+    @Test
     @DisplayName("Given a room identifier, if there isn't any room return a status code 404")
     void updateRoom_testErrorUpdateRoomNotExistingRoom() throws Exception {
       UUID roomId = UUID.randomUUID();

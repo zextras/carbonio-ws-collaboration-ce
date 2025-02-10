@@ -41,6 +41,8 @@ public interface MeetingService {
 
   void deleteMeeting(String userId, Meeting meeting, Room room);
 
+  void updateMeeting(Meeting updatedMeeting);
+
   void startMeetingRecording(UUID meetingId, UserPrincipal currentUser);
 
   void stopMeetingRecording(

@@ -109,7 +109,6 @@ class RoomServiceImplTest {
   private final FileMetadataRepository fileMetadataRepository;
   private final StoragesService storagesService;
   private final Clock clock;
-  private final AppConfig appConfig;
   private final CapabilityService capabilityService;
 
   public RoomServiceImplTest(RoomMapper roomMapper) {
@@ -125,7 +124,7 @@ class RoomServiceImplTest {
     this.eventDispatcher = mock(EventDispatcher.class);
     this.messageDispatcher = mock(MessageDispatcher.class);
     this.clock = mock(Clock.class);
-    this.appConfig = mock(AppConfig.class);
+    AppConfig appConfig = mock(AppConfig.class);
     this.roomService =
         new RoomServiceImpl(
             this.roomRepository,
@@ -141,7 +140,7 @@ class RoomServiceImplTest {
             this.messageDispatcher,
             roomMapper,
             this.clock,
-            this.appConfig);
+            appConfig);
   }
 
   private UUID user1Id;
@@ -161,6 +160,8 @@ class RoomServiceImplTest {
   private UUID roomChannel1Id;
   private UUID roomChannel2Id;
 
+  private UUID meeting1Id;
+
   private Room roomGroup1;
   private Room roomGroup2;
   private Room roomTemporary1;
@@ -172,6 +173,8 @@ class RoomServiceImplTest {
   private Room roomWorkspace3;
   private Room roomChannel1;
   private Room roomChannel2;
+
+  private Meeting meeting1;
 
   @BeforeEach
   public void init() {
@@ -195,6 +198,8 @@ class RoomServiceImplTest {
     roomWorkspace3Id = UUID.fromString("1d165280-46d4-47ce-84dd-8db9b054f20f");
     roomChannel1Id = UUID.fromString("b1ce21cb-1fd5-4920-815a-de00885533c2");
     roomChannel2Id = UUID.fromString("742069b7-18b8-45b7-8ae1-7cd8dbd9c22f");
+
+    meeting1Id = UUID.fromString("aaa32dbf-e6ff-4032-864c-6298abaf5607");
 
     roomGroup1 = Room.create();
     roomGroup1
@@ -343,19 +348,22 @@ class RoomServiceImplTest {
                 RoomUserSettings.create(roomWorkspace3, user1Id.toString()).rank(3),
                 RoomUserSettings.create(roomWorkspace3, user2Id.toString()).rank(5),
                 RoomUserSettings.create(roomWorkspace3, user3Id.toString()).rank(8)));
+
+    meeting1 = Meeting.create().id(meeting1Id.toString());
   }
 
   @AfterEach
   public void afterEach() {
     reset(
-        this.roomRepository,
-        this.roomUserSettingsRepository,
-        this.userService,
-        this.membersService,
-        this.eventDispatcher,
-        this.messageDispatcher,
-        this.fileMetadataRepository,
-        this.storagesService);
+        roomRepository,
+        roomUserSettingsRepository,
+        userService,
+        membersService,
+        eventDispatcher,
+        messageDispatcher,
+        fileMetadataRepository,
+        storagesService,
+        meetingService);
   }
 
   @Nested
@@ -1795,8 +1803,52 @@ class RoomServiceImplTest {
           .updateRoomDescription(roomGroup1Id.toString(), user1Id.toString(), "Room one changed");
       verifyNoMoreInteractions(eventDispatcher);
       verifyNoMoreInteractions(messageDispatcher);
+    }
 
-      reset(roomRepository, roomUserSettingsRepository);
+    @Test
+    @DisplayName("It correctly updates the room name and also the associated meeting name")
+    void updateRoomWithMeeting_testOk() {
+      when(roomRepository.getById(roomGroup1Id.toString()))
+          .thenReturn(
+              Optional.of(
+                  roomGroup1
+                      .meetingId(meeting1Id.toString())
+                      .name("room1-to-change")
+                      .description("Room one to change")));
+      when(roomUserSettingsRepository.getByRoomIdAndUserId(
+              roomGroup1Id.toString(), user1Id.toString()))
+          .thenReturn(
+              Optional.of(
+                  RoomUserSettings.create(roomGroup1, user1Id.toString())
+                      .mutedUntil(OffsetDateTime.now())));
+      when(meetingService.getMeetingEntity(meeting1Id)).thenReturn(Optional.of(meeting1));
+
+      RoomEditableFieldsDto roomEditableFieldsDto =
+          RoomEditableFieldsDto.create().name("room1-changed").description("Room one changed");
+      RoomDto room =
+          roomService.updateRoom(
+              roomGroup1Id, roomEditableFieldsDto, UserPrincipal.create(user1Id));
+
+      assertEquals(roomGroup1Id, room.getId());
+      assertEquals("room1-changed", room.getName());
+      assertEquals("Room one changed", room.getDescription());
+
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+              RoomUpdated.create()
+                  .roomId(roomGroup1Id)
+                  .name("room1-changed")
+                  .description("Room one changed"));
+      verify(messageDispatcher, times(1))
+          .updateRoomName(roomGroup1Id.toString(), user1Id.toString(), "room1-changed");
+      verify(messageDispatcher, times(1))
+          .updateRoomDescription(roomGroup1Id.toString(), user1Id.toString(), "Room one changed");
+      verify(meetingService, times(1)).getMeetingEntity(meeting1Id);
+      verify(meetingService, times(1)).updateMeeting(meeting1.name("room1-changed"));
+      verifyNoMoreInteractions(eventDispatcher);
+      verifyNoMoreInteractions(messageDispatcher);
+      verifyNoMoreInteractions(meetingService);
     }
 
     @Test

@@ -402,6 +402,13 @@ public class RoomServiceImpl implements RoomService {
       changed = true;
       room.name(updateRoomRequestDto.getName());
       messageDispatcher.updateRoomName(room.getId(), currentUserId, updateRoomRequestDto.getName());
+      if (room.getMeetingId() != null) {
+        meetingService
+            .getMeetingEntity(UUID.fromString(room.getMeetingId()))
+            .ifPresent(
+                meeting ->
+                    meetingService.updateMeeting(meeting.name(updateRoomRequestDto.getName())));
+      }
     }
 
     if (isDescriptionChanged(room, updateRoomRequestDto)) {
