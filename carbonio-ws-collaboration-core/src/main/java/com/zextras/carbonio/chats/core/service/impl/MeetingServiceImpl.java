@@ -233,4 +233,9 @@ public class MeetingServiceImpl implements MeetingService {
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingDeleted.create().meetingId(UUID.fromString(meeting.getId())));
   }
+
+  @Override
+  public void updateMeeting(Meeting updatedMeeting) {
+    meetingRepository.update(updatedMeeting);
+  }
 }
