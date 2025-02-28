@@ -22,8 +22,10 @@ import jakarta.websocket.Session;
 import jakarta.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Singleton
 @ServerEndpoint(value = "/events")
@@ -31,7 +33,7 @@ public class EventsWebSocketEndpoint {
 
   private static final String PING = "ping";
   private static final String PONG = "pong";
-
+  private final Map<String, String> consumerTagMap;
   private final Channel channel;
   private final ObjectMapper objectMapper;
   private final ParticipantService participantService;
@@ -42,6 +44,7 @@ public class EventsWebSocketEndpoint {
     this.channel = channel;
     this.objectMapper = objectMapper;
     this.participantService = participantService;
+    this.consumerTagMap = new ConcurrentHashMap<>();
   }
 
   @OnOpen
@@ -77,7 +80,8 @@ public class EventsWebSocketEndpoint {
                       userQueue, message));
             }
           };
-      channel.basicConsume(userQueue, true, deliverCallback, consumerTag -> {});
+      String tag = channel.basicConsume(userQueue, true, deliverCallback, consumerTag -> {});
+      consumerTagMap.put(session.getId(), tag);
     } catch (Exception e) {
       ChatsLogger.warn(
           String.format("Error interacting with message broker for user/queue '%s'", userQueue));
@@ -130,7 +134,8 @@ public class EventsWebSocketEndpoint {
 
   private void closeSession(Session session) {
     UUID userId = UUID.fromString(getUserIdFromSession(session));
-    UUID queueId = UUID.fromString(session.getId());
+    String sessionId = session.getId();
+    UUID queueId = UUID.fromString(sessionId);
     String userQueue = userId + "/" + queueId;
     if (channel == null || !channel.isOpen()) {
       ChatsLogger.error(
@@ -138,12 +143,29 @@ public class EventsWebSocketEndpoint {
               "Unable to close session %s: event websocket handler channel is not up!", queueId));
       return;
     }
+    basicCancel(sessionId, userQueue);
+    queueDeleteNoWait(userQueue);
+    participantService.removeMeetingParticipant(queueId);
+  }
+
+  private void queueDeleteNoWait(String userQueue) {
     try {
       channel.queueDeleteNoWait(userQueue, false, false);
     } catch (Exception e) {
       ChatsLogger.warn(String.format("Error deleting queue for user/queue '%s'", userQueue), e);
     }
-    participantService.removeMeetingParticipant(queueId);
+  }
+
+  private void basicCancel(String sessionId, String userQueue) {
+    String tag = consumerTagMap.remove(sessionId);
+    if (tag != null) {
+      try {
+        channel.basicCancel(tag);
+      } catch (Exception e) {
+        ChatsLogger.warn(
+                String.format("Error cancelling consumer for user/queue '%s'", userQueue), e);
+      }
+    }
   }
 
   private static class SessionOutEvent {
