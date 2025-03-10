@@ -476,6 +476,161 @@ public class MembersServiceImplTest {
   }
 
   @Nested
+  @DisplayName("Updates owners status of a room tests")
+  class UpdateOwnersTests {
+
+    @Test
+    @DisplayName("Correctly promotes members to owners of a room")
+    void updateOwners_testOkPromote() {
+      Room room = generateRoom(RoomTypeDto.GROUP);
+      Subscription user2subscription = Subscription.create(room, user2Id.toString()).owner(false);
+      Subscription user3subscription = Subscription.create(room, user3Id.toString()).owner(false);
+      room.subscriptions(
+          List.of(
+              Subscription.create(room, user1Id.toString()).owner(true),
+              user2subscription,
+              user3subscription));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      membersService.updateRoomOwners(
+          roomId,
+          List.of(
+              MemberDto.create().userId(user2Id).owner(true),
+              MemberDto.create().userId(user3Id).owner(true)),
+          principal);
+
+      verify(subscriptionRepository, times(1))
+          .updateAll(List.of(user2subscription, user3subscription));
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+              RoomOwnerPromoted.create().roomId(UUID.fromString(room.getId())).userId(user2Id));
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+              RoomOwnerPromoted.create().roomId(UUID.fromString(room.getId())).userId(user3Id));
+      verifyNoMoreInteractions(subscriptionRepository, eventDispatcher);
+      verifyNoInteractions(messageDispatcher);
+    }
+
+    @Test
+    @DisplayName("Correctly demote owners to members of a room")
+    void updateOwners_testOkDemote() {
+      Room room = generateRoom(RoomTypeDto.GROUP);
+      Subscription user2subscription = Subscription.create(room, user2Id.toString()).owner(true);
+      Subscription user3subscription = Subscription.create(room, user3Id.toString()).owner(true);
+      room.subscriptions(
+          List.of(
+              Subscription.create(room, user1Id.toString()).owner(true),
+              user2subscription,
+              user3subscription));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      membersService.updateRoomOwners(
+          roomId,
+          List.of(
+              MemberDto.create().userId(user2Id).owner(false),
+              MemberDto.create().userId(user3Id).owner(false)),
+          principal);
+
+      verify(subscriptionRepository, times(1))
+          .updateAll(List.of(user2subscription, user3subscription));
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+              RoomOwnerDemoted.create().roomId(UUID.fromString(room.getId())).userId(user2Id));
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+              RoomOwnerDemoted.create().roomId(UUID.fromString(room.getId())).userId(user3Id));
+      verifyNoMoreInteractions(subscriptionRepository, eventDispatcher);
+      verifyNoInteractions(messageDispatcher);
+    }
+
+    @Test
+    @DisplayName("It throws exception if a user is not a room member")
+    void updateOwners_testErrorUserIsNotAMember() {
+      Room room = generateRoom(RoomTypeDto.GROUP);
+      Subscription user3subscription = Subscription.create(room, user3Id.toString()).owner(true);
+      room.subscriptions(
+          List.of(Subscription.create(room, user1Id.toString()).owner(true), user3subscription));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+
+      ForbiddenException exception =
+          assertThrows(
+              ForbiddenException.class,
+              () ->
+                  membersService.updateRoomOwners(
+                      roomId,
+                      List.of(
+                          MemberDto.create().userId(user2Id).owner(false),
+                          MemberDto.create().userId(user3Id).owner(false)),
+                      principal));
+
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format("Forbidden - User '%s' is not a member of the room", user2Id.toString()),
+          exception.getMessage());
+
+      verifyNoMoreInteractions(subscriptionRepository, eventDispatcher);
+      verifyNoInteractions(messageDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the room is a one-to-one room, it throws a 'bad request' exception")
+    void updateOwners_testErrorRoomIsOneToOne() {
+      Room room = generateRoom(RoomTypeDto.ONE_TO_ONE);
+      room.subscriptions(
+          List.of(
+              Subscription.create(room, user1Id.toString()).owner(true),
+              Subscription.create(room, user2Id.toString()).owner(false)));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+
+      ChatsHttpException exception =
+          assertThrows(
+              BadRequestException.class,
+              () ->
+                  membersService.updateRoomOwners(
+                      roomId, List.of(MemberDto.create().userId(user2Id).owner(true)), principal));
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          "Bad Request - Cannot update owner privileges on one_to_one rooms",
+          exception.getMessage());
+      verifyNoInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the user is the requester, it throws a 'bad request' exception")
+    void updateOwners_testErrorUserIsRequester() {
+      Room room = generateRoom(RoomTypeDto.GROUP);
+      room.subscriptions(
+          List.of(
+              Subscription.create(room, user1Id.toString()).owner(true),
+              Subscription.create(room, user2Id.toString()).owner(false)));
+      UserPrincipal principal = UserPrincipal.create(user2Id);
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+
+      ChatsHttpException exception =
+          assertThrows(
+              BadRequestException.class,
+              () ->
+                  membersService.updateRoomOwners(
+                      roomId, List.of(MemberDto.create().userId(user2Id).owner(true)), principal));
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          "Bad Request - Cannot update owner privileges for itself", exception.getMessage());
+      verifyNoInteractions(subscriptionRepository, eventDispatcher, messageDispatcher);
+    }
+  }
+
+  @Nested
   @DisplayName("Removes a member from a room tests")
   class DeletesRoomMemberTests {
 

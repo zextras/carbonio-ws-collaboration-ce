@@ -300,6 +300,26 @@ paths:
           $ref: '#/components/responses/404NotFoundResponse'
         403:
           $ref: '#/components/responses/403ForbiddenResponse'
+  /rooms/{roomId}/members/owners:
+    put:
+      tags:
+        - Rooms
+        - Members
+      summary: Update existing room owners
+      operationId: updateRoomOwners
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateRoomOwnersRequest'
+      responses:
+        201:
+          $ref: '#/components/responses/200UpdateRoomOwnersResponse'
+        400:
+          $ref: '#/components/responses/400BadRequestResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /rooms/{roomId}/meeting:
     get:
       tags:
@@ -827,6 +847,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/MembersToInsert'
+    UpdateRoomOwnersRequest:
+      description: members to update
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Members'
     InsertAttachmentRequest:
       description: file stream
       required: true
@@ -928,6 +955,14 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/MembersInserted'
+    200UpdateRoomOwnersResponse:
+      description: The list of the room members updated
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Member'
     204DeleteRoomMemberResponse:
       description: The member was deleted correctly or it never existed
     204UpdateToOwnerResponse:
@@ -1271,6 +1306,11 @@ components:
       enum:
         - members
         - settings
+    Members:
+      type: array
+      description: room member list
+      items:
+        $ref: '#/components/schemas/Member'
     Member:
       type: object
       description: Information about a user's role in the room

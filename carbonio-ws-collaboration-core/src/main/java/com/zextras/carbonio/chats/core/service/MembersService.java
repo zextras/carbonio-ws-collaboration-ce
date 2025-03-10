@@ -36,7 +36,7 @@ public interface MembersService {
   void setOwner(UUID roomId, UUID userId, boolean isOwner, UserPrincipal currentUser);
 
   /**
-   * Add the specified users to the room. This can only be performed by an of the given room
+   * Adds the specified users to the room. This can only be performed by an owner of the given room
    *
    * @param roomId room identifier {@link UUID }
    * @param memberToInsertDto members to add or invite {@link MemberDto }
@@ -45,6 +45,16 @@ public interface MembersService {
    */
   List<MemberInsertedDto> insertRoomMembers(
       UUID roomId, List<MemberToInsertDto> memberToInsertDto, UserPrincipal currentUser);
+
+  /**
+   * Updates existing room owners. This can only be performed by an owner of the given room
+   *
+   * @param roomId room identifier {@link UUID }
+   * @param members members to update {@link MemberDto }
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   * @return The member updated {@link MemberDto }
+   */
+  List<MemberDto> updateRoomOwners(UUID roomId, List<MemberDto> members, UserPrincipal currentUser);
 
   /**
    * Removes a member from the specified room. If the specified user is different from the
@@ -66,7 +76,7 @@ public interface MembersService {
   List<MemberDto> getRoomMembers(UUID roomId, UserPrincipal currentUser);
 
   /**
-   * Add every member into the specified room
+   * Adds every member into the specified room
    *
    * @param members {@link List} of member to add
    * @param room {@link Room} where to add the members to

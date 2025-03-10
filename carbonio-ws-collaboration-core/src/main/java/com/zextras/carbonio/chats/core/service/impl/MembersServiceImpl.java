@@ -136,6 +136,54 @@ public class MembersServiceImpl implements MembersService {
     return membersInserted;
   }
 
+  @Override
+  public List<MemberDto> updateRoomOwners(
+      UUID roomId, List<MemberDto> members, UserPrincipal currentUser) {
+    if (members.stream().anyMatch(member -> member.getUserId().equals(currentUser.getUUID()))) {
+      throw new BadRequestException("Cannot update owner privileges for itself");
+    }
+    Room room = roomService.getRoomAndValidateUser(roomId, currentUser, true);
+    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+      throw new BadRequestException(
+          String.format("Cannot update owner privileges on %s rooms", room.getType()));
+    }
+
+    List<Subscription> subscriptionsToUpdate = new ArrayList<>();
+    for (MemberDto member : members) {
+      Subscription subscription =
+          room.getSubscriptions().stream()
+              .filter(roomMember -> roomMember.getUserId().equals(member.getUserId().toString()))
+              .findAny()
+              .orElseThrow(
+                  () ->
+                      new ForbiddenException(
+                          String.format(
+                              "User '%s' is not a member of the room", member.getUserId())));
+      subscriptionsToUpdate.add(subscription.owner(member.isOwner()));
+    }
+
+    List<Subscription> subscriptionsUpdated =
+        subscriptionRepository.updateAll(subscriptionsToUpdate);
+    subscriptionsToUpdate.forEach(
+        subscription ->
+            eventDispatcher.sendToUserExchange(
+                room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
+                subscription.isOwner()
+                    ? RoomOwnerPromoted.create()
+                        .roomId(roomId)
+                        .userId(UUID.fromString(subscription.getUserId()))
+                    : RoomOwnerDemoted.create()
+                        .roomId(roomId)
+                        .userId(UUID.fromString(subscription.getUserId()))));
+    return subscriptionsUpdated.stream()
+        .map(
+            subscription ->
+                new MemberDto()
+                    .userId(UUID.fromString(subscription.getUserId()))
+                    .owner(subscription.isOwner()))
+        .toList();
+  }
+
   private List<UUID> extractUniqueMemberIds(List<MemberToInsertDto> membersToInsert) {
     return new ArrayList<>(
         new HashSet<>(membersToInsert.stream().map(MemberToInsertDto::getUserId).toList()));
