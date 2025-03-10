@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.core.data.event;
 
 public enum EventType {
-
   ROOM_CREATED,
   ROOM_UPDATED,
   ROOM_DELETED,
@@ -34,5 +33,5 @@ public enum EventType {
   MEETING_PARTICIPANT_TALKING,
   MEETING_PARTICIPANT_CLASHED,
   MEETING_PARTICIPANT_SUBSCRIBED,
-
+  MEETING_PARTICIPANT_HAND_RAISED
 }

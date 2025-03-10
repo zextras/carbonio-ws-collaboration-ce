@@ -30,6 +30,7 @@ import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
+import com.zextras.carbonio.meeting.model.HandStatusDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
@@ -378,5 +379,17 @@ public class ParticipantServiceImpl implements ParticipantService {
     Meeting meeting = validateMeeting(meetingId);
     roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), currentUser, false);
     videoServerService.offerRtcAudioStream(currentUser.getId(), meetingId.toString(), sdp);
+  }
+
+  @Override
+  public void updateHandStatus(
+      UUID meetingId, HandStatusDto handStatusDto, UserPrincipal currentUser) {
+    Meeting meeting = validateMeeting(meetingId);
+    eventDispatcher.sendToUserExchange(
+        meeting.getParticipants().stream().map(Participant::getUserId).distinct().toList(),
+        MeetingParticipantHandRaised.create()
+            .meetingId(meetingId)
+            .userId(currentUser.getUUID())
+            .raised(handStatusDto.isRaised()));
   }
 }

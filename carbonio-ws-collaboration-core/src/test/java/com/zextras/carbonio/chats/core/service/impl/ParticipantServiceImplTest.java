@@ -26,6 +26,7 @@ import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantClashed;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantHandRaised;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoined;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
@@ -45,6 +46,7 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
+import com.zextras.carbonio.meeting.model.HandStatusDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
@@ -63,7 +65,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @UnitTest
-public class ParticipantServiceImplTest {
+class ParticipantServiceImplTest {
 
   private final ParticipantService participantService;
   private final MeetingService meetingService;
@@ -1283,6 +1285,84 @@ public class ParticipantServiceImplTest {
                   participantService.updateMediaStream(
                       permanentMeetingId,
                       MediaStreamSettingsDto.create().type(TypeEnum.SCREEN).enabled(false),
+                      UserPrincipal.create(user1Id).queueId(user1Queue1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format("Not Found - Meeting '%s' not found", permanentMeetingId),
+          exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+  }
+
+  @Nested
+  @DisplayName("Raise hand tests")
+  class RaiseHandTests {
+
+    @Test
+    @DisplayName("It raises the hand for the current user")
+    void raiseHand_testOk() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      participantService.updateHandStatus(
+          permanentMeetingId,
+          HandStatusDto.create().raised(true),
+          UserPrincipal.create(user1Id).queueId(user1Queue1));
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
+              MeetingParticipantHandRaised.create()
+                  .meetingId(permanentMeetingId)
+                  .userId(user1Id)
+                  .raised(true));
+      verifyNoMoreInteractions(
+          meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("It stops raising the hand for the current user")
+    void stopRaisingHand_testOk() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      participantService.updateHandStatus(
+          permanentMeetingId,
+          HandStatusDto.create().raised(false),
+          UserPrincipal.create(user1Id).queueId(user1Queue1));
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
+              MeetingParticipantHandRaised.create()
+                  .meetingId(permanentMeetingId)
+                  .userId(user1Id)
+                  .raised(false));
+      verifyNoMoreInteractions(
+          meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
+    void raiseHand_testErrorMeetingNotExists() {
+      when(meetingService.getMeetingEntity(permanentMeetingId)).thenReturn(Optional.empty());
+
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () ->
+                  participantService.updateHandStatus(
+                      permanentMeetingId,
+                      HandStatusDto.create().raised(true),
                       UserPrincipal.create(user1Id).queueId(user1Queue1)));
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
