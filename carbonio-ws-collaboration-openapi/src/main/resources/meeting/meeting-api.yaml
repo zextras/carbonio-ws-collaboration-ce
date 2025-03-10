@@ -231,7 +231,25 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-
+  /meetings/{meetingId}/hand:
+    put:
+      tags:
+        - Meetings
+      summary: Update hand status during a meeting
+      operationId: updateHandStatus
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateHandStatusRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204HandStatusResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
 components:
   parameters:
     pathMeetingId:
@@ -287,7 +305,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SubscriptionUpdates'
-
+    UpdateHandStatusRequest:
+      description: user request to update hand status during a meeting
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HandStatus'
   responses:
     200CreateMeetingResponse:
       description: The meeting just created
@@ -341,7 +365,8 @@ components:
       description: The answer related to the media stream has been processed and sent successfully
     204SubscribeMediaStreamResponse:
       description: The user subscribed to media streams successfully
-
+    204HandStatusResponse:
+      description: The hand action has been performed successfully
     400BadRequestResponse:
       description: The request had wrong or missing parameters
     401UnauthorizedResponse:
@@ -560,3 +585,10 @@ components:
             - video
             - screen
       required: [ userId, type ]
+    HandStatus:
+      type: object
+      description: the hand action the user wants to perform
+      properties:
+        raised:
+          type: boolean
+          description: indicates the status to change the hand to
