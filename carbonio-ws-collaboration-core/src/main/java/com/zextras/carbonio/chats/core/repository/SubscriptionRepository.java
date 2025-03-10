@@ -28,6 +28,14 @@ public interface SubscriptionRepository {
   Subscription update(Subscription subscription);
 
   /**
+   * Updates a list of subscriptions
+   *
+   * @param subscriptions {@link List} of {@link Subscription} to update
+   * @return {@link List} of {@link Subscription} updated
+   */
+  List<Subscription> updateAll(List<Subscription> subscriptions);
+
+  /**
    * Inserts a new subscription
    *
    * @param subscription {@link Subscription} to insert

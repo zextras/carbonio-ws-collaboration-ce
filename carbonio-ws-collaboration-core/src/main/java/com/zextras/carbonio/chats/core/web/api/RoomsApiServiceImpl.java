@@ -20,6 +20,7 @@ import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ClearedDateDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
+import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -141,6 +142,17 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               }
             })
         .orElse(Response.status(Status.NOT_FOUND).build());
+  }
+
+  @Override
+  public Response updateRoomOwners(
+      UUID roomId, List<@Valid MemberDto> memberDto, SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+    return Response.status(Status.OK)
+        .entity(membersService.updateRoomOwners(roomId, memberDto, currentUser))
+        .build();
   }
 
   @Override

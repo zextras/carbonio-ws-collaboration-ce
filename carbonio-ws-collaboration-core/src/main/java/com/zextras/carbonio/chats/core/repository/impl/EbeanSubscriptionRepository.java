@@ -35,6 +35,12 @@ public class EbeanSubscriptionRepository implements SubscriptionRepository {
   }
 
   @Override
+  public List<Subscription> updateAll(List<Subscription> subscriptions) {
+    db.updateAll(subscriptions);
+    return subscriptions;
+  }
+
+  @Override
   public Subscription insert(Subscription subscription) {
     if (subscription.getId() == null) {
       subscription.id(new SubscriptionId(subscription.getRoom().getId(), subscription.getUserId()));
