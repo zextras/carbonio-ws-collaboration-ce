@@ -119,11 +119,12 @@ public class MembersServiceImpl implements MembersService {
 
     validateInsertRoomMembers(memberIds, room, currentUser);
 
+    OffsetDateTime currentDateTime = OffsetDateTime.now();
     List<MemberInsertedDto> membersInserted = new ArrayList<>();
     for (MemberToInsertDto member : membersToInsert) {
       messageDispatcher.addRoomMember(
           room.getId(), currentUser.getId(), member.getUserId().toString());
-      MemberInsertedDto memberInsertedDto = processRoomSubscription(room, member);
+      MemberInsertedDto memberInsertedDto = processRoomSubscription(room, member, currentDateTime);
 
       membersInserted.add(memberInsertedDto);
       eventDispatcher.sendToUserExchange(
@@ -220,9 +221,8 @@ public class MembersServiceImpl implements MembersService {
             });
   }
 
-  private MemberInsertedDto processRoomSubscription(Room room, MemberToInsertDto member) {
-    OffsetDateTime dateTime = OffsetDateTime.now();
-
+  private MemberInsertedDto processRoomSubscription(
+      Room room, MemberToInsertDto member, OffsetDateTime dateTime) {
     Subscription subscription =
         subscriptionRepository.insert(
             Subscription.create()
