@@ -392,4 +392,9 @@ public class ParticipantServiceImpl implements ParticipantService {
             .userId(currentUser.getUUID())
             .raised(handStatusDto.isRaised()));
   }
+
+  @Override
+  public void clear(UUID meetingId) {
+    participantRepository.clear(meetingId.toString());
+  }
 }

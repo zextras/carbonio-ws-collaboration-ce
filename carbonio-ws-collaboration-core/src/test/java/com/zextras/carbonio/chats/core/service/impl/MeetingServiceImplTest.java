@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -37,6 +36,7 @@ import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
+import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MemberDto;
@@ -53,19 +53,19 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @UnitTest
-public class MeetingServiceImplTest {
+class MeetingServiceImplTest {
 
   private final MeetingService meetingService;
   private final MeetingRepository meetingRepository;
   private final RoomService roomService;
   private final MembersService membersService;
+  private final ParticipantService participantService;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
   private final Clock clock;
@@ -74,6 +74,7 @@ public class MeetingServiceImplTest {
     this.meetingRepository = mock(MeetingRepository.class);
     this.roomService = mock(RoomService.class);
     this.membersService = mock(MembersService.class);
+    this.participantService = mock(ParticipantService.class);
     this.videoServerService = mock(VideoServerService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.clock = mock(Clock.class);
@@ -83,6 +84,7 @@ public class MeetingServiceImplTest {
             meetingMapper,
             roomService,
             membersService,
+            participantService,
             videoServerService,
             eventDispatcher,
             clock);
@@ -108,13 +110,10 @@ public class MeetingServiceImplTest {
   private Meeting meeting2;
 
   @BeforeEach
-  public void init() {
+  void init() {
     when(clock.instant()).thenReturn(Instant.parse("2022-01-01T11:00:00Z"));
     when(clock.getZone()).thenReturn(ZoneId.of("UTC+01:00"));
-    when(videoServerService.startMeeting(anyString()))
-        .thenReturn(CompletableFuture.completedFuture(null));
-    when(videoServerService.stopMeeting(anyString()))
-        .thenReturn(CompletableFuture.completedFuture(null));
+
     user1Id = UUID.randomUUID();
     session1User1Id = UUID.randomUUID();
     user2Id = UUID.randomUUID();
@@ -325,6 +324,9 @@ public class MeetingServiceImplTest {
       when(roomService.getRoomById(roomId, currentUser))
           .thenReturn(RoomDto.create().members(List.of(MemberDto.create().userId(user1Id))));
       meetingService.stopMeeting(currentUser, meetingId);
+      verify(meetingRepository, times(1)).getById(meetingId.toString());
+      verify(meetingRepository, times(1)).update(updatedMeeting);
+      verify(participantService, times(1)).clear(meetingId);
       verify(videoServerService, times(0)).startMeeting(meetingId.toString());
       verify(videoServerService, times(1)).stopMeeting(meetingId.toString());
       verify(eventDispatcher, times(1))
@@ -350,7 +352,8 @@ public class MeetingServiceImplTest {
 
       verify(meetingRepository, times(1)).getById(meeting1Id.toString());
       verifyNoMoreInteractions(meetingRepository);
-      verifyNoInteractions(membersService, videoServerService, eventDispatcher, roomService);
+      verifyNoInteractions(
+          membersService, participantService, videoServerService, eventDispatcher, roomService);
     }
   }
 

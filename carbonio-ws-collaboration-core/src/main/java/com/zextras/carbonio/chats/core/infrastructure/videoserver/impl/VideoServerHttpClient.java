@@ -18,7 +18,6 @@ import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -62,133 +61,117 @@ public class VideoServerHttpClient implements VideoServerClient {
   }
 
   @Override
-  public CompletableFuture<VideoServerResponse> sendVideoServerRequest(
-      VideoServerMessageRequest request) {
-    return CompletableFuture.supplyAsync(
-        () -> {
-          try (CloseableHttpResponse response =
-              httpClient.sendPost(
-                  buildVideoServerUrl(),
-                  Map.of("Content-Type", "application/json"),
-                  objectMapper.writeValueAsString(request))) {
+  public VideoServerResponse sendVideoServerRequest(VideoServerMessageRequest request) {
+    try (CloseableHttpResponse response =
+        httpClient.sendPost(
+            buildVideoServerUrl(),
+            Map.of("Content-Type", "application/json"),
+            objectMapper.writeValueAsString(request))) {
 
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode != HttpStatus.SC_OK) {
-              throw new VideoServerException("Video server returns error response: " + statusCode);
-            }
-            return objectMapper.readValue(
-                IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8),
-                VideoServerResponse.class);
-          } catch (JsonProcessingException e) {
-            throw new VideoServerException("Unable to convert request body to JSON", e);
-          } catch (IOException e) {
-            throw new VideoServerException("Something went wrong executing request", e);
-          }
-        });
+      int statusCode = response.getStatusLine().getStatusCode();
+      if (statusCode != HttpStatus.SC_OK) {
+        throw new VideoServerException("Video server returns error response: " + statusCode);
+      }
+      return objectMapper.readValue(
+          IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8),
+          VideoServerResponse.class);
+    } catch (JsonProcessingException e) {
+      throw new VideoServerException("Unable to convert request body to JSON", e);
+    } catch (IOException e) {
+      throw new VideoServerException("Something went wrong executing request", e);
+    }
   }
 
   @Override
-  public CompletableFuture<VideoServerResponse> sendConnectionVideoServerRequest(
+  public VideoServerResponse sendConnectionVideoServerRequest(
       String connectionId, VideoServerMessageRequest request) {
-    return CompletableFuture.supplyAsync(
-        () -> {
-          try (CloseableHttpResponse response =
-              httpClient.sendPost(
-                  buildVideoServerUrl(connectionId),
-                  Map.of("Content-Type", "application/json"),
-                  objectMapper.writeValueAsString(request))) {
+    try (CloseableHttpResponse response =
+        httpClient.sendPost(
+            buildVideoServerUrl(connectionId),
+            Map.of("Content-Type", "application/json"),
+            objectMapper.writeValueAsString(request))) {
 
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode != HttpStatus.SC_OK) {
-              throw new VideoServerException("Video server returns error response: " + statusCode);
-            }
-            return objectMapper.readValue(
-                IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8),
-                VideoServerResponse.class);
-          } catch (JsonProcessingException e) {
-            throw new VideoServerException("Unable to convert request body to JSON", e);
-          } catch (IOException e) {
-            throw new VideoServerException("Something went wrong executing request", e);
-          }
-        });
+      int statusCode = response.getStatusLine().getStatusCode();
+      if (statusCode != HttpStatus.SC_OK) {
+        throw new VideoServerException("Video server returns error response: " + statusCode);
+      }
+      return objectMapper.readValue(
+          IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8),
+          VideoServerResponse.class);
+    } catch (JsonProcessingException e) {
+      throw new VideoServerException("Unable to convert request body to JSON", e);
+    } catch (IOException e) {
+      throw new VideoServerException("Something went wrong executing request", e);
+    }
   }
 
   @Override
-  public CompletableFuture<VideoServerResponse> sendHandleVideoServerRequest(
+  public VideoServerResponse sendHandleVideoServerRequest(
       String connectionId, String handleId, VideoServerMessageRequest request) {
-    return CompletableFuture.supplyAsync(
-        () -> {
-          try (CloseableHttpResponse response =
-              httpClient.sendPost(
-                  buildVideoServerUrl(connectionId, handleId),
-                  Map.of("Content-Type", "application/json"),
-                  objectMapper.writeValueAsString(request))) {
+    try (CloseableHttpResponse response =
+        httpClient.sendPost(
+            buildVideoServerUrl(connectionId, handleId),
+            Map.of("Content-Type", "application/json"),
+            objectMapper.writeValueAsString(request))) {
 
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode != HttpStatus.SC_OK) {
-              throw new VideoServerException("Video server returns error response: " + statusCode);
-            }
-            return objectMapper.readValue(
-                IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8),
-                VideoServerResponse.class);
-          } catch (JsonProcessingException e) {
-            throw new VideoServerException("Unable to convert request body to JSON", e);
-          } catch (IOException e) {
-            throw new VideoServerException("Something went wrong executing request", e);
-          }
-        });
+      int statusCode = response.getStatusLine().getStatusCode();
+      if (statusCode != HttpStatus.SC_OK) {
+        throw new VideoServerException("Video server returns error response: " + statusCode);
+      }
+      return objectMapper.readValue(
+          IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8),
+          VideoServerResponse.class);
+    } catch (JsonProcessingException e) {
+      throw new VideoServerException("Unable to convert request body to JSON", e);
+    } catch (IOException e) {
+      throw new VideoServerException("Something went wrong executing request", e);
+    }
   }
 
   @Override
-  public CompletableFuture<AudioBridgeResponse> sendAudioBridgeRequest(
+  public AudioBridgeResponse sendAudioBridgeRequest(
       String connectionId, String handleId, VideoServerMessageRequest request) {
-    return CompletableFuture.supplyAsync(
-        () -> {
-          try (CloseableHttpResponse response =
-              httpClient.sendPost(
-                  buildVideoServerUrl(connectionId, handleId),
-                  Map.of("Content-Type", "application/json"),
-                  objectMapper.writeValueAsString(request))) {
+    try (CloseableHttpResponse response =
+        httpClient.sendPost(
+            buildVideoServerUrl(connectionId, handleId),
+            Map.of("Content-Type", "application/json"),
+            objectMapper.writeValueAsString(request))) {
 
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode != HttpStatus.SC_OK) {
-              throw new VideoServerException("Video server returns error response: " + statusCode);
-            }
-            return objectMapper.readValue(
-                IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8),
-                AudioBridgeResponse.class);
-          } catch (JsonProcessingException e) {
-            throw new VideoServerException("Unable to convert request body to JSON", e);
-          } catch (IOException e) {
-            throw new VideoServerException("Something went wrong executing request", e);
-          }
-        });
+      int statusCode = response.getStatusLine().getStatusCode();
+      if (statusCode != HttpStatus.SC_OK) {
+        throw new VideoServerException("Video server returns error response: " + statusCode);
+      }
+      return objectMapper.readValue(
+          IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8),
+          AudioBridgeResponse.class);
+    } catch (JsonProcessingException e) {
+      throw new VideoServerException("Unable to convert request body to JSON", e);
+    } catch (IOException e) {
+      throw new VideoServerException("Something went wrong executing request", e);
+    }
   }
 
   @Override
-  public CompletableFuture<VideoRoomResponse> sendVideoRoomRequest(
+  public VideoRoomResponse sendVideoRoomRequest(
       String connectionId, String handleId, VideoServerMessageRequest request) {
-    return CompletableFuture.supplyAsync(
-        () -> {
-          try (CloseableHttpResponse response =
-              httpClient.sendPost(
-                  buildVideoServerUrl(connectionId, handleId),
-                  Map.of("Content-Type", "application/json"),
-                  objectMapper.writeValueAsString(request))) {
+    try (CloseableHttpResponse response =
+        httpClient.sendPost(
+            buildVideoServerUrl(connectionId, handleId),
+            Map.of("Content-Type", "application/json"),
+            objectMapper.writeValueAsString(request))) {
 
-            int statusCode = response.getStatusLine().getStatusCode();
-            if (statusCode != HttpStatus.SC_OK) {
-              throw new VideoServerException("Video server returns error response: " + statusCode);
-            }
-            return objectMapper.readValue(
-                IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8),
-                VideoRoomResponse.class);
-          } catch (JsonProcessingException e) {
-            throw new VideoServerException("Unable to convert request body to JSON", e);
-          } catch (IOException e) {
-            throw new VideoServerException("Something went wrong executing request", e);
-          }
-        });
+      int statusCode = response.getStatusLine().getStatusCode();
+      if (statusCode != HttpStatus.SC_OK) {
+        throw new VideoServerException("Video server returns error response: " + statusCode);
+      }
+      return objectMapper.readValue(
+          IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8),
+          VideoRoomResponse.class);
+    } catch (JsonProcessingException e) {
+      throw new VideoServerException("Unable to convert request body to JSON", e);
+    } catch (IOException e) {
+      throw new VideoServerException("Something went wrong executing request", e);
+    }
   }
 
   private String buildVideoServerUrl() {

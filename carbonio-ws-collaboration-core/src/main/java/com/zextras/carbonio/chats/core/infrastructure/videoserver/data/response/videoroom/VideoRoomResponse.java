@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.PluginErrorResponse;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * This class represents a video room response provided by VideoServer.
@@ -21,19 +22,23 @@ import java.util.Objects;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class VideoRoomResponse {
 
-  public static final String CREATED   = "created";
-  public static final String EDITED    = "edited";
+  public static final String CREATED = "created";
+  public static final String EDITED = "edited";
   public static final String DESTROYED = "destroyed";
-  public static final String ACK       = "ack";
+  public static final String ACK = "ack";
 
   @JsonProperty("janus")
-  private String              status;
+  private String status;
+
   @JsonProperty("session_id")
-  private String              connectionId;
+  private String connectionId;
+
   @JsonProperty("transaction")
-  private String              transactionId;
+  private String transactionId;
+
   @JsonProperty("sender")
-  private String              handleId;
+  private String handleId;
+
   @JsonProperty("plugindata")
   private VideoRoomPluginData pluginData;
 
@@ -99,12 +104,18 @@ public class VideoRoomResponse {
 
   @JsonIgnore
   public String getVideoRoom() {
-    return getPluginData().getDataInfo().getVideoRoom();
+    return Optional.ofNullable(getPluginData())
+        .map(VideoRoomPluginData::getDataInfo)
+        .map(VideoRoomDataInfo::getVideoRoom)
+        .orElse(null);
   }
 
   @JsonIgnore
   public String getRoom() {
-    return getPluginData().getDataInfo().getRoom();
+    return Optional.ofNullable(getPluginData())
+        .map(VideoRoomPluginData::getDataInfo)
+        .map(VideoRoomDataInfo::getRoom)
+        .orElse(null);
   }
 
   @Override
@@ -116,14 +127,22 @@ public class VideoRoomResponse {
       return false;
     }
     VideoRoomResponse that = (VideoRoomResponse) o;
-    return Objects.equals(getStatus(), that.getStatus()) && Objects.equals(getConnectionId(),
-      that.getConnectionId()) && Objects.equals(getTransactionId(), that.getTransactionId())
-      && Objects.equals(getHandleId(), that.getHandleId()) && Objects.equals(getPluginData(),
-      that.getPluginData()) && Objects.equals(getError(), that.getError());
+    return Objects.equals(getStatus(), that.getStatus())
+        && Objects.equals(getConnectionId(), that.getConnectionId())
+        && Objects.equals(getTransactionId(), that.getTransactionId())
+        && Objects.equals(getHandleId(), that.getHandleId())
+        && Objects.equals(getPluginData(), that.getPluginData())
+        && Objects.equals(getError(), that.getError());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getStatus(), getConnectionId(), getTransactionId(), getHandleId(), getPluginData(), getError());
+    return Objects.hash(
+        getStatus(),
+        getConnectionId(),
+        getTransactionId(),
+        getHandleId(),
+        getPluginData(),
+        getError());
   }
 }

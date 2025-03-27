@@ -23,4 +23,6 @@ public interface ParticipantRepository {
   Participant update(Participant participant);
 
   boolean remove(Participant participant);
+
+  void clear(String meetingId);
 }

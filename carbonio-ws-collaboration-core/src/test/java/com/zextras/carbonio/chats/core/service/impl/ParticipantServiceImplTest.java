@@ -6,9 +6,6 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -58,7 +55,6 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -121,18 +117,10 @@ class ParticipantServiceImplTest {
   private Meeting scheduledMeeting;
 
   @BeforeEach
-  public void init() {
+  void init() {
     when(clock.instant()).thenReturn(Instant.parse("2022-01-01T11:00:00Z"));
     when(clock.getZone()).thenReturn(ZoneId.systemDefault());
-    when(videoServerService.addMeetingParticipant(
-            anyString(), anyString(), anyString(), anyBoolean(), anyBoolean()))
-        .thenReturn(CompletableFuture.completedFuture(null));
-    when(videoServerService.destroyMeetingParticipant(anyString(), anyString()))
-        .thenReturn(CompletableFuture.completedFuture(null));
-    when(videoServerService.updateMediaStream(anyString(), anyString(), any()))
-        .thenReturn(CompletableFuture.completedFuture(null));
-    when(videoServerService.updateAudioStream(anyString(), anyString(), anyBoolean()))
-        .thenReturn(CompletableFuture.completedFuture(null));
+
     user1Id = UUID.randomUUID();
     user1Queue1 = UUID.randomUUID();
     participant1Session1 =
