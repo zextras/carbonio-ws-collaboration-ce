@@ -59,4 +59,9 @@ public class EbeanParticipantRepository implements ParticipantRepository {
   public boolean remove(Participant participant) {
     return db.delete(participant);
   }
+
+  @Override
+  public void clear(String meetingId) {
+    db.find(Participant.class).where().eq("id.meetingId", meetingId).delete();
+  }
 }

@@ -13,28 +13,30 @@ import java.util.Objects;
 
 /**
  * This class represents a response provided by VideoServer when interacting with session or plugin
- * <p>
- * The successful response is composed of:
+ *
+ * <p>The successful response is composed of:
+ *
  * <ul>
- *   <li>janus: "success"</li>
- *   <li>session_id: the session identifier related to the session previously created</li>
- *   <li>transaction: the transaction identifier related to the request previously sent</li>
- *   <li>data: a JSON object containing one field</li>
- *     <ul>
- *       <li>id: the unique session identifier</li>
- *     </ul>
+ *   <li>janus: "success"
+ *   <li>session_id: the session identifier related to the session previously created
+ *   <li>transaction: the transaction identifier related to the request previously sent
+ *   <li>data: a JSON object containing one field
+ *       <ul>
+ *         <li>id: the unique session identifier
+ *       </ul>
  * </ul>
- * <p>
- * The error response is composed of:
+ *
+ * <p>The error response is composed of:
+ *
  * <ul>
- *   <li>janus: "error"</li>
- *   <li>session_id: the session identifier of the failed request</li>
- *   <li>transaction: the transaction identifier of the failed request</li>
- *   <li>error: a JSON object containing two fields</li>
- *     <ul>
- *       <li>code: a numeric error code</li>
- *       <li>reason: a verbose string describing the cause of the failure</li>
- *     </ul>
+ *   <li>janus: "error"
+ *   <li>session_id: the session identifier of the failed request
+ *   <li>transaction: the transaction identifier of the failed request
+ *   <li>error: a JSON object containing two fields
+ *       <ul>
+ *         <li>code: a numeric error code
+ *         <li>reason: a verbose string describing the cause of the failure
+ *       </ul>
  * </ul>
  *
  * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
@@ -44,13 +46,16 @@ import java.util.Objects;
 public class VideoServerResponse {
 
   @JsonProperty("janus")
-  private String              status;
+  private String status;
+
   @JsonProperty("sessionId")
-  private String              connectionId;
+  private String connectionId;
+
   @JsonProperty("transaction")
-  private String              transactionId;
+  private String transactionId;
+
   private VideoServerDataInfo data;
-  private VideoServerError    error;
+  private VideoServerError error;
 
   public static VideoServerResponse create() {
     return new VideoServerResponse();
@@ -111,13 +116,14 @@ public class VideoServerResponse {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof VideoServerResponse)) {
+    if (!(o instanceof VideoServerResponse that)) {
       return false;
     }
-    VideoServerResponse that = (VideoServerResponse) o;
-    return Objects.equals(getStatus(), that.getStatus()) && Objects.equals(getConnectionId(),
-      that.getConnectionId()) && Objects.equals(getTransactionId(), that.getTransactionId())
-      && Objects.equals(getData(), that.getData()) && Objects.equals(getError(), that.getError());
+    return Objects.equals(getStatus(), that.getStatus())
+        && Objects.equals(getConnectionId(), that.getConnectionId())
+        && Objects.equals(getTransactionId(), that.getTransactionId())
+        && Objects.equals(getData(), that.getData())
+        && Objects.equals(getError(), that.getError());
   }
 
   @Override

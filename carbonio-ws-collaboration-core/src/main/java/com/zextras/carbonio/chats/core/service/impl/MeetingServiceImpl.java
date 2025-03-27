@@ -23,6 +23,7 @@ import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
+import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.MeetingDto;
@@ -40,6 +41,7 @@ public class MeetingServiceImpl implements MeetingService {
   private final MeetingMapper meetingMapper;
   private final RoomService roomService;
   private final MembersService membersService;
+  private final ParticipantService participantService;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
   private final Clock clock;
@@ -50,6 +52,7 @@ public class MeetingServiceImpl implements MeetingService {
       MeetingMapper meetingMapper,
       RoomService roomService,
       MembersService membersService,
+      ParticipantService participantService,
       VideoServerService videoServerService,
       EventDispatcher eventDispatcher,
       Clock clock) {
@@ -57,6 +60,7 @@ public class MeetingServiceImpl implements MeetingService {
     this.meetingMapper = meetingMapper;
     this.roomService = roomService;
     this.membersService = membersService;
+    this.participantService = participantService;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
     this.clock = clock;
@@ -138,7 +142,8 @@ public class MeetingServiceImpl implements MeetingService {
 
   private Meeting deactivateMeeting(Meeting meeting) {
     videoServerService.stopMeeting(meeting.getId());
-    meeting.active(false).startedAt(null);
+    participantService.clear(UUID.fromString(meeting.getId()));
+    meeting.active(false).participants(List.of()).startedAt(null);
     return meetingRepository.update(meeting);
   }
 
