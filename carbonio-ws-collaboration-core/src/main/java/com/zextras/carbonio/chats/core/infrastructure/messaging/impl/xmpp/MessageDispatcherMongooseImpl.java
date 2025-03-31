@@ -87,29 +87,11 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
         throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
-    memberIds.forEach(member -> addRoomMember(roomId, senderId, member));
-  }
-
-  @Override
-  public void deleteRoom(String roomId, String userId) {
-    GraphQlResponse result =
-        executeMutation(
-            GraphQlBody.create(
-                "mutation muc_light { muc_light { deleteRoom ("
-                    + String.format("room: \"%s\") ", roomIdToRoomDomain(roomId))
-                    + "} }",
-                MUC_LIGHT,
-                Map.of()));
-    if (result.getErrors() != null) {
-      try {
-        throw new MessageDispatcherException(
-            String.format(
-                "Error while deleting a room: %s",
-                objectMapper.writeValueAsString(result.getErrors())));
-      } catch (JsonProcessingException e) {
-        throw new MessageDispatcherException(PARSING_ERROR, e);
-      }
-    }
+    memberIds.forEach(
+        member -> {
+          addRoomMember(roomId, senderId, member);
+          sendAffiliationMessage(roomId, senderId, member, MessageType.MEMBER_ADDED);
+        });
   }
 
   @Override
@@ -215,11 +197,10 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
         throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
-    sendAffiliationMessage(roomId, senderId, recipientId, true);
   }
 
   @Override
-  public void removeRoomMember(String roomId, String senderId, String userIdToRemove) {
+  public void removeRoomMember(String roomId, String userIdToRemove) {
     GraphQlResponse result =
         executeMutation(
             GraphQlBody.create(
@@ -239,15 +220,15 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
         throw new MessageDispatcherException(PARSING_ERROR, e);
       }
     }
-    sendAffiliationMessage(roomId, senderId, userIdToRemove, false);
   }
 
-  private void sendAffiliationMessage(
-      String roomId, String senderId, String memberId, boolean isAdded) {
+  @Override
+  public void sendAffiliationMessage(
+      String roomId, String senderId, String memberId, MessageType messageType) {
     GraphQlResponse result =
         sendStanza(
             XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-                .type(isAdded ? MessageType.MEMBER_ADDED : MessageType.MEMBER_REMOVED)
+                .type(messageType)
                 .addConfig("user-id", memberId)
                 .build());
     if (result.getErrors() != null) {

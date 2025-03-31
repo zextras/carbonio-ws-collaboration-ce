@@ -84,20 +84,6 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
     when(request).respond(getResponse(success));
   }
 
-  public HttpRequest getDeleteRoomRequest(String roomId) {
-    return getRequest(
-        "POST",
-        "{\"query\":\"mutation muc_light { muc_light { deleteRoom ("
-            + String.format("room: \\\"%s@muclight.carbonio\\\") ", roomId)
-            + "} }\",\"operationName\":\"muc_light\",\"variables\":{}}");
-  }
-
-  public void mockDeleteRoom(String roomId, boolean success) {
-    HttpRequest request = getDeleteRoomRequest(roomId);
-    clear(request);
-    when(request).respond(getResponse(success));
-  }
-
   public HttpRequest getAddRoomMemberRequest(String roomId, String senderId, String recipientId) {
     return getRequest(
         "POST",
