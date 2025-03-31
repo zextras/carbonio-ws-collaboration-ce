@@ -19,6 +19,7 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
@@ -124,6 +125,11 @@ public class MembersServiceImpl implements MembersService {
     for (MemberToInsertDto member : membersToInsert) {
       messageDispatcher.addRoomMember(
           room.getId(), currentUser.getId(), member.getUserId().toString());
+      messageDispatcher.sendAffiliationMessage(
+          room.getId(),
+          currentUser.getId(),
+          member.getUserId().toString(),
+          MessageType.MEMBER_ADDED);
       MemberInsertedDto memberInsertedDto = processRoomSubscription(room, member, currentDateTime);
 
       membersInserted.add(memberInsertedDto);
@@ -271,14 +277,15 @@ public class MembersServiceImpl implements MembersService {
           .ifPresent(meeting -> participantService.removeMeetingParticipant(meeting, room, userId));
     }
     validateLastRoomOwner(userId.toString(), room);
-    messageDispatcher.removeRoomMember(
-        room.getId(),
+    String ownerId =
         room.getSubscriptions().stream()
             .filter(Subscription::isOwner)
             .map(Subscription::getUserId)
             .toList()
-            .get(0),
-        userId.toString());
+            .get(0);
+    messageDispatcher.removeRoomMember(room.getId(), userId.toString());
+    messageDispatcher.sendAffiliationMessage(
+        room.getId(), ownerId, userId.toString(), MessageType.MEMBER_REMOVED);
     roomUserSettingsRepository
         .getByRoomIdAndUserId(roomId.toString(), userId.toString())
         .ifPresent(roomUserSettingsRepository::delete);

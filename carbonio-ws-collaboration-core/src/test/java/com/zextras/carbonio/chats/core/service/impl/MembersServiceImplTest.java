@@ -32,6 +32,7 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
@@ -293,6 +294,9 @@ class MembersServiceImplTest {
       verify(capabilityService, times(1)).getCapabilities(principal);
       verify(messageDispatcher, times(1))
           .addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
+      verify(messageDispatcher, times(1))
+          .sendAffiliationMessage(
+              roomId.toString(), user1Id.toString(), user2Id.toString(), MessageType.MEMBER_ADDED);
       verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
@@ -421,6 +425,9 @@ class MembersServiceImplTest {
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(messageDispatcher, times(1))
           .addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
+      verify(messageDispatcher, times(1))
+          .sendAffiliationMessage(
+              roomId.toString(), user1Id.toString(), user2Id.toString(), MessageType.MEMBER_ADDED);
       verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
       verify(roomUserSettingsRepository, times(1))
           .getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
@@ -634,8 +641,13 @@ class MembersServiceImplTest {
       membersService.deleteRoomMember(roomId, user2Id, principal);
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(messageDispatcher, times(1)).removeRoomMember(roomId.toString(), user2Id.toString());
       verify(messageDispatcher, times(1))
-          .removeRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
+          .sendAffiliationMessage(
+              roomId.toString(),
+              user1Id.toString(),
+              user2Id.toString(),
+              MessageType.MEMBER_REMOVED);
       verify(roomUserSettingsRepository, times(1))
           .getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
       verify(subscriptionRepository, times(1)).delete(roomId.toString(), user2Id.toString());
@@ -672,8 +684,13 @@ class MembersServiceImplTest {
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(meetingService, times(1)).getMeetingEntity(meetingId);
       verify(participantService, times(1)).removeMeetingParticipant(meeting, room, user2Id);
+      verify(messageDispatcher, times(1)).removeRoomMember(roomId.toString(), user2Id.toString());
       verify(messageDispatcher, times(1))
-          .removeRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
+          .sendAffiliationMessage(
+              roomId.toString(),
+              user1Id.toString(),
+              user2Id.toString(),
+              MessageType.MEMBER_REMOVED);
       verify(roomUserSettingsRepository, times(1))
           .getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
       verify(subscriptionRepository, times(1)).delete(roomId.toString(), user2Id.toString());
@@ -698,8 +715,13 @@ class MembersServiceImplTest {
       membersService.deleteRoomMember(roomId, user1Id, principal);
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
+      verify(messageDispatcher, times(1)).removeRoomMember(roomId.toString(), user1Id.toString());
       verify(messageDispatcher, times(1))
-          .removeRoomMember(roomId.toString(), user2Id.toString(), user1Id.toString());
+          .sendAffiliationMessage(
+              roomId.toString(),
+              user2Id.toString(),
+              user1Id.toString(),
+              MessageType.MEMBER_REMOVED);
       verify(roomUserSettingsRepository, times(1))
           .getByRoomIdAndUserId(roomId.toString(), user1Id.toString());
       verify(subscriptionRepository, times(1)).delete(roomId.toString(), user1Id.toString());
@@ -732,8 +754,13 @@ class MembersServiceImplTest {
       membersService.deleteRoomMember(roomId, user1Id, principal);
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
+      verify(messageDispatcher, times(1)).removeRoomMember(roomId.toString(), user1Id.toString());
       verify(messageDispatcher, times(1))
-          .removeRoomMember(roomId.toString(), user2Id.toString(), user1Id.toString());
+          .sendAffiliationMessage(
+              roomId.toString(),
+              user2Id.toString(),
+              user1Id.toString(),
+              MessageType.MEMBER_REMOVED);
       verify(roomUserSettingsRepository, times(1))
           .getByRoomIdAndUserId(roomId.toString(), user1Id.toString());
       verify(roomUserSettingsRepository, times(1)).delete(roomUserSettings);

@@ -348,7 +348,9 @@ public class RoomServiceImpl implements RoomService {
                 fileMetadataRepository.delete(metadata);
               });
     }
-    messageDispatcher.deleteRoom(room.getId(), currentUser.getId());
+    room.getSubscriptions().stream()
+        .map(Subscription::getUserId)
+        .forEach(userId -> messageDispatcher.removeRoomMember(room.getId(), userId));
     roomRepository.delete(roomId.toString());
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),

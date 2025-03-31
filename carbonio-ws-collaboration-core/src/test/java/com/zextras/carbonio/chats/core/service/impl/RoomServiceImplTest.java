@@ -1200,7 +1200,12 @@ class RoomServiceImplTest {
 
       roomService.deleteRoom(roomGroup1Id, UserPrincipal.create(user1Id));
 
-      verify(messageDispatcher, times(1)).deleteRoom(roomGroup1Id.toString(), user1Id.toString());
+      verify(messageDispatcher, times(1))
+          .removeRoomMember(roomGroup1Id.toString(), user1Id.toString());
+      verify(messageDispatcher, times(1))
+          .removeRoomMember(roomGroup1Id.toString(), user2Id.toString());
+      verify(messageDispatcher, times(1))
+          .removeRoomMember(roomGroup1Id.toString(), user3Id.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
@@ -1235,7 +1240,10 @@ class RoomServiceImplTest {
           .find(null, roomGroup2Id.toString(), FileMetadataType.ROOM_AVATAR);
       verify(storagesService, times(1)).deleteFile(pfpMetadata.getId(), user2Id.toString());
       verify(fileMetadataRepository, times(1)).delete(pfpMetadata);
-      verify(messageDispatcher, times(1)).deleteRoom(roomGroup2Id.toString(), user2Id.toString());
+      verify(messageDispatcher, times(1))
+          .removeRoomMember(roomGroup2Id.toString(), user2Id.toString());
+      verify(messageDispatcher, times(1))
+          .removeRoomMember(roomGroup2Id.toString(), user3Id.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user2Id.toString(), user3Id.toString()),
@@ -1273,7 +1281,12 @@ class RoomServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(meetingId);
       verify(meetingService, times(1)).deleteMeeting(user1Id.toString(), meeting, roomGroup1);
-      verify(messageDispatcher, times(1)).deleteRoom(roomGroup1Id.toString(), user1Id.toString());
+      verify(messageDispatcher, times(1))
+          .removeRoomMember(roomGroup1Id.toString(), user1Id.toString());
+      verify(messageDispatcher, times(1))
+          .removeRoomMember(roomGroup1Id.toString(), user2Id.toString());
+      verify(messageDispatcher, times(1))
+          .removeRoomMember(roomGroup1Id.toString(), user3Id.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
