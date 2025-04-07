@@ -18,6 +18,8 @@ public interface ParticipantRepository {
 
   List<Participant> getByMeetingId(String meetingId);
 
+  List<Participant> getHandRaisedByMeetingId(String meetingId);
+
   Participant insert(Participant participant);
 
   Participant update(Participant participant);

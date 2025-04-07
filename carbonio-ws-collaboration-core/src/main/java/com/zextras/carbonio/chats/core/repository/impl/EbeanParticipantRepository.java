@@ -44,6 +44,16 @@ public class EbeanParticipantRepository implements ParticipantRepository {
   }
 
   @Override
+  public List<Participant> getHandRaisedByMeetingId(String meetingId) {
+    return db.find(Participant.class)
+        .where()
+        .eq("id.meetingId", meetingId)
+        .isNotNull("hand_raised_at")
+        .orderBy("hand_raised_at asc")
+        .findList();
+  }
+
+  @Override
   public Participant insert(Participant participant) {
     db.insert(participant);
     return participant;

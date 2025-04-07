@@ -24,6 +24,7 @@ import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantClashed;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantHandRaised;
+import com.zextras.carbonio.chats.core.data.event.MeetingParticipantHandRaisedList;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoined;
 import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
@@ -785,8 +786,7 @@ class ParticipantServiceImplTest {
       assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(
           String.format(
-              "Bad Request - User '%s' cannot enable the audio stream of the user '%s'",
-              user1Id, user2Id),
+              "Bad Request - User '%s' cannot perform this action for user '%s'", user1Id, user2Id),
           exception.getMessage());
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
@@ -1029,7 +1029,7 @@ class ParticipantServiceImplTest {
     @DisplayName(
         "If the user who performed the action isn't a moderator, it throws a 'forbidden' exception")
     void disableAudioStream_testErrorUserIsNotAModerator() {
-      UserPrincipal user = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      UserPrincipal user = UserPrincipal.create(user2Id).queueId(user2Queue1);
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
       when(roomService.getRoomAndValidateUser(roomId, user, true))
@@ -1296,6 +1296,11 @@ class ParticipantServiceImplTest {
     void raiseHand_testOk() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
+      OffsetDateTime dateTime = OffsetDateTime.now(clock);
+      when(participantRepository.getHandRaisedByMeetingId(permanentMeetingId.toString()))
+          .thenReturn(
+              List.of(
+                  Participant.create(permanentMeeting, user1Id.toString()).handRaisedAt(dateTime)));
 
       participantService.updateHandStatus(
           permanentMeetingId,
@@ -1303,13 +1308,93 @@ class ParticipantServiceImplTest {
           UserPrincipal.create(user1Id).queueId(user1Queue1));
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verify(participantRepository, times(1)).update(participant1Session1.handRaisedAt(dateTime));
+      verify(participantRepository, times(1))
+          .getHandRaisedByMeetingId(permanentMeetingId.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
               MeetingParticipantHandRaised.create()
                   .meetingId(permanentMeetingId)
                   .userId(user1Id)
-                  .raised(true));
+                  .raised(true)
+                  .handRaisedAt(dateTime));
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
+              MeetingParticipantHandRaisedList.create()
+                  .meetingId(permanentMeetingId)
+                  .participants(List.of(user1Id)));
+      verifyNoMoreInteractions(
+          meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("It tries to raise the hand already raised for the current user")
+    void raiseHand_testOkAlreadyRaised() {
+      permanentMeeting.participants(
+          List.of(
+              participant1Session1.handRaisedAt(OffsetDateTime.now(clock)),
+              participant2Session1,
+              participant4Session1));
+
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      participantService.updateHandStatus(
+          permanentMeetingId,
+          HandStatusDto.create().raised(true),
+          UserPrincipal.create(user1Id).queueId(user1Queue1));
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verifyNoMoreInteractions(
+          meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("It raises the hand for the current user after another one who already raised it")
+    void raiseHand_testOkAfterAnotherOne() {
+      permanentMeeting.participants(
+          List.of(
+              participant1Session1.handRaisedAt(OffsetDateTime.parse("2022-01-01T10:00:00Z")),
+              participant2Session1,
+              participant4Session1));
+
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+      OffsetDateTime dateTime = OffsetDateTime.now(clock);
+      when(participantRepository.getHandRaisedByMeetingId(permanentMeetingId.toString()))
+          .thenReturn(
+              List.of(
+                  Participant.create(permanentMeeting, user1Id.toString())
+                      .handRaisedAt(OffsetDateTime.parse("2022-01-01T10:00:00Z")),
+                  Participant.create(permanentMeeting, user2Id.toString()).handRaisedAt(dateTime)));
+
+      participantService.updateHandStatus(
+          permanentMeetingId,
+          HandStatusDto.create().raised(true),
+          UserPrincipal.create(user2Id).queueId(user2Queue1));
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verify(participantRepository, times(1)).update(participant2Session1.handRaisedAt(dateTime));
+      verify(participantRepository, times(1))
+          .getHandRaisedByMeetingId(permanentMeetingId.toString());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
+              MeetingParticipantHandRaised.create()
+                  .meetingId(permanentMeetingId)
+                  .userId(user2Id)
+                  .raised(true)
+                  .handRaisedAt(dateTime));
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
+              MeetingParticipantHandRaisedList.create()
+                  .meetingId(permanentMeetingId)
+                  .participants(List.of(user1Id, user2Id)));
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
       verifyNoInteractions(roomService);
@@ -1318,6 +1403,94 @@ class ParticipantServiceImplTest {
     @Test
     @DisplayName("It stops raising the hand for the current user")
     void stopRaisingHand_testOk() {
+      permanentMeeting.participants(
+          List.of(
+              participant1Session1.handRaisedAt(OffsetDateTime.now(clock)),
+              participant2Session1,
+              participant4Session1));
+
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+      when(participantRepository.getHandRaisedByMeetingId(permanentMeetingId.toString()))
+          .thenReturn(List.of());
+
+      participantService.updateHandStatus(
+          permanentMeetingId,
+          HandStatusDto.create().raised(false),
+          UserPrincipal.create(user1Id).queueId(user1Queue1));
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verify(participantRepository, times(1)).update(participant1Session1.handRaisedAt(null));
+      verify(participantRepository, times(1))
+          .getHandRaisedByMeetingId(permanentMeetingId.toString());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
+              MeetingParticipantHandRaised.create()
+                  .meetingId(permanentMeetingId)
+                  .userId(user1Id)
+                  .raised(false));
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
+              MeetingParticipantHandRaisedList.create()
+                  .meetingId(permanentMeetingId)
+                  .participants(List.of()));
+      verifyNoMoreInteractions(
+          meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("It stop raising the hand for the current user after others who raised it")
+    void stopRaisingHAnd_testOkAfterOthersWhoRaised() {
+      permanentMeeting.participants(
+          List.of(
+              participant1Session1.handRaisedAt(OffsetDateTime.parse("2022-01-01T11:58+01:00")),
+              participant2Session1.handRaisedAt(OffsetDateTime.parse("2022-01-01T12:00+01:00")),
+              participant4Session1.handRaisedAt(OffsetDateTime.parse("2022-01-01T12:02+01:00"))));
+
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+      when(participantRepository.getHandRaisedByMeetingId(permanentMeetingId.toString()))
+          .thenReturn(
+              List.of(
+                  Participant.create(permanentMeeting, user1Id.toString())
+                      .handRaisedAt(OffsetDateTime.parse("2022-01-01T11:58+01:00")),
+                  Participant.create(permanentMeeting, user2Id.toString())
+                      .handRaisedAt(OffsetDateTime.parse("2022-01-01T12:00+01:00"))));
+
+      participantService.updateHandStatus(
+          permanentMeetingId,
+          HandStatusDto.create().raised(false),
+          UserPrincipal.create(user4Id).queueId(user4Queue1));
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verify(participantRepository, times(1)).update(participant4Session1.handRaisedAt(null));
+      verify(participantRepository, times(1))
+          .getHandRaisedByMeetingId(permanentMeetingId.toString());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
+              MeetingParticipantHandRaised.create()
+                  .meetingId(permanentMeetingId)
+                  .userId(user4Id)
+                  .raised(false));
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
+              MeetingParticipantHandRaisedList.create()
+                  .meetingId(permanentMeetingId)
+                  .participants(List.of(user1Id, user2Id)));
+      verifyNoMoreInteractions(
+          meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName(
+        "It tries to stop raising the hand but the hand is not raised for the current user")
+    void stopRaisingHand_testOkAlreadyNotRaised() {
       when(meetingService.getMeetingEntity(permanentMeetingId))
           .thenReturn(Optional.of(permanentMeeting));
 
@@ -1327,16 +1500,157 @@ class ParticipantServiceImplTest {
           UserPrincipal.create(user1Id).queueId(user1Queue1));
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verifyNoMoreInteractions(
+          meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("It stops raising the hand for another user if requester is a moderator")
+    void stopRaisingHand_testModeratorOk() {
+      permanentMeeting.participants(
+          List.of(
+              participant1Session1,
+              participant2Session1,
+              participant4Session1.handRaisedAt(OffsetDateTime.now(clock))));
+
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+      when(participantRepository.getHandRaisedByMeetingId(permanentMeetingId.toString()))
+          .thenReturn(List.of());
+
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      participantService.updateHandStatus(
+          permanentMeetingId,
+          HandStatusDto.create().raised(false).userToModerate(user4Id.toString()),
+          currentUser);
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, true);
+      verify(participantRepository, times(1)).update(participant4Session1.handRaisedAt(null));
+      verify(participantRepository, times(1))
+          .getHandRaisedByMeetingId(permanentMeetingId.toString());
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
               MeetingParticipantHandRaised.create()
                   .meetingId(permanentMeetingId)
-                  .userId(user1Id)
+                  .moderatorId(user1Id)
+                  .userId(user4Id)
                   .raised(false));
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
+              MeetingParticipantHandRaisedList.create()
+                  .meetingId(permanentMeetingId)
+                  .participants(List.of()));
       verifyNoMoreInteractions(
           meetingService, participantRepository, eventDispatcher, videoServerService);
-      verifyNoInteractions(roomService);
+      verifyNoMoreInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName(
+        "If the user tries to raise hand for another user but the requester isn't a moderator, it"
+            + " throws a 'bad-request' exception")
+    void stopRaisingHand_testErrorRaiseHandForAnotherUser() {
+      permanentMeeting.participants(
+          List.of(participant1Session1, participant2Session1, participant4Session1));
+
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+
+      ChatsHttpException exception =
+          assertThrows(
+              BadRequestException.class,
+              () ->
+                  participantService.updateHandStatus(
+                      permanentMeetingId,
+                      HandStatusDto.create().raised(true).userToModerate(user4Id.toString()),
+                      currentUser));
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format(
+              "Bad Request - User '%s' cannot perform this action for user '%s'", user1Id, user4Id),
+          exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+
+      verifyNoMoreInteractions(
+          meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoMoreInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName(
+        "If the user who performed the action isn't a moderator, it throws a 'forbidden' exception")
+    void stopRaisingHand_testErrorUserIsNotModerator() {
+      permanentMeeting.participants(
+          List.of(
+              participant1Session1,
+              participant2Session1,
+              participant4Session1.handRaisedAt(OffsetDateTime.now(clock))));
+
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+      UserPrincipal currentUser = UserPrincipal.create(user2Id).queueId(user2Queue1);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, true))
+          .thenThrow(
+              new ForbiddenException(
+                  String.format(
+                      "User '%s' is not an owner of room '%s'", currentUser.getId(), roomId)));
+
+      ChatsHttpException exception =
+          assertThrows(
+              ForbiddenException.class,
+              () ->
+                  participantService.updateHandStatus(
+                      permanentMeetingId,
+                      HandStatusDto.create().raised(false).userToModerate(user4Id.toString()),
+                      currentUser));
+
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format("Forbidden - User '%s' is not an owner of room '%s'", user2Id, roomId),
+          exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, true);
+
+      verifyNoMoreInteractions(
+          meetingService, participantRepository, eventDispatcher, videoServerService);
+      verifyNoMoreInteractions(roomService);
+    }
+
+    @Test
+    @DisplayName("If the requester is not a meeting participant, it throws a 'not found' exception")
+    void raiseHand_testErrorUserIsNotMeetingParticipant() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () ->
+                  participantService.updateHandStatus(
+                      permanentMeetingId,
+                      HandStatusDto.create().raised(true),
+                      UserPrincipal.create(user3Id).queueId(user3Queue1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format(
+              "Not Found - User '%s' not found into meeting '%s'", user3Id, permanentMeetingId),
+          exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
     }
 
     @Test

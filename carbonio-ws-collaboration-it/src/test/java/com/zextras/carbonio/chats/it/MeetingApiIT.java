@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.it;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -29,6 +30,7 @@ import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.api.MeetingsApi;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
+import com.zextras.carbonio.meeting.model.HandStatusDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
@@ -40,6 +42,7 @@ import com.zextras.carbonio.meeting.model.ParticipantDto;
 import com.zextras.carbonio.meeting.model.SessionDescriptionProtocolDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -3302,6 +3305,120 @@ public class MeetingApiIT {
 
       assertEquals(401, response.getStatus());
       assertEquals(0, response.getOutput().length);
+    }
+  }
+
+  @Nested
+  @DisplayName("Raise hand tests")
+  class RaiseHandTests {
+
+    private String url(UUID meetingId) {
+      return String.format("/meetings/%s/hand", meetingId);
+    }
+
+    @Test
+    @DisplayName(
+        "It raises the hand for the current session in a meeting and returns a status code 204")
+    void raiseHand_testOk() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+          Room.create()
+              .id(room1Id.toString())
+              .type(RoomTypeDto.GROUP)
+              .name("name")
+              .description("description"),
+          List.of(RoomMemberField.create().id(user1Id).owner(true)));
+      UUID meetingId =
+          meetingTestUtils.generateAndSaveMeeting(
+              room1Id, List.of(ParticipantBuilder.create(user1Id, user1Queue)));
+
+      MockHttpResponse response =
+          dispatcher.put(
+              url(meetingId),
+              objectMapper.writeValueAsString(HandStatusDto.create().raised(true)),
+              Map.of("queue-id", user1Queue),
+              user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+
+      Participant participant =
+          meetingTestUtils.getParticipant(meetingId, user1Id.toString()).orElseThrow();
+      assertNotNull(participant.getHandRaisedAt());
+    }
+
+    @Test
+    @DisplayName(
+        "It stop raising the hand for the current session in a meeting and returns a status code"
+            + " 204")
+    void stopRaisingHand_testOk() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+          Room.create()
+              .id(room1Id.toString())
+              .type(RoomTypeDto.GROUP)
+              .name("name")
+              .description("description"),
+          List.of(RoomMemberField.create().id(user1Id).owner(true)));
+      UUID meetingId =
+          meetingTestUtils.generateAndSaveMeeting(
+              room1Id,
+              List.of(
+                  ParticipantBuilder.create(user1Id, user1Queue)
+                      .handRaisedAt(OffsetDateTime.parse("2025-04-04T15:34:17Z"))));
+
+      MockHttpResponse response =
+          dispatcher.put(
+              url(meetingId),
+              objectMapper.writeValueAsString(HandStatusDto.create().raised(false)),
+              Map.of("queue-id", user1Queue),
+              user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+
+      Participant participant =
+          meetingTestUtils.getParticipant(meetingId, user1Id.toString()).orElseThrow();
+      assertNull(participant.getHandRaisedAt());
+    }
+
+    @Test
+    @DisplayName(
+        "If requester is a moderator it stop raising the hand for another session in a meeting and"
+            + " returns a status code 204")
+    void stopRaisingHand_testOkModerator() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+          Room.create()
+              .id(room1Id.toString())
+              .type(RoomTypeDto.GROUP)
+              .name("name")
+              .description("description"),
+          List.of(
+              RoomMemberField.create().id(user1Id).owner(true),
+              RoomMemberField.create().id(user2Id).owner(false)));
+      UUID meetingId =
+          meetingTestUtils.generateAndSaveMeeting(
+              room1Id,
+              List.of(
+                  ParticipantBuilder.create(user1Id, user1Queue),
+                  ParticipantBuilder.create(user2Id, user2Queue)
+                      .handRaisedAt(OffsetDateTime.parse("2025-04-04T15:34:17Z"))));
+
+      MockHttpResponse response =
+          dispatcher.put(
+              url(meetingId),
+              objectMapper.writeValueAsString(
+                  HandStatusDto.create().raised(false).userToModerate(user2Id.toString())),
+              Map.of("queue-id", user1Queue),
+              user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+
+      Participant participantUser1 =
+          meetingTestUtils.getParticipant(meetingId, user1Id.toString()).orElseThrow();
+      assertNull(participantUser1.getHandRaisedAt());
+      Participant participantUser2 =
+          meetingTestUtils.getParticipant(meetingId, user2Id.toString()).orElseThrow();
+      assertNull(participantUser2.getHandRaisedAt());
     }
   }
 }
