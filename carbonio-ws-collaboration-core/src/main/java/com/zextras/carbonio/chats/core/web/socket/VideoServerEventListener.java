@@ -34,12 +34,12 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Rtc
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.SubscribedStream;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import io.vavr.MatchError;
+import jakarta.validation.constraints.NotNull;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.jetbrains.annotations.NotNull;
 
 @Singleton
 public class VideoServerEventListener {

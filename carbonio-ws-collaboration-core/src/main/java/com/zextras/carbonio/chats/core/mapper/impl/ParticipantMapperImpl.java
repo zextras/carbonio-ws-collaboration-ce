@@ -12,7 +12,6 @@ import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Singleton
 public class ParticipantMapperImpl implements ParticipantMapper {
@@ -23,19 +22,20 @@ public class ParticipantMapperImpl implements ParticipantMapper {
     if (participant == null) {
       return null;
     }
-    return ParticipantDto.create()
-        .userId(UUID.fromString(participant.getUserId()))
-        .queueId(participant.getQueueId())
-        .audioStreamEnabled(Optional.ofNullable(participant.hasAudioStreamOn()).orElse(false))
-        .videoStreamEnabled(Optional.ofNullable(participant.hasVideoStreamOn()).orElse(false))
-        .screenStreamEnabled(Optional.ofNullable(participant.hasScreenStreamOn()).orElse(false))
-        .joinedAt(participant.getCreatedAt());
+    ParticipantDto participantDto =
+        ParticipantDto.create()
+            .userId(UUID.fromString(participant.getUserId()))
+            .queueId(participant.getQueueId())
+            .audioStreamEnabled(Optional.ofNullable(participant.hasAudioStreamOn()).orElse(false))
+            .videoStreamEnabled(Optional.ofNullable(participant.hasVideoStreamOn()).orElse(false))
+            .screenStreamEnabled(Optional.ofNullable(participant.hasScreenStreamOn()).orElse(false))
+            .joinedAt(participant.getCreatedAt());
+    Optional.ofNullable(participant.getHandRaisedAt()).ifPresent(participantDto::handRaisedAt);
+    return participantDto;
   }
 
   @Override
   public List<ParticipantDto> ent2dto(@Nullable List<Participant> participants) {
-    return Optional.ofNullable(participants).orElse(List.of()).stream()
-        .map(this::ent2dto)
-        .collect(Collectors.toList());
+    return Optional.ofNullable(participants).orElse(List.of()).stream().map(this::ent2dto).toList();
   }
 }

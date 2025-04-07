@@ -4,6 +4,8 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
+import jakarta.annotation.Nullable;
+import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -13,7 +15,9 @@ public class MeetingParticipantHandRaised extends DomainEvent {
 
   private UUID meetingId;
   private UUID userId;
+  @Nullable private UUID moderatorId;
   private boolean raised;
+  @Nullable private OffsetDateTime handRaisedAt;
 
   public MeetingParticipantHandRaised() {
     super(EVENT_TYPE);
@@ -41,6 +45,16 @@ public class MeetingParticipantHandRaised extends DomainEvent {
     return this;
   }
 
+  @Nullable
+  public UUID getModeratorId() {
+    return moderatorId;
+  }
+
+  public MeetingParticipantHandRaised moderatorId(UUID moderatorId) {
+    this.moderatorId = moderatorId;
+    return this;
+  }
+
   public boolean isRaised() {
     return raised;
   }
@@ -50,17 +64,34 @@ public class MeetingParticipantHandRaised extends DomainEvent {
     return this;
   }
 
+  public OffsetDateTime getHandRaisedAt() {
+    return handRaisedAt;
+  }
+
+  public MeetingParticipantHandRaised handRaisedAt(OffsetDateTime handRaisedAt) {
+    this.handRaisedAt = handRaisedAt;
+    return this;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof MeetingParticipantHandRaised that)) return false;
     if (!super.equals(o)) return false;
     return isRaised() == that.isRaised()
         && Objects.equals(getMeetingId(), that.getMeetingId())
-        && Objects.equals(getUserId(), that.getUserId());
+        && Objects.equals(getUserId(), that.getUserId())
+        && Objects.equals(getModeratorId(), that.getModeratorId())
+        && Objects.equals(getHandRaisedAt(), that.getHandRaisedAt());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getMeetingId(), getUserId(), isRaised());
+    return Objects.hash(
+        super.hashCode(),
+        getMeetingId(),
+        getUserId(),
+        getModeratorId(),
+        isRaised(),
+        getHandRaisedAt());
   }
 }

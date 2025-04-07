@@ -235,7 +235,7 @@ paths:
     put:
       tags:
         - Meetings
-      summary: Update hand status during a meeting
+      summary: Update hand status for a user during a meeting, a moderator can lower down the hand for another user
       operationId: updateHandStatus
       parameters:
         - $ref: '#/components/parameters/pathMeetingId'
@@ -471,6 +471,11 @@ components:
               format: date-time
               readOnly: true
               description: participant joining timestamp
+            handRaisedAt:
+              type: string
+              format: date-time
+              readOnly: true
+              description: participant hand raising timestamp
     Meeting:
       type: object
       description: Meeting data
@@ -592,3 +597,7 @@ components:
         raised:
           type: boolean
           description: indicates the status to change the hand to
+        userToModerate:
+          type: string
+          description: optionally lower the user's hand if I'm a moderator, only works if raised is false
+      required: [ raised ]
