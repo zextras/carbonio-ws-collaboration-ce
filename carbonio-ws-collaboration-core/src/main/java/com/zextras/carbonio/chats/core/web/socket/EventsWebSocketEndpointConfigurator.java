@@ -11,16 +11,16 @@ import jakarta.websocket.server.ServerEndpointConfig;
 
 public class EventsWebSocketEndpointConfigurator extends ServerEndpointConfig.Configurator {
 
-  private final EventsWebSocketEndpoint eventsWebSocketEndpoint;
+  private final EventsWebSocketManager eventsWebSocketManager;
 
-  public EventsWebSocketEndpointConfigurator(EventsWebSocketEndpoint eventsWebSocketEndpoint) {
-    this.eventsWebSocketEndpoint = eventsWebSocketEndpoint;
+  public EventsWebSocketEndpointConfigurator(EventsWebSocketManager eventsWebSocketManager) {
+    this.eventsWebSocketManager = eventsWebSocketManager;
   }
 
   @Override
   @SuppressWarnings("unchecked")
   public <T> T getEndpointInstance(Class<T> clazz) {
-    return (T) eventsWebSocketEndpoint;
+    return (T) eventsWebSocketManager;
   }
 
   @Override

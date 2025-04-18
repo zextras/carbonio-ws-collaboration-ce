@@ -4,14 +4,13 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
-
 import java.time.OffsetDateTime;
 import java.util.Objects;
 
 public class DomainEvent {
 
-  private EventType      type;
-  private OffsetDateTime sentDate;
+  private final EventType type;
+  private final OffsetDateTime sentDate;
 
   public DomainEvent(EventType type) {
     this.type = type;

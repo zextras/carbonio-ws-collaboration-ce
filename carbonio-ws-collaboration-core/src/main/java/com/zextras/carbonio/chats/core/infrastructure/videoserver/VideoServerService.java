@@ -9,7 +9,6 @@ import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
 import java.util.List;
-import java.util.Optional;
 
 public interface VideoServerService extends HealthIndicator {
 
@@ -25,8 +24,6 @@ public interface VideoServerService extends HealthIndicator {
       boolean audioStreamOn);
 
   void destroyMeetingParticipant(String userId, String meetingId);
-
-  Optional<VideoServerSession> getSession(String connectionId);
 
   List<VideoServerSession> getSessions(String meetingId);
 

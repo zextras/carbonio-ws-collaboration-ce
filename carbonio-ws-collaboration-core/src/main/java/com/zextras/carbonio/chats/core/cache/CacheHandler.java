@@ -8,21 +8,24 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
+import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import java.time.Duration;
 
 @Singleton
 public class CacheHandler {
 
-  private final Cache<String, VideoServerSession> videoServerSessionCache;
+  private final Cache<String, UserProfile> userProfileCache;
 
   @Inject
   public CacheHandler() {
-    this.videoServerSessionCache =
-        Caffeine.newBuilder().expireAfterAccess(Duration.ofMinutes(5)).build();
+    this.userProfileCache =
+        Caffeine.newBuilder().expireAfterWrite(Duration.ofMinutes(60)).maximumSize(100).build();
+    Runtime.getRuntime()
+        .addShutdownHook(
+            new Thread(this.userProfileCache::invalidateAll, "Cache handler shutdown hook"));
   }
 
-  public Cache<String, VideoServerSession> getVideoServerSessionCache() {
-    return videoServerSessionCache;
+  public Cache<String, UserProfile> getUserProfileCache() {
+    return userProfileCache;
   }
 }
