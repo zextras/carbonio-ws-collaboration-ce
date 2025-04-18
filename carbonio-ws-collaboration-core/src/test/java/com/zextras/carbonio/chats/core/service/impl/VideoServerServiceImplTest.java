@@ -287,7 +287,8 @@ class VideoServerServiceImplTest {
           VideoServerMessageRequest.create()
               .messageRequest("attach")
               .pluginName("janus.plugin.audiobridge")
-              .apiSecret("token"),
+              .apiSecret("token")
+              .opaqueId("meeting/a/" + meeting1Id.toString()),
           createAudioHandleMessageRequest);
       VideoServerMessageRequest createVideoHandleMessageRequest =
           createHandleRequestCaptor.getAllValues().get(1);
@@ -295,7 +296,8 @@ class VideoServerServiceImplTest {
           VideoServerMessageRequest.create()
               .messageRequest("attach")
               .pluginName("janus.plugin.videoroom")
-              .apiSecret("token"),
+              .apiSecret("token")
+              .opaqueId("meeting/v/" + meeting1Id.toString()),
           createVideoHandleMessageRequest);
 
       assertEquals(1, createAudioRoomRequestCaptor.getAllValues().size());
@@ -662,7 +664,8 @@ class VideoServerServiceImplTest {
           VideoServerMessageRequest.create()
               .messageRequest("attach")
               .pluginName("janus.plugin.audiobridge")
-              .apiSecret("token"),
+              .apiSecret("token")
+              .opaqueId("a/" + user1Id.toString() + "/" + meeting1Id.toString()),
           audioHandleMessageRequest);
       VideoServerMessageRequest videoOutHandleMessageRequest =
           createHandleRequestCaptor.getAllValues().get(1);
@@ -670,7 +673,8 @@ class VideoServerServiceImplTest {
           VideoServerMessageRequest.create()
               .messageRequest("attach")
               .pluginName("janus.plugin.videoroom")
-              .apiSecret("token"),
+              .apiSecret("token")
+              .opaqueId("vo/" + user1Id.toString() + "/" + meeting1Id.toString()),
           videoOutHandleMessageRequest);
       VideoServerMessageRequest videoInHandleMessageRequest =
           createHandleRequestCaptor.getAllValues().get(2);
@@ -678,7 +682,8 @@ class VideoServerServiceImplTest {
           VideoServerMessageRequest.create()
               .messageRequest("attach")
               .pluginName("janus.plugin.videoroom")
-              .apiSecret("token"),
+              .apiSecret("token")
+              .opaqueId("vi/" + user1Id.toString() + "/" + meeting1Id.toString()),
           videoInHandleMessageRequest);
       VideoServerMessageRequest screenHandleMessageRequest =
           createHandleRequestCaptor.getAllValues().get(3);
@@ -686,7 +691,8 @@ class VideoServerServiceImplTest {
           VideoServerMessageRequest.create()
               .messageRequest("attach")
               .pluginName("janus.plugin.videoroom")
-              .apiSecret("token"),
+              .apiSecret("token")
+              .opaqueId("s/" + user1Id.toString() + "/" + meeting1Id.toString()),
           screenHandleMessageRequest);
 
       assertEquals(1, joinPublisherVideoRequestCaptor.getAllValues().size());

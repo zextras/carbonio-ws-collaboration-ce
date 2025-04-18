@@ -8,6 +8,7 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.StreamingOutput;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -33,19 +34,13 @@ public class FileContentAndMetadata implements StreamingOutput {
 
   @Override
   public void write(OutputStream outputStream) throws WebApplicationException {
-    try {
-      IOUtils.copyLarge(fileStream, outputStream);
+    try (InputStream in = fileStream;
+        BufferedOutputStream bufferedOut = new BufferedOutputStream(outputStream)) {
+      IOUtils.copyLarge(in, bufferedOut);
+      bufferedOut.flush();
     } catch (IOException e) {
       ChatsLogger.warn("Error occurred on the file stream " + metadata.getId(), e);
       throw new WebApplicationException("File streaming failed for " + metadata.getId(), e);
-    } finally {
-      if (fileStream != null) {
-        try {
-          fileStream.close();
-        } catch (IOException e) {
-          ChatsLogger.error("Failed to close the file stream " + metadata.getId(), e);
-        }
-      }
     }
   }
 }

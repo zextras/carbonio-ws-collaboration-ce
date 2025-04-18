@@ -19,17 +19,18 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class VideoServerEvent {
 
-  private String    emitter;
-  private Integer   type;
-  private Integer   subtype;
-  private Long      timestamp;
-  private Long      sessionId;
-  private Long      handleId;
+  private String emitter;
+  private Integer type;
+  private Integer subtype;
+  private Long timestamp;
+  private Long sessionId;
+  private Long handleId;
+  private String opaqueId;
+
   @JsonProperty("event")
   private EventInfo eventInfo;
 
-  public VideoServerEvent() {
-  }
+  public VideoServerEvent() {}
 
   public String getEmitter() {
     return emitter;
@@ -53,6 +54,10 @@ public class VideoServerEvent {
 
   public Long getHandleId() {
     return handleId;
+  }
+
+  public String getOpaqueId() {
+    return opaqueId;
   }
 
   public EventInfo getEventInfo() {

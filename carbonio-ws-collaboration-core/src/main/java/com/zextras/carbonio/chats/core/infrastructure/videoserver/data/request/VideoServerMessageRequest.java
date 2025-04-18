@@ -25,6 +25,7 @@ import java.util.Objects;
  *       file
  *   <li>jsep: (optional) SDP offer to negotiate a new PeerConnection or SDP answer to close the
  *       circle and complete the setup of the PeerConnection
+ *   <li>opaque_id: a string you can use to link useful info like user-id
  * </ul>
  *
  * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
@@ -50,6 +51,8 @@ public class VideoServerMessageRequest {
 
   @JsonProperty("jsep")
   private RtcSessionDescription rtcSessionDescription;
+
+  private String opaqueId;
 
   public static VideoServerMessageRequest create() {
     return new VideoServerMessageRequest();
@@ -111,15 +114,24 @@ public class VideoServerMessageRequest {
     return this;
   }
 
+  public String getOpaqueId() {
+    return opaqueId;
+  }
+
+  public VideoServerMessageRequest opaqueId(String opaqueId) {
+    this.opaqueId = opaqueId;
+    return this;
+  }
+
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
     if (!(o instanceof VideoServerMessageRequest that)) return false;
     return Objects.equals(getMessageRequest(), that.getMessageRequest())
         && Objects.equals(getPluginName(), that.getPluginName())
         && Objects.equals(getVideoServerPluginRequest(), that.getVideoServerPluginRequest())
         && Objects.equals(getApiSecret(), that.getApiSecret())
-        && Objects.equals(getRtcSessionDescription(), that.getRtcSessionDescription());
+        && Objects.equals(getRtcSessionDescription(), that.getRtcSessionDescription())
+        && Objects.equals(getOpaqueId(), that.getOpaqueId());
   }
 
   @Override
@@ -129,6 +141,7 @@ public class VideoServerMessageRequest {
         getPluginName(),
         getVideoServerPluginRequest(),
         getApiSecret(),
-        getRtcSessionDescription());
+        getRtcSessionDescription(),
+        getOpaqueId());
   }
 }

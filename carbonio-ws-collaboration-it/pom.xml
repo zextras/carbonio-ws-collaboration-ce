@@ -98,6 +98,11 @@ SPDX-License-Identifier: AGPL-3.0-only
     </dependency>
 
     <dependency>
+      <groupId>org.eclipse.jetty.ee10.websocket</groupId>
+      <artifactId>jetty-ee10-websocket-jakarta-server</artifactId>
+    </dependency>
+
+    <dependency>
       <groupId>org.hibernate.validator</groupId>
       <artifactId>hibernate-validator-cdi</artifactId>
     </dependency>

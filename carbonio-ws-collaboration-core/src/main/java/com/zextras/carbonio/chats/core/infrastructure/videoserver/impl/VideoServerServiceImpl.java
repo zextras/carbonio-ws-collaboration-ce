@@ -66,6 +66,13 @@ public class VideoServerServiceImpl implements VideoServerService {
   private static final String AUDIO_VIDEO_PATTERN_NAME_WITH_TIMESTAMP = "%s_%s_%s";
   private static final String DATE_TIME_DEFAULT_FORMAT = "yyyyMMdd'T'HHmmss";
 
+  private static final String MEETING_AUDIO_OPAQUE_ID_PATTERN = "meeting/a/%s";
+  private static final String MEETING_VIDEO_OPAQUE_ID_PATTERN = "meeting/v/%s";
+  private static final String USER_AUDIO_OPAQUE_ID_PATTERN = "a/%s/%s";
+  private static final String USER_VIDEO_OUT_OPAQUE_ID_PATTERN = "vo/%s/%s";
+  private static final String USER_VIDEO_IN_OPAQUE_ID_PATTERN = "vi/%s/%s";
+  private static final String USER_SCREEN_OPAQUE_ID_PATTERN = "s/%s/%s";
+
   private final VideoServerClient videoServerClient;
   private final VideoServerMeetingRepository videoServerMeetingRepository;
   private final VideoServerSessionRepository videoServerSessionRepository;
@@ -98,8 +105,15 @@ public class VideoServerServiceImpl implements VideoServerService {
     String connectionId = connectionResponse.getDataId();
 
     VideoServerResponse audioPluginResponse =
-        attachToPlugin(connectionId, JANUS_AUDIOBRIDGE_PLUGIN);
-    VideoServerResponse videoPluginResponse = attachToPlugin(connectionId, JANUS_VIDEOROOM_PLUGIN);
+        attachToPlugin(
+            connectionId,
+            JANUS_AUDIOBRIDGE_PLUGIN,
+            String.format(MEETING_AUDIO_OPAQUE_ID_PATTERN, meetingId));
+    VideoServerResponse videoPluginResponse =
+        attachToPlugin(
+            connectionId,
+            JANUS_VIDEOROOM_PLUGIN,
+            String.format(MEETING_VIDEO_OPAQUE_ID_PATTERN, meetingId));
 
     String audioHandleId = audioPluginResponse.getDataId();
     String videoHandleId = videoPluginResponse.getDataId();
@@ -129,8 +143,10 @@ public class VideoServerServiceImpl implements VideoServerService {
     return response;
   }
 
-  private VideoServerResponse attachToPlugin(String connectionId, String pluginType) {
-    VideoServerResponse response = interactWithConnection(connectionId, JANUS_ATTACH, pluginType);
+  private VideoServerResponse attachToPlugin(
+      String connectionId, String pluginType, String opaqueId) {
+    VideoServerResponse response =
+        interactWithConnection(connectionId, JANUS_ATTACH, pluginType, opaqueId);
     if (!JANUS_SUCCESS.equals(response.getStatus())) {
       throw new VideoServerException("Error attaching to plugin " + pluginType);
     }
@@ -320,10 +336,30 @@ public class VideoServerServiceImpl implements VideoServerService {
 
     String connectionId = createConnection().getDataId();
 
-    String audioHandleId = attachToPlugin(connectionId, JANUS_AUDIOBRIDGE_PLUGIN).getDataId();
-    String videoOutHandleId = attachToPlugin(connectionId, JANUS_VIDEOROOM_PLUGIN).getDataId();
-    String videoInHandleId = attachToPlugin(connectionId, JANUS_VIDEOROOM_PLUGIN).getDataId();
-    String screenHandleId = attachToPlugin(connectionId, JANUS_VIDEOROOM_PLUGIN).getDataId();
+    String audioHandleId =
+        attachToPlugin(
+                connectionId,
+                JANUS_AUDIOBRIDGE_PLUGIN,
+                String.format(USER_AUDIO_OPAQUE_ID_PATTERN, userId, meetingId))
+            .getDataId();
+    String videoOutHandleId =
+        attachToPlugin(
+                connectionId,
+                JANUS_VIDEOROOM_PLUGIN,
+                String.format(USER_VIDEO_OUT_OPAQUE_ID_PATTERN, userId, meetingId))
+            .getDataId();
+    String videoInHandleId =
+        attachToPlugin(
+                connectionId,
+                JANUS_VIDEOROOM_PLUGIN,
+                String.format(USER_VIDEO_IN_OPAQUE_ID_PATTERN, userId, meetingId))
+            .getDataId();
+    String screenHandleId =
+        attachToPlugin(
+                connectionId,
+                JANUS_VIDEOROOM_PLUGIN,
+                String.format(USER_SCREEN_OPAQUE_ID_PATTERN, userId, meetingId))
+            .getDataId();
 
     joinVideoRoomAsPublisher(
         connectionId,
@@ -415,11 +451,6 @@ public class VideoServerServiceImpl implements VideoServerService {
         videoServerSession.getConnectionId(), videoServerSession.getScreenHandleId(), meetingId);
 
     destroyConnection(videoServerSession.getConnectionId(), meetingId);
-  }
-
-  @Override
-  public Optional<VideoServerSession> getSession(String connectionId) {
-    return videoServerSessionRepository.getByConnectionId(connectionId);
   }
 
   @Override
@@ -851,7 +882,7 @@ public class VideoServerServiceImpl implements VideoServerService {
    * @return VideoServerResponse
    */
   private VideoServerResponse destroyConnection(String connectionId) {
-    return interactWithConnection(connectionId, JANUS_DESTROY, null);
+    return interactWithConnection(connectionId, JANUS_DESTROY, null, null);
   }
 
   /**
@@ -859,11 +890,12 @@ public class VideoServerServiceImpl implements VideoServerService {
    *
    * @param connectionId the 'connection' (session) id created on the VideoServer
    * @param action the action to perform on this 'connection' (session)
+   * @param opaqueId the user id or meeting id associated to this handle-session on the VideoServer
    * @param pluginName the plugin name to perform the action with (optional)
    * @return VideoServerResponse
    */
   private VideoServerResponse interactWithConnection(
-      String connectionId, String action, @Nullable String pluginName) {
+      String connectionId, String action, @Nullable String pluginName, @Nullable String opaqueId) {
 
     VideoServerMessageRequest request =
         VideoServerMessageRequest.create()
@@ -871,6 +903,7 @@ public class VideoServerServiceImpl implements VideoServerService {
             .transactionId(UUID.randomUUID().toString())
             .apiSecret(apiSecret);
     Optional.ofNullable(pluginName).ifPresent(request::pluginName);
+    Optional.ofNullable(opaqueId).ifPresent(request::opaqueId);
 
     return videoServerClient.sendConnectionVideoServerRequest(connectionId, request);
   }

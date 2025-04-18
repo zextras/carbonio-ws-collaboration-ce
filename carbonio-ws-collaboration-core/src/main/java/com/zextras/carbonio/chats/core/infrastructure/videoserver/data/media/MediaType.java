@@ -5,5 +5,7 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media;
 
 public enum MediaType {
-  VIDEO, SCREEN
+  AUDIO,
+  VIDEO,
+  SCREEN
 }

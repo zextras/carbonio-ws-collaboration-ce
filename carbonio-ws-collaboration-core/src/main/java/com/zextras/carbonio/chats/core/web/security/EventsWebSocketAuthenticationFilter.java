@@ -45,6 +45,7 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
             .findAny()
             .map(Cookie::getValue);
     if (authToken.isEmpty()) {
+      ChatsLogger.warn("Websocket authentication failed with an empty token");
       HttpServletResponse httpServletResponse = (HttpServletResponse) response;
       httpServletResponse.setStatus(401);
       return;

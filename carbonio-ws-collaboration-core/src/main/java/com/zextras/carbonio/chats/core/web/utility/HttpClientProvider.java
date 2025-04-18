@@ -26,7 +26,11 @@ public class HttpClientProvider {
   private static final CloseableHttpClient httpClient;
   private static final ScheduledExecutorService executor;
 
-  private HttpClientProvider() {}
+  private HttpClientProvider() {
+    Runtime.getRuntime()
+        .addShutdownHook(
+            new Thread(HttpClientProvider::shutdown, "Http client provider shutdown hook"));
+  }
 
   static {
     connectionManager = new PoolingHttpClientConnectionManager(30, TimeUnit.SECONDS);
@@ -56,8 +60,6 @@ public class HttpClientProvider {
             .setKeepAliveStrategy((response, context) -> KEEP_ALIVE_SECONDS * 1000L)
             .setDefaultRequestConfig(requestConfig)
             .build();
-
-    Runtime.getRuntime().addShutdownHook(new Thread(HttpClientProvider::shutdown));
   }
 
   public static CloseableHttpClient getHttpClient() {
@@ -66,7 +68,7 @@ public class HttpClientProvider {
 
   public static void shutdown() {
     try {
-      ChatsLogger.info("Shutting down HttpClient...");
+      ChatsLogger.info("Shutting down HttpClientProvider...");
       httpClient.close();
       connectionManager.shutdown();
       executor.shutdown();
