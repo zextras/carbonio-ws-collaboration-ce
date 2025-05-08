@@ -313,6 +313,8 @@ public class CoreModule extends AbstractModule {
         appConfig.get(Integer.class, ConfigName.HIKARI_MAX_POOL_SIZE).orElse(10));
     config.setLeakDetectionThreshold(
         appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(5000));
+    config.setMaxLifetime(
+        appConfig.get(Integer.class, ConfigName.HIKARI_MAX_LIFETIME).orElse(600000));
     return new HikariDataSource(config);
   }
 
