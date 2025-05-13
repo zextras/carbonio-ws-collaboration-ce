@@ -4,10 +4,8 @@
 
 package com.zextras.carbonio.chats.core.service;
 
-import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
-import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,39 +39,4 @@ public interface UserService {
    * @return a {@link Boolean} which indicates if the user exists or not
    */
   boolean userExists(UUID userId, UserPrincipal currentUser);
-
-  /**
-   * Gets the user picture
-   *
-   * @param userId user identifier
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The user picture
-   */
-  FileContentAndMetadata getUserPicture(UUID userId, UserPrincipal currentUser);
-
-  /**
-   * Sets a new user picture
-   *
-   * @param userId room identifier {@link UUID }
-   * @param image image stream to set {@link InputStream}
-   * @param mimeType image mime type
-   * @param contentLength image size
-   * @param fileName image file name
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   */
-  void setUserPicture(
-      UUID userId,
-      InputStream image,
-      String mimeType,
-      Long contentLength,
-      String fileName,
-      UserPrincipal currentUser);
-
-  /**
-   * Deletes the user picture
-   *
-   * @param userId room identifier {@link UUID }
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   */
-  void deleteUserPicture(UUID userId, UserPrincipal currentUser);
 }

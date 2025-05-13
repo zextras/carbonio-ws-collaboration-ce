@@ -60,7 +60,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
-  public Response listRoom(List<RoomExtraFieldDto> extraFields, SecurityContext securityContext) {
+  public Response listRooms(List<RoomExtraFieldDto> extraFields, SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
@@ -257,7 +257,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   @TimedCall
-  public Response listRoomMember(UUID roomId, SecurityContext securityContext) {
+  public Response listRoomMembers(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
@@ -292,7 +292,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   @TimedCall
-  public Response updateToOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
+  public Response insertOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
@@ -312,7 +312,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
-  public Response listRoomAttachmentInfo(
+  public Response listRoomAttachmentsInfo(
       UUID roomId, Integer itemsNumber, String filter, SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
