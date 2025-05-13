@@ -19,7 +19,7 @@ import java.util.Optional;
 public class AuthApiServiceImpl implements AuthApiService {
 
   @Override
-  public Response getTokens(SecurityContext securityContext) {
+  public Response getToken(SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);

@@ -23,10 +23,6 @@ public class User {
   @Column(name = "ID", length = 64, nullable = false)
   private String id;
 
-  @Column(name = "PICTURE_UPDATED_AT")
-  @Temporal(TemporalType.TIMESTAMP)
-  private OffsetDateTime pictureUpdatedAt;
-
   @Column(name = "STATUS_MESSAGE", length = 256, nullable = false)
   private String statusMessage = "";
 
@@ -62,15 +58,6 @@ public class User {
     return this;
   }
 
-  public OffsetDateTime getPictureUpdatedAt() {
-    return pictureUpdatedAt;
-  }
-
-  public User pictureUpdatedAt(OffsetDateTime pictureUpdatedAt) {
-    this.pictureUpdatedAt = pictureUpdatedAt;
-    return this;
-  }
-
   public OffsetDateTime getCreatedAt() {
     return createdAt;
   }
@@ -88,16 +75,11 @@ public class User {
       return false;
     }
     User user = (User) o;
-    return Objects.equals(id, user.id)
-        && (Objects.equals(pictureUpdatedAt, user.pictureUpdatedAt)
-            || Objects.equals(
-                pictureUpdatedAt.toInstant().toEpochMilli(),
-                user.pictureUpdatedAt.toInstant().toEpochMilli()))
-        && Objects.equals(statusMessage, user.statusMessage);
+    return Objects.equals(id, user.id) && Objects.equals(statusMessage, user.statusMessage);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, pictureUpdatedAt, statusMessage);
+    return Objects.hash(id, statusMessage);
   }
 }
