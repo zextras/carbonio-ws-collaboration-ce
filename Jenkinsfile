@@ -18,7 +18,7 @@ pipeline {
   }
   agent {
     node {
-      label 'openjdk17-agent-v1'
+      label 'zextras-v1'
     }
   }
   environment {
@@ -28,29 +28,38 @@ pipeline {
   stages {
     stage('Build setup') {
       steps {
-        checkout([
-          $class: 'GitSCM',
-          branches: scm.branches,
-          extensions: [[
-            $class: 'CloneOption',
-            shallow: true,
-            depth:   2,
-            timeout: 30
-          ]],
-          userRemoteConfigs: scm.userRemoteConfigs
-        ])
-        withCredentials([file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')]) {
-          sh 'cp $SETTINGS_PATH settings-jenkins.xml'
-          sh 'mvn -Dmaven.repo.local=$(pwd)/m2 -N wrapper:wrapper'
-        }
-        script {
-          env.GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+        container('jdk-17') {
+          checkout([
+            $class: 'GitSCM',
+            branches: scm.branches,
+            extensions: [[
+              $class: 'CloneOption',
+              shallow: true,
+              depth:   2,
+              timeout: 30
+            ]],
+            userRemoteConfigs: scm.userRemoteConfigs
+          ])
+          withCredentials([file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')]) {
+            sh 'cp $SETTINGS_PATH settings-jenkins.xml'
+            sh 'mvn -Dmaven.repo.local=$(pwd)/m2 -N wrapper:wrapper'
+          }
+          script {
+            env.GIT_COMMIT = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+          }
         }
       }
     }
     stage('Compiling') {
       steps {
-        sh 'mvn -T1C -B -q --settings settings-jenkins.xml compile'
+        container('jdk-17') {
+          sh 'mvn -Dmaven.repo.local=$(pwd)/m2 -T1C -B -s settings-jenkins.xml compile'
+          sh 'mvn package -Dmaven.main.skip -Dmaven.repo.local=$(pwd)/m2'
+          sh 'mkdir project'
+          sh 'cp -r package yap.json project'
+          sh 'cp carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-fatjar.jar project/package'
+          stash includes: 'project/**', name: 'project'          
+        }
       }
       post {
         failure {
@@ -64,12 +73,14 @@ pipeline {
     }
     stage('Testing') {
       steps {
-        sh '''
-          mvn -B --settings settings-jenkins.xml \
-          -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
-          verify
-        '''
-        recordCoverage(tools: [[pattern: 'target/site/jacoco-all-tests/jacoco.xml']])
+        container('jdk-17') {
+          sh '''
+            mvn -B --settings settings-jenkins.xml \
+            -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
+            verify
+          '''
+          recordCoverage(tools: [[pattern: 'target/site/jacoco-all-tests/jacoco.xml']])
+        }
       }
       post {
         failure {
@@ -81,32 +92,16 @@ pipeline {
         }
       }
     }
-    stage('Dependency check') {
-      when {
-        expression { params.DEPENDENCY_CHECK == true }
-      }
-      steps {
-        dependencyCheck additionalArguments: '''
-          -o "./"
-          -s "./"
-          -f "HTML"
-          --prettyPrint''', odcInstallation: 'dependency-check'
-      }
-    }
     stage('Sonarqube Analysis') {
       steps {
-        withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
-          sh '''
-            mvn -Dsonar.dependencyCheck.htmlReportPath=./dependency-check-report.html \
-            -Dsonar.coverage.jacoco.xmlReportPaths=../target/site/jacoco-all-tests/jacoco.xml \
-            -B --settings settings-jenkins.xml sonar:sonar
-          '''
+        container('jdk-17') {
+          withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
+            sh '''
+              mvn -Dsonar.coverage.jacoco.xmlReportPaths=../target/site/jacoco-all-tests/jacoco.xml \
+              -B --settings settings-jenkins.xml sonar:sonar
+            '''
+          }
         }
-      }
-    }
-    stage('Stashing for packaging') {
-      steps {
-        stash includes: '**', name: 'project'
       }
     }
     stage('Building packages') {
@@ -114,24 +109,22 @@ pipeline {
         stage('Ubuntu') {
           agent {
             node {
-              label 'yap-agent-ubuntu-20.04-v2'
+              label 'yap-ubuntu-20-v1'
             }
           }
           steps {
-            unstash 'project'
-            sh '''
-              mkdir /tmp/ws-collaboration
-              mv * /tmp/ws-collaboration
-            '''
-            script {
-              if (BRANCH_NAME == 'devel') {
-                def timestamp = new Date().format('yyyyMMddHHmmss')
-                sh "sudo yap build ubuntu /tmp/ws-collaboration -r ${timestamp}"
-              } else {
-                sh 'sudo yap build ubuntu /tmp/ws-collaboration'
+            container('yap') {
+              unstash 'project'
+              script {
+                if (BRANCH_NAME == 'devel') {
+                  def timestamp = new Date().format('yyyyMMddHHmmss')
+                  sh "sudo yap build ubuntu project -r ${timestamp}"
+                } else {
+                  sh 'sudo yap build ubuntu project'
+                }
               }
+              stash includes: 'artifacts/', name: 'artifacts-ubuntu'
             }
-            stash includes: 'artifacts/', name: 'artifacts-ubuntu'
           }
           post {
             failure {
@@ -149,24 +142,22 @@ pipeline {
         stage('RHEL') {
           agent {
             node {
-              label 'yap-agent-rocky-8-v2'
+              label 'yap-rocky-8-v1'
             }
           }
           steps {
-            unstash 'project'
-            sh '''
-              mkdir /tmp/ws-collaboration
-              mv * /tmp/ws-collaboration
-            '''
-            script {
-              if (BRANCH_NAME == 'devel') {
-                def timestamp = new Date().format('yyyyMMddHHmmss')
-                sh "sudo yap build rocky /tmp/ws-collaboration -r ${timestamp}"
-              } else {
-                sh 'sudo yap build rocky /tmp/ws-collaboration'
+            container('yap') {
+              unstash 'project'
+              script {
+                if (BRANCH_NAME == 'devel') {
+                  def timestamp = new Date().format('yyyyMMddHHmmss')
+                  sh "sudo yap build rocky project -r ${timestamp}"
+                } else {
+                  sh 'sudo yap build rocky project'
+                }
               }
+              stash includes: 'artifacts/*.rpm', name: 'artifacts-rocky'
             }
-            stash includes: 'artifacts/x86_64/*.rpm', name: 'artifacts-rocky'
           }
           post {
             failure {
@@ -177,7 +168,7 @@ pipeline {
               }
             }
             always {
-              archiveArtifacts artifacts: 'artifacts/x86_64/*.rpm', fingerprint: true
+              archiveArtifacts artifacts: 'artifacts/*.rpm', fingerprint: true
             }
           }
         }
@@ -204,12 +195,12 @@ pipeline {
                 "props": "deb.distribution=focal;deb.distribution=jammy;deb.distribution=noble;deb.component=main;deb.architecture=amd64;vcs.revision=${env.GIT_COMMIT}"
               },
               {
-                "pattern": "artifacts/x86_64/(carbonio-ws-collaboration-ce)-(*).rpm",
+                "pattern": "artifacts/(carbonio-ws-collaboration-ce)-(*).rpm",
                 "target": "centos8-playground/zextras/{1}/{1}-{2}.rpm",
                 "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras;vcs.revision=${env.GIT_COMMIT}"
               },
               {
-                "pattern": "artifacts/x86_64/(carbonio-ws-collaboration-ce)-(*).rpm",
+                "pattern": "artifacts/(carbonio-ws-collaboration-ce)-(*).rpm",
                 "target": "rhel9-playground/zextras/{1}/{1}-{2}.rpm",
                 "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras;vcs.revision=${env.GIT_COMMIT}"
               }
@@ -240,12 +231,12 @@ pipeline {
                 "props": "deb.distribution=focal;deb.distribution=jammy;deb.distribution=noble;deb.component=main;deb.architecture=amd64;vcs.revision=${env.GIT_COMMIT}"
               },
               {
-                "pattern": "artifacts/x86_64/(carbonio-ws-collaboration-ce)-(*).rpm",
+                "pattern": "artifacts/(carbonio-ws-collaboration-ce)-(*).rpm",
                 "target": "centos8-devel/zextras/{1}/{1}-{2}.rpm",
                 "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras;vcs.revision=${env.GIT_COMMIT}"
               },
               {
-                "pattern": "artifacts/x86_64/(carbonio-ws-collaboration-ce)-(*).rpm",
+                "pattern": "artifacts/(carbonio-ws-collaboration-ce)-(*).rpm",
                 "target": "rhel9-devel/zextras/{1}/{1}-{2}.rpm",
                 "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras;vcs.revision=${env.GIT_COMMIT}"
               }
@@ -311,7 +302,7 @@ pipeline {
           uploadSpec = """{
             "files": [
               {
-                "pattern": "artifacts/x86_64/(carbonio-ws-collaboration-ce)-(*).rpm",
+                "pattern": "artifacts/(carbonio-ws-collaboration-ce)-(*).rpm",
                 "target": "centos8-rc/zextras/{1}/{1}-{2}.rpm",
                 "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras;vcs.revision=${env.GIT_COMMIT}"
               }
@@ -340,7 +331,7 @@ pipeline {
           uploadSpec = """{
             "files": [
               {
-                "pattern": "artifacts/x86_64/(carbonio-ws-collaboration-ce)-(*).rpm",
+                "pattern": "artifacts/(carbonio-ws-collaboration-ce)-(*).rpm",
                 "target": "rhel9-rc/zextras/{1}/{1}-{2}.rpm",
                 "props": "rpm.metadata.arch=x86_64;rpm.metadata.vendor=zextras;vcs.revision=${env.GIT_COMMIT}"
               }
@@ -367,7 +358,7 @@ pipeline {
       post {
         failure {
           script {
-              sendFailureEmail(STAGE_NAME)
+            sendFailureEmail(STAGE_NAME)
           }
         }
       }
