@@ -8,7 +8,9 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
@@ -20,12 +22,12 @@ import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ClearedDateDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
+import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
-import com.zextras.carbonio.chats.model.RoomRankDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.core.Response;
@@ -58,12 +60,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     this.meetingService = meetingService;
   }
 
+  private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
+    return Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+        .orElseThrow(UnauthorizedException::new);
+  }
+
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
-  public Response listRoom(List<RoomExtraFieldDto> extraFields, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+  public Response listRooms(List<RoomExtraFieldDto> extraFields, SecurityContext securityContext) {
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK)
         .entity(roomService.getRooms(extraFields, currentUser))
         .build();
@@ -72,9 +77,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall
   public Response getRoom(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK).entity(roomService.getRoomById(roomId, currentUser)).build();
   }
 
@@ -82,9 +85,10 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response insertRoom(
       RoomCreationFieldsDto insertRoomRequestDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     if (insertRoomRequestDto.getType().equals(RoomTypeDto.ONE_TO_ONE)
         && (insertRoomRequestDto.getName() != null
             || insertRoomRequestDto.getDescription() != null)) {
@@ -103,9 +107,10 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall
   public Response deleteRoom(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(
             r -> {
@@ -123,9 +128,10 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response updateRoom(
       UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(
             r -> {
@@ -145,11 +151,21 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  public Response updateRoomOwners(
+      UUID roomId, List<@Valid MemberDto> memberDto, SecurityContext securityContext) {
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
+    return Response.status(Status.OK)
+        .entity(membersService.updateRoomOwners(roomId, memberDto, currentUser))
+        .build();
+  }
+
+  @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response getRoomPicture(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     FileContentAndMetadata roomPicture = roomService.getRoomPicture(roomId, currentUser);
     return Response.status(Status.OK)
         .entity(roomPicture)
@@ -170,14 +186,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       Long headerContentLength,
       InputStream body,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     String filename;
     try {
       filename =
           StringFormatUtils.decodeFromUtf8(
-              Optional.of(headerFileName)
+              Optional.ofNullable(headerFileName)
                   .orElseThrow(() -> new BadRequestException("File name not found")));
     } catch (UnsupportedEncodingException e) {
       throw new BadRequestException("Unable to decode the file name", e);
@@ -185,7 +202,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     roomService.setRoomPicture(
         roomId,
         body,
-        Optional.of(headerMimeType)
+        Optional.ofNullable(headerMimeType)
             .orElseThrow(() -> new BadRequestException("Mime type not found")),
         headerContentLength,
         filename,
@@ -196,9 +213,10 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response deleteRoomPicture(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     roomService.deleteRoomPicture(roomId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -206,9 +224,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   public Response forwardMessages(
       UUID roomId, List<ForwardMessageDto> forwardMessageDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     roomService.forwardMessages(roomId, forwardMessageDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -216,28 +232,31 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall
   public Response muteRoom(UUID roomId, SecurityContext securityContext) {
-    roomService.muteRoom(
-        roomId,
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new));
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
+    roomService.muteRoom(roomId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
   @TimedCall
   public Response unmuteRoom(UUID roomId, SecurityContext securityContext) {
-    roomService.unmuteRoom(
-        roomId,
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new));
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
+    roomService.unmuteRoom(roomId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
   public Response clearRoomHistory(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     return Response.status(Status.OK)
         .entity(
             ClearedDateDto.create().clearedAt(roomService.clearRoomHistory(roomId, currentUser)))
@@ -245,22 +264,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
-  public Response updateChannelsRank(
-      UUID workspaceId, List<RoomRankDto> roomRankDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
-    roomService.updateChannelsRank(workspaceId, roomRankDto, currentUser);
-    return Response.status(Status.NO_CONTENT).build();
-  }
-
-  @Override
   @TimedCall
-  public Response listRoomMember(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+  public Response listRoomMembers(UUID roomId, SecurityContext securityContext) {
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK)
         .entity(membersService.getRoomMembers(roomId, currentUser))
         .build();
@@ -272,9 +278,10 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       UUID roomId,
       List<@Valid MemberToInsertDto> memberToInsertDto,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     return Response.status(Status.CREATED)
         .entity(membersService.insertRoomMembers(roomId, memberToInsertDto, currentUser))
         .build();
@@ -283,51 +290,41 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall
   public Response deleteRoomMember(UUID roomId, UUID userId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     membersService.deleteRoomMember(roomId, userId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
   @TimedCall
-  public Response updateToOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+  public Response insertOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     membersService.setOwner(roomId, userId, true, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
-  public Response updateWorkspacesRank(
-      List<RoomRankDto> roomRankDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
-    roomService.updateWorkspacesRank(roomRankDto, currentUser);
-    return Response.status(Status.NO_CONTENT).build();
-  }
-
-  @Override
-  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response deleteOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     membersService.setOwner(roomId, userId, false, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
-  public Response listRoomAttachmentInfo(
+  public Response listRoomAttachmentsInfo(
       UUID roomId, Integer itemsNumber, String filter, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK)
         .entity(
             attachmentService.getAttachmentInfoByRoomId(roomId, itemsNumber, filter, currentUser))
@@ -347,14 +344,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       String replyId,
       String area,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     String name;
     try {
       name =
           StringFormatUtils.decodeFromUtf8(
-              Optional.of(fileName)
+              Optional.ofNullable(fileName)
                   .orElseThrow(() -> new BadRequestException("File name not found")));
     } catch (UnsupportedEncodingException e) {
       throw new BadRequestException("Unable to decode the file name", e);
@@ -371,7 +369,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               attachmentService.addAttachment(
                   roomId,
                   body,
-                  Optional.of(mimeType)
+                  Optional.ofNullable(mimeType)
                       .orElseThrow(() -> new BadRequestException("Mime type not found")),
                   contentLength,
                   name,
@@ -388,9 +386,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   public Response getMeetingByRoomId(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.ok().entity(meetingService.getMeetingByRoomId(roomId, currentUser)).build();
   }
 }

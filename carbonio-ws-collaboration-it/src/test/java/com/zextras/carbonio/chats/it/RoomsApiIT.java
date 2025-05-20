@@ -46,9 +46,7 @@ import com.zextras.carbonio.chats.model.IdDto;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
-import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
-import com.zextras.carbonio.chats.model.RoomRankDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.meeting.model.MeetingDto;
 import com.zextras.carbonio.meeting.model.ParticipantDto;
@@ -67,7 +65,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.jboss.resteasy.mock.MockHttpResponse;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -75,7 +72,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 @ApiIntegrationTest
-public class RoomsApiIT {
+class RoomsApiIT {
 
   private final ResteasyRequestDispatcher dispatcher;
   private final ObjectMapper objectMapper;
@@ -124,7 +121,7 @@ public class RoomsApiIT {
   private static String user3Token;
 
   @BeforeAll
-  public static void initAll() {
+  static void initAll() {
     user1Id = MockedAccount.getAccount(MockedAccountType.SNOOPY).getUUID();
     user1Token = MockedAccount.getAccount(MockedAccountType.SNOOPY).getToken();
     user2Id = MockedAccount.getAccount(MockedAccountType.CHARLIE_BROWN).getUUID();
@@ -157,9 +154,7 @@ public class RoomsApiIT {
     void listRoom_testOkBasicRooms() throws Exception {
       UUID group1Id = UUID.randomUUID();
       UUID group2Id = UUID.randomUUID();
-      UUID workspace1Id = UUID.randomUUID();
-      UUID channel1Id = UUID.randomUUID();
-      UUID channel2Id = UUID.randomUUID();
+
       integrationTestUtils.generateAndSaveRoom(
           group1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveRoom(
@@ -170,47 +165,19 @@ public class RoomsApiIT {
           List.of(user1Id),
           List.of(user1Id),
           OffsetDateTime.parse("2022-01-01T00:00:00Z"));
-      integrationTestUtils.generateAndSaveRoom(
-          workspace1Id,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(5),
-              RoomMemberField.create().id(user2Id).owner(false).rank(2),
-              RoomMemberField.create().id(user3Id).owner(false).rank(2)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel1Id.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel1")
-              .description("Channel one")
-              .parentId(workspace1Id.toString())
-              .rank(2),
-          List.of());
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel2Id.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel2")
-              .description("Channel two")
-              .parentId(workspace1Id.toString())
-              .rank(1),
-          List.of());
 
       MockHttpResponse response = dispatcher.get(url(null), user1Token);
       assertEquals(200, response.getStatus());
       assertFalse(response.getContentAsString().contains("userSettings"));
       List<RoomDto> rooms =
           objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
-      assertEquals(3, rooms.size());
+      assertEquals(2, rooms.size());
       assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(group1Id)));
       assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(group2Id)));
-      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(workspace1Id)));
       assertEquals(0, rooms.get(0).getMembers().size());
       assertEquals(0, rooms.get(1).getMembers().size());
-      assertEquals(0, rooms.get(2).getMembers().size());
       assertNull(rooms.get(0).getUserSettings());
       assertNull(rooms.get(1).getUserSettings());
-      assertNull(rooms.get(2).getUserSettings());
       assertTrue(
           rooms.stream()
               .anyMatch(
@@ -219,17 +186,6 @@ public class RoomsApiIT {
                           && room.getPictureUpdatedAt()
                               .equals(OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
       assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() == null));
-      RoomDto workspace =
-          rooms.stream()
-              .filter(room -> RoomTypeDto.WORKSPACE.equals(room.getType()))
-              .findAny()
-              .orElseThrow();
-      assertEquals(5, workspace.getRank());
-      assertEquals(2, workspace.getChildren().size());
-      assertTrue(
-          workspace.getChildren().stream()
-              .anyMatch(child -> RoomTypeDto.CHANNEL.equals(child.getType())));
-      assertTrue(workspace.getChildren().stream().anyMatch(child -> child.getMembers().isEmpty()));
     }
 
     @Test
@@ -237,9 +193,6 @@ public class RoomsApiIT {
     void listRoom_testOkWithMembers() throws Exception {
       UUID room1Id = UUID.randomUUID();
       UUID room2Id = UUID.randomUUID();
-      UUID workspace1Id = UUID.randomUUID();
-      UUID channel1Id = UUID.randomUUID();
-      UUID channel2Id = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveRoom(
@@ -250,31 +203,6 @@ public class RoomsApiIT {
           List.of(user1Id),
           List.of(user1Id),
           OffsetDateTime.parse("2022-01-01T00:00:00Z"));
-      integrationTestUtils.generateAndSaveRoom(
-          workspace1Id,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(5),
-              RoomMemberField.create().id(user2Id).owner(false).rank(2),
-              RoomMemberField.create().id(user3Id).owner(false).rank(2)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel1Id.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel1")
-              .description("Channel one")
-              .parentId(workspace1Id.toString())
-              .rank(2),
-          List.of());
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel2Id.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel2")
-              .description("Channel two")
-              .parentId(workspace1Id.toString())
-              .rank(1),
-          List.of());
 
       MockHttpResponse response =
           dispatcher.get(url(Map.of("extraFields", List.of("members"))), user1Token);
@@ -282,16 +210,13 @@ public class RoomsApiIT {
       assertFalse(response.getContentAsString().contains("userSettings"));
       List<RoomDto> rooms =
           objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
-      assertEquals(3, rooms.size());
+      assertEquals(2, rooms.size());
       assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room1Id)));
       assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(room2Id)));
-      assertTrue(rooms.stream().anyMatch(r -> r.getId().equals(workspace1Id)));
       assertNotNull(rooms.get(0).getMembers());
       assertNotNull(rooms.get(1).getMembers());
-      assertNotNull(rooms.get(2).getMembers());
       assertNull(rooms.get(0).getUserSettings());
       assertNull(rooms.get(1).getUserSettings());
-      assertNull(rooms.get(2).getUserSettings());
       assertTrue(
           rooms.stream()
               .anyMatch(
@@ -300,17 +225,6 @@ public class RoomsApiIT {
                           && room.getPictureUpdatedAt()
                               .equals(OffsetDateTime.parse("2022-01-01T00:00:00Z"))));
       assertTrue(rooms.stream().anyMatch(room -> room.getPictureUpdatedAt() == null));
-      RoomDto workspace =
-          rooms.stream()
-              .filter(room -> RoomTypeDto.WORKSPACE.equals(room.getType()))
-              .findAny()
-              .orElseThrow();
-      assertEquals(5, workspace.getRank());
-      assertEquals(2, workspace.getChildren().size());
-      assertTrue(
-          workspace.getChildren().stream()
-              .anyMatch(child -> RoomTypeDto.CHANNEL.equals(child.getType())));
-      assertTrue(workspace.getChildren().stream().anyMatch(child -> child.getMembers().isEmpty()));
     }
 
     @Test
@@ -318,9 +232,6 @@ public class RoomsApiIT {
     void listRoom_testOkWithUserSettings() throws Exception {
       UUID room1Id = UUID.randomUUID();
       UUID room2Id = UUID.randomUUID();
-      UUID workspace1Id = UUID.randomUUID();
-      UUID channel1Id = UUID.randomUUID();
-      UUID channel2Id = UUID.randomUUID();
 
       integrationTestUtils.generateAndSaveRoom(
           room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
@@ -332,38 +243,13 @@ public class RoomsApiIT {
           List.of(user1Id),
           List.of(user1Id),
           OffsetDateTime.parse("2022-01-01T00:00:00Z"));
-      integrationTestUtils.generateAndSaveRoom(
-          workspace1Id,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(5),
-              RoomMemberField.create().id(user2Id).owner(false).rank(2),
-              RoomMemberField.create().id(user3Id).owner(false).rank(2)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel1Id.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel1")
-              .description("Channel one")
-              .parentId(workspace1Id.toString())
-              .rank(2),
-          List.of());
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel2Id.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel2")
-              .description("Channel two")
-              .parentId(workspace1Id.toString())
-              .rank(1),
-          List.of());
 
       MockHttpResponse response =
           dispatcher.get(url(Map.of("extraFields", List.of("settings"))), user1Token);
       assertEquals(200, response.getStatus());
       List<RoomDto> rooms =
           objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
-      assertEquals(3, rooms.size());
+      assertEquals(2, rooms.size());
 
       RoomDto room1 =
           rooms.stream().filter(room -> room.getId().equals(room1Id)).findAny().orElseThrow();
@@ -371,8 +257,6 @@ public class RoomsApiIT {
       assertEquals(0, room1.getMembers().size());
       assertNotNull(room1.getUserSettings());
       assertNull(room1.getPictureUpdatedAt());
-      assertNull(room1.getRank());
-      assertTrue(room1.getChildren().isEmpty());
 
       RoomDto room2 =
           rooms.stream().filter(room -> room.getId().equals(room2Id)).findAny().orElseThrow();
@@ -380,21 +264,6 @@ public class RoomsApiIT {
       assertEquals(0, room2.getMembers().size());
       assertNotNull(room2.getUserSettings());
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room2.getPictureUpdatedAt());
-      assertNull(room2.getRank());
-      assertTrue((room2.getChildren().isEmpty()));
-
-      RoomDto workspace =
-          rooms.stream().filter(room -> room.getId().equals(workspace1Id)).findAny().orElseThrow();
-      assertEquals(RoomTypeDto.WORKSPACE, workspace.getType());
-      assertEquals(0, workspace.getMembers().size());
-      assertNull(workspace.getUserSettings());
-      assertNull(workspace.getPictureUpdatedAt());
-      assertEquals(5, workspace.getRank());
-      assertEquals(2, workspace.getChildren().size());
-      assertTrue(
-          workspace.getChildren().stream()
-              .anyMatch(child -> RoomTypeDto.CHANNEL.equals(child.getType())));
-      assertTrue(workspace.getChildren().stream().anyMatch(child -> child.getMembers().isEmpty()));
     }
 
     @Test
@@ -402,9 +271,6 @@ public class RoomsApiIT {
     void listRoom_testOkCompleteRooms() throws Exception {
       UUID room1Id = UUID.randomUUID();
       UUID room2Id = UUID.randomUUID();
-      UUID workspace1Id = UUID.randomUUID();
-      UUID channel1Id = UUID.randomUUID();
-      UUID channel2Id = UUID.randomUUID();
       integrationTestUtils.generateAndSaveRoom(
           room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
       integrationTestUtils.generateAndSaveRoom(
@@ -415,38 +281,13 @@ public class RoomsApiIT {
           List.of(user1Id),
           List.of(user1Id),
           OffsetDateTime.parse("2022-01-01T00:00:00Z"));
-      integrationTestUtils.generateAndSaveRoom(
-          workspace1Id,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(5),
-              RoomMemberField.create().id(user2Id).owner(false).rank(2),
-              RoomMemberField.create().id(user3Id).owner(false).rank(2)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel1Id.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel1")
-              .description("Channel one")
-              .parentId(workspace1Id.toString())
-              .rank(2),
-          List.of(RoomMemberField.create().id(user1Id).muted(true)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel2Id.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel2")
-              .description("Channel two")
-              .parentId(workspace1Id.toString())
-              .rank(1),
-          List.of(RoomMemberField.create().id(user1Id).muted(true)));
 
       MockHttpResponse response =
           dispatcher.get(url(Map.of("extraFields", List.of("members", "settings"))), user1Token);
       assertEquals(200, response.getStatus());
       List<RoomDto> rooms =
           objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
-      assertEquals(3, rooms.size());
+      assertEquals(2, rooms.size());
 
       RoomDto room1 =
           rooms.stream().filter(room -> room1Id.equals(room.getId())).findAny().orElseThrow();
@@ -461,20 +302,6 @@ public class RoomsApiIT {
       assertNotNull(room2.getMembers());
       assertNotNull(room2.getUserSettings());
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room2.getPictureUpdatedAt());
-
-      RoomDto workspace =
-          rooms.stream().filter(room -> workspace1Id.equals(room.getId())).findAny().orElseThrow();
-      assertEquals(RoomTypeDto.WORKSPACE, workspace.getType());
-      assertNotNull(workspace.getMembers());
-      assertNull(workspace.getUserSettings());
-      assertEquals(5, workspace.getRank());
-      assertEquals(2, workspace.getChildren().size());
-      assertTrue(
-          workspace.getChildren().stream()
-              .anyMatch(child -> RoomTypeDto.CHANNEL.equals(child.getType())));
-      assertTrue(workspace.getChildren().stream().anyMatch(child -> child.getMembers().isEmpty()));
-      assertTrue(
-          workspace.getChildren().stream().anyMatch(child -> child.getUserSettings().isMuted()));
     }
 
     @Test
@@ -1110,407 +937,6 @@ public class RoomsApiIT {
       }
     }
 
-    @Nested
-    @DisplayName("Insert workspace room tests")
-    class InsertWorkspaceRoomTests {
-
-      @Test
-      @DisplayName(
-          "Given workspace creation fields, inserts first workspace room and returns its data")
-      void insertWorkspaceRoom_firstWorkspaceTestOk() throws Exception {
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-
-        clock.fixTimeAt(executionInstant);
-        MockHttpResponse response;
-        UUID roomId = UUID.fromString("6ef74886-3c81-492e-b6f1-3db4a59240e3");
-        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-          uuid.when(UUID::randomUUID).thenReturn(roomId);
-          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-          uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
-          uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
-          uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
-          response =
-              dispatcher.post(
-                  URL,
-                  getInsertRoomRequestBody(
-                      "testRoom",
-                      "Test room",
-                      RoomTypeDto.WORKSPACE,
-                      List.of(
-                          MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id))),
-                  user1Token);
-        }
-        clock.removeFixTime();
-        assertEquals(201, response.getStatus());
-        RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
-        assertEquals("testRoom", room.getName());
-        assertEquals("Test room", room.getDescription());
-        assertEquals(RoomTypeDto.WORKSPACE, room.getType());
-        assertEquals(3, room.getMembers().size());
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
-        assertTrue(
-            room.getMembers().stream()
-                .filter(member -> user1Id.equals(member.getUserId()))
-                .findAny()
-                .orElseThrow()
-                .isOwner());
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
-        assertEquals(1, room.getRank());
-        assertEquals(executionInstant, room.getCreatedAt().toInstant());
-        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
-        assertNull(room.getPictureUpdatedAt());
-      }
-
-      @Test
-      @DisplayName(
-          "Given workspace creation fields, inserts nth workspace room and returns its data")
-      void insertWorkspaceRoom_nthWorkspaceTestOk() throws Exception {
-        integrationTestUtils.generateAndSaveRoom(
-            Room.create()
-                .id(UUID.randomUUID().toString())
-                .name("workspace1")
-                .description("Workspace one")
-                .type(RoomTypeDto.WORKSPACE),
-            List.of(
-                RoomMemberField.create().id(user1Id).owner(true).rank(10),
-                RoomMemberField.create().id(user2Id).rank(9),
-                RoomMemberField.create().id(user3Id).rank(8)));
-
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        clock.fixTimeAt(executionInstant);
-        MockHttpResponse response;
-        UUID roomId = UUID.fromString("6ef74886-3c81-492e-b6f1-3db4a59240e3");
-        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-          uuid.when(UUID::randomUUID).thenReturn(roomId);
-          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-          uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
-          uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
-          uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
-          response =
-              dispatcher.post(
-                  URL,
-                  getInsertRoomRequestBody(
-                      "testRoom",
-                      "Test room",
-                      RoomTypeDto.WORKSPACE,
-                      List.of(
-                          MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id))),
-                  user1Token);
-        }
-        clock.removeFixTime();
-        assertEquals(201, response.getStatus());
-        RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
-        assertEquals("testRoom", room.getName());
-        assertEquals("Test room", room.getDescription());
-        assertEquals(RoomTypeDto.WORKSPACE, room.getType());
-        assertEquals(3, room.getMembers().size());
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
-        assertTrue(
-            room.getMembers().stream()
-                .filter(member -> user1Id.equals(member.getUserId()))
-                .findAny()
-                .orElseThrow()
-                .isOwner());
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
-        assertEquals(11, room.getRank());
-        assertEquals(executionInstant, room.getCreatedAt().toInstant());
-        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
-        assertNull(room.getPictureUpdatedAt());
-      }
-
-      @Test
-      @DisplayName(
-          "Given creation fields, if there aren't at least two member invitations returns a status"
-              + " code 400")
-      void insertWorkspaceRoom_testErrorRequestWithLessThanTwoMemberInvitations() throws Exception {
-        MockHttpResponse response =
-            dispatcher.post(
-                URL,
-                getInsertRoomRequestBody(
-                    "testRoom",
-                    "Test room",
-                    RoomTypeDto.WORKSPACE,
-                    List.of(MemberDto.create().userId(user2Id))),
-                user1Token);
-
-        assertEquals(400, response.getStatus());
-        assertEquals(0, response.getOutput().length);
-      }
-    }
-
-    @Nested
-    @DisplayName("Insert channel room tests")
-    class InsertChannelRoomTests {
-
-      @Disabled
-      @Test
-      @DisplayName(
-          "Given channel creation fields, inserts first channel room in a workspace and returns its"
-              + " data")
-      void insertChannelRoom_firstChannelTestOk() throws Exception {
-        UUID workspaceId = UUID.randomUUID();
-        integrationTestUtils.generateAndSaveRoom(
-            workspaceId,
-            RoomTypeDto.WORKSPACE,
-            List.of(
-                RoomMemberField.create().id(user1Id).owner(true),
-                RoomMemberField.create().id(user2Id),
-                RoomMemberField.create().id(user3Id)));
-
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-
-        clock.fixTimeAt(executionInstant);
-        MockHttpResponse response;
-        UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
-        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
-        mongooseImMockServer.mockAddRoomMember(
-            roomId.toString(), user1Id.toString(), user2Id.toString(), true);
-        mongooseImMockServer.mockAddRoomMember(
-            roomId.toString(), user1Id.toString(), user3Id.toString(), true);
-        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-          uuid.when(UUID::randomUUID).thenReturn(roomId);
-          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-          uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
-          uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
-          uuid.when(() -> UUID.fromString(workspaceId.toString())).thenReturn(workspaceId);
-          uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
-          response =
-              dispatcher.post(
-                  URL,
-                  objectMapper.writeValueAsString(
-                      RoomCreationFieldsDto.create()
-                          .name("testRoom")
-                          .description("Test room")
-                          .type(RoomTypeDto.CHANNEL)
-                          .parentId(workspaceId)),
-                  user1Token);
-        }
-        clock.removeFixTime();
-        assertEquals(201, response.getStatus());
-        RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
-        assertEquals("testRoom", room.getName());
-        assertEquals("Test room", room.getDescription());
-        assertEquals(RoomTypeDto.CHANNEL, room.getType());
-        assertEquals(3, room.getMembers().size());
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
-        assertTrue(
-            room.getMembers().stream()
-                .filter(member -> user1Id.equals(member.getUserId()))
-                .findAny()
-                .orElseThrow()
-                .isOwner());
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
-        assertEquals(1, room.getRank());
-        assertEquals(workspaceId, room.getParentId());
-        assertEquals(executionInstant, room.getCreatedAt().toInstant());
-        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
-        assertNull(room.getPictureUpdatedAt());
-      }
-
-      @Disabled
-      @Test
-      @DisplayName(
-          "Given channel creation fields, inserts nth channel room in a workspace and returns its"
-              + " data")
-      void insertChannelRoom_nthChannelTestOk() throws Exception {
-        UUID workspaceId = UUID.randomUUID();
-        integrationTestUtils.generateAndSaveRoom(
-            workspaceId,
-            RoomTypeDto.WORKSPACE,
-            List.of(
-                RoomMemberField.create().id(user1Id).owner(true),
-                RoomMemberField.create().id(user2Id),
-                RoomMemberField.create().id(user3Id)));
-
-        integrationTestUtils.generateAndSaveRoom(
-            Room.create()
-                .id(UUID.randomUUID().toString())
-                .name("channel7")
-                .description("Channel seven")
-                .type(RoomTypeDto.CHANNEL)
-                .rank(7)
-                .parentId(workspaceId.toString()),
-            List.of());
-
-        Instant executionInstant = Instant.now().truncatedTo(ChronoUnit.SECONDS);
-        clock.fixTimeAt(executionInstant);
-        MockHttpResponse response;
-        UUID roomId = UUID.fromString("86cc37de-1217-4056-8c95-69997a6bccce");
-        mongooseImMockServer.mockCreateRoom(roomId.toString(), user1Id.toString(), true);
-        mongooseImMockServer.mockAddRoomMember(
-            roomId.toString(), user1Id.toString(), user2Id.toString(), true);
-        mongooseImMockServer.mockAddRoomMember(
-            roomId.toString(), user1Id.toString(), user3Id.toString(), true);
-        try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
-          uuid.when(UUID::randomUUID).thenReturn(roomId);
-          uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
-          uuid.when(() -> UUID.fromString(user2Id.toString())).thenReturn(user2Id);
-          uuid.when(() -> UUID.fromString(user3Id.toString())).thenReturn(user3Id);
-          uuid.when(() -> UUID.fromString(workspaceId.toString())).thenReturn(workspaceId);
-          uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
-          response =
-              dispatcher.post(
-                  URL,
-                  objectMapper.writeValueAsString(
-                      RoomCreationFieldsDto.create()
-                          .name("testRoom")
-                          .description("Test room")
-                          .type(RoomTypeDto.CHANNEL)
-                          .parentId(workspaceId)),
-                  user1Token);
-        }
-        clock.removeFixTime();
-        assertEquals(201, response.getStatus());
-        RoomDto room = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
-        assertEquals("testRoom", room.getName());
-        assertEquals("Test room", room.getDescription());
-        assertEquals(RoomTypeDto.CHANNEL, room.getType());
-        assertEquals(3, room.getMembers().size());
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
-        assertTrue(
-            room.getMembers().stream()
-                .filter(member -> user1Id.equals(member.getUserId()))
-                .findAny()
-                .orElseThrow()
-                .isOwner());
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
-        assertTrue(
-            room.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
-        assertEquals(8, room.getRank());
-        assertEquals(workspaceId, room.getParentId());
-        assertEquals(executionInstant, room.getCreatedAt().toInstant());
-        assertEquals(executionInstant, room.getUpdatedAt().toInstant());
-        assertNull(room.getPictureUpdatedAt());
-      }
-
-      @Test
-      @DisplayName(
-          "Given channel creation fields, if there is at least a member returns a status code 400")
-      void insertChannelRoom_testErrorRequestWithMembers() throws Exception {
-        MockHttpResponse response =
-            dispatcher.post(
-                URL,
-                objectMapper.writeValueAsString(
-                    RoomCreationFieldsDto.create()
-                        .name("testRoom")
-                        .description("Test room")
-                        .type(RoomTypeDto.CHANNEL)
-                        .parentId(UUID.randomUUID())
-                        .members(
-                            List.of(
-                                MemberDto.create().userId(user2Id),
-                                MemberDto.create().userId(user3Id)))),
-                user1Token);
-        assertEquals(400, response.getStatus());
-        assertTrue(response.getContentAsString().isEmpty());
-      }
-
-      @Test
-      @DisplayName(
-          "Given channel creation fields, if there isn't the parent identifier returns a status"
-              + " code 400")
-      void insertChannelRoom_testErrorRequestWithoutParentId() throws Exception {
-        MockHttpResponse response =
-            dispatcher.post(
-                URL,
-                objectMapper.writeValueAsString(
-                    RoomCreationFieldsDto.create()
-                        .name("testRoom")
-                        .description("Test room")
-                        .type(RoomTypeDto.CHANNEL)),
-                user1Token);
-        assertEquals(400, response.getStatus());
-        assertTrue(response.getContentAsString().isEmpty());
-      }
-
-      @Test
-      @DisplayName(
-          "Given channel creation fields, if there isn't the requested workspace room returns a"
-              + " status code 404")
-      void insertChannelRoom_testErrorRequestedWorkspaceNotExists() throws Exception {
-        MockHttpResponse response =
-            dispatcher.post(
-                URL,
-                objectMapper.writeValueAsString(
-                    RoomCreationFieldsDto.create()
-                        .name("testRoom")
-                        .description("Test room")
-                        .type(RoomTypeDto.CHANNEL)
-                        .parentId(UUID.randomUUID())),
-                user1Token);
-        assertEquals(404, response.getStatus());
-        assertTrue(response.getContentAsString().isEmpty());
-      }
-
-      @Test
-      @DisplayName(
-          "Given channel creation fields, if the authenticated user is not the workspace owner"
-              + " returns a status code 403")
-      void insertChannelRoom_testErrorAuthenticatedUserIsNotWorkspaceOwner() throws Exception {
-        UUID workspaceId = UUID.randomUUID();
-        integrationTestUtils.generateAndSaveRoom(
-            workspaceId,
-            RoomTypeDto.WORKSPACE,
-            List.of(
-                RoomMemberField.create().id(user1Id).owner(true),
-                RoomMemberField.create().id(user2Id),
-                RoomMemberField.create().id(user3Id)));
-        MockHttpResponse response =
-            dispatcher.post(
-                URL,
-                objectMapper.writeValueAsString(
-                    RoomCreationFieldsDto.create()
-                        .name("testRoom")
-                        .description("Test room")
-                        .type(RoomTypeDto.CHANNEL)
-                        .parentId(workspaceId)),
-                user3Token);
-        assertEquals(403, response.getStatus());
-        assertTrue(response.getContentAsString().isEmpty());
-      }
-
-      @Test
-      @DisplayName(
-          "Given channel creation fields, if the parent isn't a workspace returns a status code"
-              + " 400")
-      void insertChannelRoom_testErrorParentIsNotAWorkspace() throws Exception {
-        UUID groupId = UUID.randomUUID();
-        integrationTestUtils.generateAndSaveRoom(
-            groupId,
-            RoomTypeDto.GROUP,
-            List.of(
-                RoomMemberField.create().id(user1Id).owner(true),
-                RoomMemberField.create().id(user2Id),
-                RoomMemberField.create().id(user3Id)));
-        MockHttpResponse response =
-            dispatcher.post(
-                URL,
-                objectMapper.writeValueAsString(
-                    RoomCreationFieldsDto.create()
-                        .name("testRoom")
-                        .description("Test room")
-                        .type(RoomTypeDto.CHANNEL)
-                        .parentId(groupId)),
-                user1Token);
-        assertEquals(400, response.getStatus());
-        assertTrue(response.getContentAsString().isEmpty());
-      }
-    }
-
     @Test
     @DisplayName("Given creation fields, if there isn't name field returns a status code 400")
     void insertRoom_testErrorRequestWithoutName() throws Exception {
@@ -1678,126 +1104,6 @@ public class RoomsApiIT {
       assertNotNull(room.getUserSettings());
       assertTrue(room.getUserSettings().isMuted());
       assertEquals(OffsetDateTime.parse("2022-01-01T00:00:00Z"), room.getPictureUpdatedAt());
-    }
-
-    @Test
-    @DisplayName(
-        "Given a workspace room identifier, correctly returns the room information with members,"
-            + " user settings and channels")
-    void getWorkspaceRoom_testOk() throws Exception {
-      UUID workspaceId = UUID.randomUUID();
-      UUID channel1Id = UUID.randomUUID();
-      UUID channel2Id = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(5),
-              RoomMemberField.create().id(user2Id).owner(false).rank(2),
-              RoomMemberField.create().id(user3Id).owner(false).rank(2)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel1Id.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel1")
-              .description("Channel one")
-              .parentId(workspaceId.toString())
-              .rank(2),
-          List.of(
-              RoomMemberField.create().id(user1Id).muted(true),
-              RoomMemberField.create().id(user3Id).muted(true)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel2Id.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel2")
-              .description("Channel two")
-              .parentId(workspaceId.toString())
-              .rank(1),
-          List.of(RoomMemberField.create().id(user2Id).muted(true)));
-
-      MockHttpResponse response = dispatcher.get(url(workspaceId), user1Token);
-      assertEquals(200, response.getStatus());
-      RoomDto workspace = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
-
-      assertEquals(workspaceId, workspace.getId());
-      assertEquals(RoomTypeDto.WORKSPACE, workspace.getType());
-      assertEquals(5, workspace.getRank());
-
-      assertNotNull(workspace.getMembers());
-      assertEquals(3, workspace.getMembers().size());
-      assertTrue(
-          workspace.getMembers().stream().anyMatch(member -> user1Id.equals(member.getUserId())));
-      assertTrue(
-          workspace.getMembers().stream().anyMatch(member -> user2Id.equals(member.getUserId())));
-      assertTrue(
-          workspace.getMembers().stream().anyMatch(member -> user3Id.equals(member.getUserId())));
-
-      assertNull(workspace.getUserSettings());
-      assertNotNull(workspace.getChildren());
-      assertTrue(
-          workspace.getChildren().stream()
-              .anyMatch(child -> RoomTypeDto.CHANNEL.equals(child.getType())));
-      assertTrue(
-          workspace.getChildren().stream()
-              .anyMatch(child -> workspaceId.equals(child.getParentId())));
-      Optional<RoomDto> channel1 =
-          workspace.getChildren().stream()
-              .filter(child -> channel1Id.equals(child.getId()))
-              .findAny();
-      assertTrue(channel1.isPresent());
-      assertEquals(channel1Id, channel1.get().getId());
-      assertEquals("channel1", channel1.get().getName());
-      assertEquals(2, channel1.get().getRank());
-
-      Optional<RoomDto> channel2 =
-          workspace.getChildren().stream()
-              .filter(child -> channel2Id.equals(child.getId()))
-              .findAny();
-      assertTrue(channel2.isPresent());
-      assertEquals(channel2Id, channel2.get().getId());
-      assertEquals("channel2", channel2.get().getName());
-      assertEquals(1, channel2.get().getRank());
-    }
-
-    @Test
-    @DisplayName("Returns the required channel room with all members and room user settings")
-    void getRoomById_channelTestOk() throws Exception {
-      UUID workspaceId = UUID.randomUUID();
-      UUID channelId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(5),
-              RoomMemberField.create().id(user2Id).owner(false).rank(2),
-              RoomMemberField.create().id(user3Id).owner(false).rank(2)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channelId.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel1")
-              .description("Channel one")
-              .parentId(workspaceId.toString())
-              .rank(8),
-          List.of(
-              RoomMemberField.create().id(user1Id).muted(true),
-              RoomMemberField.create().id(user3Id).muted(true)));
-
-      MockHttpResponse response = dispatcher.get(url(channelId), user1Token);
-      assertEquals(200, response.getStatus());
-
-      RoomDto channel = objectMapper.readValue(response.getContentAsString(), RoomDto.class);
-      assertEquals(channelId, channel.getId());
-      assertEquals(8, channel.getRank());
-      assertEquals(3, channel.getMembers().size());
-      assertTrue(
-          channel.getMembers().stream().anyMatch(member -> member.getUserId().equals(user1Id)));
-      assertTrue(
-          channel.getMembers().stream().anyMatch(member -> member.getUserId().equals(user2Id)));
-      assertTrue(
-          channel.getMembers().stream().anyMatch(member -> member.getUserId().equals(user3Id)));
-      assertTrue(channel.getUserSettings().isMuted());
     }
 
     @Test
@@ -2222,7 +1528,9 @@ public class RoomsApiIT {
               RoomMemberField.create().id(user1Id).owner(true),
               RoomMemberField.create().id(user2Id).muted(true),
               RoomMemberField.create().id(user3Id)));
-      mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -2252,7 +1560,9 @@ public class RoomsApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)));
       integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
-      mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -2285,7 +1595,9 @@ public class RoomsApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)));
       integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
-      mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
 
       meetingTestUtils.insertVideoServerMeeting(
           meetingId.toString(),
@@ -2369,7 +1681,9 @@ public class RoomsApiIT {
                 .roomId(roomId.toString())
                 .originalSize(0L)
                 .mimeType("-"));
-        mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
 
         storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
         storageMockServer.mockBulkDelete(
@@ -2418,7 +1732,9 @@ public class RoomsApiIT {
                 .roomId(roomId.toString())
                 .originalSize(0L)
                 .mimeType("-"));
-        mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
         storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
         storageMockServer.mockBulkDelete(
             List.of(file1Id, file2Id), user1Id.toString(), List.of(file1Id), true);
@@ -2467,7 +1783,9 @@ public class RoomsApiIT {
                 .roomId(roomId.toString())
                 .originalSize(0L)
                 .mimeType("-"));
-        mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
         storageMockServer.mockNSLookupUrl(user1Id.toString(), true);
         storageMockServer.mockBulkDelete(
             List.of(file1Id, file2Id), user1Id.toString(), null, false);
@@ -2487,97 +1805,6 @@ public class RoomsApiIT {
         assertTrue(snoopy.isPresent());
         assertNull(snoopy.get().getRoomId());
       }
-    }
-
-    @Test
-    @DisplayName("Given a workspace identifier, correctly delete the workspace without channel")
-    void deleteRoom_workspaceWithoutChannelTestOk() throws Exception {
-      UUID roomId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          roomId,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(10),
-              RoomMemberField.create().id(user2Id).muted(true).rank(9),
-              RoomMemberField.create().id(user3Id).rank(8)));
-
-      MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
-      assertEquals(204, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      assertTrue(integrationTestUtils.getRoomById(roomId).isEmpty());
-      assertTrue(roomUserSettingsRepository.getByRoomId(roomId.toString()).isEmpty());
-    }
-
-    @Test
-    @DisplayName("Given a workspace room identifier, correctly delete the workspace with channel")
-    void deleteRoom_workspaceWithChannelTestOk() throws Exception {
-      UUID workspaceId = UUID.randomUUID();
-      UUID channel1Id = UUID.randomUUID();
-      UUID channel2Id = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(10),
-              RoomMemberField.create().id(user2Id).muted(true).rank(9),
-              RoomMemberField.create().id(user3Id).rank(8)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel1Id.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel1")
-              .description("Channel one")
-              .parentId(workspaceId.toString())
-              .rank(1),
-          List.of());
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel2Id.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel2")
-              .description("Channel two")
-              .parentId(workspaceId.toString())
-              .rank(2),
-          List.of());
-      mongooseImMockServer.mockDeleteRoom(channel1Id.toString(), true);
-      mongooseImMockServer.mockDeleteRoom(channel2Id.toString(), true);
-
-      MockHttpResponse response = dispatcher.delete(url(workspaceId), user1Token);
-      assertEquals(204, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      assertTrue(integrationTestUtils.getRoomById(workspaceId).isEmpty());
-      assertTrue(roomUserSettingsRepository.getByRoomId(workspaceId.toString()).isEmpty());
-    }
-
-    @Test
-    @DisplayName("Given a channel room identifier, correctly delete the room")
-    void deleteRoom_ChannelTestOk() throws Exception {
-      UUID workspaceId = UUID.randomUUID();
-      UUID channelId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(10),
-              RoomMemberField.create().id(user2Id).muted(true).rank(9),
-              RoomMemberField.create().id(user3Id).rank(8)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channelId.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("testChannel")
-              .description("Channel test")
-              .parentId(workspaceId.toString())
-              .rank(1),
-          List.of());
-      mongooseImMockServer.mockDeleteRoom(channelId.toString(), true);
-      MockHttpResponse response = dispatcher.delete(url(channelId), user1Token);
-      assertEquals(204, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      assertTrue(integrationTestUtils.getRoomById(channelId).isEmpty());
-      assertTrue(roomUserSettingsRepository.getByRoomId(channelId.toString()).isEmpty());
-      assertTrue(
-          integrationTestUtils.getRoomById(workspaceId).orElseThrow().getChildren().isEmpty());
     }
 
     @Test
@@ -3087,54 +2314,6 @@ public class RoomsApiIT {
     }
 
     @Test
-    @DisplayName("Correctly mute a channel")
-    void muteRoom_testOkChannel() throws Exception {
-      UUID workspaceId = UUID.randomUUID();
-      UUID channelId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(1),
-              RoomMemberField.create().id(user2Id).rank(2),
-              RoomMemberField.create().id(user3Id).rank(3)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channelId.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel")
-              .description("Channel test")
-              .parentId(workspaceId.toString())
-              .rank(1),
-          List.of());
-
-      MockHttpResponse response = dispatcher.put(url(channelId), null, user1Token);
-      assertEquals(204, response.getStatus());
-      Optional<RoomUserSettings> roomUserSettings =
-          integrationTestUtils.getRoomUserSettings(channelId, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertNotNull(roomUserSettings.get().getMutedUntil());
-    }
-
-    @Test
-    @DisplayName("If the room is a workspace, it responds with status code 400")
-    void muteRoom_errorRoomIsWorkspace() throws Exception {
-      UUID workspaceId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(1),
-              RoomMemberField.create().id(user2Id).rank(2),
-              RoomMemberField.create().id(user3Id).muted(true).rank(3)));
-
-      MockHttpResponse response = dispatcher.put(url(workspaceId), null, user1Token);
-
-      assertEquals(400, response.getStatus());
-      assertTrue(response.getContentAsString().isEmpty());
-    }
-
-    @Test
     @DisplayName("If the authenticated user isn't a room member, it throws a 'forbidden' exception")
     void muteRoom_testAuthenticatedUserIsNotARoomMember() throws Exception {
       UUID roomId = UUID.randomUUID();
@@ -3210,54 +2389,6 @@ public class RoomsApiIT {
           integrationTestUtils.getRoomUserSettings(roomId, user3Id);
       assertTrue(roomUserSettings.isPresent());
       assertNull(roomUserSettings.get().getMutedUntil());
-    }
-
-    @Test
-    @DisplayName("Correctly unmute a channel")
-    void unmuteRoom_testOkChannel() throws Exception {
-      UUID workspaceId = UUID.randomUUID();
-      UUID channelId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).muted(true).rank(1),
-              RoomMemberField.create().id(user2Id).rank(2),
-              RoomMemberField.create().id(user3Id).muted(true).rank(3)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channelId.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel")
-              .description("Channel test")
-              .parentId(workspaceId.toString())
-              .rank(1),
-          List.of(RoomMemberField.create().id(user1Id).muted(true)));
-
-      MockHttpResponse response = dispatcher.delete(url(channelId), user1Token);
-      assertEquals(204, response.getStatus());
-      Optional<RoomUserSettings> roomUserSettings =
-          integrationTestUtils.getRoomUserSettings(channelId, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertNull(roomUserSettings.get().getMutedUntil());
-    }
-
-    @Test
-    @DisplayName("If the room is a workspace, it responds with status code 400")
-    void unmuteRoom_errorRoomIsWorkspace() throws Exception {
-      UUID workspaceId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).muted(true).rank(1),
-              RoomMemberField.create().id(user2Id).rank(2),
-              RoomMemberField.create().id(user3Id).muted(true).rank(3)));
-
-      MockHttpResponse response = dispatcher.delete(url(workspaceId), user1Token);
-
-      assertEquals(400, response.getStatus());
-      assertTrue(response.getContentAsString().isEmpty());
     }
 
     @Test
@@ -3458,98 +2589,6 @@ public class RoomsApiIT {
           roomId, RoomTypeDto.ONE_TO_ONE, "room", List.of(user1Id, user2Id));
       MockHttpResponse response =
           dispatcher.post(url(roomId), getInsertRoomMemberRequestBody(user4Id), user1Token);
-
-      assertEquals(400, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-    }
-
-    @Test
-    @DisplayName("Given a workspace room identifier, correctly insert the new room members")
-    void insertRoomMembers_workspaceTestOk() throws Exception {
-      UUID workspaceId = UUID.randomUUID();
-      UUID channel1Id = UUID.randomUUID();
-      UUID channel2Id = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(5),
-              RoomMemberField.create().id(user2Id).owner(false).rank(2),
-              RoomMemberField.create().id(user3Id).owner(false).rank(2)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel1Id.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel1")
-              .description("Channel one")
-              .parentId(workspaceId.toString())
-              .rank(2),
-          List.of());
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel2Id.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel2")
-              .description("Channel two")
-              .parentId(workspaceId.toString())
-              .rank(1),
-          List.of());
-      integrationTestUtils.generateAndSaveRoom(
-          UUID.randomUUID(),
-          RoomTypeDto.WORKSPACE,
-          List.of(RoomMemberField.create().id(user4Id).rank(5)));
-      mongooseImMockServer.mockAddRoomMember(
-          workspaceId.toString(), user1Id.toString(), user4Id.toString(), true);
-      List<MemberToInsertDto> requestMembers =
-          List.of(MemberToInsertDto.create().userId(user4Id).historyCleared(false));
-      MockHttpResponse response =
-          dispatcher.post(
-              url(workspaceId), getInsertRoomMemberRequestBody(requestMembers), user1Token);
-
-      assertEquals(201, response.getStatus());
-      List<MemberInsertedDto> members =
-          objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
-      assertEquals(1, members.size());
-      MemberInsertedDto memberInsertedDto = members.get(0);
-      assertEquals(user4Id, memberInsertedDto.getUserId());
-      assertNull(memberInsertedDto.getClearedAt());
-
-      Optional<Room> room = integrationTestUtils.getRoomById(workspaceId);
-      assertTrue(room.isPresent());
-      assertTrue(
-          room.get().getSubscriptions().stream()
-              .anyMatch(s -> user4Id.toString().equals(s.getUserId())));
-
-      Optional<RoomUserSettings> userSettings =
-          roomUserSettingsRepository.getByRoomIdAndUserId(
-              workspaceId.toString(), user4Id.toString());
-      assertTrue(userSettings.isPresent());
-      assertEquals(6, userSettings.get().getRank());
-    }
-
-    @Test
-    @DisplayName("Given a room identifier, if the room is a channel returns status code 400")
-    void insertRoomMembers_channelTest() throws Exception {
-      UUID workspaceId = UUID.randomUUID();
-      UUID channelId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(4),
-              RoomMemberField.create().id(user2Id).rank(7)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channelId.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel")
-              .description("Channel test")
-              .parentId(workspaceId.toString())
-              .rank(2),
-          List.of());
-
-      MockHttpResponse response =
-          dispatcher.post(url(channelId), getInsertRoomMemberRequestBody(user4Id), user1Token);
 
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
@@ -4028,48 +3067,6 @@ public class RoomsApiIT {
 
     @Test
     @DisplayName(
-        "Given a workspace room identifier and a member identifier, correctly remove the user from"
-            + " room members")
-    void deleteRoomMember_workspaceTestOk() throws Exception {
-      List.of(1, 2, 4, 5)
-          .forEach(
-              index ->
-                  integrationTestUtils.generateAndSaveRoom(
-                      Room.create()
-                          .id(UUID.randomUUID().toString())
-                          .name("workspace")
-                          .description("Workspace")
-                          .type(RoomTypeDto.WORKSPACE),
-                      List.of(RoomMemberField.create().id(user2Id).owner(true).rank(index))));
-
-      UUID roomId = UUID.randomUUID();
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(roomId.toString())
-              .name("workspace")
-              .description("Workspace")
-              .type(RoomTypeDto.WORKSPACE),
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(1),
-              RoomMemberField.create().id(user2Id).owner(true).rank(3),
-              RoomMemberField.create().id(user3Id).owner(true).rank(5)));
-
-      MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
-
-      assertEquals(204, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-      Optional<Room> room = integrationTestUtils.getRoomById(roomId);
-      assertTrue(room.isPresent());
-      assertTrue(
-          room.get().getSubscriptions().stream()
-              .filter(s -> s.getUserId().equals(user2Id.toString()))
-              .findAny()
-              .isEmpty());
-      assertEquals(4, roomUserSettingsRepository.getByUserId(user2Id.toString()).size());
-    }
-
-    @Test
-    @DisplayName(
         "Given a room identifier and a member identifier, if there isn't an authenticated user"
             + " returns status code 401")
     void deleteRoomMember_testErrorUnauthenticatedUser() throws Exception {
@@ -4249,35 +3246,6 @@ public class RoomsApiIT {
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }
-
-    @Test
-    @DisplayName(
-        "Given a room identifier and a member identifier, if the room is a channel then it returns"
-            + " status code 400")
-    void updateToOwner_testErrorRoomIsChannel() throws Exception {
-      UUID workspaceId = UUID.randomUUID();
-      UUID channelId = UUID.randomUUID();
-
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(1),
-              RoomMemberField.create().id(user2Id).owner(false).rank(2),
-              RoomMemberField.create().id(user3Id).owner(false).rank(3)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channelId.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel")
-              .description("Channel test")
-              .rank(1)
-              .parentId(workspaceId.toString()),
-          List.of());
-      MockHttpResponse response = dispatcher.put(url(channelId, user2Id), null, user1Token);
-      assertEquals(400, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-    }
   }
 
   @Nested
@@ -4371,35 +3339,6 @@ public class RoomsApiIT {
               RoomMemberField.create().id(user1Id).owner(true),
               RoomMemberField.create().id(user2Id).owner(true)));
       MockHttpResponse response = dispatcher.delete(url(roomId, user2Id), user1Token);
-      assertEquals(400, response.getStatus());
-      assertEquals(0, response.getOutput().length);
-    }
-
-    @Test
-    @DisplayName(
-        "Given a room identifier and a member identifier, if the room is a channel then it returns"
-            + " status code 400")
-    void deleteOwner_testErrorRoomIsChannel() throws Exception {
-      UUID workspaceId = UUID.randomUUID();
-      UUID channelId = UUID.randomUUID();
-
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(
-              RoomMemberField.create().id(user1Id).owner(true).rank(1),
-              RoomMemberField.create().id(user2Id).owner(false).rank(2),
-              RoomMemberField.create().id(user3Id).owner(false).rank(3)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channelId.toString())
-              .type(RoomTypeDto.CHANNEL)
-              .name("channel")
-              .description("Channel test")
-              .rank(1)
-              .parentId(workspaceId.toString()),
-          List.of());
-      MockHttpResponse response = dispatcher.delete(url(channelId, user2Id), user1Token);
       assertEquals(400, response.getStatus());
       assertEquals(0, response.getOutput().length);
     }
@@ -4911,446 +3850,6 @@ public class RoomsApiIT {
 
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
-    }
-  }
-
-  @Nested
-  @DisplayName("Update workspaces rank tests")
-  class UpdateWorkspacesRankTests {
-
-    private static final String URL = "/rooms/workspaces/rank";
-
-    @Test
-    @DisplayName(
-        "Given a pair list of room id and rank, correctly update workspace rank for the"
-            + " authenticated user")
-    void updateWorkspacesRank_testOk() throws Exception {
-      UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
-      UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
-      UUID ws3Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
-
-      integrationTestUtils.generateAndSaveRoom(
-          ws1Id, RoomTypeDto.WORKSPACE, List.of(RoomMemberField.create().id(user1Id).rank(1)));
-      integrationTestUtils.generateAndSaveRoom(
-          ws2Id, RoomTypeDto.WORKSPACE, List.of(RoomMemberField.create().id(user1Id).rank(9)));
-      integrationTestUtils.generateAndSaveRoom(
-          ws3Id, RoomTypeDto.WORKSPACE, List.of(RoomMemberField.create().id(user1Id).rank(5)));
-
-      MockHttpResponse response =
-          dispatcher.put(
-              URL,
-              objectMapper.writeValueAsString(
-                  List.of(
-                      RoomRankDto.create().roomId(ws1Id).rank(3),
-                      RoomRankDto.create().roomId(ws2Id).rank(2),
-                      RoomRankDto.create().roomId(ws3Id).rank(1))),
-              user1Token);
-      assertEquals(204, response.getStatus());
-      assertTrue(response.getContentAsString().isEmpty());
-
-      Optional<RoomUserSettings> roomUserSettings =
-          integrationTestUtils.getRoomUserSettings(ws1Id, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertEquals(3, roomUserSettings.get().getRank());
-      roomUserSettings = integrationTestUtils.getRoomUserSettings(ws2Id, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertEquals(2, roomUserSettings.get().getRank());
-      roomUserSettings = integrationTestUtils.getRoomUserSettings(ws3Id, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertEquals(1, roomUserSettings.get().getRank());
-    }
-
-    @Test
-    @DisplayName(
-        "Given a pair list of room id and rank, if there authenticated user workspaces are not"
-            + " compatible then return a status code 400")
-    void updateWorkspacesRank_testWorkspaceNotCompatibleWithList() throws Exception {
-      UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
-      UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
-      UUID ws3Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
-      UUID ws4Id = UUID.fromString("deb5b4be-e2cf-487e-b089-6b0bc4dd213a");
-      integrationTestUtils.generateAndSaveRoom(
-          ws1Id, RoomTypeDto.WORKSPACE, List.of(RoomMemberField.create().id(user1Id).rank(5)));
-      integrationTestUtils.generateAndSaveRoom(
-          ws2Id, RoomTypeDto.WORKSPACE, List.of(RoomMemberField.create().id(user1Id).rank(8)));
-      integrationTestUtils.generateAndSaveRoom(
-          ws3Id, RoomTypeDto.WORKSPACE, List.of(RoomMemberField.create().id(user1Id).rank(13)));
-
-      MockHttpResponse response =
-          dispatcher.put(
-              URL,
-              objectMapper.writeValueAsString(
-                  List.of(
-                      RoomRankDto.create().roomId(ws4Id).rank(3),
-                      RoomRankDto.create().roomId(ws2Id).rank(2),
-                      RoomRankDto.create().roomId(ws1Id).rank(1))),
-              user1Token);
-
-      assertEquals(400, response.getStatus());
-      assertTrue(response.getContentAsString().isEmpty());
-      Optional<RoomUserSettings> roomUserSettings =
-          integrationTestUtils.getRoomUserSettings(ws1Id, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertEquals(5, roomUserSettings.get().getRank());
-      roomUserSettings = integrationTestUtils.getRoomUserSettings(ws2Id, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertEquals(8, roomUserSettings.get().getRank());
-      roomUserSettings = integrationTestUtils.getRoomUserSettings(ws3Id, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertEquals(13, roomUserSettings.get().getRank());
-    }
-
-    @Test
-    @DisplayName(
-        "Given a pair list of room id and rank, if there authenticated user workspaces number is"
-            + " different then return a status code 400")
-    void updateWorkspacesRank_testWorkspaceNumberDifferentThenList() throws Exception {
-      UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
-      UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
-      UUID ws3Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
-      integrationTestUtils.generateAndSaveRoom(
-          ws1Id, RoomTypeDto.WORKSPACE, List.of(RoomMemberField.create().id(user1Id).rank(5)));
-      integrationTestUtils.generateAndSaveRoom(
-          ws2Id, RoomTypeDto.WORKSPACE, List.of(RoomMemberField.create().id(user1Id).rank(8)));
-      integrationTestUtils.generateAndSaveRoom(
-          ws3Id, RoomTypeDto.WORKSPACE, List.of(RoomMemberField.create().id(user1Id).rank(13)));
-
-      MockHttpResponse response =
-          dispatcher.put(
-              URL,
-              objectMapper.writeValueAsString(
-                  List.of(
-                      RoomRankDto.create().roomId(ws2Id).rank(2),
-                      RoomRankDto.create().roomId(ws1Id).rank(1))),
-              user1Token);
-
-      assertEquals(400, response.getStatus());
-      assertTrue(response.getContentAsString().isEmpty());
-      Optional<RoomUserSettings> roomUserSettings =
-          integrationTestUtils.getRoomUserSettings(ws1Id, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertEquals(5, roomUserSettings.get().getRank());
-      roomUserSettings = integrationTestUtils.getRoomUserSettings(ws2Id, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertEquals(8, roomUserSettings.get().getRank());
-      roomUserSettings = integrationTestUtils.getRoomUserSettings(ws3Id, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertEquals(13, roomUserSettings.get().getRank());
-    }
-
-    @Test
-    @DisplayName(
-        "Given a pair list of room id and rank, if its ranks are not progressive number"
-            + " sequencethere then return a status code 400")
-    void updateWorkspacesRank_testRankListNotProgressiveNumberSequence() throws Exception {
-      UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
-      UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
-      UUID ws3Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
-      integrationTestUtils.generateAndSaveRoom(
-          ws1Id, RoomTypeDto.WORKSPACE, List.of(RoomMemberField.create().id(user1Id).rank(5)));
-      integrationTestUtils.generateAndSaveRoom(
-          ws2Id, RoomTypeDto.WORKSPACE, List.of(RoomMemberField.create().id(user1Id).rank(8)));
-      integrationTestUtils.generateAndSaveRoom(
-          ws3Id, RoomTypeDto.WORKSPACE, List.of(RoomMemberField.create().id(user1Id).rank(13)));
-
-      MockHttpResponse response =
-          dispatcher.put(
-              URL,
-              objectMapper.writeValueAsString(
-                  List.of(
-                      RoomRankDto.create().roomId(ws1Id).rank(7),
-                      RoomRankDto.create().roomId(ws2Id).rank(9),
-                      RoomRankDto.create().roomId(ws3Id).rank(1))),
-              user1Token);
-
-      assertEquals(400, response.getStatus());
-      assertTrue(response.getContentAsString().isEmpty());
-      Optional<RoomUserSettings> roomUserSettings =
-          integrationTestUtils.getRoomUserSettings(ws1Id, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertEquals(5, roomUserSettings.get().getRank());
-      roomUserSettings = integrationTestUtils.getRoomUserSettings(ws2Id, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertEquals(8, roomUserSettings.get().getRank());
-      roomUserSettings = integrationTestUtils.getRoomUserSettings(ws3Id, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertEquals(13, roomUserSettings.get().getRank());
-    }
-
-    @Test
-    @DisplayName(
-        "Given a pair list of room id and rank, if it has duplicated room identifiers "
-            + "then return a status code 400")
-    void updateWorkspacesRank_testRankListHasDuplicatedWorkspaceId() throws Exception {
-      UUID ws1Id = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
-      UUID ws2Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
-      integrationTestUtils.generateAndSaveRoom(
-          ws1Id, RoomTypeDto.WORKSPACE, List.of(RoomMemberField.create().id(user1Id).rank(5)));
-      integrationTestUtils.generateAndSaveRoom(
-          ws2Id, RoomTypeDto.WORKSPACE, List.of(RoomMemberField.create().id(user1Id).rank(8)));
-
-      MockHttpResponse response =
-          dispatcher.put(
-              URL,
-              objectMapper.writeValueAsString(
-                  List.of(
-                      RoomRankDto.create().roomId(ws2Id).rank(3),
-                      RoomRankDto.create().roomId(ws2Id).rank(2),
-                      RoomRankDto.create().roomId(ws1Id).rank(1))),
-              user1Token);
-
-      assertEquals(400, response.getStatus());
-      assertTrue(response.getContentAsString().isEmpty());
-      Optional<RoomUserSettings> roomUserSettings =
-          integrationTestUtils.getRoomUserSettings(ws1Id, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertEquals(5, roomUserSettings.get().getRank());
-      roomUserSettings = integrationTestUtils.getRoomUserSettings(ws2Id, user1Id);
-      assertTrue(roomUserSettings.isPresent());
-      assertEquals(8, roomUserSettings.get().getRank());
-    }
-  }
-
-  @Nested
-  @DisplayName("Updates channels rank tests")
-  class UpdateChannelsRankTests {
-
-    private String url(UUID workspaceId) {
-      return String.format("/rooms/workspaces/%s/channels/rank", workspaceId);
-    }
-
-    @Test
-    @DisplayName(
-        "Given a pair list of room id and rank, correctly update channels rank for workspace")
-    void updateChannelsRank_testOk() throws Exception {
-      UUID workspaceId = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
-      UUID channel1Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
-      UUID channel2Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
-      UUID channel3Id = UUID.fromString("85184f58-a5a7-4fc5-a631-d2929e524a0f");
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(RoomMemberField.create().id(user1Id).owner(true).rank(1)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel1Id.toString())
-              .name("channel1")
-              .description("Channel one")
-              .type(RoomTypeDto.CHANNEL)
-              .rank(11)
-              .parentId(workspaceId.toString()),
-          List.of());
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel2Id.toString())
-              .name("channel2")
-              .description("Channel two")
-              .type(RoomTypeDto.CHANNEL)
-              .rank(7)
-              .parentId(workspaceId.toString()),
-          List.of());
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel3Id.toString())
-              .name("channel3")
-              .description("Channel three")
-              .type(RoomTypeDto.CHANNEL)
-              .rank(9)
-              .parentId(workspaceId.toString()),
-          List.of());
-
-      MockHttpResponse response =
-          dispatcher.put(
-              url(workspaceId),
-              objectMapper.writeValueAsString(
-                  List.of(
-                      RoomRankDto.create().roomId(channel1Id).rank(1),
-                      RoomRankDto.create().roomId(channel2Id).rank(2),
-                      RoomRankDto.create().roomId(channel3Id).rank(3))),
-              user1Token);
-      assertEquals(204, response.getStatus());
-      assertTrue(response.getContentAsString().isEmpty());
-      Room workspace = integrationTestUtils.getRoomById(workspaceId).orElseThrow();
-      assertEquals(3, workspace.getChildren().size());
-      assertEquals(
-          1,
-          workspace.getChildren().stream()
-              .filter(child -> channel1Id.toString().equals(child.getId()))
-              .findAny()
-              .orElseThrow()
-              .getRank());
-      assertEquals(
-          2,
-          workspace.getChildren().stream()
-              .filter(child -> channel2Id.toString().equals(child.getId()))
-              .findAny()
-              .orElseThrow()
-              .getRank());
-      assertEquals(
-          3,
-          workspace.getChildren().stream()
-              .filter(child -> channel3Id.toString().equals(child.getId()))
-              .findAny()
-              .orElseThrow()
-              .getRank());
-    }
-
-    @Test
-    @DisplayName(
-        "Given a pair list of room id and rank, if there are rooms not compatible with the"
-            + " workspace channels then return a status code 400")
-    void updateChannelsRank_testChannelNotCompatibleWithList() throws Exception {
-      UUID workspaceId = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
-      UUID channel1Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
-      UUID channel2Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
-      UUID channel3Id = UUID.fromString("85184f58-a5a7-4fc5-a631-d2929e524a0f");
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(RoomMemberField.create().id(user1Id).owner(true).rank(1)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel1Id.toString())
-              .name("channel1")
-              .description("Channel one")
-              .type(RoomTypeDto.CHANNEL)
-              .rank(11)
-              .parentId(workspaceId.toString()),
-          List.of());
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel2Id.toString())
-              .name("channel2")
-              .description("Channel two")
-              .type(RoomTypeDto.CHANNEL)
-              .rank(7)
-              .parentId(workspaceId.toString()),
-          List.of());
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel3Id.toString())
-              .name("channel3")
-              .description("Channel three")
-              .type(RoomTypeDto.CHANNEL)
-              .rank(9)
-              .parentId(workspaceId.toString()),
-          List.of());
-
-      MockHttpResponse response =
-          dispatcher.put(
-              url(workspaceId),
-              objectMapper.writeValueAsString(
-                  List.of(
-                      RoomRankDto.create().roomId(channel1Id).rank(1),
-                      RoomRankDto.create().roomId(channel2Id).rank(2),
-                      RoomRankDto.create().roomId(UUID.randomUUID()).rank(3))),
-              user1Token);
-      assertEquals(400, response.getStatus());
-      assertTrue(response.getContentAsString().isEmpty());
-      Room workspace = integrationTestUtils.getRoomById(workspaceId).orElseThrow();
-      assertEquals(3, workspace.getChildren().size());
-      assertEquals(
-          11,
-          workspace.getChildren().stream()
-              .filter(child -> channel1Id.toString().equals(child.getId()))
-              .findAny()
-              .orElseThrow()
-              .getRank());
-      assertEquals(
-          7,
-          workspace.getChildren().stream()
-              .filter(child -> channel2Id.toString().equals(child.getId()))
-              .findAny()
-              .orElseThrow()
-              .getRank());
-      assertEquals(
-          9,
-          workspace.getChildren().stream()
-              .filter(child -> channel3Id.toString().equals(child.getId()))
-              .findAny()
-              .orElseThrow()
-              .getRank());
-    }
-
-    @Test
-    @DisplayName(
-        "Given a pair list of room id and rank, if the workspace channels number is different "
-            + "then return a status code 400")
-    void updateChannelsRank_testWorkspaceChannelNumberDifferentThenList() throws Exception {
-      UUID workspaceId = UUID.fromString("471276a4-33f5-44c5-90b9-dd198c9330ae");
-      UUID channel1Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
-      UUID channel2Id = UUID.fromString("bff64789-8f16-4b6d-95fa-69505d63cbd4");
-      integrationTestUtils.generateAndSaveRoom(
-          workspaceId,
-          RoomTypeDto.WORKSPACE,
-          List.of(RoomMemberField.create().id(user1Id).owner(true).rank(1)));
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel1Id.toString())
-              .name("channel1")
-              .description("Channel one")
-              .type(RoomTypeDto.CHANNEL)
-              .rank(11)
-              .parentId(workspaceId.toString()),
-          List.of());
-      integrationTestUtils.generateAndSaveRoom(
-          Room.create()
-              .id(channel2Id.toString())
-              .name("channel2")
-              .description("Channel two")
-              .type(RoomTypeDto.CHANNEL)
-              .rank(7)
-              .parentId(workspaceId.toString()),
-          List.of());
-
-      MockHttpResponse response =
-          dispatcher.put(
-              url(workspaceId),
-              objectMapper.writeValueAsString(
-                  List.of(
-                      RoomRankDto.create().roomId(channel1Id).rank(1),
-                      RoomRankDto.create().roomId(channel2Id).rank(2),
-                      RoomRankDto.create().roomId(UUID.randomUUID()).rank(3))),
-              user1Token);
-      assertEquals(400, response.getStatus());
-      assertTrue(response.getContentAsString().isEmpty());
-    }
-
-    @Test
-    @DisplayName(
-        "Given a pair list of room id and rank, if it has duplicated channels identifiers "
-            + "then return a status code 400")
-    void updateChannelsRank_testRankListHasDuplicatedWorkspaceId() throws Exception {
-      UUID channel1Id = UUID.fromString("51c874de-c262-4261-92dc-719f50a7f750");
-      MockHttpResponse response =
-          dispatcher.put(
-              url(UUID.randomUUID()),
-              objectMapper.writeValueAsString(
-                  List.of(
-                      RoomRankDto.create().roomId(channel1Id).rank(1),
-                      RoomRankDto.create().roomId(channel1Id).rank(2),
-                      RoomRankDto.create().roomId(UUID.randomUUID()).rank(3))),
-              user1Token);
-      assertEquals(400, response.getStatus());
-      assertTrue(response.getContentAsString().isEmpty());
-    }
-
-    @Test
-    @DisplayName(
-        "Given a pair list of room id and rank, if its ranks are not progressive number sequence "
-            + "then return a status code 400")
-    void updateChannelsRank_testRankListNotProgressiveNumberSequence() throws Exception {
-      MockHttpResponse response =
-          dispatcher.put(
-              url(UUID.randomUUID()),
-              objectMapper.writeValueAsString(
-                  List.of(
-                      RoomRankDto.create().roomId(UUID.randomUUID()).rank(1),
-                      RoomRankDto.create().roomId(UUID.randomUUID()).rank(3),
-                      RoomRankDto.create().roomId(UUID.randomUUID()).rank(5))),
-              user1Token);
-      assertEquals(400, response.getStatus());
-      assertTrue(response.getContentAsString().isEmpty());
     }
   }
 

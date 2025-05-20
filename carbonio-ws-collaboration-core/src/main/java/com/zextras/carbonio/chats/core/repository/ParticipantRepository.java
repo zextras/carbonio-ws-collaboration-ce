@@ -16,9 +16,13 @@ public interface ParticipantRepository {
 
   List<Participant> getByMeetingId(String meetingId);
 
+  List<Participant> getHandRaisedByMeetingId(String meetingId);
+
   Participant insert(Participant participant);
 
   Participant update(Participant participant);
 
   boolean remove(Participant participant);
+
+  void clear(String meetingId);
 }

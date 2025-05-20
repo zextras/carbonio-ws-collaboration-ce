@@ -2,6 +2,22 @@
 
 This is the official repository for Carbonio Workstream Collaboration.
 
+## Dev setup
+
+First time install pre-commit and reuse
+
+```shell
+pip install pre-commit
+```
+
+```shell
+pre-commit install
+```
+
+```shell
+pipx install reuse
+```
+
 ## 🔧 How to Build
 
 Build using maven:
@@ -11,47 +27,13 @@ mvn clean install
 ```
 
 ---
-If you also want to generate all artifacts, run
-
-```shell
-mvn clean install -P artifacts
-```
-
----
-If you want to generate only the artifact for a specific distro
-
-```shell
-mvn clean install -P artifacts -D distro=<1>
-```
-
-Where
-
-1. distro value is the distro name (ubuntu or rocky-8)
-
----
-If you want to generate only the artifact for a specific distro and deploy it in
-a test server
-
-```shell
-mvn clean install -P artifacts -D distro=<1> -D deployOn=<2>
-```
-
-Where
-
-1. distro value is the distro name (ubuntu or rocky-8)
-2. deployOn value is the domain name or IP of the server to deploy the artifact
-
-There's also a `noDocker` option which will build artifacts using a local pacur
-instance instead of using the docker image, which is useful for CI pipeline.
-
----
 
 ## 🚀 How to Run
 
 With the generated fat-jar:
 
 ```shell
-java -jar ./boot/target/zextras-ws-collaboration-fatjar.jar
+java -jar ./carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-fatjar.jar
 ```
 
 ## License 📚

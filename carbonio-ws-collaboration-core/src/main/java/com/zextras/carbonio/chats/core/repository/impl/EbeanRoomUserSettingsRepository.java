@@ -9,7 +9,6 @@ import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
 import java.util.Collection;
 import java.util.List;
@@ -81,39 +80,4 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
     db.saveAll(roomUserSettingsList);
   }
 
-  @Override
-  public Optional<Integer> getWorkspaceMaxRank(String userId) {
-    return Optional.ofNullable(
-        db.createQuery(RoomUserSettings.class)
-            .select("max(rank)")
-            .where()
-            .eq("userId", userId)
-            .and()
-            .eq("room.type", RoomTypeDto.WORKSPACE)
-            .findSingleAttribute());
-  }
-
-  @Override
-  public Map<String, RoomUserSettings> getWorkspaceMaxRanksMapGroupedByUsers(
-      List<String> usersIds) {
-    return db.createQuery(RoomUserSettings.class)
-        .select("userId, max(rank)")
-        .where()
-        .eq("room.type", RoomTypeDto.WORKSPACE)
-        .and()
-        .in("userId", usersIds)
-        .setMapKey("userId")
-        .findMap();
-  }
-
-  @Override
-  public Map<String, RoomUserSettings> getWorkspaceMapGroupedByRoomId(String userId) {
-    return db.find(RoomUserSettings.class)
-        .where()
-        .eq("userId", userId)
-        .and()
-        .isNotNull("rank")
-        .setMapKey("id.roomId")
-        .findMap();
-  }
 }

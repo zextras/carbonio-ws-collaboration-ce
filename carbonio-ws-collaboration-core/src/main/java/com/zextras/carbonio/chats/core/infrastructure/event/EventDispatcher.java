@@ -14,4 +14,6 @@ public interface EventDispatcher extends HealthIndicator {
   void sendToUserExchange(List<String> usersIds, DomainEvent event);
 
   void sendToUserQueue(String userId, String queueId, DomainEvent event);
+
+  void stop();
 }

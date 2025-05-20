@@ -30,6 +30,11 @@ public class PreviewApiServiceImpl implements PreviewApiService {
     this.previewService = previewService;
   }
 
+  private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
+    return Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+        .orElseThrow(UnauthorizedException::new);
+  }
+
   @Override
   public Response getImagePreview(
       UUID fileId,
@@ -38,9 +43,7 @@ public class PreviewApiServiceImpl implements PreviewApiService {
       ImageTypeEnumDto outputFormat,
       Boolean crop,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     FileResponse image =
         previewService.getImage(
             currentUser,
@@ -64,9 +67,7 @@ public class PreviewApiServiceImpl implements PreviewApiService {
       ImageTypeEnumDto outputFormat,
       ImageShapeEnumDto shape,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     FileResponse image =
         previewService.getImageThumbnail(
             currentUser,
@@ -85,9 +86,7 @@ public class PreviewApiServiceImpl implements PreviewApiService {
   @Override
   public Response getPdfPreview(
       UUID fileId, Integer firstPage, Integer lastPage, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     FileResponse image = previewService.getPDF(currentUser, fileId, firstPage, lastPage);
     return Response.status(Response.Status.OK)
         .entity(image.getContent())
@@ -104,9 +103,7 @@ public class PreviewApiServiceImpl implements PreviewApiService {
       ImageTypeEnumDto outputFormat,
       ImageShapeEnumDto shape,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     FileResponse image =
         previewService.getPDFThumbnail(
             currentUser,

@@ -27,7 +27,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.concurrent.CompletionException;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -110,9 +109,8 @@ class VideoServerHttpClientTest {
     mockResponse(url, 200, VideoServerResponse.create());
 
     VideoServerResponse videoServerResponse =
-        videoServerHttpClient
-            .sendVideoServerRequest("serverId", VideoServerMessageRequest.create())
-            .join();
+        videoServerHttpClient.sendVideoServerRequest(
+            "serverId", VideoServerMessageRequest.create());
 
     assertEquals(VideoServerResponse.create(), videoServerResponse);
 
@@ -133,11 +131,10 @@ class VideoServerHttpClientTest {
     mockResponse(url, 404, null);
 
     assertThrows(
-        CompletionException.class,
+        VideoServerException.class,
         () ->
-            videoServerHttpClient
-                .sendVideoServerRequest("serverId", VideoServerMessageRequest.create())
-                .join());
+            videoServerHttpClient.sendVideoServerRequest(
+                "serverId", VideoServerMessageRequest.create()));
 
     verify(httpClient, times(1))
         .sendPost(
@@ -158,10 +155,8 @@ class VideoServerHttpClientTest {
     mockResponse(url, 200, AudioBridgeResponse.create());
 
     AudioBridgeResponse audioBridgeResponse =
-        videoServerHttpClient
-            .sendAudioBridgeRequest(
-                "connectionId", "handleId", "serverId", VideoServerMessageRequest.create())
-            .join();
+        videoServerHttpClient.sendAudioBridgeRequest(
+            "connectionId", "handleId", "serverId", VideoServerMessageRequest.create());
 
     assertEquals(AudioBridgeResponse.create(), audioBridgeResponse);
 
@@ -186,12 +181,10 @@ class VideoServerHttpClientTest {
     mockResponse(url, 404, null);
 
     assertThrows(
-        CompletionException.class,
+        VideoServerException.class,
         () ->
-            videoServerHttpClient
-                .sendAudioBridgeRequest(
-                    "connectionId", "handleId", "serverId", VideoServerMessageRequest.create())
-                .join());
+            videoServerHttpClient.sendAudioBridgeRequest(
+                "connectionId", "handleId", "serverId", VideoServerMessageRequest.create()));
 
     verify(httpClient, times(1))
         .sendPost(
@@ -212,10 +205,8 @@ class VideoServerHttpClientTest {
     mockResponse(url, 200, VideoRoomResponse.create());
 
     VideoRoomResponse videoRoomResponse =
-        videoServerHttpClient
-            .sendVideoRoomRequest(
-                "connectionId", "handleId", "serverId", VideoServerMessageRequest.create())
-            .join();
+        videoServerHttpClient.sendVideoRoomRequest(
+            "connectionId", "handleId", "serverId", VideoServerMessageRequest.create());
 
     assertEquals(VideoRoomResponse.create(), videoRoomResponse);
 
@@ -240,12 +231,10 @@ class VideoServerHttpClientTest {
     mockResponse(url, 404, null);
 
     assertThrows(
-        CompletionException.class,
+        VideoServerException.class,
         () ->
-            videoServerHttpClient
-                .sendVideoRoomRequest(
-                    "connectionId", "handleId", "serverId", VideoServerMessageRequest.create())
-                .join());
+            videoServerHttpClient.sendVideoRoomRequest(
+                "connectionId", "handleId", "serverId", VideoServerMessageRequest.create()));
 
     verify(httpClient, times(1))
         .sendPost(

@@ -13,7 +13,7 @@ public class RecordingInfo {
   private String meetingName;
   private String folderId;
   private String recordingName;
-  private String recordingToken;
+  private String accountId;
 
   public static RecordingInfo create() {
     return new RecordingInfo();
@@ -64,12 +64,12 @@ public class RecordingInfo {
     return this;
   }
 
-  public String getRecordingToken() {
-    return recordingToken;
+  public String getAccountId() {
+    return accountId;
   }
 
-  public RecordingInfo recordingToken(String authToken) {
-    this.recordingToken = authToken;
+  public RecordingInfo accountId(String accountId) {
+    this.accountId = accountId;
     return this;
   }
 
@@ -81,7 +81,7 @@ public class RecordingInfo {
         && Objects.equals(getMeetingName(), that.getMeetingName())
         && Objects.equals(getFolderId(), that.getFolderId())
         && Objects.equals(getRecordingName(), that.getRecordingName())
-        && Objects.equals(getRecordingToken(), that.getRecordingToken());
+        && Objects.equals(getAccountId(), that.getAccountId());
   }
 
   @Override
@@ -92,6 +92,6 @@ public class RecordingInfo {
         getMeetingName(),
         getFolderId(),
         getRecordingName(),
-        getRecordingToken());
+        getAccountId());
   }
 }

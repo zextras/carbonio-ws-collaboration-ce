@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @ApiIntegrationTest
-public class HealthApiIT {
+class HealthApiIT {
 
   private final ResteasyRequestDispatcher dispatcher;
   private final ObjectMapper objectMapper;
@@ -49,7 +49,7 @@ public class HealthApiIT {
   }
 
   @AfterEach
-  public void afterEach() {
+  void afterEach() {
     mongooseImMockServer.setIsAliveResponse(true);
     previewerMockServer.setIsAliveResponse(true);
   }

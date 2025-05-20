@@ -5,9 +5,9 @@
 package com.zextras.carbonio.chats.core.exception;
 
 import com.zextras.carbonio.chats.core.infrastructure.DependencyType;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.core.Response.Status;
 import java.io.Serial;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * This is an abstract class implemented by dependent services exceptions that wrap an HTTP error

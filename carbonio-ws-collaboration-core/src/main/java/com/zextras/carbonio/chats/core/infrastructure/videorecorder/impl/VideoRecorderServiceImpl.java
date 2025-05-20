@@ -14,10 +14,8 @@ import com.zextras.carbonio.chats.core.infrastructure.videorecorder.VideoRecorde
 import com.zextras.carbonio.chats.core.infrastructure.videorecorder.data.request.VideoRecorderRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeCreateRequest;
 import com.zextras.carbonio.chats.core.repository.RecordingRepository;
-import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -45,8 +43,7 @@ public class VideoRecorderServiceImpl implements VideoRecorderService {
             .meeting(meeting)
             .startedAt(OffsetDateTime.now(clock))
             .starterId(userId)
-            .status(RecordingStatus.STARTED)
-            .token(token));
+            .status(RecordingStatus.STARTED));
   }
 
   @Override
@@ -68,27 +65,14 @@ public class VideoRecorderServiceImpl implements VideoRecorderService {
           videoRecorderClient.sendVideoRecorderRequest(
               recordingInfo.getServerId(),
               recordingInfo.getMeetingId(),
-              Optional.ofNullable(recordingInfo.getRecordingToken())
-                  .map(
-                      token ->
-                          VideoRecorderRequest.create()
-                              .meetingId(recordingInfo.getMeetingId())
-                              .meetingName(recordingInfo.getMeetingName())
-                              .audioActivePackets(
-                                  AudioBridgeCreateRequest.AUDIO_ACTIVE_PACKETS_DEFAULT)
-                              .audioLevelAverage(
-                                  AudioBridgeCreateRequest.AUDIO_LEVEL_AVERAGE_DEFAULT)
-                              .authToken(AuthenticationMethod.ZM_AUTH_TOKEN + "=" + token)
-                              .folderId(recordingInfo.getFolderId())
-                              .recordingName(recordingInfo.getRecordingName()))
-                  .orElse(
-                      VideoRecorderRequest.create()
-                          .meetingId(recordingInfo.getMeetingId())
-                          .meetingName(recordingInfo.getMeetingName())
-                          .audioActivePackets(AudioBridgeCreateRequest.AUDIO_ACTIVE_PACKETS_DEFAULT)
-                          .audioLevelAverage(AudioBridgeCreateRequest.AUDIO_LEVEL_AVERAGE_DEFAULT)
-                          .folderId(recordingInfo.getFolderId())
-                          .recordingName(recordingInfo.getRecordingName())));
+              VideoRecorderRequest.create()
+                  .meetingId(recordingInfo.getMeetingId())
+                  .accountId(recordingInfo.getAccountId())
+                  .meetingName(recordingInfo.getMeetingName())
+                  .audioActivePackets(AudioBridgeCreateRequest.AUDIO_ACTIVE_PACKETS_DEFAULT)
+                  .audioLevelAverage(AudioBridgeCreateRequest.AUDIO_LEVEL_AVERAGE_DEFAULT)
+                  .folderId(recordingInfo.getFolderId())
+                  .recordingName(recordingInfo.getRecordingName()));
           return null;
         });
   }

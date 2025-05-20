@@ -19,6 +19,7 @@ import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.tools.StorageMockServer;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
+import com.zextras.carbonio.chats.it.utils.MockedAccount.MockUserProfile;
 import com.zextras.carbonio.chats.it.utils.MockedFiles;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
@@ -35,7 +36,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @ApiIntegrationTest
-public class AttachmentsApiIT {
+class AttachmentsApiIT {
 
   private final FileMetadataRepository fileMetadataRepository;
   private final ResteasyRequestDispatcher dispatcher;
@@ -66,17 +67,18 @@ public class AttachmentsApiIT {
   private static UUID roomId;
 
   @BeforeAll
-  public static void initAll() {
-    user1Id = MockedAccount.getAccounts().get(0).getUUID();
-    user1Token = MockedAccount.getAccounts().get(0).getToken();
-    user2Id = MockedAccount.getAccounts().get(1).getUUID();
-    user2Token = MockedAccount.getAccounts().get(1).getToken();
-    user3Token = MockedAccount.getAccounts().get(2).getToken();
+  static void initAll() {
+    List<MockUserProfile> internalAccounts = MockedAccount.getInternalAccounts();
+    user1Id = internalAccounts.get(0).getUUID();
+    user1Token = internalAccounts.get(0).getToken();
+    user2Id = internalAccounts.get(1).getUUID();
+    user2Token = internalAccounts.get(1).getToken();
+    user3Token = internalAccounts.get(2).getToken();
     roomId = UUID.randomUUID();
   }
 
   @BeforeEach
-  public void init() {
+  void init() {
     integrationTestUtils.generateAndSaveRoom(
         roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
   }

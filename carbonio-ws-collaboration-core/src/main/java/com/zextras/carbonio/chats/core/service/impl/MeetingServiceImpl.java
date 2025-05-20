@@ -30,6 +30,7 @@ import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
+import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.WaitingParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -49,6 +50,7 @@ public class MeetingServiceImpl implements MeetingService {
   private final MeetingMapper meetingMapper;
   private final RoomService roomService;
   private final MembersService membersService;
+  private final ParticipantService participantService;
   private final WaitingParticipantService waitingParticipantService;
   private final VideoServerService videoServerService;
   private final VideoRecorderService videoRecorderService;
@@ -61,6 +63,7 @@ public class MeetingServiceImpl implements MeetingService {
       MeetingMapper meetingMapper,
       RoomService roomService,
       MembersService membersService,
+      ParticipantService participantService,
       WaitingParticipantService waitingParticipantService,
       VideoServerService videoServerService,
       VideoRecorderService videoRecorderService,
@@ -70,6 +73,7 @@ public class MeetingServiceImpl implements MeetingService {
     this.meetingMapper = meetingMapper;
     this.roomService = roomService;
     this.membersService = membersService;
+    this.participantService = participantService;
     this.waitingParticipantService = waitingParticipantService;
     this.videoServerService = videoServerService;
     this.videoRecorderService = videoRecorderService;
@@ -133,7 +137,7 @@ public class MeetingServiceImpl implements MeetingService {
     Meeting updatedMeeting = deactivateMeeting(user.getId(), meeting);
 
     List<String> queuedReceivers = getQueuedUsers(meeting);
-    waitingParticipantService.clearQueue(UUID.fromString(meeting.getId()));
+    waitingParticipantService.clearQueue(meetingId);
 
     notifyMeetingStopped(user, updatedMeeting, queuedReceivers);
 
@@ -160,7 +164,8 @@ public class MeetingServiceImpl implements MeetingService {
     stopRecording(userId, meeting, recordingInfo);
 
     videoServerService.stopMeeting(meeting.getId());
-    meeting.active(false).startedAt(null);
+    participantService.clear(UUID.fromString(meeting.getId()));
+    meeting.active(false).participants(List.of()).startedAt(null);
     return meetingRepository.update(meeting);
   }
 
@@ -330,7 +335,7 @@ public class MeetingServiceImpl implements MeetingService {
         .ifPresent(
             recording -> {
               videoServerService.stopRecording(
-                  meeting.getId(), recordingInfo.recordingToken(recording.getToken()));
+                  meeting.getId(), recordingInfo.accountId(recording.getStarterId()));
               videoRecorderService.saveRecordingStopped(recording);
               eventDispatcher.sendToUserExchange(
                   meeting.getParticipants().stream().map(Participant::getUserId).toList(),

@@ -14,7 +14,7 @@ import java.util.Objects;
 public class Feed {
 
   private MediaType type;
-  private String    userId;
+  private String userId;
 
   public static Feed create() {
     return new Feed();
@@ -53,13 +53,7 @@ public class Feed {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (!(o instanceof Feed)) {
-      return false;
-    }
-    Feed feed = (Feed) o;
+    if (!(o instanceof Feed feed)) return false;
     return getType() == feed.getType() && Objects.equals(getUserId(), feed.getUserId());
   }
 

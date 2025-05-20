@@ -50,6 +50,8 @@ public class ConsulAppConfig extends AppConfig {
     namesMapping.put(
         ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD,
         "carbonio-ws-collaboration/hikari/leak-detection-threshold");
+    namesMapping.put(
+        ConfigName.HIKARI_MAX_LIFETIME, "carbonio-ws-collaboration/hikari/max-lifetime");
     namesMapping.put(ConfigName.XMPP_SERVER_USERNAME, "carbonio-message-dispatcher/api/username");
     namesMapping.put(ConfigName.XMPP_SERVER_PASSWORD, "carbonio-message-dispatcher/api/password");
     namesMapping.put(

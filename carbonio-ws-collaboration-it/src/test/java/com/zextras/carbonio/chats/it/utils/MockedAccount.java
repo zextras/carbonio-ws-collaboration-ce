@@ -79,6 +79,13 @@ public class MockedAccount {
     return new ArrayList<>(mockedAccountsMap.values());
   }
 
+  public static List<MockUserProfile> getInternalAccounts() {
+    return new ArrayList<>(
+        mockedAccountsMap.values().stream()
+            .filter(account -> account.getType() == UserType.INTERNAL)
+            .toList());
+  }
+
   public static MockUserProfile getAccount(MockedAccountType type) {
     return mockedAccountsMap.get(type);
   }

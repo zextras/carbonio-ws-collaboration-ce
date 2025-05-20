@@ -6,7 +6,7 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration Meeting Api
   description: Zextras Carbonio Workstream Collaboration Meeting HTTP APIs definition.
-  version: 1.5.3
+  version: 1.6.0
   contact:
     email: smokybeans@zextras.com
 servers:
@@ -315,6 +315,25 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/hand:
+    put:
+      tags:
+        - Meetings
+      summary: Update hand status for a user during a meeting, a moderator can lower down the hand for another user
+      operationId: updateHandStatus
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateHandStatusRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204HandStatusResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
 components:
   parameters:
     pathMeetingId:
@@ -392,6 +411,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/RecordingFields'
+    UpdateHandStatusRequest:
+      description: user request to update hand status during a meeting
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HandStatus'
   responses:
     200CreateMeetingResponse:
       description: The meeting just created
@@ -463,7 +489,8 @@ components:
       description: The recording has been started successfully
     204StopMeetingRecordingResponse:
       description: The recording has been stopped successfully
-
+    204HandStatusResponse:
+      description: The hand action has been performed successfully
     400BadRequestResponse:
       description: The request had wrong or missing parameters
     401UnauthorizedResponse:
@@ -563,6 +590,11 @@ components:
               format: date-time
               readOnly: true
               description: participant joining timestamp
+            handRaisedAt:
+              type: string
+              format: date-time
+              readOnly: true
+              description: participant hand raising timestamp
     Meeting:
       type: object
       description: Meeting data
@@ -713,3 +745,14 @@ components:
           type: string
           description: folder id where the recording will be saved
       required: [ name, folderId ]
+    HandStatus:
+      type: object
+      description: the hand action the user wants to perform
+      properties:
+        raised:
+          type: boolean
+          description: indicates the status to change the hand to
+        userToModerate:
+          type: string
+          description: optionally lower the user's hand if I'm a moderator, only works if raised is false
+      required: [ raised ]

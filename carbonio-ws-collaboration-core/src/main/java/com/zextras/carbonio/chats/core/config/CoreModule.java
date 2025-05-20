@@ -101,7 +101,7 @@ import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
-import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpoint;
+import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.meeting.api.MeetingsApi;
@@ -140,7 +140,7 @@ public class CoreModule extends AbstractModule {
 
     bind(AuthenticationFilter.class);
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
-    bind(EventsWebSocketEndpoint.class);
+    bind(EventsWebSocketManager.class);
 
     bind(RoomsApi.class);
     bind(RoomsApiService.class).to(RoomsApiServiceImpl.class);
@@ -339,6 +339,8 @@ public class CoreModule extends AbstractModule {
         appConfig.get(Integer.class, ConfigName.HIKARI_MAX_POOL_SIZE).orElse(10));
     config.setLeakDetectionThreshold(
         appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(5000));
+    config.setMaxLifetime(
+        appConfig.get(Integer.class, ConfigName.HIKARI_MAX_LIFETIME).orElse(600000));
     return new HikariDataSource(config);
   }
 

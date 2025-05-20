@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.repository;
 
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -77,28 +78,4 @@ public interface RoomUserSettingsRepository {
    * @param roomUserSettingsList collection {@link Collection} of room user settings to save {@link RoomUserSettings}
    */
   void save(Collection<RoomUserSettings> roomUserSettingsList);
-
-  /**
-   * Returns the highest workspace rank for the specified user
-   *
-   * @param userId user identifier
-   * @return the highest workspace rank for the user
-   */
-  Optional<Integer> getWorkspaceMaxRank(String userId);
-
-  /**
-   * Returns the highest workspace rank for the specified users list
-   *
-   * @param userIds users identifiers list
-   * @return {@link Map} with the user id {@link String} as the key and that the highest workspace rank room settings {@link RoomUserSettings} as the value
-   */
-  Map<String, RoomUserSettings> getWorkspaceMaxRanksMapGroupedByUsers(List<String> userIds);
-
-  /**
-   * Returns a map of every workspace settings set by the user
-   *
-   * @param userId user identifier
-   * @return {@link Map} with the workspace id {@link String} as the key and that room settings {@link RoomUserSettings} as the value
-   */
-  Map<String, RoomUserSettings> getWorkspaceMapGroupedByRoomId(String userId);
 }

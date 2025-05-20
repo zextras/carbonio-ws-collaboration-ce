@@ -30,7 +30,6 @@ import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
-import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
@@ -94,7 +93,6 @@ public class AttachmentServiceImplTest {
   private static UUID roomId;
   private static Room room1;
   private static Room room2;
-  private static Room room3;
 
   @BeforeAll
   public static void initAll() {
@@ -116,20 +114,9 @@ public class AttachmentServiceImplTest {
     room2 = Room.create();
     room2
         .id(roomId.toString())
-        .type(RoomTypeDto.CHANNEL)
+        .type(RoomTypeDto.GROUP)
         .name("room2")
         .description("Room two")
-        .subscriptions(
-            List.of(
-                Subscription.create(room1, user1Id.toString()).owner(true),
-                Subscription.create(room1, user2Id.toString()).owner(false),
-                Subscription.create(room1, user3Id.toString()).owner(false)));
-    room3 = Room.create();
-    room3
-        .id(roomId.toString())
-        .type(RoomTypeDto.WORKSPACE)
-        .name("room3")
-        .description("Room three")
         .subscriptions(
             List.of(
                 Subscription.create(room1, user1Id.toString()).owner(true),
@@ -712,54 +699,6 @@ public class AttachmentServiceImplTest {
                     null,
                     currentUser));
       }
-
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
-      verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
-    }
-
-    @Test
-    @DisplayName("Throws the exception if you can't add attachments on a channel")
-    void addAttachment_testFailsRoomIsAChannel() {
-      UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room2);
-      assertThrows(
-          BadRequestException.class,
-          () ->
-              attachmentService.addAttachment(
-                  roomId,
-                  mock(InputStream.class),
-                  "application/pdf",
-                  1024L,
-                  "temp.pdf",
-                  "description",
-                  null,
-                  null,
-                  null,
-                  currentUser));
-
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
-      verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
-    }
-
-    @Test
-    @DisplayName("Throws the exception if you can't add attachments on a workspace")
-    void addAttachment_testFailsRoomIsAWorkspace() {
-      UserPrincipal currentUser = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room3);
-      assertThrows(
-          BadRequestException.class,
-          () ->
-              attachmentService.addAttachment(
-                  roomId,
-                  mock(InputStream.class),
-                  "application/pdf",
-                  1024L,
-                  "temp.pdf",
-                  "description",
-                  "messageId",
-                  null,
-                  null,
-                  currentUser));
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);

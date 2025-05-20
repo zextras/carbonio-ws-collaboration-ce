@@ -15,6 +15,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.infrastructure.videorecorder.data.request.VideoRecorderRequest;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import java.io.ByteArrayInputStream;
@@ -22,7 +23,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletionException;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -80,9 +80,8 @@ class VideoRecorderHttpClientTest {
             + String.format(videoServerRoutingQueryParam, "serverId");
     mockResponse(url, 200, null);
 
-    videoRecorderHttpClient
-        .sendVideoRecorderRequest("serverId", meetingId.toString(), VideoRecorderRequest.create())
-        .join();
+    videoRecorderHttpClient.sendVideoRecorderRequest(
+        "serverId", meetingId.toString(), VideoRecorderRequest.create());
 
     verify(httpClient, times(1))
         .sendPost(
@@ -105,12 +104,10 @@ class VideoRecorderHttpClientTest {
     mockResponse(url, 500, null);
 
     assertThrows(
-        CompletionException.class,
+        VideoServerException.class,
         () ->
-            videoRecorderHttpClient
-                .sendVideoRecorderRequest(
-                    "serverId", meetingId.toString(), VideoRecorderRequest.create())
-                .join());
+            videoRecorderHttpClient.sendVideoRecorderRequest(
+                "serverId", meetingId.toString(), VideoRecorderRequest.create()));
 
     verify(httpClient, times(1))
         .sendPost(

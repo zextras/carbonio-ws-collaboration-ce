@@ -18,7 +18,7 @@ repos:
       - id: check-added-large-files
         args: [ --maxkb=2048 ]
   - repo: https://github.com/gruntwork-io/pre-commit
-    rev: v0.1.25
+    rev: v0.1.29
     hooks:
       - id: shellcheck
   - repo: https://github.com/IamTheFij/docker-pre-commit
@@ -31,14 +31,14 @@ repos:
       - id: pretty-format-java
         args: [ --autofix ]
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.43.0
+    rev: v0.44.0
     hooks:
       - id: markdownlint
-        language_version: 16.0.0
+        language_version: 22.0.0
       - id: markdownlint-fix
-        language_version: 16.0.0
+        language_version: 22.0.0
   - repo: https://github.com/compilerla/conventional-pre-commit
-    rev: v3.6.0
+    rev: v4.2.0
     hooks:
       - id: conventional-pre-commit
         stages: [ commit-msg ]

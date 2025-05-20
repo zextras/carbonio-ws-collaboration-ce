@@ -32,10 +32,10 @@ import java.util.Objects;
 public class VideoRecorderRequest {
 
   private String meetingId;
+  private String accountId;
   private String meetingName;
   private Long audioActivePackets;
   private Integer audioLevelAverage;
-  private String authToken;
   private String folderId;
   private String recordingName;
 
@@ -49,6 +49,15 @@ public class VideoRecorderRequest {
 
   public VideoRecorderRequest meetingId(String meetingId) {
     this.meetingId = meetingId;
+    return this;
+  }
+
+  public String getAccountId() {
+    return accountId;
+  }
+
+  public VideoRecorderRequest accountId(String accountId) {
+    this.accountId = accountId;
     return this;
   }
 
@@ -79,15 +88,6 @@ public class VideoRecorderRequest {
     return this;
   }
 
-  public String getAuthToken() {
-    return authToken;
-  }
-
-  public VideoRecorderRequest authToken(String authToken) {
-    this.authToken = authToken;
-    return this;
-  }
-
   public String getFolderId() {
     return folderId;
   }
@@ -108,26 +108,26 @@ public class VideoRecorderRequest {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (!(o instanceof VideoRecorderRequest that)) return false;
-    return Objects.equals(getMeetingId(), that.getMeetingId())
-        && Objects.equals(getMeetingName(), that.getMeetingName())
-        && Objects.equals(getAudioActivePackets(), that.getAudioActivePackets())
-        && Objects.equals(getAudioLevelAverage(), that.getAudioLevelAverage())
-        && Objects.equals(getAuthToken(), that.getAuthToken())
-        && Objects.equals(getFolderId(), that.getFolderId())
-        && Objects.equals(getRecordingName(), that.getRecordingName());
+    if (o == null || getClass() != o.getClass()) return false;
+    VideoRecorderRequest that = (VideoRecorderRequest) o;
+    return Objects.equals(meetingId, that.meetingId)
+        && Objects.equals(accountId, that.accountId)
+        && Objects.equals(meetingName, that.meetingName)
+        && Objects.equals(audioActivePackets, that.audioActivePackets)
+        && Objects.equals(audioLevelAverage, that.audioLevelAverage)
+        && Objects.equals(folderId, that.folderId)
+        && Objects.equals(recordingName, that.recordingName);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        getMeetingId(),
-        getMeetingName(),
-        getAudioActivePackets(),
-        getAudioLevelAverage(),
-        getAuthToken(),
-        getFolderId(),
-        getRecordingName());
+        meetingId,
+        accountId,
+        meetingName,
+        audioActivePackets,
+        audioLevelAverage,
+        folderId,
+        recordingName);
   }
 }

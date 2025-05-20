@@ -30,11 +30,10 @@ public interface RoomMapper {
       boolean includeSettings);
 
   /**
-   * Converts a workspace {@link Room} to {@link RoomDto}
+   * Converts a {@link Room} to {@link RoomDto}
    *
-   * @param room workspace {@link Room} to convert
-   * @param settingsMapByRoomId current user settings {@link Map} for workspace groups {@link
-   *     RoomUserSettings}
+   * @param room {@link Room} to convert
+   * @param settingsMapByRoomId current user settings {@link Map} for rooms {@link RoomUserSettings}
    * @param includeMembers if true, it includes the room members
    * @param includeSettings if true, it includes the current user settings
    * @return Conversation result {@link RoomDto}
@@ -50,23 +49,7 @@ public interface RoomMapper {
    * Converts {@link List} of {@link Room} to {@link List} of {@link RoomDto}
    *
    * @param rooms {@link List} of {@link Room} to convert
-   * @param userSettings current user settings {@link RoomUserSettings}
-   * @param includeMembers if true, it includes the room members
-   * @param includeSettings if true, it includes the current user settings
-   * @return Conversation result ({@link List} of {@link RoomDto})
-   */
-  List<RoomDto> ent2dto(
-      @Nullable List<Room> rooms,
-      @Nullable RoomUserSettings userSettings,
-      boolean includeMembers,
-      boolean includeSettings);
-
-  /**
-   * Converts {@link List} of workspace {@link Room} to {@link List} of {@link RoomDto}
-   *
-   * @param rooms {@link List} of workspace {@link Room} to convert
-   * @param settingsMapByRoomId current user settings {@link Map} for workspace groups {@link
-   *     RoomUserSettings}
+   * @param settingsMapByRoomId current user settings {@link Map} for rooms {@link RoomUserSettings}
    * @param includeMembers if true, it includes the room members
    * @param includeSettings if true, it includes the current user settings
    * @return Conversation result ({@link List} of {@link RoomDto})

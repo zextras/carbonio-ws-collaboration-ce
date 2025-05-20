@@ -6,7 +6,9 @@ package com.zextras.carbonio.chats.core.web.api;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
@@ -41,6 +43,11 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     this.waitingParticipantService = waitingParticipantService;
   }
 
+  private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
+    return Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+        .orElseThrow(UnauthorizedException::new);
+  }
+
   /**
    * Gets meetings list for authenticated user.
    *
@@ -70,9 +77,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response getMeeting(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.ok().entity(meetingService.getMeetingById(meetingId, currentUser)).build();
   }
 
@@ -86,9 +91,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   @Override
   public Response createMeeting(
       NewMeetingDataDto newMeetingDataDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     if (newMeetingDataDto.getRoomId() == null) {
       return Response.status(Status.BAD_REQUEST).build();
     } else {
@@ -112,10 +118,11 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response deleteMeeting(UUID meetingId, SecurityContext securityContext) {
-    meetingService.deleteMeetingById(
-        meetingId,
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new));
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
+    meetingService.deleteMeetingById(meetingId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -131,13 +138,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   @Override
   public Response joinMeeting(
       UUID meetingId, JoinSettingsDto joinSettingsDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
-    if (currentUser.getQueueId() == null) {
-      throw new BadRequestException(
-          "Queue identifier not specified for user " + currentUser.getId());
-    }
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK)
         .entity(
             new JoinMeetingResultDto()
@@ -158,9 +159,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response leaveMeeting(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     participantService.removeMeetingParticipant(meetingId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -176,9 +175,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response startMeeting(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     return Response.status(Status.OK)
         .entity(meetingService.startMeeting(currentUser, meetingId))
         .build();
@@ -195,9 +195,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response stopMeeting(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     return Response.status(Status.OK)
         .entity(meetingService.stopMeeting(currentUser, meetingId))
         .build();
@@ -217,9 +218,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       UUID meetingId,
       MediaStreamSettingsDto mediaStreamSettingsDto,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     if (mediaStreamSettingsDto.isEnabled() && mediaStreamSettingsDto.getSdp() == null) {
       throw new BadRequestException(
           String.format(
@@ -243,9 +242,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       UUID meetingId,
       AudioStreamSettingsDto audioStreamSettingsDto,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     participantService.updateAudioStream(meetingId, audioStreamSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -263,9 +260,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       UUID meetingId,
       SubscriptionUpdatesDto subscriptionUpdatesDto,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     if (subscriptionUpdatesDto.getSubscribe().isEmpty()
         && subscriptionUpdatesDto.getUnsubscribe().isEmpty()) {
       throw new BadRequestException("Subscription list and Unsubscription list must not be empty");
@@ -288,9 +283,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       UUID meetingId,
       SessionDescriptionProtocolDto sessionDescriptionProtocolDto,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     participantService.answerRtcMediaStream(
         meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
@@ -309,9 +302,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       UUID meetingId,
       SessionDescriptionProtocolDto sessionDescriptionProtocolDto,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     participantService.offerRtcAudioStream(
         meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
@@ -319,9 +310,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
 
   @Override
   public Response getQueue(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     return meetingService
         .getMeetingEntity(meetingId)
         .map(
@@ -345,9 +337,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       UUID userId,
       QueuedUserUpdateDto queuedUserUpdateDto,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     waitingParticipantService.updateQueue(
         meetingId, userId, queuedUserUpdateDto.getStatus(), currentUser);
     return Response.noContent().build();
@@ -355,9 +348,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
 
   @Override
   public Response startRecording(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     meetingService.startMeetingRecording(meetingId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -365,11 +359,20 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   @Override
   public Response stopRecording(
       UUID meetingId, RecordingFieldsDto recordingFieldsDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     meetingService.stopMeetingRecording(
         meetingId, recordingFieldsDto.getName(), recordingFieldsDto.getFolderId(), currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
+  public Response updateHandStatus(
+      UUID meetingId, HandStatusDto handStatusDto, SecurityContext securityContext) {
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    participantService.updateHandStatus(meetingId, handStatusDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 }

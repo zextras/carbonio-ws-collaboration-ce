@@ -56,7 +56,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -78,6 +77,13 @@ public class VideoServerServiceImpl implements VideoServerService {
   private static final String MEETING_PATTERN_NAME_WITH_TIMESTAMP = "meeting_%s/%s";
   private static final String AUDIO_VIDEO_PATTERN_NAME_WITH_TIMESTAMP = "%s_%s_%s";
   private static final String DATE_TIME_DEFAULT_FORMAT = "yyyyMMdd'T'HHmmss";
+
+  private static final String MEETING_AUDIO_OPAQUE_ID_PATTERN = "meeting/a/%s";
+  private static final String MEETING_VIDEO_OPAQUE_ID_PATTERN = "meeting/v/%s";
+  private static final String USER_AUDIO_OPAQUE_ID_PATTERN = "a/%s/%s";
+  private static final String USER_VIDEO_OUT_OPAQUE_ID_PATTERN = "vo/%s/%s";
+  private static final String USER_VIDEO_IN_OPAQUE_ID_PATTERN = "vi/%s/%s";
+  private static final String USER_SCREEN_OPAQUE_ID_PATTERN = "s/%s/%s";
 
   private final VideoServerClient videoServerClient;
   private final VideoServerMeetingRepository videoServerMeetingRepository;
@@ -112,93 +118,74 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
-  public CompletableFuture<Void> startMeeting(String meetingId) {
+  public void startMeeting(String meetingId) {
     if (videoServerMeetingRepository.getById(meetingId).isPresent()) {
-      throw new VideoServerException("Videoserver meeting " + meetingId + " is already active");
+      ChatsLogger.debug("Videoserver meeting " + meetingId + " is already active");
+      return;
     }
 
     List<UUID> healthyVideoServers =
         consulService.getHealthyServices(VIDEOSERVER_SERVICE_NAME, VIDEOSERVER_SERVICE_METADATA);
     UUID serverId = healthyVideoServers.get(random.nextInt(healthyVideoServers.size()));
 
-    // Step 1: Create new connection for meeting
-    return createMeetingConnection(serverId)
-        .thenCompose(
-            connectionResponse -> {
-              String connectionId = connectionResponse.getDataId();
+    VideoServerResponse connectionResponse = createMeetingConnection(serverId);
+    String connectionId = connectionResponse.getDataId();
 
-              // Step 2: Attach to both plugins in parallel
-              CompletableFuture<VideoServerResponse> audioPluginFuture =
-                  attachToPlugin(serverId, connectionId, JANUS_AUDIOBRIDGE_PLUGIN);
+    VideoServerResponse audioPluginResponse =
+        attachToPlugin(
+            serverId,
+            connectionId,
+            JANUS_AUDIOBRIDGE_PLUGIN,
+            String.format(MEETING_AUDIO_OPAQUE_ID_PATTERN, meetingId));
+    VideoServerResponse videoPluginResponse =
+        attachToPlugin(
+            serverId,
+            connectionId,
+            JANUS_VIDEOROOM_PLUGIN,
+            String.format(MEETING_VIDEO_OPAQUE_ID_PATTERN, meetingId));
 
-              CompletableFuture<VideoServerResponse> videoPluginFuture =
-                  attachToPlugin(serverId, connectionId, JANUS_VIDEOROOM_PLUGIN);
+    String audioHandleId = audioPluginResponse.getDataId();
+    String videoHandleId = videoPluginResponse.getDataId();
 
-              return CompletableFuture.allOf(audioPluginFuture, videoPluginFuture)
-                  .thenCompose(
-                      v -> {
-                        String audioHandleId = audioPluginFuture.join().getDataId();
-                        String videoHandleId = videoPluginFuture.join().getDataId();
+    AudioBridgeResponse audioRoomResponse =
+        createAudioBridgeRoom(serverId, meetingId, connectionId, audioHandleId);
+    VideoRoomResponse videoRoomResponse =
+        createVideoRoom(serverId, meetingId, connectionId, videoHandleId);
 
-                        // Step 3: Create rooms for both audio and video plugins in
-                        // parallel
-                        CompletableFuture<AudioBridgeResponse> audioRoomFuture =
-                            createAudioBridgeRoom(serverId, meetingId, connectionId, audioHandleId);
+    String audioRoomId = audioRoomResponse.getRoom();
+    String videoRoomId = videoRoomResponse.getRoom();
 
-                        CompletableFuture<VideoRoomResponse> videoRoomFuture =
-                            createVideoRoom(serverId, meetingId, connectionId, videoHandleId);
-
-                        return CompletableFuture.allOf(audioRoomFuture, videoRoomFuture)
-                            .thenRun(
-                                () -> {
-                                  String audioRoomId = audioRoomFuture.join().getRoom();
-                                  String videoRoomId = videoRoomFuture.join().getRoom();
-
-                                  videoServerMeetingRepository.insert(
-                                      VideoServerMeeting.create()
-                                          .serverId(serverId.toString())
-                                          .meetingId(meetingId)
-                                          .connectionId(connectionId)
-                                          .audioHandleId(audioHandleId)
-                                          .videoHandleId(videoHandleId)
-                                          .audioRoomId(audioRoomId)
-                                          .videoRoomId(videoRoomId));
-                                });
-                      });
-            })
-        .exceptionally(
-            ex -> {
-              throw new VideoServerException(
-                  String.format("Failed to start meeting: %s", meetingId), ex);
-            });
+    videoServerMeetingRepository.insert(
+        VideoServerMeeting.create()
+            .serverId(serverId.toString())
+            .meetingId(meetingId)
+            .connectionId(connectionId)
+            .audioHandleId(audioHandleId)
+            .videoHandleId(videoHandleId)
+            .audioRoomId(audioRoomId)
+            .videoRoomId(videoRoomId));
   }
 
-  private CompletableFuture<VideoServerResponse> createMeetingConnection(UUID serverId) {
-    return createConnection(serverId)
-        .thenApply(
-            response -> {
-              if (!JANUS_SUCCESS.equals(response.getStatus())) {
-                throw new VideoServerException("Error creating video server connection");
-              }
-              return response;
-            });
+  private VideoServerResponse createMeetingConnection(UUID serverId) {
+    VideoServerResponse response = createConnection(serverId);
+    if (!JANUS_SUCCESS.equals(response.getStatus())) {
+      throw new VideoServerException("Error creating video server connection");
+    }
+    return response;
   }
 
-  private CompletableFuture<VideoServerResponse> attachToPlugin(
-      UUID serverId, String connectionId, String pluginType) {
-    return interactWithConnection(serverId, connectionId, JANUS_ATTACH, pluginType)
-        .thenApply(
-            response -> {
-              if (!JANUS_SUCCESS.equals(response.getStatus())) {
-                throw new VideoServerException("Error attaching to plugin " + pluginType);
-              }
-              return response;
-            });
+  private VideoServerResponse attachToPlugin(
+      UUID serverId, String connectionId, String pluginType, String opaqueId) {
+    VideoServerResponse response =
+        interactWithConnection(serverId, connectionId, JANUS_ATTACH, pluginType, opaqueId);
+    if (!JANUS_SUCCESS.equals(response.getStatus())) {
+      throw new VideoServerException("Error attaching to plugin " + pluginType);
+    }
+    return response;
   }
 
-  private CompletableFuture<AudioBridgeResponse> createAudioBridgeRoom(
+  private AudioBridgeResponse createAudioBridgeRoom(
       UUID serverId, String meetingId, String connectionId, String audioHandleId) {
-
     AudioBridgeCreateRequest audioRequest =
         AudioBridgeCreateRequest.create()
             .request(AudioBridgeCreateRequest.CREATE)
@@ -212,25 +199,22 @@ public class VideoServerServiceImpl implements VideoServerService {
             .audioLevelAverage(AudioBridgeCreateRequest.AUDIO_LEVEL_AVERAGE_DEFAULT)
             .audioLevelEvent(true);
 
-    return sendAudioBridgePluginMessage(serverId, connectionId, audioHandleId, audioRequest, null)
-        .thenApply(
-            response -> {
-              if (!AudioBridgeResponse.CREATED.equals(response.getAudioBridge())) {
-                throw new VideoServerException(
-                    "An error occurred when creating an audiobridge room for the connection "
-                        + connectionId
-                        + " with plugin "
-                        + audioHandleId
-                        + " for the meeting "
-                        + meetingId);
-              }
-              return response;
-            });
+    AudioBridgeResponse response =
+        sendAudioBridgePluginMessage(serverId, connectionId, audioHandleId, audioRequest, null);
+    if (!AudioBridgeResponse.CREATED.equals(response.getAudioBridge())) {
+      throw new VideoServerException(
+          "An error occurred when creating an audiobridge room for the connection "
+              + connectionId
+              + " with plugin "
+              + audioHandleId
+              + " for the meeting "
+              + meetingId);
+    }
+    return response;
   }
 
-  private CompletableFuture<VideoRoomResponse> createVideoRoom(
+  private VideoRoomResponse createVideoRoom(
       UUID serverId, String meetingId, String connectionId, String videoHandleId) {
-
     VideoRoomCreateRequest videoRequest =
         VideoRoomCreateRequest.create()
             .request(VideoRoomCreateRequest.CREATE)
@@ -247,112 +231,85 @@ public class VideoServerServiceImpl implements VideoServerService {
                     .map(videoCodec -> videoCodec.toString().toLowerCase())
                     .collect(Collectors.joining(",")));
 
-    return sendVideoRoomPluginMessage(serverId, connectionId, videoHandleId, videoRequest, null)
-        .thenApply(
-            response -> {
-              if (!VideoRoomResponse.CREATED.equals(response.getVideoRoom())) {
-                throw new VideoServerException(
-                    "An error occurred when creating a videoroom room for the connection "
-                        + connectionId
-                        + " with plugin "
-                        + videoHandleId
-                        + " for the meeting "
-                        + meetingId);
-              }
-              return response;
-            });
+    VideoRoomResponse response =
+        sendVideoRoomPluginMessage(serverId, connectionId, videoHandleId, videoRequest, null);
+    if (!VideoRoomResponse.CREATED.equals(response.getVideoRoom())) {
+      throw new VideoServerException(
+          "An error occurred when creating a videoroom room for the connection "
+              + connectionId
+              + " with plugin "
+              + videoHandleId
+              + " for the meeting "
+              + meetingId);
+    }
+    return response;
   }
 
   @Override
-  public CompletableFuture<Void> stopMeeting(String meetingId) {
-    return videoServerMeetingRepository
+  public void stopMeeting(String meetingId) {
+    videoServerMeetingRepository
         .getById(meetingId)
-        .map(
+        .ifPresent(
             videoServerMeeting -> {
               UUID serverId = UUID.fromString(videoServerMeeting.getServerId());
 
-              // Destroy rooms first
-              CompletableFuture<Void> destroyRooms =
-                  CompletableFuture.allOf(
-                      destroyAudioBridgeRoom(
-                          serverId,
-                          meetingId,
-                          videoServerMeeting.getConnectionId(),
-                          videoServerMeeting.getAudioHandleId(),
-                          videoServerMeeting.getAudioRoomId()),
-                      destroyVideoRoom(
-                          serverId,
-                          meetingId,
-                          videoServerMeeting.getConnectionId(),
-                          videoServerMeeting.getVideoHandleId(),
-                          videoServerMeeting.getVideoRoomId()));
+              destroyAudioBridgeRoom(
+                  serverId,
+                  meetingId,
+                  videoServerMeeting.getConnectionId(),
+                  videoServerMeeting.getAudioHandleId(),
+                  videoServerMeeting.getAudioRoomId());
 
-              // Then destroy plugins
-              CompletableFuture<Void> destroyPlugins =
-                  destroyRooms.thenCompose(
-                      v ->
-                          CompletableFuture.allOf(
-                              destroyPluginHandle(
-                                  serverId,
-                                  videoServerMeeting.getConnectionId(),
-                                  videoServerMeeting.getAudioHandleId(),
-                                  meetingId),
-                              destroyPluginHandle(
-                                  serverId,
-                                  videoServerMeeting.getConnectionId(),
-                                  videoServerMeeting.getVideoHandleId(),
-                                  meetingId)));
+              destroyVideoRoom(
+                  serverId,
+                  meetingId,
+                  videoServerMeeting.getConnectionId(),
+                  videoServerMeeting.getVideoHandleId(),
+                  videoServerMeeting.getVideoRoomId());
 
-              // Finally, destroy the connection and delete the meeting
-              return destroyPlugins
-                  .thenCompose(
-                      v ->
-                          destroyConnection(
-                              serverId, videoServerMeeting.getConnectionId(), meetingId))
-                  .thenRun(() -> videoServerMeetingRepository.deleteById(meetingId));
-            })
-        .orElseGet(() -> CompletableFuture.completedFuture(null))
-        .exceptionally(
-            ex -> {
-              throw new VideoServerException("Failed to stop meeting " + meetingId, ex);
+              destroyPluginHandle(
+                  serverId,
+                  videoServerMeeting.getConnectionId(),
+                  videoServerMeeting.getAudioHandleId(),
+                  meetingId);
+
+              destroyPluginHandle(
+                  serverId,
+                  videoServerMeeting.getConnectionId(),
+                  videoServerMeeting.getVideoHandleId(),
+                  meetingId);
+
+              destroyConnection(serverId, videoServerMeeting.getConnectionId(), meetingId);
+              videoServerMeetingRepository.deleteById(meetingId);
             });
   }
 
-  private CompletableFuture<VideoServerResponse> destroyPluginHandle(
+  private void destroyPluginHandle(
       UUID serverId, String connectionId, String handleId, String meetingId) {
-    return destroyPluginHandle(serverId, connectionId, handleId)
-        .thenApply(
-            response -> {
-              if (!JANUS_SUCCESS.equals(response.getStatus())) {
-                throw new VideoServerException(
-                    "An error occurred when destroying the plugin handle for the connection "
-                        + connectionId
-                        + " with plugin "
-                        + handleId
-                        + " for the meeting "
-                        + meetingId);
-              }
-              return response;
-            });
+    VideoServerResponse response = destroyPluginHandle(serverId, connectionId, handleId);
+    if (!JANUS_SUCCESS.equals(response.getStatus())) {
+      ChatsLogger.debug(
+          "An error occurred when destroying the plugin handle for the connection "
+              + connectionId
+              + " with plugin "
+              + handleId
+              + " for the meeting "
+              + meetingId);
+    }
   }
 
-  private CompletableFuture<VideoServerResponse> destroyConnection(
-      UUID serverId, String connectionId, String meetingId) {
-    return destroyConnection(serverId, connectionId)
-        .thenApply(
-            response -> {
-              if (!JANUS_SUCCESS.equals(response.getStatus())) {
-                throw new VideoServerException(
-                    "An error occurred when destroying the video server connection "
-                        + connectionId
-                        + " for the meeting "
-                        + meetingId);
-              }
-              return response;
-            });
+  private void destroyConnection(UUID serverId, String connectionId, String meetingId) {
+    VideoServerResponse response = destroyConnection(serverId, connectionId);
+    if (!JANUS_SUCCESS.equals(response.getStatus())) {
+      ChatsLogger.debug(
+          "An error occurred when destroying the video server connection "
+              + connectionId
+              + " for the meeting "
+              + meetingId);
+    }
   }
 
-  private CompletableFuture<VideoRoomResponse> destroyVideoRoom(
+  private void destroyVideoRoom(
       UUID serverId,
       String meetingId,
       String connectionId,
@@ -364,23 +321,20 @@ public class VideoServerServiceImpl implements VideoServerService {
             .room(videoRoomId)
             .permanent(false);
 
-    return sendVideoRoomPluginMessage(serverId, connectionId, videoHandleId, destroyRequest, null)
-        .thenApply(
-            response -> {
-              if (!VideoRoomResponse.DESTROYED.equals(response.getVideoRoom())) {
-                throw new VideoServerException(
-                    "An error occurred when destroying the video room for the connection "
-                        + connectionId
-                        + " with plugin "
-                        + videoHandleId
-                        + " for the meeting "
-                        + meetingId);
-              }
-              return response;
-            });
+    VideoRoomResponse response =
+        sendVideoRoomPluginMessage(serverId, connectionId, videoHandleId, destroyRequest, null);
+    if (!VideoRoomResponse.DESTROYED.equals(response.getVideoRoom())) {
+      ChatsLogger.debug(
+          "An error occurred when destroying the video room for the connection "
+              + connectionId
+              + " with plugin "
+              + videoHandleId
+              + " for the meeting "
+              + meetingId);
+    }
   }
 
-  private CompletableFuture<AudioBridgeResponse> destroyAudioBridgeRoom(
+  private void destroyAudioBridgeRoom(
       UUID serverId,
       String meetingId,
       String connectionId,
@@ -392,120 +346,121 @@ public class VideoServerServiceImpl implements VideoServerService {
             .room(audioRoomId)
             .permanent(false);
 
-    return sendAudioBridgePluginMessage(serverId, connectionId, audioHandleId, destroyRequest, null)
-        .thenApply(
-            response -> {
-              if (!AudioBridgeResponse.DESTROYED.equals(response.getAudioBridge())) {
-                throw new VideoServerException(
-                    "An error occurred when destroying the audio bridge room for the connection "
-                        + connectionId
-                        + " with plugin "
-                        + audioHandleId
-                        + " for the meeting "
-                        + meetingId);
-              }
-              return response;
-            });
+    AudioBridgeResponse response =
+        sendAudioBridgePluginMessage(serverId, connectionId, audioHandleId, destroyRequest, null);
+    if (!AudioBridgeResponse.DESTROYED.equals(response.getAudioBridge())) {
+      ChatsLogger.debug(
+          "An error occurred when destroying the audio bridge room for the connection "
+              + connectionId
+              + " with plugin "
+              + audioHandleId
+              + " for the meeting "
+              + meetingId);
+    }
   }
 
   @Override
-  public CompletableFuture<Void> addMeetingParticipant(
+  public void addMeetingParticipant(
       String userId,
       String queueId,
       String meetingId,
       boolean videoStreamOn,
       boolean audioStreamOn) {
-
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
-
-    // Check if the user is already in the meeting
-    if (videoServerMeeting.getVideoServerSessions().stream()
-        .anyMatch(videoServerSessionUser -> videoServerSessionUser.getQueueId().equals(queueId))) {
-      throw new VideoServerException(
-          "Videoserver session user with user  "
-              + userId
-              + " is already present in the videoserver meeting "
-              + meetingId);
-    }
 
     UUID serverId = UUID.fromString(videoServerMeeting.getServerId());
 
-    // Step 1: Create a new connection
-    return createConnection(serverId)
-        .thenCompose(
-            videoServerResponse -> {
-              String connectionId = videoServerResponse.getDataId();
+    Optional<VideoServerSession> videoServerSession =
+        videoServerMeeting.getVideoServerSessions().stream()
+            .filter(sessionUser -> sessionUser.getUserId().equals(userId))
+            .findFirst();
 
-              // Step 2: Attach to plugins (Audio, Video Out, Video In, and Screen) in parallel
-              CompletableFuture<VideoServerResponse> audioFuture =
-                  attachToPlugin(serverId, connectionId, JANUS_AUDIOBRIDGE_PLUGIN);
-              CompletableFuture<VideoServerResponse> videoOutFuture =
-                  attachToPlugin(serverId, connectionId, JANUS_VIDEOROOM_PLUGIN);
-              CompletableFuture<VideoServerResponse> videoInFuture =
-                  attachToPlugin(serverId, connectionId, JANUS_VIDEOROOM_PLUGIN);
-              CompletableFuture<VideoServerResponse> screenFuture =
-                  attachToPlugin(serverId, connectionId, JANUS_VIDEOROOM_PLUGIN);
+    if (videoServerSession.isPresent()) {
+      ChatsLogger.debug(
+          "Videoserver session with user  "
+              + userId
+              + " is already present in the videoserver meeting "
+              + meetingId);
+      return;
+    }
 
-              return CompletableFuture.allOf(
-                      audioFuture, videoOutFuture, videoInFuture, screenFuture)
-                  .thenCompose(
-                      aVoid -> {
-                        String audioHandleId = audioFuture.join().getDataId();
-                        String videoOutHandleId = videoOutFuture.join().getDataId();
-                        String videoInHandleId = videoInFuture.join().getDataId();
-                        String screenHandleId = screenFuture.join().getDataId();
+    String connectionId = createConnection(serverId).getDataId();
 
-                        // Step 3: Join video room as publisher (Video Out and Screen) in parallel
-                        CompletableFuture<Void> joinVideoOutFuture =
-                            joinVideoRoomAsPublisher(
-                                serverId,
-                                connectionId,
-                                userId,
-                                videoOutHandleId,
-                                videoServerMeeting.getVideoRoomId(),
-                                MediaType.VIDEO);
-                        CompletableFuture<Void> joinScreenFuture =
-                            joinVideoRoomAsPublisher(
-                                serverId,
-                                connectionId,
-                                userId,
-                                screenHandleId,
-                                videoServerMeeting.getVideoRoomId(),
-                                MediaType.SCREEN);
+    String audioHandleId =
+        attachToPlugin(
+                serverId,
+                connectionId,
+                JANUS_AUDIOBRIDGE_PLUGIN,
+                String.format(USER_AUDIO_OPAQUE_ID_PATTERN, userId, meetingId))
+            .getDataId();
+    String videoOutHandleId =
+        attachToPlugin(
+                serverId,
+                connectionId,
+                JANUS_VIDEOROOM_PLUGIN,
+                String.format(USER_VIDEO_OUT_OPAQUE_ID_PATTERN, userId, meetingId))
+            .getDataId();
+    String videoInHandleId =
+        attachToPlugin(
+                serverId,
+                connectionId,
+                JANUS_VIDEOROOM_PLUGIN,
+                String.format(USER_VIDEO_IN_OPAQUE_ID_PATTERN, userId, meetingId))
+            .getDataId();
+    String screenHandleId =
+        attachToPlugin(
+                serverId,
+                connectionId,
+                JANUS_VIDEOROOM_PLUGIN,
+                String.format(USER_SCREEN_OPAQUE_ID_PATTERN, userId, meetingId))
+            .getDataId();
 
-                        return CompletableFuture.allOf(joinVideoOutFuture, joinScreenFuture)
-                            .thenRun(
-                                () ->
-                                    videoServerSessionRepository.insert(
-                                        VideoServerSession.create(
-                                                userId, queueId, videoServerMeeting)
-                                            .connectionId(connectionId)
-                                            .audioHandleId(audioHandleId)
-                                            .videoOutHandleId(videoOutHandleId)
-                                            .videoInHandleId(videoInHandleId)
-                                            .screenHandleId(screenHandleId)));
-                      });
-            })
-        .exceptionally(
-            ex -> {
-              throw new VideoServerException(
-                  "An error occurred while adding participant "
-                      + userId
-                      + " to meeting "
-                      + meetingId,
-                  ex);
-            });
+    joinVideoRoomAsPublisher(
+        serverId,
+        connectionId,
+        userId,
+        videoOutHandleId,
+        videoServerMeeting.getVideoRoomId(),
+        MediaType.VIDEO);
+    joinVideoRoomAsPublisher(
+        serverId,
+        connectionId,
+        userId,
+        screenHandleId,
+        videoServerMeeting.getVideoRoomId(),
+        MediaType.SCREEN);
+
+    videoServerSession.ifPresentOrElse(
+        session ->
+            videoServerSessionRepository.update(
+                session
+                    .userId(userId)
+                    .queueId(queueId)
+                    .videoServerMeeting(videoServerMeeting)
+                    .connectionId(connectionId)
+                    .audioHandleId(audioHandleId)
+                    .videoOutHandleId(videoOutHandleId)
+                    .videoInHandleId(videoInHandleId)
+                    .screenHandleId(screenHandleId)),
+        () ->
+            videoServerSessionRepository.insert(
+                VideoServerSession.create(userId, queueId, videoServerMeeting)
+                    .connectionId(connectionId)
+                    .audioHandleId(audioHandleId)
+                    .videoOutHandleId(videoOutHandleId)
+                    .videoInHandleId(videoInHandleId)
+                    .screenHandleId(screenHandleId)));
   }
 
-  private CompletableFuture<Void> joinVideoRoomAsPublisher(
+  private void joinVideoRoomAsPublisher(
       UUID serverId,
       String connectionId,
       String userId,
       String videoHandleId,
       String videoRoomId,
       MediaType mediaType) {
-
-    return sendVideoRoomPluginMessage(
+    VideoRoomResponse videoRoomResponse =
+        sendVideoRoomPluginMessage(
             serverId,
             connectionId,
             videoHandleId,
@@ -514,74 +469,61 @@ public class VideoServerServiceImpl implements VideoServerService {
                 .ptype(Ptype.PUBLISHER.toString().toLowerCase())
                 .room(videoRoomId)
                 .id(Feed.create().type(mediaType).userId(userId).toString()),
-            null)
-        .thenAccept(
-            videoRoomResponse -> {
-              if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
-                throw new VideoServerException(
-                    "An error occurred while user "
-                        + userId
-                        + " with connection id "
-                        + connectionId
-                        + " is joining video room as publisher");
-              }
-            });
+            null);
+
+    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
+      throw new VideoServerException(
+          "An error occurred while user "
+              + userId
+              + " with connection id "
+              + connectionId
+              + " is joining video room as publisher");
+    }
   }
 
   @Override
-  public CompletableFuture<Void> destroyMeetingParticipant(String userId, String meetingId) {
-    return videoServerMeetingRepository
+  public void destroyMeetingParticipant(String userId, String meetingId) {
+    videoServerMeetingRepository
         .getById(meetingId)
-        .map(
+        .ifPresent(
             videoServerMeeting -> {
               UUID serverId = UUID.fromString(videoServerMeeting.getServerId());
 
-              return videoServerMeeting.getVideoServerSessions().stream()
+              videoServerMeeting.getVideoServerSessions().stream()
                   .filter(sessionUser -> sessionUser.getUserId().equals(userId))
                   .findFirst()
-                  .map(
+                  .ifPresent(
                       videoServerSession -> {
-                        List<CompletableFuture<VideoServerResponse>> pluginFutures =
-                            Arrays.asList(
-                                destroyPluginHandle(
-                                    serverId,
-                                    videoServerSession.getConnectionId(),
-                                    videoServerSession.getAudioHandleId(),
-                                    meetingId),
-                                destroyPluginHandle(
-                                    serverId,
-                                    videoServerSession.getConnectionId(),
-                                    videoServerSession.getVideoOutHandleId(),
-                                    meetingId),
-                                destroyPluginHandle(
-                                    serverId,
-                                    videoServerSession.getConnectionId(),
-                                    videoServerSession.getVideoInHandleId(),
-                                    meetingId),
-                                destroyPluginHandle(
-                                    serverId,
-                                    videoServerSession.getConnectionId(),
-                                    videoServerSession.getScreenHandleId(),
-                                    meetingId));
-
-                        // Wait for all plugin destruction tasks to complete
-                        return CompletableFuture.allOf(
-                                pluginFutures.toArray(new CompletableFuture[0]))
-                            .thenCompose(
-                                v ->
-                                    // After destroying all plugins, destroy the connection
-                                    destroyConnection(
-                                        serverId, videoServerSession.getConnectionId(), meetingId))
-                            .thenRun(() -> videoServerSessionRepository.remove(videoServerSession));
-                      })
-                  .orElse(CompletableFuture.completedFuture(null));
-            })
-        .orElseGet(() -> CompletableFuture.completedFuture(null));
+                        destroyParticipantSession(meetingId, videoServerSession, serverId);
+                        videoServerSessionRepository.remove(videoServerSession);
+                      });
+            });
   }
 
-  @Override
-  public Optional<VideoServerSession> getSession(String connectionId) {
-    return videoServerSessionRepository.getByConnectionId(connectionId);
+  private void destroyParticipantSession(
+      String meetingId, VideoServerSession videoServerSession, UUID serverId) {
+    destroyPluginHandle(
+        serverId,
+        videoServerSession.getConnectionId(),
+        videoServerSession.getAudioHandleId(),
+        meetingId);
+    destroyPluginHandle(
+        serverId,
+        videoServerSession.getConnectionId(),
+        videoServerSession.getVideoOutHandleId(),
+        meetingId);
+    destroyPluginHandle(
+        serverId,
+        videoServerSession.getConnectionId(),
+        videoServerSession.getVideoInHandleId(),
+        meetingId);
+    destroyPluginHandle(
+        serverId,
+        videoServerSession.getConnectionId(),
+        videoServerSession.getScreenHandleId(),
+        meetingId);
+
+    destroyConnection(serverId, videoServerSession.getConnectionId(), meetingId);
   }
 
   @Override
@@ -590,41 +532,39 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
-  public CompletableFuture<Void> updateMediaStream(
+  public void updateMediaStream(
       String userId, String meetingId, MediaStreamSettingsDto mediaStreamSettingsDto) {
 
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
     UUID serverId = UUID.fromString(videoServerMeeting.getServerId());
 
-    CompletableFuture<Void> updateFuture =
-        switch (mediaStreamSettingsDto.getType()) {
-          case VIDEO ->
-              updateVideoStream(
-                  serverId,
-                  userId,
-                  meetingId,
-                  videoServerSession,
-                  mediaStreamSettingsDto.isEnabled(),
-                  mediaStreamSettingsDto.getSdp());
-          case SCREEN ->
-              updateScreenStream(
-                  serverId,
-                  userId,
-                  meetingId,
-                  videoServerSession,
-                  mediaStreamSettingsDto.isEnabled(),
-                  mediaStreamSettingsDto.getSdp());
-        };
-
-    return updateFuture.exceptionally(
-        ex -> {
-          throw new VideoServerException(
-              "Failed to update media stream for user " + userId + " in meeting " + meetingId, ex);
-        });
+    try {
+      switch (mediaStreamSettingsDto.getType()) {
+        case VIDEO ->
+            updateVideoStream(
+                serverId,
+                userId,
+                meetingId,
+                videoServerSession,
+                mediaStreamSettingsDto.isEnabled(),
+                mediaStreamSettingsDto.getSdp());
+        case SCREEN ->
+            updateScreenStream(
+                serverId,
+                userId,
+                meetingId,
+                videoServerSession,
+                mediaStreamSettingsDto.isEnabled(),
+                mediaStreamSettingsDto.getSdp());
+      }
+    } catch (Exception ex) {
+      throw new VideoServerException(
+          "Failed to update media stream for user " + userId + " in meeting " + meetingId, ex);
+    }
   }
 
-  private CompletableFuture<Void> updateVideoStream(
+  private void updateVideoStream(
       UUID serverId,
       String userId,
       String meetingId,
@@ -638,25 +578,23 @@ public class VideoServerServiceImpl implements VideoServerService {
               + userId
               + " for the meeting "
               + meetingId);
-      return CompletableFuture.completedFuture(null);
+      return;
     }
 
-    CompletableFuture<Void> publishFuture =
-        enabled
-            ? publishStreamOnVideoRoom(
-                serverId,
-                userId,
-                videoServerSession.getConnectionId(),
-                videoServerSession.getVideoOutHandleId(),
-                sdp,
-                MediaType.VIDEO.toString().toLowerCase())
-            : CompletableFuture.completedFuture(null);
+    if (enabled) {
+      publishStreamOnVideoRoom(
+          serverId,
+          userId,
+          videoServerSession.getConnectionId(),
+          videoServerSession.getVideoOutHandleId(),
+          sdp,
+          MediaType.VIDEO.toString().toLowerCase());
+    }
 
-    return publishFuture.thenRun(
-        () -> videoServerSessionRepository.update(videoServerSession.videoOutStreamOn(enabled)));
+    videoServerSessionRepository.update(videoServerSession.videoOutStreamOn(enabled));
   }
 
-  private CompletableFuture<Void> updateScreenStream(
+  private void updateScreenStream(
       UUID serverId,
       String userId,
       String meetingId,
@@ -670,25 +608,23 @@ public class VideoServerServiceImpl implements VideoServerService {
               + userId
               + " for the meeting "
               + meetingId);
-      return CompletableFuture.completedFuture(null);
+      return;
     }
 
-    CompletableFuture<Void> publishFuture =
-        enabled
-            ? publishStreamOnVideoRoom(
-                serverId,
-                userId,
-                videoServerSession.getConnectionId(),
-                videoServerSession.getScreenHandleId(),
-                sdp,
-                MediaType.SCREEN.toString().toLowerCase())
-            : CompletableFuture.completedFuture(null);
+    if (enabled) {
+      publishStreamOnVideoRoom(
+          serverId,
+          userId,
+          videoServerSession.getConnectionId(),
+          videoServerSession.getScreenHandleId(),
+          sdp,
+          MediaType.SCREEN.toString().toLowerCase());
+    }
 
-    return publishFuture.thenRun(
-        () -> videoServerSessionRepository.update(videoServerSession.screenStreamOn(enabled)));
+    videoServerSessionRepository.update(videoServerSession.screenStreamOn(enabled));
   }
 
-  private CompletableFuture<Void> publishStreamOnVideoRoom(
+  private void publishStreamOnVideoRoom(
       UUID serverId,
       String userId,
       String connectionId,
@@ -696,7 +632,8 @@ public class VideoServerServiceImpl implements VideoServerService {
       String sessionDescriptionProtocol,
       String mediaType) {
 
-    return sendVideoRoomPluginMessage(
+    VideoRoomResponse videoRoomResponse =
+        sendVideoRoomPluginMessage(
             serverId,
             connectionId,
             handleId,
@@ -709,49 +646,44 @@ public class VideoServerServiceImpl implements VideoServerService {
                         userId,
                         OffsetDateTime.now(clock)
                             .format(DateTimeFormatter.ofPattern(DATE_TIME_DEFAULT_FORMAT)))),
-            RtcSessionDescription.create().type(RtcType.OFFER).sdp(sessionDescriptionProtocol))
-        .thenAccept(
-            videoRoomResponse -> {
-              if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
-                throw new VideoServerException(
-                    "An error occurred while connection id "
-                        + connectionId
-                        + " is publishing "
-                        + mediaType
-                        + " stream");
-              }
-            });
+            RtcSessionDescription.create().type(RtcType.OFFER).sdp(sessionDescriptionProtocol));
+
+    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
+      throw new VideoServerException(
+          "An error occurred while connection id "
+              + connectionId
+              + " is publishing "
+              + mediaType
+              + " stream");
+    }
   }
 
   @Override
-  public CompletableFuture<Void> updateAudioStream(
-      String userId, String meetingId, boolean enabled) {
+  public void updateAudioStream(String userId, String meetingId, boolean enabled) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
 
-    // If the stream status is already as requested, we skip the operation
     if (videoServerSession.hasAudioStreamOn() == enabled) {
       ChatsLogger.debug(
           String.format(
               "Audio stream status is already %s for user %s in meeting %s",
               enabled ? "enabled" : "disabled", userId, meetingId));
-      return CompletableFuture.completedFuture(null);
+      return;
     }
 
-    // Otherwise, mute or unmute the audio stream as requested
-    return muteAudioStream(
-            UUID.fromString(videoServerMeeting.getServerId()),
-            videoServerMeeting.getConnectionId(),
-            videoServerSession.getConnectionId(),
-            userId,
-            videoServerMeeting.getAudioHandleId(),
-            videoServerMeeting.getAudioRoomId(),
-            enabled)
-        .thenRun(
-            () -> videoServerSessionRepository.update(videoServerSession.audioStreamOn(enabled)));
+    muteAudioStream(
+        UUID.fromString(videoServerMeeting.getServerId()),
+        videoServerMeeting.getConnectionId(),
+        videoServerSession.getConnectionId(),
+        userId,
+        videoServerMeeting.getAudioHandleId(),
+        videoServerMeeting.getAudioRoomId(),
+        enabled);
+
+    videoServerSessionRepository.update(videoServerSession.audioStreamOn(enabled));
   }
 
-  private CompletableFuture<Void> muteAudioStream(
+  private void muteAudioStream(
       UUID serverId,
       String meetingConnectionId,
       String connectionId,
@@ -760,7 +692,8 @@ public class VideoServerServiceImpl implements VideoServerService {
       String audioRoomId,
       boolean enabled) {
 
-    return sendAudioBridgePluginMessage(
+    AudioBridgeResponse audioBridgeResponse =
+        sendAudioBridgePluginMessage(
             serverId,
             meetingConnectionId,
             meetingAudioHandleId,
@@ -768,89 +701,67 @@ public class VideoServerServiceImpl implements VideoServerService {
                 .request(enabled ? AudioBridgeMuteRequest.UNMUTE : AudioBridgeMuteRequest.MUTE)
                 .room(audioRoomId)
                 .id(userId),
-            null)
-        .thenAccept(
-            audioBridgeResponse -> {
-              if (!AudioBridgeResponse.SUCCESS.equals(audioBridgeResponse.getAudioBridge())) {
-                throw new VideoServerException(
-                    String.format(
-                        "An error occurred while setting audio stream status for user %s with"
-                            + " connection id %s",
-                        userId, connectionId));
-              }
-            })
-        .exceptionally(
-            ex -> {
-              throw new VideoServerException(
-                  String.format(
-                      "An error occurred while changing audio stream for user %s with connection id"
-                          + " %s",
-                      userId, connectionId),
-                  ex);
-            });
+            null);
+
+    if (!AudioBridgeResponse.SUCCESS.equals(audioBridgeResponse.getAudioBridge())) {
+      throw new VideoServerException(
+          String.format(
+              "An error occurred while setting audio stream status for user %s with connection id"
+                  + " %s",
+              userId, connectionId));
+    }
   }
 
   @Override
-  public CompletableFuture<Void> answerRtcMediaStream(String userId, String meetingId, String sdp) {
+  public void answerRtcMediaStream(String userId, String meetingId, String sdp) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
     UUID serverId = UUID.fromString(videoServerMeeting.getServerId());
 
-    return startVideoIn(
+    startVideoIn(
         serverId,
         videoServerSession.getConnectionId(),
         videoServerSession.getVideoInHandleId(),
         sdp);
   }
 
-  private CompletableFuture<Void> startVideoIn(
+  private void startVideoIn(
       UUID serverId, String connectionId, String videoInHandleId, String sdp) {
-
-    return sendVideoRoomPluginMessage(
+    VideoRoomResponse videoRoomResponse =
+        sendVideoRoomPluginMessage(
             serverId,
             connectionId,
             videoInHandleId,
             VideoRoomStartVideoInRequest.create().request(VideoRoomStartVideoInRequest.START),
-            RtcSessionDescription.create().type(RtcType.ANSWER).sdp(sdp))
-        .thenAccept(
-            videoRoomResponse -> {
-              if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
-                throw new VideoServerException(
-                    String.format(
-                        "An error occurred while session with connection id %s is starting"
-                            + " receiving video streams",
-                        connectionId));
-              }
-            })
-        .exceptionally(
-            ex -> {
-              throw new VideoServerException(
-                  String.format(
-                      "An error occurred while starting video in for connection id %s",
-                      connectionId),
-                  ex);
-            });
+            RtcSessionDescription.create().type(RtcType.ANSWER).sdp(sdp));
+
+    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
+      ChatsLogger.debug(
+          String.format(
+              "An error occurred while session with connection id %s is starting receiving video"
+                  + " streams",
+              connectionId));
+    }
   }
 
   @Override
-  public CompletableFuture<Void> updateSubscriptionsMediaStream(
+  public void updateSubscriptionsMediaStream(
       String userId, String meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
     UUID serverId = UUID.fromString(videoServerMeeting.getServerId());
 
     if (!videoServerSession.hasVideoInStreamOn()) {
-      return joinVideoRoomAsSubscriber(
-              serverId,
-              videoServerSession.getConnectionId(),
-              userId,
-              videoServerSession.getVideoInHandleId(),
-              videoServerMeeting.getVideoRoomId(),
-              subscriptionUpdatesDto.getSubscribe())
-          .thenRun(
-              () -> videoServerSessionRepository.update(videoServerSession.videoInStreamOn(true)));
+      joinVideoRoomAsSubscriber(
+          serverId,
+          videoServerSession.getConnectionId(),
+          userId,
+          videoServerSession.getVideoInHandleId(),
+          videoServerMeeting.getVideoRoomId(),
+          subscriptionUpdatesDto.getSubscribe());
+      videoServerSessionRepository.update(videoServerSession.videoInStreamOn(true));
     } else {
-      return updateSubscriptions(
+      updateSubscriptions(
           serverId,
           videoServerSession.getConnectionId(),
           userId,
@@ -859,7 +770,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     }
   }
 
-  private CompletableFuture<Void> joinVideoRoomAsSubscriber(
+  private void joinVideoRoomAsSubscriber(
       UUID serverId,
       String connectionId,
       String userId,
@@ -867,7 +778,8 @@ public class VideoServerServiceImpl implements VideoServerService {
       String videoRoomId,
       List<MediaStreamDto> mediaStreamDtos) {
 
-    return sendVideoRoomPluginMessage(
+    VideoRoomResponse videoRoomResponse =
+        sendVideoRoomPluginMessage(
             serverId,
             connectionId,
             videoHandleId,
@@ -892,28 +804,27 @@ public class VideoServerServiceImpl implements VideoServerService {
                                             .userId(mediaStreamDto.getUserId())
                                             .toString()))
                         .toList()),
-            null)
-        .thenAccept(
-            videoRoomResponse -> {
-              if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
-                throw new VideoServerException(
-                    "An error occurred while user "
-                        + userId
-                        + " with connection id "
-                        + connectionId
-                        + " is joining video room as subscriber");
-              }
-            });
+            null);
+
+    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
+      throw new VideoServerException(
+          "An error occurred while user "
+              + userId
+              + " with connection id "
+              + connectionId
+              + " is joining video room as subscriber");
+    }
   }
 
-  private CompletableFuture<Void> updateSubscriptions(
+  private void updateSubscriptions(
       UUID serverId,
       String connectionId,
       String userId,
       String videoInHandleId,
       SubscriptionUpdatesDto subscriptionUpdatesDto) {
 
-    return sendVideoRoomPluginMessage(
+    VideoRoomResponse videoRoomResponse =
+        sendVideoRoomPluginMessage(
             serverId,
             connectionId,
             videoInHandleId,
@@ -953,27 +864,25 @@ public class VideoServerServiceImpl implements VideoServerService {
                                             .userId(mediaStreamDto.getUserId())
                                             .toString()))
                         .toList()),
-            null)
-        .thenAccept(
-            videoRoomResponse -> {
-              if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
-                throw new VideoServerException(
-                    "An error occurred while user "
-                        + userId
-                        + " with connection id "
-                        + connectionId
-                        + " is updating media subscriptions in the video room");
-              }
-            });
+            null);
+
+    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
+      ChatsLogger.debug(
+          "An error occurred while user "
+              + userId
+              + " with connection id "
+              + connectionId
+              + " is updating media subscriptions in the video room");
+    }
   }
 
   @Override
-  public CompletableFuture<Void> offerRtcAudioStream(String userId, String meetingId, String sdp) {
+  public void offerRtcAudioStream(String userId, String meetingId, String sdp) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
     UUID serverId = UUID.fromString(videoServerMeeting.getServerId());
 
-    return joinAudioBridgeRoom(
+    joinAudioBridgeRoom(
         serverId,
         userId,
         videoServerSession.getConnectionId(),
@@ -982,7 +891,7 @@ public class VideoServerServiceImpl implements VideoServerService {
         sdp);
   }
 
-  private CompletableFuture<Void> joinAudioBridgeRoom(
+  private void joinAudioBridgeRoom(
       UUID serverId,
       String userId,
       String connectionId,
@@ -990,7 +899,8 @@ public class VideoServerServiceImpl implements VideoServerService {
       String audioRoomId,
       String sdp) {
 
-    return sendAudioBridgePluginMessage(
+    AudioBridgeResponse audioBridgeResponse =
+        sendAudioBridgePluginMessage(
             serverId,
             connectionId,
             audioHandleId,
@@ -1006,31 +916,20 @@ public class VideoServerServiceImpl implements VideoServerService {
                         userId,
                         OffsetDateTime.now(clock)
                             .format(DateTimeFormatter.ofPattern(DATE_TIME_DEFAULT_FORMAT)))),
-            RtcSessionDescription.create().type(RtcType.OFFER).sdp(sdp))
-        .thenAccept(
-            audioBridgeResponse -> {
-              if (!AudioBridgeResponse.ACK.equals(audioBridgeResponse.getStatus())) {
-                throw new VideoServerException(
-                    "An error occurred while user "
-                        + userId
-                        + " with connection id "
-                        + connectionId
-                        + " is joining the audio room");
-              }
-            })
-        .exceptionally(
-            ex -> {
-              throw new VideoServerException(
-                  "Failed to join audio bridge room for user "
-                      + userId
-                      + " and connection "
-                      + connectionId,
-                  ex);
-            });
+            RtcSessionDescription.create().type(RtcType.OFFER).sdp(sdp));
+
+    if (!AudioBridgeResponse.ACK.equals(audioBridgeResponse.getStatus())) {
+      throw new VideoServerException(
+          "An error occurred while user "
+              + userId
+              + " with connection id "
+              + connectionId
+              + " is joining the audio room");
+    }
   }
 
   @Override
-  public CompletableFuture<Void> startRecording(String meetingId) {
+  public void startRecording(String meetingId) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     String filePath =
         recordingPath
@@ -1047,28 +946,16 @@ public class VideoServerServiceImpl implements VideoServerService {
     String audioHandleId = videoServerMeeting.getAudioHandleId();
     String audioRoomId = videoServerMeeting.getAudioRoomId();
 
-    // Perform the edit video room operation first
-    CompletableFuture<Void> editRoomFuture =
-        editVideoRoom(serverId, connectionId, videoHandleId, videoRoomId, filePath, meetingId);
+    editVideoRoom(serverId, connectionId, videoHandleId, videoRoomId, filePath, meetingId);
 
-    // After the video room has been edited, start recording audio and video in parallel
-    return editRoomFuture.thenCompose(
-        aVoid -> {
-          CompletableFuture<Void> audioRecordingFuture =
-              updateAudioBridgeRoomRecordingStatus(
-                  serverId, connectionId, audioHandleId, audioRoomId, true, meetingId, filePath);
-
-          CompletableFuture<Void> videoRecordingFuture =
-              updateVideoRoomRecordingStatus(
-                  serverId, connectionId, videoHandleId, videoRoomId, true, meetingId);
-
-          // Wait for both audio and video updates to complete
-          return CompletableFuture.allOf(audioRecordingFuture, videoRecordingFuture);
-        });
+    updateAudioBridgeRoomRecordingStatus(
+        serverId, connectionId, audioHandleId, audioRoomId, true, meetingId, filePath);
+    updateVideoRoomRecordingStatus(
+        serverId, connectionId, videoHandleId, videoRoomId, true, meetingId);
   }
 
   @Override
-  public CompletableFuture<Void> stopRecording(String meetingId, RecordingInfo recordingInfo) {
+  public void stopRecording(String meetingId, RecordingInfo recordingInfo) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
 
     UUID serverId = UUID.fromString(videoServerMeeting.getServerId());
@@ -1078,35 +965,26 @@ public class VideoServerServiceImpl implements VideoServerService {
     String audioHandleId = videoServerMeeting.getAudioHandleId();
     String audioRoomId = videoServerMeeting.getAudioRoomId();
 
-    // Perform the audio and video recording updates in parallel
-    CompletableFuture<Void> audioRecordingFuture =
-        updateAudioBridgeRoomRecordingStatus(
-            serverId,
-            connectionId,
-            audioHandleId,
-            audioRoomId,
-            false,
-            videoServerMeeting.getMeetingId(),
-            null);
+    updateAudioBridgeRoomRecordingStatus(
+        serverId,
+        connectionId,
+        audioHandleId,
+        audioRoomId,
+        false,
+        videoServerMeeting.getMeetingId(),
+        null);
+    updateVideoRoomRecordingStatus(
+        serverId,
+        connectionId,
+        videoHandleId,
+        videoRoomId,
+        false,
+        videoServerMeeting.getMeetingId());
 
-    CompletableFuture<Void> videoRecordingFuture =
-        updateVideoRoomRecordingStatus(
-            serverId,
-            connectionId,
-            videoHandleId,
-            videoRoomId,
-            false,
-            videoServerMeeting.getMeetingId());
-
-    // Wait for both audio and video updates to complete
-    return CompletableFuture.allOf(audioRecordingFuture, videoRecordingFuture)
-        .thenRun(
-            () ->
-                videoRecorderService.startRecordingPostProcessing(
-                    recordingInfo.serverId(serverId.toString())));
+    videoRecorderService.startRecordingPostProcessing(recordingInfo.serverId(serverId.toString()));
   }
 
-  private CompletableFuture<Void> updateAudioBridgeRoomRecordingStatus(
+  private void updateAudioBridgeRoomRecordingStatus(
       UUID serverId,
       String connectionId,
       String audioHandleId,
@@ -1125,20 +1003,18 @@ public class VideoServerServiceImpl implements VideoServerService {
       request.mjrsDir(recordingPath);
     }
 
-    return sendAudioBridgePluginMessage(serverId, connectionId, audioHandleId, request, null)
-        .thenAccept(
-            audioBridgeResponse -> {
-              if (!AudioBridgeResponse.SUCCESS.equals(audioBridgeResponse.getStatus())) {
-                throw new VideoServerException(
-                    "An error occurred while recording the audiobridge room for connection "
-                        + connectionId
-                        + " and meeting "
-                        + meetingId);
-              }
-            });
+    AudioBridgeResponse audioBridgeResponse =
+        sendAudioBridgePluginMessage(serverId, connectionId, audioHandleId, request, null);
+    if (!AudioBridgeResponse.SUCCESS.equals(audioBridgeResponse.getStatus())) {
+      throw new VideoServerException(
+          "An error occurred while recording the audiobridge room for connection "
+              + connectionId
+              + " and meeting "
+              + meetingId);
+    }
   }
 
-  private CompletableFuture<Void> editVideoRoom(
+  private void editVideoRoom(
       UUID serverId,
       String connectionId,
       String videoHandleId,
@@ -1146,7 +1022,8 @@ public class VideoServerServiceImpl implements VideoServerService {
       String filePath,
       String meetingId) {
 
-    return sendVideoRoomPluginMessage(
+    VideoRoomResponse videoRoomResponse =
+        sendVideoRoomPluginMessage(
             serverId,
             connectionId,
             videoHandleId,
@@ -1154,20 +1031,18 @@ public class VideoServerServiceImpl implements VideoServerService {
                 .request(VideoRoomEditRequest.EDIT)
                 .room(videoRoomId)
                 .newRecDir(filePath),
-            null)
-        .thenAccept(
-            videoRoomResponse -> {
-              if (!VideoRoomResponse.SUCCESS.equals(videoRoomResponse.getStatus())) {
-                throw new VideoServerException(
-                    "An error occurred while setting rec dir on videoroom for connection "
-                        + connectionId
-                        + " and meeting "
-                        + meetingId);
-              }
-            });
+            null);
+
+    if (!VideoRoomResponse.SUCCESS.equals(videoRoomResponse.getStatus())) {
+      throw new VideoServerException(
+          "An error occurred while setting rec dir on videoroom for connection "
+              + connectionId
+              + " and meeting "
+              + meetingId);
+    }
   }
 
-  private CompletableFuture<Void> updateVideoRoomRecordingStatus(
+  private void updateVideoRoomRecordingStatus(
       UUID serverId,
       String connectionId,
       String videoHandleId,
@@ -1175,7 +1050,8 @@ public class VideoServerServiceImpl implements VideoServerService {
       boolean enabled,
       String meetingId) {
 
-    return sendVideoRoomPluginMessage(
+    VideoRoomResponse videoRoomResponse =
+        sendVideoRoomPluginMessage(
             serverId,
             connectionId,
             videoHandleId,
@@ -1183,17 +1059,15 @@ public class VideoServerServiceImpl implements VideoServerService {
                 .request(VideoRoomEnableRecordingRequest.ENABLE_RECORDING)
                 .room(videoRoomId)
                 .record(enabled),
-            null)
-        .thenAccept(
-            videoRoomResponse -> {
-              if (!VideoRoomResponse.SUCCESS.equals(videoRoomResponse.getStatus())) {
-                throw new VideoServerException(
-                    "An error occurred while recording the videoroom for connection "
-                        + connectionId
-                        + " and meeting "
-                        + meetingId);
-              }
-            });
+            null);
+
+    if (!VideoRoomResponse.SUCCESS.equals(videoRoomResponse.getStatus())) {
+      throw new VideoServerException(
+          "An error occurred while recording the videoroom for connection "
+              + connectionId
+              + " and meeting "
+              + meetingId);
+    }
   }
 
   private VideoServerMeeting getVideoServerMeeting(String meetingId) {
@@ -1236,12 +1110,12 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   /**
-   * This method asynchronously creates a 'connection' (session) on the VideoServer.
+   * This method creates a 'connection' (session) on the VideoServer.
    *
    * @param serverId {@link UUID} of the destination server
-   * @return CompletableFuture<VideoServerResponse>
+   * @return VideoServerResponse
    */
-  private CompletableFuture<VideoServerResponse> createConnection(UUID serverId) {
+  private VideoServerResponse createConnection(UUID serverId) {
     VideoServerMessageRequest request =
         VideoServerMessageRequest.create()
             .messageRequest(JANUS_CREATE)
@@ -1251,28 +1125,32 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   /**
-   * This method asynchronously destroys a specified connection on the VideoServer.
+   * This method destroys a specified connection on the VideoServer.
    *
    * @param serverId {@link UUID} of the destination server
    * @param connectionId the 'connection' (session) id
-   * @return CompletableFuture<VideoServerResponse>
+   * @return VideoServerResponse
    */
-  private CompletableFuture<VideoServerResponse> destroyConnection(
-      UUID serverId, String connectionId) {
-    return interactWithConnection(serverId, connectionId, JANUS_DESTROY, null);
+  private VideoServerResponse destroyConnection(UUID serverId, String connectionId) {
+    return interactWithConnection(serverId, connectionId, JANUS_DESTROY, null, null);
   }
 
   /**
-   * This method allows asynchronous interaction with a connection on the VideoServer.
+   * This method allows interaction with a connection on the VideoServer.
    *
    * @param serverId {@link UUID} of the destination server
    * @param connectionId the 'connection' (session) id created on the VideoServer
    * @param action the action to perform on this 'connection' (session)
+   * @param opaqueId the user id or meeting id associated to this handle-session on the VideoServer
    * @param pluginName the plugin name to perform the action with (optional)
-   * @return CompletableFuture<VideoServerResponse>
+   * @return VideoServerResponse
    */
-  private CompletableFuture<VideoServerResponse> interactWithConnection(
-      UUID serverId, String connectionId, String action, @Nullable String pluginName) {
+  private VideoServerResponse interactWithConnection(
+      UUID serverId,
+      String connectionId,
+      String action,
+      @Nullable String pluginName,
+      @Nullable String opaqueId) {
 
     VideoServerMessageRequest request =
         VideoServerMessageRequest.create()
@@ -1280,33 +1158,34 @@ public class VideoServerServiceImpl implements VideoServerService {
             .transactionId(UUID.randomUUID().toString())
             .apiSecret(apiSecret);
     Optional.ofNullable(pluginName).ifPresent(request::pluginName);
+    Optional.ofNullable(opaqueId).ifPresent(request::opaqueId);
 
     return videoServerClient.sendConnectionVideoServerRequest(
         connectionId, serverId.toString(), request);
   }
 
   /**
-   * This method asynchronously destroys the previously attached plugin handle.
+   * This method destroys the previously attached plugin handle.
    *
    * @param serverId {@link UUID} of the destination server
    * @param connectionId the 'connection' (session) id
    * @param handleId the plugin handle id
-   * @return CompletableFuture<VideoServerResponse>
+   * @return VideoServerResponse
    */
-  private CompletableFuture<VideoServerResponse> destroyPluginHandle(
+  private VideoServerResponse destroyPluginHandle(
       UUID serverId, String connectionId, String handleId) {
     return sendDetachPluginMessage(serverId, connectionId, handleId);
   }
 
   /**
-   * This method asynchronously detaches the audio bridge plugin handle.
+   * This method detaches the audio bridge plugin handle.
    *
    * @param serverId {@link UUID} of the destination server
    * @param connectionId the 'connection' (session) id
    * @param handleId the previously attached plugin handle id
-   * @return CompletableFuture<VideoServerResponse>
+   * @return VideoServerResponse
    */
-  private CompletableFuture<VideoServerResponse> sendDetachPluginMessage(
+  private VideoServerResponse sendDetachPluginMessage(
       UUID serverId, String connectionId, String handleId) {
 
     VideoServerMessageRequest request =
@@ -1320,16 +1199,16 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   /**
-   * This method asynchronously sends a message to an audio bridge plugin.
+   * This method sends a message to an audio bridge plugin.
    *
    * @param serverId {@link UUID} of the destination server
    * @param connectionId the 'connection' (session) id
    * @param handleId the audio bridge plugin handle id
    * @param videoServerPluginRequest the plugin request body
    * @param rtcSessionDescription the WebRTC negotiation session description (optional)
-   * @return CompletableFuture<AudioBridgeResponse>
+   * @return AudioBridgeResponse
    */
-  private CompletableFuture<AudioBridgeResponse> sendAudioBridgePluginMessage(
+  private AudioBridgeResponse sendAudioBridgePluginMessage(
       UUID serverId,
       String connectionId,
       String handleId,
@@ -1349,16 +1228,16 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   /**
-   * This method asynchronously sends a message to a video room plugin.
+   * This method sends a message to a video room plugin.
    *
    * @param serverId {@link UUID} of the destination server
    * @param connectionId the 'connection' (session) id
    * @param handleId the video room plugin handle id
    * @param videoServerPluginRequest the plugin request body
    * @param rtcSessionDescription the WebRTC negotiation session description (optional)
-   * @return CompletableFuture<VideoRoomResponse>
+   * @return VideoRoomResponse
    */
-  private CompletableFuture<VideoRoomResponse> sendVideoRoomPluginMessage(
+  private VideoRoomResponse sendVideoRoomPluginMessage(
       UUID serverId,
       String connectionId,
       String handleId,

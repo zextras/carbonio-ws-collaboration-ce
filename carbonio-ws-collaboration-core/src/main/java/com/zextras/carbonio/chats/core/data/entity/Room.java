@@ -7,7 +7,18 @@ package com.zextras.carbonio.chats.core.data.entity;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.annotation.WhenCreated;
 import io.ebean.annotation.WhenModified;
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -37,19 +48,6 @@ public class Room {
 
   @Column(name = "MEETING_ID", length = 64)
   private String meetingId;
-
-  @Column(name = "PARENT_ID", length = 64)
-  private String parentId;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "PARENT_ID", updatable = false, insertable = false)
-  private Room parent;
-
-  @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-  private List<Room> children;
-
-  @Column(name = "RANK")
-  private Integer rank;
 
   @Column(name = "CREATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
@@ -130,42 +128,6 @@ public class Room {
 
   public Room meetingId(String meetingId) {
     this.meetingId = meetingId;
-    return this;
-  }
-
-  public String getParentId() {
-    return parentId;
-  }
-
-  public Room parentId(String parentId) {
-    this.parentId = parentId;
-    return this;
-  }
-
-  public Room getParent() {
-    return parent;
-  }
-
-  public Room setParent(Room parent) {
-    this.parent = parent;
-    return this;
-  }
-
-  public List<Room> getChildren() {
-    return children;
-  }
-
-  public Room children(List<Room> children) {
-    this.children = children;
-    return this;
-  }
-
-  public Integer getRank() {
-    return rank;
-  }
-
-  public Room rank(Integer rank) {
-    this.rank = rank;
     return this;
   }
 

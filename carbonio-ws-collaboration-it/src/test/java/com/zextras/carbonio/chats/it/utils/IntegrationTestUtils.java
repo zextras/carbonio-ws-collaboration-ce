@@ -134,13 +134,14 @@ public class IntegrationTestUtils {
                       .owner(member.isOwner())
                       .joinedAt(OffsetDateTime.now()));
 
-          if (member.isMuted() || member.getRank() != null) {
+          if (member.isMuted()) {
             room.getUserSettings()
                 .add(
                     RoomUserSettings.create(room, member.getId().toString())
                         .mutedUntil(
-                            member.isMuted() ? OffsetDateTime.parse("0001-01-01T00:00:00Z") : null)
-                        .rank(member.getRank()));
+                            member.isMuted()
+                                ? OffsetDateTime.parse("0001-01-01T00:00:00Z")
+                                : null));
           }
         });
     return roomRepository.insert(room);
@@ -155,7 +156,6 @@ public class IntegrationTestUtils {
     private UUID id;
     private boolean owner = false;
     private boolean muted = false;
-    private Integer rank = null;
 
     public static RoomMemberField create() {
       return new RoomMemberField();
@@ -185,15 +185,6 @@ public class IntegrationTestUtils {
 
     public RoomMemberField muted(boolean muted) {
       this.muted = muted;
-      return this;
-    }
-
-    public Integer getRank() {
-      return rank;
-    }
-
-    public RoomMemberField rank(Integer rank) {
-      this.rank = rank;
       return this;
     }
   }
@@ -241,16 +232,8 @@ public class IntegrationTestUtils {
     return fileMetadataRepository.getById(fileId.toString());
   }
 
-  public Optional<User> getUserById(UUID id) {
-    return userRepository.getById(id.toString());
-  }
-
-  public User generateAndSaveUser(UUID id, String statusMessage, OffsetDateTime pictureUpdatedAt) {
-    return userRepository.save(
-        User.create()
-            .id(id.toString())
-            .statusMessage(statusMessage)
-            .pictureUpdatedAt(pictureUpdatedAt));
+  public User generateAndSaveUser(UUID id, String statusMessage) {
+    return userRepository.save(User.create().id(id.toString()).statusMessage(statusMessage));
   }
 
   public Optional<RoomUserSettings> getRoomUserSettings(UUID roomId, UUID userId) {

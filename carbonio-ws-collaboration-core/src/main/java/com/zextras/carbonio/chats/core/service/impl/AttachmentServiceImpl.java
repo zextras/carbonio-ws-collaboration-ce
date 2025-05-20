@@ -32,7 +32,6 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.IdDto;
-import com.zextras.carbonio.chats.model.RoomTypeDto;
 import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -142,11 +141,8 @@ public class AttachmentServiceImpl implements AttachmentService {
       @Nullable String replyId,
       @Nullable String area,
       UserPrincipal currentUser) {
-    Room room = roomService.getRoomAndValidateUser(roomId, currentUser, false);
-    if (List.of(RoomTypeDto.WORKSPACE, RoomTypeDto.CHANNEL).contains(room.getType())) {
-      throw new BadRequestException(
-          String.format("Cannot add attachments on %s rooms", room.getType()));
-    }
+    roomService.getRoomAndValidateUser(roomId, currentUser, false);
+
     UUID fileId = UUID.randomUUID();
     FileMetadata metadata =
         FileMetadata.create()

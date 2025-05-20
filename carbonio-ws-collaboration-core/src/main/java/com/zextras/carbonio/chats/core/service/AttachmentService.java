@@ -52,16 +52,16 @@ public interface AttachmentService {
   /**
    * Saves a room's attachment file
    *
-   * @param roomId        identifier of the room attachment {@link UUID}
-   * @param file          file stream to save {@link InputStream}
-   * @param mimeType      file mime type
-   * @param contentLength
-   * @param fileName      file name
-   * @param description   file description
-   * @param messageId     identifier of XMPP message to create
-   * @param replyId       identifier of the message being replied to
-   * @param area          attachment's area
-   * @param currentUser   current authenticated user {@link UserPrincipal}
+   * @param roomId identifier of the room attachment {@link UUID}
+   * @param file file stream to save {@link InputStream}
+   * @param mimeType file mime type
+   * @param contentLength file content length
+   * @param fileName file name
+   * @param description file description
+   * @param messageId identifier of XMPP message to create
+   * @param replyId identifier of the message being replied to
+   * @param area attachment's area
+   * @param currentUser current authenticated user {@link UserPrincipal}
    * @return The added file identifier {@link IdDto}
    */
   IdDto addAttachment(

@@ -17,6 +17,7 @@ import com.zextras.carbonio.chats.it.tools.PreviewerMockServer;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
+import com.zextras.carbonio.chats.it.utils.MockedAccount.MockUserProfile;
 import com.zextras.carbonio.chats.it.utils.MockedFiles;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.FileMock;
 import com.zextras.carbonio.chats.it.utils.MockedFiles.MockedFileType;
@@ -33,7 +34,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import org.jboss.resteasy.mock.MockHttpResponse;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -45,7 +45,7 @@ import org.mockserver.model.HttpResponse;
 import org.mockserver.model.MediaType;
 
 @ApiIntegrationTest
-public class PreviewApiIT {
+class PreviewApiIT {
 
   private final ResteasyRequestDispatcher dispatcher;
 
@@ -73,21 +73,19 @@ public class PreviewApiIT {
   private static UUID roomId;
 
   @BeforeAll
-  public static void initAll() {
-    user1Id = MockedAccount.getAccounts().get(0).getUUID();
-    user1Token = MockedAccount.getAccounts().get(0).getToken();
-    user2Id = MockedAccount.getAccounts().get(1).getUUID();
-    user3Token = MockedAccount.getAccounts().get(2).getToken();
+  static void initAll() {
+    List<MockUserProfile> internalAccounts = MockedAccount.getInternalAccounts();
+    user1Id = internalAccounts.get(0).getUUID();
+    user1Token = internalAccounts.get(0).getToken();
+    user2Id = internalAccounts.get(1).getUUID();
+    user3Token = internalAccounts.get(2).getToken();
     roomId = UUID.randomUUID();
   }
 
   @BeforeEach
-  public void init() {
+  void init() {
     previewMockServer.reset();
   }
-
-  @AfterEach
-  public void afterEach() {}
 
   private byte[] getFileBytes(String name) throws IOException {
     return Objects.requireNonNull(getClass().getResourceAsStream(String.format("/files/%s", name)))

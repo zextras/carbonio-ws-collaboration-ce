@@ -37,9 +37,6 @@ public class Recording {
   @Temporal(TemporalType.TIMESTAMP)
   private OffsetDateTime startedAt;
 
-  @Column(name = "TOKEN", length = 264, nullable = false)
-  private String token;
-
   @Column(name = "STATUS", length = 32, nullable = false)
   @Enumerated(EnumType.STRING)
   private RecordingStatus status;
@@ -81,15 +78,6 @@ public class Recording {
 
   public Recording startedAt(OffsetDateTime startedAt) {
     this.startedAt = startedAt;
-    return this;
-  }
-
-  public String getToken() {
-    return token;
-  }
-
-  public Recording token(String token) {
-    this.token = token;
     return this;
   }
 

@@ -55,14 +55,14 @@ class VideoRecorderServiceImplTest {
   private UUID userId;
 
   @BeforeEach
-  public void init() {
+  void init() {
     meeting1Id = UUID.randomUUID();
     recordingId = UUID.randomUUID();
     userId = UUID.randomUUID();
   }
 
   @AfterEach
-  public void cleanup() {
+  void cleanup() {
     verifyNoMoreInteractions(videoRecorderClient, recordingRepository);
     reset(videoRecorderClient, recordingRepository);
   }
@@ -87,7 +87,6 @@ class VideoRecorderServiceImplTest {
       assertEquals(OffsetDateTime.parse("2022-01-01T11:00:00Z"), recording.getStartedAt());
       assertEquals(userId.toString(), recording.getStarterId());
       assertEquals(RecordingStatus.STARTED, recording.getStatus());
-      assertEquals("fake-token", recording.getToken());
     }
   }
 
@@ -105,8 +104,7 @@ class VideoRecorderServiceImplTest {
               .meeting(meeting)
               .startedAt(OffsetDateTime.parse("2022-01-01T11:00:00Z"))
               .starterId(userId.toString())
-              .status(RecordingStatus.STARTED)
-              .token("fake-token");
+              .status(RecordingStatus.STARTED);
       videoRecorderService.saveRecordingStopped(recording);
 
       ArgumentCaptor<Recording> recordingArgumentCaptor = ArgumentCaptor.forClass(Recording.class);
@@ -119,7 +117,6 @@ class VideoRecorderServiceImplTest {
       assertEquals(OffsetDateTime.parse("2022-01-01T11:00:00Z"), recordingUpdated.getStartedAt());
       assertEquals(userId.toString(), recordingUpdated.getStarterId());
       assertEquals(RecordingStatus.STOPPED, recordingUpdated.getStatus());
-      assertEquals("fake-token", recordingUpdated.getToken());
     }
   }
 
@@ -135,10 +132,10 @@ class VideoRecorderServiceImplTest {
               RecordingInfo.create()
                   .serverId("serverId")
                   .meetingId(meeting1Id.toString())
+                  .accountId(userId.toString())
                   .meetingName("meeting-name")
                   .recordingName("rec-name")
-                  .folderId("rec-dir-id")
-                  .recordingToken("fake-token"))
+                  .folderId("rec-dir-id"))
           .join();
 
       verify(videoRecorderClient, times(1))
@@ -147,12 +144,12 @@ class VideoRecorderServiceImplTest {
               meeting1Id.toString(),
               VideoRecorderRequest.create()
                   .meetingId(meeting1Id.toString())
+                  .accountId(userId.toString())
                   .meetingName("meeting-name")
                   .audioActivePackets(10L)
                   .audioLevelAverage(65)
                   .folderId("rec-dir-id")
-                  .recordingName("rec-name")
-                  .authToken("ZM_AUTH_TOKEN=fake-token"));
+                  .recordingName("rec-name"));
     }
 
     @Test

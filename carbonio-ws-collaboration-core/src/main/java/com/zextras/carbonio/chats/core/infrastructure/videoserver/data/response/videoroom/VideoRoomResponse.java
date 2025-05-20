@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.PluginErrorResponse;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * This class represents a video room response provided by VideoServer.
@@ -104,12 +105,18 @@ public class VideoRoomResponse {
 
   @JsonIgnore
   public String getVideoRoom() {
-    return getPluginData().getDataInfo().getVideoRoom();
+    return Optional.ofNullable(getPluginData())
+        .map(VideoRoomPluginData::getDataInfo)
+        .map(VideoRoomDataInfo::getVideoRoom)
+        .orElse(null);
   }
 
   @JsonIgnore
   public String getRoom() {
-    return getPluginData().getDataInfo().getRoom();
+    return Optional.ofNullable(getPluginData())
+        .map(VideoRoomPluginData::getDataInfo)
+        .map(VideoRoomDataInfo::getRoom)
+        .orElse(null);
   }
 
   @Override

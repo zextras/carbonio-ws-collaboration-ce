@@ -8,24 +8,22 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.V
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.VideoServerResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.audiobridge.AudioBridgeResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.videoroom.VideoRoomResponse;
-import java.util.concurrent.CompletableFuture;
 
 public interface VideoServerClient {
 
   VideoServerResponse sendGetInfoRequest();
 
-  CompletableFuture<VideoServerResponse> sendVideoServerRequest(
-      String serverId, VideoServerMessageRequest request);
+  VideoServerResponse sendVideoServerRequest(String serverId, VideoServerMessageRequest request);
 
-  CompletableFuture<VideoServerResponse> sendConnectionVideoServerRequest(
+  VideoServerResponse sendConnectionVideoServerRequest(
       String connectionId, String serverId, VideoServerMessageRequest request);
 
-  CompletableFuture<VideoServerResponse> sendHandleVideoServerRequest(
+  VideoServerResponse sendHandleVideoServerRequest(
       String connectionId, String handleId, String serverId, VideoServerMessageRequest request);
 
-  CompletableFuture<AudioBridgeResponse> sendAudioBridgeRequest(
+  AudioBridgeResponse sendAudioBridgeRequest(
       String connectionId, String handleId, String serverId, VideoServerMessageRequest request);
 
-  CompletableFuture<VideoRoomResponse> sendVideoRoomRequest(
+  VideoRoomResponse sendVideoRoomRequest(
       String connectionId, String handleId, String serverId, VideoServerMessageRequest request);
 }

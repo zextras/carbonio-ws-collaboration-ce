@@ -8,6 +8,8 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.api.AttachmentsApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.data.type.UserType;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
@@ -29,12 +31,15 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
     this.attachmentService = attachmentService;
   }
 
+  private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
+    return Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+        .orElseThrow(UnauthorizedException::new);
+  }
+
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response getAttachment(UUID fileId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     FileContentAndMetadata attachment = attachmentService.getAttachmentById(fileId, currentUser);
     return Response.status(Status.OK)
         .entity(attachment)
@@ -49,9 +54,7 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
   @Override
   @TimedCall
   public Response getAttachmentInfo(UUID fileId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.ok()
         .entity(attachmentService.getAttachmentInfoById(fileId, currentUser))
         .build();
@@ -60,9 +63,10 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
   @Override
   @TimedCall
   public Response deleteAttachment(UUID fileId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     attachmentService.deleteAttachment(fileId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }

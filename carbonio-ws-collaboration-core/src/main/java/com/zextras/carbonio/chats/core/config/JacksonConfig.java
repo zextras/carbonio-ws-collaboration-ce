@@ -9,11 +9,13 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.api.RFC3339DateFormat;
 import jakarta.ws.rs.ext.ContextResolver;
 import jakarta.ws.rs.ext.Provider;
 
 @Provider
+@Singleton
 public class JacksonConfig
     implements jakarta.inject.Provider<ObjectMapper>, ContextResolver<ObjectMapper> {
 

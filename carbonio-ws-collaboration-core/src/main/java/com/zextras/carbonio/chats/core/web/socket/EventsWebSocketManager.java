@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.web.socket;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -14,7 +15,6 @@ import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.WaitingParticipantService;
 import jakarta.servlet.http.HttpSession;
-import jakarta.websocket.EncodeException;
 import jakarta.websocket.OnClose;
 import jakarta.websocket.OnError;
 import jakarta.websocket.OnMessage;
@@ -30,10 +30,13 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Singleton
 @ServerEndpoint(value = "/events")
-public class EventsWebSocketEndpoint {
+public class EventsWebSocketManager {
 
   private static final String PING = "ping";
   private static final String PONG = "pong";
+
+  private static final String USER_ROUTING_KEY = "user-events";
+
   private final Map<String, String> consumerTagMap;
   private final Channel channel;
   private final ObjectMapper objectMapper;
@@ -41,7 +44,7 @@ public class EventsWebSocketEndpoint {
   private final WaitingParticipantService waitingParticipantService;
 
   @Inject
-  public EventsWebSocketEndpoint(
+  public EventsWebSocketManager(
       Channel channel,
       ObjectMapper objectMapper,
       ParticipantService participantService,
@@ -51,43 +54,48 @@ public class EventsWebSocketEndpoint {
     this.participantService = participantService;
     this.waitingParticipantService = waitingParticipantService;
     this.consumerTagMap = new ConcurrentHashMap<>();
+    Runtime.getRuntime()
+        .addShutdownHook(new Thread(this::stop, "Event websocket manager shutdown hook"));
   }
 
   @OnOpen
-  public void onOpen(Session session) throws IOException, EncodeException {
+  public void onOpen(Session session) throws IOException {
+    SessionPingManager.add(session);
+
     UUID userId = UUID.fromString(getUserIdFromSession(session));
     UUID queueId = UUID.fromString(session.getId());
     String userQueue = userId + "/" + queueId;
-    session.setMaxIdleTimeout(0L);
     session
-        .getBasicRemote()
+        .getAsyncRemote()
         .sendObject(objectMapper.writeValueAsString(SessionOutEvent.create(queueId)));
     if (channel == null || !channel.isOpen()) {
       ChatsLogger.error(
           String.format(
-              "Unable to open session %s: event websocket handler channel is not up!", queueId));
+              "Unable to open websocket session %s: event websocket manager channel is not up!",
+              queueId));
       return;
     }
     try {
-      channel.queueDeclare(userQueue, false, false, true, null);
-      channel.exchangeDeclare(userId.toString(), "direct");
-      channel.queueBind(userQueue, userId.toString(), "");
+      channel.exchangeDeclare(userId.toString(), BuiltinExchangeType.DIRECT, false, false, null);
+      channel.queueDeclare(queueId.toString(), false, false, true, null);
+      channel.queueBind(queueId.toString(), userId.toString(), USER_ROUTING_KEY);
       DeliverCallback deliverCallback =
           (consumerTag, delivery) -> {
             String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
             try {
               if (session.isOpen()) {
-                session.getBasicRemote().sendObject(message);
+                session.getAsyncRemote().sendObject(message);
               }
-            } catch (EncodeException | IOException e) {
+            } catch (Exception e) {
               ChatsLogger.warn(
                   String.format(
                       "Error sending event message to websocket for user/queue '%s'%nMessage: '%s'",
                       userQueue, message));
             }
           };
-      String tag = channel.basicConsume(userQueue, true, deliverCallback, consumerTag -> {});
-      consumerTagMap.put(session.getId(), tag);
+      String tag =
+          channel.basicConsume(queueId.toString(), true, deliverCallback, consumerTag -> {});
+      consumerTagMap.put(queueId.toString(), tag);
     } catch (Exception e) {
       ChatsLogger.warn(
           String.format("Error interacting with message broker for user/queue '%s'", userQueue));
@@ -96,14 +104,17 @@ public class EventsWebSocketEndpoint {
 
   @OnMessage
   public void onMessage(Session session, String message) {
+    if (message == null || message.isBlank()) return;
+
     try {
-      if (objectMapper.readValue(message, PingPongDtoEvent.class).getType().equals(PING)
-          && session.isOpen()) {
+      PingPongDtoEvent event = objectMapper.readValue(message, PingPongDtoEvent.class);
+      if (PING.equals(event.getType()) && session.isOpen()) {
         session
-            .getBasicRemote()
+            .getAsyncRemote()
             .sendObject(objectMapper.writeValueAsString(PingPongDtoEvent.create()));
       }
     } catch (Exception e) {
+      SessionPingManager.remove(session);
       UUID userId = UUID.fromString(getUserIdFromSession(session));
       UUID queueId = UUID.fromString(session.getId());
       String userQueue = userId + "/" + queueId;
@@ -113,15 +124,16 @@ public class EventsWebSocketEndpoint {
 
   @OnClose
   public void onClose(Session session) {
+    SessionPingManager.remove(session);
     closeSession(session);
   }
 
   @OnError
   public void onError(Session session, Throwable throwable) {
+    SessionPingManager.remove(session);
     UUID userId = UUID.fromString(getUserIdFromSession(session));
     UUID queueId = UUID.fromString(session.getId());
     String userQueue = userId + "/" + queueId;
-    closeSession(session);
     try {
       session.close();
     } catch (Exception e) {
@@ -143,35 +155,66 @@ public class EventsWebSocketEndpoint {
     String sessionId = session.getId();
     UUID queueId = UUID.fromString(sessionId);
     String userQueue = userId + "/" + queueId;
+
+    participantService.removeMeetingParticipant(queueId);
+    waitingParticipantService.removeFromQueue(queueId);
+
     if (channel == null || !channel.isOpen()) {
       ChatsLogger.error(
           String.format(
-              "Unable to close session %s: event websocket handler channel is not up!", queueId));
+              "Unable to close websocket session %s: event websocket handler channel is not up!",
+              queueId));
       return;
     }
-    basicCancel(sessionId, userQueue);
-    queueDeleteNoWait(userQueue);
-    participantService.removeMeetingParticipant(queueId);
-    waitingParticipantService.removeFromQueue(queueId);
+
+    queueConsumerCleanup(userQueue, queueId.toString(), userId.toString());
   }
 
-  private void queueDeleteNoWait(String userQueue) {
-    try {
-      channel.queueDeleteNoWait(userQueue, false, false);
-    } catch (Exception e) {
-      ChatsLogger.warn(String.format("Error deleting queue for user/queue '%s'", userQueue), e);
+  private void queueConsumerCleanup(String userQueue, String queueId, String userId) {
+    if (channel != null && channel.isOpen()) {
+      basicCancel(queueId, userQueue);
+      queueUnBind(userQueue, queueId, userId);
+      queueDeleteNoWait(userQueue, queueId);
     }
   }
 
-  private void basicCancel(String sessionId, String userQueue) {
-    String tag = consumerTagMap.remove(sessionId);
+  private void basicCancel(String queueId, String userQueue) {
+    String tag = consumerTagMap.get(queueId);
     if (tag != null) {
       try {
         channel.basicCancel(tag);
+        consumerTagMap.remove(queueId);
       } catch (Exception e) {
-        ChatsLogger.warn(
-                String.format("Error cancelling consumer for user/queue '%s'", userQueue), e);
+        ChatsLogger.warn(String.format("Error cancelling consumer for user/queue '%s'", userQueue));
       }
+    }
+  }
+
+  private void queueUnBind(String userQueue, String queueId, String userId) {
+    try {
+      channel.queueUnbind(queueId, userId, USER_ROUTING_KEY);
+    } catch (Exception e) {
+      ChatsLogger.warn(
+          String.format("Error unbinding queue from exchange for user/queue '%s'", userQueue));
+    }
+  }
+
+  private void queueDeleteNoWait(String userQueue, String queueId) {
+    try {
+      channel.queueDeleteNoWait(queueId, false, false);
+    } catch (Exception e) {
+      ChatsLogger.warn(String.format("Error deleting queue for user/queue '%s'", userQueue));
+    }
+  }
+
+  public void stop() {
+    try {
+      if (channel != null && channel.isOpen()) {
+        channel.close();
+        ChatsLogger.info("Event websocket manager channel closed successfully.");
+      }
+    } catch (Exception e) {
+      ChatsLogger.error("Error during stopping event websocket manager", e);
     }
   }
 

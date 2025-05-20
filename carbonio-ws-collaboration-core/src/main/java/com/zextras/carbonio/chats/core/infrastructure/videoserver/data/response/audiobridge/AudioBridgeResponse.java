@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.PluginErrorResponse;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * This class represents an audio bridge response provided by VideoServer.
@@ -105,12 +106,18 @@ public class AudioBridgeResponse {
 
   @JsonIgnore
   public String getAudioBridge() {
-    return getPluginData().getDataInfo().getAudioBridge();
+    return Optional.ofNullable(getPluginData())
+        .map(AudioBridgePluginData::getDataInfo)
+        .map(AudioBridgeDataInfo::getAudioBridge)
+        .orElse(null);
   }
 
   @JsonIgnore
   public String getRoom() {
-    return getPluginData().getDataInfo().getRoom();
+    return Optional.ofNullable(getPluginData())
+        .map(AudioBridgePluginData::getDataInfo)
+        .map(AudioBridgeDataInfo::getRoom)
+        .orElse(null);
   }
 
   @Override
@@ -118,10 +125,9 @@ public class AudioBridgeResponse {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof AudioBridgeResponse)) {
+    if (!(o instanceof AudioBridgeResponse that)) {
       return false;
     }
-    AudioBridgeResponse that = (AudioBridgeResponse) o;
     return Objects.equals(getStatus(), that.getStatus())
         && Objects.equals(getConnectionId(), that.getConnectionId())
         && Objects.equals(getTransactionId(), that.getTransactionId())

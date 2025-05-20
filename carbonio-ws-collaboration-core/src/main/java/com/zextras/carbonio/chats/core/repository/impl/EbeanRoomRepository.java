@@ -12,6 +12,7 @@ import com.zextras.carbonio.chats.model.RoomTypeDto;
 import io.ebean.Database;
 import io.ebean.Query;
 import io.ebean.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -37,14 +38,12 @@ public class EbeanRoomRepository implements RoomRepository {
   @Override
   @Transactional
   public List<Room> getByUserId(String userId, boolean withSubscriptions) {
-    Query<Room> roomQuery = db.find(Room.class).fetch("children");
+    Query<Room> roomQuery = db.find(Room.class);
     if (withSubscriptions) {
       roomQuery = roomQuery.fetch("subscriptions");
     }
     return roomQuery
         .where()
-        .ne("type", RoomTypeDto.CHANNEL)
-        .and()
         .eq("subscriptions.userId", userId)
         .findList();
   }
@@ -54,7 +53,6 @@ public class EbeanRoomRepository implements RoomRepository {
   public Optional<Room> getById(String roomId) {
     return db.find(Room.class)
         .fetch("subscriptions")
-        .fetch("children")
         .where()
         .eq("id", roomId)
         .findOneOrEmpty();
@@ -111,13 +109,4 @@ public class EbeanRoomRepository implements RoomRepository {
     db.delete(Room.class, roomId);
   }
 
-  @Override
-  public Optional<Integer> getChannelMaxRanksByWorkspace(String workspaceId) {
-    return Optional.ofNullable(
-        db.createQuery(Room.class)
-            .select("max(rank)")
-            .where()
-            .eq("parentId", workspaceId)
-            .findSingleAttribute());
-  }
 }

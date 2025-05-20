@@ -5,10 +5,8 @@
 package com.zextras.carbonio.chats.core.infrastructure.videorecorder;
 
 import com.zextras.carbonio.chats.core.infrastructure.videorecorder.data.request.VideoRecorderRequest;
-import java.util.concurrent.CompletableFuture;
 
 public interface VideoRecorderClient {
 
-  CompletableFuture<Void> sendVideoRecorderRequest(
-      String serverId, String meetingId, VideoRecorderRequest request);
+  void sendVideoRecorderRequest(String serverId, String meetingId, VideoRecorderRequest request);
 }
