@@ -23,7 +23,7 @@ public interface AttachmentService {
    *
    * @param fileId identifier of attachment file to delete {@link UUID}
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The attachment file requested {@link InputStream}
+   * @return Content and meta data of yhe attachment file requested {@link FileContentAndMetadata}
    */
   FileContentAndMetadata getAttachmentById(UUID fileId, UserPrincipal currentUser);
 
@@ -55,7 +55,7 @@ public interface AttachmentService {
    * @param roomId identifier of the room attachment {@link UUID}
    * @param file file stream to save {@link InputStream}
    * @param mimeType file mime type
-   * @param contentLength file size
+   * @param contentLength file content length
    * @param fileName file name
    * @param description file description
    * @param messageId identifier of XMPP message to create

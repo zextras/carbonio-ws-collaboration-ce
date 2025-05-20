@@ -20,6 +20,7 @@ import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ClearedDateDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
+import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
@@ -59,7 +60,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
-  public Response listRoom(List<RoomExtraFieldDto> extraFields, SecurityContext securityContext) {
+  public Response listRooms(List<RoomExtraFieldDto> extraFields, SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
@@ -141,6 +142,17 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               }
             })
         .orElse(Response.status(Status.NOT_FOUND).build());
+  }
+
+  @Override
+  public Response updateRoomOwners(
+      UUID roomId, List<@Valid MemberDto> memberDto, SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+    return Response.status(Status.OK)
+        .entity(membersService.updateRoomOwners(roomId, memberDto, currentUser))
+        .build();
   }
 
   @Override
@@ -245,7 +257,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   @TimedCall
-  public Response listRoomMember(UUID roomId, SecurityContext securityContext) {
+  public Response listRoomMembers(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
@@ -280,7 +292,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   @TimedCall
-  public Response updateToOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
+  public Response insertOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
@@ -300,7 +312,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
-  public Response listRoomAttachmentInfo(
+  public Response listRoomAttachmentsInfo(
       UUID roomId, Integer itemsNumber, String filter, SecurityContext securityContext) {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())

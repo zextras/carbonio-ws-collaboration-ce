@@ -30,12 +30,10 @@ public class ParticipantBuilder {
     return this;
   }
 
-
   public ParticipantBuilder audioStreamOn(Boolean audioStreamOn) {
     this.participant.audioStreamOn(audioStreamOn);
     return this;
   }
-
 
   public ParticipantBuilder videoStreamOn(Boolean videoStreamOn) {
     this.participant.videoStreamOn(videoStreamOn);
@@ -72,8 +70,18 @@ public class ParticipantBuilder {
     return this;
   }
 
+  public ParticipantBuilder handRaisedAt(OffsetDateTime handRaisedAt) {
+    try {
+      Field createdAtField = Participant.class.getDeclaredField("handRaisedAt");
+      createdAtField.setAccessible(true);
+      createdAtField.set(participant, handRaisedAt);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException(e);
+    }
+    return this;
+  }
+
   public Participant build() {
     return participant;
   }
-
 }

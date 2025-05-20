@@ -30,6 +30,7 @@ CONFIGURATIONS=(
   "$MAIN_SERVICE_NAME/hikari/max-pool-size:10"
   "$MAIN_SERVICE_NAME/hikari/idle-timeout:10000"
   "$MAIN_SERVICE_NAME/hikari/leak-detection-threshold:5000"
+  "$MAIN_SERVICE_NAME/hikari/max-lifetime:600000"
 )
 
 get_consul_kv() {

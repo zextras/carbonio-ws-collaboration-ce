@@ -1527,7 +1527,9 @@ public class RoomsApiIT {
               RoomMemberField.create().id(user1Id).owner(true),
               RoomMemberField.create().id(user2Id).muted(true),
               RoomMemberField.create().id(user3Id)));
-      mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -1557,7 +1559,9 @@ public class RoomsApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)));
       integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
-      mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
 
       MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
       assertEquals(204, response.getStatus());
@@ -1590,7 +1594,9 @@ public class RoomsApiIT {
                       .audioStreamOn(false)
                       .videoStreamOn(false)));
       integrationTestUtils.updateRoom(room.meetingId(meetingId.toString()));
-      mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+      mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
 
       meetingTestUtils.insertVideoServerMeeting(
           meetingId.toString(),
@@ -1676,7 +1682,9 @@ public class RoomsApiIT {
                 .mimeType("-"));
         storageMockServer.setBulkDeleteResponse(
             List.of(file1Id, file2Id), List.of(file1Id, file2Id));
-        mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
 
@@ -1722,7 +1730,9 @@ public class RoomsApiIT {
                 .originalSize(0L)
                 .mimeType("-"));
         storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), List.of(file1Id));
-        mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
 
@@ -1768,8 +1778,10 @@ public class RoomsApiIT {
                 .roomId(roomId.toString())
                 .originalSize(0L)
                 .mimeType("-"));
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user1Id.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user2Id.toString(), true);
+        mongooseImMockServer.mockRemoveRoomMember(roomId.toString(), user3Id.toString(), true);
         storageMockServer.setBulkDeleteResponse(List.of(file1Id, file2Id), null);
-        mongooseImMockServer.mockDeleteRoom(roomId.toString(), true);
 
         MockHttpResponse response = dispatcher.delete(url(roomId), user1Token);
 

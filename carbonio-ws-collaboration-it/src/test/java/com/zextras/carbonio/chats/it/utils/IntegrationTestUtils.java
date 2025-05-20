@@ -231,16 +231,8 @@ public class IntegrationTestUtils {
     return fileMetadataRepository.getById(fileId.toString());
   }
 
-  public Optional<User> getUserById(UUID id) {
-    return userRepository.getById(id.toString());
-  }
-
-  public User generateAndSaveUser(UUID id, String statusMessage, OffsetDateTime pictureUpdatedAt) {
-    return userRepository.save(
-        User.create()
-            .id(id.toString())
-            .statusMessage(statusMessage)
-            .pictureUpdatedAt(pictureUpdatedAt));
+  public User generateAndSaveUser(UUID id, String statusMessage) {
+    return userRepository.save(User.create().id(id.toString()).statusMessage(statusMessage));
   }
 
   public Optional<RoomUserSettings> getRoomUserSettings(UUID roomId, UUID userId) {

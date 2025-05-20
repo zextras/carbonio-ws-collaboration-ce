@@ -55,6 +55,10 @@ public class Participant {
   @WhenModified
   private OffsetDateTime updatedAt;
 
+  @Column(name = "HAND_RAISED_AT")
+  @Temporal(TemporalType.TIMESTAMP)
+  private OffsetDateTime handRaisedAt;
+
   public Participant() {
     this.id = ParticipantId.create();
   }
@@ -71,6 +75,10 @@ public class Participant {
 
   public static Participant create(Meeting meeting, String userId) {
     return new Participant(meeting, userId);
+  }
+
+  public ParticipantId getId() {
+    return id;
   }
 
   public String getUserId() {
@@ -141,30 +149,45 @@ public class Participant {
     return updatedAt;
   }
 
+  public Participant updatedAt(OffsetDateTime updatedAt) {
+    this.updatedAt = updatedAt;
+    return this;
+  }
+
+  public OffsetDateTime getHandRaisedAt() {
+    return handRaisedAt;
+  }
+
+  public Participant handRaisedAt(OffsetDateTime handRaisedAt) {
+    this.handRaisedAt = handRaisedAt;
+    return this;
+  }
+
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
     if (!(o instanceof Participant that)) return false;
-    return Objects.equals(id, that.id)
+    return Objects.equals(getId(), that.getId())
         && Objects.equals(getUserId(), that.getUserId())
         && Objects.equals(getQueueId(), that.getQueueId())
         && Objects.equals(audioStreamOn, that.audioStreamOn)
         && Objects.equals(videoStreamOn, that.videoStreamOn)
         && Objects.equals(screenStreamOn, that.screenStreamOn)
         && Objects.equals(getCreatedAt(), that.getCreatedAt())
-        && Objects.equals(getUpdatedAt(), that.getUpdatedAt());
+        && Objects.equals(getUpdatedAt(), that.getUpdatedAt())
+        && Objects.equals(getHandRaisedAt(), that.getHandRaisedAt());
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        id,
+        getId(),
         getUserId(),
         getQueueId(),
         audioStreamOn,
         videoStreamOn,
         screenStreamOn,
         getCreatedAt(),
-        getUpdatedAt());
+        getUpdatedAt(),
+        getHandRaisedAt());
   }
 }
