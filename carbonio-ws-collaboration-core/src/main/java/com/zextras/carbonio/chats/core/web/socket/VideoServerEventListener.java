@@ -4,18 +4,14 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
-import static io.vavr.API.$;
-import static io.vavr.API.Case;
-import static io.vavr.API.Match;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Recoverable;
 import com.rabbitmq.client.RecoveryListener;
-import com.zextras.carbonio.chats.core.cache.CacheHandler;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.data.event.MeetingAudioAnswered;
 import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
@@ -26,26 +22,29 @@ import com.zextras.carbonio.chats.core.data.event.MeetingSdpOffered;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.EventData;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.StreamData;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.VideoServerEvent;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaTrackType;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.SubscribedStream;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.UserFeed;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import io.vavr.MatchError;
+import jakarta.validation.constraints.NotNull;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.jetbrains.annotations.NotNull;
 
 @Singleton
 public class VideoServerEventListener {
 
   private static final String JANUS_EXCHANGE = "janus-exchange";
-  private static final String JANUS_EVENTS = "janus-events";
+  private static final String JANUS_QUEUE = "janus-queue";
+  private static final String JANUS_ROUTING_KEY = "janus-events";
 
   private static final String LOCAL = "local";
   private static final String TALKING = "talking";
@@ -57,30 +56,25 @@ public class VideoServerEventListener {
   private static final int JSEP_TYPE = 8;
   private static final int PLUGIN_TYPE = 64;
 
+  private volatile String consumerTag;
+
   private final Channel channel;
   private final EventDispatcher eventDispatcher;
   private final ObjectMapper objectMapper;
   private final VideoServerService videoServerService;
-  private final CacheHandler cacheHandler;
-
-  private enum EventType {
-    AUDIO,
-    VIDEO,
-    SCREEN
-  }
 
   @Inject
   public VideoServerEventListener(
       Channel channel,
       EventDispatcher eventDispatcher,
       ObjectMapper objectMapper,
-      VideoServerService videoServerService,
-      CacheHandler cacheHandler) {
+      VideoServerService videoServerService) {
     this.channel = getRecoverableChannel(channel);
     this.eventDispatcher = eventDispatcher;
     this.objectMapper = objectMapper;
     this.videoServerService = videoServerService;
-    this.cacheHandler = cacheHandler;
+    Runtime.getRuntime()
+        .addShutdownHook(new Thread(this::stop, "Video server event listener shutdown hook"));
   }
 
   private @NotNull Channel getRecoverableChannel(Channel channel) {
@@ -106,195 +100,186 @@ public class VideoServerEventListener {
       throw new EventDispatcherException("Video server event listener channel is not up!");
     }
     try {
-      channel.queueDeclare(JANUS_EVENTS, false, false, false, null);
-      channel.exchangeDeclare(JANUS_EXCHANGE, "direct");
-      channel.queueBind(JANUS_EVENTS, JANUS_EXCHANGE, JANUS_EVENTS);
+      channel.exchangeDeclare(JANUS_EXCHANGE, BuiltinExchangeType.DIRECT, false);
+      channel.queueDeclare(JANUS_QUEUE, false, false, false, null);
+      channel.queueBind(JANUS_QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
       DeliverCallback deliverCallback = createDeliveryCallBack();
-      channel.basicConsume(JANUS_EVENTS, true, deliverCallback, consumerTag -> this.start());
+      consumerTag = channel.basicConsume(JANUS_QUEUE, true, deliverCallback, tag -> {});
     } catch (Exception e) {
-      ChatsLogger.error("Error during processing video server events ", e);
+      ChatsLogger.error("Error starting video server events processing", e);
+    }
+  }
+
+  public void stop() {
+    try {
+      if (channel != null && channel.isOpen()) {
+        if (consumerTag != null) {
+          channel.basicCancel(consumerTag);
+          ChatsLogger.info("Video server event listener consumer canceled successfully.");
+        }
+        channel.close();
+        ChatsLogger.info("Video server event listener channel closed successfully.");
+      }
+    } catch (Exception e) {
+      ChatsLogger.error("Error during stopping video server event listener", e);
     }
   }
 
   private @NotNull DeliverCallback createDeliveryCallBack() {
-    return (consumerTag, delivery) -> {
+    return (tag, delivery) -> {
       String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-      VideoServerEvent videoServerEvent = objectMapper.readValue(message, VideoServerEvent.class);
-      switch (videoServerEvent.getType()) {
-        case JSEP_TYPE:
-          handleJsepTypeEvent(videoServerEvent);
-          break;
-        case PLUGIN_TYPE:
-          handleAudioBridgeEvent(videoServerEvent);
-          handleStreamsEvent(videoServerEvent);
-          break;
-        default:
-          break;
+      VideoServerEvent event = objectMapper.readValue(message, VideoServerEvent.class);
+
+      switch (event.getType()) {
+        case JSEP_TYPE -> handleJsepTypeEvent(event);
+        case PLUGIN_TYPE -> handlePluginTypeEvent(event);
+        default -> {
+          /*just ignore other events*/
+        }
       }
     };
   }
 
-  private void handleJsepTypeEvent(VideoServerEvent videoServerEvent) {
-    Optional.ofNullable(videoServerEvent.getEventInfo().getOwner())
-        .ifPresent(
-            owner -> {
-              if (LOCAL.equalsIgnoreCase(owner)) {
-                VideoServerSession videoServerSession =
-                    cacheHandler
-                        .getVideoServerSessionCache()
-                        .get(
-                            String.valueOf(videoServerEvent.getSessionId()),
-                            this::fetchVideoServerSession);
-                if (videoServerSession != null) {
-                  processRtcSessionDescription(videoServerEvent, videoServerSession);
-                }
-              }
-            });
-  }
+  private void handlePluginTypeEvent(VideoServerEvent event) {
+    EventData data = event.getEventInfo().getEventData();
 
-  private VideoServerSession fetchVideoServerSession(String sessionId) {
-    return videoServerService.getSession(sessionId).orElse(null);
-  }
+    if (data.getAudioBridge() != null) {
+      handleAudioBridgeEvent(event);
+    }
 
-  private void processRtcSessionDescription(
-      VideoServerEvent videoServerEvent, VideoServerSession videoServerSession) {
-    try {
-      EventType eventType =
-          Match(videoServerEvent.getHandleId().toString())
-              .of(
-                  Case($(videoServerSession.getAudioHandleId()), EventType.AUDIO),
-                  Case($(videoServerSession.getVideoInHandleId()), EventType.VIDEO),
-                  Case($(videoServerSession.getVideoOutHandleId()), EventType.VIDEO),
-                  Case($(videoServerSession.getScreenHandleId()), EventType.SCREEN));
-      RtcSessionDescription rtcSessionDescription =
-          videoServerEvent.getEventInfo().getRtcSessionDescription();
-      switch (rtcSessionDescription.getType()) {
-        case OFFER:
-          eventDispatcher.sendToUserExchange(
-              videoServerSession.getUserId(),
-              MeetingSdpOffered.create()
-                  .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
-                  .userId(UUID.fromString(videoServerSession.getUserId()))
-                  .mediaType(eventType == EventType.VIDEO ? MediaType.VIDEO : MediaType.SCREEN)
-                  .sdp(rtcSessionDescription.getSdp()));
-          break;
-        case ANSWER:
-          switch (eventType) {
-            case AUDIO:
-              eventDispatcher.sendToUserExchange(
-                  videoServerSession.getUserId(),
-                  MeetingAudioAnswered.create()
-                      .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
-                      .userId(UUID.fromString(videoServerSession.getUserId()))
-                      .sdp(rtcSessionDescription.getSdp()));
-              break;
-            case VIDEO, SCREEN:
-              eventDispatcher.sendToUserExchange(
-                  videoServerSession.getUserId(),
-                  MeetingSdpAnswered.create()
-                      .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
-                      .userId(UUID.fromString(videoServerSession.getUserId()))
-                      .mediaType(eventType == EventType.VIDEO ? MediaType.VIDEO : MediaType.SCREEN)
-                      .sdp(rtcSessionDescription.getSdp()));
-              break;
-            default:
-              break;
-          }
-          break;
-        default:
-          break;
-      }
-    } catch (MatchError m) {
-      ChatsLogger.warn("Invalid event handle id: " + m.getObject());
+    if (data.getEvent() != null) {
+      handleStreamsEvent(event);
     }
   }
 
-  private void handleAudioBridgeEvent(VideoServerEvent videoServerEvent) {
-    Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getAudioBridge())
-        .ifPresent(
-            eventType -> {
-              if (TALKING.equals(eventType) || STOPPED_TALKING.equals(eventType)) {
-                String meetingId =
-                    videoServerEvent.getEventInfo().getEventData().getRoom().split("_")[1];
-                List<String> sessionUserIds = getMeetingVideoServerSessions(meetingId);
-                eventDispatcher.sendToUserExchange(
-                    sessionUserIds,
-                    MeetingParticipantTalking.create()
-                        .meetingId(UUID.fromString(meetingId))
-                        .userId(
-                            UUID.fromString(videoServerEvent.getEventInfo().getEventData().getId()))
-                        .isTalking(
-                            TALKING.equals(
-                                videoServerEvent.getEventInfo().getEventData().getAudioBridge())));
-              }
-            });
+  private void handleJsepTypeEvent(VideoServerEvent event) {
+    String owner = event.getEventInfo().getOwner();
+    if (!LOCAL.equalsIgnoreCase(owner)) return;
+
+    UserFeed userFeed = UserFeed.fromString(event.getOpaqueId());
+    RtcSessionDescription rtc = event.getEventInfo().getRtcSessionDescription();
+
+    if (rtc == null) return;
+
+    UUID meetingId = UUID.fromString(userFeed.getMeetingId());
+    UUID userId = UUID.fromString(userFeed.getUserId());
+    MediaType mediaType = mapEventType(userFeed.getMediaTrackType());
+
+    switch (rtc.getType()) {
+      case OFFER ->
+          eventDispatcher.sendToUserExchange(
+              userFeed.getUserId(),
+              MeetingSdpOffered.create()
+                  .meetingId(meetingId)
+                  .userId(userId)
+                  .mediaType(mediaType)
+                  .sdp(rtc.getSdp()));
+
+      case ANSWER -> dispatchAnswerEvent(userFeed, rtc.getSdp(), mediaType);
+    }
   }
 
-  private void handleStreamsEvent(VideoServerEvent videoServerEvent) {
-    Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getEvent())
-        .ifPresent(
-            eventType -> {
-              switch (eventType) {
-                case SUBSCRIBING, UPDATED:
-                  handleUpdatedEvent(videoServerEvent);
-                  break;
-                case PUBLISHED:
-                  handlePublishedEvent(videoServerEvent);
-                  break;
-                default:
-                  break;
-              }
-            });
+  private void dispatchAnswerEvent(UserFeed userFeed, String sdp, MediaType mediaType) {
+    UUID meetingId = UUID.fromString(userFeed.getMeetingId());
+    UUID userId = UUID.fromString(userFeed.getUserId());
+
+    switch (mediaType) {
+      case AUDIO ->
+          eventDispatcher.sendToUserExchange(
+              userFeed.getUserId(),
+              MeetingAudioAnswered.create().meetingId(meetingId).userId(userId).sdp(sdp));
+
+      case VIDEO, SCREEN ->
+          eventDispatcher.sendToUserExchange(
+              userFeed.getUserId(),
+              MeetingSdpAnswered.create()
+                  .meetingId(meetingId)
+                  .userId(userId)
+                  .mediaType(mediaType)
+                  .sdp(sdp));
+    }
   }
 
-  private void handleUpdatedEvent(VideoServerEvent videoServerEvent) {
-    List<StreamData> streamDataList =
-        Optional.ofNullable(videoServerEvent.getEventInfo().getEventData().getStreamList())
+  private void handleAudioBridgeEvent(VideoServerEvent event) {
+    String audioBridgeEvent = event.getEventInfo().getEventData().getAudioBridge();
+    if (!TALKING.equals(audioBridgeEvent) && !STOPPED_TALKING.equals(audioBridgeEvent)) return;
+
+    UserFeed userFeed = UserFeed.fromString(event.getOpaqueId());
+    List<String> recipients = getMeetingVideoServerSessions(userFeed.getMeetingId());
+
+    eventDispatcher.sendToUserExchange(
+        recipients,
+        MeetingParticipantTalking.create()
+            .meetingId(UUID.fromString(userFeed.getMeetingId()))
+            .userId(UUID.fromString(userFeed.getUserId()))
+            .isTalking(TALKING.equals(audioBridgeEvent)));
+  }
+
+  private void handleStreamsEvent(VideoServerEvent event) {
+    EventData data = event.getEventInfo().getEventData();
+    switch (data.getEvent()) {
+      case SUBSCRIBING, UPDATED -> handleUpdatedEvent(event);
+      case PUBLISHED -> handlePublishedEvent(event);
+      default -> {
+        /*just ignore other events*/
+      }
+    }
+  }
+
+  private void handleUpdatedEvent(VideoServerEvent event) {
+    List<StreamData> streams =
+        Optional.ofNullable(event.getEventInfo().getEventData().getStreamList())
             .orElse(Collections.emptyList())
             .stream()
-            .filter(stream -> stream.getFeedId() != null)
+            .filter(s -> s.getFeedId() != null)
             .toList();
-    if (!streamDataList.isEmpty()) {
-      VideoServerSession videoServerSession =
-          cacheHandler
-              .getVideoServerSessionCache()
-              .get(String.valueOf(videoServerEvent.getSessionId()), this::fetchVideoServerSession);
-      if (videoServerSession != null) {
-        eventDispatcher.sendToUserExchange(
-            videoServerSession.getUserId(),
-            MeetingParticipantSubscribed.create()
-                .meetingId(UUID.fromString(videoServerSession.getId().getMeetingId()))
-                .userId(UUID.fromString(videoServerSession.getUserId()))
-                .streams(
-                    streamDataList.stream()
-                        .map(
-                            stream -> {
-                              Feed feed = Feed.fromString(stream.getFeedId());
-                              return SubscribedStream.create()
-                                  .type(feed.getType().toString().toLowerCase())
-                                  .userId(feed.getUserId())
-                                  .mid(stream.getMid());
-                            })
-                        .toList()));
-      }
-    }
+
+    if (streams.isEmpty()) return;
+
+    UserFeed userFeed = UserFeed.fromString(event.getOpaqueId());
+
+    eventDispatcher.sendToUserExchange(
+        userFeed.getUserId(),
+        MeetingParticipantSubscribed.create()
+            .meetingId(UUID.fromString(userFeed.getMeetingId()))
+            .userId(UUID.fromString(userFeed.getUserId()))
+            .streams(
+                streams.stream()
+                    .map(
+                        s -> {
+                          Feed f = Feed.fromString(s.getFeedId());
+                          return SubscribedStream.create()
+                              .type(f.getType().toString().toLowerCase())
+                              .userId(f.getUserId())
+                              .mid(s.getMid());
+                        })
+                    .toList()));
   }
 
-  private void handlePublishedEvent(VideoServerEvent videoServerEvent) {
-    Feed feed = Feed.fromString(videoServerEvent.getEventInfo().getEventData().getId());
-    String meetingId = videoServerEvent.getEventInfo().getEventData().getRoom().split("_")[1];
+  private void handlePublishedEvent(VideoServerEvent event) {
+    UserFeed userFeed = UserFeed.fromString(event.getOpaqueId());
+    MediaType mediaType = mapEventType(userFeed.getMediaTrackType());
+
     eventDispatcher.sendToUserExchange(
-        getMeetingVideoServerSessions(meetingId),
+        getMeetingVideoServerSessions(userFeed.getMeetingId()),
         MeetingMediaStreamChanged.create()
-            .meetingId(UUID.fromString(meetingId))
-            .userId(UUID.fromString(feed.getUserId()))
-            .mediaType(feed.getType())
-            .active(PUBLISHED.equals(videoServerEvent.getEventInfo().getEventData().getEvent())));
+            .meetingId(UUID.fromString(userFeed.getMeetingId()))
+            .userId(UUID.fromString(userFeed.getUserId()))
+            .mediaType(mediaType)
+            .active(PUBLISHED.equals(event.getEventInfo().getEventData().getEvent())));
   }
 
   private @NotNull List<String> getMeetingVideoServerSessions(String meetingId) {
     return videoServerService.getSessions(meetingId).stream()
         .map(VideoServerSession::getUserId)
         .toList();
+  }
+
+  private MediaType mapEventType(MediaTrackType mediaTrackType) {
+    return switch (mediaTrackType) {
+      case AUDIO -> MediaType.AUDIO;
+      case VIDEO_OUT, VIDEO_IN -> MediaType.VIDEO;
+      case SCREEN -> MediaType.SCREEN;
+    };
   }
 }

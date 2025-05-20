@@ -4,9 +4,9 @@
 
 package com.zextras.carbonio.chats.core.data.event;
 
+import jakarta.annotation.Nullable;
 import java.util.Objects;
 import java.util.UUID;
-import org.jetbrains.annotations.Nullable;
 
 public class MeetingAudioStreamChanged extends DomainEvent {
 
@@ -14,9 +14,7 @@ public class MeetingAudioStreamChanged extends DomainEvent {
 
   private UUID meetingId;
   private UUID userId;
-
-  @Nullable
-  private UUID    moderatorId;
+  @Nullable private UUID moderatorId;
   private boolean active;
 
   public MeetingAudioStreamChanged() {
@@ -45,6 +43,7 @@ public class MeetingAudioStreamChanged extends DomainEvent {
     return this;
   }
 
+  @Nullable
   public UUID getModeratorId() {
     return moderatorId;
   }
@@ -65,21 +64,17 @@ public class MeetingAudioStreamChanged extends DomainEvent {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    if (!super.equals(o)) {
-      return false;
-    }
-    MeetingAudioStreamChanged that = (MeetingAudioStreamChanged) o;
-    return Objects.equals(getMeetingId(), that.getMeetingId()) && Objects.equals(getUserId(), that.getUserId());
+    if (!(o instanceof MeetingAudioStreamChanged that)) return false;
+    if (!super.equals(o)) return false;
+    return isActive() == that.isActive()
+        && Objects.equals(getMeetingId(), that.getMeetingId())
+        && Objects.equals(getUserId(), that.getUserId())
+        && Objects.equals(getModeratorId(), that.getModeratorId());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), getMeetingId(), getUserId());
+    return Objects.hash(
+        super.hashCode(), getMeetingId(), getUserId(), getModeratorId(), isActive());
   }
 }

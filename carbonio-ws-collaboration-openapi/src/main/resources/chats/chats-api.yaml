@@ -6,7 +6,7 @@ openapi: 3.0.3
 info:
   title: Zextras Workstream Collaboration CE Chats Api
   description: Zextras Carbonio Workstream Collaboration CE Chats HTTP APIs definition.
-  version: 0.8.2
+  version: 0.9.0
   contact:
     email: smokybeans@zextras.com
 servers:
@@ -56,12 +56,12 @@ paths:
       tags:
         - Rooms
       summary: Retrieves a list of every room the user has access to
-      operationId: listRoom
+      operationId: listRooms
       parameters:
         - $ref: '#/components/parameters/queryRoomsExtraFields'
       responses:
         200:
-          $ref: '#/components/responses/200ListRoomResponse'
+          $ref: '#/components/responses/200ListRoomsResponse'
     post:
       tags:
         - Rooms
@@ -223,12 +223,12 @@ paths:
       tags:
         - Members
       summary: Retrieves every member to the given room
-      operationId: listRoomMember
+      operationId: listRoomMembers
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
       responses:
         200:
-          $ref: '#/components/responses/200ListRoomMemberResponse'
+          $ref: '#/components/responses/200ListRoomMembersResponse'
         403:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
@@ -274,13 +274,13 @@ paths:
       tags:
         - Members
       summary: Promotes a member to owner
-      operationId: updateToOwner
+      operationId: insertOwner
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
         - $ref: '#/components/parameters/pathUserId'
       responses:
         204:
-          $ref: '#/components/responses/204UpdateToOwnerResponse'
+          $ref: '#/components/responses/204InsertOwnerResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
         403:
@@ -300,6 +300,26 @@ paths:
           $ref: '#/components/responses/404NotFoundResponse'
         403:
           $ref: '#/components/responses/403ForbiddenResponse'
+  /rooms/{roomId}/members/owners:
+    put:
+      tags:
+        - Rooms
+        - Members
+      summary: Update existing room owners
+      operationId: updateRoomOwners
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateRoomOwnersRequest'
+      responses:
+        201:
+          $ref: '#/components/responses/200UpdateRoomOwnersResponse'
+        400:
+          $ref: '#/components/responses/400BadRequestResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /rooms/{roomId}/meeting:
     get:
       tags:
@@ -353,72 +373,20 @@ paths:
           $ref: '#/components/responses/200GetUserResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
-  /users/{userId}/picture:
-    get:
-      tags:
-        - Users
-      summary: Retrieves the user picture
-      operationId: getUserPicture
-      parameters:
-        - $ref: '#/components/parameters/pathUserId'
-      responses:
-        200:
-          $ref: '#/components/responses/200GetUserPictureResponse'
-        401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
-        404:
-          $ref: '#/components/responses/404NotFoundResponse'
-    put:
-      tags:
-        - Users
-      summary: Uploads and sets a new user picture
-      operationId: updateUserPicture
-      parameters:
-        - $ref: '#/components/parameters/pathUserId'
-        - $ref: '#/components/parameters/headerFileName'
-        - $ref: '#/components/parameters/headerMimeType'
-        - $ref: '#/components/parameters/headerContentLength'
-      requestBody:
-        $ref: '#/components/requestBodies/UpdateUserPictureRequest'
-      responses:
-        204:
-          $ref: '#/components/responses/204UpdateUserPictureResponse'
-        400:
-          $ref: '#/components/responses/400BadRequestResponse'
-        401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
-        403:
-          $ref: '#/components/responses/403ForbiddenResponse'
-    delete:
-      tags:
-        - Users
-      summary: Delete the user picture
-      operationId: deleteUserPicture
-      parameters:
-        - $ref: '#/components/parameters/pathUserId'
-      responses:
-        204:
-          $ref: '#/components/responses/204DeleteUserPictureResponse'
-        401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
-        403:
-          $ref: '#/components/responses/403ForbiddenResponse'
-        404:
-          $ref: '#/components/responses/404NotFoundResponse'
   /rooms/{roomId}/attachments:
     get:
       tags:
         - Rooms
         - Attachments
       summary: Retrieves paged list of metadata of every attachment uploaded to the room  and the filter for the next page
-      operationId: listRoomAttachmentInfo
+      operationId: listRoomAttachmentsInfo
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
         - $ref: '#/components/parameters/queryPageItemsNumber'
         - $ref: '#/components/parameters/queryPageFilter'
       responses:
         200:
-          $ref: '#/components/responses/200ListRoomAttachmentInfoResponse'
+          $ref: '#/components/responses/200ListRoomAttachmentsInfoResponse'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
         403:
@@ -629,8 +597,8 @@ paths:
     get:
       tags:
         - Authentication
-      summary: Retrives the authenticated tokens
-      operationId: getTokens
+      summary: Fetches the authenticated token
+      operationId: getToken
       responses:
         200:
           $ref: '#/components/responses/200GetTokensResponse'
@@ -827,16 +795,15 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/MembersToInsert'
-    InsertAttachmentRequest:
-      description: file stream
+    UpdateRoomOwnersRequest:
+      description: members to update
       required: true
       content:
-        application/octet-stream:
+        application/json:
           schema:
-            type: string
-            format: binary
-    UpdateUserPictureRequest:
-      description: image to set
+            $ref: '#/components/schemas/Members'
+    InsertAttachmentRequest:
+      description: file stream
       required: true
       content:
         application/octet-stream:
@@ -865,7 +832,7 @@ components:
       description: The service is ready but some non-fundamental dependencies are not reachable
     500IsReadyResponse:
       description: The service is not yet ready to receive requests
-    200ListRoomResponse:
+    200ListRoomsResponse:
       description: List of every room that the user has access to
       content:
         application/json:
@@ -914,7 +881,7 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ClearedDate'
-    200ListRoomMemberResponse:
+    200ListRoomMembersResponse:
       description: The room members list
       content:
         application/json:
@@ -928,9 +895,17 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/MembersInserted'
+    200UpdateRoomOwnersResponse:
+      description: The list of the room members updated
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Member'
     204DeleteRoomMemberResponse:
       description: The member was deleted correctly or it never existed
-    204UpdateToOwnerResponse:
+    204InsertOwnerResponse:
       description: The member was promoted
     204DeleteOwnerResponse:
       description: The member was demoted
@@ -946,13 +921,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/User'
-    200GetUserPictureResponse:
-      description: The requested picture
-      content:
-        application/octet-stream:
-          schema:
-            type: string
-            format: binary
     200GetUsersByIdsResponse:
       description: The requested users list
       content:
@@ -961,17 +929,13 @@ components:
             type: array
             items:
               $ref: '#/components/schemas/User'
-    204UpdateUserPictureResponse:
-      description: User picture was changed correctly
-    204DeleteUserPictureResponse:
-      description: User picture was deleted correctly
     201InsertAttachmentResponse:
       description: File identifier
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Id'
-    200ListRoomAttachmentInfoResponse:
+    200ListRoomAttachmentsInfoResponse:
       description: Paged list of metadata of every attachment uploaded to the room
       content:
         application/json:
@@ -1163,13 +1127,6 @@ components:
           type: string
           readOnly: true
           description: user's name
-        pictureUpdatedAt:
-          type: string
-          format: date-time
-          readOnly: true
-          description: |
-            user profile picture update timestamp,
-            returned only if the room picture was set at least once
         statusMessage:
           type: string
           description: the user's status message
@@ -1244,10 +1201,6 @@ components:
               description: |
                 room profile picture update timestamp,
                 returned only if the room picture was set at least once
-            children:
-              type: array
-              items:
-                $ref: '#/components/schemas/Room'
             userSettings:
               $ref: '#/components/schemas/RoomUserSettings'
       required: [ id, createdAt, updatedAt ]
@@ -1271,6 +1224,11 @@ components:
       enum:
         - members
         - settings
+    Members:
+      type: array
+      description: room member list
+      items:
+        $ref: '#/components/schemas/Member'
     Member:
       type: object
       description: Information about a user's role in the room

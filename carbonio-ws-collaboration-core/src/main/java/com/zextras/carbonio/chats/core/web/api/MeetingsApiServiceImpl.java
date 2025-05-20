@@ -13,6 +13,7 @@ import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.api.MeetingsApiService;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
+import com.zextras.carbonio.meeting.model.HandStatusDto;
 import com.zextras.carbonio.meeting.model.JoinMeetingResultDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.JoinStatusDto;
@@ -307,6 +308,16 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
             .orElseThrow(UnauthorizedException::new);
     participantService.offerRtcAudioStream(
         meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
+  public Response updateHandStatus(
+      UUID meetingId, HandStatusDto handStatusDto, SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+    participantService.updateHandStatus(meetingId, handStatusDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 }

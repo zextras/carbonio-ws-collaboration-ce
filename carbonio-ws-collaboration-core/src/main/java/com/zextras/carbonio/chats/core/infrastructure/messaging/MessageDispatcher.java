@@ -23,14 +23,6 @@ public interface MessageDispatcher extends HealthIndicator {
   void createRoom(String roomId, String senderId, List<String> memberIds);
 
   /**
-   * Deletes a room on XMPP server
-   *
-   * @param roomId identifier of the room to delete
-   * @param userId operation user
-   */
-  void deleteRoom(String roomId, String userId);
-
-  /**
    * Sends a message to communicate that the room name has changed
    *
    * @param roomId room identifier
@@ -71,18 +63,29 @@ public interface MessageDispatcher extends HealthIndicator {
    *
    * @param roomId room identifier
    * @param senderId inviting user identifier
-   * @param recipientId invited user identifier
+   * @param memberId identifier of the user to add
    */
-  void addRoomMember(String roomId, String senderId, String recipientId);
+  void addRoomMember(String roomId, String senderId, String memberId);
 
   /**
-   * Removes a member from a room on XMPP server
+   * Removes a member from a room on XMPP server. It will destroy the room automatically when the
+   * last member is removed. Moreover, also the inbox entries and all room messages will be deleted.
+   *
+   * @param roomId room identifier
+   * @param memberId identifier of the user to remove
+   */
+  void removeRoomMember(String roomId, String memberId);
+
+  /**
+   * Sends an affiliation message to a room on XMPP server
    *
    * @param roomId room identifier
    * @param senderId operation user identifier
-   * @param userIdToRemove identifier of the user to remove
+   * @param memberId identifier of the related room member
+   * @param messageType type of the message
    */
-  void removeRoomMember(String roomId, String senderId, String userIdToRemove);
+  void sendAffiliationMessage(
+      String roomId, String senderId, String memberId, MessageType messageType);
 
   /**
    * Sets two users in their respective contacts list so that they can both see each other's

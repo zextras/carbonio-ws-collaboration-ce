@@ -6,15 +6,17 @@ package com.zextras.carbonio.chats.it.entity;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public class ParticipantBuilder {
 
-  private final UUID    userId;
-  private final String  queueId;
-  private       Boolean audioStreamOn  = false;
-  private       Boolean videoStreamOn  = false;
-  private       Boolean screenStreamOn = false;
+  private final UUID userId;
+  private final String queueId;
+  private Boolean audioStreamOn = false;
+  private Boolean videoStreamOn = false;
+  private Boolean screenStreamOn = false;
+  private OffsetDateTime handRaisedAt;
 
   public ParticipantBuilder(UUID userId, String queueid) {
     this.userId = userId;
@@ -60,12 +62,21 @@ public class ParticipantBuilder {
     return this;
   }
 
+  public OffsetDateTime getHandRaisedAt() {
+    return handRaisedAt;
+  }
+
+  public ParticipantBuilder handRaisedAt(OffsetDateTime handRaisedAt) {
+    this.handRaisedAt = handRaisedAt;
+    return this;
+  }
+
   public Participant build(Meeting meeting) {
     return Participant.create(meeting, userId.toString())
-      .queueId(this.queueId)
-      .audioStreamOn(this.audioStreamOn)
-      .videoStreamOn(this.videoStreamOn)
-      .screenStreamOn(this.screenStreamOn);
+        .queueId(this.queueId)
+        .audioStreamOn(this.audioStreamOn)
+        .videoStreamOn(this.videoStreamOn)
+        .screenStreamOn(this.screenStreamOn)
+        .handRaisedAt(this.handRaisedAt);
   }
 }
-

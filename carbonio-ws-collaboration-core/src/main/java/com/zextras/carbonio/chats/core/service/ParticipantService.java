@@ -9,6 +9,7 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
+import com.zextras.carbonio.meeting.model.HandStatusDto;
 import com.zextras.carbonio.meeting.model.JoinSettingsDto;
 import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
@@ -37,4 +38,8 @@ public interface ParticipantService {
       UUID meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto, UserPrincipal currentUser);
 
   void offerRtcAudioStream(UUID meetingId, String sdp, UserPrincipal currentUser);
+
+  void updateHandStatus(UUID meetingId, HandStatusDto handStatusDto, UserPrincipal currentUser);
+
+  void clear(UUID meetingId);
 }

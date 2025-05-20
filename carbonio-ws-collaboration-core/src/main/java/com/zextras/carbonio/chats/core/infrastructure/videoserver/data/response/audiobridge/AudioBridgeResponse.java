@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.PluginErrorResponse;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * This class represents an audio bridge response provided by VideoServer.
@@ -21,22 +22,25 @@ import java.util.Objects;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class AudioBridgeResponse {
 
-  public static final String CREATED   = "created";
-  public static final String EDITED    = "edited";
+  public static final String CREATED = "created";
+  public static final String EDITED = "edited";
   public static final String DESTROYED = "destroyed";
-  public static final String ACK       = "ack";
-
-  public static final String SUCCESS      = "success";
+  public static final String ACK = "ack";
+  public static final String SUCCESS = "success";
   public static final String PARTICIPANTS = "participants";
 
   @JsonProperty("janus")
-  private String                status;
+  private String status;
+
   @JsonProperty("session_id")
-  private String                connectionId;
+  private String connectionId;
+
   @JsonProperty("transaction")
-  private String                transactionId;
+  private String transactionId;
+
   @JsonProperty("sender")
-  private String                handleId;
+  private String handleId;
+
   @JsonProperty("plugindata")
   private AudioBridgePluginData pluginData;
 
@@ -102,12 +106,18 @@ public class AudioBridgeResponse {
 
   @JsonIgnore
   public String getAudioBridge() {
-    return getPluginData().getDataInfo().getAudioBridge();
+    return Optional.ofNullable(getPluginData())
+        .map(AudioBridgePluginData::getDataInfo)
+        .map(AudioBridgeDataInfo::getAudioBridge)
+        .orElse(null);
   }
 
   @JsonIgnore
   public String getRoom() {
-    return getPluginData().getDataInfo().getRoom();
+    return Optional.ofNullable(getPluginData())
+        .map(AudioBridgePluginData::getDataInfo)
+        .map(AudioBridgeDataInfo::getRoom)
+        .orElse(null);
   }
 
   @Override
@@ -115,18 +125,25 @@ public class AudioBridgeResponse {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof AudioBridgeResponse)) {
+    if (!(o instanceof AudioBridgeResponse that)) {
       return false;
     }
-    AudioBridgeResponse that = (AudioBridgeResponse) o;
-    return Objects.equals(getStatus(), that.getStatus()) && Objects.equals(getConnectionId(),
-      that.getConnectionId()) && Objects.equals(getTransactionId(), that.getTransactionId())
-      && Objects.equals(getHandleId(), that.getHandleId()) && Objects.equals(getPluginData(),
-      that.getPluginData()) && Objects.equals(getError(), that.getError());
+    return Objects.equals(getStatus(), that.getStatus())
+        && Objects.equals(getConnectionId(), that.getConnectionId())
+        && Objects.equals(getTransactionId(), that.getTransactionId())
+        && Objects.equals(getHandleId(), that.getHandleId())
+        && Objects.equals(getPluginData(), that.getPluginData())
+        && Objects.equals(getError(), that.getError());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getStatus(), getConnectionId(), getTransactionId(), getHandleId(), getPluginData(), getError());
+    return Objects.hash(
+        getStatus(),
+        getConnectionId(),
+        getTransactionId(),
+        getHandleId(),
+        getPluginData(),
+        getError());
   }
 }
