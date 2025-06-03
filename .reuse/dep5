@@ -15,15 +15,11 @@ Files: package/*
 Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
-Files: carbonio-ws-collaboration-core/src/main/resources/build-information
-Copyright: 2023 Zextras
-License: AGPL-3.0-only
-
 Files: carbonio-ws-collaboration-core/src/main/resources/ebean.mf
 Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
-Files: carbonio-ws-collaboration-openapi/src/main/resources/chats/chats-generator-config.json
+Files: carbonio-ws-collaboration-openapi/src/main/resources/generator-config.json
 Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
@@ -32,10 +28,6 @@ Copyright: 2023 Zextras
 License: AGPL-3.0-only
 
 Files: carbonio-ws-collaboration-openapi/src/main/resources/meeting/meeting-generator-config.json
-Copyright: 2023 Zextras
-License: AGPL-3.0-only
-
-Files: carbonio-ws-collaboration-core/src/test/resources/build-information
 Copyright: 2023 Zextras
 License: AGPL-3.0-only
 

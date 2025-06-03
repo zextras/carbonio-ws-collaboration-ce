@@ -1,5 +1,5 @@
 {
-  "title": "Zextras Carbonio Chats CE",
+  "title": "Zextras Carbonio Workstream Collaboration",
   "serverPort": 8080,
 
   "apiPackage":     "com.zextras.carbonio.chats.api",

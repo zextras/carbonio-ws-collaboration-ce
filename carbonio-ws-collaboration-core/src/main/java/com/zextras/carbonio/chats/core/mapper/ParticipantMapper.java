@@ -5,7 +5,7 @@
 package com.zextras.carbonio.chats.core.mapper;
 
 import com.zextras.carbonio.chats.core.data.entity.Participant;
-import com.zextras.carbonio.meeting.model.ParticipantDto;
+import com.zextras.carbonio.chats.model.ParticipantDto;
 import jakarta.annotation.Nullable;
 import java.util.List;
 

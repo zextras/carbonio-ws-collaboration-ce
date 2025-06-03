@@ -20,6 +20,8 @@ import com.zextras.carbonio.chats.api.AuthApi;
 import com.zextras.carbonio.chats.api.AuthApiService;
 import com.zextras.carbonio.chats.api.HealthApi;
 import com.zextras.carbonio.chats.api.HealthApiService;
+import com.zextras.carbonio.chats.api.MeetingsApi;
+import com.zextras.carbonio.chats.api.MeetingsApiService;
 import com.zextras.carbonio.chats.api.PreviewApi;
 import com.zextras.carbonio.chats.api.PreviewApiService;
 import com.zextras.carbonio.chats.api.RoomsApi;
@@ -60,8 +62,6 @@ import com.zextras.carbonio.chats.core.mapper.impl.MeetingMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.impl.ParticipantMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.impl.RoomMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.impl.SubscriptionMapperImpl;
-import com.zextras.carbonio.chats.core.provider.AppInfoProvider;
-import com.zextras.carbonio.chats.core.provider.impl.AppInfoProviderImpl;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
@@ -105,6 +105,8 @@ import com.zextras.carbonio.chats.core.web.api.MeetingsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.PreviewApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.versioning.filter.VersionedRequestFilter;
+import com.zextras.carbonio.chats.core.web.api.versioning.filter.VersionedResponseFilter;
 import com.zextras.carbonio.chats.core.web.exceptions.ChatsHttpExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.ClientErrorExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
@@ -114,8 +116,6 @@ import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
-import com.zextras.carbonio.meeting.api.MeetingsApi;
-import com.zextras.carbonio.meeting.api.MeetingsApiService;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.storages.api.StoragesClient;
@@ -143,6 +143,8 @@ public class CoreModule extends AbstractModule {
     bind(ObjectMapper.class).toProvider(JacksonConfig.class);
 
     bind(AuthenticationFilter.class);
+    bind(VersionedResponseFilter.class);
+    bind(VersionedRequestFilter.class);
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
     bind(EventsWebSocketManager.class);
 
@@ -174,8 +176,6 @@ public class CoreModule extends AbstractModule {
     bind(MembersService.class).to(MembersServiceImpl.class);
     bind(SubscriptionRepository.class).to(EbeanSubscriptionRepository.class);
     bind(SubscriptionMapper.class).to(SubscriptionMapperImpl.class);
-
-    bind(AppInfoProvider.class).to(AppInfoProviderImpl.class);
 
     bind(AuthApi.class);
     bind(AuthApiService.class).to(AuthApiServiceImpl.class);

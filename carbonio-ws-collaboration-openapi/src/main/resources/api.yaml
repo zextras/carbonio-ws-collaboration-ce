@@ -4,9 +4,9 @@
 
 openapi: 3.0.3
 info:
-  title: Zextras Workstream Collaboration CE Chats Api
-  description: Zextras Carbonio Workstream Collaboration CE Chats HTTP APIs definition.
-  version: 0.9.0
+  title: Zextras Carbonio Workstream Collaboration API
+  description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
+  version: 1.6.0
   contact:
     email: smokybeans@zextras.com
 servers:
@@ -18,7 +18,7 @@ tags:
   - name: Attachments
   - name: Health
   - name: Authentication
-  - name: Meeting
+  - name: Meetings
 paths:
   /health:
     get:
@@ -606,6 +606,242 @@ paths:
           $ref: '#/components/responses/401UnauthorizedResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /meetings:
+    get:
+      tags:
+        - Meetings
+      summary: Retrieves a list of every meeting the user has access to
+      operationId: listMeeting
+      responses:
+        200:
+          $ref: '#/components/responses/200ListMeetingResponse'
+    post:
+      tags:
+        - Meetings
+      summary: Creates a new meeting
+      operationId: createMeeting
+      requestBody:
+        $ref: '#/components/requestBodies/CreateMeetingRequest'
+      responses:
+        200:
+          $ref: '#/components/responses/200CreateMeetingResponse'
+  /meetings/{meetingId}:
+    get:
+      tags:
+        - Meetings
+      summary: Retrieves the requested meeting
+      operationId: getMeeting
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      responses:
+        200:
+          $ref: '#/components/responses/200GetMeetingResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+    delete:
+      tags:
+        - Meetings
+      summary: Deletes the requested meeting
+      operationId: deleteMeeting
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      responses:
+        204:
+          $ref: '#/components/responses/204DeleteMeetingResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/start:
+    post:
+      tags:
+        - Meetings
+      summary: Starts the current meeting
+      operationId: startMeeting
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      responses:
+        200:
+          $ref: '#/components/responses/200StartMeetingResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/stop:
+    post:
+      tags:
+        - Meetings
+      summary: Stops the current meeting
+      operationId: stopMeeting
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      responses:
+        200:
+          $ref: '#/components/responses/200StopMeetingResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/join:
+    post:
+      tags:
+        - Meetings
+      summary: Adds the current user to the specified meeting
+      operationId: joinMeeting
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      requestBody:
+        $ref: '#/components/requestBodies/JoinMeetingRequest'
+      responses:
+        200:
+          $ref: '#/components/responses/200JoinMeetingResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/leave:
+    post:
+      tags:
+        - Meetings
+      summary: Remove the current user to the specified meeting
+      operationId: leaveMeeting
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      responses:
+        204:
+          $ref: '#/components/responses/204LeaveMeetingResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/media:
+    put:
+      tags:
+        - Meetings
+      summary: Update media stream status for the current session
+      operationId: updateMediaStream
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateMediaStreamRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204MediaStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/media/answer:
+    put:
+      tags:
+        - Meetings
+      summary: Complete WebRTC negotiation for media streams for the current session
+      operationId: answerRtcMediaStream
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      requestBody:
+        $ref: '#/components/requestBodies/RtcMediaStreamRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204AnswerMediaStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/media/subscribe:
+    put:
+      tags:
+        - Meetings
+      summary: Update subscriptions of the current session to the desired media streams
+      operationId: updateSubscriptionsMediaStream
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateMediaStreamSubscriptionsRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204SubscribeMediaStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/audio:
+    put:
+      tags:
+        - Meetings
+      summary: Update audio stream status for a user, a moderator can disable audio for another user
+      operationId: updateAudioStream
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateAudioStreamRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204AudioStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/audio/offer:
+    put:
+      tags:
+        - Meetings
+      summary: Start WebRTC negotiation for audio stream for the current session
+      operationId: offerRtcAudioStream
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      requestBody:
+        $ref: '#/components/requestBodies/RtcMediaStreamRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204OfferAudioStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/hand:
+    put:
+      tags:
+        - Meetings
+      summary: Update hand status for a user during a meeting, a moderator can lower down the hand for another user
+      operationId: updateHandStatus
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      requestBody:
+        $ref: '#/components/requestBodies/UpdateHandStatusRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204HandStatusResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
 components:
   parameters:
     pathRoomId:
@@ -616,6 +852,24 @@ components:
         type: string
         format: uuid
       required: true
+    pathMeetingId:
+      in: path
+      name: meetingId
+      description: meeting identifier
+      schema:
+        type: string
+        format: uuid
+      required: true
+      allowEmptyValue: false
+    pathUserId:
+      in: path
+      name: userId
+      description: user identifier
+      schema:
+        type: string
+        format: uuid
+      required: true
+      allowEmptyValue: false
     pathFileId:
       in: path
       name: fileId
@@ -673,14 +927,7 @@ components:
         title: LastPage
         type: integer
       required: false
-    pathUserId:
-      in: path
-      name: userId
-      description: user identifier
-      schema:
-        type: string
-        format: uuid
-      required: true
+
     headerFileName:
       in: header
       name: fileName
@@ -817,6 +1064,55 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ForwardMessagesList'
+    JoinMeetingRequest:
+      description: user request containing its streams settings to join a meeting
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JoinSettings'
+    CreateMeetingRequest:
+      description: Data to create a new meeting
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NewMeetingData'
+    UpdateMediaStreamRequest:
+      description: user request to update a media stream status
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MediaStreamSettings'
+    UpdateAudioStreamRequest:
+      description: user request to update a meeting stream status
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AudioStreamSettings'
+    RtcMediaStreamRequest:
+      description: user request to send a rtc session description related to media stream for WebRTC negotiation
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SessionDescriptionProtocol'
+    UpdateMediaStreamSubscriptionsRequest:
+      description: user request to update subscriptions to the desired media stream
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SubscriptionUpdates'
+    UpdateHandStatusRequest:
+      description: user request to update hand status during a meeting
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/HandStatus'
   responses:
     200HealthStatusResponse:
       description: General status of the service and its dependencies
@@ -974,10 +1270,65 @@ components:
       content:
         application/json:
           schema:
-            $ref: '../meeting/meeting-api.yaml#/components/schemas/Meeting'
+            $ref: '#/components/schemas/Meeting'
     204ForwardMessagesResponse:
       description: successfully forwarded the messages
-
+    200CreateMeetingResponse:
+      description: The meeting just created
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Meeting'
+    200ListMeetingResponse:
+      description: List of every meeting that the user has access to
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Meeting'
+    200JoinMeetingResponse:
+      description: The result of the join operation for the meeting
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JoinMeetingResult'
+    200GetMeetingResponse:
+      description: Gets the requested meeting data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Meeting'
+    200StartMeetingResponse:
+      description: The meeting was started successfully
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Meeting'
+    200StopMeetingResponse:
+      description: The meeting was stopped successfully
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Meeting'
+    204UpdateQueuedUserResponse:
+      description: The queued user was updated successfully
+    204DeleteMeetingResponse:
+      description: The meeting was deleted successfully
+    204LeaveMeetingResponse:
+      description: The user exited the meeting successfully
+    204AudioStreamResponse:
+      description: The status of audio stream changed successfully
+    204OfferAudioStreamResponse:
+      description: The offer related to the audio stream has been processed and sent successfully
+    204MediaStreamResponse:
+      description: The status of media stream changed successfully
+    204AnswerMediaStreamResponse:
+      description: The answer related to the media stream has been processed and sent successfully
+    204SubscribeMediaStreamResponse:
+      description: The user subscribed to media streams successfully
+    204HandStatusResponse:
+      description: The hand action has been performed successfully
     400BadRequestResponse:
       description: The request had wrong or missing parameters
     401UnauthorizedResponse:
@@ -1385,3 +1736,207 @@ components:
           type: string
           description: description of the forwarded message
       required: [ originalMessage ]
+    NewMeetingData:
+      type: object
+      properties:
+        name:
+          type: string
+        roomId:
+          type: string
+          format: uuid
+        meetingType:
+          $ref: '#/components/schemas/MeetingType'
+        expiration:
+          description: 'This field is only used for scheduled meetings to indicate when the meeting will
+            no more be necessary'
+          type: string
+          format: date-time
+      required: [ name, meetingType ]
+    JoinMeetingResult:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/JoinStatus'
+    MeetingUser:
+      type: object
+      description: Defines a user in the access list of a meeting
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: user identifier
+        userType:
+          $ref: '#/components/schemas/MeetingUserType'
+    MeetingType:
+      type: string
+      description: 'Defines the type of meeting, if permanent it will never be automatically deleted,
+        if scheduled it will be removed after the expiration is passed'
+      enum:
+        - permanent
+        - scheduled
+    MeetingUserType:
+      type: string
+      enum:
+        - moderator
+        - registered
+    JoinStatus:
+      type: string
+      enum:
+        - ACCEPTED
+    Participant:
+      description: Meeting participant data
+      allOf:
+        - $ref: '#/components/schemas/MeetingUser'
+        - type: object
+          properties:
+            queueId:
+              type: string
+              readOnly: true
+              description: Reference to the user queue of the user
+            audioStreamEnabled:
+              type: boolean
+              readOnly: true
+              description: indicates the audio stream status
+            videoStreamEnabled:
+              type: boolean
+              readOnly: true
+              description: indicates the video stream status
+            screenStreamEnabled:
+              type: boolean
+              readOnly: true
+              description: indicates the screen share stream status
+            joinedAt:
+              type: string
+              format: date-time
+              readOnly: true
+              description: participant joining timestamp
+            handRaisedAt:
+              type: string
+              format: date-time
+              readOnly: true
+              description: participant hand raising timestamp
+    Meeting:
+      type: object
+      description: Meeting data
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          description: meeting identifier
+        name:
+          type: string
+          description: The meeting name
+        roomId:
+          type: string
+          format: uuid
+          readOnly: true
+          description: room identifier
+        active:
+          description: Indicates if the meeting is active
+          type: boolean
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participant'
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: entity creation date
+        startedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: meeting starting time
+        meetingType:
+          $ref: '#/components/schemas/MeetingType'
+    JoinSettings:
+      type: object
+      description: user's streams settings to join a meeting
+      properties:
+        audioStreamEnabled:
+          type: boolean
+          default: false
+          description: indicates the audio stream status to join the meeting
+        videoStreamEnabled:
+          type: boolean
+          default: false
+          description: indicates the video stream status to join the meeting
+      required: [ audioStreamEnabled, videoStreamEnabled ]
+    MediaStreamSettings:
+      type: object
+      description: settings to apply on user's media stream
+      properties:
+        type:
+          type: string
+          description: indicates the media stream type
+          enum:
+            - video
+            - screen
+        enabled:
+          type: boolean
+          description: indicates the status to change the media stream to
+        sdp:
+          type: string
+          description: indicates the descriptor of the session
+      required: [ type, enabled ]
+    AudioStreamSettings:
+      type: object
+      description: settings to apply on user's audio stream
+      properties:
+        enabled:
+          type: boolean
+          description: indicates the status to change the audio stream to
+        userToModerate:
+          type: string
+          description: optional user to mute if i'm a moderator, only works if enabled is false
+      required: [ enabled ]
+    SessionDescriptionProtocol:
+      type: object
+      description: contains sdp descriptor needed for a media stream to perform WebRTC negotiation
+      properties:
+        sdp:
+          type: string
+          description: indicates the descriptor of the session
+      required: [ sdp ]
+    SubscriptionUpdates:
+      type: object
+      description: subscriptions updates related to media streams
+      properties:
+        subscribe:
+          type: array
+          description: indicates the media streams which user wants to subscribe to
+          items:
+            $ref: '#/components/schemas/MediaStream'
+        unsubscribe:
+          type: array
+          description: indicates the media streams which user wants to unsubscribe to
+          items:
+            $ref: '#/components/schemas/MediaStream'
+      required: [ subscribe, unsubscribe ]
+    MediaStream:
+      type: object
+      description: representation of meeting media stream
+      properties:
+        userId:
+          type: string
+          description: user identifier which owns the related media stream
+        type:
+          type: string
+          description: indicates the media stream type
+          enum:
+            - video
+            - screen
+      required: [ userId, type ]
+    HandStatus:
+      type: object
+      description: the hand action the user wants to perform
+      properties:
+        raised:
+          type: boolean
+          description: indicates the status to change the hand to
+        userToModerate:
+          type: string
+          description: optionally lower the user's hand if I'm a moderator, only works if raised is false
+      required: [ raised ]

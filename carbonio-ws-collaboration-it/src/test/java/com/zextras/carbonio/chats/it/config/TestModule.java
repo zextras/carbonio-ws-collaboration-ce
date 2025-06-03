@@ -15,6 +15,7 @@ import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
+import com.zextras.carbonio.chats.it.web.api.versioning.DummyVersionedApi;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.ZoneId;
@@ -27,6 +28,7 @@ public class TestModule extends AbstractModule {
     super.configure();
     bind(IntegrationTestUtils.class);
     bind(MeetingTestUtils.class);
+    bind(DummyVersionedApi.class);
   }
 
   @Provides

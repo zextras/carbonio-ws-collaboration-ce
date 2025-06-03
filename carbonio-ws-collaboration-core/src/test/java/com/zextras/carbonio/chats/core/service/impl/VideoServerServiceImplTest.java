@@ -51,10 +51,10 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceImpl;
 import com.zextras.carbonio.chats.core.repository.VideoServerMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.VideoServerSessionRepository;
-import com.zextras.carbonio.meeting.model.MediaStreamDto;
-import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
-import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
+import com.zextras.carbonio.chats.model.MediaStreamDto;
+import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
+import com.zextras.carbonio.chats.model.MediaStreamSettingsDto.TypeEnum;
+import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
