@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.it;
+package com.zextras.carbonio.chats.it.web.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zextras.carbonio.chats.api.MeetingsApi;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -27,20 +28,19 @@ import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils.RoomMemberField;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
+import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
+import com.zextras.carbonio.chats.model.HandStatusDto;
+import com.zextras.carbonio.chats.model.JoinSettingsDto;
+import com.zextras.carbonio.chats.model.MediaStreamDto;
+import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
+import com.zextras.carbonio.chats.model.MediaStreamSettingsDto.TypeEnum;
+import com.zextras.carbonio.chats.model.MeetingDto;
+import com.zextras.carbonio.chats.model.MeetingTypeDto;
+import com.zextras.carbonio.chats.model.NewMeetingDataDto;
+import com.zextras.carbonio.chats.model.ParticipantDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import com.zextras.carbonio.meeting.api.MeetingsApi;
-import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.HandStatusDto;
-import com.zextras.carbonio.meeting.model.JoinSettingsDto;
-import com.zextras.carbonio.meeting.model.MediaStreamDto;
-import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto.TypeEnum;
-import com.zextras.carbonio.meeting.model.MeetingDto;
-import com.zextras.carbonio.meeting.model.MeetingTypeDto;
-import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
-import com.zextras.carbonio.meeting.model.ParticipantDto;
-import com.zextras.carbonio.meeting.model.SessionDescriptionProtocolDto;
-import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
+import com.zextras.carbonio.chats.model.SessionDescriptionProtocolDto;
+import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Collections;

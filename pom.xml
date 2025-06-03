@@ -15,7 +15,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <groupId>com.zextras.carbonio.ws-collaboration</groupId>
   <artifactId>carbonio-ws-collaboration-ce</artifactId>
-  <version>0.9.0</version>
+  <version>1.6.0</version>
 
   <repositories>
     <repository>
@@ -75,6 +75,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     <!-- Utilities -->
     <org.apache.commons.lang3.version>3.17.0</org.apache.commons.lang3.version>
     <org.apache.commons.text.version>1.12.0</org.apache.commons.text.version>
+    <com.vdurmont.version>3.1.0</com.vdurmont.version>
+    <org.yaml.version>2.4</org.yaml.version>
     <!-- Open api-->
     <io.swagger.version>1.6.14</io.swagger.version>
     <org.hibernate.validator.version>8.0.1.Final</org.hibernate.validator.version>
@@ -107,6 +109,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <maven-failsafe-plugin.version>3.5.1</maven-failsafe-plugin.version>
     <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
     <ebean-maven-plugin.version>15.6.0</ebean-maven-plugin.version>
+    <versions-maven-plugin.version>2.18.0</versions-maven-plugin.version>
   </properties>
 
   <dependencyManagement>
@@ -326,6 +329,19 @@ SPDX-License-Identifier: AGPL-3.0-only
         <version>${org.apache.commons.text.version}</version>
       </dependency>
 
+      <!-- Version dependencies -->
+      <dependency>
+        <groupId>com.vdurmont</groupId>
+        <artifactId>semver4j</artifactId>
+        <version>${com.vdurmont.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>${org.yaml.version}</version>
+      </dependency>
+
       <!-- Open API dependencies-->
       <dependency>
         <groupId>io.swagger</groupId>
@@ -472,6 +488,12 @@ SPDX-License-Identifier: AGPL-3.0-only
           <groupId>io.ebean</groupId>
           <artifactId>ebean-maven-plugin</artifactId>
           <version>${ebean-maven-plugin.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>versions-maven-plugin</artifactId>
+          <version>${versions-maven-plugin.version}</version>
         </plugin>
       </plugins>
     </pluginManagement>

@@ -16,7 +16,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   <parent>
     <groupId>com.zextras.carbonio.ws-collaboration</groupId>
     <artifactId>carbonio-ws-collaboration-ce</artifactId>
-    <version>0.9.0</version>
+    <version>1.6.0</version>
   </parent>
 
   <artifactId>carbonio-ws-collaboration-ce-openapi</artifactId>
@@ -113,9 +113,9 @@ SPDX-License-Identifier: AGPL-3.0-only
               <generatorName>jaxrs-resteasy</generatorName>
               <engine>mustache</engine>
               <!-- Openapi files -->
-              <inputSpec>${project.basedir}/src/main/resources/chats/chats-api.yaml</inputSpec>
+              <inputSpec>${project.basedir}/src/main/resources/api.yaml</inputSpec>
               <configurationFile>
-                ${project.basedir}/src/main/resources/chats/chats-generator-config.json
+                ${project.basedir}/src/main/resources/generator-config.json
               </configurationFile>
               <templateDirectory>${project.basedir}/src/main/resources/templates</templateDirectory>
               <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore</ignoreFileOverride>
@@ -130,31 +130,6 @@ SPDX-License-Identifier: AGPL-3.0-only
               <importMappings>
                 <importMapping>InputStream=java.io.InputStream</importMapping>
               </importMappings>
-            </configuration>
-          </execution>
-
-          <execution>
-            <id>meeting-api</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-            <configuration>
-              <configOptions>
-                <useJakartaEe>true</useJakartaEe>
-              </configOptions>
-              <generatorName>jaxrs-resteasy</generatorName>
-              <engine>mustache</engine>
-              <!-- Openapi files -->
-              <inputSpec>${project.basedir}/src/main/resources/meeting/meeting-api.yaml</inputSpec>
-              <configurationFile>
-                ${project.basedir}/src/main/resources/meeting/meeting-generator-config.json
-              </configurationFile>
-              <templateDirectory>${project.basedir}/src/main/resources/templates</templateDirectory>
-              <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore</ignoreFileOverride>
-              <!-- Generation options -->
-              <output>${project.build.directory}/generated-sources/meeting</output>
-              <modelNameSuffix>dto</modelNameSuffix>
-              <skipValidateSpec>true</skipValidateSpec>
             </configuration>
           </execution>
         </executions>

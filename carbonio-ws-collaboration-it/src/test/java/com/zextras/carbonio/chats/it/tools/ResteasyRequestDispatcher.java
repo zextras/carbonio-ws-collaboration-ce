@@ -39,6 +39,16 @@ public class ResteasyRequestDispatcher {
     return sendRequest(request);
   }
 
+  public MockHttpResponse get(
+      String url, @Nullable String userToken, @Nullable Map<String, String> requestHeaders)
+      throws URISyntaxException {
+    MockHttpRequest request = MockHttpRequest.get(url);
+    Optional.ofNullable(requestHeaders).ifPresent(r -> r.forEach(request::header));
+    Optional.ofNullable(userToken).ifPresent(token -> request.cookie("ZM_AUTH_TOKEN", token));
+
+    return sendRequest(request);
+  }
+
   private MockHttpRequest preparePost(
       String path, @Nullable Map<String, String> requestHeaders, @Nullable String userToken)
       throws URISyntaxException {

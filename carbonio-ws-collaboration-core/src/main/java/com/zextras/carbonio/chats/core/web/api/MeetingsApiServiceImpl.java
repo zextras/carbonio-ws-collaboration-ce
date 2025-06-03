@@ -6,21 +6,21 @@ package com.zextras.carbonio.chats.core.web.api;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.zextras.carbonio.chats.api.MeetingsApiService;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.meeting.api.MeetingsApiService;
-import com.zextras.carbonio.meeting.model.AudioStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.HandStatusDto;
-import com.zextras.carbonio.meeting.model.JoinMeetingResultDto;
-import com.zextras.carbonio.meeting.model.JoinSettingsDto;
-import com.zextras.carbonio.meeting.model.JoinStatusDto;
-import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.NewMeetingDataDto;
-import com.zextras.carbonio.meeting.model.SessionDescriptionProtocolDto;
-import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
+import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
+import com.zextras.carbonio.chats.model.HandStatusDto;
+import com.zextras.carbonio.chats.model.JoinMeetingResultDto;
+import com.zextras.carbonio.chats.model.JoinSettingsDto;
+import com.zextras.carbonio.chats.model.JoinStatusDto;
+import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
+import com.zextras.carbonio.chats.model.NewMeetingDataDto;
+import com.zextras.carbonio.chats.model.SessionDescriptionProtocolDto;
+import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
@@ -45,7 +45,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    *
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
    * @return a response
-   * {@link Response) with status 200 and the meetings list {@link com.zextras.carbonio.meeting.model.MeetingDto} of
+   * {@link Response) with status 200 and the meetings list {@link com.zextras.carbonio.chats.model.MeetingDto} of
    * authenticated user in the body
    */
   @Override
@@ -64,7 +64,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * @param meetingId       meeting identifier {@link UUID}}
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
    * @return a response
-   * {@link Response) with status 200 and the requested meeting {@link com.zextras.carbonio.meeting.model.MeetingDto} in
+   * {@link Response) with status 200 and the requested meeting {@link com.zextras.carbonio.chats.model.MeetingDto} in
    * the body
    */
   @Override
@@ -79,7 +79,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * @param newMeetingDataDto data form creating a new meeting
    * @param securityContext   security context created by the authentication filter {@link SecurityContext}
    * @return a response
-   * {@link Response) with status 200 and the requested meeting {@link com.zextras.carbonio.meeting.model.MeetingDto} in
+   * {@link Response) with status 200 and the requested meeting {@link com.zextras.carbonio.chats.model.MeetingDto} in
    * the body
    */
   @Override
@@ -123,7 +123,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    *
    * @param meetingId       meeting identifier {@link UUID}
    * @param joinSettingsDto user requested access settings for meeting
-   *                        {@link com.zextras.carbonio.meeting.model.JoinSettingsDto}
+   *                        {@link com.zextras.carbonio.chats.model.JoinSettingsDto}
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
@@ -165,7 +165,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * @param meetingId       meeting identifier {@link UUID}
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
    * @return a response
-   * {@link Response) with status 200 and the updated meeting {@link com.zextras.carbonio.meeting.model.MeetingDto} in
+   * {@link Response) with status 200 and the updated meeting {@link com.zextras.carbonio.chats.model.MeetingDto} in
    * the body
    */
   @Override
@@ -184,7 +184,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * @param meetingId       meeting identifier {@link UUID}
    * @param securityContext security context created by the authentication filter {@link SecurityContext}
    * @return a response
-   * {@link Response) with status 200 and the updated meeting {@link com.zextras.carbonio.meeting.model.MeetingDto} in
+   * {@link Response) with status 200 and the updated meeting {@link com.zextras.carbonio.chats.model.MeetingDto} in
    * the body
    */
   @Override
