@@ -1,0 +1,70 @@
+version = 1
+SPDX-PackageName = "Workstream Collaboration"
+SPDX-PackageSupplier = "Smoky Beans <smokybeans@zextras.com>"
+SPDX-PackageDownloadLocation = "https://github.com/Zextras/carbonio-ws-collaboration"
+
+[[annotations]]
+path = "README.md"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
+path = "yap.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
+path = "package/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
+path = "docker/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
+path = "carbonio-ws-collaboration-core/src/main/resources/ebean.mf"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
+path = "carbonio-ws-collaboration-openapi/src/main/resources/generator-config.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
+path = "carbonio-ws-collaboration-openapi/src/main/resources/generator-ignore"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
+path = "carbonio-ws-collaboration-openapi/src/main/resources/meeting/meeting-generator-config.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
+path = "carbonio-ws-collaboration-it/src/test/resources/build-information"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
+path = "carbonio-ws-collaboration-it/src/test/resources/files/**"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 Zextras"
+SPDX-License-Identifier = "CC-BY-NC-SA-4.0"
+
+[[annotations]]
+path = "carbonio-ws-collaboration-boot/src/main/resources/banner.txt"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 Zextras"
+SPDX-License-Identifier = "CC0-1.0"

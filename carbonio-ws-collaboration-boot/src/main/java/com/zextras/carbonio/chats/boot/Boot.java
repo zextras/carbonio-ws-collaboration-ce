@@ -6,7 +6,7 @@ package com.zextras.carbonio.chats.boot;
 
 import com.google.inject.Inject;
 import com.zaxxer.hikari.HikariDataSource;
-import com.zextras.carbonio.chats.core.config.ChatsConstant;
+import com.zextras.carbonio.chats.core.config.ServerConfiguration;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
@@ -28,6 +28,7 @@ import org.jboss.resteasy.plugins.server.servlet.HttpServletDispatcher;
 
 public class Boot {
 
+  private final ServerConfiguration serverConfiguration;
   private final GuiceResteasyBootstrapServletContextListener resteasyListener;
   private final Flyway flyway;
   private final HikariDataSource hikariDataSource;
@@ -37,12 +38,14 @@ public class Boot {
 
   @Inject
   public Boot(
+      ServerConfiguration serverConfiguration,
       GuiceResteasyBootstrapServletContextListener resteasyListener,
       Flyway flyway,
       HikariDataSource hikariDataSource,
       AuthenticationService authenticationService,
       EventsWebSocketManager eventsWebSocketManager,
       VideoServerEventListener videoServerEventListener) {
+    this.serverConfiguration = serverConfiguration;
     this.resteasyListener = resteasyListener;
     this.flyway = flyway;
     this.hikariDataSource = hikariDataSource;
@@ -56,8 +59,8 @@ public class Boot {
 
     Server server = new Server();
     ServerConnector connector = new ServerConnector(server);
-    connector.setHost(ChatsConstant.SERVER_HOST);
-    connector.setPort(ChatsConstant.SERVER_PORT);
+    connector.setHost(serverConfiguration.getHost());
+    connector.setPort(serverConfiguration.getPort());
     server.addConnector(connector);
 
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);

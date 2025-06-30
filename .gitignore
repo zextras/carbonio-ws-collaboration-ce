@@ -48,9 +48,8 @@ Thumbs.db
 *.wmv
 
 .env*
+!.env.sample
 .openapi-generator/
-Dockerfile
-docker-compose.yml
 mongoose/
 
 # Artifacts

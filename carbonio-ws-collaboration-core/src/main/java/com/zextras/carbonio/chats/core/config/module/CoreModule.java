@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.config;
+package com.zextras.carbonio.chats.core.config.module;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
@@ -29,8 +29,9 @@ import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.cache.CacheHandler;
-import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
-import com.zextras.carbonio.chats.core.config.impl.InfrastructureAppConfig;
+import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigName;
+import com.zextras.carbonio.chats.core.config.JacksonConfig;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
@@ -127,7 +128,6 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.ZoneId;
 import java.util.Base64;
-import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import org.flywaydb.core.Flyway;
 
@@ -220,19 +220,6 @@ public class CoreModule extends AbstractModule {
     bind(JsonProcessingExceptionHandler.class);
     bind(DefaultExceptionHandler.class);
     bind(ValidationExceptionHandler.class);
-  }
-
-  @Singleton
-  @Provides
-  private AppConfig getAppConfig() {
-    AppConfig appConfig = InfrastructureAppConfig.create().load();
-    Optional.ofNullable(
-            ConsulAppConfig.create(
-                appConfig.get(String.class, ConfigName.CONSUL_HOST).orElseThrow(),
-                appConfig.get(Integer.class, ConfigName.CONSUL_PORT).orElseThrow(),
-                System.getenv("CONSUL_HTTP_TOKEN")))
-        .ifPresent(consulConfig -> appConfig.add(consulConfig.load()));
-    return appConfig;
   }
 
   @Singleton
