@@ -50,7 +50,7 @@ services:
       start_period: 30s
 
   carbonio-message-dispatcher:
-    image: registry.dev.zextras.com/dev/carbonio-message-dispatcher:latest
+    image: registry.dev.zextras.com/dev/carbonio-message-dispatcher-ce:latest
     container_name: carbonio-message-dispatcher
     hostname: carbonio-message-dispatcher
     restart: unless-stopped
