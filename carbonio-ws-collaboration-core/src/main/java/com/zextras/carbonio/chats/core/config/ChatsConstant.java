@@ -6,9 +6,6 @@ package com.zextras.carbonio.chats.core.config;
 
 public class ChatsConstant {
 
-  public static final String SERVER_HOST = "127.78.0.4";
-  public static final int SERVER_PORT = 10000;
-
   public static final String LOGGER_CONFIG_PATH = "/etc/carbonio/ws-collaboration/logback.xml";
 
   public static final String IS_UNICODE_FORMAT_REGEX = "[\\\\[uU][a-fA-F0-9]{4}]*";

@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-only
 
-.PHONY: compile test copy_jar stop_service start_service deploy bump_pom
+.PHONY: compile test copy_jar stop_service start_service deploy bump_pom bump_version docker-up docker-down
 
 VM_HOSTNAME=${HOST}-example.com
 WS_SERVICE_NAME=carbonio-ws-collaboration
@@ -29,3 +29,9 @@ bump_pom:
 
 bump_version: bump_pom
 	./bump-version.sh ${VERSION}
+
+docker-up:
+	cd docker && docker compose up --build
+
+docker-down:
+	cd docker && docker compose down

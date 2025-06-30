@@ -8,7 +8,7 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.TypeLiteral;
 import com.google.inject.util.Modules;
-import com.zextras.carbonio.chats.core.config.CoreModule;
+import com.zextras.carbonio.chats.core.config.module.CoreModule;
 import com.zextras.carbonio.chats.it.config.TestModule;
 import java.util.Optional;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
