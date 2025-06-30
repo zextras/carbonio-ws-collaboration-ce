@@ -48,7 +48,7 @@ Thumbs.db
 *.wmv
 
 .env*
-!.env.sample
+!docker/wsc/.env.sample
 .openapi-generator/
 mongoose/
 
