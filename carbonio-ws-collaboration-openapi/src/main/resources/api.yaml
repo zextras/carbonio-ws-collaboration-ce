@@ -6,7 +6,7 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.0
+  version: 1.6.1
   contact:
     email: smokybeans@zextras.com
 servers:
@@ -415,6 +415,19 @@ paths:
           $ref: '#/components/responses/201InsertAttachmentResponse'
         413:
           $ref: '#/components/responses/413PayloadTooLargeResponse'
+    put:
+      tags:
+        - Rooms
+        - Attachments
+      summary: Insert an attachment with multipart/form-data
+      operationId: insertAttachmentMultipart
+      parameters:
+        - $ref: '#/components/parameters/pathRoomId'
+      requestBody:
+        $ref: '#/components/requestBodies/InsertAttachmentRequestMultipart'
+      responses:
+        201:
+          $ref: '#/components/responses/201InsertAttachmentResponse'
   /rooms/{roomId}/forward:
     post:
       tags:
@@ -1057,6 +1070,37 @@ components:
           schema:
             type: string
             format: binary
+    InsertAttachmentRequestMultipart:
+      description: Attachment upload form data
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            description: Fields for inserting an attachment
+            properties:
+              file:
+                type: string
+                format: binary
+                description: file to upload
+              description:
+                type: string
+                description: description encoded to unicode
+              messageId:
+                type: string
+                description: identifier of the message
+              replyId:
+                type: string
+                description: identifier of the message being replied to
+              area:
+                type: string
+                description: area of the attachment
+              contentLength:
+                type: integer
+                format: int64
+                description: content length
+            required:
+              - file
     ForwardMessagesRequest:
       description: Messages forwarding request
       required: true

@@ -6,9 +6,14 @@ package com.zextras.carbonio.chats.it.tools;
 
 import jakarta.annotation.Nullable;
 import jakarta.ws.rs.core.MediaType;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Optional;
+import org.apache.http.HttpEntity;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.jboss.resteasy.core.SynchronousDispatcher;
 import org.jboss.resteasy.core.SynchronousExecutionContext;
 import org.jboss.resteasy.mock.MockHttpRequest;
@@ -106,6 +111,39 @@ public class ResteasyRequestDispatcher {
     return request;
   }
 
+  private MockHttpRequest preparePutMultiPart(
+      String path,
+      byte[] fileBytes,
+      Map<String, String> formHeaders,
+      String fileName,
+      ContentType contentType,
+      @Nullable String userToken)
+      throws URISyntaxException {
+
+    MockHttpRequest request = MockHttpRequest.put(path);
+    Optional.ofNullable(userToken).ifPresent(token -> request.cookie("ZM_AUTH_TOKEN", token));
+
+    try {
+      MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+      formHeaders.forEach((key, value) -> builder.addTextBody(key, value, ContentType.TEXT_PLAIN));
+      builder.addBinaryBody("file", fileBytes, contentType, fileName);
+
+      HttpEntity multipartEntity = builder.build();
+
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      multipartEntity.writeTo(baos);
+
+      request.content(baos.toByteArray());
+      request.header("Content-Type", multipartEntity.getContentType().getValue());
+
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to create multipart content", e);
+    }
+
+    request.accept(MediaType.APPLICATION_JSON);
+    return request;
+  }
+
   public MockHttpResponse put(String path, @Nullable String requestBody, @Nullable String userToken)
       throws URISyntaxException {
     return put(path, requestBody, Map.of(), userToken);
@@ -129,6 +167,18 @@ public class ResteasyRequestDispatcher {
       @Nullable String userToken)
       throws URISyntaxException {
     return sendRequest(preparePut(path, requestHeaders, userToken).content(requestBody));
+  }
+
+  public MockHttpResponse putMultipart(
+      String path,
+      byte[] fileBytes,
+      Map<String, String> formHeaders,
+      String fileName,
+      ContentType contentType,
+      @Nullable String userToken)
+      throws URISyntaxException {
+    return sendRequest(
+        preparePutMultiPart(path, fileBytes, formHeaders, fileName, contentType, userToken));
   }
 
   private MockHttpRequest prepareDelete(

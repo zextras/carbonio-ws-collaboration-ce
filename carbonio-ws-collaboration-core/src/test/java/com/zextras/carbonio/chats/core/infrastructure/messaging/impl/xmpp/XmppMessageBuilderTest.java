@@ -25,7 +25,7 @@ class XmppMessageBuilderTest {
   void buildMessageWithBody() {
     String hoped =
         "<message xmlns='jabber:client' from='sender-id' to='recipient-id' type='groupchat'><body"
-            + " encoded='UTF-8'>\\u0074\\u0068\\u0069\\u0073\\u0020\\u0069\\u0073\\u0020\\u006d\\u0079\\u0020\\u0062\\u006f\\u0064\\u0079\\u0020\\u0021</body>"
+            + " encoded='UTF-8'>this is my body !</body>"
             + "</message>";
     String result =
         XmppMessageBuilder.create("recipient-id", "sender-id").body("this is my body !").build();
@@ -67,7 +67,7 @@ class XmppMessageBuilderTest {
     String hoped =
         "<message xmlns='jabber:client' from='sender-id' id='message-id' to='recipient-id'"
             + " type='groupchat'><body encoded='UTF-8'>"
-            + "\\u0074\\u0068\\u0069\\u0073\\u0020\\u0069\\u0073\\u0020\\u006d\\u0079\\u0020\\u0062\\u006f\\u0064\\u0079\\u0020\\u0021"
+            + "this is my body !"
             + "</body></message>";
     String result =
         XmppMessageBuilder.create("recipient-id", "sender-id")
@@ -126,7 +126,7 @@ class XmppMessageBuilderTest {
     String hoped =
         "<message xmlns='jabber:client' from='sender-id' to='recipient-id' type='groupchat'><body"
             + " encoded='UTF-8'>"
-            + "\\u0074\\u0068\\u0069\\u0073\\u0020\\u0069\\u0073\\u0020\\u006d\\u0079\\u0020\\u0062\\u006f\\u0064\\u0079\\u0020\\u0021</body><reply"
+            + "this is my body !</body><reply"
             + " xmlns='urn:xmpp:reply:0' id='reply-id' to='recipient-id'/></message>";
     String result =
         XmppMessageBuilder.create("recipient-id", "sender-id")
@@ -145,7 +145,7 @@ class XmppMessageBuilderTest {
             + " type='groupchat'><body/><forwarded xmlns='urn:xmpp:forward:0' count='1'><delay"
             + " xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/><message from='sender-id'"
             + " to='recipient-id' type='groupchat'><body"
-            + " encoded='UTF-8'>\\u0074\\u006f\\u0020\\u0066\\u006f\\u0072\\u0077\\u0061\\u0072\\u0064</body>"
+            + " encoded='UTF-8'>to forward</body>"
             + "</message></forwarded></message>";
     String result =
         XmppMessageBuilder.create("recipient-id", "sender-id")
@@ -166,7 +166,7 @@ class XmppMessageBuilderTest {
             + " type='groupchat'><body/><forwarded xmlns='urn:xmpp:forward:0' count='1'><delay"
             + " xmlns='urn:xmpp:delay' stamp='2023-01-01T00:00:00Z'/><message from='sender-id'"
             + " to='recipient-id' type='groupchat'><body"
-            + " encoded='UTF-8'>\\u0074\\u006f\\u0020\\u0066\\u006f\\u0072\\u0077\\u0061\\u0072\\u0064</body>"
+            + " encoded='UTF-8'>to forward</body>"
             + "</message></forwarded></message>";
     String result =
         XmppMessageBuilder.create("recipient-id", "sender-id")
@@ -213,23 +213,18 @@ class XmppMessageBuilderTest {
         "<message xmlns='jabber:client' from='sender-id' id='message-id' to='recipient-id'"
             + " type='groupchat'><x"
             + " xmlns='urn:xmpp:muclight:0#configuration'><operation>roomNameChanged</operation><config1>option"
-            + " one</config1><config2"
-            + " encoded='UTF-8'>\\u006f\\u0070\\u0074\\u0069\\u006f\\u006e\\u0020\\u0074\\u0077\\u006f</config2></x><body/><reply"
+            + " one</config1><config2 encoded='UTF-8'>test</config2></x><body/><reply"
             + " xmlns='urn:xmpp:reply:0' id='reply-id' to='recipient-id'/><forwarded"
             + " xmlns='urn:xmpp:forward:0' count='1'><delay xmlns='urn:xmpp:delay'"
             + " stamp='2023-01-01T00:00:00Z'/><message from='sender-id' to='recipient-id'"
-            + " type='groupchat'><body"
-            + " encoded='UTF-8'>\\u0074\\u006f\\u0020\\u0066\\u006f\\u0072\\u0077\\u0061\\u0072\\u0064</body>"
+            + " type='groupchat'><body encoded='UTF-8'>to forward</body>"
             + "</message></forwarded></message>";
     String result =
         XmppMessageBuilder.create("recipient-id", "sender-id")
             .messageId("message-id")
             .type(MessageType.ROOM_NAME_CHANGED)
             .addConfig("config1", "option one")
-            .addConfig(
-                "config2",
-                "\\u006f\\u0070\\u0074\\u0069\\u006f\\u006e\\u0020\\u0074\\u0077\\u006f",
-                true)
+            .addConfig("config2", "test", true)
             .replyId("reply-id")
             .messageToForward(
                 "<message xmlns='jabber:client' from='sender-id' to='recipient-id'"
