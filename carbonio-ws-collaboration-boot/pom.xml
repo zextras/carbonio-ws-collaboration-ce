@@ -16,7 +16,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   <parent>
     <groupId>com.zextras.carbonio.ws-collaboration</groupId>
     <artifactId>carbonio-ws-collaboration-ce</artifactId>
-    <version>1.6.1</version>
+    <version>1.6.2</version>
   </parent>
 
   <artifactId>carbonio-ws-collaboration-ce-boot</artifactId>
@@ -131,6 +131,7 @@ SPDX-License-Identifier: AGPL-3.0-only
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
     </dependency>
+
   </dependencies>
 
   <build>

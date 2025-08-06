@@ -48,9 +48,7 @@ import org.mockserver.model.MediaType;
 class PreviewApiIT {
 
   private final ResteasyRequestDispatcher dispatcher;
-
   private final IntegrationTestUtils integrationTestUtils;
-
   private final PreviewerMockServer previewMockServer;
 
   public PreviewApiIT(
@@ -62,8 +60,6 @@ class PreviewApiIT {
     this.integrationTestUtils = integrationTestUtils;
     this.previewMockServer = previewMockServer;
     this.dispatcher.getRegistry().addSingletonResource(previewApi);
-    this.integrationTestUtils.generateAndSaveRoom(
-        roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
   }
 
   private static UUID user1Id;
@@ -83,13 +79,12 @@ class PreviewApiIT {
 
   @BeforeEach
   public void init() {
+    integrationTestUtils.generateAndSaveRoom(
+        roomId, RoomTypeDto.GROUP, "room", List.of(user1Id, user2Id));
     previewMockServer.reset();
   }
 
-  @AfterEach
-  public void afterEach() {}
-
-  public byte[] getFileBytes(String name) throws IOException {
+  private byte[] getFileBytes(String name) throws IOException {
     return Objects.requireNonNull(getClass().getResourceAsStream(String.format("/files/%s", name)))
         .readAllBytes();
   }

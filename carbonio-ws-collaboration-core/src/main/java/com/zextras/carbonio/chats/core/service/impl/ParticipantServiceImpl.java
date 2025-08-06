@@ -6,16 +6,19 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.zextras.carbonio.async.model.EventType;
+import com.zextras.carbonio.async.model.MediaType;
+import com.zextras.carbonio.async.model.MeetingAudioStreamChanged;
+import com.zextras.carbonio.async.model.MeetingMediaStreamChanged;
+import com.zextras.carbonio.async.model.MeetingParticipantClashed;
+import com.zextras.carbonio.async.model.MeetingParticipantHandRaised;
+import com.zextras.carbonio.async.model.MeetingParticipantHandRaisedList;
+import com.zextras.carbonio.async.model.MeetingParticipantJoined;
+import com.zextras.carbonio.async.model.MeetingParticipantLeft;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.*;
-import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamChanged;
-import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantClashed;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoined;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
@@ -23,7 +26,6 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
@@ -182,7 +184,9 @@ public class ParticipantServiceImpl implements ParticipantService {
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingParticipantJoined.create()
             .meetingId(UUID.fromString(meeting.getId()))
-            .userId(currentUser.getUUID()));
+            .userId(currentUser.getUUID())
+            .type(EventType.MEETING_PARTICIPANT_JOINED)
+            .sentDate(OffsetDateTime.now()));
   }
 
   private void destroyMeetingParticipantClashed(
@@ -192,11 +196,16 @@ public class ParticipantServiceImpl implements ParticipantService {
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingParticipantLeft.create()
             .meetingId(UUID.fromString(meeting.getId()))
-            .userId(currentUser.getUUID()));
+            .userId(currentUser.getUUID())
+            .type(EventType.MEETING_PARTICIPANT_LEFT)
+            .sentDate(OffsetDateTime.now()));
     eventDispatcher.sendToUserQueue(
         currentUser.getId(),
         participant.getQueueId(),
-        MeetingParticipantClashed.create().meetingId(UUID.fromString(meeting.getId())));
+        MeetingParticipantClashed.create()
+            .meetingId(UUID.fromString(meeting.getId()))
+            .type(EventType.MEETING_PARTICIPANT_CLASHED)
+            .sentDate(OffsetDateTime.now()));
   }
 
   @Override
@@ -239,7 +248,9 @@ public class ParticipantServiceImpl implements ParticipantService {
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingParticipantLeft.create()
             .meetingId(UUID.fromString(meeting.getId()))
-            .userId(UUID.fromString(participant.getUserId())));
+            .userId(UUID.fromString(participant.getUserId()))
+            .type(EventType.MEETING_PARTICIPANT_LEFT)
+            .sentDate(OffsetDateTime.now()));
     if (participantRepository.getByMeetingId(meeting.getId()).isEmpty()) {
       meetingService.stopMeeting(
           UserPrincipal.create(UUID.fromString(participant.getUserId())),
@@ -268,7 +279,9 @@ public class ParticipantServiceImpl implements ParticipantService {
                     .meetingId(meetingId)
                     .userId(UUID.fromString(currentUser.getId()))
                     .mediaType(MediaType.VIDEO)
-                    .active(false));
+                    .active(false)
+                    .type(EventType.MEETING_MEDIA_STREAM_CHANGED)
+                    .sentDate(OffsetDateTime.now()));
           }
         }
         break;
@@ -284,7 +297,9 @@ public class ParticipantServiceImpl implements ParticipantService {
                     .meetingId(meetingId)
                     .userId(UUID.fromString(currentUser.getId()))
                     .mediaType(MediaType.SCREEN)
-                    .active(false));
+                    .active(false)
+                    .type(EventType.MEETING_MEDIA_STREAM_CHANGED)
+                    .sentDate(OffsetDateTime.now()));
           }
         }
         break;
@@ -319,7 +334,9 @@ public class ParticipantServiceImpl implements ParticipantService {
                           .meetingId(meetingId)
                           .userId(UUID.fromString(targetUserId))
                           .moderatorId(currentUser.getUUID())
-                          .active(enabled)),
+                          .active(enabled)
+                          .type(EventType.MEETING_AUDIO_STREAM_CHANGED)
+                          .sentDate(OffsetDateTime.now())),
               () ->
                   eventDispatcher.sendToUserExchange(
                       meeting.getParticipants().stream()
@@ -329,7 +346,9 @@ public class ParticipantServiceImpl implements ParticipantService {
                       MeetingAudioStreamChanged.create()
                           .meetingId(meetingId)
                           .userId(currentUser.getUUID())
-                          .active(enabled)));
+                          .active(enabled)
+                          .type(EventType.MEETING_AUDIO_STREAM_CHANGED)
+                          .sentDate(OffsetDateTime.now())));
     }
   }
 
@@ -412,7 +431,9 @@ public class ParticipantServiceImpl implements ParticipantService {
                 .meetingId(meetingId)
                 .userId(currentUser.getUUID())
                 .raised(handStatusDto.isRaised())
-                .handRaisedAt(dateTime));
+                .handRaisedAt(dateTime)
+                .type(EventType.MEETING_PARTICIPANT_HAND_RAISED)
+                .sentDate(OffsetDateTime.now()));
       } else {
         Optional.ofNullable(handStatusDto.getUserToModerate())
             .ifPresentOrElse(
@@ -426,7 +447,9 @@ public class ParticipantServiceImpl implements ParticipantService {
                             .meetingId(meetingId)
                             .userId(UUID.fromString(targetUserId))
                             .moderatorId(currentUser.getUUID())
-                            .raised(handStatusDto.isRaised())),
+                            .raised(handStatusDto.isRaised())
+                            .type(EventType.MEETING_PARTICIPANT_HAND_RAISED)
+                            .sentDate(OffsetDateTime.now())),
                 () ->
                     eventDispatcher.sendToUserExchange(
                         meeting.getParticipants().stream()
@@ -436,7 +459,9 @@ public class ParticipantServiceImpl implements ParticipantService {
                         MeetingParticipantHandRaised.create()
                             .meetingId(meetingId)
                             .userId(currentUser.getUUID())
-                            .raised(handStatusDto.isRaised())));
+                            .raised(handStatusDto.isRaised())
+                            .type(EventType.MEETING_PARTICIPANT_HAND_RAISED)
+                            .sentDate(OffsetDateTime.now())));
       }
       eventDispatcher.sendToUserExchange(
           meeting.getParticipants().stream().map(Participant::getUserId).distinct().toList(),
@@ -446,7 +471,9 @@ public class ParticipantServiceImpl implements ParticipantService {
                   participantsWithHandRaised.stream()
                       .map(Participant::getUserId)
                       .map(UUID::fromString)
-                      .toList()));
+                      .toList())
+              .type(EventType.MEETING_PARTICIPANT_HAND_RAISED_LIST)
+              .sentDate(OffsetDateTime.now()));
     }
   }
 

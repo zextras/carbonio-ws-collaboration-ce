@@ -6,11 +6,13 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.1
+  version: 1.6.2
   contact:
     email: smokybeans@zextras.com
+
 servers:
   - url: http://localhost:10000
+
 tags:
   - name: Rooms
   - name: Members
@@ -19,6 +21,7 @@ tags:
   - name: Health
   - name: Authentication
   - name: Meetings
+
 paths:
   /health:
     get:

@@ -87,7 +87,7 @@ import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
-import com.zextras.carbonio.chats.core.service.PreviewService;
+import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentServiceImpl;
@@ -96,7 +96,7 @@ import com.zextras.carbonio.chats.core.service.impl.HealthcheckServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MeetingServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.ParticipantServiceImpl;
-import com.zextras.carbonio.chats.core.service.impl.PreviewServiceImpl;
+import com.zextras.carbonio.chats.core.infrastructure.preview.impl.PreviewServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
@@ -116,6 +116,7 @@ import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
+import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
@@ -212,6 +213,8 @@ public class CoreModule extends AbstractModule {
 
     bind(VideoServerEventListener.class);
     bind(CacheHandler.class);
+
+    bind(WebsocketVersionMigrator.class);
   }
 
   private void bindExceptionMapper() {

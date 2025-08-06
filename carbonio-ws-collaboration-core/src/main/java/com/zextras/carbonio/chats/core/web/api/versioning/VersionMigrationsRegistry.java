@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.web.api.versioning;
 
 import com.vdurmont.semver4j.Semver;
+import com.zextras.carbonio.async.model.DomainEvent;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -39,5 +40,11 @@ public class VersionMigrationsRegistry {
 
   public ApiVersionMigrator migratorFor(Semver version, Class<?> responseClass) {
     return new ApiVersionMigrator(getMigrationsAfter(version, responseClass));
+  }
+
+  static {
+    REGISTRY.register(
+        new ChangeSet(
+            new Semver("1.6.2"), DomainEvent.class, List.of(new ChangeEvenTypeNameMigration())));
   }
 }

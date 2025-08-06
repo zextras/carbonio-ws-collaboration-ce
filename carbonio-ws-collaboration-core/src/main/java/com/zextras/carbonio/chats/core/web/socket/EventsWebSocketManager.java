@@ -4,15 +4,20 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
-import com.zextras.carbonio.chats.core.exception.NotFoundException;
+import com.zextras.carbonio.async.model.DomainEvent;
+import com.zextras.carbonio.async.model.EventType;
+import com.zextras.carbonio.async.model.WebsocketConnected;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
+import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.OnClose;
 import jakarta.websocket.OnError;
@@ -22,6 +27,7 @@ import jakarta.websocket.Session;
 import jakarta.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,21 +37,23 @@ import java.util.concurrent.ConcurrentHashMap;
 @ServerEndpoint(value = "/events")
 public class EventsWebSocketManager {
 
-  private static final String PING = "ping";
-  private static final String PONG = "pong";
-
   private static final String USER_ROUTING_KEY = "user-events";
 
   private final Map<String, String> consumerTagMap;
   private final Channel channel;
   private final ObjectMapper objectMapper;
+  private final WebsocketVersionMigrator migrator;
   private final ParticipantService participantService;
 
   @Inject
   public EventsWebSocketManager(
-      Channel channel, ObjectMapper objectMapper, ParticipantService participantService) {
+      Channel channel,
+      ObjectMapper objectMapper,
+      WebsocketVersionMigrator migrator,
+      ParticipantService participantService) {
     this.channel = channel;
     this.objectMapper = objectMapper;
+    this.migrator = migrator;
     this.participantService = participantService;
     this.consumerTagMap = new ConcurrentHashMap<>();
     Runtime.getRuntime()
@@ -59,9 +67,16 @@ public class EventsWebSocketManager {
     UUID userId = UUID.fromString(getUserIdFromSession(session));
     UUID queueId = UUID.fromString(session.getId());
     String userQueue = userId + "/" + queueId;
+
+    DomainEvent wsConnected =
+        WebsocketConnected.create()
+            .queueId(queueId)
+            .type(EventType.WEBSOCKET_CONNECTED)
+            .sentDate(OffsetDateTime.now());
+
     session
         .getAsyncRemote()
-        .sendObject(objectMapper.writeValueAsString(SessionOutEvent.create(queueId)));
+        .sendObject(migrator.downgradeIfNeeded(wsConnected, getVersion(session)));
     if (channel == null || !channel.isOpen()) {
       ChatsLogger.error(
           String.format(
@@ -78,7 +93,9 @@ public class EventsWebSocketManager {
             String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
             try {
               if (session.isOpen()) {
-                session.getAsyncRemote().sendObject(message);
+                session
+                    .getAsyncRemote()
+                    .sendObject(migrator.downgradeIfNeeded(message, getVersion(session)));
               }
             } catch (Exception e) {
               ChatsLogger.warn(
@@ -101,11 +118,19 @@ public class EventsWebSocketManager {
     if (message == null || message.isBlank()) return;
 
     try {
-      PingPongDtoEvent event = objectMapper.readValue(message, PingPongDtoEvent.class);
-      if (PING.equals(event.getType()) && session.isOpen()) {
-        session
-            .getAsyncRemote()
-            .sendObject(objectMapper.writeValueAsString(PingPongDtoEvent.create()));
+      /** Necessary for naming retro compatibility */
+      ObjectNode node = objectMapper.readValue(message, ObjectNode.class);
+      Optional<JsonNode> optTypeKey = getKey(node, "type");
+      if (optTypeKey.isEmpty()) return;
+
+      String type = optTypeKey.get().asText();
+      if (type.equalsIgnoreCase("ping") && session.isOpen()) {
+        /**
+         * TODO: The Ping event is not websocket native. It is not needed anymore so events
+         * (EventType.PING, EventType.PONG) will be removed as soon as possible.
+         */
+        var pong = DomainEvent.create().type(EventType.PONG).sentDate(OffsetDateTime.now());
+        session.getAsyncRemote().sendObject(migrator.downgradeIfNeeded(pong, getVersion(session)));
       }
     } catch (Exception e) {
       SessionPingManager.remove(session);
@@ -113,6 +138,14 @@ public class EventsWebSocketManager {
       UUID queueId = UUID.fromString(session.getId());
       String userQueue = userId + "/" + queueId;
       ChatsLogger.warn(String.format("Error sending pong to user/queue '%s'", userQueue));
+    }
+  }
+
+  private Optional<JsonNode> getKey(ObjectNode node, String key) {
+    try {
+      return Optional.of(node.get(key));
+    } catch (NullPointerException e) {
+      return Optional.empty();
     }
   }
 
@@ -137,11 +170,20 @@ public class EventsWebSocketManager {
   }
 
   private String getUserIdFromSession(Session session) {
-    return Optional.ofNullable(
-            (String)
-                ((HttpSession) session.getUserProperties().get(HttpSession.class.getName()))
-                    .getAttribute("userId"))
-        .orElseThrow(() -> new NotFoundException("Session user not found!"));
+    return (String)
+        ((HttpSession) session.getUserProperties().get(HttpSession.class.getName()))
+            .getAttribute("userId");
+  }
+
+  private String getVersion(Session session) {
+    // OLD_CLIENT_FALLBACK
+    // If the requested sub-protocol is an empty string, it means the clients aren't passing any
+    // sub-protocols,
+    // so they are old clients. We use 1.6.0 version to execute event migrations and ensure
+    // retro-compatibility.
+    return !session.getNegotiatedSubprotocol().isBlank()
+        ? session.getNegotiatedSubprotocol()
+        : "1.6.0";
   }
 
   private void closeSession(Session session) {
@@ -208,47 +250,6 @@ public class EventsWebSocketManager {
       }
     } catch (Exception e) {
       ChatsLogger.error("Error during stopping event websocket manager", e);
-    }
-  }
-
-  private static class SessionOutEvent {
-
-    private static final String WEBSOCKET_CONNECTED = "websocketConnected";
-
-    private final UUID queueId;
-
-    public SessionOutEvent(UUID queueId) {
-      this.queueId = queueId;
-    }
-
-    public static SessionOutEvent create(UUID queueId) {
-      return new SessionOutEvent(queueId);
-    }
-
-    public UUID getQueueId() {
-      return queueId;
-    }
-
-    public String getType() {
-      return WEBSOCKET_CONNECTED;
-    }
-  }
-
-  private static class PingPongDtoEvent {
-
-    private String type;
-
-    private static PingPongDtoEvent create() {
-      return new PingPongDtoEvent().type(PONG);
-    }
-
-    public String getType() {
-      return type;
-    }
-
-    public PingPongDtoEvent type(String type) {
-      this.type = type;
-      return this;
     }
   }
 }

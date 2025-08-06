@@ -70,26 +70,29 @@ update_pkgbuild() {
 }
 
 update_yaml_files() {
-    local yaml_file="carbonio-ws-collaboration-openapi/src/main/resources/api.yaml"
+    local base_path="carbonio-ws-collaboration-openapi/src/main/resources"
+    local yaml_files=("$base_path/api.yaml" "$base_path/asyncapi.yaml")
 
-    if [ ! -f "$yaml_file" ]; then
-        echo "Warning: $yaml_file not found, skipping..."
-        return 0
-    fi
+    for yaml_file in "${yaml_files[@]}"; do
+        if [ ! -f "$yaml_file" ]; then
+            echo "Warning: $yaml_file not found, skipping..."
+            continue
+        fi
 
-    # Check if version key exists in the file (under info section)
-    if ! grep -A 10 "^info:" "$yaml_file" | grep -q "^[[:space:]]*version:"; then
-        echo "Warning: 'version:' not found under 'info:' section in $yaml_file, skipping..."
-        return 0
-    fi
+        # Check if version key exists in the file (under info section)
+        if ! grep -A 10 "^info:" "$yaml_file" | grep -q "^[[:space:]]*version:"; then
+            echo "Warning: 'version:' not found under 'info:' section in $yaml_file, skipping..."
+            continue
+        fi
 
-    # Get current version (look for version under info section)
-    local current_version=
-    current_version=$(grep -A 10 "^info:" "$yaml_file" | grep "^[[:space:]]*version:" | head -1 | sed 's/.*version:[[:space:]]*//' | tr -d '"'"'"'')
-    echo "$yaml_file: $current_version -> $NEW_VERSION"
+        # Get current version (look for version under info section)
+        local current_version=
+        current_version=$(grep -A 10 "^info:" "$yaml_file" | grep "^[[:space:]]*version:" | head -1 | sed 's/.*version:[[:space:]]*//' | tr -d '"'"'"'')
+        echo "$yaml_file: $current_version -> $NEW_VERSION"
 
-    # Update version (handles both quoted and unquoted values, indented under info)
-    sed -i "" "/^info:/,/^[^[:space:]]/ s/^[[:space:]]*version:[[:space:]]*.*/  version: $NEW_VERSION/" "$yaml_file"
+        # Update version (handles both quoted and unquoted values, indented under info)
+        sed -i "" "/^info:/,/^[^[:space:]]/ s/^[[:space:]]*version:[[:space:]]*.*/  version: $NEW_VERSION/" "$yaml_file"
+    done
 }
 
 show_summary() {

@@ -7,7 +7,7 @@ package com.zextras.carbonio.chats.core.web.api.versioning.filter;
 import com.vdurmont.semver4j.Semver;
 import com.vdurmont.semver4j.SemverException;
 import com.zextras.carbonio.chats.core.config.ChatsConstant;
-import com.zextras.carbonio.chats.openapi.versioning.OpenApiVersionProvider;
+import com.zextras.carbonio.chats.openapi.versioning.VersionProvider;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.core.Response;
@@ -35,7 +35,7 @@ public class VersionedRequestFilter implements ContainerRequestFilter {
       return;
     }
 
-    if (apiVersion.isGreaterThan(OpenApiVersionProvider.getVersion())) {
+    if (apiVersion.isGreaterThan(VersionProvider.getVersion())) {
       containerRequestContext.abortWith(Response.status(UNPROCESSABLE_ENTITY_STATUS).build());
     }
   }

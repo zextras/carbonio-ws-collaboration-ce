@@ -1,0 +1,699 @@
+# SPDX-FileCopyrightText: 2025 Zextras <https://www.zextras.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+openapi: 3.0.3
+info:
+  title: Events Data Models
+  version: 1.6.2
+  description: |
+    Data models for room and meeting events.
+    This specification contains only the schemas for code generation purposes.
+  x-supported-versions: ["1.6.2", "1.6.1", "1.6.0"]
+
+paths: { }
+
+components:
+  schemas:
+    # Enums
+    EventType:
+      type: string
+      enum:
+        # Room Events
+        - RoomCreated
+        - RoomUpdated
+        - RoomDeleted
+        - RoomOwnerPromoted
+        - RoomOwnerDemoted
+        - RoomPictureChanged
+        - RoomPictureDeleted
+        - RoomMemberAdded
+        - RoomMemberRemoved
+        - RoomMuted
+        - RoomUnmuted
+        - RoomHistoryCleared
+        # Meeting Events
+        - MeetingCreated
+        - MeetingDeleted
+        - MeetingParticipantJoined
+        - MeetingParticipantLeft
+        - MeetingAudioStreamChanged
+        - MeetingAudioAnswered
+        - MeetingMediaStreamChanged
+        - MeetingSdpOffered
+        - MeetingSdpAnswered
+        - MeetingStarted
+        - MeetingStopped
+        - MeetingParticipantTalking
+        - MeetingParticipantClashed
+        - MeetingWaitingParticipantJoined
+        - MeetingWaitingParticipantClashed
+        - MeetingWaitingParticipantAccepted
+        - MeetingWaitingParticipantRejected
+        - MeetingParticipantSubscribed
+        - MeetingRecordingStarted
+        - MeetingRecordingStopped
+        - MeetingParticipantHandRaised
+        - MeetingParticipantHandRaisedList
+        # Websocket connection Events
+        - WebsocketConnected
+        - Ping
+        - Pong
+      description: Type of event being published
+
+    MediaType:
+      type: string
+      enum: [ AUDIO, VIDEO, SCREEN ]
+
+    # Base Event Schema
+    DomainEvent:
+      discriminator:
+        propertyName: type
+        mapping:
+          roomCreated: "#/components/schemas/RoomCreated"
+          roomUpdated: "#/components/schemas/RoomUpdated"
+          roomDeleted: "#/components/schemas/RoomDeleted"
+          roomOwnerPromoted: "#/components/schemas/RoomOwnerPromoted"
+          roomOwnerDemoted: "#/components/schemas/RoomOwnerDemoted"
+          roomPictureChanged: "#/components/schemas/RoomPictureChanged"
+          roomPictureDeleted: "#/components/schemas/RoomPictureDeleted"
+          roomMemberAdded: "#/components/schemas/RoomMemberAdded"
+          roomMemberRemoved: "#/components/schemas/RoomMemberRemoved"
+          roomMuted: "#/components/schemas/RoomMuted"
+          roomUnmuted: "#/components/schemas/RoomUnmuted"
+          roomHistoryCleared: "#/components/schemas/RoomHistoryCleared"
+          meetingCreated: "#/components/schemas/MeetingCreated"
+          meetingDeleted: "#/components/schemas/MeetingDeleted"
+          meetingParticipantJoined: "#/components/schemas/MeetingParticipantJoined"
+          meetingParticipantLeft: "#/components/schemas/MeetingParticipantLeft"
+          meetingAudioStreamChanged: "#/components/schemas/MeetingAudioStreamChanged"
+          meetingAudioAnswered: "#/components/schemas/MeetingAudioAnswered"
+          meetingMediaStreamChanged: "#/components/schemas/MeetingMediaStreamChanged"
+          meetingSdpOffered: "#/components/schemas/MeetingSdpOffered"
+          meetingSdpAnswered: "#/components/schemas/MeetingSdpAnswered"
+          meetingStarted: "#/components/schemas/MeetingStarted"
+          meetingStopped: "#/components/schemas/MeetingStopped"
+          meetingParticipantTalking: "#/components/schemas/MeetingParticipantTalking"
+          meetingParticipantClashed: "#/components/schemas/MeetingParticipantClashed"
+          meetingWaitingParticipantJoined: "#/components/schemas/MeetingWaitingParticipantJoined"
+          meetingWaitingParticipantClashed: "#/components/schemas/MeetingWaitingParticipantClashed"
+          meetingWaitingParticipantAccepted: "#/components/schemas/MeetingWaitingParticipantAccepted"
+          meetingWaitingParticipantRejected: "#/components/schemas/MeetingWaitingParticipantRejected"
+          meetingParticipantSubscribed: "#/components/schemas/MeetingParticipantSubscribed"
+          meetingRecordingStarted: "#/components/schemas/MeetingRecordingStarted"
+          meetingRecordingStopped: "#/components/schemas/MeetingRecordingStopped"
+          meetingParticipantHandRaised: "#/components/schemas/MeetingParticipantHandRaised"
+          meetingParticipantHandRaisedList: "#/components/schemas/MeetingParticipantHandRaisedList"
+          websocketConnected: "#/components/schemas/WebsocketConnected"
+          ping: "#/components/schemas/Ping"
+          pong: "#/components/schemas/Pong"
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/EventType'
+        sentDate:
+          type: string
+          format: date-time
+          description: Timestamp when the event was sent (ISO 8601 format with offset)
+          example: "2025-07-09T10:30:00.000Z"
+      required:
+        - type
+        - sentDate
+
+    # Room Events
+    RoomCreated:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            roomId:
+              type: string
+              format: uuid
+              description: Unique identifier of the created room
+          required:
+            - roomId
+
+    RoomUpdated:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            roomId:
+              type: string
+              format: uuid
+            name:
+              type: string
+            description:
+              type: string
+          required:
+            - roomId
+            - name
+            - description
+
+    RoomDeleted:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            roomId:
+              type: string
+              format: uuid
+          required:
+            - roomId
+
+    RoomOwnerPromoted:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            roomId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+          required:
+            - roomId
+            - userId
+
+    RoomOwnerDemoted:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            roomId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+          required:
+            - roomId
+            - userId
+
+    RoomPictureChanged:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            roomId:
+              type: string
+              format: uuid
+            updatedAt:
+              type: string
+              format: date-time
+          required:
+            - roomId
+            - updatedAt
+
+    RoomPictureDeleted:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            roomId:
+              type: string
+              format: uuid
+          required:
+            - roomId
+
+    RoomMemberAdded:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            roomId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            isOwner:
+              type: boolean
+          required:
+            - roomId
+            - userId
+            - isOwner
+
+    RoomMemberRemoved:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            roomId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+          required:
+            - roomId
+            - userId
+
+    RoomMuted:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            roomId:
+              type: string
+              format: uuid
+          required:
+            - roomId
+
+    RoomUnmuted:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            roomId:
+              type: string
+              format: uuid
+          required:
+            - roomId
+
+    RoomHistoryCleared:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            roomId:
+              type: string
+              format: uuid
+            clearedAt:
+              type: string
+              format: date-time
+          required:
+            - roomId
+            - clearedAt
+
+    # Meeting Events
+    MeetingCreated:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            roomId:
+              type: string
+              format: uuid
+          required:
+            - meetingId
+            - roomId
+
+    MeetingDeleted:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+          required:
+            - meetingId
+
+    MeetingParticipantJoined:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+              description: UUID of the meeting
+            userId:
+              type: string
+              format: uuid
+              description: UUID of the user who joined
+          required:
+            - meetingId
+            - userId
+
+    MeetingParticipantLeft:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+          required:
+            - meetingId
+            - userId
+
+    MeetingAudioStreamChanged:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            moderatorId:
+              type: string
+              format: uuid
+              nullable: true
+            active:
+              type: boolean
+          required:
+            - meetingId
+            - userId
+            - active
+
+    MeetingAudioAnswered:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            sdp:
+              type: string
+              description: SDP answer string
+          required:
+            - meetingId
+            - userId
+            - sdp
+
+    MeetingMediaStreamChanged:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            mediaType:
+              $ref: '#/components/schemas/MediaType'
+            active:
+              type: boolean
+          required:
+            - meetingId
+            - userId
+            - mediaType
+            - active
+
+    MeetingSdpOffered:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            mediaType:
+              $ref: '#/components/schemas/MediaType'
+            sdp:
+              type: string
+              description: SDP offer string
+          required:
+            - meetingId
+            - userId
+            - mediaType
+            - sdp
+
+    MeetingSdpAnswered:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            mediaType:
+              $ref: '#/components/schemas/MediaType'
+            sdp:
+              type: string
+              description: SDP answer string
+          required:
+            - meetingId
+            - userId
+            - mediaType
+            - sdp
+
+    MeetingStarted:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            starterUser:
+              type: string
+              format: uuid
+            startedAt:
+              type: string
+              format: date-time
+          required:
+            - meetingId
+            - starterUser
+            - startedAt
+
+    MeetingStopped:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+          required:
+            - meetingId
+
+    MeetingParticipantTalking:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            isTalking:
+              type: boolean
+          required:
+            - meetingId
+            - userId
+            - isTalking
+
+    MeetingParticipantClashed:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+          required:
+            - meetingId
+
+    MeetingWaitingParticipantJoined:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+          required:
+            - meetingId
+            - userId
+
+    MeetingWaitingParticipantClashed:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+          required:
+            - meetingId
+
+    MeetingWaitingParticipantAccepted:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+          required:
+            - meetingId
+            - userId
+
+    MeetingWaitingParticipantRejected:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+          required:
+            - meetingId
+            - userId
+
+    MeetingParticipantSubscribed:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            streams:
+              type: array
+              items:
+                $ref: '#/components/schemas/SubscribedStream'
+          required:
+            - meetingId
+            - userId
+            - streams
+
+    SubscribedStream:
+      type: object
+      properties:
+        type:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        mid:
+          type: string
+      required:
+        - type
+        - userId
+        - mid
+
+    MeetingRecordingStarted:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+          required:
+            - meetingId
+            - userId
+
+    MeetingRecordingStopped:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+          required:
+            - meetingId
+            - userId
+
+    MeetingParticipantHandRaised:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            moderatorId:
+              type: string
+              format: uuid
+              nullable: true
+            raised:
+              type: boolean
+              description: Whether hand is raised or lowered
+            handRaisedAt:
+              type: string
+              format: date-time
+              nullable: true
+          required:
+            - meetingId
+            - userId
+            - raised
+
+    MeetingParticipantHandRaisedList:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            participants:
+              type: array
+              items:
+                type: string
+                format: uuid
+          required:
+            - meetingId
+            - participants
+
+    # Websocket Events
+    WebsocketConnected:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+          properties:
+            queueId:
+              type: string
+              format: uuid
+          required:
+            - queueId
+
+    Ping:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object
+
+    Pong:
+      allOf:
+        - $ref: '#/components/schemas/DomainEvent'
+        - type: object

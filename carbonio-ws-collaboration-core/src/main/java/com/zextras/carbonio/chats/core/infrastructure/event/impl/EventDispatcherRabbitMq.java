@@ -9,7 +9,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.rabbitmq.client.BuiltinExchangeType;
 import com.rabbitmq.client.Channel;
-import com.zextras.carbonio.chats.core.data.event.DomainEvent;
+import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.nio.charset.StandardCharsets;

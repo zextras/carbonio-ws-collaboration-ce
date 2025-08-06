@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.service.impl;
+package com.zextras.carbonio.chats.core.infrastructure.preview.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -10,7 +10,7 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.model.FileResponse;
 import com.zextras.carbonio.chats.core.exception.PreviewException;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
-import com.zextras.carbonio.chats.core.service.PreviewService;
+import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ImageQualityEnumDto;

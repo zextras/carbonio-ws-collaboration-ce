@@ -2,12 +2,14 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.it.web.api.versioning;
+package com.zextras.carbonio.chats.it.web.api.versioning.migration;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.zextras.carbonio.chats.core.web.api.versioning.ApiVersionMigration;
+import com.zextras.carbonio.chats.it.web.api.versioning.DummyModel;
 
-public class RenamePhoneToPhoneNumberMigration implements ApiVersionMigration {
+public class RemoveEmailMigration implements ApiVersionMigration {
+
   @Override
   public boolean canDowngrade(Class<?> clazz) {
     return clazz == DummyModel.class;
@@ -15,8 +17,9 @@ public class RenamePhoneToPhoneNumberMigration implements ApiVersionMigration {
 
   @Override
   public ObjectNode downgrade(ObjectNode input) {
-    input.put("phone", input.get("phoneNumber").asText());
-    input.remove("phoneNumber");
+    var firstName = input.get("firstName").asText().toLowerCase();
+    var lastName = input.get("lastName").asText().toLowerCase();
+    input.put("email", firstName + "." + lastName + "@example.com");
     return input;
   }
 }
