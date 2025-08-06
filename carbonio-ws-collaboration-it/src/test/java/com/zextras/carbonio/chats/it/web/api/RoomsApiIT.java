@@ -3923,7 +3923,7 @@ public class RoomsApiIT {
                     String.valueOf(fileMock.getSize()),
                     "messageId",
                     ""),
-                fileMock.getName(),
+                StringFormatUtils.encodeToUtf8(fileMock.getName()),
                 ContentType.parse(fileMock.getMimeType()),
                 user1Token);
       }
@@ -3992,7 +3992,7 @@ public class RoomsApiIT {
                     "the-xmpp-message-id",
                     "replyId",
                     ""),
-                fileMock.getName(),
+                StringFormatUtils.encodeToUtf8(fileMock.getName()),
                 ContentType.parse(fileMock.getMimeType()),
                 user1Token);
       }

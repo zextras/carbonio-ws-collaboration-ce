@@ -1031,7 +1031,8 @@ class RoomsApiServiceImplTest {
       Map<String, List<InputPart>> formDataMap = new HashMap<>();
       InputPart filePart = mock(InputPart.class);
       when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
-      when(filePart.getFileName()).thenReturn("fileName");
+      when(filePart.getFileName())
+          .thenReturn("\\u0066\\u0069\\u006c\\u0065\\u004e\\u0061\\u006d\\u0065");
       when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
       formDataMap.put("file", List.of(filePart));
       InputPart descriptionPart = mock(InputPart.class);
