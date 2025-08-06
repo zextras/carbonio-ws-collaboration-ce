@@ -394,7 +394,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
                   filePart.getBody(InputStream.class, null),
                   mimeType,
                   Long.parseLong(contentLength),
-                  fileName,
+                  StringFormatUtils.decodeFromUtf8(fileName),
                   normalizeStringValue(description),
                   normalizeStringValue(messageId),
                   normalizeStringValue(replyId),
