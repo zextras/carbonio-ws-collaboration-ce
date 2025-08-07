@@ -13,11 +13,21 @@ public record ChangeSet(
     implements Comparable<ChangeSet> {
 
   public boolean appliesToClass(Class<?> targetClass) {
-    return this.migrationClass.equals(targetClass);
+    return this.migrationClass.equals(targetClass)
+        || this.migrationClass.isAssignableFrom(targetClass);
   }
 
-  public boolean isNewerThan(Semver version) {
-    return this.version().isGreaterThan(version);
+  /**
+   * A changeset is taken only if its version is newer than the requested version.
+   *
+   * <p>Example: If the requested version is 1.6.0 and the changeset version is 1.6.1, then the
+   * changeset is considered newer and will be applied.
+   *
+   * <p>If the version is 1.6.1 and the requested version is 1.6.1, then the changeset is not
+   * considered newer and will not be applied.
+   */
+  public boolean isNewerThan(Semver requestedVersion) {
+    return this.version().isGreaterThan(requestedVersion);
   }
 
   @Override

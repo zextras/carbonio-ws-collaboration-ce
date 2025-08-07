@@ -69,4 +69,31 @@ public class StringFormatUtils {
   public static boolean isEncodedInUtf8(String text) {
     return Pattern.matches(ChatsConstant.IS_UNICODE_FORMAT_REGEX, text);
   }
+
+  public static String toConstantCase(String input) {
+    if (isConstantCase(input)) {
+      return input;
+    }
+    StringBuilder result = new StringBuilder();
+    for (int i = 0; i < input.length(); i++) {
+      char c = input.charAt(i);
+      if (Character.isUpperCase(c) && i > 0) {
+        result.append('_');
+      }
+      result.append(Character.toUpperCase(c));
+    }
+    return result.toString();
+  }
+
+  private static boolean isConstantCase(String input) {
+    if (input == null || input.isEmpty()) {
+      return false;
+    }
+    for (char c : input.toCharArray()) {
+      if (Character.isLetter(c) && Character.isLowerCase(c)) {
+        return false;
+      }
+    }
+    return input.matches("[A-Z_0-9]+");
+  }
 }

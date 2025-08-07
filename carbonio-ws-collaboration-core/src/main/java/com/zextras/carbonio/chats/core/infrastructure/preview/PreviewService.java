@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.service;
+package com.zextras.carbonio.chats.core.infrastructure.preview;
 
 import com.zextras.carbonio.chats.core.data.model.FileResponse;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;

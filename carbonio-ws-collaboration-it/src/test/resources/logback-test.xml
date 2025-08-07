@@ -23,7 +23,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<logger name="io.netty" level="INFO"/>
 	<logger name="io.swagger" level="INFO"/>
 	<logger name="org.jboss.resteasy" level="WARN"/>
-	<root level="WARN">
+	<root level="INFO">
 		<appender-ref ref="CONSOLE_LOG"/>
 	</root>
 

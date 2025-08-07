@@ -6,13 +6,14 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.zextras.carbonio.async.model.EventType;
+import com.zextras.carbonio.async.model.MeetingCreated;
+import com.zextras.carbonio.async.model.MeetingDeleted;
+import com.zextras.carbonio.async.model.MeetingStarted;
+import com.zextras.carbonio.async.model.MeetingStopped;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.MeetingCreated;
-import com.zextras.carbonio.chats.core.data.event.MeetingDeleted;
-import com.zextras.carbonio.chats.core.data.event.MeetingStarted;
-import com.zextras.carbonio.chats.core.data.event.MeetingStopped;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
@@ -82,7 +83,9 @@ public class MeetingServiceImpl implements MeetingService {
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingCreated.create()
             .meetingId(UUID.fromString(meeting.getId()))
-            .roomId(UUID.fromString(room.getId())));
+            .roomId(UUID.fromString(room.getId()))
+            .type(EventType.MEETING_CREATED)
+            .sentDate(OffsetDateTime.now(clock)));
 
     return meetingMapper.ent2dto(meeting);
   }
@@ -161,7 +164,9 @@ public class MeetingServiceImpl implements MeetingService {
         MeetingStarted.create()
             .meetingId(UUID.fromString(updatedMeeting.getId()))
             .starterUser(user.getUUID())
-            .startedAt(updatedMeeting.getStartedAt()));
+            .startedAt(updatedMeeting.getStartedAt())
+            .type(EventType.MEETING_STARTED)
+            .sentDate(OffsetDateTime.now(clock)));
   }
 
   private void notifyMeetingStopped(UserPrincipal user, Meeting updatedMeeting) {
@@ -174,7 +179,11 @@ public class MeetingServiceImpl implements MeetingService {
             .toList();
 
     eventDispatcher.sendToUserExchange(
-        allReceivers, MeetingStopped.create().meetingId(UUID.fromString(updatedMeeting.getId())));
+        allReceivers,
+        MeetingStopped.create()
+            .meetingId(UUID.fromString(updatedMeeting.getId()))
+            .type(EventType.MEETING_STOPPED)
+            .sentDate(OffsetDateTime.now(clock)));
   }
 
   @Override
@@ -223,7 +232,6 @@ public class MeetingServiceImpl implements MeetingService {
   @Override
   public void deleteMeetingById(UUID meetingId, UserPrincipal currentUser) {
     Meeting meeting = validateMeeting(meetingId);
-
     Room room =
         roomService.getRoomAndValidateUser(
             UUID.fromString(meeting.getRoomId()), currentUser, false);
@@ -236,7 +244,10 @@ public class MeetingServiceImpl implements MeetingService {
     meetingRepository.delete(meeting);
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
-        MeetingDeleted.create().meetingId(UUID.fromString(meeting.getId())));
+        MeetingDeleted.create()
+            .meetingId(UUID.fromString(meeting.getId()))
+            .type(EventType.MEETING_DELETED)
+            .sentDate(OffsetDateTime.now(clock)));
   }
 
   @Override

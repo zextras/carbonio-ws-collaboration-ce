@@ -8,14 +8,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.vdurmont.semver4j.Semver;
 import com.zextras.carbonio.chats.core.config.ChatsConstant;
 import com.zextras.carbonio.chats.core.web.api.versioning.ChangeSet;
 import com.zextras.carbonio.chats.core.web.api.versioning.VersionMigrationsRegistry;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
-import com.zextras.carbonio.chats.openapi.versioning.OpenApiVersionProvider;
+import com.zextras.carbonio.chats.it.web.api.versioning.migration.AddFullNameMigration;
+import com.zextras.carbonio.chats.it.web.api.versioning.migration.RemoveEmailMigration;
+import com.zextras.carbonio.chats.it.web.api.versioning.migration.RemoveZipCodeMigration;
+import com.zextras.carbonio.chats.it.web.api.versioning.migration.RenamePhoneToPhoneNumberMigration;
+import com.zextras.carbonio.chats.openapi.versioning.VersionProvider;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import java.io.UnsupportedEncodingException;
@@ -87,7 +93,8 @@ class VersioningApiTestIT {
     ChangeSet matchingChangeSet =
         new ChangeSet(new Semver("1.5.0"), DummyModel.class, List.of(new AddFullNameMigration()));
     ChangeSet wrongChangeSet =
-        new ChangeSet(new Semver("1.4.0"), ExampleModel.class, List.of(new RemoveZipCode()));
+        new ChangeSet(
+            new Semver("1.4.0"), ExampleModel.class, List.of(new RemoveZipCodeMigration()));
     versionRegistry.register(matchingChangeSet);
     versionRegistry.register(wrongChangeSet);
 
@@ -102,6 +109,45 @@ class VersioningApiTestIT {
             .put("firstName", "John")
             .put("lastName", "Doe")
             .put("phoneNumber", "+123456789");
+    assertEquals(expected, objectMapper.readTree(response.getContentAsString()));
+  }
+
+  @Test
+  void migrateDTOList()
+      throws URISyntaxException, UnsupportedEncodingException, JsonProcessingException {
+    dispatcher.getRegistry().addSingletonResource(dummyVersionedApi);
+    VersionMigrationsRegistry versionRegistry = VersionMigrationsRegistry.REGISTRY;
+
+    ChangeSet matchingChangeSet =
+        new ChangeSet(new Semver("1.5.0"), DummyModel.class, List.of(new AddFullNameMigration()));
+    ChangeSet wrongChangeSet =
+        new ChangeSet(
+            new Semver("1.4.0"), ExampleModel.class, List.of(new RemoveZipCodeMigration()));
+    versionRegistry.register(matchingChangeSet);
+    versionRegistry.register(wrongChangeSet);
+
+    var headerWithVersion = Map.of(ChatsConstant.API_VERSION_HEADER, "1.3.0");
+    MockHttpResponse response =
+        dispatcher.get("/dummy/versioned/api/list", null, headerWithVersion);
+
+    assertEquals(Response.Status.OK.getStatusCode(), response.getStatus());
+
+    ObjectNode jon =
+        JsonNodeFactory.instance
+            .objectNode()
+            .put("firstName", "John")
+            .put("lastName", "Doe")
+            .put("phoneNumber", "+123456789");
+    ObjectNode jane =
+        JsonNodeFactory.instance
+            .objectNode()
+            .put("firstName", "Jane")
+            .put("lastName", "Doe")
+            .put("phoneNumber", "+125457789");
+    var expected = new ArrayNode(JsonNodeFactory.instance);
+    expected.add(jon);
+    expected.add(jane);
+
     assertEquals(expected, objectMapper.readTree(response.getContentAsString()));
   }
 
@@ -139,12 +185,12 @@ class VersioningApiTestIT {
     var headerWithVersion =
         Map.of(
             ChatsConstant.API_VERSION_HEADER,
-            new Semver(OpenApiVersionProvider.getVersion()).nextMinor().toString());
+            new Semver(VersionProvider.getVersion()).nextMinor().toString());
     MockHttpResponse response = dispatcher.get("/dummy/versioned/api", null, headerWithVersion);
 
     assertEquals(422, response.getStatus());
     assertEquals(
-        OpenApiVersionProvider.getVersion(),
+        VersionProvider.getVersion(),
         response.getOutputHeaders().getFirst(ChatsConstant.API_VERSION_HEADER));
   }
 
@@ -157,7 +203,7 @@ class VersioningApiTestIT {
 
     assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
     assertEquals(
-        OpenApiVersionProvider.getVersion(),
+        VersionProvider.getVersion(),
         response.getOutputHeaders().getFirst(ChatsConstant.API_VERSION_HEADER));
   }
 }

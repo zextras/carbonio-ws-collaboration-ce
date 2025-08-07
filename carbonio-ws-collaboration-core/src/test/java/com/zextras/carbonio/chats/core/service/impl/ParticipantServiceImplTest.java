@@ -13,20 +13,16 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.zextras.carbonio.async.model.MediaType;
+import com.zextras.carbonio.async.model.MeetingAudioStreamChanged;
+import com.zextras.carbonio.async.model.MeetingMediaStreamChanged;
+import com.zextras.carbonio.async.model.MeetingParticipantClashed;
+import com.zextras.carbonio.async.model.MeetingParticipantHandRaised;
+import com.zextras.carbonio.async.model.MeetingParticipantHandRaisedList;
+import com.zextras.carbonio.async.model.MeetingParticipantJoined;
+import com.zextras.carbonio.async.model.MeetingParticipantLeft;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
-import com.zextras.carbonio.chats.core.data.entity.Meeting;
-import com.zextras.carbonio.chats.core.data.entity.MeetingBuilder;
-import com.zextras.carbonio.chats.core.data.entity.Participant;
-import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
-import com.zextras.carbonio.chats.core.data.entity.Room;
-import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.MeetingAudioStreamChanged;
-import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantClashed;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantHandRaised;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantHandRaisedList;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantJoined;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantLeft;
+import com.zextras.carbonio.chats.core.data.entity.*;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
@@ -36,7 +32,6 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
@@ -884,7 +879,10 @@ class ParticipantServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user2Id.toString(), user4Id.toString()),
-              MeetingAudioStreamChanged.create().meetingId(permanentMeetingId).userId(user4Id));
+              MeetingAudioStreamChanged.create()
+                  .meetingId(permanentMeetingId)
+                  .userId(user4Id)
+                  .active(false));
       verify(videoServerService, times(1))
           .updateAudioStream(user4Id.toString(), permanentMeetingId.toString(), false);
       verifyNoMoreInteractions(
@@ -940,7 +938,8 @@ class ParticipantServiceImplTest {
               MeetingAudioStreamChanged.create()
                   .meetingId(permanentMeetingId)
                   .moderatorId(user1Id)
-                  .userId(user4Id));
+                  .userId(user4Id)
+                  .active(false));
       verify(videoServerService, times(1))
           .updateAudioStream(user4Id.toString(), permanentMeetingId.toString(), false);
       verifyNoMoreInteractions(

@@ -14,10 +14,12 @@ import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticatio
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
+import com.zextras.carbonio.chats.openapi.versioning.VersionProvider;
 import dev.resteasy.guice.GuiceResteasyBootstrapServletContextListener;
 import jakarta.servlet.DispatcherType;
 import jakarta.websocket.server.ServerEndpointConfig;
 import java.util.EnumSet;
+import java.util.List;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.ee10.websocket.jakarta.server.config.JakartaWebSocketServletContainerInitializer;
@@ -55,6 +57,9 @@ public class Boot {
   }
 
   public void boot() throws Exception {
+    ChatsLogger.info("Application latest version: " + VersionProvider.getVersion());
+    ChatsLogger.info("Supported versions: " + VersionProvider.getSupportedVersions());
+
     flyway.migrate();
 
     Server server = new Server();
@@ -74,15 +79,20 @@ public class Boot {
           wsContainer.setDefaultMaxTextMessageBufferSize(65536);
           wsContainer.setDefaultMaxBinaryMessageBufferSize(65536);
 
+          List<String> supportedVersions = VersionProvider.getSupportedVersions();
           wsContainer.addEndpoint(
               ServerEndpointConfig.Builder.create(EventsWebSocketManager.class, "/events")
                   .configurator(new EventsWebSocketEndpointConfigurator(eventsWebSocketManager))
+                  .subprotocols(supportedVersions)
                   .build());
           servletContext
               .addFilter(
                   "eventsWebSocketAuthenticationFilter",
                   EventsWebSocketAuthenticationFilter.create(authenticationService))
-              .addMappingForUrlPatterns(EnumSet.of(DispatcherType.REQUEST), false, "/events");
+              .addMappingForUrlPatterns(
+                  EnumSet.of(DispatcherType.REQUEST),
+                  false /* It's applied before other filters */,
+                  "/events");
         });
 
     context.addEventListener(resteasyListener);

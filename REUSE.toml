@@ -40,19 +40,13 @@ SPDX-FileCopyrightText = "2023 Zextras"
 SPDX-License-Identifier = "AGPL-3.0-only"
 
 [[annotations]]
+path = "carbonio-ws-collaboration-openapi/src/main/resources/async-generator-config.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2023 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
 path = "carbonio-ws-collaboration-openapi/src/main/resources/generator-ignore"
-precedence = "aggregate"
-SPDX-FileCopyrightText = "2023 Zextras"
-SPDX-License-Identifier = "AGPL-3.0-only"
-
-[[annotations]]
-path = "carbonio-ws-collaboration-openapi/src/main/resources/meeting/meeting-generator-config.json"
-precedence = "aggregate"
-SPDX-FileCopyrightText = "2023 Zextras"
-SPDX-License-Identifier = "AGPL-3.0-only"
-
-[[annotations]]
-path = "carbonio-ws-collaboration-it/src/test/resources/build-information"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2023 Zextras"
 SPDX-License-Identifier = "AGPL-3.0-only"

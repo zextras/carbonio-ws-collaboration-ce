@@ -18,6 +18,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
+import java.util.List;
 
 @Path("/dummy/versioned/api")
 @Api(description = "Some dummy API for test")
@@ -36,6 +37,30 @@ public class DummyVersionedApi {
       })
   public Response getResource(@Context SecurityContext securityContext) {
     return Response.ok().entity(new DummyModel("John Doe", "+123456789")).build();
+  }
+
+  @GET
+  @Path("/list")
+  @Produces({"application/json"})
+  @ApiResponses(
+      value = {
+        @ApiResponse(
+            code = 200,
+            message = "Get dummy models",
+            response = DummyModel.class,
+            responseContainer = "List"),
+        @ApiResponse(code = 401, message = "User not authorized", response = Void.class),
+        @ApiResponse(
+            code = 404,
+            message = "The requested resource was not found",
+            response = Void.class)
+      })
+  public Response getResourceList(@Context SecurityContext securityContext) {
+    return Response.ok()
+        .entity(
+            List.of(
+                new DummyModel("John Doe", "+123456789"), new DummyModel("Jane Doe", "+125457789")))
+        .build();
   }
 
   @POST

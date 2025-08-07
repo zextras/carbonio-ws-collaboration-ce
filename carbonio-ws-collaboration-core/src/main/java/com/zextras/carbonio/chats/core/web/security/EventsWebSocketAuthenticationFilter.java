@@ -8,13 +8,13 @@ import com.zextras.carbonio.chats.core.infrastructure.authentication.Authenticat
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.FilterConfig;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.core.Response.Status;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Optional;
@@ -33,9 +33,6 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
   }
 
   @Override
-  public void init(FilterConfig filterConfig) {}
-
-  @Override
   public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
       throws IOException, ServletException {
     HttpServletRequest httpRequest = (HttpServletRequest) request;
@@ -47,20 +44,17 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
     if (authToken.isEmpty()) {
       ChatsLogger.warn("Websocket authentication failed with an empty token");
       HttpServletResponse httpServletResponse = (HttpServletResponse) response;
-      httpServletResponse.setStatus(401);
+      httpServletResponse.setStatus(Status.UNAUTHORIZED.getStatusCode());
       return;
     }
     Optional<String> userId = authenticationService.validateCredentials(authToken.get());
     if (userId.isEmpty()) {
       ChatsLogger.warn("Websocket authentication failed for token " + authToken.get());
       HttpServletResponse httpServletResponse = (HttpServletResponse) response;
-      httpServletResponse.setStatus(401);
+      httpServletResponse.setStatus(Status.UNAUTHORIZED.getStatusCode());
       return;
     }
     httpRequest.getSession().setAttribute("userId", userId.get());
     chain.doFilter(request, response);
   }
-
-  @Override
-  public void destroy() {}
 }
