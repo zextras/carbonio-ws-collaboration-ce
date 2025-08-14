@@ -45,7 +45,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <maven.compiler.target>17</maven.compiler.target>
     <maven.version.ignore>(?i).*(.|-)(alpha|beta|m|rc)([-.]?\d+)?</maven.version.ignore>
     <!-- Carbonio User Management -->
-    <carbonio-user-management-sdk.version>0.5.3</carbonio-user-management-sdk.version>
+    <carbonio-user-management-sdk.version>0.5.6</carbonio-user-management-sdk.version>
     <!-- Storages -->
     <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
     <!-- Previewer -->
