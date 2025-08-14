@@ -15,6 +15,7 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Singleton
 public class UserServiceImpl implements UserService {
@@ -50,9 +51,10 @@ public class UserServiceImpl implements UserService {
   }
 
   @Override
-  public List<UserDto> getUsersByIds(List<String> userIds, UserPrincipal currentUser) {
-    List<User> users = userRepository.getByIds(userIds);
-    return profilingService.getByIds(currentUser, userIds).stream()
+  public List<UserDto> getUsersByIds(List<UUID> userIds, UserPrincipal currentUser) {
+    List<String> strUserIds = userIds.stream().map(UUID::toString).toList();
+    List<User> users = userRepository.getByIds(strUserIds);
+    return profilingService.getByIds(currentUser, strUserIds).stream()
         .map(
             p ->
                 UserDto.create()

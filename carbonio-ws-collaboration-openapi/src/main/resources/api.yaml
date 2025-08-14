@@ -1028,6 +1028,7 @@ components:
         maxItems: 10
         items:
           type: string
+          format: uuid
   requestBodies:
     InsertRoomRequest:
       description: room to insert

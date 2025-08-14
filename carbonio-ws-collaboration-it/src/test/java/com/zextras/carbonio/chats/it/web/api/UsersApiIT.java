@@ -97,6 +97,19 @@ class UsersApiIT {
           dispatcher.get(url(userId), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
       assertEquals(404, mockHttpResponse.getStatus());
     }
+
+    @Test
+    @DisplayName("Returns 404 for invalid UUID format in userIds parameter")
+    void getUsers_invalidUuidFormat_notfound() throws Exception {
+      String invalidUserId = "whatever";
+      String url = "/users?userIds=" + invalidUserId;
+
+      MockHttpResponse mockHttpResponse =
+          dispatcher.get(url, "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
+
+      assertEquals(404, mockHttpResponse.getStatus(),
+          "Should return 404 for invalid UUID format");
+    }
   }
 
   @Nested
