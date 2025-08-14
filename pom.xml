@@ -493,12 +493,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         </plugin>
 
         <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>${maven-resources-plugin.version}</version>
-        </plugin>
-
-        <plugin>
           <groupId>io.ebean</groupId>
           <artifactId>ebean-maven-plugin</artifactId>
           <version>${ebean-maven-plugin.version}</version>
