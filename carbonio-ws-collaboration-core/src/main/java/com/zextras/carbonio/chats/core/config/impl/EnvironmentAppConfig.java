@@ -49,6 +49,9 @@ public class EnvironmentAppConfig extends AppConfig {
         System.getenv(ConfigName.EVENT_DISPATCHER_USER_PASSWORD.name()));
     configs.put(ConfigName.VIDEO_SERVER_HOST, System.getenv(ConfigName.VIDEO_SERVER_HOST.name()));
     configs.put(ConfigName.VIDEO_SERVER_PORT, System.getenv(ConfigName.VIDEO_SERVER_PORT.name()));
+
+    configs.put(ConfigName.STORAGES_HOST, System.getenv(ConfigName.STORAGES_HOST.name()));
+    configs.put(ConfigName.STORAGES_PORT, System.getenv(ConfigName.STORAGES_PORT.name()));
   }
 
   public static AppConfig create() {
