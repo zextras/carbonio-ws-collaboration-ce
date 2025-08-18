@@ -43,8 +43,9 @@ SPDX-License-Identifier: AGPL-3.0-only
   <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
+    <maven.version.ignore>(?i).*(.|-)(alpha|beta|m|rc)([-.]?\d+)?</maven.version.ignore>
     <!-- Carbonio User Management -->
-    <carbonio-user-management-sdk.version>0.5.3</carbonio-user-management-sdk.version>
+    <carbonio-user-management-sdk.version>0.5.6</carbonio-user-management-sdk.version>
     <!-- Storages -->
     <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
     <!-- Previewer -->
@@ -489,12 +490,6 @@ SPDX-License-Identifier: AGPL-3.0-only
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
           <version>${jacoco-maven-plugin.version}</version>
-        </plugin>
-
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>${maven-resources-plugin.version}</version>
         </plugin>
 
         <plugin>
