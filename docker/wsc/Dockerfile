@@ -25,7 +25,7 @@ RUN apt update && apt install -y curl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # Copy the built artifact from the build stage
-COPY --from=build /app/carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-fatjar.jar app.jar
+COPY --from=build /app/carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-fatjar.jar app.jar
 
 # Create a non-root user
 RUN useradd -r -u 1001 -g root appuser && \
