@@ -165,8 +165,6 @@ public class VideoServerEventListener {
     UserFeed userFeed = UserFeed.fromString(event.getOpaqueId());
     RtcSessionDescription rtc = event.getEventInfo().getRtcSessionDescription();
 
-    // if (rtc == null) return;
-
     UUID meetingId = UUID.fromString(userFeed.getMeetingId());
     UUID userId = UUID.fromString(userFeed.getUserId());
     MediaType mediaType = mapEventType(userFeed.getMediaTrackType());
