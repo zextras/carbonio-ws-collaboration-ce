@@ -45,7 +45,7 @@ public class UsersApiServiceImpl implements UsersApiService {
   }
 
   @Override
-  public Response getUsers(List<String> userIds, SecurityContext securityContext) {
+  public Response getUsers(List<UUID> userIds, SecurityContext securityContext) {
     return (userIds.isEmpty() || userIds.size() > 10)
         ? Response.status(Status.BAD_REQUEST).build()
         : Response.status(Status.OK)

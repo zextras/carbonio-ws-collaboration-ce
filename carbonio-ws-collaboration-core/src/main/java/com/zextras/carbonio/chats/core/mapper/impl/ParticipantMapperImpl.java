@@ -7,7 +7,7 @@ package com.zextras.carbonio.chats.core.mapper.impl;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.mapper.ParticipantMapper;
-import com.zextras.carbonio.meeting.model.ParticipantDto;
+import com.zextras.carbonio.chats.model.ParticipantDto;
 import jakarta.annotation.Nullable;
 import java.util.List;
 import java.util.Optional;

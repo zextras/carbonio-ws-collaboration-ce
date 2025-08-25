@@ -12,13 +12,16 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 import com.rabbitmq.client.Recoverable;
 import com.rabbitmq.client.RecoveryListener;
+import com.zextras.carbonio.async.model.EventType;
+import com.zextras.carbonio.async.model.MediaType;
+import com.zextras.carbonio.async.model.MeetingAudioAnswered;
+import com.zextras.carbonio.async.model.MeetingMediaStreamChanged;
+import com.zextras.carbonio.async.model.MeetingParticipantSubscribed;
+import com.zextras.carbonio.async.model.MeetingParticipantTalking;
+import com.zextras.carbonio.async.model.MeetingSdpAnswered;
+import com.zextras.carbonio.async.model.MeetingSdpOffered;
+import com.zextras.carbonio.async.model.SubscribedStream;
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
-import com.zextras.carbonio.chats.core.data.event.MeetingAudioAnswered;
-import com.zextras.carbonio.chats.core.data.event.MeetingMediaStreamChanged;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantSubscribed;
-import com.zextras.carbonio.chats.core.data.event.MeetingParticipantTalking;
-import com.zextras.carbonio.chats.core.data.event.MeetingSdpAnswered;
-import com.zextras.carbonio.chats.core.data.event.MeetingSdpOffered;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
@@ -27,13 +30,12 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.Str
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.event.VideoServerEvent;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Feed;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaTrackType;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.MediaType;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.SubscribedStream;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.UserFeed;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.validation.constraints.NotNull;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -134,7 +136,7 @@ public class VideoServerEventListener {
         case JSEP_TYPE -> handleJsepTypeEvent(event);
         case PLUGIN_TYPE -> handlePluginTypeEvent(event);
         default -> {
-          /*just ignore other events*/
+          /* just ignore other events */
         }
       }
     };
@@ -173,7 +175,9 @@ public class VideoServerEventListener {
                   .meetingId(meetingId)
                   .userId(userId)
                   .mediaType(mediaType)
-                  .sdp(rtc.getSdp()));
+                  .sdp(rtc.getSdp())
+                  .type(EventType.MEETING_SDP_OFFERED)
+                  .sentDate(OffsetDateTime.now()));
 
       case ANSWER -> dispatchAnswerEvent(userFeed, rtc.getSdp(), mediaType);
     }
@@ -187,7 +191,12 @@ public class VideoServerEventListener {
       case AUDIO ->
           eventDispatcher.sendToUserExchange(
               userFeed.getUserId(),
-              MeetingAudioAnswered.create().meetingId(meetingId).userId(userId).sdp(sdp));
+              MeetingAudioAnswered.create()
+                  .meetingId(meetingId)
+                  .userId(userId)
+                  .sdp(sdp)
+                  .type(EventType.MEETING_AUDIO_ANSWERED)
+                  .sentDate(OffsetDateTime.now()));
 
       case VIDEO, SCREEN ->
           eventDispatcher.sendToUserExchange(
@@ -196,7 +205,9 @@ public class VideoServerEventListener {
                   .meetingId(meetingId)
                   .userId(userId)
                   .mediaType(mediaType)
-                  .sdp(sdp));
+                  .sdp(sdp)
+                  .type(EventType.MEETING_SDP_ANSWERED)
+                  .sentDate(OffsetDateTime.now()));
     }
   }
 
@@ -212,7 +223,9 @@ public class VideoServerEventListener {
         MeetingParticipantTalking.create()
             .meetingId(UUID.fromString(userFeed.getMeetingId()))
             .userId(UUID.fromString(userFeed.getUserId()))
-            .isTalking(TALKING.equals(audioBridgeEvent)));
+            .isTalking(TALKING.equals(audioBridgeEvent))
+            .type(EventType.MEETING_PARTICIPANT_TALKING)
+            .sentDate(OffsetDateTime.now()));
   }
 
   private void handleStreamsEvent(VideoServerEvent event) {
@@ -221,7 +234,7 @@ public class VideoServerEventListener {
       case SUBSCRIBING, UPDATED -> handleUpdatedEvent(event);
       case PUBLISHED -> handlePublishedEvent(event);
       default -> {
-        /*just ignore other events*/
+        /* just ignore other events */
       }
     }
   }
@@ -233,8 +246,6 @@ public class VideoServerEventListener {
             .stream()
             .filter(s -> s.getFeedId() != null)
             .toList();
-
-    if (streams.isEmpty()) return;
 
     UserFeed userFeed = UserFeed.fromString(event.getOpaqueId());
 
@@ -250,10 +261,12 @@ public class VideoServerEventListener {
                           Feed f = Feed.fromString(s.getFeedId());
                           return SubscribedStream.create()
                               .type(f.getType().toString().toLowerCase())
-                              .userId(f.getUserId())
+                              .userId(UUID.fromString(f.getUserId()))
                               .mid(s.getMid());
                         })
-                    .toList()));
+                    .toList())
+            .type(EventType.MEETING_PARTICIPANT_SUBSCRIBED)
+            .sentDate(OffsetDateTime.now()));
   }
 
   private void handlePublishedEvent(VideoServerEvent event) {
@@ -266,7 +279,9 @@ public class VideoServerEventListener {
             .meetingId(UUID.fromString(userFeed.getMeetingId()))
             .userId(UUID.fromString(userFeed.getUserId()))
             .mediaType(mediaType)
-            .active(PUBLISHED.equals(event.getEventInfo().getEventData().getEvent())));
+            .active(PUBLISHED.equals(event.getEventInfo().getEventData().getEvent()))
+            .type(EventType.MEETING_MEDIA_STREAM_CHANGED)
+            .sentDate(OffsetDateTime.now()));
   }
 
   private @NotNull List<String> getMeetingVideoServerSessions(String meetingId) {

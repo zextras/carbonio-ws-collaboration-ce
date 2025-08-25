@@ -16,7 +16,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   <parent>
     <groupId>com.zextras.carbonio.ws-collaboration</groupId>
     <artifactId>carbonio-ws-collaboration-ce</artifactId>
-    <version>0.9.0</version>
+    <version>1.6.2</version>
   </parent>
 
   <artifactId>carbonio-ws-collaboration-ce-core</artifactId>
@@ -175,6 +175,17 @@ SPDX-License-Identifier: AGPL-3.0-only
     <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
+    </dependency>
+
+    <!-- Version dependencies -->
+    <dependency>
+      <groupId>com.vdurmont</groupId>
+      <artifactId>semver4j</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
     </dependency>
 
     <!-- Tests dependency -->

@@ -47,21 +47,4 @@ spec:
   lifecycle: production
   owner: smoky-beans
   definition:
-    $text: https://github.com/Zextras/carbonio-ws-collaboration-ce/blob/main/carbonio-ws-collaboration-openapi/src/main/resources/chats/chats-api.yaml
-
----
-
-apiVersion: backstage.io/v1alpha1
-kind: API
-metadata:
-  name: carbonio-ws-collaboration-ce-meeting-api
-  title: Carbonio Workstream Collaboration CE Meeting APIs
-  description: Carbonio Workstream Collaboration Community Edition Meeting APIs.
-  tags:
-    - rest
-spec:
-  type: openapi
-  lifecycle: production
-  owner: smoky-beans
-  definition:
-    $text: https://github.com/Zextras/carbonio-ws-collaboration-ce/blob/main/carbonio-ws-collaboration-openapi/src/main/resources/meeting/meeting-api.yaml
+    $text: https://github.com/Zextras/carbonio-ws-collaboration-ce/blob/main/carbonio-ws-collaboration-openapi/src/main/resources/api.yaml

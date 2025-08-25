@@ -8,7 +8,6 @@ import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.exception.MessageDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
-import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -99,10 +98,7 @@ public class XmppMessageBuilder {
       }
       message.appendChild(
           createTextElement(
-              document,
-              "body",
-              Optional.ofNullable(StringFormatUtils.encodeToUtf8(body)).orElse(""),
-              !StringUtils.isEmpty(body)));
+              document, "body", Optional.ofNullable(body).orElse(""), !StringUtils.isEmpty(body)));
       Optional.ofNullable(replyId)
           .ifPresent(id -> message.appendChild(createReplyElement(document)));
       Optional.ofNullable(messageToForward)
@@ -178,11 +174,7 @@ public class XmppMessageBuilder {
       countAtt = 1;
       textBody =
           Optional.ofNullable((Element) messageTag.getElementsByTagName("body").item(0))
-              .map(
-                  b -> {
-                    String text = StringEscapeUtils.unescapeXml(b.getTextContent());
-                    return b.hasAttribute("encoded") ? text : StringFormatUtils.encodeToUtf8(text);
-                  })
+              .map(b -> StringEscapeUtils.unescapeXml(b.getTextContent()))
               .orElse("");
     }
     element.setAttribute("count", String.valueOf(countAtt));

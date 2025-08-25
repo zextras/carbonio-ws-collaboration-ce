@@ -1,0 +1,13 @@
+{
+  "title": "Zextras Carbonio Workstream Collaboration",
+  "serverPort": 8080,
+
+  "apiPackage": "com.zextras.carbonio.chats.api",
+  "invokerPackage": "com.zextras.carbonio.chats.api",
+  "modelPackage": "com.zextras.carbonio.chats.model",
+  "sourceFolder": "src/main/java",
+
+  "booleanGetterPrefix": "is",
+  "dateLibrary": "java8",
+  "hideGenerationTimestamp": true
+}

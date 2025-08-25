@@ -16,7 +16,7 @@ SPDX-License-Identifier: AGPL-3.0-only
   <parent>
     <groupId>com.zextras.carbonio.ws-collaboration</groupId>
     <artifactId>carbonio-ws-collaboration-ce</artifactId>
-    <version>0.9.0</version>
+    <version>1.6.2</version>
   </parent>
 
   <artifactId>carbonio-ws-collaboration-ce-openapi</artifactId>
@@ -113,9 +113,9 @@ SPDX-License-Identifier: AGPL-3.0-only
               <generatorName>jaxrs-resteasy</generatorName>
               <engine>mustache</engine>
               <!-- Openapi files -->
-              <inputSpec>${project.basedir}/src/main/resources/chats/chats-api.yaml</inputSpec>
+              <inputSpec>${project.basedir}/src/main/resources/api.yaml</inputSpec>
               <configurationFile>
-                ${project.basedir}/src/main/resources/chats/chats-generator-config.json
+                ${project.basedir}/src/main/resources/generator-config.json
               </configurationFile>
               <templateDirectory>${project.basedir}/src/main/resources/templates</templateDirectory>
               <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore</ignoreFileOverride>
@@ -134,27 +134,34 @@ SPDX-License-Identifier: AGPL-3.0-only
           </execution>
 
           <execution>
-            <id>meeting-api</id>
+            <id>ws-collaboration-async-api</id>
             <goals>
               <goal>generate</goal>
             </goals>
             <configuration>
               <configOptions>
                 <useJakartaEe>true</useJakartaEe>
+                <jsonTypeInfoPropertyName>type</jsonTypeInfoPropertyName>
+                <jsonTypeInfoAs>EXISTING_PROPERTY</jsonTypeInfoAs>
               </configOptions>
               <generatorName>jaxrs-resteasy</generatorName>
               <engine>mustache</engine>
-              <!-- Openapi files -->
-              <inputSpec>${project.basedir}/src/main/resources/meeting/meeting-api.yaml</inputSpec>
+              <inputSpec>${project.basedir}/src/main/resources/asyncapi.yaml</inputSpec>
               <configurationFile>
-                ${project.basedir}/src/main/resources/meeting/meeting-generator-config.json
+                ${project.basedir}/src/main/resources/async-generator-config.json
               </configurationFile>
               <templateDirectory>${project.basedir}/src/main/resources/templates</templateDirectory>
               <ignoreFileOverride>${project.basedir}/src/main/resources/generator-ignore</ignoreFileOverride>
               <!-- Generation options -->
-              <output>${project.build.directory}/generated-sources/meeting</output>
-              <modelNameSuffix>dto</modelNameSuffix>
+              <output>${project.build.directory}/generated-sources/async</output>
               <skipValidateSpec>true</skipValidateSpec>
+              <generateModels>true</generateModels>
+              <generateApis>false</generateApis>
+              <generateSupportingFiles>false</generateSupportingFiles>
+              <generateModelTests>false</generateModelTests>
+              <generateApiTests>false</generateApiTests>
+              <generateModelDocumentation>false</generateModelDocumentation>
+              <generateApiDocumentation>false</generateApiDocumentation>
             </configuration>
           </execution>
         </executions>

@@ -13,7 +13,6 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.exception.MessageDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
-import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import jakarta.annotation.Nullable;
@@ -100,7 +99,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
         sendStanza(
             XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
                 .type(MessageType.ROOM_NAME_CHANGED)
-                .addConfig("value", StringFormatUtils.encodeToUtf8(name), true)
+                .addConfig("value", name, true)
                 .build());
     if (result.getErrors() != null) {
       try {
@@ -120,7 +119,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
         sendStanza(
             XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
                 .type(MessageType.ROOM_DESCRIPTION_CHANGED)
-                .addConfig("value", StringFormatUtils.encodeToUtf8(description), true)
+                .addConfig("value", description, true)
                 .build());
     if (result.getErrors() != null) {
       try {
@@ -142,7 +141,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
             XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
                 .type(MessageType.ROOM_PICTURE_UPDATED)
                 .addConfig("picture-id", pictureId)
-                .addConfig("picture-name", StringFormatUtils.encodeToUtf8(pictureName), true)
+                .addConfig("picture-name", pictureName, true)
                 .build());
     if (result.getErrors() != null) {
       try {
@@ -282,7 +281,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
         XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
             .type(MessageType.ATTACHMENT_ADDED)
             .addConfig(ATTACHMENT_ID, fileId)
-            .addConfig("filename", StringFormatUtils.encodeToUtf8(fileName), true)
+            .addConfig("filename", fileName, true)
             .addConfig("mime-type", mimeType)
             .addConfig("size", String.valueOf(originalSize))
             .body(description)
@@ -346,7 +345,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
                 xmppMessageBuilder
                     .type(MessageType.ATTACHMENT_ADDED)
                     .addConfig(ATTACHMENT_ID, metadata.getId())
-                    .addConfig("filename", StringFormatUtils.encodeToUtf8(metadata.getName()), true)
+                    .addConfig("filename", metadata.getName(), true)
                     .addConfig("mime-type", metadata.getMimeType())
                     .addConfig("size", String.valueOf(metadata.getOriginalSize())));
     String xmppMessage = xmppMessageBuilder.build();

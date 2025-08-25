@@ -14,11 +14,12 @@ import java.util.Optional;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.testcontainers.containers.PostgreSQLContainer;
 
-public class DatabaseExtension implements BeforeAllCallback, AfterEachCallback {
+public class DatabaseExtension implements BeforeAllCallback, BeforeEachCallback, AfterEachCallback {
 
   private static final Namespace EXTENSION_NAMESPACE = Namespace.create(DatabaseExtension.class);
   private static final String FLYWAY_STORE_ENTRY = "flyway";
@@ -65,18 +66,27 @@ public class DatabaseExtension implements BeforeAllCallback, AfterEachCallback {
               config.setDriverClassName(DATABASE_DRIVER);
 
               ChatsLogger.debug("Migrating test DB...");
-              Flyway flyway =
-                  Flyway.configure()
-                      .cleanDisabled(false)
-                      .locations("classpath:migration")
-                      .schemas("chats")
-                      .dataSource(new HikariDataSource(config))
-                      .validateMigrationNaming(true)
-                      .load();
-              flyway.migrate();
-              return flyway;
+              return Flyway.configure()
+                  .cleanDisabled(false)
+                  .locations("classpath:migration")
+                  .schemas("chats")
+                  .dataSource(new HikariDataSource(config))
+                  .validateMigrationNaming(true)
+                  .load();
             },
             Flyway.class);
+  }
+
+  @Override
+  public void beforeEach(ExtensionContext extensionContext) {
+    Optional.ofNullable(
+            extensionContext.getRoot().getStore(EXTENSION_NAMESPACE).get(FLYWAY_STORE_ENTRY))
+        .map(objectFlyway -> (Flyway) objectFlyway)
+        .ifPresent(
+            flyway -> {
+              ChatsLogger.debug("Start migration test DB...");
+              flyway.migrate();
+            });
   }
 
   @Override
@@ -88,7 +98,6 @@ public class DatabaseExtension implements BeforeAllCallback, AfterEachCallback {
             flyway -> {
               ChatsLogger.debug("Cleaning up test DB...");
               flyway.clean();
-              flyway.migrate();
             });
   }
 }

@@ -6,14 +6,15 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.zextras.carbonio.async.model.EventType;
+import com.zextras.carbonio.async.model.RoomMemberAdded;
+import com.zextras.carbonio.async.model.RoomMemberRemoved;
+import com.zextras.carbonio.async.model.RoomOwnerDemoted;
+import com.zextras.carbonio.async.model.RoomOwnerPromoted;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.entity.SubscriptionId;
-import com.zextras.carbonio.chats.core.data.event.RoomMemberAdded;
-import com.zextras.carbonio.chats.core.data.event.RoomMemberRemoved;
-import com.zextras.carbonio.chats.core.data.event.RoomOwnerDemoted;
-import com.zextras.carbonio.chats.core.data.event.RoomOwnerPromoted;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
@@ -90,7 +91,7 @@ public class MembersServiceImpl implements MembersService {
       throw new BadRequestException("Cannot set owner privileges for itself");
     }
     Room room = roomService.getRoomAndValidateUser(roomId, currentUser, true);
-    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+    if (room.getType().equals(RoomTypeDto.ONE_TO_ONE)) {
       throw new BadRequestException(
           String.format("Cannot set owner privileges on %s rooms", room.getType()));
     }
@@ -108,8 +109,16 @@ public class MembersServiceImpl implements MembersService {
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         isOwner
-            ? RoomOwnerPromoted.create().roomId(roomId).userId(userId)
-            : RoomOwnerDemoted.create().roomId(roomId).userId(userId));
+            ? RoomOwnerPromoted.create()
+                .roomId(roomId)
+                .userId(userId)
+                .type(EventType.ROOM_OWNER_PROMOTED)
+                .sentDate(OffsetDateTime.now())
+            : RoomOwnerDemoted.create()
+                .roomId(roomId)
+                .userId(userId)
+                .type(EventType.ROOM_OWNER_DEMOTED)
+                .sentDate(OffsetDateTime.now()));
   }
 
   @Override
@@ -123,13 +132,7 @@ public class MembersServiceImpl implements MembersService {
     OffsetDateTime currentDateTime = OffsetDateTime.now();
     List<MemberInsertedDto> membersInserted = new ArrayList<>();
     for (MemberToInsertDto member : membersToInsert) {
-      messageDispatcher.addRoomMember(
-          room.getId(), currentUser.getId(), member.getUserId().toString());
-      messageDispatcher.sendAffiliationMessage(
-          room.getId(),
-          currentUser.getId(),
-          member.getUserId().toString(),
-          MessageType.MEMBER_ADDED);
+      addMemberToRoom(member.getUserId().toString(), room, currentUser.getId());
       MemberInsertedDto memberInsertedDto = processRoomSubscription(room, member, currentDateTime);
 
       membersInserted.add(memberInsertedDto);
@@ -138,7 +141,9 @@ public class MembersServiceImpl implements MembersService {
           RoomMemberAdded.create()
               .roomId(UUID.fromString(room.getId()))
               .userId(member.getUserId())
-              .isOwner(member.isOwner()));
+              .isOwner(member.isOwner())
+              .type(EventType.ROOM_MEMBER_ADDED)
+              .sentDate(OffsetDateTime.now()));
     }
     return membersInserted;
   }
@@ -150,7 +155,7 @@ public class MembersServiceImpl implements MembersService {
       throw new BadRequestException("Cannot update owner privileges for itself");
     }
     Room room = roomService.getRoomAndValidateUser(roomId, currentUser, true);
-    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+    if (room.getType().equals(RoomTypeDto.ONE_TO_ONE)) {
       throw new BadRequestException(
           String.format("Cannot update owner privileges on %s rooms", room.getType()));
     }
@@ -179,9 +184,13 @@ public class MembersServiceImpl implements MembersService {
                     ? RoomOwnerPromoted.create()
                         .roomId(roomId)
                         .userId(UUID.fromString(subscription.getUserId()))
+                        .type(EventType.ROOM_OWNER_PROMOTED)
+                        .sentDate(OffsetDateTime.now())
                     : RoomOwnerDemoted.create()
                         .roomId(roomId)
-                        .userId(UUID.fromString(subscription.getUserId()))));
+                        .userId(UUID.fromString(subscription.getUserId()))
+                        .type(EventType.ROOM_OWNER_DEMOTED)
+                        .sentDate(OffsetDateTime.now())));
     return subscriptionsUpdated.stream()
         .map(
             subscription ->
@@ -198,7 +207,7 @@ public class MembersServiceImpl implements MembersService {
 
   private void validateInsertRoomMembers(
       List<UUID> memberIds, Room room, UserPrincipal currentUser) {
-    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+    if (room.getType().equals(RoomTypeDto.ONE_TO_ONE)) {
       throw new BadRequestException(
           String.format("Cannot add members to a %s conversation", room.getType()));
     } else if (RoomTypeDto.GROUP.equals(room.getType())) {
@@ -227,6 +236,12 @@ public class MembersServiceImpl implements MembersService {
             });
   }
 
+  private void addMemberToRoom(String memberId, Room room, String currentUserId) {
+    messageDispatcher.addRoomMember(room.getId(), currentUserId, memberId);
+    messageDispatcher.sendAffiliationMessage(
+        room.getId(), currentUserId, memberId, MessageType.MEMBER_ADDED);
+  }
+
   private MemberInsertedDto processRoomSubscription(
       Room room, MemberToInsertDto member, OffsetDateTime dateTime) {
     Subscription subscription =
@@ -253,7 +268,12 @@ public class MembersServiceImpl implements MembersService {
           roomUserSettingsRepository
               .getByRoomIdAndUserId(room.getId(), member.getUserId().toString())
               .orElseGet(() -> RoomUserSettings.create(room, member.getUserId().toString()));
-      roomUserSettingsRepository.save(settings.clearedAt(dateTime));
+
+      if (member.isHistoryCleared()) {
+        settings.clearedAt(dateTime);
+      }
+
+      roomUserSettingsRepository.save(settings);
     }
   }
 
@@ -262,7 +282,7 @@ public class MembersServiceImpl implements MembersService {
     Room room =
         roomService.getRoomAndValidateUser(
             roomId, currentUser, !currentUser.getUUID().equals(userId));
-    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+    if (room.getType().equals(RoomTypeDto.ONE_TO_ONE)) {
       throw new BadRequestException(
           String.format("Cannot remove a member from a %s conversation", room.getType()));
     }
@@ -277,22 +297,18 @@ public class MembersServiceImpl implements MembersService {
           .ifPresent(meeting -> participantService.removeMeetingParticipant(meeting, room, userId));
     }
     validateLastRoomOwner(userId.toString(), room);
-    String ownerId =
-        room.getSubscriptions().stream()
-            .filter(Subscription::isOwner)
-            .map(Subscription::getUserId)
-            .toList()
-            .get(0);
-    messageDispatcher.removeRoomMember(room.getId(), userId.toString());
-    messageDispatcher.sendAffiliationMessage(
-        room.getId(), ownerId, userId.toString(), MessageType.MEMBER_REMOVED);
+    removeRoomMember(userId.toString(), room);
     roomUserSettingsRepository
         .getByRoomIdAndUserId(roomId.toString(), userId.toString())
         .ifPresent(roomUserSettingsRepository::delete);
     subscriptionRepository.delete(room.getId(), userId.toString());
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
-        RoomMemberRemoved.create().roomId(UUID.fromString(room.getId())).userId(userId));
+        RoomMemberRemoved.create()
+            .roomId(UUID.fromString(room.getId()))
+            .userId(userId)
+            .type(EventType.ROOM_MEMBER_REMOVED)
+            .sentDate(OffsetDateTime.now()));
     // delete room if it's the last member
     if (room.getSubscriptions().size() == 1) {
       roomService.deleteRoom(roomId, currentUser);
@@ -308,6 +324,19 @@ public class MembersServiceImpl implements MembersService {
     if (owners.size() == 1 && owners.get(0).equals(userId) && room.getSubscriptions().size() > 1) {
       throw new BadRequestException("Last owner can't leave the room");
     }
+  }
+
+  private void removeRoomMember(String memberId, Room room) {
+    String ownerId =
+        room.getSubscriptions().stream()
+            .filter(Subscription::isOwner)
+            .map(Subscription::getUserId)
+            .toList()
+            .get(0);
+
+    messageDispatcher.removeRoomMember(room.getId(), memberId);
+    messageDispatcher.sendAffiliationMessage(
+        room.getId(), ownerId, memberId, MessageType.MEMBER_REMOVED);
   }
 
   @Override
