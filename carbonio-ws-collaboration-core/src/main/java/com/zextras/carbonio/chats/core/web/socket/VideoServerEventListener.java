@@ -4,13 +4,6 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
-import java.nio.charset.StandardCharsets;
-import java.time.OffsetDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -40,8 +33,13 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Med
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcSessionDescription;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.UserFeed;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-
 import jakarta.validation.constraints.NotNull;
+import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Singleton
 public class VideoServerEventListener {
@@ -108,8 +106,7 @@ public class VideoServerEventListener {
       channel.queueDeclare(JANUS_QUEUE, false, false, false, null);
       channel.queueBind(JANUS_QUEUE, JANUS_EXCHANGE, JANUS_ROUTING_KEY);
       DeliverCallback deliverCallback = createDeliveryCallBack();
-      consumerTag = channel.basicConsume(JANUS_QUEUE, true, deliverCallback, tag -> {
-      });
+      consumerTag = channel.basicConsume(JANUS_QUEUE, true, deliverCallback, tag -> {});
     } catch (Exception e) {
       ChatsLogger.error("Error starting video server events processing", e);
     }
@@ -159,14 +156,12 @@ public class VideoServerEventListener {
 
   private void handleJsepTypeEvent(VideoServerEvent event) {
     String owner = event.getEventInfo().getOwner();
-    if (!LOCAL.equalsIgnoreCase(owner))
-      return;
+    if (!LOCAL.equalsIgnoreCase(owner)) return;
 
     UserFeed userFeed = UserFeed.fromString(event.getOpaqueId());
     RtcSessionDescription rtc = event.getEventInfo().getRtcSessionDescription();
 
-    if (rtc == null)
-      return;
+    if (rtc == null) return;
 
     UUID meetingId = UUID.fromString(userFeed.getMeetingId());
     UUID userId = UUID.fromString(userFeed.getUserId());
@@ -174,15 +169,15 @@ public class VideoServerEventListener {
 
     switch (rtc.getType()) {
       case OFFER ->
-        eventDispatcher.sendToUserExchange(
-            userFeed.getUserId(),
-            MeetingSdpOffered.create()
-                .meetingId(meetingId)
-                .userId(userId)
-                .mediaType(mediaType)
-                .sdp(rtc.getSdp())
-                .type(EventType.MEETING_SDP_OFFERED)
-                .sentDate(OffsetDateTime.now()));
+          eventDispatcher.sendToUserExchange(
+              userFeed.getUserId(),
+              MeetingSdpOffered.create()
+                  .meetingId(meetingId)
+                  .userId(userId)
+                  .mediaType(mediaType)
+                  .sdp(rtc.getSdp())
+                  .type(EventType.MEETING_SDP_OFFERED)
+                  .sentDate(OffsetDateTime.now()));
 
       case ANSWER -> dispatchAnswerEvent(userFeed, rtc.getSdp(), mediaType);
     }
@@ -194,32 +189,31 @@ public class VideoServerEventListener {
 
     switch (mediaType) {
       case AUDIO ->
-        eventDispatcher.sendToUserExchange(
-            userFeed.getUserId(),
-            MeetingAudioAnswered.create()
-                .meetingId(meetingId)
-                .userId(userId)
-                .sdp(sdp)
-                .type(EventType.MEETING_AUDIO_ANSWERED)
-                .sentDate(OffsetDateTime.now()));
+          eventDispatcher.sendToUserExchange(
+              userFeed.getUserId(),
+              MeetingAudioAnswered.create()
+                  .meetingId(meetingId)
+                  .userId(userId)
+                  .sdp(sdp)
+                  .type(EventType.MEETING_AUDIO_ANSWERED)
+                  .sentDate(OffsetDateTime.now()));
 
       case VIDEO, SCREEN ->
-        eventDispatcher.sendToUserExchange(
-            userFeed.getUserId(),
-            MeetingSdpAnswered.create()
-                .meetingId(meetingId)
-                .userId(userId)
-                .mediaType(mediaType)
-                .sdp(sdp)
-                .type(EventType.MEETING_SDP_ANSWERED)
-                .sentDate(OffsetDateTime.now()));
+          eventDispatcher.sendToUserExchange(
+              userFeed.getUserId(),
+              MeetingSdpAnswered.create()
+                  .meetingId(meetingId)
+                  .userId(userId)
+                  .mediaType(mediaType)
+                  .sdp(sdp)
+                  .type(EventType.MEETING_SDP_ANSWERED)
+                  .sentDate(OffsetDateTime.now()));
     }
   }
 
   private void handleAudioBridgeEvent(VideoServerEvent event) {
     String audioBridgeEvent = event.getEventInfo().getEventData().getAudioBridge();
-    if (!TALKING.equals(audioBridgeEvent) && !STOPPED_TALKING.equals(audioBridgeEvent))
-      return;
+    if (!TALKING.equals(audioBridgeEvent) && !STOPPED_TALKING.equals(audioBridgeEvent)) return;
 
     UserFeed userFeed = UserFeed.fromString(event.getOpaqueId());
     List<String> recipients = getMeetingVideoServerSessions(userFeed.getMeetingId());
@@ -246,13 +240,20 @@ public class VideoServerEventListener {
   }
 
   private void handleUpdatedEvent(VideoServerEvent event) {
-    List<StreamData> streams = Optional.ofNullable(event.getEventInfo().getEventData().getStreamList())
-        .orElse(Collections.emptyList())
-        .stream()
-        .filter(s -> s.getFeedId() != null)
-        .toList();
+    List<StreamData> streams =
+        Optional.ofNullable(event.getEventInfo().getEventData().getStreamList())
+            .orElse(Collections.emptyList())
+            .stream()
+            .filter(s -> s.getFeedId() != null)
+            .toList();
 
     UserFeed userFeed = UserFeed.fromString(event.getOpaqueId());
+
+    if (List.of(MediaTrackType.VIDEO_OUT, MediaTrackType.SCREEN)
+            .contains(userFeed.getMediaTrackType())
+        && !streams.isEmpty()) {
+      return;
+    }
 
     eventDispatcher.sendToUserExchange(
         userFeed.getUserId(),
