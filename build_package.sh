@@ -16,7 +16,7 @@ fi
 
 # Step 2: Copy the fat JAR to the package directory
 echo "Copying fat JAR to package directory..."
-cp carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-fatjar.jar package/
+cp carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration*-fatjar.jar package/
 
 # Step 3: Run yap to build packages
 if [[ $OS == "ubuntu-jammy" ]]
