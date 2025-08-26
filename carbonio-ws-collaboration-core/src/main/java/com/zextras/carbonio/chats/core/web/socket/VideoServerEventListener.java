@@ -249,6 +249,12 @@ public class VideoServerEventListener {
 
     UserFeed userFeed = UserFeed.fromString(event.getOpaqueId());
 
+    if (List.of(MediaTrackType.VIDEO_OUT, MediaTrackType.SCREEN)
+            .contains(userFeed.getMediaTrackType())
+        && !streams.isEmpty()) {
+      return;
+    }
+
     eventDispatcher.sendToUserExchange(
         userFeed.getUserId(),
         MeetingParticipantSubscribed.create()
