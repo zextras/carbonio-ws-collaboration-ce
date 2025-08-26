@@ -24,8 +24,7 @@ public class ChatsLogger {
       @Nullable Class<?> clazz,
       String message,
       @Nullable Throwable throwable) {
-    Logger logger =
-        LoggerFactory.getLogger(clazz == null ? ChatsLogger.class : clazz); // TODO check class
+    Logger logger = LoggerFactory.getLogger(clazz == null ? ChatsLogger.class : clazz);
     switch (state) {
       case ERROR:
         logger.error(message, throwable);
@@ -44,8 +43,6 @@ public class ChatsLogger {
         break;
     }
   }
-
-  // TODO context info
 
   /**
    * Generic log the error message

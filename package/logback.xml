@@ -39,6 +39,10 @@ SPDX-License-Identifier: AGPL-3.0-only
   <logger name="com.zextras.carbonio.chats.core.logging.aop" level="INFO" additivity="false">
     <appender-ref ref="TIMED_CALLS_FILE_APPENDER"/>
   </logger>
+  <logger name="com.zextras.carbonio.chats.boot" level="DEBUG" additivity="false">
+    <appender-ref ref="FILE_APPENDER"/>
+    <appender-ref ref="CONSOLE_LOG"/>
+  </logger>
   <logger name="com.zextras.carbonio.chats.core" level="DEBUG" additivity="false">
     <appender-ref ref="FILE_APPENDER"/>
     <appender-ref ref="CONSOLE_LOG"/>

@@ -7,7 +7,7 @@ This is the official repository for Carbonio Workstream Collaboration CE.
 Build using maven:
 
 ```shell
-mvn clean install
+make compile
 ```
 
 ---
@@ -54,6 +54,26 @@ With the generated fat-jar:
 
 ```shell
 java -jar ./boot/target/zextras-ws-collaboration-ce-fatjar.jar
+```
+
+## Docker
+
+To run the service using Docker, you can use the provided `docker-compose.yml`
+file.
+Make sure you have Docker and Docker Compose installed on your machine.
+Also make a copy of `.env.example` to `.env` and set the required
+environment variables.
+
+then run:
+
+```shell
+make docker-up
+```
+
+If you want to stop:
+
+```shell
+make docker-down
 ```
 
 ## License 📚

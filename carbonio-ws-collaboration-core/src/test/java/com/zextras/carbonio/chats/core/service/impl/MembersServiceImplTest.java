@@ -16,16 +16,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.zextras.carbonio.async.model.RoomMemberAdded;
+import com.zextras.carbonio.async.model.RoomMemberRemoved;
+import com.zextras.carbonio.async.model.RoomOwnerDemoted;
+import com.zextras.carbonio.async.model.RoomOwnerPromoted;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
-import com.zextras.carbonio.chats.core.data.event.RoomMemberAdded;
-import com.zextras.carbonio.chats.core.data.event.RoomMemberRemoved;
-import com.zextras.carbonio.chats.core.data.event.RoomOwnerDemoted;
-import com.zextras.carbonio.chats.core.data.event.RoomOwnerPromoted;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
@@ -301,7 +301,10 @@ class MembersServiceImplTest {
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
-              RoomMemberAdded.create().roomId(UUID.fromString(room.getId())).userId(user2Id));
+              RoomMemberAdded.create()
+                  .roomId(UUID.fromString(room.getId()))
+                  .userId(user2Id)
+                  .isOwner(false));
     }
 
     @Test

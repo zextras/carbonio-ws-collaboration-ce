@@ -27,7 +27,7 @@ public interface UserService {
    * @param currentUser the currently authenticated {@link UserPrincipal}
    * @return the {@link List} of the requested {@link UserDto}
    */
-  List<UserDto> getUsersByIds(List<String> userIds, UserPrincipal currentUser);
+  List<UserDto> getUsersByIds(List<UUID> userIds, UserPrincipal currentUser);
 
   /**
    * Checks if a user exists. Current implementations checks the {@link

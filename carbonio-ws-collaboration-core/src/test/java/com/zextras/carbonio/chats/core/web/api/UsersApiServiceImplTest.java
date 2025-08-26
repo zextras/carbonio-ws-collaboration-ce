@@ -106,12 +106,9 @@ class UsersApiServiceImplTest {
     void getUsers_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
 
-      Response response =
-          usersApiService.getUsers(
-              List.of(user1Id.toString(), user2Id.toString()), securityContext);
+      Response response = usersApiService.getUsers(List.of(user1Id, user2Id), securityContext);
 
-      verify(userService, times(1))
-          .getUsersByIds(List.of(user1.toString(), user2Id.toString()), user1);
+      verify(userService, times(1)).getUsersByIds(List.of(user1Id, user2Id), user1);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
     }
@@ -134,18 +131,18 @@ class UsersApiServiceImplTest {
       Response response =
           usersApiService.getUsers(
               List.of(
-                  user1Id.toString(),
-                  user1Id.toString(),
-                  user2Id.toString(),
-                  user3Id.toString(),
-                  UUID.randomUUID().toString(),
-                  UUID.randomUUID().toString(),
-                  UUID.randomUUID().toString(),
-                  UUID.randomUUID().toString(),
-                  UUID.randomUUID().toString(),
-                  UUID.randomUUID().toString(),
-                  UUID.randomUUID().toString(),
-                  UUID.randomUUID().toString()),
+                  user1Id,
+                  user1Id,
+                  user2Id,
+                  user3Id,
+                  UUID.randomUUID(),
+                  UUID.randomUUID(),
+                  UUID.randomUUID(),
+                  UUID.randomUUID(),
+                  UUID.randomUUID(),
+                  UUID.randomUUID(),
+                  UUID.randomUUID(),
+                  UUID.randomUUID()),
               securityContext);
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
@@ -156,7 +153,7 @@ class UsersApiServiceImplTest {
     void getUsers_testUnauthorizedUser() {
       when(securityContext.getUserPrincipal()).thenReturn(null);
 
-      List<String> users = List.of(user1Id.toString(), user2Id.toString());
+      List<UUID> users = List.of(user1Id, user2Id);
       assertThrows(
           UnauthorizedException.class, () -> usersApiService.getUsers(users, securityContext));
     }

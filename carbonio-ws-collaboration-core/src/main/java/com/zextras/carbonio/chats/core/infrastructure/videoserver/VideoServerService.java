@@ -6,8 +6,8 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver;
 
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
-import com.zextras.carbonio.meeting.model.MediaStreamSettingsDto;
-import com.zextras.carbonio.meeting.model.SubscriptionUpdatesDto;
+import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
+import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
 import java.util.List;
 
 public interface VideoServerService extends HealthIndicator {

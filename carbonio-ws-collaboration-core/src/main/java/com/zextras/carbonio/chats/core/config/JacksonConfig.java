@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.api.RFC3339DateFormat;
+import com.zextras.carbonio.chats.core.provider.impl.ObjectMapperProvider;
 import jakarta.ws.rs.ext.ContextResolver;
 import jakarta.ws.rs.ext.Provider;
 
@@ -30,6 +31,7 @@ public class JacksonConfig
             .setDateFormat(new RFC3339DateFormat())
             .setDefaultPropertyInclusion(Include.NON_NULL)
             .setSerializationInclusion(Include.NON_NULL);
+    ObjectMapperProvider.setObjectMapper(objectMapper);
   }
 
   public ObjectMapper getContext(Class<?> arg0) {

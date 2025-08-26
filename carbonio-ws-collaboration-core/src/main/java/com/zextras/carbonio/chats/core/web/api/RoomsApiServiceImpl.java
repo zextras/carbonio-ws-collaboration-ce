@@ -28,19 +28,25 @@ import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import org.jboss.resteasy.plugins.providers.multipart.InputPart;
+import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
 
 @Singleton
 public class RoomsApiServiceImpl implements RoomsApiService {
 
+  public static final String MIME_TYPE_NOT_FOUND = "Mime type not found";
+  public static final String FILE_NAME_NOT_FOUND = "File name not found";
   private final RoomService roomService;
   private final MembersService membersService;
   private final AttachmentService attachmentService;
@@ -58,12 +64,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     this.meetingService = meetingService;
   }
 
+  private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
+    return Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+        .orElseThrow(UnauthorizedException::new);
+  }
+
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response listRooms(List<RoomExtraFieldDto> extraFields, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK)
         .entity(roomService.getRooms(extraFields, currentUser))
         .build();
@@ -72,9 +81,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall
   public Response getRoom(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK).entity(roomService.getRoomById(roomId, currentUser)).build();
   }
 
@@ -82,9 +89,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response insertRoom(
       RoomCreationFieldsDto insertRoomRequestDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     if (insertRoomRequestDto.getType().equals(RoomTypeDto.ONE_TO_ONE)
         && (insertRoomRequestDto.getName() != null
             || insertRoomRequestDto.getDescription() != null)) {
@@ -103,9 +108,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall
   public Response deleteRoom(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(
             r -> {
@@ -123,9 +126,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response updateRoom(
       UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(
             r -> {
@@ -147,9 +148,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   public Response updateRoomOwners(
       UUID roomId, List<@Valid MemberDto> memberDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK)
         .entity(membersService.updateRoomOwners(roomId, memberDto, currentUser))
         .build();
@@ -158,9 +157,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response getRoomPicture(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     FileContentAndMetadata roomPicture = roomService.getRoomPicture(roomId, currentUser);
     return Response.status(Status.OK)
         .entity(roomPicture)
@@ -181,23 +178,21 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       Long contentLength,
       InputStream body,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     String filename;
     try {
       filename =
           StringFormatUtils.decodeFromUtf8(
-              Optional.of(headerFileName)
-                  .orElseThrow(() -> new BadRequestException("File name not found")));
+              Optional.ofNullable(headerFileName)
+                  .orElseThrow(() -> new BadRequestException(FILE_NAME_NOT_FOUND)));
     } catch (UnsupportedEncodingException e) {
       throw new BadRequestException("Unable to decode the file name", e);
     }
     roomService.setRoomPicture(
         roomId,
         body,
-        Optional.of(headerMimeType)
-            .orElseThrow(() -> new BadRequestException("Mime type not found")),
+        Optional.ofNullable(headerMimeType)
+            .orElseThrow(() -> new BadRequestException(MIME_TYPE_NOT_FOUND)),
         contentLength,
         filename,
         currentUser);
@@ -207,9 +202,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response deleteRoomPicture(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     roomService.deleteRoomPicture(roomId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -217,9 +210,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   public Response forwardMessages(
       UUID roomId, List<ForwardMessageDto> forwardMessageDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     roomService.forwardMessages(roomId, forwardMessageDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -227,28 +218,22 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall
   public Response muteRoom(UUID roomId, SecurityContext securityContext) {
-    roomService.muteRoom(
-        roomId,
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new));
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    roomService.muteRoom(roomId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
   @TimedCall
   public Response unmuteRoom(UUID roomId, SecurityContext securityContext) {
-    roomService.unmuteRoom(
-        roomId,
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new));
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    roomService.unmuteRoom(roomId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
   public Response clearRoomHistory(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK)
         .entity(
             ClearedDateDto.create().clearedAt(roomService.clearRoomHistory(roomId, currentUser)))
@@ -258,9 +243,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall
   public Response listRoomMembers(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK)
         .entity(membersService.getRoomMembers(roomId, currentUser))
         .build();
@@ -272,9 +255,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       UUID roomId,
       List<@Valid MemberToInsertDto> memberToInsertDto,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.CREATED)
         .entity(membersService.insertRoomMembers(roomId, memberToInsertDto, currentUser))
         .build();
@@ -283,9 +264,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall
   public Response deleteRoomMember(UUID roomId, UUID userId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     membersService.deleteRoomMember(roomId, userId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -293,9 +272,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall
   public Response insertOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     membersService.setOwner(roomId, userId, true, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -303,9 +280,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response deleteOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     membersService.setOwner(roomId, userId, false, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -314,15 +289,14 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response listRoomAttachmentsInfo(
       UUID roomId, Integer itemsNumber, String filter, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK)
         .entity(
             attachmentService.getAttachmentInfoByRoomId(roomId, itemsNumber, filter, currentUser))
         .build();
   }
 
+  @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response insertAttachment(
       UUID roomId,
@@ -335,15 +309,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       String replyId,
       String area,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     String name;
     try {
       name =
           StringFormatUtils.decodeFromUtf8(
-              Optional.of(fileName)
-                  .orElseThrow(() -> new BadRequestException("File name not found")));
+              Optional.ofNullable(fileName)
+                  .orElseThrow(() -> new BadRequestException(FILE_NAME_NOT_FOUND)));
     } catch (UnsupportedEncodingException e) {
       throw new BadRequestException("Unable to decode the file name", e);
     }
@@ -359,8 +331,8 @@ public class RoomsApiServiceImpl implements RoomsApiService {
               attachmentService.addAttachment(
                   roomId,
                   body,
-                  Optional.of(mimeType)
-                      .orElseThrow(() -> new BadRequestException("Mime type not found")),
+                  Optional.ofNullable(mimeType)
+                      .orElseThrow(() -> new BadRequestException(MIME_TYPE_NOT_FOUND)),
                   contentLength,
                   name,
                   desc,
@@ -375,10 +347,90 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
+  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
+  public Response insertAttachmentMultipart(
+      MultipartFormDataInput input, UUID roomId, SecurityContext securityContext) {
+
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+
+    Map<String, List<InputPart>> formDataMap = input.getFormDataMap();
+
+    InputPart filePart = getFormPart(formDataMap, "file");
+    if (filePart == null) {
+      return Response.status(Status.BAD_REQUEST).entity("File not found").build();
+    }
+
+    try {
+      String fileName = filePart.getFileName();
+      MediaType mediaType = filePart.getMediaType();
+
+      if (fileName == null || fileName.isEmpty()) {
+        return Response.status(Status.BAD_REQUEST).entity(FILE_NAME_NOT_FOUND).build();
+      }
+
+      if (mediaType == null || mediaType.toString().isEmpty()) {
+        return Response.status(Status.BAD_REQUEST).entity(MIME_TYPE_NOT_FOUND).build();
+      }
+
+      String mimeType = mediaType.toString();
+      String description = getStringFromPart(formDataMap, "description");
+      String contentLength = getStringFromPart(formDataMap, "contentLength");
+      String messageId = getStringFromPart(formDataMap, "messageId");
+      String replyId = getStringFromPart(formDataMap, "replyId");
+      String area = getStringFromPart(formDataMap, "area");
+
+      if (contentLength == null || contentLength.isEmpty()) {
+        return Response.status(Status.BAD_REQUEST).entity("Content length not found").build();
+      }
+
+      if (area != null && !isValidArea(area)) {
+        return Response.status(Status.BAD_REQUEST).entity("Invalid area format").build();
+      }
+
+      return Response.status(Status.CREATED)
+          .entity(
+              attachmentService.addAttachment(
+                  roomId,
+                  filePart.getBody(InputStream.class, null),
+                  mimeType,
+                  Long.parseLong(contentLength),
+                  StringFormatUtils.decodeFromUtf8(fileName),
+                  normalizeStringValue(description),
+                  normalizeStringValue(messageId),
+                  normalizeStringValue(replyId),
+                  normalizeStringValue(area),
+                  currentUser))
+          .build();
+    } catch (Exception e) {
+      return Response.status(Status.INTERNAL_SERVER_ERROR).entity("Error processing file").build();
+    }
+  }
+
+  private InputPart getFormPart(Map<String, List<InputPart>> formParts, String fieldName) {
+    List<InputPart> parts = formParts.get(fieldName);
+    return (parts != null && !parts.isEmpty()) ? parts.get(0) : null;
+  }
+
+  private String getStringFromPart(Map<String, List<InputPart>> formParts, String fieldName) {
+    try {
+      InputPart part = getFormPart(formParts, fieldName);
+      return part != null ? part.getBody(String.class, null) : null;
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
+  private boolean isValidArea(String area) {
+    return !area.isEmpty() && Pattern.compile("^(\\s)|^\\w|^\\d*+x+\\d*").matcher(area).matches();
+  }
+
+  private String normalizeStringValue(String value) {
+    return (value == null || value.isEmpty()) ? null : value;
+  }
+
+  @Override
   public Response getMeetingByRoomId(UUID roomId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.ok().entity(meetingService.getMeetingByRoomId(roomId, currentUser)).build();
   }
 }

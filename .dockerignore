@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: 2025 Zextras <https://www.zextras.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# Git
+.git
+.gitignore
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# Build output
+target/
+
+**/target/
+
+# Test files
+**/test/
+**/tests/
+
+# Logs
+*.log
+
+# Docker
+docker/wsc/Dockerfile
+.dockerignore
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Other
+*.md
+LICENSE
+COPYING
+THIRDPARTIES
+LICENSES/
