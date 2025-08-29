@@ -31,6 +31,9 @@ CONFIGURATIONS=(
   "$MAIN_SERVICE_NAME/hikari/idle-timeout:10000"
   "$MAIN_SERVICE_NAME/hikari/leak-detection-threshold:5000"
   "$MAIN_SERVICE_NAME/hikari/max-lifetime:600000"
+  "$MAIN_SERVICE_NAME/server/max-threads:2048"
+  "$MAIN_SERVICE_NAME/server/min-threads:8"
+  "$MAIN_SERVICE_NAME/server/max-queue-requests:2048"
 )
 
 get_consul_kv() {
