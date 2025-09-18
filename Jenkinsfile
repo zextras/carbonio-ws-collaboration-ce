@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 library(
-    identifier: 'jenkins-packages-build-library@1.0.4',
-    retriever: modernSCM([
-        $class: 'GitSCMSource',
-        remote: 'git@github.com:zextras/jenkins-packages-build-library.git',
-        credentialsId: 'jenkins-integration-with-github-account'
-    ])
+  identifier: 'jenkins-packages-build-library@1.0.4',
+  retriever: modernSCM([
+    $class: 'GitSCMSource',
+    remote: 'git@github.com:zextras/jenkins-packages-build-library.git',
+    credentialsId: 'jenkins-integration-with-github-account'
+  ])
 )
 
 pipeline {
@@ -24,10 +24,9 @@ pipeline {
   }
 
   options {
-    skipDefaultCheckout()
     buildDiscarder(logRotator(numToKeepStr: '5'))
+    skipDefaultCheckout()
     timeout(time: 1, unit: 'HOURS')
-    parallelsAlwaysFailFast()
   }
 
   parameters {
