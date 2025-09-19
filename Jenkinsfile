@@ -46,17 +46,7 @@ pipeline {
     stage('Build setup') {
       steps {
         container('jdk-17') {
-          checkout([
-            $class: 'GitSCM',
-            branches: scm.branches,
-            extensions: [[
-              $class: 'CloneOption',
-              shallow: true,
-              depth:   2,
-              timeout: 30
-            ]],
-            userRemoteConfigs: scm.userRemoteConfigs
-          ])
+          checkout scm
           script {
             gitMetadata()
           }
@@ -67,16 +57,12 @@ pipeline {
     stage('Compiling') {
       steps {
         container('jdk-17') {
-          withCredentials([
-            file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')
-          ]) {
-            sh '''
-              mvn -Dmaven.repo.local=$(pwd)/m2 -N wrapper:wrapper
-              mvn -Dmaven.repo.local=$(pwd)/m2 -T1C -B -s $SETTINGS_PATH compile
-              mvn package -Dmaven.main.skip -Dmaven.repo.local=$(pwd)/m2
-              cp carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-fatjar.jar package/
-            '''
-          }
+          sh '''
+            mvn -Dmaven.repo.local=$(pwd)/m2 -N wrapper:wrapper
+            mvn -Dmaven.repo.local=$(pwd)/m2 -T1C -B compile
+            mvn package -Dmaven.main.skip -Dmaven.repo.local=$(pwd)/m2
+            cp carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-fatjar.jar package/
+          '''
         }
       }
       post {
@@ -93,15 +79,11 @@ pipeline {
     stage('Testing') {
       steps {
         container('jdk-17') {
-          withCredentials([
-            file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')
-          ]) {
-            sh '''
-              mvn -B --settings $SETTINGS_PATH \
-              -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
-              verify
-            '''
-          }
+          sh '''
+            mvn -B \
+            -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
+            verify
+          '''
           recordCoverage(tools: [[pattern: 'target/site/jacoco-all-tests/jacoco.xml']])
         }
       }
@@ -119,15 +101,11 @@ pipeline {
     stage('Sonarqube Analysis') {
       steps {
         container('jdk-17') {
-          withCredentials([
-            file(credentialsId: 'jenkins-maven-settings.xml', variable: 'SETTINGS_PATH')
-          ]) {
-            withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
-              sh '''
-                mvn -Dsonar.coverage.jacoco.xmlReportPaths=../target/site/jacoco-all-tests/jacoco.xml \
-                -B --settings $SETTINGS_PATH sonar:sonar
-              '''
-            }
+          withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
+            sh '''
+              mvn -Dsonar.coverage.jacoco.xmlReportPaths=../target/site/jacoco-all-tests/jacoco.xml \
+                -B sonar:sonar
+            '''
           }
         }
       }
