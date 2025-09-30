@@ -98,6 +98,7 @@ pipeline {
         anyOf {
           branch 'devel'
           buildingTag()
+          expression { params.PLAYGROUND == true }
         }
       }
 
@@ -111,6 +112,8 @@ pipeline {
                 imageTags.add('latest')
               } else if (buildingTag() && env.TAG_NAME?.trim()) {
                 imageTags.add(env.TAG_NAME?.startsWith('v') ? env.TAG_NAME.substring(1) : env.TAG_NAME)
+              } else if (params.PLAYGROUND == true) {
+                imageTags.add(env.BRANCH_NAME.replaceAll('/', '-'))
               }
 
               dockerHelper.buildImage([
