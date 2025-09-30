@@ -93,42 +93,51 @@ pipeline {
       }
     }
 
-    stage('Publish docker image') {
+  stage('Build and Publish Docker Image') {
       when {
         anyOf {
           branch 'devel'
           buildingTag()
-          expression { params.PLAYGROUND == true }
         }
       }
+
       steps {
         container('dind') {
           withDockerRegistry(credentialsId: 'private-registry', url: 'https://registry.dev.zextras.com') {
             script {
-              Set<String> tags = []
+              Set<String> imageTags = []
+
               if (env.BRANCH_NAME == 'devel') {
-                tags.add('latest')
-              } else if (env.GIT_TAG) {
-                tags.add(env.GIT_TAG)
-              } else if (params.PLAYGROUND == true) {
-                tags.add(env.BRANCH_NAME.replaceAll('/', '-'))
+                imageTags.add('latest')
+              } else if (buildingTag() && env.TAG_NAME?.trim()) {
+                imageTags.add(env.TAG_NAME?.startsWith('v') ? env.TAG_NAME.substring(1) : env.TAG_NAME)
               }
 
               dockerHelper.buildImage([
-                imageName: 'registry.dev.zextras.com/dev/carbonio-ws-collaboration-ce',
-                imageTags: tags,
-                dockerfile: 'docker/wsc/Dockerfile',
+                imageName: 'registry.dev.zextras.com/dev/carbonio-message-dispatcher-ce',
+                imageTags: imageTags,
+                dockerfile: 'docker/Dockerfile',
                 ocLabels: [
-                  title: 'Carbonio Ws Collaboration Community Edition',
-                  descriptionFile: 'docker/wsc/description.md',
-                  version: env.GIT_TAG ?: 'devel',
+                  title: 'Carbonio Message Dispatcher Community Edition',
+                  descriptionFile: 'docker/description.md',
+                  version: imageTags[0]
+                ]
+              ])
+
+              dockerHelper.buildImage([
+                imageName: 'registry.dev.zextras.com/dev/carbonio-message-dispatcher-ce-db',
+                imageTags: imageTags,
+                dockerfile: 'docker/db/Dockerfile',
+                ocLabels: [
+                  title: 'Carbonio Message Dispatcher DB Community Edition',
+                  descriptionFile: 'docker/db/description.md',
+                  version: imageTags[0]
                 ]
               ])
             }
           }
         }
       }
-    }
 
     stage('Build deb/rpm') {
       steps {
