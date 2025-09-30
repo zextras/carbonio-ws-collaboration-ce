@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Chats with build",
+            "request": "launch",
+            "mainClass": "com.zextras.carbonio.chats.boot.Chats",
+            "projectName": "carbonio-ws-collaboration-ce-boot",
+            "preLaunchTask": "compile",
+            "vmArgs": []
+        },
+        {
+            "type": "java",
+            "name": "Chats",
+            "request": "launch",
+            "mainClass": "com.zextras.carbonio.chats.boot.Chats",
+            "projectName": "carbonio-ws-collaboration-ce-boot"
+        }
+    ],
+    "compounds": [],
+    "version": "0.2.0"
+}

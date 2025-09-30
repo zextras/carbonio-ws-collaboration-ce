@@ -1,0 +1,4 @@
+{
+    "ebean.enhancement.enable": true,
+    "java.compile.nullAnalysis.mode": "disabled"
+}

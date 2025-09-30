@@ -1,0 +1,24 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "host",
+      "type": "promptString",
+      "description": "Inserisci il nome host (es. demo01)",
+      "default": "demo01"
+    },
+    {
+      "id": "version",
+      "type": "promptString",
+      "description": "Inserisci la nuova versione (es. 1.2.3)",
+      "default": "1.0.0"
+    }
+  ],
+  "tasks": [
+    {
+      "label": "compile",
+      "type": "shell",
+      "command": "mvn clean install -D skipTests"
+    },
+  ]
+}
