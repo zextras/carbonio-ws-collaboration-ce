@@ -117,24 +117,13 @@ pipeline {
               }
 
               dockerHelper.buildImage([
-                imageName: 'registry.dev.zextras.com/dev/carbonio-message-dispatcher-ce',
-                imageTags: imageTags,
-                dockerfile: 'docker/Dockerfile',
+                imageName: 'registry.dev.zextras.com/dev/carbonio-ws-collaboration-ce',
+                imageTags: tags,
+                dockerfile: 'docker/wsc/Dockerfile',
                 ocLabels: [
-                  title: 'Carbonio Message Dispatcher Community Edition',
-                  descriptionFile: 'docker/description.md',
-                  version: imageTags[0]
-                ]
-              ])
-
-              dockerHelper.buildImage([
-                imageName: 'registry.dev.zextras.com/dev/carbonio-message-dispatcher-ce-db',
-                imageTags: imageTags,
-                dockerfile: 'docker/db/Dockerfile',
-                ocLabels: [
-                  title: 'Carbonio Message Dispatcher DB Community Edition',
-                  descriptionFile: 'docker/db/description.md',
-                  version: imageTags[0]
+                  title: 'Carbonio Ws Collaboration Community Edition',
+                  descriptionFile: 'docker/wsc/description.md',
+                  version: env.GIT_TAG ?: 'devel',
                 ]
               ])
             }
