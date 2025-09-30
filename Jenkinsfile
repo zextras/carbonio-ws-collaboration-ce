@@ -93,7 +93,7 @@ pipeline {
       }
     }
 
-  stage('Build and Publish Docker Image') {
+    stage('Build and Publish Docker Image') {
       when {
         anyOf {
           branch 'devel'
@@ -138,7 +138,7 @@ pipeline {
           }
         }
       }
-
+    }
     stage('Build deb/rpm') {
       steps {
         echo 'Building deb/rpm packages'
