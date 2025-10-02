@@ -120,6 +120,7 @@ pipeline {
                 imageName: 'registry.dev.zextras.com/dev/carbonio-ws-collaboration-ce',
                 imageTags: tags,
                 dockerfile: 'docker/wsc/Dockerfile',
+                platforms: 'linux/amd64, linux/arm64',
                 ocLabels: [
                   title: 'Carbonio Ws Collaboration Community Edition',
                   descriptionFile: 'docker/wsc/description.md',
