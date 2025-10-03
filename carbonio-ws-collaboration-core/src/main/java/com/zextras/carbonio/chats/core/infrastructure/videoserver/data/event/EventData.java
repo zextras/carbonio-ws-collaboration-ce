@@ -20,40 +20,74 @@ import java.util.List;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class EventData {
 
-  public EventData() {
-  }
+  public EventData() {}
 
-  private String           event;
+  private String event;
+
   @JsonProperty("audiobridge")
-  private String           audioBridge;
+  private String audioBridge;
+
   @JsonProperty("videoroom")
-  private String           videoRoom;
-  private String           room;
+  private String videoRoom;
+
+  private String room;
+
   @JsonProperty("streams")
   private List<StreamData> streamList;
-  private String           id;
+
+  private String id;
 
   public String getEvent() {
     return event;
+  }
+
+  public EventData event(String event) {
+    this.event = event;
+    return this;
   }
 
   public String getAudioBridge() {
     return audioBridge;
   }
 
+  public EventData audioBridge(String audioBridge) {
+    this.audioBridge = audioBridge;
+    return this;
+  }
+
   public String getVideoRoom() {
     return videoRoom;
+  }
+
+  public EventData videoRoom(String videoRoom) {
+    this.videoRoom = videoRoom;
+    return this;
   }
 
   public String getRoom() {
     return room;
   }
 
+  public EventData room(String room) {
+    this.room = room;
+    return this;
+  }
+
   public List<StreamData> getStreamList() {
     return streamList;
   }
 
+  public EventData streamList(List<StreamData> streamList) {
+    this.streamList = streamList;
+    return this;
+  }
+
   public String getId() {
     return id;
+  }
+
+  public EventData id(String id) {
+    this.id = id;
+    return this;
   }
 }

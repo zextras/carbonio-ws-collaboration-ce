@@ -80,20 +80,23 @@ public class VideoServerEventListener {
   }
 
   private @NotNull Channel getRecoverableChannel(Channel channel) {
-    Recoverable channelRecoverable = (Recoverable) channel;
-    channelRecoverable.addRecoveryListener(
-        new RecoveryListener() {
-          @Override
-          public void handleRecovery(Recoverable recoverable) {
-            ChatsLogger.warn("Videoserver event listener channel recovery completed successfully");
-            start();
-          }
+    if (channel != null) {
+      Recoverable channelRecoverable = (Recoverable) channel;
+      channelRecoverable.addRecoveryListener(
+          new RecoveryListener() {
+            @Override
+            public void handleRecovery(Recoverable recoverable) {
+              ChatsLogger.warn(
+                  "Videoserver event listener channel recovery completed successfully");
+              start();
+            }
 
-          @Override
-          public void handleRecoveryStarted(Recoverable recoverable) {
-            ChatsLogger.warn("Videoserver event listener channel recovery started...");
-          }
-        });
+            @Override
+            public void handleRecoveryStarted(Recoverable recoverable) {
+              ChatsLogger.warn("Videoserver event listener channel recovery started...");
+            }
+          });
+    }
     return channel;
   }
 
@@ -249,30 +252,28 @@ public class VideoServerEventListener {
 
     UserFeed userFeed = UserFeed.fromString(event.getOpaqueId());
 
-    if (List.of(MediaTrackType.VIDEO_OUT, MediaTrackType.SCREEN)
-            .contains(userFeed.getMediaTrackType())
-        && !streams.isEmpty()) {
-      return;
+    // Clients need only subscribed events for a VIDEO_IN media track type to let a user see others'
+    // video and screen streams
+    if (MediaTrackType.VIDEO_IN.equals(userFeed.getMediaTrackType())) {
+      eventDispatcher.sendToUserExchange(
+          userFeed.getUserId(),
+          MeetingParticipantSubscribed.create()
+              .meetingId(UUID.fromString(userFeed.getMeetingId()))
+              .userId(UUID.fromString(userFeed.getUserId()))
+              .streams(
+                  streams.stream()
+                      .map(
+                          s -> {
+                            Feed f = Feed.fromString(s.getFeedId());
+                            return SubscribedStream.create()
+                                .type(f.getType().toString().toLowerCase())
+                                .userId(UUID.fromString(f.getUserId()))
+                                .mid(s.getMid());
+                          })
+                      .toList())
+              .type(EventType.MEETING_PARTICIPANT_SUBSCRIBED)
+              .sentDate(OffsetDateTime.now()));
     }
-
-    eventDispatcher.sendToUserExchange(
-        userFeed.getUserId(),
-        MeetingParticipantSubscribed.create()
-            .meetingId(UUID.fromString(userFeed.getMeetingId()))
-            .userId(UUID.fromString(userFeed.getUserId()))
-            .streams(
-                streams.stream()
-                    .map(
-                        s -> {
-                          Feed f = Feed.fromString(s.getFeedId());
-                          return SubscribedStream.create()
-                              .type(f.getType().toString().toLowerCase())
-                              .userId(UUID.fromString(f.getUserId()))
-                              .mid(s.getMid());
-                        })
-                    .toList())
-            .type(EventType.MEETING_PARTICIPANT_SUBSCRIBED)
-            .sentDate(OffsetDateTime.now()));
   }
 
   private void handlePublishedEvent(VideoServerEvent event) {
