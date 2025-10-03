@@ -20,14 +20,16 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Rtc
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class EventInfo {
 
-  public EventInfo() {
-  }
+  public EventInfo() {}
 
-  private String                name;
-  private String                plugin;
+  private String name;
+  private String plugin;
+
   @JsonProperty("data")
-  private EventData             eventData;
-  private String                owner;
+  private EventData eventData;
+
+  private String owner;
+
   @JsonProperty("jsep")
   private RtcSessionDescription rtcSessionDescription;
 
@@ -35,19 +37,44 @@ public class EventInfo {
     return name;
   }
 
+  public EventInfo name(String name) {
+    this.name = name;
+    return this;
+  }
+
   public String getPlugin() {
     return plugin;
+  }
+
+  public EventInfo plugin(String plugin) {
+    this.plugin = plugin;
+    return this;
   }
 
   public EventData getEventData() {
     return eventData;
   }
 
+  public EventInfo eventData(EventData eventData) {
+    this.eventData = eventData;
+    return this;
+  }
+
   public String getOwner() {
     return owner;
   }
 
+  public EventInfo owner(String owner) {
+    this.owner = owner;
+    return this;
+  }
+
   public RtcSessionDescription getRtcSessionDescription() {
     return rtcSessionDescription;
+  }
+
+  public EventInfo rtcSessionDescription(RtcSessionDescription rtcSessionDescription) {
+    this.rtcSessionDescription = rtcSessionDescription;
+    return this;
   }
 }

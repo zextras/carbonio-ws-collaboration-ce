@@ -36,31 +36,71 @@ public class VideoServerEvent {
     return emitter;
   }
 
+  public VideoServerEvent emitter(String emitter) {
+    this.emitter = emitter;
+    return this;
+  }
+
   public Integer getType() {
     return type;
+  }
+
+  public VideoServerEvent type(Integer type) {
+    this.type = type;
+    return this;
   }
 
   public Integer getSubtype() {
     return subtype;
   }
 
+  public VideoServerEvent subtype(Integer subtype) {
+    this.subtype = subtype;
+    return this;
+  }
+
   public Long getTimestamp() {
     return timestamp;
+  }
+
+  public VideoServerEvent timestamp(Long timestamp) {
+    this.timestamp = timestamp;
+    return this;
   }
 
   public Long getSessionId() {
     return sessionId;
   }
 
+  public VideoServerEvent sessionId(Long sessionId) {
+    this.sessionId = sessionId;
+    return this;
+  }
+
   public Long getHandleId() {
     return handleId;
+  }
+
+  public VideoServerEvent handleId(Long handleId) {
+    this.handleId = handleId;
+    return this;
   }
 
   public String getOpaqueId() {
     return opaqueId;
   }
 
+  public VideoServerEvent opaqueId(String opaqueId) {
+    this.opaqueId = opaqueId;
+    return this;
+  }
+
   public EventInfo getEventInfo() {
     return eventInfo;
+  }
+
+  public VideoServerEvent eventInfo(EventInfo eventInfo) {
+    this.eventInfo = eventInfo;
+    return this;
   }
 }
