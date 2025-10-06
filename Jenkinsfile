@@ -113,7 +113,7 @@ pipeline {
               } else if (buildingTag() && env.TAG_NAME?.trim()) {
                 imageTags.add(env.TAG_NAME?.startsWith('v') ? env.TAG_NAME.substring(1) : env.TAG_NAME)
               } else if (params.PLAYGROUND == true) {
-                imageTags.add(env.BRANCH_NAME.replaceAll('/', '-'))
+                imageTags.add(env.BRANCH_NAME.replaceAll('[^a-zA-Z0-9]', '-'))
               }
 
               dockerHelper.buildImage([
