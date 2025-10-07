@@ -21,10 +21,8 @@ public class BootModule extends RequestScopeModule {
     super.configure();
     if (isDockerEnvironment()) {
       install(new DockerConfig());
-      // install(new DockerDiscoveryModule());
     } else {
       install(new ProductionConfig());
-      // install(new ConsulDiscoveryModule());
     }
     install(new CoreModule());
   }
