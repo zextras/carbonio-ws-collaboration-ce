@@ -14,7 +14,7 @@ On macOS, set the default Docker platform to `linux/amd64`:
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
 ```
 
-Then build the `carbonio-message-broke` service.
+Then build the `carbonio-message-broker` service.
 
 As a first approach, the override method was not used. Instead, two separate
 docker-compose processes are launched, both attached to the same Docker network.
