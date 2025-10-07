@@ -18,11 +18,6 @@ pipeline {
     }
   }
 
-  environment {
-    FAILURE_EMAIL_RECIPIENTS='smokybeans@zextras.com'
-    NETWORK_OPTS = '--network ci_agent'
-  }
-
   options {
     buildDiscarder(logRotator(numToKeepStr: '5'))
     skipDefaultCheckout()
@@ -65,15 +60,6 @@ pipeline {
           '''
         }
       }
-      post {
-        failure {
-          script {
-            if ("main".equals(BRANCH_NAME) || "devel".equals(BRANCH_NAME)) {
-              sendFailureEmail(STAGE_NAME)
-            }
-          }
-        }
-      }
     }
 
     stage('Testing') {
@@ -85,15 +71,6 @@ pipeline {
             verify
           '''
           recordCoverage(tools: [[pattern: 'target/site/jacoco-all-tests/jacoco.xml']])
-        }
-      }
-      post {
-        failure {
-          script {
-            if ("main".equals(BRANCH_NAME) || "devel".equals(BRANCH_NAME)) {
-              sendFailureEmail(STAGE_NAME)
-            }
-          }
         }
       }
     }
@@ -111,6 +88,46 @@ pipeline {
       }
     }
 
+    stage('Build and Publish Docker Image') {
+      when {
+        anyOf {
+          branch 'devel'
+          buildingTag()
+          expression { params.PLAYGROUND == true }
+        }
+      }
+
+      steps {
+        container('dind') {
+          withDockerRegistry(credentialsId: 'private-registry', url: 'https://registry.dev.zextras.com') {
+            script {
+              Set<String> imageTags = []
+
+              if (env.BRANCH_NAME == 'devel') {
+                imageTags.add('latest')
+              } else if (buildingTag() && env.TAG_NAME?.trim()) {
+                imageTags.add(env.TAG_NAME?.startsWith('v') ? env.TAG_NAME.substring(1) : env.TAG_NAME)
+              } else if (params.PLAYGROUND == true) {
+                imageTags.add(env.BRANCH_NAME.replaceAll('[^a-zA-Z0-9]', '-'))
+              }
+
+              dockerHelper.buildImage([
+                imageName: 'registry.dev.zextras.com/dev/carbonio-ws-collaboration-ce',
+                imageTags: imageTags,
+                dockerfile: 'docker/wsc/Dockerfile',
+                platforms: ['linux/amd64', 'linux/arm64'],
+                ocLabels: [
+                  title: 'Carbonio Ws Collaboration Community Edition',
+                  descriptionFile: 'docker/wsc/description.md',
+                  version: env.GIT_TAG ?: 'devel',
+                ]
+              ])
+            }
+          }
+        }
+      }
+    }
+
     stage('Build deb/rpm') {
       steps {
         echo 'Building deb/rpm packages'
@@ -118,15 +135,6 @@ pipeline {
           rockySinglePkg: true,
           ubuntuSinglePkg: true,
         ])
-      }
-      post {
-        failure {
-          script {
-            if ("main".equals(BRANCH_NAME) || "devel".equals(BRANCH_NAME)) {
-              sendFailureEmail(STAGE_NAME)
-            }
-          }
-        }
       }
     }
 
@@ -138,30 +146,6 @@ pipeline {
           ubuntuSinglePkg: true,
         )
       }
-      post {
-        failure {
-          script {
-            if ("main".equals(BRANCH_NAME) || "devel".equals(BRANCH_NAME)) {
-              sendFailureEmail(STAGE_NAME)
-            }
-          }
-        }
-      }
     }
   }
-}
-
-void sendFailureEmail(String step) {
-  String commitInfo = sh(
-     script: 'git log -1 --pretty=tformat:\'<ul><li>Revision: %H</li><li>Title: %s</li><li>Author: %ae</li></ul>\'',
-     returnStdout: true
-  )
-  emailext body: """\
-    <b>${step.capitalize()}</b> step has failed on trunk.<br /><br />
-    Last commit info: <br />
-    ${commitInfo}<br /><br />
-    Check the failing build at the <a href=\"${BUILD_URL}\">following link</a><br />
-  """,
-  subject: "[WORKSTREAM COLLABORATION TRUNK FAILURE] Trunk ${step} step failure",
-  to: FAILURE_EMAIL_RECIPIENTS
 }

@@ -4,6 +4,14 @@
 
 package com.zextras.carbonio.chats.core.config.module;
 
+import java.io.IOException;
+import java.time.Clock;
+import java.time.ZoneId;
+import java.util.Base64;
+import java.util.concurrent.TimeoutException;
+
+import org.flywaydb.core.Flyway;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
@@ -41,6 +49,8 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.MessageDispatcherMongooseImpl;
+import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
+import com.zextras.carbonio.chats.core.infrastructure.preview.impl.PreviewServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagementProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
@@ -87,7 +97,6 @@ import com.zextras.carbonio.chats.core.service.HealthcheckService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
-import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentServiceImpl;
@@ -96,7 +105,6 @@ import com.zextras.carbonio.chats.core.service.impl.HealthcheckServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MeetingServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.ParticipantServiceImpl;
-import com.zextras.carbonio.chats.core.infrastructure.preview.impl.PreviewServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
@@ -121,16 +129,11 @@ import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.storages.api.StoragesClient;
+
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.annotation.Platform;
 import io.ebean.config.DatabaseConfig;
-import java.io.IOException;
-import java.time.Clock;
-import java.time.ZoneId;
-import java.util.Base64;
-import java.util.concurrent.TimeoutException;
-import org.flywaydb.core.Flyway;
 
 public class CoreModule extends AbstractModule {
 
@@ -293,9 +296,9 @@ public class CoreModule extends AbstractModule {
     config.setUsername(
         appConfig
             .get(String.class, ConfigName.DATABASE_USERNAME)
-            .orElse("carbonio-ws-collaboration-db"));
+            .orElse("admin"));
     config.setPassword(
-        appConfig.get(String.class, ConfigName.DATABASE_PASSWORD).orElse("password"));
+        appConfig.get(String.class, ConfigName.DATABASE_PASSWORD).orElse("admin"));
     config.setIdleTimeout(
         appConfig.get(Integer.class, ConfigName.HIKARI_IDLE_TIMEOUT).orElse(10000));
     config.setMinimumIdle(appConfig.get(Integer.class, ConfigName.HIKARI_MIN_POOL_SIZE).orElse(10));
@@ -321,9 +324,9 @@ public class CoreModule extends AbstractModule {
         Base64.getEncoder()
             .encodeToString(
                 String.join(
-                        ":",
-                        appConfig.get(String.class, ConfigName.XMPP_SERVER_USERNAME).orElseThrow(),
-                        appConfig.get(String.class, ConfigName.XMPP_SERVER_PASSWORD).orElseThrow())
+                    ":",
+                    appConfig.get(String.class, ConfigName.XMPP_SERVER_USERNAME).orElseThrow(),
+                    appConfig.get(String.class, ConfigName.XMPP_SERVER_PASSWORD).orElseThrow())
                     .getBytes()),
         objectMapper);
   }
