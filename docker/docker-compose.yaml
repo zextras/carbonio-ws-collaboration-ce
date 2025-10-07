@@ -1,67 +1,4 @@
 services:
-  # carbonio-message-dispatcher-db:
-  #   image: registry.dev.zextras.com/dev/carbonio-message-dispatcher-db
-  #   container_name: carbonio-message-dispatcher-db
-  #   restart: unless-stopped
-  #   networks:
-  #     - carbonio-network
-  #   environment:
-  #     POSTGRES_DB: carbonio-message-dispatcher-db
-  #     POSTGRES_USER: carbonio-message-dispatcher-db
-  #     POSTGRES_PASSWORD: password
-  #   volumes:
-  #     - carbonio-message-dispatcher_data:/var/lib/postgresql/data
-  #   healthcheck:
-  #     test:
-  #       [
-  #         "CMD-SHELL",
-  #         "pg_isready -U carbonio-message-dispatcher-db -d carbonio-message-dispatcher-db",
-  #       ]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 3
-  #     start_period: 30s
-
-  # carbonio-message-broker:
-  #   # image: registry.dev.zextras.com/dev/carbonio-message-broker:latest
-  #   image: mb
-  #   container_name: carbonio-message-broker
-  #   hostname: carbonio-message-broker
-  #   restart: unless-stopped
-  #   networks:
-  #     - carbonio-network
-  #   ports:
-  #     - "10001:10001" # RabbitMQ management port
-  #   volumes:
-  #     - carbonio-message-broker_data:/var/lib/rabbitmq
-  #   healthcheck:
-  #     test: rabbitmq-diagnostics -q ping
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 3
-  #     start_period: 30s
-
-  # carbonio-message-dispatcher:
-  #   image: registry.dev.zextras.com/dev/carbonio-message-dispatcher:latest
-  #   container_name: carbonio-message-dispatcher
-  #   hostname: carbonio-message-dispatcher
-  #   networks:
-  #     - carbonio-network
-  #   restart: unless-stopped
-  #   ports:
-  #     - "30000:10000" # HTTP port
-  #   depends_on:
-  #     carbonio-postgres:
-  #       condition: service_healthy
-  #     carbonio-message-dispatcher-db:
-  #       condition: service_healthy
-  #   healthcheck:
-  #     test: ["CMD", "mongooseimctl", "status"]
-  #     interval: 15s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 60s
-
   carbonio-ws-collaboration-ce:
     build:
       context: ../
@@ -79,13 +16,6 @@ services:
       - "9010:9010" # JMX port
     env_file:
       - path: ./wsc/.env.sample
-    # depends_on:
-    #   carbonio-postgres:
-    #     condition: service_healthy
-    #   carbonio-message-broker:
-    #     condition: service_healthy
-    #   carbonio-message-dispatcher:
-    #     condition: service_healthy
     develop:
       watch:
         - action: rebuild
@@ -101,14 +31,6 @@ services:
       test: curl --fail --silent localhost:8080/health || exit 1
       timeout: 10s
 
-# volumes:
-#   # carbonio-ws-collaboration_data:
-#   #   name: carbonio_ws-collaboration_data
-#   # carbonio-message-dispatcher_data:
-#   #   name: carbonio_message_dispatcher_data
-#   # carbonio-message-broker_data:
-#   #   name: carbonio_message-broker_data
-#   # mailbox1:
 networks:
   carbonio-network:
     driver: bridge

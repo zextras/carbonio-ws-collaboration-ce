@@ -18,11 +18,6 @@ pipeline {
     }
   }
 
-  environment {
-    FAILURE_EMAIL_RECIPIENTS = 'smokybeans@zextras.com'
-    NETWORK_OPTS = '--network ci_agent'
-  }
-
   options {
     buildDiscarder(logRotator(numToKeepStr: '5'))
     skipDefaultCheckout()
