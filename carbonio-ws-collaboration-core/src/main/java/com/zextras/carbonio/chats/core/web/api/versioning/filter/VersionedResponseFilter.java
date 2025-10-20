@@ -19,6 +19,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.ext.Provider;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.util.List;
 
 @Provider
 @Produces(MediaType.APPLICATION_JSON)
@@ -32,17 +33,19 @@ public class VersionedResponseFilter implements ContainerResponseFilter {
       throws IOException {
 
     if (responseContext.getStatus() < 200 || responseContext.getStatus() >= 300) {
-      responseContext
-          .getHeaders()
-          .add(ChatsConstant.API_VERSION_HEADER, VersionProvider.getVersion());
+      responseContext.getHeaders().add(ChatsConstant.API_VERSION_HEADER, getCurrentVersion());
+      return;
+    }
+
+    // Only JSON responses are versioned
+    if (isNotJsonType(responseContext)) {
       return;
     }
 
     // api version header correctness is checked in VersionedRequestFilter
     String headerString = requestContext.getHeaderString(ChatsConstant.API_VERSION_HEADER);
 
-    if (headerString == null) return;
-    var apiVersion = new Semver(headerString);
+    var apiVersion = new Semver(headerString != null ? headerString : getOldestVersion());
 
     responseContext.getHeaders().add(ChatsConstant.API_VERSION_HEADER, apiVersion.getValue());
 
@@ -57,9 +60,21 @@ public class VersionedResponseFilter implements ContainerResponseFilter {
           String.format("Could not determine model class for response entity: %s", entity));
       return;
     }
+
     var apiVersionMigrator = registry.migratorFor(apiVersion, modelClass);
+    if (apiVersionMigrator.getMigrations().isEmpty()) return;
+
     var transformed = apiVersionMigrator.downgrade(entity);
     responseContext.setEntity(transformed);
+  }
+
+  public String getCurrentVersion() {
+    return VersionProvider.getVersion();
+  }
+
+  public String getOldestVersion() {
+    List<String> supportedVersions = VersionProvider.getSupportedVersions();
+    return supportedVersions.get(supportedVersions.size() - 1);
   }
 
   /**
@@ -88,5 +103,13 @@ public class VersionedResponseFilter implements ContainerResponseFilter {
       }
     }
     return null;
+  }
+
+  private boolean isNotJsonType(ContainerResponseContext responseContext) {
+    List<MediaType> contentTypes =
+        responseContext.getMediaType() != null
+            ? List.of(responseContext.getMediaType())
+            : List.of();
+    return contentTypes.stream().noneMatch(mt -> mt.isCompatible(MediaType.APPLICATION_JSON_TYPE));
   }
 }
