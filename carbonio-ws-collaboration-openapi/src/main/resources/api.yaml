@@ -7,8 +7,7 @@ info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
   version: 1.6.2
-  contact:
-    email: smokybeans@zextras.com
+  x-supported-versions: ["1.6.2", "1.6.1", "1.6.0"]
 
 servers:
   - url: http://localhost:10000

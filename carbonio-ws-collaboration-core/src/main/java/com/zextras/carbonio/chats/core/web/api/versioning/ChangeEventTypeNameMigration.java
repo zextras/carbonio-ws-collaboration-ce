@@ -10,9 +10,9 @@ import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import java.util.Map;
 
-public class ChangeEvenTypeNameMigration implements ApiVersionMigration {
+public class ChangeEventTypeNameMigration implements ApiVersionMigration {
 
-  private final Map<String, String> eventyTypeMap =
+  private final Map<String, String> eventTypeMap =
       Map.of(
           "WebsocketConnected", "websocketConnected",
           "Ping", "ping",
@@ -28,8 +28,8 @@ public class ChangeEvenTypeNameMigration implements ApiVersionMigration {
     String type = input.get("type").textValue();
     input.remove("type");
 
-    if (eventyTypeMap.containsKey(type)) {
-      input.put("type", eventyTypeMap.get(type));
+    if (eventTypeMap.containsKey(type)) {
+      input.put("type", eventTypeMap.get(type));
       return input;
     }
 
