@@ -1177,6 +1177,23 @@ class MeetingApiIT {
 
     @Test
     @DisplayName(
+        "Given a meeting identifier, if the queue id is not present in the request it returns a"
+            + " status code 400")
+    void joinMeeting_testErrorQueueIdIsNotPresent() throws Exception {
+      MockHttpResponse response =
+          dispatcher.post(
+              url(UUID.randomUUID()),
+              objectMapper.writeValueAsString(
+                  JoinSettingsDto.create().audioStreamEnabled(true).videoStreamEnabled(false)),
+              Map.of(),
+              user1Token);
+
+      assertEquals(400, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName(
         "Given a meeting identifier, if the user isn’t authenticated then it returns a status code"
             + " 401")
     void joinMeeting_testErrorUnauthenticatedUser() throws Exception {
