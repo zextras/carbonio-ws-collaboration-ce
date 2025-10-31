@@ -75,6 +75,7 @@ class VideoServerServiceImplTest {
   private final VideoServerMeetingRepository videoServerMeetingRepository;
   private final VideoServerSessionRepository videoServerSessionRepository;
   private final VideoServerService videoServerService;
+  private final VideoServerConfig videoServerConfig;
 
   public VideoServerServiceImplTest() {
     this.videoServerClient = mock(VideoServerClient.class);
@@ -83,8 +84,10 @@ class VideoServerServiceImplTest {
     Clock clock = mock(Clock.class);
     when(clock.instant()).thenReturn(Instant.parse("2022-01-01T11:00:00Z"));
     when(clock.getZone()).thenReturn(ZoneId.of("UTC+01:00"));
-    VideoServerConfig videoServerConfig = mock(VideoServerConfig.class);
+    videoServerConfig = mock(VideoServerConfig.class);
     when(videoServerConfig.getApiSecret()).thenReturn("token");
+    when(videoServerConfig.getBitrate()).thenReturn(8000000);
+    when(videoServerConfig.getBitrateCap()).thenReturn(true);
 
     this.videoServerService =
         new VideoServerServiceImpl(
@@ -337,8 +340,184 @@ class VideoServerServiceImplTest {
                       .isPrivate(false)
                       .record(false)
                       .publishers(100)
-                      .bitrate(400L * 1024)
+                      .bitrate(8000000)
                       .bitrateCap(true)
+                      .videoCodec("vp8,h264,vp9,h265,av1")),
+          createVideoRoomMessageRequest);
+    }
+
+    @Test
+    @DisplayName("Try to start a meeting with different default settings")
+    void startMeeting_testDifferentDefaultSettings() {
+      when(videoServerConfig.getBitrate()).thenReturn(440);
+      when(videoServerConfig.getBitrateCap()).thenReturn(false);
+      VideoServerResponse sessionResponse =
+          VideoServerResponse.create()
+              .status("success")
+              .transactionId("transaction-id")
+              .data(VideoServerDataInfo.create().id(meeting1SessionId.toString()));
+      when(videoServerClient.sendVideoServerRequest(any(VideoServerMessageRequest.class)))
+          .thenReturn(sessionResponse);
+
+      VideoServerResponse audioHandleResponse =
+          VideoServerResponse.create()
+              .status("success")
+              .connectionId(meeting1SessionId.toString())
+              .transactionId("transaction-id")
+              .data(VideoServerDataInfo.create().id(meeting1AudioHandleId.toString()));
+
+      VideoServerResponse videoHandleResponse =
+          VideoServerResponse.create()
+              .status("success")
+              .connectionId(meeting1SessionId.toString())
+              .transactionId("transaction-id")
+              .data(VideoServerDataInfo.create().id(meeting1VideoHandleId.toString()));
+
+      when(videoServerClient.sendConnectionVideoServerRequest(
+              eq(meeting1SessionId.toString()), any(VideoServerMessageRequest.class)))
+          .thenReturn(audioHandleResponse, videoHandleResponse);
+
+      AudioBridgeResponse audioRoomResponse =
+          AudioBridgeResponse.create()
+              .status("success")
+              .connectionId(meeting1SessionId.toString())
+              .transactionId("transaction-id")
+              .handleId(meeting1AudioHandleId.toString())
+              .pluginData(
+                  AudioBridgePluginData.create()
+                      .plugin("janus.plugin.audiobridge")
+                      .dataInfo(
+                          AudioBridgeDataInfo.create()
+                              .audioBridge("created")
+                              .room(meeting1AudioRoomId.toString())
+                              .permanent(false)));
+      when(videoServerClient.sendAudioBridgeRequest(
+              eq(meeting1SessionId.toString()),
+              eq(meeting1AudioHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(audioRoomResponse);
+
+      VideoRoomResponse videoRoomResponse =
+          VideoRoomResponse.create()
+              .status("success")
+              .connectionId(meeting1SessionId.toString())
+              .transactionId("transaction-id")
+              .handleId(meeting1VideoHandleId.toString())
+              .pluginData(
+                  VideoRoomPluginData.create()
+                      .plugin("janus.plugin.videoroom")
+                      .dataInfo(
+                          VideoRoomDataInfo.create()
+                              .videoRoom("created")
+                              .room(meeting1VideoRoomId.toString())
+                              .permanent(false)));
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(meeting1SessionId.toString()),
+              eq(meeting1VideoHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(videoRoomResponse);
+
+      videoServerService.startMeeting(meeting1Id.toString());
+
+      ArgumentCaptor<VideoServerMessageRequest> createConnectionRequestCaptor =
+          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
+      ArgumentCaptor<VideoServerMessageRequest> createHandleRequestCaptor =
+          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
+      ArgumentCaptor<VideoServerMessageRequest> createAudioRoomRequestCaptor =
+          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
+      ArgumentCaptor<VideoServerMessageRequest> createVideoRoomRequestCaptor =
+          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoServerRequest(createConnectionRequestCaptor.capture());
+      verify(videoServerClient, times(2))
+          .sendConnectionVideoServerRequest(
+              eq(meeting1SessionId.toString()), createHandleRequestCaptor.capture());
+      verify(videoServerClient, times(1))
+          .sendAudioBridgeRequest(
+              eq(meeting1SessionId.toString()),
+              eq(meeting1AudioHandleId.toString()),
+              createAudioRoomRequestCaptor.capture());
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(meeting1SessionId.toString()),
+              eq(meeting1VideoHandleId.toString()),
+              createVideoRoomRequestCaptor.capture());
+      verify(videoServerMeetingRepository, times(1))
+          .insert(
+              VideoServerMeeting.create()
+                  .meetingId(meeting1Id.toString())
+                  .connectionId(meeting1SessionId.toString())
+                  .audioHandleId(meeting1AudioHandleId.toString())
+                  .videoHandleId(meeting1VideoHandleId.toString())
+                  .audioRoomId(meeting1AudioRoomId.toString())
+                  .videoRoomId(meeting1VideoRoomId.toString()));
+
+      assertEquals(1, createConnectionRequestCaptor.getAllValues().size());
+      assertEquals(
+          VideoServerMessageRequest.create().messageRequest("create").apiSecret("token"),
+          createConnectionRequestCaptor.getValue());
+
+      assertEquals(2, createHandleRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest createAudioHandleMessageRequest =
+          createHandleRequestCaptor.getAllValues().get(0);
+      assertEquals(
+          VideoServerMessageRequest.create()
+              .messageRequest("attach")
+              .pluginName("janus.plugin.audiobridge")
+              .apiSecret("token")
+              .opaqueId("meeting/a/" + meeting1Id.toString()),
+          createAudioHandleMessageRequest);
+      VideoServerMessageRequest createVideoHandleMessageRequest =
+          createHandleRequestCaptor.getAllValues().get(1);
+      assertEquals(
+          VideoServerMessageRequest.create()
+              .messageRequest("attach")
+              .pluginName("janus.plugin.videoroom")
+              .apiSecret("token")
+              .opaqueId("meeting/v/" + meeting1Id.toString()),
+          createVideoHandleMessageRequest);
+
+      assertEquals(1, createAudioRoomRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest createAudioRoomMessageRequest =
+          createAudioRoomRequestCaptor.getValue();
+      assertEquals(
+          VideoServerMessageRequest.create()
+              .messageRequest("message")
+              .apiSecret("token")
+              .videoServerPluginRequest(
+                  AudioBridgeCreateRequest.create()
+                      .request("create")
+                      .room("audio_" + meeting1Id)
+                      .permanent(false)
+                      .description("audio_room_" + meeting1Id)
+                      .isPrivate(false)
+                      .record(false)
+                      .samplingRate(16000L)
+                      .audioActivePackets(10L)
+                      .audioLevelAverage(65)
+                      .audioLevelEvent(true)),
+          createAudioRoomMessageRequest);
+
+      assertEquals(1, createVideoRoomRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest createVideoRoomMessageRequest =
+          createVideoRoomRequestCaptor.getValue();
+      assertEquals(
+          VideoServerMessageRequest.create()
+              .messageRequest("message")
+              .apiSecret("token")
+              .videoServerPluginRequest(
+                  VideoRoomCreateRequest.create()
+                      .request("create")
+                      .room("video_" + meeting1Id)
+                      .permanent(false)
+                      .description("video_room_" + meeting1Id)
+                      .isPrivate(false)
+                      .record(false)
+                      .publishers(100)
+                      .bitrate(440)
+                      .bitrateCap(false)
                       .videoCodec("vp8,h264,vp9,h265,av1")),
           createVideoRoomMessageRequest);
     }

@@ -8,14 +8,37 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerCon
 
 public class VideoServerConfigImpl implements VideoServerConfig {
 
-  private final String apiSecret;
-
-  public VideoServerConfigImpl(String apiSecret) {
-    this.apiSecret = apiSecret;
-  }
+  private String apiSecret;
+  private Integer bitrate;
+  private Boolean bitrateCap;
 
   @Override
   public String getApiSecret() {
     return apiSecret;
+  }
+
+  @Override
+  public int getBitrate() {
+    return bitrate;
+  }
+
+  @Override
+  public boolean getBitrateCap() {
+    return bitrateCap;
+  }
+
+  public VideoServerConfigImpl apiSecret(String apiSecret) {
+    this.apiSecret = apiSecret;
+    return this;
+  }
+
+  public VideoServerConfigImpl bitrate(Integer bitrate) {
+    this.bitrate = bitrate;
+    return this;
+  }
+
+  public VideoServerConfigImpl bitrateCap(Boolean bitrateCap) {
+    this.bitrateCap = bitrateCap;
+    return this;
   }
 }

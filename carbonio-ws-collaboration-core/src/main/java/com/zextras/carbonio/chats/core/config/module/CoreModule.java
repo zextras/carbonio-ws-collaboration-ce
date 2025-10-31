@@ -4,14 +4,6 @@
 
 package com.zextras.carbonio.chats.core.config.module;
 
-import java.io.IOException;
-import java.time.Clock;
-import java.time.ZoneId;
-import java.util.Base64;
-import java.util.concurrent.TimeoutException;
-
-import org.flywaydb.core.Flyway;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
@@ -129,11 +121,16 @@ import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.storages.api.StoragesClient;
-
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.annotation.Platform;
 import io.ebean.config.DatabaseConfig;
+import java.io.IOException;
+import java.time.Clock;
+import java.time.ZoneId;
+import java.util.Base64;
+import java.util.concurrent.TimeoutException;
+import org.flywaydb.core.Flyway;
 
 public class CoreModule extends AbstractModule {
 
@@ -293,12 +290,8 @@ public class CoreModule extends AbstractModule {
     config.setDriverClassName(
         appConfig.get(String.class, ConfigName.DATABASE_JDBC_DRIVER).orElseThrow());
     config.setPoolName("ws-collaboration-db-pool");
-    config.setUsername(
-        appConfig
-            .get(String.class, ConfigName.DATABASE_USERNAME)
-            .orElse("admin"));
-    config.setPassword(
-        appConfig.get(String.class, ConfigName.DATABASE_PASSWORD).orElse("admin"));
+    config.setUsername(appConfig.get(String.class, ConfigName.DATABASE_USERNAME).orElse("admin"));
+    config.setPassword(appConfig.get(String.class, ConfigName.DATABASE_PASSWORD).orElse("admin"));
     config.setIdleTimeout(
         appConfig.get(Integer.class, ConfigName.HIKARI_IDLE_TIMEOUT).orElse(10000));
     config.setMinimumIdle(appConfig.get(Integer.class, ConfigName.HIKARI_MIN_POOL_SIZE).orElse(10));
@@ -324,9 +317,9 @@ public class CoreModule extends AbstractModule {
         Base64.getEncoder()
             .encodeToString(
                 String.join(
-                    ":",
-                    appConfig.get(String.class, ConfigName.XMPP_SERVER_USERNAME).orElseThrow(),
-                    appConfig.get(String.class, ConfigName.XMPP_SERVER_PASSWORD).orElseThrow())
+                        ":",
+                        appConfig.get(String.class, ConfigName.XMPP_SERVER_USERNAME).orElseThrow(),
+                        appConfig.get(String.class, ConfigName.XMPP_SERVER_PASSWORD).orElseThrow())
                     .getBytes()),
         objectMapper);
   }
@@ -387,7 +380,9 @@ public class CoreModule extends AbstractModule {
   @Singleton
   @Provides
   private VideoServerConfig getVideoServerConfig(AppConfig appConfig) {
-    return new VideoServerConfigImpl(
-        appConfig.get(String.class, ConfigName.VIDEO_SERVER_TOKEN).orElse(null));
+    return new VideoServerConfigImpl()
+        .apiSecret(appConfig.get(String.class, ConfigName.VIDEO_SERVER_TOKEN).orElse(null))
+        .bitrate(appConfig.get(Integer.class, ConfigName.VIDEO_ROOM_BITRATE).orElse(8000000))
+        .bitrateCap(appConfig.get(Boolean.class, ConfigName.VIDEO_ROOM_BITRATE_CAP).orElse(true));
   }
 }
