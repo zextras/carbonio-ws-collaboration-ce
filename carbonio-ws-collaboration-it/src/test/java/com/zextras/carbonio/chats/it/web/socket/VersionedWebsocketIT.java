@@ -56,6 +56,7 @@ import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.websocket.jakarta.server.config.JakartaWebSocketServletContainerInitializer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.websocket.core.exception.UpgradeException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -90,6 +91,11 @@ class VersionedWebsocketIT {
     this.objectMapper = objectMapper;
     this.websocketVersionMigrator = websocketVersionMigrator;
     this.participantService = participantService;
+  }
+
+  @AfterEach
+  void init() {
+    VersionMigrationsRegistry.REGISTRY.clear();
   }
 
   @Test

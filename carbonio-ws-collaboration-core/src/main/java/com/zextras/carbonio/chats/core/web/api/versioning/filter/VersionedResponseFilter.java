@@ -16,6 +16,7 @@ import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.ext.Provider;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -32,7 +33,8 @@ public class VersionedResponseFilter implements ContainerResponseFilter {
       ContainerRequestContext requestContext, ContainerResponseContext responseContext)
       throws IOException {
 
-    if (responseContext.getStatus() < 200 || responseContext.getStatus() >= 300) {
+    if (responseContext.getStatus() < Status.OK.getStatusCode()
+        || responseContext.getStatus() >= Status.MULTIPLE_CHOICES.getStatusCode()) {
       responseContext.getHeaders().add(ChatsConstant.API_VERSION_HEADER, getCurrentVersion());
       return;
     }
@@ -95,7 +97,8 @@ public class VersionedResponseFilter implements ContainerResponseFilter {
       if (annotation instanceof ApiResponses apiResponses) {
         ApiResponse[] responses = apiResponses.value();
         for (ApiResponse response : responses) {
-          if (response.code() == 200) {
+          if (response.code() == Status.OK.getStatusCode()
+              || response.code() == Status.CREATED.getStatusCode()) {
             return response.response();
           }
         }
@@ -106,10 +109,7 @@ public class VersionedResponseFilter implements ContainerResponseFilter {
   }
 
   private boolean isNotJsonType(ContainerResponseContext responseContext) {
-    List<MediaType> contentTypes =
-        responseContext.getMediaType() != null
-            ? List.of(responseContext.getMediaType())
-            : List.of();
-    return contentTypes.stream().noneMatch(mt -> mt.isCompatible(MediaType.APPLICATION_JSON_TYPE));
+    MediaType contentType = responseContext.getMediaType();
+    return contentType == null || !contentType.isCompatible(MediaType.APPLICATION_JSON_TYPE);
   }
 }

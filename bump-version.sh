@@ -20,6 +20,7 @@ usage() {
     echo "This script will update:"
     echo "  - pkgver in package/PKGBUILD file"
     echo "  - version in carbonio-ws-collaboration-openapi/src/main/resources/api.yaml"
+    echo "  - x-supported-versions in YAML files (adds new version at the beginning)"
     exit 1
 }
 # Check if version argument is provided
@@ -92,6 +93,37 @@ update_yaml_files() {
 
         # Update version (handles both quoted and unquoted values, indented under info)
         sed -i "" "/^info:/,/^[^[:space:]]/ s/^[[:space:]]*version:[[:space:]]*.*/  version: $NEW_VERSION/" "$yaml_file"
+
+        # Update x-supported-versions array
+        if grep -q "x-supported-versions:" "$yaml_file"; then
+            # Extract current array content (handle indentation)
+            local current_array
+            current_array=$(grep "x-supported-versions:" "$yaml_file" | sed 's/.*x-supported-versions:[[:space:]]*//')
+
+            # Check if new version already exists in array
+            if echo "$current_array" | grep -q "\"$NEW_VERSION\""; then
+                echo "$yaml_file: Version $NEW_VERSION already exists in x-supported-versions, skipping..."
+            else
+                # Remove brackets and quotes, split into array
+                local versions
+                versions=$(echo "$current_array" | tr -d '[]"' | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+                # Create new array with new version at the beginning
+                local new_array="[\"$NEW_VERSION\""
+                while IFS= read -r version; do
+                    if [ -n "$version" ]; then
+                        new_array="$new_array, \"$version\""
+                    fi
+                done <<< "$versions"
+                new_array="$new_array]"
+
+                # Update the file (preserve indentation)
+                sed -i "" "s|\(^[[:space:]]*\)x-supported-versions:.*|\1x-supported-versions: $new_array|" "$yaml_file"
+                echo "$yaml_file: Added $NEW_VERSION to x-supported-versions"
+            fi
+        else
+            echo "Warning: 'x-supported-versions:' not found in $yaml_file, skipping..."
+        fi
     done
 }
 
@@ -112,12 +144,24 @@ show_summary() {
         fi
     fi
 
-    local yaml_file="carbonio-ws-collaboration-openapi/src/main/resources/api.yaml"
-    if [ -f "$yaml_file" ] && grep -A 10 "^info:" "$yaml_file" | grep -q "^[[:space:]]*version:"; then
-        local version
-        version=$(grep -A 10 "^info:" "$yaml_file" | grep "^[[:space:]]*version:" | head -1 | sed 's/.*version:[[:space:]]*//' | tr -d '"'"'"'')
-        echo "$yaml_file version: $version"
-    fi
+    local base_path="carbonio-ws-collaboration-openapi/src/main/resources"
+    local yaml_files=("$base_path/api.yaml" "$base_path/asyncapi.yaml")
+
+    for yaml_file in "${yaml_files[@]}"; do
+        if [ -f "$yaml_file" ]; then
+            if grep -A 10 "^info:" "$yaml_file" | grep -q "^[[:space:]]*version:"; then
+                local version
+                version=$(grep -A 10 "^info:" "$yaml_file" | grep "^[[:space:]]*version:" | head -1 | sed 's/.*version:[[:space:]]*//' | tr -d '"'"'"'')
+                echo "$yaml_file version: $version"
+            fi
+
+            if grep -q "x-supported-versions:" "$yaml_file"; then
+                local supported_versions
+                supported_versions=$(grep "x-supported-versions:" "$yaml_file" | sed 's/.*x-supported-versions:[[:space:]]*//')
+                echo "$yaml_file x-supported-versions: $supported_versions"
+            fi
+        fi
+    done
 }
 
 echo "Bumping version to: $NEW_VERSION"
