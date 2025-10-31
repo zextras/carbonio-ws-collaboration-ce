@@ -29,6 +29,7 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MeetingDto;
 import com.zextras.carbonio.chats.model.MeetingTypeDto;
+import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -124,9 +125,25 @@ public class MeetingServiceImpl implements MeetingService {
 
     Meeting updatedMeeting = deactivateMeeting(meeting);
 
-    notifyMeetingStopped(user, updatedMeeting);
+    roomService
+        .getRoom(UUID.fromString(updatedMeeting.getRoomId()))
+        .ifPresent(
+            room -> {
+              notifyMeetingStopped(updatedMeeting, room);
+              cleanUpRoomMembers(room);
+            });
 
     return meetingMapper.ent2dto(updatedMeeting);
+  }
+
+  private void cleanUpRoomMembers(Room room) {
+    List<Subscription> subscriptions = room.getSubscriptions();
+
+    if (RoomTypeDto.TEMPORARY.equals(room.getType())) {
+      subscriptions.stream()
+          .filter(member -> !member.isOwner())
+          .forEach(member -> membersService.deleteRoomMember(member.getUserId(), room));
+    }
   }
 
   private Meeting validateMeeting(UUID meetingId) {
@@ -169,17 +186,9 @@ public class MeetingServiceImpl implements MeetingService {
             .sentDate(OffsetDateTime.now(clock)));
   }
 
-  private void notifyMeetingStopped(UserPrincipal user, Meeting updatedMeeting) {
-    List<String> allReceivers =
-        roomService
-            .getRoomById(UUID.fromString(updatedMeeting.getRoomId()), user)
-            .getMembers()
-            .stream()
-            .map(m -> m.getUserId().toString())
-            .toList();
-
+  private void notifyMeetingStopped(Meeting updatedMeeting, Room room) {
     eventDispatcher.sendToUserExchange(
-        allReceivers,
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
         MeetingStopped.create()
             .meetingId(UUID.fromString(updatedMeeting.getId()))
             .type(EventType.MEETING_STOPPED)

@@ -10,6 +10,12 @@ SPDX-FileCopyrightText = "2023 Zextras"
 SPDX-License-Identifier = "AGPL-3.0-only"
 
 [[annotations]]
+path = "API_VERSIONING.md"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
 path = "yap.json"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2023 Zextras"

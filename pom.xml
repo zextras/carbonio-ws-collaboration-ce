@@ -7,504 +7,504 @@ SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
-  <modelVersion>4.0.0</modelVersion>
-  <packaging>pom</packaging>
-
-  <groupId>com.zextras.carbonio.ws-collaboration</groupId>
-  <artifactId>carbonio-ws-collaboration-ce</artifactId>
-  <version>1.6.2</version>
-
-  <repositories>
-    <repository>
-      <id>zextras-java-sdk</id>
-      <name>Zextras public maven repo</name>
-      <url>https://zextras.jfrog.io/artifactory/java-sdk</url>
-    </repository>
-  </repositories>
-
-  <profiles>
-    <profile>
-      <id>default</id>
-      <modules>
-        <module>carbonio-ws-collaboration-openapi</module>
-        <module>carbonio-ws-collaboration-core</module>
-        <module>carbonio-ws-collaboration-it</module>
-        <module>carbonio-ws-collaboration-boot</module>
-      </modules>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-    </profile>
-  </profiles>
-
-  <properties>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
-    <maven.version.ignore>(?i).*(.|-)(alpha|beta|m|rc)([-.]?\d+)?</maven.version.ignore>
-    <!-- Carbonio User Management -->
-    <carbonio-user-management-sdk.version>0.5.7</carbonio-user-management-sdk.version>
-    <!-- Storages -->
-    <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
-    <!-- Previewer -->
-    <preview-sdk.version>1.0.3</preview-sdk.version>
-    <!-- Jetty -->
-    <org.eclipse.jetty.version>12.0.19</org.eclipse.jetty.version>
-    <org.eclipse.jetty.servlet.version>12.0.19</org.eclipse.jetty.servlet.version>
-    <org.eclipse.jetty.websocket.version>12.0.19</org.eclipse.jetty.websocket.version>
-    <!-- Guice -->
-    <com.google.inject.version>7.0.0</com.google.inject.version>
-    <!-- Rest easy -->
-    <org.jboss.resteasy.version>7.0.0.Alpha2</org.jboss.resteasy.version>
-    <resteasy.guice>1.0.0.Alpha1</resteasy.guice>
-    <org.jboss.resteasy.jaxrs-api.version>3.0.12.Final</org.jboss.resteasy.jaxrs-api.version>
-    <jakarta.ws.rs.version>4.0.0</jakarta.ws.rs.version>
-    <!-- Ebean -->
-    <io.ebean.version>15.6.0</io.ebean.version>
-    <!-- Database -->
-    <org.flywaydb.version>10.19.0</org.flywaydb.version>
-    <com.zaxxer.HikariCP.version>6.0.0</com.zaxxer.HikariCP.version>
-    <org.postgresql.version>42.7.4</org.postgresql.version>
-    <!-- Logging -->
-    <org.slf4j-api.version>2.0.16</org.slf4j-api.version>
-    <logback-classic.version>1.5.8</logback-classic.version>
-    <!-- Jackson -->
-    <com.fasterxml.jackson.version>2.18.0</com.fasterxml.jackson.version>
-    <org.openapitools.jackson-databind-nullable.version>0.2.6</org.openapitools.jackson-databind-nullable.version>
-    <!-- Utilities -->
-    <org.apache.commons.lang3.version>3.17.0</org.apache.commons.lang3.version>
-    <org.apache.commons.text.version>1.12.0</org.apache.commons.text.version>
-    <com.vdurmont.version>3.1.0</com.vdurmont.version>
-    <org.yaml.version>2.4</org.yaml.version>
-    <!-- Open api-->
-    <io.swagger.version>1.6.14</io.swagger.version>
-    <org.hibernate.validator.version>8.0.1.Final</org.hibernate.validator.version>
-    <!-- @Nullable annotation -->
-    <com.google.code.findbugs.jsr305.version>3.0.2</com.google.code.findbugs.jsr305.version>
-    <!-- Consul -->
-    <com.orbitz.consul.consul-client.version>1.5.3</com.orbitz.consul.consul-client.version>
-    <!-- Rabbit MQ -->
-    <com.rabbitmq.amqp-client.version>5.22.0</com.rabbitmq.amqp-client.version>
-    <!-- Web Socket -->
-    <jakarta.websocket-api.version>2.1.1</jakarta.websocket-api.version>
-    <jakarta.el>5.0.0-M1</jakarta.el>
-    <!-- Cache -->
-    <caffeine.cache.version>3.1.8</caffeine.cache.version>
-    <!-- Tests dependency -->
-    <!-- JUnit Jupiter -->
-    <org.junit.jupiter.version>5.11.2</org.junit.jupiter.version>
-    <org.junit-pioneer.version>2.3.0</org.junit-pioneer.version>
-    <!-- Mockito -->
-    <org.mockito.version>5.14.1</org.mockito.version>
-    <org.mockito.inline.version>5.2.0</org.mockito.inline.version>
-    <!-- Integration Tests dependency -->
-    <org.testcontainers.version>1.20.2</org.testcontainers.version>
-    <org.mock-server.version>5.15.0</org.mock-server.version>
-    <com.github.fridujo-rabbitmq-mock.version>1.2.0</com.github.fridujo-rabbitmq-mock.version>
-    <org.awaitility.version>4.3.0</org.awaitility.version>
-    <!-- Plugins -->
-    <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
-    <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
-    <maven-surefire-plugin.version>3.5.1</maven-surefire-plugin.version>
-    <maven-failsafe-plugin.version>3.5.1</maven-failsafe-plugin.version>
-    <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
-    <ebean-maven-plugin.version>15.6.0</ebean-maven-plugin.version>
-    <versions-maven-plugin.version>2.18.0</versions-maven-plugin.version>
-  </properties>
-
-  <dependencyManagement>
-    <dependencies>
-      <!-- Carbonio User Management -->
-      <dependency>
-        <groupId>com.zextras.carbonio.user-management</groupId>
-        <artifactId>carbonio-user-management-sdk</artifactId>
-        <version>${carbonio-user-management-sdk.version}</version>
-      </dependency>
-
-      <!-- Storages sdk -->
-      <dependency>
-        <groupId>com.zextras</groupId>
-        <artifactId>storages-ce-sdk</artifactId>
-        <version>${storages-sdk.version}</version>
-      </dependency>
-
-      <!-- Previewer sdk -->
-      <dependency>
-        <groupId>com.zextras.carbonio.preview</groupId>
-        <artifactId>carbonio-preview-sdk</artifactId>
-        <version>${preview-sdk.version}</version>
-      </dependency>
-
-      <!-- Jetty dependencies -->
-      <dependency>
-        <groupId>org.eclipse.jetty</groupId>
-        <artifactId>jetty-server</artifactId>
-        <version>${org.eclipse.jetty.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.eclipse.jetty.ee10</groupId>
-        <artifactId>jetty-ee10-servlet</artifactId>
-        <version>${org.eclipse.jetty.servlet.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.eclipse.jetty.ee10.websocket</groupId>
-        <artifactId>jetty-ee10-websocket-jakarta-server</artifactId>
-        <version>${org.eclipse.jetty.websocket.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>jakarta.websocket</groupId>
-        <artifactId>jakarta.websocket-api</artifactId>
-        <version>${jakarta.websocket-api.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>jakarta.websocket</groupId>
-        <artifactId>jakarta.websocket-client-api</artifactId>
-        <version>${jakarta.websocket-api.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.glassfish</groupId>
-        <artifactId>jakarta.el</artifactId>
-        <version>${jakarta.el}</version>
-      </dependency>
-
-      <!-- Guice dependencies -->
-      <dependency>
-        <groupId>com.google.inject</groupId>
-        <artifactId>guice</artifactId>
-        <version>${com.google.inject.version}</version>
-      </dependency>
-
-      <!-- RestEasy dependencies -->
-      <dependency>
-        <groupId>dev.resteasy.guice</groupId>
-        <artifactId>resteasy-guice</artifactId>
-        <version>${resteasy.guice}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-core</artifactId>
-        <version>${org.jboss.resteasy.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-servlet-initializer</artifactId>
-        <version>${org.jboss.resteasy.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-jackson2-provider</artifactId>
-        <version>${org.jboss.resteasy.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>jaxrs-api</artifactId>
-        <version>${org.jboss.resteasy.jaxrs-api.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-jaxrs</artifactId>
-        <version>${org.jboss.resteasy.jaxrs-api.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-validator-provider</artifactId>
-        <version>${org.jboss.resteasy.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>jakarta.ws.rs</groupId>
-        <artifactId>jakarta.ws.rs-api</artifactId>
-        <version>${jakarta.ws.rs.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-client</artifactId>
-        <version>${org.jboss.resteasy.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-multipart-provider</artifactId>
-        <version>${org.jboss.resteasy.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.hibernate.validator</groupId>
-        <artifactId>hibernate-validator-cdi</artifactId>
-        <version>${org.hibernate.validator.version}</version>
-      </dependency>
-
-      <!-- Ebean dependencies -->
-      <dependency>
-        <groupId>io.ebean</groupId>
-        <artifactId>ebean-postgres</artifactId>
-        <version>${io.ebean.version}</version>
-      </dependency>
-
-      <!-- Database dependencies -->
-      <dependency>
-        <groupId>org.flywaydb</groupId>
-        <artifactId>flyway-database-postgresql</artifactId>
-        <version>${org.flywaydb.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.zaxxer</groupId>
-        <artifactId>HikariCP</artifactId>
-        <version>${com.zaxxer.HikariCP.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.postgresql</groupId>
-        <artifactId>postgresql</artifactId>
-        <version>${org.postgresql.version}</version>
-      </dependency>
-
-      <!-- Logging dependencies-->
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>${org.slf4j-api.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>ch.qos.logback</groupId>
-        <artifactId>logback-classic</artifactId>
-        <version>${logback-classic.version}</version>
-      </dependency>
-
-      <!-- Jackson dependencies -->
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-core</artifactId>
-        <version>${com.fasterxml.jackson.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-annotations</artifactId>
-        <version>${com.fasterxml.jackson.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>${com.fasterxml.jackson.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.openapitools</groupId>
-        <artifactId>jackson-databind-nullable</artifactId>
-        <version>${org.openapitools.jackson-databind-nullable.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.fasterxml.jackson.datatype</groupId>
-        <artifactId>jackson-datatype-jsr310</artifactId>
-        <version>${com.fasterxml.jackson.version}</version>
-      </dependency>
-
-      <!-- Apache dependencies -->
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-lang3</artifactId>
-        <version>${org.apache.commons.lang3.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-text</artifactId>
-        <version>${org.apache.commons.text.version}</version>
-      </dependency>
-
-      <!-- Version dependencies -->
-      <dependency>
-        <groupId>com.vdurmont</groupId>
-        <artifactId>semver4j</artifactId>
-        <version>${com.vdurmont.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.yaml</groupId>
-        <artifactId>snakeyaml</artifactId>
-        <version>${org.yaml.version}</version>
-      </dependency>
-
-      <!-- Open API dependencies-->
-      <dependency>
-        <groupId>io.swagger</groupId>
-        <artifactId>swagger-jaxrs</artifactId>
-        <version>${io.swagger.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>io.swagger</groupId>
-        <artifactId>swagger-annotations</artifactId>
-        <version>${io.swagger.version}</version>
-      </dependency>
-
-      <!-- @Nullable annotation -->
-      <dependency>
-        <groupId>com.google.code.findbugs</groupId>
-        <artifactId>jsr305</artifactId>
-        <version>${com.google.code.findbugs.jsr305.version}</version>
-      </dependency>
-
-      <!-- Consul -->
-      <dependency>
-        <groupId>com.orbitz.consul</groupId>
-        <artifactId>consul-client</artifactId>
-        <version>${com.orbitz.consul.consul-client.version}</version>
-      </dependency>
-
-      <!-- Rabbit MQ -->
-      <dependency>
-        <groupId>com.rabbitmq</groupId>
-        <artifactId>amqp-client</artifactId>
-        <version>${com.rabbitmq.amqp-client.version}</version>
-      </dependency>
-
-      <!-- Cache -->
-      <dependency>
-        <groupId>com.github.ben-manes.caffeine</groupId>
-        <artifactId>caffeine</artifactId>
-        <version>${caffeine.cache.version}</version>
-      </dependency>
-
-      <!-- Tests dependency -->
-      <!-- JUnit Jupiter -->
-      <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter-api</artifactId>
-        <version>${org.junit.jupiter.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter-params</artifactId>
-        <version>${org.junit.jupiter.version}</version>
-      </dependency>
-
-      <!-- Mockito -->
-      <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-core</artifactId>
-        <version>${org.mockito.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-inline</artifactId>
-        <version>${org.mockito.inline.version}</version>
-      </dependency>
-
-      <!-- Ebean -->
-      <dependency>
-        <groupId>io.ebean</groupId>
-        <artifactId>ebean-test</artifactId>
-        <version>${io.ebean.version}</version>
-      </dependency>
-
-      <!-- Integration Tests dependency -->
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>testcontainers</artifactId>
-        <version>${org.testcontainers.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>junit-jupiter</artifactId>
-        <version>${org.testcontainers.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.testcontainers</groupId>
-        <artifactId>postgresql</artifactId>
-        <version>${org.testcontainers.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.mock-server</groupId>
-        <artifactId>mockserver-netty</artifactId>
-        <version>${org.mock-server.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>com.github.fridujo</groupId>
-        <artifactId>rabbitmq-mock</artifactId>
-        <version>${com.github.fridujo-rabbitmq-mock.version}</version>
-      </dependency>
-
-      <dependency>
-        <groupId>org.awaitility</groupId>
-        <artifactId>awaitility</artifactId>
-        <version>${org.awaitility.version}</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <build>
-    <finalName>carbonio-ws-collaboration-ce</finalName>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-jar-plugin</artifactId>
-          <version>${maven-jar-plugin.version}</version>
-        </plugin>
-
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>${maven-resources-plugin.version}</version>
-        </plugin>
-
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>${maven-surefire-plugin.version}</version>
-        </plugin>
-
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-failsafe-plugin</artifactId>
-          <version>${maven-failsafe-plugin.version}</version>
-        </plugin>
-
-        <plugin>
-          <groupId>org.jacoco</groupId>
-          <artifactId>jacoco-maven-plugin</artifactId>
-          <version>${jacoco-maven-plugin.version}</version>
-        </plugin>
-
-        <plugin>
-          <groupId>io.ebean</groupId>
-          <artifactId>ebean-maven-plugin</artifactId>
-          <version>${ebean-maven-plugin.version}</version>
-        </plugin>
-
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>versions-maven-plugin</artifactId>
-          <version>${versions-maven-plugin.version}</version>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-  </build>
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <packaging>pom</packaging>
+
+    <groupId>com.zextras.carbonio.ws-collaboration</groupId>
+    <artifactId>carbonio-ws-collaboration-ce</artifactId>
+    <version>1.6.3</version>
+
+    <repositories>
+        <repository>
+            <id>zextras-java-sdk</id>
+            <name>Zextras public maven repo</name>
+            <url>https://zextras.jfrog.io/artifactory/java-sdk</url>
+        </repository>
+    </repositories>
+
+    <profiles>
+        <profile>
+            <id>default</id>
+            <modules>
+                <module>carbonio-ws-collaboration-openapi</module>
+                <module>carbonio-ws-collaboration-core</module>
+                <module>carbonio-ws-collaboration-it</module>
+                <module>carbonio-ws-collaboration-boot</module>
+            </modules>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+        </profile>
+    </profiles>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <maven.version.ignore>(?i).*(.|-)(alpha|beta|m|rc)([-.]?\d+)?</maven.version.ignore>
+        <!-- Carbonio User Management -->
+        <carbonio-user-management-sdk.version>0.5.7</carbonio-user-management-sdk.version>
+        <!-- Storages -->
+        <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
+        <!-- Previewer -->
+        <preview-sdk.version>1.0.3</preview-sdk.version>
+        <!-- Jetty -->
+        <org.eclipse.jetty.version>12.0.19</org.eclipse.jetty.version>
+        <org.eclipse.jetty.servlet.version>12.0.19</org.eclipse.jetty.servlet.version>
+        <org.eclipse.jetty.websocket.version>12.0.19</org.eclipse.jetty.websocket.version>
+        <!-- Guice -->
+        <com.google.inject.version>7.0.0</com.google.inject.version>
+        <!-- Rest easy -->
+        <org.jboss.resteasy.version>7.0.0.Alpha2</org.jboss.resteasy.version>
+        <resteasy.guice>1.0.0.Alpha1</resteasy.guice>
+        <org.jboss.resteasy.jaxrs-api.version>3.0.12.Final</org.jboss.resteasy.jaxrs-api.version>
+        <jakarta.ws.rs.version>4.0.0</jakarta.ws.rs.version>
+        <!-- Ebean -->
+        <io.ebean.version>15.6.0</io.ebean.version>
+        <!-- Database -->
+        <org.flywaydb.version>10.19.0</org.flywaydb.version>
+        <com.zaxxer.HikariCP.version>6.0.0</com.zaxxer.HikariCP.version>
+        <org.postgresql.version>42.7.4</org.postgresql.version>
+        <!-- Logging -->
+        <org.slf4j-api.version>2.0.16</org.slf4j-api.version>
+        <logback-classic.version>1.5.8</logback-classic.version>
+        <!-- Jackson -->
+        <com.fasterxml.jackson.version>2.18.0</com.fasterxml.jackson.version>
+        <org.openapitools.jackson-databind-nullable.version>0.2.6</org.openapitools.jackson-databind-nullable.version>
+        <!-- Utilities -->
+        <org.apache.commons.lang3.version>3.17.0</org.apache.commons.lang3.version>
+        <org.apache.commons.text.version>1.12.0</org.apache.commons.text.version>
+        <com.vdurmont.version>3.1.0</com.vdurmont.version>
+        <org.yaml.version>2.4</org.yaml.version>
+        <!-- Open api-->
+        <io.swagger.version>1.6.14</io.swagger.version>
+        <org.hibernate.validator.version>8.0.1.Final</org.hibernate.validator.version>
+        <!-- @Nullable annotation -->
+        <com.google.code.findbugs.jsr305.version>3.0.2</com.google.code.findbugs.jsr305.version>
+        <!-- Consul -->
+        <com.orbitz.consul.consul-client.version>1.5.3</com.orbitz.consul.consul-client.version>
+        <!-- Rabbit MQ -->
+        <com.rabbitmq.amqp-client.version>5.22.0</com.rabbitmq.amqp-client.version>
+        <!-- Web Socket -->
+        <jakarta.websocket-api.version>2.1.1</jakarta.websocket-api.version>
+        <jakarta.el>5.0.0-M1</jakarta.el>
+        <!-- Cache -->
+        <caffeine.cache.version>3.1.8</caffeine.cache.version>
+        <!-- Tests dependency -->
+        <!-- JUnit Jupiter -->
+        <org.junit.jupiter.version>5.11.2</org.junit.jupiter.version>
+        <org.junit-pioneer.version>2.3.0</org.junit-pioneer.version>
+        <!-- Mockito -->
+        <org.mockito.version>5.14.1</org.mockito.version>
+        <org.mockito.inline.version>5.2.0</org.mockito.inline.version>
+        <!-- Integration Tests dependency -->
+        <org.testcontainers.version>1.20.2</org.testcontainers.version>
+        <org.mock-server.version>5.15.0</org.mock-server.version>
+        <com.github.fridujo-rabbitmq-mock.version>1.2.0</com.github.fridujo-rabbitmq-mock.version>
+        <org.awaitility.version>4.3.0</org.awaitility.version>
+        <!-- Plugins -->
+        <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
+        <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
+        <maven-surefire-plugin.version>3.5.1</maven-surefire-plugin.version>
+        <maven-failsafe-plugin.version>3.5.1</maven-failsafe-plugin.version>
+        <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
+        <ebean-maven-plugin.version>15.6.0</ebean-maven-plugin.version>
+        <versions-maven-plugin.version>2.18.0</versions-maven-plugin.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Carbonio User Management -->
+            <dependency>
+                <groupId>com.zextras.carbonio.user-management</groupId>
+                <artifactId>carbonio-user-management-sdk</artifactId>
+                <version>${carbonio-user-management-sdk.version}</version>
+            </dependency>
+
+            <!-- Storages sdk -->
+            <dependency>
+                <groupId>com.zextras</groupId>
+                <artifactId>storages-ce-sdk</artifactId>
+                <version>${storages-sdk.version}</version>
+            </dependency>
+
+            <!-- Previewer sdk -->
+            <dependency>
+                <groupId>com.zextras.carbonio.preview</groupId>
+                <artifactId>carbonio-preview-sdk</artifactId>
+                <version>${preview-sdk.version}</version>
+            </dependency>
+
+            <!-- Jetty dependencies -->
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-server</artifactId>
+                <version>${org.eclipse.jetty.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.eclipse.jetty.ee10</groupId>
+                <artifactId>jetty-ee10-servlet</artifactId>
+                <version>${org.eclipse.jetty.servlet.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.eclipse.jetty.ee10.websocket</groupId>
+                <artifactId>jetty-ee10-websocket-jakarta-server</artifactId>
+                <version>${org.eclipse.jetty.websocket.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>jakarta.websocket</groupId>
+                <artifactId>jakarta.websocket-api</artifactId>
+                <version>${jakarta.websocket-api.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>jakarta.websocket</groupId>
+                <artifactId>jakarta.websocket-client-api</artifactId>
+                <version>${jakarta.websocket-api.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.glassfish</groupId>
+                <artifactId>jakarta.el</artifactId>
+                <version>${jakarta.el}</version>
+            </dependency>
+
+            <!-- Guice dependencies -->
+            <dependency>
+                <groupId>com.google.inject</groupId>
+                <artifactId>guice</artifactId>
+                <version>${com.google.inject.version}</version>
+            </dependency>
+
+            <!-- RestEasy dependencies -->
+            <dependency>
+                <groupId>dev.resteasy.guice</groupId>
+                <artifactId>resteasy-guice</artifactId>
+                <version>${resteasy.guice}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.resteasy</groupId>
+                <artifactId>resteasy-core</artifactId>
+                <version>${org.jboss.resteasy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.resteasy</groupId>
+                <artifactId>resteasy-servlet-initializer</artifactId>
+                <version>${org.jboss.resteasy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.resteasy</groupId>
+                <artifactId>resteasy-jackson2-provider</artifactId>
+                <version>${org.jboss.resteasy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.resteasy</groupId>
+                <artifactId>jaxrs-api</artifactId>
+                <version>${org.jboss.resteasy.jaxrs-api.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.resteasy</groupId>
+                <artifactId>resteasy-jaxrs</artifactId>
+                <version>${org.jboss.resteasy.jaxrs-api.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.resteasy</groupId>
+                <artifactId>resteasy-validator-provider</artifactId>
+                <version>${org.jboss.resteasy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>jakarta.ws.rs</groupId>
+                <artifactId>jakarta.ws.rs-api</artifactId>
+                <version>${jakarta.ws.rs.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.resteasy</groupId>
+                <artifactId>resteasy-client</artifactId>
+                <version>${org.jboss.resteasy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.resteasy</groupId>
+                <artifactId>resteasy-multipart-provider</artifactId>
+                <version>${org.jboss.resteasy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hibernate.validator</groupId>
+                <artifactId>hibernate-validator-cdi</artifactId>
+                <version>${org.hibernate.validator.version}</version>
+            </dependency>
+
+            <!-- Ebean dependencies -->
+            <dependency>
+                <groupId>io.ebean</groupId>
+                <artifactId>ebean-postgres</artifactId>
+                <version>${io.ebean.version}</version>
+            </dependency>
+
+            <!-- Database dependencies -->
+            <dependency>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-database-postgresql</artifactId>
+                <version>${org.flywaydb.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.zaxxer</groupId>
+                <artifactId>HikariCP</artifactId>
+                <version>${com.zaxxer.HikariCP.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${org.postgresql.version}</version>
+            </dependency>
+
+            <!-- Logging dependencies-->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${org.slf4j-api.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback-classic.version}</version>
+            </dependency>
+
+            <!-- Jackson dependencies -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${com.fasterxml.jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${com.fasterxml.jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${com.fasterxml.jackson.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.openapitools</groupId>
+                <artifactId>jackson-databind-nullable</artifactId>
+                <version>${org.openapitools.jackson-databind-nullable.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>${com.fasterxml.jackson.version}</version>
+            </dependency>
+
+            <!-- Apache dependencies -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${org.apache.commons.lang3.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>${org.apache.commons.text.version}</version>
+            </dependency>
+
+            <!-- Version dependencies -->
+            <dependency>
+                <groupId>com.vdurmont</groupId>
+                <artifactId>semver4j</artifactId>
+                <version>${com.vdurmont.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.yaml</groupId>
+                <artifactId>snakeyaml</artifactId>
+                <version>${org.yaml.version}</version>
+            </dependency>
+
+            <!-- Open API dependencies-->
+            <dependency>
+                <groupId>io.swagger</groupId>
+                <artifactId>swagger-jaxrs</artifactId>
+                <version>${io.swagger.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.swagger</groupId>
+                <artifactId>swagger-annotations</artifactId>
+                <version>${io.swagger.version}</version>
+            </dependency>
+
+            <!-- @Nullable annotation -->
+            <dependency>
+                <groupId>com.google.code.findbugs</groupId>
+                <artifactId>jsr305</artifactId>
+                <version>${com.google.code.findbugs.jsr305.version}</version>
+            </dependency>
+
+            <!-- Consul -->
+            <dependency>
+                <groupId>com.orbitz.consul</groupId>
+                <artifactId>consul-client</artifactId>
+                <version>${com.orbitz.consul.consul-client.version}</version>
+            </dependency>
+
+            <!-- Rabbit MQ -->
+            <dependency>
+                <groupId>com.rabbitmq</groupId>
+                <artifactId>amqp-client</artifactId>
+                <version>${com.rabbitmq.amqp-client.version}</version>
+            </dependency>
+
+            <!-- Cache -->
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.cache.version}</version>
+            </dependency>
+
+            <!-- Tests dependency -->
+            <!-- JUnit Jupiter -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>${org.junit.jupiter.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-params</artifactId>
+                <version>${org.junit.jupiter.version}</version>
+            </dependency>
+
+            <!-- Mockito -->
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${org.mockito.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-inline</artifactId>
+                <version>${org.mockito.inline.version}</version>
+            </dependency>
+
+            <!-- Ebean -->
+            <dependency>
+                <groupId>io.ebean</groupId>
+                <artifactId>ebean-test</artifactId>
+                <version>${io.ebean.version}</version>
+            </dependency>
+
+            <!-- Integration Tests dependency -->
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>${org.testcontainers.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${org.testcontainers.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${org.testcontainers.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mock-server</groupId>
+                <artifactId>mockserver-netty</artifactId>
+                <version>${org.mock-server.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.fridujo</groupId>
+                <artifactId>rabbitmq-mock</artifactId>
+                <version>${com.github.fridujo-rabbitmq-mock.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.awaitility</groupId>
+                <artifactId>awaitility</artifactId>
+                <version>${org.awaitility.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <finalName>carbonio-ws-collaboration-ce</finalName>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${maven-jar-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>${maven-resources-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven-failsafe-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco-maven-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>io.ebean</groupId>
+                    <artifactId>ebean-maven-plugin</artifactId>
+                    <version>${ebean-maven-plugin.version}</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>versions-maven-plugin</artifactId>
+                    <version>${versions-maven-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 
 </project>

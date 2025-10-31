@@ -17,25 +17,6 @@ import java.util.UUID;
 public interface MembersService {
 
   /**
-   * Gets the subscription data of the requested room by user identifier
-   *
-   * @param userId user identifier {@link UUID}
-   * @param roomId room identifier{@link UUID}
-   * @return a {@link Subscription} wrapped in an {@link Optional}
-   */
-  Optional<Subscription> getSubscription(UUID userId, UUID roomId);
-
-  /**
-   * Sets a user as room owner
-   *
-   * @param roomId room identifier {@link UUID}
-   * @param userId identifier of the user to set as owner {@link UUID}
-   * @param isOwner if true the user will be set as owner otherwise as a simple member
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   */
-  void setOwner(UUID roomId, UUID userId, boolean isOwner, UserPrincipal currentUser);
-
-  /**
    * Adds the specified users to the room. This can only be performed by an owner of the given room
    *
    * @param roomId room identifier {@link UUID }
@@ -45,16 +26,6 @@ public interface MembersService {
    */
   List<MemberInsertedDto> insertRoomMembers(
       UUID roomId, List<MemberToInsertDto> memberToInsertDto, UserPrincipal currentUser);
-
-  /**
-   * Updates existing room owners. This can only be performed by an owner of the given room
-   *
-   * @param roomId room identifier {@link UUID }
-   * @param members members to update {@link MemberDto }
-   * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return The member updated {@link MemberDto }
-   */
-  List<MemberDto> updateRoomOwners(UUID roomId, List<MemberDto> members, UserPrincipal currentUser);
 
   /**
    * Removes a member from the specified room. If the specified user is different from the
@@ -67,6 +38,15 @@ public interface MembersService {
   void deleteRoomMember(UUID roomId, UUID userId, UserPrincipal currentUser);
 
   /**
+   * Removes a member from the specified room. This is used by ParticipantService to remove a member
+   * which has not to be in the room anymore after a meeting has ended
+   *
+   * @param room room entity {@link Room }
+   * @param userId user identifier {@link String }
+   */
+  void deleteRoomMember(String userId, Room room);
+
+  /**
    * Retrieves every member to the given room
    *
    * @param roomId room identifier {@link UUID }
@@ -74,6 +54,43 @@ public interface MembersService {
    * @return The room members list {@link MemberDto }
    */
   List<MemberDto> getRoomMembers(UUID roomId, UserPrincipal currentUser);
+
+  /**
+   * Promotes a member as room owner
+   *
+   * @param roomId room identifier {@link UUID}
+   * @param userId identifier of the member to promote as owner {@link UUID}
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   */
+  void promoteMemberToOwner(UUID roomId, UUID userId, UserPrincipal currentUser);
+
+  /**
+   * Demotes an owner to a room member
+   *
+   * @param roomId room identifier {@link UUID}
+   * @param userId identifier of the owner to demote as member {@link UUID}
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   */
+  void demoteOwnerToMember(UUID roomId, UUID userId, UserPrincipal currentUser);
+
+  /**
+   * Updates existing room owners. This can only be performed by an owner of the given room
+   *
+   * @param roomId room identifier {@link UUID }
+   * @param members members to update {@link MemberDto }
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   * @return The member updated {@link MemberDto }
+   */
+  List<MemberDto> updateRoomOwners(UUID roomId, List<MemberDto> members, UserPrincipal currentUser);
+
+  /**
+   * Gets the subscription data of the requested room by user identifier
+   *
+   * @param userId user identifier {@link UUID}
+   * @param roomId room identifier{@link UUID}
+   * @return a {@link Subscription} wrapped in an {@link Optional}
+   */
+  Optional<Subscription> getSubscription(UUID userId, UUID roomId);
 
   /**
    * Adds every member into the specified room

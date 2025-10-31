@@ -5,11 +5,11 @@
 openapi: 3.0.3
 info:
   title: Events Data Models
-  version: 1.6.2
+  version: 1.6.3
   description: |
     Data models for room and meeting events.
     This specification contains only the schemas for code generation purposes.
-  x-supported-versions: ["1.6.2", "1.6.1", "1.6.0"]
+  x-supported-versions: ["1.6.3", "1.6.2", "1.6.1", "1.6.0"]
 
 paths: { }
 

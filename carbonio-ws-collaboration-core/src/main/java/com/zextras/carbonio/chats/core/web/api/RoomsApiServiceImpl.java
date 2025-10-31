@@ -175,7 +175,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       UUID roomId,
       String headerFileName,
       String headerMimeType,
-      Long contentLength,
+      Long headerContentLength,
       InputStream body,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
@@ -193,7 +193,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
         body,
         Optional.ofNullable(headerMimeType)
             .orElseThrow(() -> new BadRequestException(MIME_TYPE_NOT_FOUND)),
-        contentLength,
+        headerContentLength,
         filename,
         currentUser);
     return Response.status(Status.NO_CONTENT).build();
@@ -273,7 +273,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response insertOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    membersService.setOwner(roomId, userId, true, currentUser);
+    membersService.promoteMemberToOwner(roomId, userId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -281,7 +281,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response deleteOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    membersService.setOwner(roomId, userId, false, currentUser);
+    membersService.demoteOwnerToMember(roomId, userId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
