@@ -4,14 +4,6 @@
 
 package com.zextras.carbonio.chats.core.config.impl;
 
-import java.net.URL;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 import com.orbitz.consul.Consul;
 import com.orbitz.consul.cache.ConsulCache;
 import com.orbitz.consul.cache.KVCache;
@@ -22,8 +14,10 @@ import com.orbitz.consul.option.ImmutableQueryOptions;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-
 import jakarta.annotation.Nullable;
+import java.net.URL;
+import java.time.Duration;
+import java.util.*;
 
 public class ConsulAppConfig extends AppConfig {
 
@@ -36,10 +30,10 @@ public class ConsulAppConfig extends AppConfig {
   private final String consulToken;
   private final Map<String, String> cache;
 
-  private static Map<ConfigName, String> namesMapping;
+  private static final Map<ConfigName, String> namesMapping;
 
   static {
-    namesMapping = new HashMap<>();
+    namesMapping = new EnumMap<>(ConfigName.class);
     namesMapping.put(ConfigName.DATABASE_USERNAME, "carbonio-ws-collaboration-db/db-username");
     namesMapping.put(ConfigName.DATABASE_PASSWORD, "carbonio-ws-collaboration-db/db-password");
     namesMapping.put(
@@ -100,6 +94,11 @@ public class ConsulAppConfig extends AppConfig {
         ConfigName.TOPOLOGY_RECOVERY_ENABLED,
         "carbonio-ws-collaboration/broker/topology-recovery-enabled");
     namesMapping.put(ConfigName.VIDEO_SERVER_TOKEN, "carbonio-videoserver/api-secret");
+    namesMapping.put(
+        ConfigName.VIDEO_ROOM_BITRATE, "carbonio-ws-collaboration/meeting/videoroom-bitrate");
+    namesMapping.put(
+        ConfigName.VIDEO_ROOM_BITRATE_CAP,
+        "carbonio-ws-collaboration/meeting/videoroom-bitrate-cap");
     namesMapping.put(ConfigName.MAX_THREADS, "carbonio-ws-collaboration/server/max-threads");
     namesMapping.put(ConfigName.MIN_THREADS, "carbonio-ws-collaboration/server/min-threads");
     namesMapping.put(
@@ -156,11 +155,12 @@ public class ConsulAppConfig extends AppConfig {
           .distinct()
           .forEach(
               prefix -> {
-                KVCache kvCache = KVCache.newCache(
-                    consulClient.keyValueClient(),
-                    prefix,
-                    CONSUL_CONFIG_WATCH_SECONDS,
-                    ImmutableQueryOptions.builder().token(consulToken).build());
+                KVCache kvCache =
+                    KVCache.newCache(
+                        consulClient.keyValueClient(),
+                        prefix,
+                        CONSUL_CONFIG_WATCH_SECONDS,
+                        ImmutableQueryOptions.builder().token(consulToken).build());
                 kvCache.addListener(values -> values.values().forEach(this::addToCache));
                 kvCache.start();
                 kvCacheList.add(kvCache);
@@ -195,11 +195,12 @@ public class ConsulAppConfig extends AppConfig {
     try {
       cache.computeIfAbsent(
           consulName,
-          key -> consulClient
-              .keyValueClient()
-              .getValue(key, ImmutableQueryOptions.builder().token(consulToken).build())
-              .flatMap(Value::getValueAsString)
-              .orElse(null));
+          key ->
+              consulClient
+                  .keyValueClient()
+                  .getValue(key, ImmutableQueryOptions.builder().token(consulToken).build())
+                  .flatMap(Value::getValueAsString)
+                  .orElse(null));
       return Optional.ofNullable(cache.get(consulName))
           .map(configValue -> castToGeneric(clazz, configValue));
     } catch (RuntimeException ex) {

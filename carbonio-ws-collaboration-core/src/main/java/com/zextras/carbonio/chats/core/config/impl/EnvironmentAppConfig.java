@@ -4,17 +4,14 @@
 
 package com.zextras.carbonio.chats.core.config.impl;
 
+import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Optional;
 
-import com.zextras.carbonio.chats.core.config.AppConfig;
-import com.zextras.carbonio.chats.core.config.ConfigName;
-
 public class EnvironmentAppConfig extends AppConfig {
   private static final AppConfigType CONFIG_TYPE = AppConfigType.DOCKER;
-
-  private static final String LOCAL_SERVICE_ADDRESS = "localhost";
 
   private static final Map<ConfigName, String> configs;
 
@@ -54,6 +51,9 @@ public class EnvironmentAppConfig extends AppConfig {
     configs.put(ConfigName.STORAGES_HOST, System.getenv(ConfigName.STORAGES_HOST.name()));
     configs.put(ConfigName.STORAGES_PORT, System.getenv(ConfigName.STORAGES_PORT.name()));
     configs.put(ConfigName.VIDEO_SERVER_TOKEN, System.getenv(ConfigName.VIDEO_SERVER_TOKEN.name()));
+    configs.put(ConfigName.VIDEO_ROOM_BITRATE, System.getenv(ConfigName.VIDEO_ROOM_BITRATE.name()));
+    configs.put(
+        ConfigName.VIDEO_ROOM_BITRATE_CAP, System.getenv(ConfigName.VIDEO_ROOM_BITRATE_CAP.name()));
   }
 
   public static AppConfig create() {

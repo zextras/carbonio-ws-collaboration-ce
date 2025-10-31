@@ -57,5 +57,8 @@ public enum ConfigName {
   // jetty configuration
   MAX_THREADS,
   MIN_THREADS,
-  MAX_QUEUE_REQUESTS
+  MAX_QUEUE_REQUESTS,
+  // meeting configurations
+  VIDEO_ROOM_BITRATE,
+  VIDEO_ROOM_BITRATE_CAP
 }

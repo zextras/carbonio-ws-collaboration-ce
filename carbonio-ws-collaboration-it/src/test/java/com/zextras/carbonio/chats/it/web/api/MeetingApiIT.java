@@ -266,7 +266,7 @@ class MeetingApiIT {
           "/janus/connectionId/videoHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
               + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-              + "\"publishers\":100,\"bitrate\":409600,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
+              + "\"publishers\":100,\"bitrate\":8000000,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
           "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"videoroom\":\"created\",\"room\":\"videoRoomId\"}}}",
           true);
 
