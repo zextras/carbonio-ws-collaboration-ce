@@ -5,6 +5,8 @@
 package com.zextras.carbonio.chats.core.infrastructure.authentication;
 
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
+import com.zextras.carbonio.usermanagement.entities.UserMyself;
+
 import java.util.Optional;
 
 public interface AuthenticationService extends HealthIndicator {
@@ -16,4 +18,12 @@ public interface AuthenticationService extends HealthIndicator {
    * @return the user's identifier if the token is valid
    */
   Optional<String> validateCredentials(String authToken);
+
+  /**
+   * Validates the user's credentials
+   *
+   * @param authToken the token needed to be authenticated
+   * @return the {@link UserMyself} if the token is valid
+   */
+  Optional<UserMyself> getUserMyself(String authToken);
 }

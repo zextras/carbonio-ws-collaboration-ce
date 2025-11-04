@@ -15,8 +15,12 @@ import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockUserProfile;
 import com.zextras.carbonio.usermanagement.entities.UserId;
 import com.zextras.carbonio.usermanagement.entities.UserInfo;
+import com.zextras.carbonio.usermanagement.entities.UserMyself;
 import com.zextras.carbonio.usermanagement.enumerations.UserStatus;
 import com.zextras.carbonio.usermanagement.enumerations.UserType;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -89,6 +93,22 @@ public class UserManagementExtension
     mockHealthCheck(client);
     for (MockUserProfile mockAccount : MockedAccount.getAccounts()) {
       mockValidateUserToken(client, new UserId(mockAccount.getId()), mockAccount.getToken());
+
+      Map<String, String> carbonioAttributes = new HashMap<>();
+      carbonioAttributes.put("carbonioFeatureWscEnabled", "TRUE");
+
+      UserMyself userMyself =
+          new UserMyself(
+              new UserId(mockAccount.getId()),
+              mockAccount.getEmail(),
+              mockAccount.getName(),
+              mockAccount.getDomain(),
+              UserStatus.ACTIVE,
+              Locale.ENGLISH,
+              UserType.INTERNAL,
+              carbonioAttributes);
+      mockGetUserMyself(client, userMyself, mockAccount.getToken());
+
       UserInfo userInfo =
           new UserInfo(
               new UserId(mockAccount.getId()),
@@ -116,6 +136,17 @@ public class UserManagementExtension
                 .withMethod("GET")
                 .withPath(String.format("/auth/token/%s", carbonioUserToken)))
         .respond(response().withStatusCode(200).withBody(JsonBody.json(userId)));
+  }
+
+  private void mockGetUserMyself(
+      MockServerClient client, UserMyself userMyself, String carbonioUserToken) {
+    client
+        .when(
+            request()
+                .withMethod("GET")
+                .withPath("/users/myself/")
+                .withHeader("Cookie", "ZM_AUTH_TOKEN=" + carbonioUserToken))
+        .respond(response().withStatusCode(200).withBody(JsonBody.json(userMyself)));
   }
 
   private void mockGetUserByUUID(MockServerClient client, UserInfo userInfo) {
