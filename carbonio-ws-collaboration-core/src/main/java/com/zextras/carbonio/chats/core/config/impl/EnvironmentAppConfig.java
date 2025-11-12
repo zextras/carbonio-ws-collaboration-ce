@@ -17,8 +17,6 @@ public class EnvironmentAppConfig extends AppConfig {
 
   static {
     configs = new EnumMap<>(ConfigName.class);
-    configs.put(
-        ConfigName.DATABASE_JDBC_DRIVER, System.getenv(ConfigName.DATABASE_JDBC_DRIVER.name()));
     configs.put(ConfigName.DATABASE_JDBC_URL, System.getenv(ConfigName.DATABASE_JDBC_URL.name()));
     configs.put(ConfigName.CONSUL_HOST, System.getenv(ConfigName.CONSUL_HOST.name()));
     configs.put(ConfigName.CONSUL_PORT, System.getenv(ConfigName.CONSUL_PORT.name()));

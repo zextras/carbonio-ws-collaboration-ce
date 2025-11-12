@@ -129,6 +129,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.ZoneId;
 import java.util.Base64;
+import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 import org.flywaydb.core.Flyway;
 
@@ -287,8 +288,6 @@ public class CoreModule extends AbstractModule {
   private HikariDataSource getHikariDataSource(AppConfig appConfig) {
     HikariConfig config = new HikariConfig();
     config.setJdbcUrl(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).orElseThrow());
-    config.setDriverClassName(
-        appConfig.get(String.class, ConfigName.DATABASE_JDBC_DRIVER).orElseThrow());
     config.setPoolName("ws-collaboration-db-pool");
     config.setUsername(appConfig.get(String.class, ConfigName.DATABASE_USERNAME).orElse("admin"));
     config.setPassword(appConfig.get(String.class, ConfigName.DATABASE_PASSWORD).orElse("admin"));
@@ -301,6 +300,12 @@ public class CoreModule extends AbstractModule {
         appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(5000));
     config.setMaxLifetime(
         appConfig.get(Integer.class, ConfigName.HIKARI_MAX_LIFETIME).orElse(600000));
+
+    Properties properties = new Properties();
+    properties.setProperty("sslmode", "disable");
+    properties.setProperty("ApplicationName", "ws-collaboration");
+    config.setDataSourceProperties(properties);
+
     return new HikariDataSource(config);
   }
 
