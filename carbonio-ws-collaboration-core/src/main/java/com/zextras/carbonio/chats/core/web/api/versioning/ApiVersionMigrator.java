@@ -44,4 +44,8 @@ public class ApiVersionMigrator {
     return migrations.stream()
         .reduce(jsonNode, (response, migration) -> migration.downgrade(response), (a, b) -> b);
   }
+
+  public List<ApiVersionMigration> getMigrations() {
+    return migrations;
+  }
 }

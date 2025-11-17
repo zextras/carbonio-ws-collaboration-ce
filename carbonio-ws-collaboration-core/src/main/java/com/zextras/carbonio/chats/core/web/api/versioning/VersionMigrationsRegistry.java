@@ -45,6 +45,6 @@ public class VersionMigrationsRegistry {
   static {
     REGISTRY.register(
         new ChangeSet(
-            new Semver("1.6.2"), DomainEvent.class, List.of(new ChangeEvenTypeNameMigration())));
+            new Semver("1.6.2"), DomainEvent.class, List.of(new ChangeEventTypeNameMigration())));
   }
 }

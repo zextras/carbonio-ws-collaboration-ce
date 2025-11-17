@@ -168,7 +168,7 @@ class ParticipantServiceImplTest {
     scheduledRoom = Room.create();
     scheduledRoom
         .id(scheduledRoomId.toString())
-        .type(RoomTypeDto.GROUP)
+        .type(RoomTypeDto.TEMPORARY)
         .name("room1")
         .description("Room one")
         .subscriptions(List.of(Subscription.create(scheduledRoom, user1Id.toString()).owner(true)));
@@ -488,6 +488,71 @@ class ParticipantServiceImplTest {
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
               MeetingParticipantLeft.create().meetingId(meeting2Id).userId(user2Id));
       verify(meetingService, times(1)).stopMeeting(UserPrincipal.create(user2Id), meeting2Id);
+      verifyNoMoreInteractions(
+          meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("It removes the current owner user as meeting participant from a temporary room")
+    void removeMeetingParticipant_testOkRoomTemporaryAndUserIsOwner() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id).queueId(user1Queue1);
+      scheduledMeeting.participants(List.of(participant1Session1, participant4Session1));
+      when(meetingService.getMeetingEntity(scheduledMeetingId))
+          .thenReturn(Optional.of(scheduledMeeting));
+      scheduledRoom.subscriptions(
+          List.of(
+              Subscription.create(scheduledRoom, user1Id.toString()).owner(true),
+              Subscription.create(scheduledRoom, user4Id.toString()).external(true)));
+      when(roomService.getRoomAndValidateUser(scheduledRoomId, currentUser, false))
+          .thenReturn(scheduledRoom);
+      when(participantRepository.getByMeetingId(scheduledMeetingId.toString()))
+          .thenReturn(List.of(participant4Session1));
+
+      participantService.removeMeetingParticipant(scheduledMeetingId, currentUser);
+
+      verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
+      verify(roomService, times(1)).getRoomAndValidateUser(scheduledRoomId, currentUser, false);
+      verify(participantRepository, times(1)).remove(participant1Session1);
+      verify(participantRepository, times(1)).getByMeetingId(scheduledMeetingId.toString());
+      verify(videoServerService, times(1))
+          .destroyMeetingParticipant(user1Id.toString(), scheduledMeetingId.toString());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user4Id.toString()),
+              MeetingParticipantLeft.create().meetingId(scheduledMeetingId).userId(user1Id));
+      verifyNoMoreInteractions(
+          meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName(
+        "It removes the current non-owner user as meeting participant from a temporary room")
+    void removeMeetingParticipant_testOkRoomTemporaryAndUserIsNotOwner() {
+      UserPrincipal currentUser = UserPrincipal.create(user4Id).queueId(user4Queue1);
+      scheduledMeeting.participants(List.of(participant1Session1, participant4Session1));
+      when(meetingService.getMeetingEntity(scheduledMeetingId))
+          .thenReturn(Optional.of(scheduledMeeting));
+      scheduledRoom.subscriptions(
+          List.of(
+              Subscription.create(scheduledRoom, user1Id.toString()).owner(true),
+              Subscription.create(scheduledRoom, user4Id.toString()).external(true)));
+      when(roomService.getRoomAndValidateUser(scheduledRoomId, currentUser, false))
+          .thenReturn(scheduledRoom);
+      when(participantRepository.getByMeetingId(scheduledMeetingId.toString()))
+          .thenReturn(List.of(participant4Session1));
+
+      participantService.removeMeetingParticipant(scheduledMeetingId, currentUser);
+
+      verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
+      verify(roomService, times(1)).getRoomAndValidateUser(scheduledRoomId, currentUser, false);
+      verify(participantRepository, times(1)).remove(participant4Session1);
+      verify(participantRepository, times(1)).getByMeetingId(scheduledMeetingId.toString());
+      verify(videoServerService, times(1))
+          .destroyMeetingParticipant(user4Id.toString(), scheduledMeetingId.toString());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user4Id.toString()),
+              MeetingParticipantLeft.create().meetingId(scheduledMeetingId).userId(user4Id));
       verifyNoMoreInteractions(
           meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
     }

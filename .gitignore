@@ -56,3 +56,5 @@ mongoose/
 *.deb
 *.rpm
 artifacts
+
+.vscode

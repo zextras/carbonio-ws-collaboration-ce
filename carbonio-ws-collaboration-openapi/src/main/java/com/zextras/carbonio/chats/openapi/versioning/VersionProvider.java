@@ -36,7 +36,7 @@ public class VersionProvider {
   }
 
   private static List<String> loadSupportedVersions() {
-    try (InputStream input = VersionProvider.class.getResourceAsStream("/asyncapi.yaml")) {
+    try (InputStream input = VersionProvider.class.getResourceAsStream("/api.yaml")) {
       if (input == null) {
         throw new RuntimeException("openapi.yaml not found on classpath");
       }

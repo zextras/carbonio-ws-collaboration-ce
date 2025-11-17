@@ -22,6 +22,7 @@ import com.zextras.carbonio.preview.queries.Query;
 import com.zextras.carbonio.preview.queries.enums.ServiceType;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
+
 import java.util.UUID;
 
 @Singleton
@@ -63,11 +64,12 @@ public class PreviewServiceImpl implements PreviewService {
       Option<ImageQualityEnumDto> quality,
       Option<ImageTypeEnumDto> outputFormat,
       Option<Boolean> crop) {
-    validateUser(fileId, user);
+    FileMetadata metadata = getValidMetadata(fileId);
+    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
 
     Query.QueryBuilder parameters =
         new Query.QueryBuilder()
-            .setFileOwnerId(user.getId())
+            .setFileOwnerId(metadata.getUserId())
             .setServiceType(ServiceType.CHATS)
             .setFileId(fileId.toString())
             .setVersion(0)
@@ -87,11 +89,12 @@ public class PreviewServiceImpl implements PreviewService {
       Option<ImageQualityEnumDto> quality,
       Option<ImageTypeEnumDto> outputFormat,
       Option<ImageShapeEnumDto> shape) {
-    validateUser(fileId, user);
+    FileMetadata metadata = getValidMetadata(fileId);
+    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
 
     Query.QueryBuilder parameters =
         new Query.QueryBuilder()
-            .setFileOwnerId(user.getId())
+            .setFileOwnerId(metadata.getUserId())
             .setServiceType(ServiceType.CHATS)
             .setFileId(fileId.toString())
             .setVersion(0)
@@ -105,11 +108,12 @@ public class PreviewServiceImpl implements PreviewService {
 
   @Override
   public FileResponse getPDF(UserPrincipal user, UUID fileId, Integer firstPage, Integer lastPage) {
-    validateUser(fileId, user);
+    FileMetadata metadata = getValidMetadata(fileId);
+    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
 
     Query.QueryBuilder parameters =
         new Query.QueryBuilder()
-            .setFileOwnerId(user.getId())
+            .setFileOwnerId(metadata.getUserId())
             .setServiceType(ServiceType.CHATS)
             .setFileId(fileId.toString())
             .setVersion(0);
@@ -127,11 +131,12 @@ public class PreviewServiceImpl implements PreviewService {
       Option<ImageQualityEnumDto> quality,
       Option<ImageTypeEnumDto> outputFormat,
       Option<ImageShapeEnumDto> shape) {
-    validateUser(fileId, user);
+    FileMetadata metadata = getValidMetadata(fileId);
+    roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
 
     Query.QueryBuilder parameters =
         new Query.QueryBuilder()
-            .setFileOwnerId(user.getId())
+            .setFileOwnerId(metadata.getUserId())
             .setServiceType(ServiceType.CHATS)
             .setFileId(fileId.toString())
             .setVersion(0)
@@ -143,15 +148,13 @@ public class PreviewServiceImpl implements PreviewService {
     return remapBlobToDataFile(previewClient.getThumbnailOfPdf(parameters.build()));
   }
 
-  private void validateUser(UUID fileId, UserPrincipal user) {
-    FileMetadata originMetadata =
-        fileMetadataRepository
-            .getById(fileId.toString())
-            .orElseThrow(
-                () ->
-                    new com.zextras.carbonio.chats.core.exception.NotFoundException(
-                        String.format("File with id '%s' not found", fileId)));
-    roomService.getRoomAndValidateUser(UUID.fromString(originMetadata.getRoomId()), user, false);
+  private FileMetadata getValidMetadata(UUID fileId) {
+    return fileMetadataRepository
+        .getById(fileId.toString())
+        .orElseThrow(
+            () ->
+                new com.zextras.carbonio.chats.core.exception.NotFoundException(
+                    String.format("File with id '%s' not found", fileId)));
   }
 
   @Override

@@ -27,6 +27,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -123,7 +125,10 @@ class UserServiceImplTest {
       UUID requestedUserId2 = UUID.randomUUID();
       UUID requestedUserId3 = UUID.randomUUID();
       List<UUID> requestedUserIds =
-          Arrays.asList(requestedUserId1, requestedUserId2, requestedUserId3);
+          Arrays.asList(
+              requestedUserId1,
+              requestedUserId2,
+              requestedUserId3);
       List<String> strUserIds = requestedUserIds.stream().map(UUID::toString).toList();
 
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId1);
@@ -171,7 +176,8 @@ class UserServiceImplTest {
     @DisplayName("Don't returns duplicates")
     void getUsersByIds_testNoDuplicates() {
       UUID requestedUserId1 = UUID.randomUUID();
-      List<UUID> requestedUserIds = Arrays.asList(requestedUserId1, requestedUserId1);
+      List<UUID> requestedUserIds =
+          Arrays.asList(requestedUserId1, requestedUserId1);
       List<String> strUserIds = requestedUserIds.stream().map(UUID::toString).toList();
 
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId1);
@@ -222,7 +228,8 @@ class UserServiceImplTest {
                       .name("test user")));
 
       List<UserDto> usersById =
-          userService.getUsersByIds(Collections.singletonList(requestedUserId), currentPrincipal);
+          userService.getUsersByIds(
+              Collections.singletonList(requestedUserId), currentPrincipal);
 
       assertFalse(usersById.isEmpty());
       assertEquals(requestedUserId, usersById.get(0).getId());
@@ -243,7 +250,8 @@ class UserServiceImplTest {
           .thenReturn(Collections.emptyList());
 
       List<UserDto> usersById =
-          userService.getUsersByIds(Collections.singletonList(requestedUserId), currentPrincipal);
+          userService.getUsersByIds(
+              Collections.singletonList(requestedUserId), currentPrincipal);
 
       assertTrue(usersById.isEmpty());
     }

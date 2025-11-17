@@ -3900,12 +3900,12 @@ public class RoomsApiIT {
               + "<mime-type>image/jpg</mime-type><size>33786</size></x><body/></message>";
       mongooseImMockServer.mockSendStanza(hoped, true);
       storageMockServer.mockUpload(
-          fileMock,
-          new StorageMockServer.UploadResponse()
-              .digest("")
-              .digestAlgorithm("")
-              .size(fileMock.getSize()),
-          true);
+        fileMock,
+        new StorageMockServer.UploadResponse()
+          .digest("")
+          .digestAlgorithm("")
+          .size(fileMock.getSize()),
+        true);
 
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
@@ -3965,12 +3965,12 @@ public class RoomsApiIT {
               + "</message>";
       mongooseImMockServer.mockSendStanza(hoped, true);
       storageMockServer.mockUpload(
-          fileMock,
-          new StorageMockServer.UploadResponse()
-              .digest("")
-              .digestAlgorithm("")
-              .size(fileMock.getSize()),
-          true);
+        fileMock,
+        new StorageMockServer.UploadResponse()
+          .digest("")
+          .digestAlgorithm("")
+          .size(fileMock.getSize()),
+        true);
 
       MockHttpResponse response;
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {

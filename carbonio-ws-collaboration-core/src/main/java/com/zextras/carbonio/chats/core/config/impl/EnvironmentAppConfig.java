@@ -13,14 +13,10 @@ import java.util.Optional;
 public class EnvironmentAppConfig extends AppConfig {
   private static final AppConfigType CONFIG_TYPE = AppConfigType.DOCKER;
 
-  private static final String LOCAL_SERVICE_ADDRESS = "localhost";
-
   private static final Map<ConfigName, String> configs;
 
   static {
     configs = new EnumMap<>(ConfigName.class);
-    configs.put(
-        ConfigName.DATABASE_JDBC_DRIVER, System.getenv(ConfigName.DATABASE_JDBC_DRIVER.name()));
     configs.put(ConfigName.DATABASE_JDBC_URL, System.getenv(ConfigName.DATABASE_JDBC_URL.name()));
     configs.put(ConfigName.CONSUL_HOST, System.getenv(ConfigName.CONSUL_HOST.name()));
     configs.put(ConfigName.CONSUL_PORT, System.getenv(ConfigName.CONSUL_PORT.name()));
@@ -52,6 +48,10 @@ public class EnvironmentAppConfig extends AppConfig {
 
     configs.put(ConfigName.STORAGES_HOST, System.getenv(ConfigName.STORAGES_HOST.name()));
     configs.put(ConfigName.STORAGES_PORT, System.getenv(ConfigName.STORAGES_PORT.name()));
+    configs.put(ConfigName.VIDEO_SERVER_TOKEN, System.getenv(ConfigName.VIDEO_SERVER_TOKEN.name()));
+    configs.put(ConfigName.VIDEO_ROOM_BITRATE, System.getenv(ConfigName.VIDEO_ROOM_BITRATE.name()));
+    configs.put(
+        ConfigName.VIDEO_ROOM_BITRATE_CAP, System.getenv(ConfigName.VIDEO_ROOM_BITRATE_CAP.name()));
   }
 
   public static AppConfig create() {
