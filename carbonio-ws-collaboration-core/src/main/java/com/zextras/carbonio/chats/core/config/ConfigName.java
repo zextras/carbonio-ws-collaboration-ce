@@ -7,7 +7,6 @@ package com.zextras.carbonio.chats.core.config;
 public enum ConfigName {
 
   // infrastructure configurations
-  DATABASE_JDBC_DRIVER,
   DATABASE_JDBC_URL,
   DATABASE_USERNAME,
   DATABASE_PASSWORD,
@@ -57,5 +56,8 @@ public enum ConfigName {
   // jetty configuration
   MAX_THREADS,
   MIN_THREADS,
-  MAX_QUEUE_REQUESTS
+  MAX_QUEUE_REQUESTS,
+  // meeting configurations
+  VIDEO_ROOM_BITRATE,
+  VIDEO_ROOM_BITRATE_CAP
 }

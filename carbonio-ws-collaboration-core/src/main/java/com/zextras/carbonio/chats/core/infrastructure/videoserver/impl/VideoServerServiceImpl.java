@@ -78,7 +78,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   private final VideoServerSessionRepository videoServerSessionRepository;
   private final Clock clock;
 
-  private final String apiSecret;
+  private final VideoServerConfig videoServerConfig;
 
   @Inject
   public VideoServerServiceImpl(
@@ -91,7 +91,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     this.videoServerMeetingRepository = videoServerMeetingRepository;
     this.videoServerSessionRepository = videoServerSessionRepository;
     this.clock = clock;
-    this.apiSecret = videoServerConfig.getApiSecret();
+    this.videoServerConfig = videoServerConfig;
   }
 
   @Override
@@ -193,8 +193,8 @@ public class VideoServerServiceImpl implements VideoServerService {
             .isPrivate(false)
             .record(false)
             .publishers(VideoRoomCreateRequest.MAX_PUBLISHERS_DEFAULT)
-            .bitrate(VideoRoomCreateRequest.BITRATE_DEFAULT)
-            .bitrateCap(true)
+            .bitrate(videoServerConfig.getBitrate())
+            .bitrateCap(videoServerConfig.getBitrateCap())
             .videoCodec(
                 Arrays.stream(VideoCodec.values())
                     .map(videoCodec -> videoCodec.toString().toLowerCase())
@@ -545,11 +545,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private void publishStreamOnVideoRoom(
-      String userId,
-      String connectionId,
-      String handleId,
-      String sessionDescriptionProtocol,
-      String mediaType) {
+      String userId, String connectionId, String handleId, String sdp, String mediaType) {
 
     VideoRoomResponse videoRoomResponse =
         sendVideoRoomPluginMessage(
@@ -564,7 +560,7 @@ public class VideoServerServiceImpl implements VideoServerService {
                         userId,
                         OffsetDateTime.now(clock)
                             .format(DateTimeFormatter.ofPattern(DATE_TIME_DEFAULT_FORMAT)))),
-            RtcSessionDescription.create().type(RtcType.OFFER).sdp(sessionDescriptionProtocol));
+            RtcSessionDescription.create().type(RtcType.OFFER).sdp(sdp));
 
     if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
       throw new VideoServerException(
@@ -871,7 +867,7 @@ public class VideoServerServiceImpl implements VideoServerService {
         VideoServerMessageRequest.create()
             .messageRequest(JANUS_CREATE)
             .transactionId(UUID.randomUUID().toString())
-            .apiSecret(apiSecret);
+            .apiSecret(videoServerConfig.getApiSecret());
     return videoServerClient.sendVideoServerRequest(request);
   }
 
@@ -901,7 +897,7 @@ public class VideoServerServiceImpl implements VideoServerService {
         VideoServerMessageRequest.create()
             .messageRequest(action)
             .transactionId(UUID.randomUUID().toString())
-            .apiSecret(apiSecret);
+            .apiSecret(videoServerConfig.getApiSecret());
     Optional.ofNullable(pluginName).ifPresent(request::pluginName);
     Optional.ofNullable(opaqueId).ifPresent(request::opaqueId);
 
@@ -932,7 +928,7 @@ public class VideoServerServiceImpl implements VideoServerService {
         VideoServerMessageRequest.create()
             .messageRequest(VideoServerServiceImpl.JANUS_DETACH)
             .transactionId(UUID.randomUUID().toString())
-            .apiSecret(apiSecret);
+            .apiSecret(videoServerConfig.getApiSecret());
 
     return videoServerClient.sendHandleVideoServerRequest(connectionId, handleId, request);
   }
@@ -957,7 +953,7 @@ public class VideoServerServiceImpl implements VideoServerService {
             .messageRequest(VideoServerServiceImpl.JANUS_MESSAGE)
             .transactionId(UUID.randomUUID().toString())
             .videoServerPluginRequest(videoServerPluginRequest)
-            .apiSecret(apiSecret);
+            .apiSecret(videoServerConfig.getApiSecret());
     Optional.ofNullable(rtcSessionDescription).ifPresent(request::rtcSessionDescription);
 
     return videoServerClient.sendAudioBridgeRequest(connectionId, handleId, request);
@@ -983,7 +979,7 @@ public class VideoServerServiceImpl implements VideoServerService {
             .messageRequest(VideoServerServiceImpl.JANUS_MESSAGE)
             .transactionId(UUID.randomUUID().toString())
             .videoServerPluginRequest(videoServerPluginRequest)
-            .apiSecret(apiSecret);
+            .apiSecret(videoServerConfig.getApiSecret());
     Optional.ofNullable(rtcSessionDescription).ifPresent(request::rtcSessionDescription);
 
     return videoServerClient.sendVideoRoomRequest(connectionId, handleId, request);

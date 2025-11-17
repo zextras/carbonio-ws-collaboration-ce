@@ -25,9 +25,14 @@ public class EventsWebSocketEndpointConfigurator extends ServerEndpointConfig.Co
 
   @Override
   public String getNegotiatedSubprotocol(List<String> supported, List<String> requested) {
-    // OLD_CLIENT_FALLBACK
-    // if the version is not present, it's set to empty string to execute event type rename
-    // migration for mobile app compatibility
+    /**
+     * OLD_CLIENT_FALLBACK if the version is not present, it's set to empty string for old client
+     * compatibility
+     *
+     * <p>Due to websocket spec, we cannot have a direct fallback to oldest version because there is
+     * no match with requested from client so we return empty string. Then ws manager we will handle
+     * it as the oldest supported version, so it will perform migrations.
+     */
     if (requested == null || requested.isEmpty()) {
       return "";
     }
@@ -39,7 +44,7 @@ public class EventsWebSocketEndpointConfigurator extends ServerEndpointConfig.Co
         .filter(entry -> entry.getValue().isPresent())
         .max(Comparator.comparing(e -> e.getValue().get()))
         .map(Map.Entry::getKey)
-        .orElse("");
+        .orElse("NO_MATCH");
   }
 
   private static Optional<Semver> parseSemanticVersion(String subprotocol) {

@@ -106,9 +106,12 @@ class UsersApiServiceImplTest {
     void getUsers_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
 
-      Response response = usersApiService.getUsers(List.of(user1Id, user2Id), securityContext);
+      Response response =
+          usersApiService.getUsers(
+              List.of(user1Id, user2Id), securityContext);
 
-      verify(userService, times(1)).getUsersByIds(List.of(user1Id, user2Id), user1);
+      verify(userService, times(1))
+          .getUsersByIds(List.of(user1Id, user2Id), user1);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
     }

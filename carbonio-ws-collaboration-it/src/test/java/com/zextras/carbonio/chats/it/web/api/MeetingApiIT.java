@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zextras.carbonio.chats.api.MeetingsApi;
+import com.zextras.carbonio.chats.core.data.entity.*;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -55,7 +56,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @ApiIntegrationTest
-public class MeetingApiIT {
+class MeetingApiIT {
 
   private final ResteasyRequestDispatcher dispatcher;
   private final ParticipantRepository participantRepository;
@@ -94,7 +95,7 @@ public class MeetingApiIT {
   private static UUID room3Id;
 
   @BeforeAll
-  public static void initAll() {
+  static void initAll() {
     user1Id = MockedAccount.getAccount(MockedAccountType.SNOOPY).getUUID();
     user1Token = MockedAccount.getAccount(MockedAccountType.SNOOPY).getToken();
     user1Queue = UUID.randomUUID().toString();
@@ -265,7 +266,7 @@ public class MeetingApiIT {
           "/janus/connectionId/videoHandleId",
           "{\"janus\":\"message\",\"transaction\":\"${json-unit.ignore-element}\",\"body\":{\"request\":\"create\","
               + "\"room\":\"${json-unit.ignore-element}\",\"permanent\":false,\"description\":\"${json-unit.ignore-element}\","
-              + "\"publishers\":100,\"bitrate\":409600,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
+              + "\"publishers\":100,\"bitrate\":8000000,\"bitrate_cap\":true,\"record\":false,\"is_private\":false,\"videocodec\":\"vp8,h264,vp9,h265,av1\"},\"apisecret\":\"secret\"}",
           "{\"janus\":\"success\",\"plugindata\":{\"data\":{\"videoroom\":\"created\",\"room\":\"videoRoomId\"}}}",
           true);
 
@@ -1512,6 +1513,194 @@ public class MeetingApiIT {
 
       assertEquals(204, response.getStatus());
       assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("Given a meeting identifier, the authenticated user correctly leaves the meeting")
+    void leaveMeeting_testOkModeratorOfTemporaryRoom() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+          Room.create()
+              .id(room1Id.toString())
+              .type(RoomTypeDto.TEMPORARY)
+              .name("name")
+              .description("description"),
+          List.of(
+              RoomMemberField.create().id(user1Id).owner(true),
+              RoomMemberField.create().id(user2Id),
+              RoomMemberField.create().id(user3Id)));
+      UUID meetingId =
+          meetingTestUtils.generateAndSaveMeeting(
+              room1Id,
+              List.of(
+                  ParticipantBuilder.create(user1Id, user1Queue)
+                      .audioStreamOn(true)
+                      .videoStreamOn(true),
+                  ParticipantBuilder.create(user2Id, user2Queue)
+                      .audioStreamOn(false)
+                      .videoStreamOn(true),
+                  ParticipantBuilder.create(user3Id, user3Queue)
+                      .audioStreamOn(false)
+                      .videoStreamOn(false)));
+      meetingTestUtils.insertVideoServerSession(
+          meetingTestUtils.insertVideoServerMeeting(
+              meetingId.toString(),
+              "connectionId",
+              "audioHandleId",
+              "videoHandleId",
+              "audioRoomId",
+              "videoRoomId"),
+          user1Id.toString(),
+          user1Queue,
+          "connection_" + user1Queue,
+          "audioHandleId_" + user1Queue,
+          "videoOutHandleId_" + user1Queue,
+          "videoInHandleId_" + user1Queue,
+          "screenHandleId_" + user1Queue);
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connection_" + user1Queue + "/audioHandleId_" + user1Queue,
+          "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\"}",
+          true);
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connection_" + user1Queue + "/videoInHandleId_" + user1Queue,
+          "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\"}",
+          true);
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connection_" + user1Queue + "/videoOutHandleId_" + user1Queue,
+          "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\"}",
+          true);
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connection_" + user1Queue + "/screenHandleId_" + user1Queue,
+          "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\"}",
+          true);
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connection_" + user1Queue,
+          "{\"janus\":\"destroy\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\"}",
+          true);
+
+      MockHttpResponse response =
+          dispatcher.post(
+              url(meetingId), (String) null, Map.of("queue-id", user1Queue), user1Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      Meeting meeting = meetingTestUtils.getMeetingById(meetingId).orElseThrow();
+      assertTrue(
+          meeting.getParticipants().stream()
+              .filter(
+                  participant ->
+                      user1Id.toString().equals(participant.getUserId())
+                          && user1Queue.equals(participant.getQueueId()))
+              .findAny()
+              .isEmpty());
+      Optional<Room> room = integrationTestUtils.getRoomById(room1Id);
+      assertTrue(room.isPresent());
+      assertTrue(
+          room.get().getSubscriptions().stream()
+              .anyMatch(subscription -> user1Id.toString().equals(subscription.getUserId())));
+    }
+
+    @Test
+    @DisplayName("Given a meeting identifier, the authenticated user correctly leaves the meeting")
+    void leaveMeeting_testOkNonModeratorOfTemporaryRoom() throws Exception {
+      integrationTestUtils.generateAndSaveRoom(
+          Room.create()
+              .id(room1Id.toString())
+              .type(RoomTypeDto.TEMPORARY)
+              .name("name")
+              .description("description"),
+          List.of(
+              RoomMemberField.create().id(user1Id).owner(true),
+              RoomMemberField.create().id(user2Id),
+              RoomMemberField.create().id(user3Id)));
+      UUID meetingId =
+          meetingTestUtils.generateAndSaveMeeting(
+              room1Id,
+              List.of(
+                  ParticipantBuilder.create(user1Id, user1Queue)
+                      .audioStreamOn(true)
+                      .videoStreamOn(true),
+                  ParticipantBuilder.create(user2Id, user2Queue)
+                      .audioStreamOn(false)
+                      .videoStreamOn(true),
+                  ParticipantBuilder.create(user3Id, user3Queue)
+                      .audioStreamOn(false)
+                      .videoStreamOn(false)));
+      meetingTestUtils.insertVideoServerSession(
+          meetingTestUtils.insertVideoServerMeeting(
+              meetingId.toString(),
+              "connectionId",
+              "audioHandleId",
+              "videoHandleId",
+              "audioRoomId",
+              "videoRoomId"),
+          user2Id.toString(),
+          user2Queue,
+          "connection_" + user2Queue,
+          "audioHandleId_" + user2Queue,
+          "videoOutHandleId_" + user2Queue,
+          "videoInHandleId_" + user2Queue,
+          "screenHandleId_" + user2Queue);
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connection_" + user2Queue + "/audioHandleId_" + user2Queue,
+          "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\"}",
+          true);
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connection_" + user2Queue + "/videoInHandleId_" + user2Queue,
+          "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\"}",
+          true);
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connection_" + user2Queue + "/videoOutHandleId_" + user2Queue,
+          "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\"}",
+          true);
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connection_" + user2Queue + "/screenHandleId_" + user2Queue,
+          "{\"janus\":\"detach\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\"}",
+          true);
+      videoServerMockServer.mockRequestedResponse(
+          "POST",
+          "/janus/connection_" + user2Queue,
+          "{\"janus\":\"destroy\",\"transaction\":\"${json-unit.ignore-element}\",\"apisecret\":\"secret\"}",
+          "{\"janus\":\"success\"}",
+          true);
+
+      MockHttpResponse response =
+          dispatcher.post(
+              url(meetingId), (String) null, Map.of("queue-id", user2Queue), user2Token);
+
+      assertEquals(204, response.getStatus());
+      assertEquals(0, response.getOutput().length);
+      Meeting meeting = meetingTestUtils.getMeetingById(meetingId).orElseThrow();
+      assertTrue(
+          meeting.getParticipants().stream()
+              .filter(
+                  participant ->
+                      user2Id.toString().equals(participant.getUserId())
+                          && user2Queue.equals(participant.getQueueId()))
+              .findAny()
+              .isEmpty());
+      Optional<Room> room = integrationTestUtils.getRoomById(room1Id);
+      assertTrue(room.isPresent());
+      assertTrue(
+          room.get().getSubscriptions().stream()
+              .anyMatch(subscription -> user2Id.toString().equals(subscription.getUserId())));
     }
 
     @Test

@@ -26,17 +26,21 @@ public class VersionedRequestFilter implements ContainerRequestFilter {
     String headerString = containerRequestContext.getHeaderString(ChatsConstant.API_VERSION_HEADER);
     if (headerString == null) return;
 
-    Semver apiVersion;
+    Semver versionFromRequest;
     try {
-      apiVersion = new Semver(headerString);
+      versionFromRequest = new Semver(headerString);
     } catch (SemverException e) {
       containerRequestContext.abortWith(
           Response.status(Status.BAD_REQUEST).entity(e.getMessage()).build());
       return;
     }
 
-    if (apiVersion.isGreaterThan(VersionProvider.getVersion())) {
+    if (versionFromRequest.isGreaterThan(getCurrentVersion())) {
       containerRequestContext.abortWith(Response.status(UNPROCESSABLE_ENTITY_STATUS).build());
     }
+  }
+
+  public String getCurrentVersion() {
+    return VersionProvider.getVersion();
   }
 }

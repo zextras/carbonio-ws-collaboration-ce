@@ -23,6 +23,7 @@ import jakarta.websocket.server.ServerEndpointConfig;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.ee10.websocket.jakarta.server.config.JakartaWebSocketServletContainerInitializer;
@@ -130,11 +131,9 @@ public class Boot {
   private ThreadPool createThreadPool() {
     Integer maxThreads = appConfig.get(Integer.class, ConfigName.MAX_THREADS).orElse(2048);
     Integer minThreads = appConfig.get(Integer.class, ConfigName.MIN_THREADS).orElse(8);
-    Integer maxQueuedRequests =
-        appConfig.get(Integer.class, ConfigName.MAX_QUEUE_REQUESTS).orElse(2048);
+    Integer maxQueuedRequests = appConfig.get(Integer.class, ConfigName.MAX_QUEUE_REQUESTS).orElse(2048);
 
-    final BlockingQueue<Runnable> queue =
-        new BlockingArrayQueue<>(minThreads, maxThreads, maxQueuedRequests);
+    final BlockingQueue<Runnable> queue = new BlockingArrayQueue<>(minThreads, maxThreads, maxQueuedRequests);
     final QueuedThreadPool threadPool = new QueuedThreadPool(maxThreads, minThreads, queue);
     threadPool.setName("WSC-Jetty-ThreadPool");
     return threadPool;

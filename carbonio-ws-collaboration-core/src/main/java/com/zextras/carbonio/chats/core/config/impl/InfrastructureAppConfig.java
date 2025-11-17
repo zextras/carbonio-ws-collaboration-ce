@@ -19,7 +19,6 @@ public class InfrastructureAppConfig extends AppConfig {
 
   static {
     configs = new EnumMap<>(ConfigName.class);
-    configs.put(ConfigName.DATABASE_JDBC_DRIVER, "org.postgresql.Driver");
     configs.put(
         ConfigName.DATABASE_JDBC_URL,
         "jdbc:postgresql://127.78.0.4:20003/carbonio-ws-collaboration-db");

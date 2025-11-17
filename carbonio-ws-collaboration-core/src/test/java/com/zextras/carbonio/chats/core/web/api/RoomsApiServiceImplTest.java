@@ -744,7 +744,7 @@ class RoomsApiServiceImplTest {
 
       Response response = roomsApiService.insertOwner(roomId, user2Id, securityContext);
 
-      verify(membersService, times(1)).setOwner(roomId, user2Id, true, user1);
+      verify(membersService, times(1)).promoteMemberToOwner(roomId, user2Id, user1);
 
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
     }
@@ -771,7 +771,7 @@ class RoomsApiServiceImplTest {
 
       Response response = roomsApiService.deleteOwner(roomId, user2Id, securityContext);
 
-      verify(membersService, times(1)).setOwner(roomId, user2Id, false, user1);
+      verify(membersService, times(1)).demoteOwnerToMember(roomId, user2Id, user1);
 
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
     }

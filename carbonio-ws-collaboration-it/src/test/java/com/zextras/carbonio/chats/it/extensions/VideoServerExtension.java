@@ -41,6 +41,8 @@ public class VideoServerExtension
               InMemoryConfigStore.set(ConfigName.VIDEO_SERVER_HOST, SERVER_HOST);
               InMemoryConfigStore.set(ConfigName.VIDEO_SERVER_PORT, Integer.toString(SERVER_PORT));
               InMemoryConfigStore.set(ConfigName.VIDEO_SERVER_TOKEN, "secret");
+              InMemoryConfigStore.set(ConfigName.VIDEO_ROOM_BITRATE, "8000000");
+              InMemoryConfigStore.set(ConfigName.VIDEO_ROOM_BITRATE_CAP, "true");
               return client;
             },
             VideoServerMockServer.class);
