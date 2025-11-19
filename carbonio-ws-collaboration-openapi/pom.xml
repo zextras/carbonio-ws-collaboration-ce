@@ -22,8 +22,8 @@ SPDX-License-Identifier: AGPL-3.0-only
   <artifactId>carbonio-ws-collaboration-ce-openapi</artifactId>
 
   <properties>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
   </properties>
 
   <dependencies>

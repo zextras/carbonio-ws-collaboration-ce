@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-17 AS local-dev
+FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-21 AS local-dev
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -25,7 +25,7 @@ WORKDIR /app
 # # Avvia il demone SSH
 # CMD ["/usr/sbin/sshd", "-D"]
 
-FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-17 AS deps
+FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-21 AS deps
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
@@ -62,7 +62,7 @@ COPY carbonio-ws-collaboration-it/ carbonio-ws-collaboration-it/
 # Build the application (openapi will be resolved from local repository)
 RUN --mount=type=cache,target=/root/.m2 mvn -pl '!carbonio-ws-collaboration-openapi' package -DskipTests
 
-FROM gcr.io/distroless/java17-debian12 AS final
+FROM gcr.io/distroless/java21-debian12 AS final
 
 WORKDIR /app
 

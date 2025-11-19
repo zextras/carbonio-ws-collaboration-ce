@@ -40,7 +40,7 @@ pipeline {
   stages {
     stage('Build setup') {
       steps {
-        container('jdk-17') {
+        container('jdk-21') {
           checkout scm
           script {
             gitMetadata()
@@ -51,7 +51,7 @@ pipeline {
 
     stage('Compiling') {
       steps {
-        container('jdk-17') {
+        container('jdk-21') {
           sh '''
             mvn -Dmaven.repo.local=$(pwd)/m2 -N wrapper:wrapper
             mvn -Dmaven.repo.local=$(pwd)/m2 -T1C -B compile
@@ -64,7 +64,7 @@ pipeline {
 
     stage('Testing') {
       steps {
-        container('jdk-17') {
+        container('jdk-21') {
           sh '''
             mvn -B \
             -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
@@ -77,7 +77,8 @@ pipeline {
 
     stage('Sonarqube Analysis') {
       steps {
-        container('jdk-17') {
+        container('jdk-21') {
+        container('jdk-21') {
           withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
             sh '''
               mvn -Dsonar.coverage.jacoco.xmlReportPaths=../target/site/jacoco-all-tests/jacoco.xml \
