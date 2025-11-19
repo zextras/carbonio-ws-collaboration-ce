@@ -78,7 +78,6 @@ pipeline {
     stage('Sonarqube Analysis') {
       steps {
         container('jdk-21') {
-        container('jdk-21') {
           withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
             sh '''
               mvn -Dsonar.coverage.jacoco.xmlReportPaths=../target/site/jacoco-all-tests/jacoco.xml \
