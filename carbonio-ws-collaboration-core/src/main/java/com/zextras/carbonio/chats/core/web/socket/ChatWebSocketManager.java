@@ -165,6 +165,8 @@ public class ChatWebSocketManager {
           return handlePaused(request, userId);
         case GET_HISTORY:
           return handleGetHistory(request, userId);
+        case GET_MESSAGES_AROUND:
+          return handleGetMessagesAround(request, userId);
         case SEARCH_MESSAGES:
           return handleSearchMessages(request, userId);
         case GET_INBOX:
@@ -338,11 +340,30 @@ public class ChatWebSocketManager {
 
   private ChatResponse handleGetHistory(ChatRequest request, String userId) {
     int limit = request.getLimit() != null ? request.getLimit() : 100;
-    List<MessageDto> messages =
-        chatService.getHistory(
-            request.getRoomId(), userId, limit, request.getBeforeMessageId());
+    List<MessageDto> messages;
+
+    if (request.getAfterMessageId() != null) {
+      // Loading newer messages (forward direction)
+      messages = chatService.getHistoryAfter(
+          request.getRoomId(), userId, limit, request.getAfterMessageId());
+    } else {
+      // Loading older messages (backward direction) or initial load
+      messages = chatService.getHistory(
+          request.getRoomId(), userId, limit, request.getBeforeMessageId());
+    }
 
     return ChatResponse.create(ChatEvent.HISTORY_RESPONSE)
+        .roomId(request.getRoomId())
+        .messages(messages);
+  }
+
+  private ChatResponse handleGetMessagesAround(ChatRequest request, String userId) {
+    int limit = request.getLimit() != null ? request.getLimit() : 50;
+    List<MessageDto> messages =
+        chatService.getMessagesAround(
+            request.getRoomId(), userId, request.getMessageId(), limit);
+
+    return ChatResponse.create(ChatEvent.MESSAGES_AROUND_RESPONSE)
         .roomId(request.getRoomId())
         .messages(messages);
   }

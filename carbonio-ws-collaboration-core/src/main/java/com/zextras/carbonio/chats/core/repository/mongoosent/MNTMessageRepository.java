@@ -40,6 +40,55 @@ public class MNTMessageRepository {
     return query.orderBy().desc("createdAt").setMaxRows(limit).findList();
   }
 
+  public List<MNTMessage> getByRoomIdAfter(String roomId, int limit, String afterMessageId) {
+    var query = db.find(MNTMessage.class).where().eq("roomId", roomId);
+
+    if (afterMessageId != null) {
+      Optional<MNTMessage> afterMessage = getById(afterMessageId);
+      if (afterMessage.isPresent()) {
+        query.gt("createdAt", afterMessage.get().getCreatedAt());
+      }
+    }
+
+    // Get oldest first (ASC), then we'll reverse in service or keep as-is
+    return query.orderBy().asc("createdAt").setMaxRows(limit).findList();
+  }
+
+  public List<MNTMessage> getMessagesAround(String roomId, String messageId, int limitBefore, int limitAfter) {
+    Optional<MNTMessage> targetMessage = getById(messageId);
+    if (targetMessage.isEmpty()) {
+      return List.of();
+    }
+
+    var targetTime = targetMessage.get().getCreatedAt();
+
+    // Get messages before (including target)
+    List<MNTMessage> before = db.find(MNTMessage.class)
+        .where()
+        .eq("roomId", roomId)
+        .le("createdAt", targetTime)
+        .orderBy().desc("createdAt")
+        .setMaxRows(limitBefore + 1)
+        .findList();
+
+    // Get messages after
+    List<MNTMessage> after = db.find(MNTMessage.class)
+        .where()
+        .eq("roomId", roomId)
+        .gt("createdAt", targetTime)
+        .orderBy().asc("createdAt")
+        .setMaxRows(limitAfter)
+        .findList();
+
+    // Combine: before is DESC so reverse it, then add after
+    List<MNTMessage> result = new java.util.ArrayList<>();
+    for (int i = before.size() - 1; i >= 0; i--) {
+      result.add(before.get(i));
+    }
+    result.addAll(after);
+    return result;
+  }
+
   public List<MNTMessage> searchByText(String roomId, String searchText, int limit) {
     return db.find(MNTMessage.class)
         .where()
@@ -107,6 +156,15 @@ public class MNTMessageRepository {
   }
 
   // Reactions
+  public boolean hasReaction(String messageId, String userId, String reaction) {
+    return db.find(MNTMessageReaction.class)
+        .where()
+        .eq("id.messageId", messageId)
+        .eq("id.userId", userId)
+        .eq("id.reaction", reaction)
+        .exists();
+  }
+
   public void addReaction(MNTMessageReaction reaction) {
     db.insert(reaction);
   }

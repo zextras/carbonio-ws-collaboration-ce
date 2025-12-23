@@ -13,6 +13,7 @@ import com.zextras.carbonio.chats.core.data.entity.mongoosent.MNTRoom;
 import com.zextras.carbonio.chats.core.data.entity.mongoosent.MNTRoomMember;
 import com.zextras.carbonio.chats.core.data.model.message.InboxItemDto;
 import com.zextras.carbonio.chats.core.data.model.message.MessageDto;
+import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.repository.mongoosent.MNTMessageReadRepository;
@@ -203,6 +204,14 @@ public class MNTChatService {
     return messages.stream().map(this::toDto).collect(Collectors.toList());
   }
 
+  public List<MessageDto> getHistoryAfter(String roomId, String userId, int limit, String afterMessageId) {
+    validateUserInRoom(roomId, userId);
+    int effectiveLimit = limit > 0 ? limit : DEFAULT_LIMIT;
+    List<MNTMessage> messages = messageRepository.getByRoomIdAfter(roomId, effectiveLimit, afterMessageId);
+    // Already in ascending order (oldest first), which is what frontend expects
+    return messages.stream().map(this::toDto).collect(Collectors.toList());
+  }
+
   public List<MessageDto> searchMessages(String roomId, String userId, String searchText, int limit) {
     validateUserInRoom(roomId, userId);
     int effectiveLimit = limit > 0 ? limit : DEFAULT_LIMIT;
@@ -223,6 +232,13 @@ public class MNTChatService {
         userId);
   }
 
+  public List<MessageDto> getMessagesAround(String roomId, String userId, String messageId, int limit) {
+    validateUserInRoom(roomId, userId);
+    int half = limit / 2;
+    List<MNTMessage> messages = messageRepository.getMessagesAround(roomId, messageId, half, half);
+    return messages.stream().map(this::toDto).collect(Collectors.toList());
+  }
+
   // ============================================================================
   // Reactions
   // ============================================================================
@@ -230,6 +246,11 @@ public class MNTChatService {
   public void addReaction(String messageId, String userId, String reaction) {
     MNTMessage message = getMessageEntity(messageId);
     validateUserInRoom(message.getRoomId(), userId);
+
+    // Check if reaction already exists
+    if (messageRepository.hasReaction(messageId, userId, reaction)) {
+      throw new BadRequestException("Reaction already exists");
+    }
 
     MNTMessageReaction reactionEntity = MNTMessageReaction.create(message, userId, reaction);
     messageRepository.addReaction(reactionEntity);

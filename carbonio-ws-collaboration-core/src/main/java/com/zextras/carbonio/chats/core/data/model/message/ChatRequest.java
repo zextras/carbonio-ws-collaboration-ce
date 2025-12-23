@@ -47,6 +47,9 @@ public class ChatRequest {
   @JsonProperty("beforeMessageId")
   private String beforeMessageId;
 
+  @JsonProperty("afterMessageId")
+  private String afterMessageId;
+
   @JsonProperty("limit")
   private Integer limit;
 
@@ -164,6 +167,15 @@ public class ChatRequest {
 
   public ChatRequest beforeMessageId(String beforeMessageId) {
     this.beforeMessageId = beforeMessageId;
+    return this;
+  }
+
+  public String getAfterMessageId() {
+    return afterMessageId;
+  }
+
+  public ChatRequest afterMessageId(String afterMessageId) {
+    this.afterMessageId = afterMessageId;
     return this;
   }
 

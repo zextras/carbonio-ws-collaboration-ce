@@ -118,7 +118,7 @@ public class ChatTestPageApi {
       font-size: 13px;
     }
     .chat-header-actions button:hover { background: #e0e0e0; }
-    .messages-container { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; min-height: 0; }
+    .messages-container { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; min-height: 0; overflow-anchor: none; }
     .message {
       max-width: 65%;
       margin-bottom: 8px;
@@ -202,6 +202,21 @@ public class ChatTestPageApi {
     .date-separator { text-align: center; margin: 16px 0; }
     .date-separator span { background: rgba(0,0,0,0.1); padding: 4px 12px; border-radius: 8px; font-size: 12px; color: #666; }
     .loading { text-align: center; padding: 20px; color: #666; }
+    .go-to-latest {
+      position: absolute;
+      bottom: 80px;
+      right: 24px;
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 10;
+    }
+    .go-to-latest:hover { background: #1565c0; }
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -299,8 +314,11 @@ public class ChatTestPageApi {
 
         <div id="search-results" class="search-results hidden"></div>
 
-        <div class="messages-container" id="messages-container" onscroll="handleScroll()">
-          <div class="loading">Loading messages...</div>
+        <div style="position:relative;flex:1;display:flex;flex-direction:column;min-height:0;">
+          <div class="messages-container" id="messages-container" onscroll="handleScroll()">
+            <div class="loading">Loading messages...</div>
+          </div>
+          <button id="go-to-latest-btn" class="go-to-latest hidden" onclick="goToLatest()">&#8595; Go to latest</button>
         </div>
 
         <div id="typing-indicator" class="typing-indicator hidden"></div>
@@ -407,13 +425,17 @@ let forwardTargetRoomId = null;
 let editMessageId = null;
 let openMenuId = null;
 let loadingOlder = false;
-let hasMoreMessages = true;
+let loadingNewer = false;
+let hasMoreOlder = true;
+let hasMoreNewer = false; // false for latest view, true after search jump
+let scrollUpdateInProgress = false; // Block scroll handler during DOM updates
 let userEmailsCache = {}; // Global cache for user emails (userId -> email)
 let pendingHistoryRoomId = null; // Track which room we're loading history for
 let selectedUsersForNewRoom = []; // Users selected for new room creation
 let searchTimeout = null; // Debounce timer for user search
 let allSearchableUsers = []; // All users from SearchUsersByFeatureRequest
 let currentUserEmail = null; // Current user's email from GetInfoRequest
+let jumpToMessageId = null; // Message to highlight after loading around
 
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const wsUrl = wsProtocol + '//' + window.location.host + '/services/chats/messages-json';
@@ -507,7 +529,7 @@ function handleMessage(data) {
       handleHistory(data.roomId, data.messages || [], false);
       break;
     case 'MESSAGES_AROUND_RESPONSE':
-      handleHistory(data.roomId, data.messages || [], true);
+      handleMessagesAround(data.roomId, data.messages || []);
       break;
     case 'SEARCH_RESPONSE':
       handleSearchResults(data.messages || []);
@@ -565,34 +587,173 @@ function handleInbox(inbox) {
 
 function handleHistory(roomId, messages, isContextLoad) {
   // Only process if this is still the room we're interested in
-  // (handles race condition when switching chats quickly)
   if (roomId !== currentRoomId) {
-    // Store the messages anyway for when user returns to this room
-    if (isContextLoad) {
-      roomMessages[roomId] = messages;
-    } else if (!roomMessages[roomId]) {
+    if (!roomMessages[roomId]) {
       roomMessages[roomId] = messages.reverse();
     }
-    return; // Don't render, not current room
+    return;
   }
 
-  if (isContextLoad) {
-    roomMessages[roomId] = messages;
-  } else if (loadingOlder && roomMessages[roomId] && roomMessages[roomId].length > 0) {
+  // Block scroll handler during entire update
+  scrollUpdateInProgress = true;
+
+  const container = document.getElementById('messages-container');
+  const wasLoadingOlder = loadingOlder;
+  const wasLoadingNewer = loadingNewer;
+  const scrollHeightBefore = container.scrollHeight;
+  const scrollTopBefore = container.scrollTop;
+  const clientHeight = container.clientHeight;
+  // For NEWER: remember distance from bottom to maintain it
+  const distanceFromBottomBefore = scrollHeightBefore - scrollTopBefore - clientHeight;
+
+  console.log('[handleHistory] START - wasLoadingOlder:', wasLoadingOlder, 'wasLoadingNewer:', wasLoadingNewer);
+  console.log('[handleHistory] BEFORE - scrollHeight:', scrollHeightBefore, 'scrollTop:', scrollTopBefore, 'distFromBottom:', distanceFromBottomBefore);
+  console.log('[handleHistory] received messages:', messages.length);
+
+  if (wasLoadingOlder && roomMessages[roomId] && roomMessages[roomId].length > 0) {
+    // Loading older messages - prepend to existing
     const existing = roomMessages[roomId];
     const existingIds = new Set(existing.map(m => m.id));
     const newMsgs = messages.reverse().filter(m => !existingIds.has(m.id));
+    console.log('[handleHistory] OLDER - adding', newMsgs.length, 'messages at beginning');
     roomMessages[roomId] = newMsgs.concat(existing);
-    hasMoreMessages = messages.length > 0;
+    hasMoreOlder = messages.length > 0;
+  } else if (wasLoadingNewer && roomMessages[roomId] && roomMessages[roomId].length > 0) {
+    // Loading newer messages - append to existing
+    const existing = roomMessages[roomId];
+    const existingIds = new Set(existing.map(m => m.id));
+    const newMsgs = messages.filter(m => !existingIds.has(m.id));
+    console.log('[handleHistory] NEWER - adding', newMsgs.length, 'messages at end');
+    roomMessages[roomId] = existing.concat(newMsgs);
+    hasMoreNewer = messages.length > 0;
   } else {
+    // Initial load - messages are DESC, reverse to ASC
+    console.log('[handleHistory] INITIAL load');
     roomMessages[roomId] = messages.reverse();
-    hasMoreMessages = messages.length >= 100;
+    hasMoreOlder = messages.length >= 100;
+    // hasMoreNewer stays as it was set (false for normal, true for search)
   }
-  loadingOlder = false;
 
-  renderMessages();
-  scrollToBottom();
+  renderMessagesWithoutScroll();
+
+  const scrollHeightAfter = container.scrollHeight;
+  console.log('[handleHistory] AFTER RENDER - scrollHeight:', scrollHeightAfter);
+
+  // Fix scroll position IMMEDIATELY (before any scroll events can fire)
+  let targetScrollTop;
+  if (wasLoadingOlder) {
+    // Keep same view position: add the height difference to scrollTop
+    targetScrollTop = scrollTopBefore + (scrollHeightAfter - scrollHeightBefore);
+    console.log('[handleHistory] OLDER - target scrollTop:', targetScrollTop);
+  } else if (wasLoadingNewer) {
+    // Keep same distance from bottom (so we stay looking at the same messages)
+    // distanceFromBottom should remain the same, so:
+    // newScrollTop = newScrollHeight - clientHeight - distanceFromBottomBefore
+    targetScrollTop = scrollHeightAfter - clientHeight - distanceFromBottomBefore;
+    // But ensure we don't trigger another load immediately (distFromBottom should be > 100)
+    const maxScrollTop = scrollHeightAfter - clientHeight - 150;
+    if (targetScrollTop > maxScrollTop) {
+      targetScrollTop = maxScrollTop;
+    }
+    console.log('[handleHistory] NEWER - target scrollTop:', targetScrollTop, '(max:', maxScrollTop, ')');
+  } else {
+    // Initial load - scroll to bottom
+    targetScrollTop = scrollHeightAfter;
+    console.log('[handleHistory] INITIAL - scrolling to bottom');
+  }
+
+  container.scrollTop = targetScrollTop;
+  const intendedScrollTop = targetScrollTop;
+  console.log('[handleHistory] FINAL scrollTop:', container.scrollTop, 'hasMoreOlder:', hasMoreOlder, 'hasMoreNewer:', hasMoreNewer);
+
+  updateGoToLatestButton();
+
+  // Reset flags
+  loadingOlder = false;
+  loadingNewer = false;
+
+  // Re-enable scroll handler after a delay, verifying scroll position
+  setTimeout(function() {
+    // Check if browser changed our scrollTop (due to scroll anchoring)
+    const actualScrollTop = container.scrollTop;
+    if (Math.abs(actualScrollTop - intendedScrollTop) > 50) {
+      console.log('[handleHistory] Browser changed scrollTop! Intended:', intendedScrollTop, 'Actual:', actualScrollTop, '- correcting');
+      container.scrollTop = intendedScrollTop;
+    }
+
+    // Wait one more frame then re-enable
+    requestAnimationFrame(function() {
+      // Final check
+      const finalScrollTop = container.scrollTop;
+      const distFromTop = finalScrollTop;
+      const distFromBottom = container.scrollHeight - finalScrollTop - container.clientHeight;
+      console.log('[handleHistory] scroll handler re-enabled, scrollTop:', finalScrollTop, 'distFromTop:', distFromTop, 'distFromBottom:', distFromBottom);
+      scrollUpdateInProgress = false;
+    });
+  }, 50);
+
   send('GET_READ_STATUS', { roomId: roomId });
+}
+
+function handleMessagesAround(roomId, messages) {
+  if (roomId !== currentRoomId) return;
+
+  console.log('[handleMessagesAround] START - messages:', messages.length);
+
+  // Block ALL scroll handling during setup
+  scrollUpdateInProgress = true;
+  loadingOlder = true;
+  loadingNewer = true;
+
+  // Replace current messages
+  roomMessages[roomId] = messages;
+  hasMoreOlder = true;
+  hasMoreNewer = true;
+
+  renderMessagesWithoutScroll();
+  updateGoToLatestButton();
+  send('GET_READ_STATUS', { roomId: roomId });
+
+  // Scroll to target message, then re-enable scroll handling
+  const targetId = jumpToMessageId;
+  jumpToMessageId = null;
+
+  setTimeout(function() {
+    const container = document.getElementById('messages-container');
+    let intendedScrollTop = container.scrollTop;
+
+    if (targetId) {
+      const el = document.querySelector('[data-id="' + targetId + '"]');
+      if (el) {
+        el.scrollIntoView({ behavior: 'auto', block: 'center' });
+        intendedScrollTop = container.scrollTop;
+        el.style.background = '#fff9c4';
+        setTimeout(function() { el.style.background = ''; }, 2000);
+      }
+      console.log('[handleMessagesAround] scrolled to message:', targetId, 'scrollTop:', intendedScrollTop);
+    }
+
+    // Re-enable scroll handling after verifying position
+    loadingOlder = false;
+    loadingNewer = false;
+
+    setTimeout(function() {
+      // Check if browser changed our scrollTop
+      const actualScrollTop = container.scrollTop;
+      if (Math.abs(actualScrollTop - intendedScrollTop) > 50) {
+        console.log('[handleMessagesAround] Browser changed scrollTop! Intended:', intendedScrollTop, 'Actual:', actualScrollTop, '- correcting');
+        container.scrollTop = intendedScrollTop;
+      }
+
+      requestAnimationFrame(function() {
+        const finalScrollTop = container.scrollTop;
+        const distFromTop = finalScrollTop;
+        const distFromBottom = container.scrollHeight - finalScrollTop - container.clientHeight;
+        console.log('[handleMessagesAround] scroll handler re-enabled, scrollTop:', finalScrollTop, 'distFromTop:', distFromTop, 'distFromBottom:', distFromBottom);
+        scrollUpdateInProgress = false;
+      });
+    }, 50);
+  }, 100);
 }
 
 function handleNewMessage(msg) {
@@ -623,6 +784,19 @@ function handleEditedMessage(msg) {
   const idx = roomMessages[msg.roomId].findIndex(m => m.id === msg.id);
   if (idx >= 0) {
     roomMessages[msg.roomId][idx] = msg;
+
+    // Update replyTo in any messages that reference this one
+    roomMessages[msg.roomId].forEach(m => {
+      if (m.replyTo && m.replyTo.id === msg.id) {
+        m.replyTo = {
+          id: msg.id,
+          senderId: msg.senderId,
+          text: msg.text,
+          createdAt: msg.createdAt
+        };
+      }
+    });
+
     if (msg.roomId === currentRoomId) renderMessages();
   }
 }
@@ -633,6 +807,15 @@ function handleDeletedMessage(roomId, messageId) {
   if (idx >= 0) {
     roomMessages[roomId][idx].deleted = true;
     roomMessages[roomId][idx].text = '';
+
+    // Update replyTo in any messages that reference this one
+    roomMessages[roomId].forEach(m => {
+      if (m.replyTo && m.replyTo.id === messageId) {
+        m.replyTo.deleted = true;
+        m.replyTo.text = '';
+      }
+    });
+
     if (roomId === currentRoomId) renderMessages();
   }
 }
@@ -727,9 +910,12 @@ function renderRoomList() {
 function selectRoom(roomId) {
   currentRoomId = roomId;
   const room = rooms[roomId];
-  hasMoreMessages = true;
+  hasMoreOlder = true;
+  hasMoreNewer = false; // Normal view - we're at latest
   loadingOlder = false;
+  loadingNewer = false;
   cancelReply();
+  updateGoToLatestButton();
 
   document.getElementById('empty-state').classList.add('hidden');
   document.getElementById('chat-content').classList.remove('hidden');
@@ -794,9 +980,10 @@ function renderMessages() {
     }
 
     if (msg.replyTo) {
+      const replyText = msg.replyTo.deleted ? '<em>Message deleted</em>' : escapeHtml((msg.replyTo.text || '').substring(0, 50));
       html += '<div class="reply-preview">' +
         '<div class="reply-preview-sender">' + escapeHtml(getUserDisplayName(msg.replyTo.senderId)) + '</div>' +
-        '<div class="reply-preview-text">' + escapeHtml((msg.replyTo.text || '').substring(0, 50)) + '</div>' +
+        '<div class="reply-preview-text">' + replyText + '</div>' +
       '</div>';
     }
 
@@ -809,7 +996,9 @@ function renderMessages() {
     if (msg.reactions && Object.keys(msg.reactions).length > 0) {
       html += '<div class="message-reactions">';
       for (const emoji in msg.reactions) {
-        html += '<span class="reaction-badge" onclick="toggleReaction(\\'' + msg.id + '\\', \\'' + emoji + '\\')">' +
+        const userHasReaction = msg.reactions[emoji].includes(currentUserId);
+        const badgeStyle = userHasReaction ? 'background:#bbdefb;border:1px solid #1976d2;' : '';
+        html += '<span class="reaction-badge" style="' + badgeStyle + '" onclick="toggleReaction(\\'' + msg.id + '\\', \\'' + emoji + '\\')">' +
           emoji + ' ' + msg.reactions[emoji].length + '</span>';
       }
       html += '</div>';
@@ -830,6 +1019,91 @@ function renderMessages() {
 
   container.innerHTML = html;
   scrollToBottom();
+}
+
+function renderMessagesWithoutScroll() {
+  const container = document.getElementById('messages-container');
+  const messages = roomMessages[currentRoomId] || [];
+  const readStatus = roomReadStatus[currentRoomId] || {};
+
+  if (messages.length === 0) {
+    container.innerHTML = '<div class="loading">No messages yet</div>';
+    return;
+  }
+
+  const readByOthers = {};
+  for (const userId in readStatus) {
+    if (userId !== currentUserId) {
+      const msgId = readStatus[userId];
+      if (!readByOthers[msgId]) readByOthers[msgId] = [];
+      readByOthers[msgId].push(userId);
+    }
+  }
+
+  let html = '';
+  let lastDate = '';
+
+  messages.forEach(function(msg, idx) {
+    const date = formatDate(msg.createdAt);
+    if (date !== lastDate) {
+      html += '<div class="date-separator"><span>' + date + '</span></div>';
+      lastDate = date;
+    }
+
+    const isSent = msg.senderId === currentUserId;
+    const cls = isSent ? 'sent' : 'received';
+    const deleted = msg.deleted ? ' deleted' : '';
+
+    html += '<div class="message ' + cls + deleted + '" data-id="' + msg.id + '">';
+
+    if (!msg.deleted) {
+      html += '<span class="menu-trigger" onclick="toggleMenu(\\'' + msg.id + '\\', event)">&#8942;</span>';
+    }
+
+    if (msg.forwardedFrom) {
+      const originalSender = getUserDisplayName(msg.forwardedFrom.senderId);
+      html += '<div class="forwarded-label">Forwarded from ' + escapeHtml(originalSender) + '</div>';
+    }
+
+    if (msg.replyTo) {
+      const replyText = msg.replyTo.deleted ? '<em>Message deleted</em>' : escapeHtml((msg.replyTo.text || '').substring(0, 50));
+      html += '<div class="reply-preview">' +
+        '<div class="reply-preview-sender">' + escapeHtml(getUserDisplayName(msg.replyTo.senderId)) + '</div>' +
+        '<div class="reply-preview-text">' + replyText + '</div>' +
+      '</div>';
+    }
+
+    if (!isSent) {
+      html += '<div class="message-sender">' + escapeHtml(getUserDisplayName(msg.senderId)) + '</div>';
+    }
+
+    html += '<div class="message-text">' + (msg.deleted ? '<em>Message deleted</em>' : escapeHtml(msg.text)) + '</div>';
+
+    if (msg.reactions && Object.keys(msg.reactions).length > 0) {
+      html += '<div class="message-reactions">';
+      for (const emoji in msg.reactions) {
+        const userHasReaction = msg.reactions[emoji].includes(currentUserId);
+        const badgeStyle = userHasReaction ? 'background:#bbdefb;border:1px solid #1976d2;' : '';
+        html += '<span class="reaction-badge" style="' + badgeStyle + '" onclick="toggleReaction(\\'' + msg.id + '\\', \\'' + emoji + '\\')">' +
+          emoji + ' ' + msg.reactions[emoji].length + '</span>';
+      }
+      html += '</div>';
+    }
+
+    html += '<div class="message-meta">';
+    html += '<span>' + formatTime(msg.createdAt) + '</span>';
+    if (msg.edited) html += '<span>(edited)</span>';
+    if (isSent && !msg.deleted) {
+      const isRead = Object.values(readStatus).some(lastRead => {
+        const lastReadIdx = messages.findIndex(m => m.id === lastRead);
+        return lastReadIdx >= idx;
+      });
+      html += '<span class="checkmarks ' + (isRead ? 'read' : 'delivered') + '">' + (isRead ? '&#10003;&#10003;' : '&#10003;') + '</span>';
+    }
+    html += '</div></div>';
+  });
+
+  container.innerHTML = html;
 }
 
 function toggleMenu(messageId, event) {
@@ -1275,9 +1549,28 @@ function addReactionPrompt(messageId) {
 }
 
 function handleScroll() {
+  // Skip if we're in the middle of updating the DOM
+  if (scrollUpdateInProgress) {
+    console.log('[handleScroll] BLOCKED - scrollUpdateInProgress');
+    return;
+  }
+
   const container = document.getElementById('messages-container');
-  if (container.scrollTop < 50 && !loadingOlder && hasMoreMessages) {
+  const scrollTop = container.scrollTop;
+  const scrollHeight = container.scrollHeight;
+  const clientHeight = container.clientHeight;
+  const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+
+  // Load older messages when scrolling near top
+  if (scrollTop < 100 && !loadingOlder && hasMoreOlder) {
+    console.log('[handleScroll] TRIGGER loadOlderMessages - scrollTop:', scrollTop);
     loadOlderMessages();
+  }
+
+  // Load newer messages when scrolling near bottom
+  if (hasMoreNewer && !loadingNewer && distanceFromBottom < 100) {
+    console.log('[handleScroll] TRIGGER loadNewerMessages - distanceFromBottom:', distanceFromBottom);
+    loadNewerMessages();
   }
 }
 
@@ -1286,8 +1579,45 @@ function loadOlderMessages() {
   if (messages.length === 0) return;
 
   loadingOlder = true;
+  scrollUpdateInProgress = true; // Block scroll handler
   const oldestMsgId = messages[0].id;
+  console.log('[loadOlderMessages] requesting before:', oldestMsgId);
   send('GET_HISTORY', { roomId: currentRoomId, beforeMessageId: oldestMsgId, limit: 50 });
+}
+
+function loadNewerMessages() {
+  const messages = roomMessages[currentRoomId] || [];
+  if (messages.length === 0) return;
+
+  loadingNewer = true;
+  scrollUpdateInProgress = true; // Block scroll handler
+  const newestMsgId = messages[messages.length - 1].id;
+  console.log('[loadNewerMessages] requesting after:', newestMsgId);
+  send('GET_HISTORY', { roomId: currentRoomId, afterMessageId: newestMsgId, limit: 50 });
+}
+
+function goToLatest() {
+  console.log('[goToLatest] resetting to latest messages');
+  // Reset to normal view and reload latest messages
+  scrollUpdateInProgress = true;
+  hasMoreOlder = true;
+  hasMoreNewer = false;
+  loadingOlder = false;
+  loadingNewer = false;
+  roomMessages[currentRoomId] = [];
+  document.getElementById('messages-container').innerHTML = '<div class="loading">Loading messages...</div>';
+  send('GET_HISTORY', { roomId: currentRoomId, limit: 100 });
+  updateGoToLatestButton();
+}
+
+function updateGoToLatestButton() {
+  const btn = document.getElementById('go-to-latest-btn');
+  // Show button when there are newer messages (we're not at latest)
+  if (hasMoreNewer) {
+    btn.classList.remove('hidden');
+  } else {
+    btn.classList.add('hidden');
+  }
 }
 
 function scrollToBottom() {
@@ -1335,7 +1665,13 @@ function handleTyping() {
 }
 
 function toggleReaction(messageId, emoji) {
-  send('ADD_REACTION', { messageId: messageId, reaction: emoji });
+  // Check if user already has this reaction
+  const msg = (roomMessages[currentRoomId] || []).find(m => m.id === messageId);
+  if (msg && msg.reactions && msg.reactions[emoji] && msg.reactions[emoji].includes(currentUserId)) {
+    send('REMOVE_REACTION', { messageId: messageId, reaction: emoji });
+  } else {
+    send('ADD_REACTION', { messageId: messageId, reaction: emoji });
+  }
 }
 
 function openSearchModal() {
@@ -1379,6 +1715,14 @@ function jumpToMessage(messageId) {
     el.style.background = '#fff9c4';
     setTimeout(function() { el.style.background = ''; }, 2000);
   } else {
+    // Message not loaded, need to load context around it
+    jumpToMessageId = messageId;
+    // Block scroll handler during loading
+    loadingOlder = true;
+    loadingNewer = true;
+    // Clear current messages
+    roomMessages[currentRoomId] = [];
+    document.getElementById('messages-container').innerHTML = '<div class="loading">Loading...</div>';
     send('GET_MESSAGES_AROUND', { roomId: currentRoomId, messageId: messageId, limit: 50 });
   }
 }
