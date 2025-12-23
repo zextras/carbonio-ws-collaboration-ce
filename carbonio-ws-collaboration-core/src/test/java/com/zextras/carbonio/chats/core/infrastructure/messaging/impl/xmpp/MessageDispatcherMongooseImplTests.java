@@ -23,7 +23,10 @@ class MessageDispatcherMongooseImplTests {
   public MessageDispatcherMongooseImplTests() {
     messageDispatcherMongooseImpl =
         new MessageDispatcherMongooseImpl(
-            mock(HttpClient.class), "mongooseimUrl", "token", new ObjectMapper());
+            mock(HttpClient.class),
+            "mongooseimUrl",
+            "token",
+            new ObjectMapper());
   }
 
   @Test

@@ -83,6 +83,9 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanSubscriptionReposito
 import com.zextras.carbonio.chats.core.repository.impl.EbeanUserRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanVideoServerMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanVideoServerSessionRepository;
+import com.zextras.carbonio.chats.core.repository.mongoosent.MNTMessageReadRepository;
+import com.zextras.carbonio.chats.core.repository.mongoosent.MNTMessageRepository;
+import com.zextras.carbonio.chats.core.repository.mongoosent.MNTRoomRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
@@ -99,8 +102,10 @@ import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.ParticipantServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
+import com.zextras.carbonio.chats.core.service.mongoosent.MNTChatService;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AuthApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.ChatTestPageApi;
 import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.MeetingsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.PreviewApiServiceImpl;
@@ -114,6 +119,7 @@ import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
+import com.zextras.carbonio.chats.core.web.socket.ChatWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
@@ -149,6 +155,7 @@ public class CoreModule extends AbstractModule {
     bind(VersionedRequestFilter.class);
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
     bind(EventsWebSocketManager.class);
+    bind(ChatWebSocketManager.class);
 
     bind(RoomsApi.class);
     bind(RoomsApiService.class).to(RoomsApiServiceImpl.class);
@@ -186,6 +193,13 @@ public class CoreModule extends AbstractModule {
 
     bind(UserService.class).to(UserServiceImpl.class);
     bind(UserRepository.class).to(EbeanUserRepository.class);
+
+    // MongoosENT chat messaging (separate from mongoose)
+    bind(MNTRoomRepository.class);
+    bind(MNTMessageRepository.class);
+    bind(MNTMessageReadRepository.class);
+    bind(MNTChatService.class);
+    bind(ChatTestPageApi.class);
 
     bind(CapabilityService.class).to(CapabilityServiceImpl.class);
 
@@ -312,7 +326,9 @@ public class CoreModule extends AbstractModule {
   @Singleton
   @Provides
   private MessageDispatcher getMessageDispatcher(
-      AppConfig appConfig, HttpClient httpClient, ObjectMapper objectMapper) {
+      AppConfig appConfig,
+      HttpClient httpClient,
+      ObjectMapper objectMapper) {
     return new MessageDispatcherMongooseImpl(
         httpClient,
         String.format(

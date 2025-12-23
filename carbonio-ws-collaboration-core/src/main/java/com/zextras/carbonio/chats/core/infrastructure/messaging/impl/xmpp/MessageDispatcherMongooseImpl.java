@@ -50,7 +50,10 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
 
   @Inject
   public MessageDispatcherMongooseImpl(
-      HttpClient httpClient, String mongooseimURL, String authToken, ObjectMapper objectMapper) {
+      HttpClient httpClient,
+      String mongooseimURL,
+      String authToken,
+      ObjectMapper objectMapper) {
     this.httpClient = httpClient;
     this.mongooseimURL = mongooseimURL;
     this.authToken = authToken;

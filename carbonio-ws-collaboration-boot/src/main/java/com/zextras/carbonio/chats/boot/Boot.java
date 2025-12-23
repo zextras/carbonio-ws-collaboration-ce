@@ -13,6 +13,8 @@ import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
+import com.zextras.carbonio.chats.core.web.socket.ChatWebSocketEndpointConfigurator;
+import com.zextras.carbonio.chats.core.web.socket.ChatWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
@@ -43,6 +45,7 @@ public class Boot {
   private final HikariDataSource hikariDataSource;
   private final AuthenticationService authenticationService;
   private final EventsWebSocketManager eventsWebSocketManager;
+  private final ChatWebSocketManager chatWebSocketManager;
   private final VideoServerEventListener videoServerEventListener;
   private final AppConfig appConfig;
 
@@ -54,6 +57,7 @@ public class Boot {
       HikariDataSource hikariDataSource,
       AuthenticationService authenticationService,
       EventsWebSocketManager eventsWebSocketManager,
+      ChatWebSocketManager chatWebSocketManager,
       VideoServerEventListener videoServerEventListener,
       AppConfig appConfig) {
     this.serverConfiguration = serverConfiguration;
@@ -62,6 +66,7 @@ public class Boot {
     this.hikariDataSource = hikariDataSource;
     this.authenticationService = authenticationService;
     this.eventsWebSocketManager = eventsWebSocketManager;
+    this.chatWebSocketManager = chatWebSocketManager;
     this.videoServerEventListener = videoServerEventListener;
     this.appConfig = appConfig;
   }
@@ -103,6 +108,20 @@ public class Boot {
                   EnumSet.of(DispatcherType.REQUEST),
                   false /* It's applied before other filters */,
                   "/events");
+
+          // Chat WebSocket endpoint for JSON messaging
+          wsContainer.addEndpoint(
+              ServerEndpointConfig.Builder.create(ChatWebSocketManager.class, "/messages-json")
+                  .configurator(new ChatWebSocketEndpointConfigurator(chatWebSocketManager))
+                  .build());
+          servletContext
+              .addFilter(
+                  "chatWebSocketAuthenticationFilter",
+                  EventsWebSocketAuthenticationFilter.create(authenticationService))
+              .addMappingForUrlPatterns(
+                  EnumSet.of(DispatcherType.REQUEST),
+                  false /* It's applied before other filters */,
+                  "/messages-json");
         });
 
     context.addEventListener(resteasyListener);
