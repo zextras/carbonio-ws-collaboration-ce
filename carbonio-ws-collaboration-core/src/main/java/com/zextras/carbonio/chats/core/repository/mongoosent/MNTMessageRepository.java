@@ -55,38 +55,43 @@ public class MNTMessageRepository {
   }
 
   public List<MNTMessage> getMessagesAround(String roomId, String messageId, int limitBefore, int limitAfter) {
-    Optional<MNTMessage> targetMessage = getById(messageId);
-    if (targetMessage.isEmpty()) {
+    // Single query using UNION ALL - reduces from 3 DB round-trips to 1
+    // The subquery finds the target message's createdAt inline
+    String sql = """
+        (SELECT * FROM CHATS.MONGOOSENT_MESSAGE
+         WHERE ROOM_ID = :roomId
+           AND CREATED_AT <= (SELECT CREATED_AT FROM CHATS.MONGOOSENT_MESSAGE WHERE ID = :messageId)
+         ORDER BY CREATED_AT DESC
+         LIMIT :limitBefore)
+        UNION ALL
+        (SELECT * FROM CHATS.MONGOOSENT_MESSAGE
+         WHERE ROOM_ID = :roomId
+           AND CREATED_AT > (SELECT CREATED_AT FROM CHATS.MONGOOSENT_MESSAGE WHERE ID = :messageId)
+         ORDER BY CREATED_AT ASC
+         LIMIT :limitAfter)
+        """;
+
+    List<MNTMessage> results = db.findNative(MNTMessage.class, sql)
+        .setParameter("roomId", roomId)
+        .setParameter("messageId", messageId)
+        .setParameter("limitBefore", limitBefore + 1)
+        .setParameter("limitAfter", limitAfter)
+        .findList();
+
+    // Results come as: [before DESC] + [after ASC]
+    // We need to reverse the "before" part to get chronological order
+    // Find the split point: messages where createdAt <= target are "before"
+    if (results.isEmpty()) {
       return List.of();
     }
 
-    var targetTime = targetMessage.get().getCreatedAt();
-
-    // Get messages before (including target)
-    List<MNTMessage> before = db.find(MNTMessage.class)
-        .where()
-        .eq("roomId", roomId)
-        .le("createdAt", targetTime)
-        .orderBy().desc("createdAt")
-        .setMaxRows(limitBefore + 1)
-        .findList();
-
-    // Get messages after
-    List<MNTMessage> after = db.find(MNTMessage.class)
-        .where()
-        .eq("roomId", roomId)
-        .gt("createdAt", targetTime)
-        .orderBy().asc("createdAt")
-        .setMaxRows(limitAfter)
-        .findList();
-
-    // Combine: before is DESC so reverse it, then add after
-    List<MNTMessage> result = new java.util.ArrayList<>();
-    for (int i = before.size() - 1; i >= 0; i--) {
-      result.add(before.get(i));
-    }
-    result.addAll(after);
-    return result;
+    // The first part (before) is in DESC order, second part (after) is in ASC
+    // Since UNION ALL preserves order of each SELECT, we need to:
+    // 1. Find where "before" ends (last message with createdAt <= target)
+    // 2. Reverse that portion
+    // Actually, simpler: sort the entire result by createdAt ASC
+    results.sort((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()));
+    return results;
   }
 
   public List<MNTMessage> searchByText(String roomId, String searchText, int limit) {

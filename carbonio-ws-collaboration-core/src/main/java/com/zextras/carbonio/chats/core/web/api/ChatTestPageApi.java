@@ -646,16 +646,10 @@ function handleHistory(roomId, messages, isContextLoad) {
     targetScrollTop = scrollTopBefore + (scrollHeightAfter - scrollHeightBefore);
     console.log('[handleHistory] OLDER - target scrollTop:', targetScrollTop);
   } else if (wasLoadingNewer) {
-    // Keep same distance from bottom (so we stay looking at the same messages)
-    // distanceFromBottom should remain the same, so:
-    // newScrollTop = newScrollHeight - clientHeight - distanceFromBottomBefore
-    targetScrollTop = scrollHeightAfter - clientHeight - distanceFromBottomBefore;
-    // But ensure we don't trigger another load immediately (distFromBottom should be > 100)
-    const maxScrollTop = scrollHeightAfter - clientHeight - 150;
-    if (targetScrollTop > maxScrollTop) {
-      targetScrollTop = maxScrollTop;
-    }
-    console.log('[handleHistory] NEWER - target scrollTop:', targetScrollTop, '(max:', maxScrollTop, ')');
+    // NEWER messages are appended AFTER current messages, so scrollTop should NOT change
+    // The user is looking at the same messages, new ones are below the viewport
+    targetScrollTop = scrollTopBefore;
+    console.log('[handleHistory] NEWER - keeping scrollTop unchanged:', targetScrollTop);
   } else {
     // Initial load - scroll to bottom
     targetScrollTop = scrollHeightAfter;
@@ -981,7 +975,7 @@ function renderMessages() {
 
     if (msg.replyTo) {
       const replyText = msg.replyTo.deleted ? '<em>Message deleted</em>' : escapeHtml((msg.replyTo.text || '').substring(0, 50));
-      html += '<div class="reply-preview">' +
+      html += '<div class="reply-preview" style="cursor:pointer;" onclick="jumpToMessage(\\'' + msg.replyTo.id + '\\')" title="Click to jump to original message">' +
         '<div class="reply-preview-sender">' + escapeHtml(getUserDisplayName(msg.replyTo.senderId)) + '</div>' +
         '<div class="reply-preview-text">' + replyText + '</div>' +
       '</div>';
@@ -1067,7 +1061,7 @@ function renderMessagesWithoutScroll() {
 
     if (msg.replyTo) {
       const replyText = msg.replyTo.deleted ? '<em>Message deleted</em>' : escapeHtml((msg.replyTo.text || '').substring(0, 50));
-      html += '<div class="reply-preview">' +
+      html += '<div class="reply-preview" style="cursor:pointer;" onclick="jumpToMessage(\\'' + msg.replyTo.id + '\\')" title="Click to jump to original message">' +
         '<div class="reply-preview-sender">' + escapeHtml(getUserDisplayName(msg.replyTo.senderId)) + '</div>' +
         '<div class="reply-preview-text">' + replyText + '</div>' +
       '</div>';
