@@ -180,13 +180,13 @@ function renderRoomList() {
 }
 
 function getRoomDisplayName(room) {
+  if (room.roomName) return room.roomName;
   if (room.name) return room.name;
-  if (room.members && room.members.length > 0) {
-    const otherMembers = room.members.filter(id => id !== currentUserId);
-    if (otherMembers.length === 1) return getUserDisplayName(otherMembers[0]);
-    if (otherMembers.length > 1) return otherMembers.map(id => getUserDisplayName(id).split('@')[0]).join(', ');
+  if (room.roomType === 'ONE_TO_ONE' && room.members && room.members.length === 2) {
+    const otherId = room.members.find(id => id !== currentUserId);
+    if (otherId) return getUserDisplayName(otherId);
   }
-  return 'Chat';
+  return room.roomId ? room.roomId.substring(0, 8) : 'Chat';
 }
 
 function selectRoom(roomId) {
@@ -223,12 +223,17 @@ function handleHistory(roomId, messages, isContextLoad) {
     return;
   }
 
+  // Block scroll handler during entire update
   scrollUpdateInProgress = true;
+
   const container = document.getElementById('messages-container');
   const wasLoadingOlder = loadingOlder;
   const wasLoadingNewer = loadingNewer;
   const scrollHeightBefore = container.scrollHeight;
   const scrollTopBefore = container.scrollTop;
+  const clientHeight = container.clientHeight;
+  // For NEWER: remember distance from bottom to maintain it
+  const distanceFromBottomBefore = scrollHeightBefore - scrollTopBefore - clientHeight;
 
   if (wasLoadingOlder && roomMessages[roomId] && roomMessages[roomId].length > 0) {
     const existing = roomMessages[roomId];
@@ -249,58 +254,102 @@ function handleHistory(roomId, messages, isContextLoad) {
 
   renderMessagesWithoutScroll();
 
-  // Use requestAnimationFrame to ensure DOM is updated before measuring/setting scroll
-  requestAnimationFrame(function() {
-    const scrollHeightAfter = container.scrollHeight;
-    let targetScrollTop;
-    if (wasLoadingOlder) {
-      targetScrollTop = scrollTopBefore + (scrollHeightAfter - scrollHeightBefore);
-    } else if (wasLoadingNewer) {
-      targetScrollTop = scrollTopBefore;
-    } else {
-      targetScrollTop = scrollHeightAfter;
+  const scrollHeightAfter = container.scrollHeight;
+
+  // Fix scroll position IMMEDIATELY (before any scroll events can fire)
+  let targetScrollTop;
+  if (wasLoadingOlder) {
+    // Keep same view position: add the height difference to scrollTop
+    targetScrollTop = scrollTopBefore + (scrollHeightAfter - scrollHeightBefore);
+  } else if (wasLoadingNewer) {
+    // Keep same distance from bottom (so we stay looking at the same messages)
+    targetScrollTop = scrollHeightAfter - clientHeight - distanceFromBottomBefore;
+    // But ensure we don't trigger another load immediately (distFromBottom should be > 100)
+    const maxScrollTop = scrollHeightAfter - clientHeight - 150;
+    if (targetScrollTop > maxScrollTop) {
+      targetScrollTop = maxScrollTop;
+    }
+  } else {
+    // Initial load - scroll to bottom
+    targetScrollTop = scrollHeightAfter;
+  }
+
+  container.scrollTop = targetScrollTop;
+  const intendedScrollTop = targetScrollTop;
+
+  updateGoToLatestButton();
+
+  // Reset flags
+  loadingOlder = false;
+  loadingNewer = false;
+
+  // Re-enable scroll handler after a delay, verifying scroll position
+  setTimeout(function() {
+    // Check if browser changed our scrollTop (due to scroll anchoring)
+    const actualScrollTop = container.scrollTop;
+    if (Math.abs(actualScrollTop - intendedScrollTop) > 50) {
+      container.scrollTop = intendedScrollTop;
     }
 
-    container.scrollTop = targetScrollTop;
-    updateGoToLatestButton();
-    loadingOlder = false;
-    loadingNewer = false;
-
-    setTimeout(function() {
+    // Wait one more frame then re-enable
+    requestAnimationFrame(function() {
       scrollUpdateInProgress = false;
-    }, 100);
-  });
+    });
+  }, 50);
 
   send('GET_READ_STATUS', { roomId: roomId });
 }
 
 function handleMessagesAround(roomId, messages) {
   if (roomId !== currentRoomId) return;
+
+  // Block ALL scroll handling during setup
   scrollUpdateInProgress = true;
   loadingOlder = true;
   loadingNewer = true;
+
+  // Replace current messages
   roomMessages[roomId] = messages;
   hasMoreOlder = true;
   hasMoreNewer = true;
+
   renderMessagesWithoutScroll();
   updateGoToLatestButton();
   send('GET_READ_STATUS', { roomId: roomId });
 
+  // Scroll to target message, then re-enable scroll handling
   const targetId = jumpToMessageId;
   jumpToMessageId = null;
 
   setTimeout(function() {
+    const container = document.getElementById('messages-container');
+    let intendedScrollTop = container.scrollTop;
+
     if (targetId) {
       const el = document.querySelector('[data-id="' + targetId + '"]');
       if (el) {
         el.scrollIntoView({ behavior: 'auto', block: 'center' });
+        intendedScrollTop = container.scrollTop;
         el.style.background = '#fff9c4';
         setTimeout(function() { el.style.background = ''; }, 2000);
       }
     }
+
+    // Re-enable scroll handling after verifying position
     loadingOlder = false;
     loadingNewer = false;
-    setTimeout(function() { scrollUpdateInProgress = false; }, 50);
+
+    setTimeout(function() {
+      // Check if browser changed our scrollTop
+      const actualScrollTop = container.scrollTop;
+      if (Math.abs(actualScrollTop - intendedScrollTop) > 50) {
+        container.scrollTop = intendedScrollTop;
+      }
+
+      requestAnimationFrame(function() {
+        scrollUpdateInProgress = false;
+      });
+    }, 50);
   }, 100);
 }
 
@@ -434,7 +483,12 @@ function renderMessagesWithoutScroll() {
     if (isSent) html += '<div class="message-menu-item danger" onclick="deleteMessage(\'' + msg.id + '\')">Delete</div>';
     html += '</div>';
 
-    if (msg.forwardedFromId) html += '<div class="forwarded-label">Forwarded</div>';
+    if (msg.forwardedFrom) {
+      const originalSender = getUserDisplayName(msg.forwardedFrom.senderId);
+      html += '<div class="forwarded-label">Forwarded from ' + escapeHtml(originalSender) + '</div>';
+    } else if (msg.forwardedFromId) {
+      html += '<div class="forwarded-label">Forwarded</div>';
+    }
 
     if (msg.replyTo) {
       html += '<div class="reply-preview">';
