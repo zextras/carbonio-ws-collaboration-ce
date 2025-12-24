@@ -83,6 +83,8 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanSubscriptionReposito
 import com.zextras.carbonio.chats.core.repository.impl.EbeanUserRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanVideoServerMeetingRepository;
 import com.zextras.carbonio.chats.core.repository.impl.EbeanVideoServerSessionRepository;
+import com.zextras.carbonio.chats.core.repository.mongoosent.MNTMessageAttachmentRepository;
+import com.zextras.carbonio.chats.core.repository.mongoosent.MNTMessageEventRepository;
 import com.zextras.carbonio.chats.core.repository.mongoosent.MNTMessageReadRepository;
 import com.zextras.carbonio.chats.core.repository.mongoosent.MNTMessageRepository;
 import com.zextras.carbonio.chats.core.repository.mongoosent.MNTRoomRepository;
@@ -103,10 +105,12 @@ import com.zextras.carbonio.chats.core.service.impl.ParticipantServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
 import com.zextras.carbonio.chats.core.service.mongoosent.MNTChatService;
+import com.zextras.carbonio.chats.core.service.mongoosent.MNTOrphanAttachmentCleanupJob;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AuthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.ChatTestPageApi;
 import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
+import com.zextras.carbonio.chats.core.web.api.MNTAttachmentsApi;
 import com.zextras.carbonio.chats.core.web.api.MeetingsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.PreviewApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
@@ -198,8 +202,12 @@ public class CoreModule extends AbstractModule {
     bind(MNTRoomRepository.class);
     bind(MNTMessageRepository.class);
     bind(MNTMessageReadRepository.class);
+    bind(MNTMessageAttachmentRepository.class);
+    bind(MNTMessageEventRepository.class);
     bind(MNTChatService.class);
+    bind(MNTOrphanAttachmentCleanupJob.class);
     bind(ChatTestPageApi.class);
+    bind(MNTAttachmentsApi.class);
 
     bind(CapabilityService.class).to(CapabilityServiceImpl.class);
 

@@ -56,6 +56,9 @@ public class MessageDto {
   @JsonProperty("reactions")
   private Map<String, List<String>> reactions; // emoji -> list of user IDs
 
+  @JsonProperty("attachments")
+  private List<MNTAttachmentDto> attachments;
+
   public MessageDto() {}
 
   public static MessageDto create() {
@@ -185,6 +188,15 @@ public class MessageDto {
 
   public MessageDto reactions(Map<String, List<String>> reactions) {
     this.reactions = reactions;
+    return this;
+  }
+
+  public List<MNTAttachmentDto> getAttachments() {
+    return attachments;
+  }
+
+  public MessageDto attachments(List<MNTAttachmentDto> attachments) {
+    this.attachments = attachments;
     return this;
   }
 }

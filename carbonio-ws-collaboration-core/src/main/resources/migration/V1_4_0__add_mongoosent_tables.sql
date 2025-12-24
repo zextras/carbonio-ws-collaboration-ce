@@ -119,3 +119,46 @@ CREATE TABLE IF NOT EXISTS CHATS.MONGOOSENT_USER_PRESENCE
 );
 
 CREATE INDEX MONGOOSENT_PRESENCE_ONLINE_IDX ON CHATS.MONGOOSENT_USER_PRESENCE (ONLINE) WHERE ONLINE = TRUE;
+
+-- ============================================================================
+-- MONGOOSENT_MESSAGE_ATTACHMENT - File attachments linked to messages
+-- MESSAGE_ID is NULL for pending uploads (not yet linked to a message)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS CHATS.MONGOOSENT_MESSAGE_ATTACHMENT
+(
+    ID            VARCHAR(64) PRIMARY KEY,
+    MESSAGE_ID    VARCHAR(64),                        -- NULL for pending uploads, set when linked
+    USER_ID       VARCHAR(64) NOT NULL,               -- Uploader (owner in storages)
+    FILE_NAME     VARCHAR(512) NOT NULL,
+    MIME_TYPE     VARCHAR(256) NOT NULL,
+    FILE_SIZE     BIGINT NOT NULL,
+    DELETED       BOOLEAN NOT NULL DEFAULT FALSE,     -- Soft delete (blob removed from storages)
+    CREATED_AT    TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT FK_ATTACH_MSG FOREIGN KEY (MESSAGE_ID) REFERENCES CHATS.MONGOOSENT_MESSAGE (ID) ON DELETE CASCADE
+);
+
+-- Index for finding attachments by message
+CREATE INDEX MONGOOSENT_ATTACH_MSG_IDX ON CHATS.MONGOOSENT_MESSAGE_ATTACHMENT (MESSAGE_ID) WHERE MESSAGE_ID IS NOT NULL;
+
+-- Partial index for orphan cleanup job: only indexes pending attachments (MESSAGE_ID IS NULL)
+-- This index stays small regardless of total attachment count
+CREATE INDEX MONGOOSENT_ATTACH_ORPHAN_IDX ON CHATS.MONGOOSENT_MESSAGE_ATTACHMENT (CREATED_AT) WHERE MESSAGE_ID IS NULL AND DELETED = FALSE;
+
+-- ============================================================================
+-- MONGOOSENT_MESSAGE_EVENT - Append-only event log for message operations
+-- This table is WRITE-ONLY: no indexes (except PK), never queried in normal operation
+-- Used for audit trail, compliance, and debugging purposes
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS CHATS.MONGOOSENT_MESSAGE_EVENT
+(
+    ID          VARCHAR(64) PRIMARY KEY,
+    MESSAGE_ID  VARCHAR(64) NOT NULL,
+    ROOM_ID     VARCHAR(64) NOT NULL,
+    USER_ID     VARCHAR(64) NOT NULL,
+    EVENT_TYPE  VARCHAR(32) NOT NULL,
+    PAYLOAD     JSONB,
+    CREATED_AT  TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- NO ADDITIONAL INDEXES: This table is append-only, never queried in normal operation

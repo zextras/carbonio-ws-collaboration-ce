@@ -78,6 +78,25 @@ public class ChatRequest {
   @JsonProperty("memberIds")
   private List<String> memberIds;
 
+  // Attachment fields
+  @JsonProperty("fileData")
+  private String fileData; // Base64 encoded file content
+
+  @JsonProperty("fileName")
+  private String fileName;
+
+  @JsonProperty("mimeType")
+  private String mimeType;
+
+  @JsonProperty("fileSize")
+  private Long fileSize;
+
+  @JsonProperty("attachmentId")
+  private String attachmentId;
+
+  @JsonProperty("attachmentIds")
+  private List<String> attachmentIds;
+
   public ChatRequest() {}
 
   public ChatAction getAction() {
@@ -257,6 +276,60 @@ public class ChatRequest {
 
   public ChatRequest memberIds(List<String> memberIds) {
     this.memberIds = memberIds;
+    return this;
+  }
+
+  public String getFileData() {
+    return fileData;
+  }
+
+  public ChatRequest fileData(String fileData) {
+    this.fileData = fileData;
+    return this;
+  }
+
+  public String getFileName() {
+    return fileName;
+  }
+
+  public ChatRequest fileName(String fileName) {
+    this.fileName = fileName;
+    return this;
+  }
+
+  public String getMimeType() {
+    return mimeType;
+  }
+
+  public ChatRequest mimeType(String mimeType) {
+    this.mimeType = mimeType;
+    return this;
+  }
+
+  public Long getFileSize() {
+    return fileSize;
+  }
+
+  public ChatRequest fileSize(Long fileSize) {
+    this.fileSize = fileSize;
+    return this;
+  }
+
+  public String getAttachmentId() {
+    return attachmentId;
+  }
+
+  public ChatRequest attachmentId(String attachmentId) {
+    this.attachmentId = attachmentId;
+    return this;
+  }
+
+  public List<String> getAttachmentIds() {
+    return attachmentIds;
+  }
+
+  public ChatRequest attachmentIds(List<String> attachmentIds) {
+    this.attachmentIds = attachmentIds;
     return this;
   }
 }

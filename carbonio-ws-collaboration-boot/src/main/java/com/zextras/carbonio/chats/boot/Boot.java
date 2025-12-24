@@ -18,6 +18,7 @@ import com.zextras.carbonio.chats.core.web.socket.ChatWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
+import com.zextras.carbonio.chats.core.service.mongoosent.MNTOrphanAttachmentCleanupJob;
 import com.zextras.carbonio.chats.openapi.versioning.VersionProvider;
 import dev.resteasy.guice.GuiceResteasyBootstrapServletContextListener;
 import jakarta.servlet.DispatcherType;
@@ -47,6 +48,7 @@ public class Boot {
   private final EventsWebSocketManager eventsWebSocketManager;
   private final ChatWebSocketManager chatWebSocketManager;
   private final VideoServerEventListener videoServerEventListener;
+  private final MNTOrphanAttachmentCleanupJob orphanAttachmentCleanupJob;
   private final AppConfig appConfig;
 
   @Inject
@@ -59,6 +61,7 @@ public class Boot {
       EventsWebSocketManager eventsWebSocketManager,
       ChatWebSocketManager chatWebSocketManager,
       VideoServerEventListener videoServerEventListener,
+      MNTOrphanAttachmentCleanupJob orphanAttachmentCleanupJob,
       AppConfig appConfig) {
     this.serverConfiguration = serverConfiguration;
     this.resteasyListener = resteasyListener;
@@ -68,6 +71,7 @@ public class Boot {
     this.eventsWebSocketManager = eventsWebSocketManager;
     this.chatWebSocketManager = chatWebSocketManager;
     this.videoServerEventListener = videoServerEventListener;
+    this.orphanAttachmentCleanupJob = orphanAttachmentCleanupJob;
     this.appConfig = appConfig;
   }
 
@@ -128,6 +132,7 @@ public class Boot {
     context.addServlet(new ServletHolder(HttpServletDispatcher.class), "/*");
 
     videoServerEventListener.start();
+    orphanAttachmentCleanupJob.start();
 
     server.start();
 
@@ -136,6 +141,7 @@ public class Boot {
             new Thread(
                 () -> {
                   try {
+                    orphanAttachmentCleanupJob.stop();
                     hikariDataSource.close();
                     ChatsLogger.info("Shutting down server...");
                     server.stop();

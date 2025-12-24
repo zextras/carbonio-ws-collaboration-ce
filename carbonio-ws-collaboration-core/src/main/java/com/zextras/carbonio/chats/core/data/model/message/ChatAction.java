@@ -19,6 +19,11 @@ public enum ChatAction {
   ADD_REACTION,
   REMOVE_REACTION,
 
+  // Attachment operations
+  ADD_ATTACHMENT,
+  DELETE_ATTACHMENTS,
+  GET_ATTACHMENT,
+
   // Read markers
   MARK_AS_READ,
   GET_READ_STATUS,

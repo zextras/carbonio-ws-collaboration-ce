@@ -18,6 +18,11 @@ public enum ChatEvent {
   REACTION_ADDED,
   REACTION_REMOVED,
 
+  // Attachment events
+  ATTACHMENT_ADDED,
+  ATTACHMENT_DELETED,
+  ATTACHMENT_RESPONSE,
+
   // Read markers
   MESSAGE_READ,
 

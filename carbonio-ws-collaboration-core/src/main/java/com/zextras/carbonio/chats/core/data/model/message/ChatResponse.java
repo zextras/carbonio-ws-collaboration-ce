@@ -66,6 +66,19 @@ public class ChatResponse {
   @JsonProperty("memberIds")
   private List<String> memberIds;
 
+  // Attachment fields
+  @JsonProperty("attachment")
+  private MNTAttachmentDto attachment;
+
+  @JsonProperty("attachments")
+  private List<MNTAttachmentDto> attachments;
+
+  @JsonProperty("attachmentId")
+  private String attachmentId;
+
+  @JsonProperty("attachmentIds")
+  private List<String> attachmentIds;
+
   public ChatResponse() {
     this.sentDate = OffsetDateTime.now();
   }
@@ -232,6 +245,42 @@ public class ChatResponse {
 
   public ChatResponse memberIds(List<String> memberIds) {
     this.memberIds = memberIds;
+    return this;
+  }
+
+  public MNTAttachmentDto getAttachment() {
+    return attachment;
+  }
+
+  public ChatResponse attachment(MNTAttachmentDto attachment) {
+    this.attachment = attachment;
+    return this;
+  }
+
+  public List<MNTAttachmentDto> getAttachments() {
+    return attachments;
+  }
+
+  public ChatResponse attachments(List<MNTAttachmentDto> attachments) {
+    this.attachments = attachments;
+    return this;
+  }
+
+  public String getAttachmentId() {
+    return attachmentId;
+  }
+
+  public ChatResponse attachmentId(String attachmentId) {
+    this.attachmentId = attachmentId;
+    return this;
+  }
+
+  public List<String> getAttachmentIds() {
+    return attachmentIds;
+  }
+
+  public ChatResponse attachmentIds(List<String> attachmentIds) {
+    this.attachmentIds = attachmentIds;
     return this;
   }
 }

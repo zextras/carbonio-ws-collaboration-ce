@@ -1,0 +1,140 @@
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h1>Chats</h1>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button onclick="openNewRoomModal()" style="padding:6px 12px;background:white;color:#1976d2;border:none;border-radius:4px;cursor:pointer;font-size:13px;">+ New</button>
+        <div class="status-indicator">
+          <span id="status-text">Connecting...</span>
+          <div id="status-dot" class="status-dot"></div>
+        </div>
+      </div>
+    </div>
+    <div class="search-box">
+      <input type="text" id="room-search" placeholder="Search conversations..." oninput="filterRooms()">
+    </div>
+    <div class="room-list" id="room-list">
+      <div class="loading">Loading conversations...</div>
+    </div>
+  </div>
+
+  <div class="chat-area" id="chat-area">
+    <div class="empty-state" id="empty-state">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+      </svg>
+      <p>Select a conversation to start chatting</p>
+    </div>
+
+    <div id="chat-content" class="hidden" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;">
+      <div class="chat-header">
+        <div class="room-avatar" id="chat-avatar">?</div>
+        <div class="chat-header-info">
+          <div class="chat-header-name" id="chat-name">Chat</div>
+          <div class="chat-header-status" id="chat-status"></div>
+        </div>
+        <div class="chat-header-actions">
+          <button onclick="openSearchModal()">Search</button>
+          <button onclick="openTestModal()">Test</button>
+        </div>
+      </div>
+
+      <div id="search-results" class="search-results hidden"></div>
+
+      <div style="position:relative;flex:1;display:flex;flex-direction:column;min-height:0;">
+        <div class="messages-container" id="messages-container" onscroll="handleScroll()">
+          <div class="loading">Loading messages...</div>
+        </div>
+        <button id="go-to-latest-btn" class="go-to-latest hidden" onclick="goToLatest()">&#8595; Go to latest</button>
+      </div>
+
+      <div id="typing-indicator" class="typing-indicator hidden"></div>
+
+      <div class="input-area">
+        <div id="reply-bar" class="reply-bar hidden">
+          <div class="reply-bar-content">
+            <div id="reply-to-sender" style="font-weight:500;color:#1976d2;"></div>
+            <div id="reply-to-text" style="color:#666;"></div>
+          </div>
+          <span class="reply-bar-close" onclick="cancelReply()">&times;</span>
+        </div>
+        <div id="pending-files" class="pending-files hidden"></div>
+        <div class="input-row">
+          <input type="file" id="file-input" multiple style="display:none" onchange="handleFileSelect(event)">
+          <button class="file-input-btn" onclick="document.getElementById('file-input').click()" title="Attach file">&#128206;</button>
+          <input type="text" id="message-input" placeholder="Type a message..." onkeypress="handleKeyPress(event)" oninput="handleTyping()">
+          <button onclick="sendMessage()" id="send-btn">&#10148;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="search-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h2>Search Messages</h2>
+    <input type="text" id="search-input" placeholder="Enter search term..." onkeypress="if(event.key==='Enter')performSearch()">
+    <div class="modal-buttons">
+      <button class="secondary" onclick="closeSearchModal()">Cancel</button>
+      <button class="primary" onclick="performSearch()">Search</button>
+    </div>
+  </div>
+</div>
+
+<div id="forward-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h2>Forward to...</h2>
+    <div class="room-select-list" id="forward-room-list"></div>
+    <div class="modal-buttons">
+      <button class="secondary" onclick="closeForwardModal()">Cancel</button>
+      <button class="primary" onclick="confirmForward()">Forward</button>
+    </div>
+  </div>
+</div>
+
+<div id="test-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h2>Generate Test Messages</h2>
+    <p style="margin-bottom:12px;color:#666;font-size:13px;">Enter the number of random messages to send to this chat:</p>
+    <input type="number" id="test-count-input" min="1" value="10" placeholder="Number of messages..." onkeypress="if(event.key==='Enter')confirmTestMessages()">
+    <div class="modal-buttons">
+      <button class="secondary" onclick="closeTestModal()">Cancel</button>
+      <button class="primary" onclick="confirmTestMessages()">Send Messages</button>
+    </div>
+  </div>
+</div>
+
+<div id="delete-attachments-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h2>Delete Attachments</h2>
+    <p style="margin-bottom:12px;color:#666;font-size:13px;">Select attachments to delete:</p>
+    <div class="delete-attachments-list" id="delete-attachments-list"></div>
+    <div class="modal-buttons">
+      <button class="secondary" onclick="closeDeleteAttachmentsModal()">Cancel</button>
+      <button class="primary" onclick="confirmDeleteAttachments()">Delete Selected</button>
+    </div>
+  </div>
+</div>
+
+<div id="new-room-modal" class="modal-overlay hidden">
+  <div class="modal" style="min-width:400px;">
+    <h2>New Conversation</h2>
+    <div style="margin-bottom:12px;">
+      <label style="display:block;margin-bottom:4px;font-size:13px;color:#666;">Search users:</label>
+      <input type="text" id="user-search-input" placeholder="Type to search users..." oninput="searchUsers()">
+    </div>
+    <div id="user-search-results" style="max-height:200px;overflow-y:auto;margin-bottom:12px;"></div>
+    <div style="margin-bottom:12px;">
+      <label style="display:block;margin-bottom:4px;font-size:13px;color:#666;">Selected users:</label>
+      <div id="selected-users" style="display:flex;flex-wrap:wrap;gap:4px;min-height:32px;padding:8px;background:#f5f5f5;border-radius:4px;"></div>
+    </div>
+    <div style="margin-bottom:12px;" id="group-options" class="hidden">
+      <label style="display:block;margin-bottom:4px;font-size:13px;color:#666;">Group name (optional):</label>
+      <input type="text" id="new-room-name" placeholder="Enter group name...">
+    </div>
+    <div class="modal-buttons">
+      <button class="secondary" onclick="closeNewRoomModal()">Cancel</button>
+      <button class="primary" onclick="confirmNewRoom()">Start Chat</button>
+    </div>
+  </div>
+</div>

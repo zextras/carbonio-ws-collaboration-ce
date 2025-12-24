@@ -17,6 +17,7 @@ import com.zextras.carbonio.chats.core.data.model.message.ChatRequest;
 import com.zextras.carbonio.chats.core.data.model.message.ChatResponse;
 import com.zextras.carbonio.chats.core.data.model.message.InboxItemDto;
 import com.zextras.carbonio.chats.core.data.model.message.MessageDto;
+import com.zextras.carbonio.chats.core.data.model.message.MNTAttachmentDto;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.mongoosent.MNTChatService;
 import jakarta.servlet.http.HttpSession;
@@ -171,6 +172,11 @@ public class ChatWebSocketManager {
           return handleSearchMessages(request, userId);
         case GET_INBOX:
           return handleGetInbox(userId);
+        // ADD_ATTACHMENT removed - now handled via REST upload in MNTAttachmentsApi
+        case DELETE_ATTACHMENTS:
+          return handleDeleteAttachments(request, userId);
+        case GET_ATTACHMENT:
+          return handleGetAttachment(request, userId);
         case PING:
           return ChatResponse.create(ChatEvent.PONG);
         default:
@@ -222,7 +228,8 @@ public class ChatWebSocketManager {
             request.getText(),
             request.getReplyToId(),
             request.getForwardedFromId(),
-            null);
+            null,
+            request.getAttachmentIds());
 
     // Broadcast to room members (excluding sender - they get direct response)
     ChatResponse broadcast =
@@ -409,6 +416,42 @@ public class ChatWebSocketManager {
     return ChatResponse.create(ChatEvent.INBOX_RESPONSE).inbox(inbox);
   }
 
+  private ChatResponse handleDeleteAttachments(ChatRequest request, String userId) {
+    if (request.getMessageId() == null || request.getAttachmentIds() == null) {
+      return ChatResponse.createError("Missing messageId or attachmentIds");
+    }
+
+    // Get the message to find roomId before deletion
+    MessageDto message = chatService.getMessageById(request.getMessageId());
+    String roomId = message.getRoomId();
+
+    chatService.deleteAttachments(request.getMessageId(), request.getAttachmentIds(), userId);
+
+    // Broadcast to room members (excluding sender)
+    ChatResponse broadcast =
+        ChatResponse.create(ChatEvent.ATTACHMENT_DELETED)
+            .roomId(roomId)
+            .messageId(request.getMessageId())
+            .attachmentIds(request.getAttachmentIds());
+
+    broadcastToRoom(roomId, broadcast, userId);
+
+    return ChatResponse.create(ChatEvent.ATTACHMENT_DELETED)
+        .roomId(roomId)
+        .messageId(request.getMessageId())
+        .attachmentIds(request.getAttachmentIds());
+  }
+
+  private ChatResponse handleGetAttachment(ChatRequest request, String userId) {
+    if (request.getAttachmentId() == null) {
+      return ChatResponse.createError("Missing attachmentId");
+    }
+
+    MNTAttachmentDto attachment = chatService.getAttachment(request.getAttachmentId(), userId);
+
+    return ChatResponse.create(ChatEvent.ATTACHMENT_RESPONSE).attachment(attachment);
+  }
+
   @OnClose
   public void onClose(Session session) {
     SessionPingManager.remove(session);
@@ -499,6 +542,13 @@ public class ChatWebSocketManager {
     } catch (Exception e) {
       ChatsLogger.warn("Error sending response to chat websocket: " + e.getMessage());
     }
+  }
+
+  /**
+   * Broadcasts to all room members including sender. Used by REST endpoints.
+   */
+  public void broadcastToRoomIncludingSender(String roomId, ChatResponse response) {
+    broadcastToRoom(roomId, response, null);
   }
 
   private void broadcastToRoom(String roomId, ChatResponse response) {
