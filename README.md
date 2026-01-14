@@ -53,7 +53,7 @@ instance instead of using the docker image, which is useful for CI pipeline.
 With the generated fat-jar:
 
 ```shell
-java -jar ./boot/target/zextras-ws-collaboration-ce-fatjar.jar
+java -jar ./boot/target/zextras-ws-collaboration-ce-*-fatjar.jar
 ```
 
 ## Docker

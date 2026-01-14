@@ -14,7 +14,7 @@ test:
 	mvn clean install
 
 copy_jar:
-	scp carbonio-ws-collaboration-boot/target/${WS_SERVICE_NAME}-fatjar.jar root@${VM_HOSTNAME}:/usr/share/carbonio/${WS_SERVICE_NAME}.jar
+	scp carbonio-ws-collaboration-boot/target/${WS_SERVICE_NAME}-*-fatjar.jar root@${VM_HOSTNAME}:/usr/share/carbonio/${WS_SERVICE_NAME}.jar
 
 stop_service:
 	ssh root@${VM_HOSTNAME} "systemctl stop ${WS_SERVICE_NAME}"

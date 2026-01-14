@@ -15,7 +15,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <groupId>com.zextras.carbonio.ws-collaboration</groupId>
     <artifactId>carbonio-ws-collaboration-ce</artifactId>
-    <version>1.6.3</version>
+    <version>${revision}${changelist}</version>
 
     <repositories>
         <repository>
@@ -27,7 +27,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
     <profiles>
         <profile>
-            <id>default</id>
+            <id>dev</id>
             <modules>
                 <module>carbonio-ws-collaboration-openapi</module>
                 <module>carbonio-ws-collaboration-core</module>
@@ -37,10 +37,22 @@ SPDX-License-Identifier: AGPL-3.0-only
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
+            <properties>
+                <changelist>-SNAPSHOT</changelist>
+            </properties>
+        </profile>
+        <profile>
+            <id>prod</id>
+            <properties>
+                <changelist></changelist>
+            </properties>
         </profile>
     </profiles>
 
     <properties>
+        <!-- Maven CI Friendly properties -->
+        <revision>1.6.3</revision>
+        <!-- Dependencies -->
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <maven.version.ignore>(?i).*(.|-)(alpha|beta|m|rc)([-.]?\d+)?</maven.version.ignore>
@@ -113,10 +125,24 @@ SPDX-License-Identifier: AGPL-3.0-only
         <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
         <ebean-maven-plugin.version>15.6.0</ebean-maven-plugin.version>
         <versions-maven-plugin.version>2.18.0</versions-maven-plugin.version>
+        <flatten-maven-plugin.version>1.7.3</flatten-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <!-- Carbonio WS Collaboration internal Dependencies -->
+            <dependency>
+                <groupId>com.zextras.carbonio.ws-collaboration</groupId>
+                <artifactId>carbonio-ws-collaboration-ce-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.zextras.carbonio.ws-collaboration</groupId>
+                <artifactId>carbonio-ws-collaboration-ce-openapi</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!-- Carbonio User Management -->
             <dependency>
                 <groupId>com.zextras.carbonio.user-management</groupId>
@@ -503,8 +529,38 @@ SPDX-License-Identifier: AGPL-3.0-only
                     <artifactId>versions-maven-plugin</artifactId>
                     <version>${versions-maven-plugin.version}</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>flatten-maven-plugin</artifactId>
+                    <version>${flatten-maven-plugin.version}</version>
+                    <configuration>
+                        <updatePomFile>true</updatePomFile>
+                        <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>flatten</id>
+                            <phase>process-resources</phase>
+                            <goals>
+                                <goal>flatten</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>flatten.clean</id>
+                            <phase>clean</phase>
+                            <goals>
+                                <goal>clean</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
     </build>
-
 </project>
