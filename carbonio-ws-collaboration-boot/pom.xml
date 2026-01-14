@@ -21,45 +21,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <artifactId>carbonio-ws-collaboration-ce-boot</artifactId>
 
-  <profiles>
-    <profile>
-      <id>artifacts</id>
-      <properties>
-        <noDocker>false</noDocker>
-        <distro>*</distro>
-        <deployOn>*</deployOn>
-      </properties>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>exec-maven-plugin</artifactId>
-            <version>3.4.1</version>
-            <executions>
-              <execution>
-                <phase>package</phase>
-                <goals>
-                  <goal>exec</goal>
-                </goals>
-              </execution>
-            </executions>
-            <configuration>
-              <workingDirectory>${maven.multiModuleProjectDirectory}</workingDirectory>
-              <executable>build-artifacts.sh</executable>
-              <arguments>
-                <argument>${project.version}</argument>
-                <argument>${project.parent.basedir}/artifacts</argument>
-                <argument>${noDocker}</argument>
-                <argument>${distro}</argument>
-                <argument>${deployOn}</argument>
-              </arguments>
-            </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
-
   <dependencies>
     <dependency>
       <groupId>com.zextras.carbonio.ws-collaboration</groupId>
