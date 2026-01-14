@@ -25,15 +25,16 @@ SPDX-License-Identifier: AGPL-3.0-only
         </repository>
     </repositories>
 
+    <modules>
+        <module>carbonio-ws-collaboration-openapi</module>
+        <module>carbonio-ws-collaboration-core</module>
+        <module>carbonio-ws-collaboration-it</module>
+        <module>carbonio-ws-collaboration-boot</module>
+    </modules>
+
     <profiles>
         <profile>
             <id>dev</id>
-            <modules>
-                <module>carbonio-ws-collaboration-openapi</module>
-                <module>carbonio-ws-collaboration-core</module>
-                <module>carbonio-ws-collaboration-it</module>
-                <module>carbonio-ws-collaboration-boot</module>
-            </modules>
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
