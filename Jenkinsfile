@@ -118,7 +118,7 @@ pipeline {
             steps {
                 container('jdk-21') {
                     withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
-                        sh "mvn ${MVN_OPTS} sonar:sonar"
+                        sh "mvn ${MVN_OPTS} org.sonarsource.scanner.maven:sonar-maven-plugin:sonar"
                     }
                 }
             }
