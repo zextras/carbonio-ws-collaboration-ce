@@ -9,4 +9,4 @@ java -Djava.net.preferIPv4Stack=true \
   -Xmx2048m \
   -XX:+UseZGC \
   -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5006 \
-  -jar carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-fatjar.jar
+  -jar carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-*-fatjar.jar

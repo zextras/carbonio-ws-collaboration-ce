@@ -1,6 +1,6 @@
 pkgname="carbonio-ws-collaboration-ce"
 pkgver="1.6.3"
-pkgrel="1"
+pkgrel="SNAPSHOT"
 pkgdesc="Workstream Collaboration for Carbonio CE"
 maintainer="Zextras <packages@zextras.com>"
 arch=('x86_64')
@@ -21,7 +21,7 @@ backup=(
 source=(
   "611-carbonio-ws-collaboration.sh"
   "carbonio-ws-collaboration"
-  "carbonio-ws-collaboration-ce-fatjar.jar"
+  "carbonio-ws-collaboration-ce.jar"
   "carbonio-ws-collaboration-configs"
   "carbonio-ws-collaboration-setup"
   "carbonio-ws-collaboration.hcl"
@@ -49,7 +49,7 @@ sha256sums=(
 
 package() {
   cd "${srcdir}"
-  install -Dm755 carbonio-ws-collaboration-ce-fatjar.jar \
+  install -Dm755 carbonio-ws-collaboration-ce.jar \
     "${pkgdir}/usr/share/carbonio/carbonio-ws-collaboration.jar"
   install -Dm755 carbonio-ws-collaboration \
     "${pkgdir}/usr/bin/carbonio-ws-collaboration"

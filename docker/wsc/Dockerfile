@@ -5,26 +5,6 @@ ARG BUILDPLATFORM
 
 WORKDIR /app
 
-# # Installazione di OpenSSH Server
-# RUN apt-get update && \
-#     apt-get install -y openssh-server && \
-#     mkdir /var/run/sshd
-
-# # Creazione utente per SSH
-# RUN useradd -rm -d /home/devuser -s /bin/bash -g root -G sudo devuser && \
-#     echo 'devuser:devpass' | chpasswd
-
-# # Configurazione SSH
-# RUN sed -i 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
-#     sed -i 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' /etc/pam.d/sshd && \
-#     echo "export VISIBLE=now" >> /etc/profile
-
-# # Espone la porta SSH
-# EXPOSE 22
-
-# # Avvia il demone SSH
-# CMD ["/usr/sbin/sshd", "-D"]
-
 FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-21 AS deps
 
 ARG TARGETPLATFORM
@@ -48,6 +28,7 @@ WORKDIR /app
 COPY carbonio-ws-collaboration-openapi/src carbonio-ws-collaboration-openapi/src
 
 RUN --mount=type=cache,target=/root/.m2 \
+    mvn install -N -DskipTests && \
     mvn -pl 'carbonio-ws-collaboration-openapi' install -DskipTests
 
 FROM openapi AS build
@@ -66,7 +47,7 @@ FROM gcr.io/distroless/java21-debian12 AS final
 
 WORKDIR /app
 
-COPY --from=build /app/carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-fatjar.jar app.jar
+COPY --from=build /app/carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar app.jar
 
 USER nonroot
 

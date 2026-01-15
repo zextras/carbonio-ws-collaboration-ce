@@ -20,10 +20,14 @@
 target/
 dist/
 *.versionsBackup
+.flattened-pom.xml
 
 # JetBrains IDE
 .idea/
 *.iml
+
+# VsCode
+.vscode/
 
 # Unit test reports
 TEST*.xml
@@ -56,5 +60,3 @@ mongoose/
 *.deb
 *.rpm
 artifacts
-
-.vscode

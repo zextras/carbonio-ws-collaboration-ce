@@ -8,4 +8,4 @@ java -Djava.net.preferIPv4Stack=true \
   -Xms1024m \
   -Xmx2048m \
   -XX:+UseZGC \
-  -jar carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-fatjar.jar
+  -jar carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar
