@@ -12,7 +12,6 @@ import com.zextras.filestore.api.Filestore.Liveness;
 import com.zextras.filestore.model.BulkDeleteRequestItem;
 import com.zextras.filestore.model.BulkDeleteResponseItem;
 import com.zextras.filestore.model.ChatsIdentifier;
-import com.zextras.filestore.model.FilesIdentifier;
 import com.zextras.filestore.model.IdentifierType;
 import com.zextras.storages.api.StoragesClient;
 import java.io.InputStream;
@@ -51,8 +50,8 @@ public class StoragesServiceImpl implements StoragesService {
       String sourceId, String sourceOwnerId, String destinationId, String destinationOwnerId) {
     try {
       storagesClient.copy(
-          FilesIdentifier.of(sourceId, 0, sourceOwnerId),
-          FilesIdentifier.of(destinationId, 0, destinationOwnerId),
+          ChatsIdentifier.of(sourceId, sourceOwnerId),
+          ChatsIdentifier.of(destinationId, destinationOwnerId),
           false);
     } catch (Exception e) {
       throw new StorageException("An error occurred while coping the file", e);
