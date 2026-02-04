@@ -58,11 +58,11 @@ SPDX-License-Identifier: AGPL-3.0-only
         <maven.compiler.target>21</maven.compiler.target>
         <maven.version.ignore>(?i).*(.|-)(alpha|beta|m|rc)([-.]?\d+)?</maven.version.ignore>
         <!-- Carbonio User Management -->
-        <carbonio-user-management-sdk.version>0.5.9</carbonio-user-management-sdk.version>
+        <carbonio-user-management-sdk.version>1.0.1</carbonio-user-management-sdk.version>
         <!-- Storages -->
         <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
         <!-- Previewer -->
-        <preview-sdk.version>1.0.3</preview-sdk.version>
+        <preview-sdk.version>2.0.1</preview-sdk.version>
         <!-- Jetty -->
         <org.eclipse.jetty.version>12.0.19</org.eclipse.jetty.version>
         <org.eclipse.jetty.servlet.version>12.0.19</org.eclipse.jetty.servlet.version>
