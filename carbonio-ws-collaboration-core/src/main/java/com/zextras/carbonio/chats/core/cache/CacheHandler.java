@@ -9,7 +9,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.usermanagement.entities.UserMyself;
-
 import java.time.Duration;
 
 @Singleton
@@ -19,8 +18,7 @@ public class CacheHandler {
 
   @Inject
   public CacheHandler() {
-    this.userMyselfCache =
-        Caffeine.newBuilder().expireAfterWrite(Duration.ofMinutes(60)).maximumSize(100).build();
+    this.userMyselfCache = Caffeine.newBuilder().expireAfterWrite(Duration.ofMinutes(60)).build();
     Runtime.getRuntime()
         .addShutdownHook(
             new Thread(this.userMyselfCache::invalidateAll, "Cache handler shutdown hook"));
