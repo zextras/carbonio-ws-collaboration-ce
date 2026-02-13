@@ -4,6 +4,15 @@
 
 package com.zextras.carbonio.chats.core.config.module;
 
+import java.io.IOException;
+import java.time.Clock;
+import java.time.ZoneId;
+import java.util.Base64;
+import java.util.Properties;
+import java.util.concurrent.TimeoutException;
+
+import org.flywaydb.core.Flyway;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
@@ -29,6 +38,7 @@ import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.cache.CacheHandler;
+import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.JacksonConfig;
@@ -121,17 +131,11 @@ import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.usermanagement.UserManagementClient;
 import com.zextras.storages.api.StoragesClient;
+
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.annotation.Platform;
 import io.ebean.config.DatabaseConfig;
-import java.io.IOException;
-import java.time.Clock;
-import java.time.ZoneId;
-import java.util.Base64;
-import java.util.Properties;
-import java.util.concurrent.TimeoutException;
-import org.flywaydb.core.Flyway;
 
 public class CoreModule extends AbstractModule {
 
@@ -214,7 +218,7 @@ public class CoreModule extends AbstractModule {
 
     bind(VideoServerEventListener.class);
     bind(CacheHandler.class);
-
+    bind(CacheVideoServerSession.class);
     bind(WebsocketVersionMigrator.class);
   }
 
@@ -322,9 +326,9 @@ public class CoreModule extends AbstractModule {
         Base64.getEncoder()
             .encodeToString(
                 String.join(
-                        ":",
-                        appConfig.get(String.class, ConfigName.XMPP_SERVER_USERNAME).orElseThrow(),
-                        appConfig.get(String.class, ConfigName.XMPP_SERVER_PASSWORD).orElseThrow())
+                    ":",
+                    appConfig.get(String.class, ConfigName.XMPP_SERVER_USERNAME).orElseThrow(),
+                    appConfig.get(String.class, ConfigName.XMPP_SERVER_PASSWORD).orElseThrow())
                     .getBytes()),
         objectMapper);
   }

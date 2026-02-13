@@ -4,38 +4,43 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.videoserver;
 
+import java.util.List;
+
 import com.zextras.carbonio.chats.core.data.entity.VideoServerSession;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
-import java.util.List;
 
 public interface VideoServerService extends HealthIndicator {
 
-  void startMeeting(String meetingId);
+    void startMeeting(String meetingId);
 
-  void stopMeeting(String meetingId);
+    void stopMeeting(String meetingId);
 
-  void addMeetingParticipant(
-      String userId,
-      String queueId,
-      String meetingId,
-      boolean videoStreamOn,
-      boolean audioStreamOn);
+    void addMeetingParticipant(
+            String userId,
+            String queueId,
+            String meetingId,
+            boolean videoStreamOn,
+            boolean audioStreamOn);
 
-  void destroyMeetingParticipant(String userId, String meetingId);
+    void destroyMeetingParticipant(String userId, String meetingId);
 
-  List<VideoServerSession> getSessions(String meetingId);
+    List<VideoServerSession> getSessions(String meetingId);
 
-  void updateAudioStream(String userId, String meetingId, boolean enabled);
+    void updateAudioStream(String userId, String meetingId, boolean enabled);
 
-  void updateMediaStream(
-      String userId, String meetingId, MediaStreamSettingsDto mediaStreamSettingsDto);
+    void updateMediaStream(
+            String userId, String meetingId, MediaStreamSettingsDto mediaStreamSettingsDto);
 
-  void answerRtcMediaStream(String userId, String meetingId, String sdp);
+    void answerRtcMediaStream(String userId, String meetingId, String sdp);
 
-  void updateSubscriptionsMediaStream(
-      String userId, String meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto);
+    void updateSubscriptionsMediaStream(
+            String userId, String meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto);
 
-  void offerRtcAudioStream(String userId, String meetingId, String sdp);
+    void offerRtcAudioStream(String userId, String meetingId, String sdp);
+
+    void iceRestartAudio(String userId, String meetingId, String sdp);
+
+    void iceRestartVideo(String userId, String meetingId, String sdp);
 }
