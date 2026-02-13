@@ -21,6 +21,7 @@ import com.zextras.carbonio.async.model.MeetingCreated;
 import com.zextras.carbonio.async.model.Ping;
 import com.zextras.carbonio.async.model.Pong;
 import com.zextras.carbonio.async.model.WebsocketConnected;
+import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
@@ -79,18 +80,21 @@ class VersionedWebsocketIT {
   private final ObjectMapper objectMapper;
   private final WebsocketVersionMigrator websocketVersionMigrator;
   private final ParticipantService participantService;
+  private final CacheVideoServerSession cacheVideoServerSession;
 
   public VersionedWebsocketIT(
       AuthenticationService authenticationService,
       Channel channel,
       ObjectMapper objectMapper,
       WebsocketVersionMigrator websocketVersionMigrator,
-      ParticipantService participantService) {
+      ParticipantService participantService,
+      CacheVideoServerSession cacheVideoServerSession) {
     this.authenticationService = authenticationService;
     this.channel = channel;
     this.objectMapper = objectMapper;
     this.websocketVersionMigrator = websocketVersionMigrator;
     this.participantService = participantService;
+    this.cacheVideoServerSession = cacheVideoServerSession;
   }
 
   @AfterEach
@@ -461,7 +465,11 @@ class VersionedWebsocketIT {
     jettyServer = new Server(8081);
     eventsWebSocketManager =
         new EventsWebSocketManager(
-            channel, objectMapper, websocketVersionMigrator, participantService);
+            channel,
+            objectMapper,
+            websocketVersionMigrator,
+            participantService,
+            cacheVideoServerSession);
 
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
     context.setContextPath("/");
