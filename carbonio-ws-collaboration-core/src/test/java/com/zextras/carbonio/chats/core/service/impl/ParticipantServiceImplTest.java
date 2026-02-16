@@ -5,7 +5,9 @@
 package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -1740,6 +1742,248 @@ class ParticipantServiceImplTest {
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verifyNoMoreInteractions(meetingService);
       verifyNoInteractions(roomService, participantRepository, eventDispatcher, videoServerService);
+    }
+  }
+
+  @Nested
+  @DisplayName("Ice restart audio tests")
+  class IceRestartAudioTests {
+
+    @Test
+    @DisplayName("It triggers ice restart for the audio stream for the current user")
+    void iceRestartAudio_testOk() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      permanentMeeting.participants(
+          List.of(participant1Session1, participant2Session1, participant4Session1));
+
+      participantService.iceRestartAudio(
+          permanentMeetingId, "sdp", UserPrincipal.create(user1Id).queueId(user1Queue1));
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verify(videoServerService, times(1))
+          .iceRestartAudio(user1Id.toString(), permanentMeetingId.toString(), "sdp");
+      verifyNoMoreInteractions(meetingService, videoServerService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
+    void iceRestartAudio_testErrorMeetingNotExists() {
+      when(meetingService.getMeetingEntity(permanentMeetingId)).thenReturn(Optional.empty());
+
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () ->
+                  participantService.iceRestartAudio(
+                      permanentMeetingId,
+                      "sdp",
+                      UserPrincipal.create(user1Id).queueId(user1Queue1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format("Not Found - Meeting '%s' not found", permanentMeetingId),
+          exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, videoServerService, participantRepository, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the requester is not a meeting participant, it throws a 'not found' exception")
+    void iceRestartVideo_testErrorUserIsNotMeetingParticipant() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () ->
+                  participantService.iceRestartAudio(
+                      permanentMeetingId,
+                      "sdp",
+                      UserPrincipal.create(user3Id).queueId(user3Queue1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format(
+              "Not Found - User '%s' not found into meeting '%s'", user3Id, permanentMeetingId),
+          exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(
+          roomService,
+          videoServerService,
+          participantRepository,
+          eventDispatcher,
+          videoServerService);
+    }
+  }
+
+  @Nested
+  @DisplayName("Ice restart video tests")
+  class IceRestartVideoTests {
+
+    @Test
+    @DisplayName("It triggers ice restart for the video stream for the current user")
+    void iceRestartVideo_testOk() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      permanentMeeting.participants(
+          List.of(participant1Session1, participant2Session1, participant4Session1));
+
+      participantService.iceRestartVideo(
+          permanentMeetingId, "sdp", UserPrincipal.create(user1Id).queueId(user1Queue1));
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verify(videoServerService, times(1))
+          .iceRestartVideo(user1Id.toString(), permanentMeetingId.toString(), "sdp");
+      verifyNoMoreInteractions(meetingService, videoServerService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
+    void iceRestartVideo_testErrorMeetingNotExists() {
+      when(meetingService.getMeetingEntity(permanentMeetingId)).thenReturn(Optional.empty());
+
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () ->
+                  participantService.iceRestartVideo(
+                      permanentMeetingId,
+                      "sdp",
+                      UserPrincipal.create(user1Id).queueId(user1Queue1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format("Not Found - Meeting '%s' not found", permanentMeetingId),
+          exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, videoServerService, participantRepository, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the requester is not a meeting participant, it throws a 'not found' exception")
+    void iceRestartVideo_testErrorUserIsNotMeetingParticipant() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () ->
+                  participantService.iceRestartVideo(
+                      permanentMeetingId,
+                      "sdp",
+                      UserPrincipal.create(user3Id).queueId(user3Queue1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format(
+              "Not Found - User '%s' not found into meeting '%s'", user3Id, permanentMeetingId),
+          exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(
+          roomService,
+          videoServerService,
+          participantRepository,
+          eventDispatcher,
+          videoServerService);
+    }
+  }
+
+  @Nested
+  @DisplayName("Get meeting participants tests")
+  class GetMeetingParticipantsTests {
+
+    @Test
+    @DisplayName("Get meeting participants by queueId  successfully")
+    void getByQueueId_testOk() {
+      when(participantRepository.getByQueueId(user1Queue1.toString()))
+          .thenReturn(Optional.of(participant1Session1));
+
+      Optional<Participant> participantOpt = participantService.getByQueueId(user1Queue1);
+
+      assertTrue(participantOpt.isPresent());
+      assertEquals(participant1Session1, participantOpt.get());
+
+      verify(participantRepository, times(1)).getByQueueId(user1Queue1.toString());
+      verifyNoMoreInteractions(participantRepository);
+      verifyNoInteractions(meetingService, roomService, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("Get meeting participants by queueId with not existing session")
+    void getByQueueId_testErrorNotExistingSession() {
+      when(participantRepository.getByQueueId(user3Queue1.toString())).thenReturn(Optional.empty());
+
+      Optional<Participant> participantOpt = participantService.getByQueueId(user3Queue1);
+
+      assertFalse(participantOpt.isPresent());
+
+      verify(participantRepository, times(1)).getByQueueId(user3Queue1.toString());
+      verifyNoMoreInteractions(participantRepository);
+      verifyNoInteractions(meetingService, roomService, eventDispatcher, videoServerService);
+    }
+  }
+
+  @Nested
+  @DisplayName("Update participant by queue id tests")
+  class UpdateParticipantQueueIdTests {
+
+    @Test
+    @DisplayName("It updates the participant queue id successfully")
+    void updateParticipantQueueId_testOk() {
+      when(participantRepository.getById(permanentMeetingId.toString(), user1Id.toString()))
+          .thenReturn(Optional.of(participant1Session1));
+
+      participantService.updateParticipantQueueId(user1Id, permanentMeetingId, user2Queue1);
+
+      verify(participantRepository, times(1))
+          .getById(permanentMeetingId.toString(), user1Id.toString());
+      verify(participantRepository, times(1))
+          .update(participant1Session1.queueId(user2Queue1.toString()));
+      verifyNoMoreInteractions(participantRepository);
+      verifyNoInteractions(meetingService, roomService, eventDispatcher, videoServerService);
+    }
+
+    @Test
+    @DisplayName("It tries to update the participant queue id but the participant doesn't exist")
+    void updateParticipantQueueId_testErrorParticipantNotExists() {
+      when(participantRepository.getById(permanentMeetingId.toString(), user3Id.toString()))
+          .thenReturn(Optional.empty());
+
+      NotFoundException exception =
+          assertThrows(
+              NotFoundException.class,
+              () ->
+                  participantService.updateParticipantQueueId(
+                      user3Id, permanentMeetingId, user2Queue1));
+      assertEquals(
+          String.format(
+              "Not Found - Participant '%s' not found in meeting '%s'",
+              user3Id, permanentMeetingId),
+          exception.getMessage());
+
+      verify(participantRepository, times(1))
+          .getById(permanentMeetingId.toString(), user3Id.toString());
+      verifyNoMoreInteractions(participantRepository);
+      verifyNoInteractions(meetingService, roomService, eventDispatcher, videoServerService);
     }
   }
 }

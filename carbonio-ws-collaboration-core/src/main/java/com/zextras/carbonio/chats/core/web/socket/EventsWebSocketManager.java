@@ -15,6 +15,7 @@ import com.rabbitmq.client.DeliverCallback;
 import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.async.model.WebsocketConnected;
+import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
@@ -44,17 +45,20 @@ public class EventsWebSocketManager {
   private final ObjectMapper objectMapper;
   private final WebsocketVersionMigrator migrator;
   private final ParticipantService participantService;
+  private final CacheVideoServerSession cacheVideoServerSession;
 
   @Inject
   public EventsWebSocketManager(
       Channel channel,
       ObjectMapper objectMapper,
       WebsocketVersionMigrator migrator,
-      ParticipantService participantService) {
+      ParticipantService participantService,
+      CacheVideoServerSession cacheVideoServerSession) {
     this.channel = channel;
     this.objectMapper = objectMapper;
     this.migrator = migrator;
     this.participantService = participantService;
+    this.cacheVideoServerSession = cacheVideoServerSession;
     this.consumerTagMap = new ConcurrentHashMap<>();
     Runtime.getRuntime()
         .addShutdownHook(new Thread(this::stop, "Event websocket manager shutdown hook"));
@@ -124,13 +128,35 @@ public class EventsWebSocketManager {
       if (optTypeKey.isEmpty()) return;
 
       String type = optTypeKey.get().asText();
-      if (type.equalsIgnoreCase("ping") && session.isOpen()) {
-        /**
-         * TODO: The Ping event is not websocket native. It is not needed anymore so events
-         * (EventType.PING, EventType.PONG) will be removed as soon as possible.
-         */
-        var pong = DomainEvent.create().type(EventType.PONG).sentDate(OffsetDateTime.now());
-        session.getAsyncRemote().sendObject(migrator.downgradeIfNeeded(pong, getVersion(session)));
+      if (session.isOpen()) {
+        switch (type) {
+          case "ping", "PING", "Ping" -> {
+            /**
+             * TODO: The Ping event is not websocket native. It is not needed anymore so events
+             * (EventType.PING, EventType.PONG) will be removed as soon as possible.
+             */
+            var pong = DomainEvent.create().type(EventType.PONG).sentDate(OffsetDateTime.now());
+            session
+                .getAsyncRemote()
+                .sendObject(migrator.downgradeIfNeeded(pong, getVersion(session)));
+          }
+
+          case "IceRestart" -> {
+            Optional<JsonNode> optMeetingIdKey = getKey(node, "meetingId");
+            if (optMeetingIdKey.isEmpty()) return;
+            String meetingId = optMeetingIdKey.get().asText();
+            cacheVideoServerSession.remove(
+                UUID.fromString(getUserIdFromSession(session)), meetingId);
+            participantService.updateParticipantQueueId(
+                UUID.fromString(getUserIdFromSession(session)),
+                UUID.fromString(meetingId),
+                UUID.fromString(session.getId()));
+          }
+
+          default ->
+              ChatsLogger.warn(
+                  String.format("Unknown event type '%s' when parsing websocket message", type));
+        }
       }
     } catch (Exception e) {
       SessionPingManager.remove(session);
@@ -177,9 +203,11 @@ public class EventsWebSocketManager {
 
   private String getVersion(Session session) {
     // OLD_CLIENT_FALLBACK
-    // If the requested sub-protocol is an empty string, it means the clients aren't passing any
+    // If the requested sub-protocol is an empty string, it means the clients aren't
+    // passing any
     // sub-protocols,
-    // so they are old clients. We use 1.6.0 version to execute event migrations and ensure
+    // so they are old clients. We use 1.6.0 version to execute event migrations and
+    // ensure
     // retro-compatibility.
     return !session.getNegotiatedSubprotocol().isBlank()
         ? session.getNegotiatedSubprotocol()
@@ -192,7 +220,7 @@ public class EventsWebSocketManager {
     UUID queueId = UUID.fromString(sessionId);
     String userQueue = userId + "/" + queueId;
 
-    participantService.removeMeetingParticipant(queueId);
+    cacheVideoServerSession.add(userId, queueId);
 
     if (channel == null || !channel.isOpen()) {
       ChatsLogger.error(

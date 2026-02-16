@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.web.api;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.api.MeetingsApiService;
+import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
@@ -32,21 +33,27 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
 
   private final MeetingService meetingService;
   private final ParticipantService participantService;
+  private final CacheVideoServerSession cacheVideoServerSession;
 
   @Inject
   public MeetingsApiServiceImpl(
-      MeetingService meetingService, ParticipantService participantService) {
+      MeetingService meetingService,
+      ParticipantService participantService,
+      CacheVideoServerSession cacheVideoServerSession) {
     this.meetingService = meetingService;
     this.participantService = participantService;
+    this.cacheVideoServerSession = cacheVideoServerSession;
   }
 
   /**
    * Gets meetings list for authenticated user.
    *
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @param securityContext security context created by the authentication filter
+   *                        {@link SecurityContext}
    * @return a response
-   * {@link Response) with status 200 and the meetings list {@link com.zextras.carbonio.chats.model.MeetingDto} of
-   * authenticated user in the body
+   *         {@link Response) with status 200 and the meetings list
+   *         {@link com.zextras.carbonio.chats.model.MeetingDto} of
+   *         authenticated user in the body
    */
   @Override
   public Response listMeeting(SecurityContext securityContext) {
@@ -62,10 +69,12 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * Gets the requested meeting.
    *
    * @param meetingId       meeting identifier {@link UUID}}
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @param securityContext security context created by the authentication filter
+   *                        {@link SecurityContext}
    * @return a response
-   * {@link Response) with status 200 and the requested meeting {@link com.zextras.carbonio.chats.model.MeetingDto} in
-   * the body
+   *         {@link Response) with status 200 and the requested meeting
+   *         {@link com.zextras.carbonio.chats.model.MeetingDto} in
+   *         the body
    */
   @Override
   public Response getMeeting(UUID meetingId, SecurityContext securityContext) {
@@ -77,10 +86,12 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
 
   /**
    * @param newMeetingDataDto data form creating a new meeting
-   * @param securityContext   security context created by the authentication filter {@link SecurityContext}
+   * @param securityContext   security context created by the authentication
+   *                          filter {@link SecurityContext}
    * @return a response
-   * {@link Response) with status 200 and the requested meeting {@link com.zextras.carbonio.chats.model.MeetingDto} in
-   * the body
+   *         {@link Response) with status 200 and the requested meeting
+   *         {@link com.zextras.carbonio.chats.model.MeetingDto} in
+   *         the body
    */
   @Override
   public Response createMeeting(
@@ -106,7 +117,8 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * Deletes the requested meeting.
    *
    * @param meetingId       meeting identifier {@link UUID}
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @param securityContext security context created by the authentication filter
+   *                        {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
@@ -124,7 +136,8 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * @param meetingId       meeting identifier {@link UUID}
    * @param joinSettingsDto user requested access settings for meeting
    *                        {@link com.zextras.carbonio.chats.model.JoinSettingsDto}
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @param securityContext security context created by the authentication filter
+   *                        {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
@@ -133,6 +146,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     UserPrincipal currentUser =
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
+    cacheVideoServerSession.remove(currentUser.getUUID(), meetingId.toString());
     if (currentUser.getQueueId() == null) {
       throw new BadRequestException(
           "Queue identifier not specified for user " + currentUser.getId());
@@ -147,7 +161,8 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * Removes the authenticated user from the meeting.
    *
    * @param meetingId       meeting identifier {@link UUID}
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @param securityContext security context created by the authentication filter
+   *                        {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
@@ -163,10 +178,12 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * Starts the meeting on the videoserver
    *
    * @param meetingId       meeting identifier {@link UUID}
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @param securityContext security context created by the authentication filter
+   *                        {@link SecurityContext}
    * @return a response
-   * {@link Response) with status 200 and the updated meeting {@link com.zextras.carbonio.chats.model.MeetingDto} in
-   * the body
+   *         {@link Response) with status 200 and the updated meeting
+   *         {@link com.zextras.carbonio.chats.model.MeetingDto} in
+   *         the body
    */
   @Override
   public Response startMeeting(UUID meetingId, SecurityContext securityContext) {
@@ -182,10 +199,12 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * Stops the meeting on the videoserver
    *
    * @param meetingId       meeting identifier {@link UUID}
-   * @param securityContext security context created by the authentication filter {@link SecurityContext}
+   * @param securityContext security context created by the authentication filter
+   *                        {@link SecurityContext}
    * @return a response
-   * {@link Response) with status 200 and the updated meeting {@link com.zextras.carbonio.chats.model.MeetingDto} in
-   * the body
+   *         {@link Response) with status 200 and the updated meeting
+   *         {@link com.zextras.carbonio.chats.model.MeetingDto} in
+   *         the body
    */
   @Override
   public Response stopMeeting(UUID meetingId, SecurityContext securityContext) {
@@ -198,12 +217,16 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   }
 
   /**
-   * Updates the media stream status in the meeting for the current session and starts WebRTC negotiation with
-   * VideoServer for the PeerConnection setup related to screen stream when it has to be enabled.
+   * Updates the media stream status in the meeting for the current session and
+   * starts WebRTC negotiation with
+   * VideoServer for the PeerConnection setup related to screen stream when it has
+   * to be enabled.
    *
-   * @param meetingId              meeting identifier {@link UUID}   *
-   * @param mediaStreamSettingsDto user settings request to update the media stream status
-   * @param securityContext        security context created by the authentication filter {@link SecurityContext}
+   * @param meetingId              meeting identifier {@link UUID} *
+   * @param mediaStreamSettingsDto user settings request to update the media
+   *                               stream status
+   * @param securityContext        security context created by the authentication
+   *                               filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
@@ -228,8 +251,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * Updates the audio stream status in the meeting for the current session
    *
    * @param meetingId              meeting identifier {@link UUID}
-   * @param audioStreamSettingsDto user settings request to update the audio stream status
-   * @param securityContext        security context created by the authentication filter {@link SecurityContext}
+   * @param audioStreamSettingsDto user settings request to update the audio
+   *                               stream status
+   * @param securityContext        security context created by the authentication
+   *                               filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
@@ -248,8 +273,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    * Update subscriptions of the current session to the desired media streams
    *
    * @param meetingId              meeting identifier {@link UUID}
-   * @param subscriptionUpdatesDto contains all media streams which user wants to update subscriptions for
-   * @param securityContext        security context created by the authentication filter {@link SecurityContext}
+   * @param subscriptionUpdatesDto contains all media streams which user wants to
+   *                               update subscriptions for
+   * @param securityContext        security context created by the authentication
+   *                               filter {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
@@ -270,11 +297,14 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   }
 
   /**
-   * Completes WebRTC negotiation with VideoServer for the PeerConnection setup related to media stream.
+   * Completes WebRTC negotiation with VideoServer for the PeerConnection setup
+   * related to media stream.
    *
    * @param meetingId                     meeting identifier {@link UUID}
    * @param sessionDescriptionProtocolDto the answer rtc session description
-   * @param securityContext               security context created by the authentication filter {@link SecurityContext}
+   * @param securityContext               security context created by the
+   *                                      authentication filter
+   *                                      {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
@@ -291,11 +321,14 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   }
 
   /**
-   * Starts WebRTC negotiation with VideoServer for the PeerConnection setup related to audio stream.
+   * Starts WebRTC negotiation with VideoServer for the PeerConnection setup
+   * related to audio stream.
    *
    * @param meetingId                     meeting identifier {@link UUID}
    * @param sessionDescriptionProtocolDto the offer rtc session description
-   * @param securityContext               security context created by the authentication filter {@link SecurityContext}
+   * @param securityContext               security context created by the
+   *                                      authentication filter
+   *                                      {@link SecurityContext}
    * @return a response {@link Response) with status 204
    */
   @Override
@@ -318,6 +351,32 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
     participantService.updateHandStatus(meetingId, handStatusDto, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
+  public Response iceRestartAudio(
+      UUID meetingId,
+      SessionDescriptionProtocolDto sessionDescriptionProtocolDto,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+    participantService.iceRestartAudio(
+        meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
+  public Response iceRestartVideo(
+      UUID meetingId,
+      SessionDescriptionProtocolDto sessionDescriptionProtocolDto,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+    participantService.iceRestartVideo(
+        meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 }

@@ -5,10 +5,16 @@
 package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.model.*;
+import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
+import com.zextras.carbonio.chats.model.HandStatusDto;
+import com.zextras.carbonio.chats.model.JoinSettingsDto;
+import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
+import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ParticipantService {
@@ -35,7 +41,15 @@ public interface ParticipantService {
 
   void offerRtcAudioStream(UUID meetingId, String sdp, UserPrincipal currentUser);
 
+  void iceRestartAudio(UUID meetingId, String sdp, UserPrincipal currentUser);
+
+  void iceRestartVideo(UUID meetingId, String sdp, UserPrincipal currentUser);
+
   void updateHandStatus(UUID meetingId, HandStatusDto handStatusDto, UserPrincipal currentUser);
 
   void clear(UUID meetingId);
+
+  Optional<Participant> getByQueueId(UUID queueId);
+
+  Participant updateParticipantQueueId(UUID userId, UUID meetingId, UUID newQueueId);
 }

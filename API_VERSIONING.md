@@ -4,6 +4,13 @@ This document tracks internal changes related to API versioning, both for the RE
 
 ---
 
+## Version 1.6.6 (Released with Carbonio 26.3.0)
+
+### Changes (1.6.6)
+
+- **API**: Added PUT `/meetings/${meetingId}/audio/iceRestart` endpoint
+- **API**: Added PUT `/meetings/${meetingId}/video/iceRestart` endpoint
+
 ## Version 1.6.3 (Released with Carbonio 25.12.0)
 
 ### Changes (1.6.3)

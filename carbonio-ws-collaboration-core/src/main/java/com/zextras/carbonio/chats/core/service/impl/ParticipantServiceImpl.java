@@ -31,7 +31,11 @@ import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.model.*;
+import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
+import com.zextras.carbonio.chats.model.HandStatusDto;
+import com.zextras.carbonio.chats.model.JoinSettingsDto;
+import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
+import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
 import jakarta.validation.constraints.NotNull;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -208,6 +212,12 @@ public class ParticipantServiceImpl implements ParticipantService {
             .sentDate(OffsetDateTime.now()));
   }
 
+  /**
+   * Removes a participant from the meeting when called by API
+   *
+   * @param meetingId the meeting ID
+   * @param currentUser the current user
+   */
   @Override
   public void removeMeetingParticipant(UUID meetingId, UserPrincipal currentUser) {
     Meeting meeting = validateMeeting(meetingId);
@@ -217,6 +227,13 @@ public class ParticipantServiceImpl implements ParticipantService {
     removeMeetingParticipant(meeting, room, currentUser.getUUID());
   }
 
+  /**
+   * Removes a participant from the meeting when member is removed from the room
+   *
+   * @param meeting the meeting
+   * @param room the room
+   * @param userId the user ID
+   */
   @Override
   public void removeMeetingParticipant(Meeting meeting, Room room, UUID userId) {
     meeting.getParticipants().stream()
@@ -239,6 +256,37 @@ public class ParticipantServiceImpl implements ParticipantService {
                                 participant.getMeeting(),
                                 room,
                                 UUID.fromString(participant.getUserId()))));
+  }
+
+  @Override
+  public void iceRestartAudio(UUID meetingId, String sdp, UserPrincipal currentUser) {
+    Meeting meeting = validateMeeting(meetingId);
+    validateMeetingParticipant(currentUser.getId(), meeting);
+    videoServerService.iceRestartAudio(currentUser.getId(), meetingId.toString(), sdp);
+  }
+
+  @Override
+  public void iceRestartVideo(UUID meetingId, String sdp, UserPrincipal currentUser) {
+    Meeting meeting = validateMeeting(meetingId);
+    validateMeetingParticipant(currentUser.getId(), meeting);
+    videoServerService.iceRestartVideo(currentUser.getId(), meetingId.toString(), sdp);
+  }
+
+  @Override
+  public Optional<Participant> getByQueueId(UUID queueId) {
+    return participantRepository.getByQueueId(queueId.toString());
+  }
+
+  @Override
+  public Participant updateParticipantQueueId(UUID userId, UUID meetingId, UUID newQueueId) {
+    Optional<Participant> participant =
+        participantRepository.getById(meetingId.toString(), userId.toString());
+    if (participant.isPresent()) {
+      return participantRepository.update(participant.get().queueId(newQueueId.toString()));
+    } else {
+      throw new NotFoundException(
+          String.format("Participant '%s' not found in meeting '%s'", userId, meetingId));
+    }
   }
 
   private void removeMeetingParticipant(Participant participant, Meeting meeting, Room room) {

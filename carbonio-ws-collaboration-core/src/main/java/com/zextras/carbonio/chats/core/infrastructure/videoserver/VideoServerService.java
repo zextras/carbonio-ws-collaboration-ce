@@ -38,4 +38,8 @@ public interface VideoServerService extends HealthIndicator {
       String userId, String meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto);
 
   void offerRtcAudioStream(String userId, String meetingId, String sdp);
+
+  void iceRestartAudio(String userId, String meetingId, String sdp);
+
+  void iceRestartVideo(String userId, String meetingId, String sdp);
 }

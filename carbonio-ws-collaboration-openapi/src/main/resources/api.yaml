@@ -6,8 +6,8 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.3
-  x-supported-versions: ["1.6.3", "1.6.2", "1.6.1", "1.6.0"]
+  version: 1.6.6
+  x-supported-versions: [ "1.6.6", "1.6.3", "1.6.2", "1.6.1", "1.6.0" ]
 
 servers:
   - url: http://localhost:10000
@@ -838,6 +838,44 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/audio/iceRestart:
+    put:
+      tags:
+        - Meetings
+      summary: Start WebRTC negotiation for audio stream for the current session on ICE restart
+      operationId: iceRestartAudio
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      requestBody:
+        $ref: '#/components/requestBodies/RtcMediaStreamRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204IceRestartAudioStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/video/iceRestart:
+    put:
+      tags:
+        - Meetings
+      summary: Start WebRTC negotiation for video stream for the current session on ICE restart
+      operationId: iceRestartVideo
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      requestBody:
+        $ref: '#/components/requestBodies/RtcMediaStreamRequestOptional'
+      responses:
+        204:
+          $ref: '#/components/responses/204IceRestartVideoStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /meetings/{meetingId}/hand:
     put:
       tags:
@@ -1146,6 +1184,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/SessionDescriptionProtocol'
+    RtcMediaStreamRequestOptional:
+      description: user request to send a rtc session description related to media stream for WebRTC negotiation
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SessionDescriptionProtocol'
     UpdateMediaStreamSubscriptionsRequest:
       description: user request to update subscriptions to the desired media stream
       required: true
@@ -1368,6 +1413,10 @@ components:
       description: The status of audio stream changed successfully
     204OfferAudioStreamResponse:
       description: The offer related to the audio stream has been processed and sent successfully
+    204IceRestartAudioStreamResponse:
+      description: The offer related to the audio stream has been processed and sent successfully on ICE restart
+    204IceRestartVideoStreamResponse:
+      description: The offer related to the video stream has been processed and sent successfully on ICE restart
     204MediaStreamResponse:
       description: The status of media stream changed successfully
     204AnswerMediaStreamResponse:
@@ -1794,8 +1843,9 @@ components:
         meetingType:
           $ref: '#/components/schemas/MeetingType'
         expiration:
-          description: 'This field is only used for scheduled meetings to indicate when the meeting will
-            no more be necessary'
+          description:
+            "This field is only used for scheduled meetings to indicate when the meeting will
+            no more be necessary"
           type: string
           format: date-time
       required: [ name, meetingType ]
@@ -1816,8 +1866,9 @@ components:
           $ref: '#/components/schemas/MeetingUserType'
     MeetingType:
       type: string
-      description: 'Defines the type of meeting, if permanent it will never be automatically deleted,
-        if scheduled it will be removed after the expiration is passed'
+      description:
+        "Defines the type of meeting, if permanent it will never be automatically deleted,
+        if scheduled it will be removed after the expiration is passed"
       enum:
         - permanent
         - scheduled
@@ -1946,7 +1997,6 @@ components:
         sdp:
           type: string
           description: indicates the descriptor of the session
-      required: [ sdp ]
     SubscriptionUpdates:
       type: object
       description: subscriptions updates related to media streams

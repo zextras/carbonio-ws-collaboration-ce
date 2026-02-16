@@ -4,10 +4,7 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -30,16 +27,8 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Rtc
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.RtcType;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Stream;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerMessageRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeCreateRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeDestroyRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeJoinRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeMuteRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomCreateRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomDestroyRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomJoinRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomPublishRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomStartVideoInRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomUpdateSubscriptionsRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.*;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.*;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.VideoServerDataInfo;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.VideoServerResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.audiobridge.AudioBridgeDataInfo;
@@ -2458,6 +2447,9 @@ class VideoServerServiceImplTest {
           offerRtcAudioStreamRequestCaptor.getValue();
       assertEquals("message", offerRtcAudioStreamRequest.getMessageRequest());
       assertEquals("token", offerRtcAudioStreamRequest.getApiSecret());
+      assertEquals(
+          "session-description-protocol",
+          offerRtcAudioStreamRequest.getRtcSessionDescription().getSdp());
       AudioBridgeJoinRequest audioBridgeJoinRequest =
           (AudioBridgeJoinRequest) offerRtcAudioStreamRequest.getVideoServerPluginRequest();
       assertEquals("join", audioBridgeJoinRequest.getRequest());
@@ -2534,6 +2526,344 @@ class VideoServerServiceImplTest {
           .sendAudioBridgeRequest(
               eq(user1SessionId.toString()),
               eq(user1AudioHandleId.toString()),
+              any(VideoServerMessageRequest.class));
+    }
+  }
+
+  @Nested
+  @DisplayName("Ice restart audio tests")
+  class IceRestartAudioTests {
+
+    @Test
+    @DisplayName("It triggers ice restart for audio")
+    void iceRestartAudio_testOk() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .audioHandleId(user1AudioHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+
+      AudioBridgeResponse iceRestartAudioResponse =
+          AudioBridgeResponse.create()
+              .status("ack")
+              .connectionId(user1SessionId.toString())
+              .transactionId("transaction-id")
+              .handleId(user1AudioHandleId.toString());
+      when(videoServerClient.sendAudioBridgeRequest(
+              eq(user1SessionId.toString()),
+              eq(user1AudioHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(iceRestartAudioResponse);
+
+      videoServerService.iceRestartAudio(
+          user1Id.toString(), meeting1Id.toString(), "session-description-protocol");
+
+      ArgumentCaptor<VideoServerMessageRequest> iceRestartAudioRequestCaptor =
+          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendAudioBridgeRequest(
+              eq(user1SessionId.toString()),
+              eq(user1AudioHandleId.toString()),
+              iceRestartAudioRequestCaptor.capture());
+
+      assertEquals(1, iceRestartAudioRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest iceRestartAudioRequest = iceRestartAudioRequestCaptor.getValue();
+      assertEquals("message", iceRestartAudioRequest.getMessageRequest());
+      assertEquals("token", iceRestartAudioRequest.getApiSecret());
+      assertEquals(
+          "session-description-protocol",
+          iceRestartAudioRequest.getRtcSessionDescription().getSdp());
+      AudioBridgeConfigureRequest audioBridgeConfigureRequest =
+          (AudioBridgeConfigureRequest) iceRestartAudioRequest.getVideoServerPluginRequest();
+      assertEquals("configure", audioBridgeConfigureRequest.getRequest());
+    }
+
+    @Test
+    @DisplayName("Try to trigger ice restart for audio stream on a meeting that does not exist")
+    void iceRestartAudio_testErrorMeetingNotExists() {
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.iceRestartAudio(
+                  user1Id.toString(), meeting1Id.toString(), "session-description-protocol"),
+          "No videoserver meeting found for the meeting " + meeting1Id);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName(
+        "Try to trigger ice restart for audio stream on a meeting of a participant that is not in")
+    void iceRestartAudio_testErrorParticipantNotExists() {
+      createVideoServerMeeting(meeting1Id);
+
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.iceRestartAudio(
+                  user1Id.toString(), meeting1Id.toString(), "session-description-protocol"),
+          "No Videoserver session found for user " + user1Id + " for the meeting " + meeting1Id);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName(
+        "Try to trigger ice restart for audio stream on a meeting but video server returns error")
+    void iceRestartAudio_testErrorResponseFromVideoServer() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .audioHandleId(user1AudioHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+
+      AudioBridgeResponse iceRestartAudioResponse = AudioBridgeResponse.create().status("error");
+      when(videoServerClient.sendAudioBridgeRequest(
+              eq(user1SessionId.toString()),
+              eq(user1AudioHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(iceRestartAudioResponse);
+
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.iceRestartAudio(
+                  user1Id.toString(), meeting1Id.toString(), "session-description-protocol"),
+          "An error occurred while user "
+              + user1Id
+              + " with connection id "
+              + queue1Id
+              + " is triggering audio ice restart");
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendAudioBridgeRequest(
+              eq(user1SessionId.toString()),
+              eq(user1AudioHandleId.toString()),
+              any(VideoServerMessageRequest.class));
+    }
+  }
+
+  @Nested
+  @DisplayName("Ice restart video tests")
+  class IceRestartVideoTests {
+
+    @Test
+    @DisplayName("It triggers ice restart for video in")
+    void iceRestartVideoIn_testOk() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .videoInHandleId(user1VideoInHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+
+      VideoRoomResponse iceRestartVideoInResponse =
+          VideoRoomResponse.create()
+              .status("ack")
+              .connectionId(user1SessionId.toString())
+              .transactionId("transaction-id")
+              .handleId(user1VideoInHandleId.toString());
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1VideoInHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(iceRestartVideoInResponse);
+
+      videoServerService.iceRestartVideo(user1Id.toString(), meeting1Id.toString(), null);
+
+      ArgumentCaptor<VideoServerMessageRequest> iceRestartVideoInRequestCaptor =
+          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1VideoInHandleId.toString()),
+              iceRestartVideoInRequestCaptor.capture());
+
+      assertEquals(1, iceRestartVideoInRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest iceRestartVideoInRequest =
+          iceRestartVideoInRequestCaptor.getValue();
+      assertEquals("message", iceRestartVideoInRequest.getMessageRequest());
+      assertEquals("token", iceRestartVideoInRequest.getApiSecret());
+      assertNull(iceRestartVideoInRequest.getRtcSessionDescription());
+      VideoRoomConfigureRequest videoRoomConfigureRequest =
+          (VideoRoomConfigureRequest) iceRestartVideoInRequest.getVideoServerPluginRequest();
+      assertEquals("configure", videoRoomConfigureRequest.getRequest());
+      assertTrue(videoRoomConfigureRequest.getRestart());
+    }
+
+    @Test
+    @DisplayName("It triggers ice restart for video out")
+    void iceRestartVideoOut_testOk() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .videoOutHandleId(user1VideoOutHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+
+      VideoRoomResponse iceRestartVideoOutResponse =
+          VideoRoomResponse.create()
+              .status("ack")
+              .connectionId(user1SessionId.toString())
+              .transactionId("transaction-id")
+              .handleId(user1VideoOutHandleId.toString());
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1VideoOutHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(iceRestartVideoOutResponse);
+
+      videoServerService.iceRestartVideo(
+          user1Id.toString(), meeting1Id.toString(), "session-description-protocol");
+
+      ArgumentCaptor<VideoServerMessageRequest> iceRestartVideoOutRequestCaptor =
+          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1VideoOutHandleId.toString()),
+              iceRestartVideoOutRequestCaptor.capture());
+
+      assertEquals(1, iceRestartVideoOutRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest iceRestartVideoOutRequest =
+          iceRestartVideoOutRequestCaptor.getValue();
+      assertEquals("message", iceRestartVideoOutRequest.getMessageRequest());
+      assertEquals("token", iceRestartVideoOutRequest.getApiSecret());
+      assertEquals(
+          "session-description-protocol",
+          iceRestartVideoOutRequest.getRtcSessionDescription().getSdp());
+      VideoRoomConfigureRequest videoRoomConfigureRequest =
+          (VideoRoomConfigureRequest) iceRestartVideoOutRequest.getVideoServerPluginRequest();
+      assertEquals("configure", videoRoomConfigureRequest.getRequest());
+    }
+
+    @Test
+    @DisplayName("Try to trigger ice restart for video stream on a meeting that does not exist")
+    void iceRestartVideo_testErrorMeetingNotExists() {
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.iceRestartVideo(
+                  user1Id.toString(), meeting1Id.toString(), "session-description-protocol"),
+          "No videoserver meeting found for the meeting " + meeting1Id);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName(
+        "Try to trigger ice restart for video stream on a meeting of a participant that is not in")
+    void iceRestartVideo_testErrorParticipantNotExists() {
+      createVideoServerMeeting(meeting1Id);
+
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.iceRestartVideo(
+                  user1Id.toString(), meeting1Id.toString(), "session-description-protocol"),
+          "No Videoserver session found for user " + user1Id + " for the meeting " + meeting1Id);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName(
+        "Try to trigger ice restart for video in stream on a meeting but video server returns"
+            + " error")
+    void iceRestartVideoIn_testErrorResponseFromVideoServer() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .videoInHandleId(user1VideoInHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+
+      VideoRoomResponse iceRestartVideoInResponse = VideoRoomResponse.create().status("error");
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1VideoInHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(iceRestartVideoInResponse);
+
+      assertThrows(
+          VideoServerException.class,
+          () -> videoServerService.iceRestartVideo(user1Id.toString(), meeting1Id.toString(), null),
+          "An error occurred while user "
+              + user1Id
+              + " with connection id "
+              + queue1Id
+              + " is triggering video in ice restart");
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1VideoInHandleId.toString()),
+              any(VideoServerMessageRequest.class));
+    }
+
+    @Test
+    @DisplayName(
+        "Try to trigger ice restart for video out stream on a meeting but video server returns"
+            + " error")
+    void iceRestartVideoOut_testErrorResponseFromVideoServer() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .videoOutHandleId(user1VideoOutHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+
+      VideoRoomResponse iceRestartVideoOutResponse = VideoRoomResponse.create().status("error");
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1VideoOutHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(iceRestartVideoOutResponse);
+
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.iceRestartVideo(
+                  user1Id.toString(), meeting1Id.toString(), "session-description-protocol"),
+          "An error occurred while user "
+              + user1Id
+              + " with connection id "
+              + queue1Id
+              + " is triggering video out ice restart");
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1VideoOutHandleId.toString()),
               any(VideoServerMessageRequest.class));
     }
   }

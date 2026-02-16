@@ -21,16 +21,8 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Rtc
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media.Stream;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerMessageRequest;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.VideoServerPluginRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeCreateRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeDestroyRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeJoinRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeMuteRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomCreateRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomDestroyRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomJoinRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomPublishRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomStartVideoInRequest;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.VideoRoomUpdateSubscriptionsRequest;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.*;
+import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom.*;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.VideoServerResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.audiobridge.AudioBridgeResponse;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.videoroom.VideoRoomResponse;
@@ -818,6 +810,82 @@ public class VideoServerServiceImpl implements VideoServerService {
     }
   }
 
+  @Override
+  public void iceRestartAudio(String userId, String meetingId, String sdp) {
+    VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
+    VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
+
+    iceRestartAudioWithSdp(
+        videoServerSession.getConnectionId(), videoServerSession.getAudioHandleId(), sdp);
+  }
+
+  private void iceRestartAudioWithSdp(String connectionId, String audioHandleId, String sdp) {
+
+    AudioBridgeResponse audioBridgeResponse =
+        sendAudioBridgePluginMessage(
+            connectionId,
+            audioHandleId,
+            AudioBridgeConfigureRequest.create().request(AudioBridgeConfigureRequest.CONFIGURE),
+            RtcSessionDescription.create().type(RtcType.OFFER).sdp(sdp));
+
+    if (!AudioBridgeResponse.ACK.equals(audioBridgeResponse.getStatus())) {
+      throw new VideoServerException(
+          "An error occurred while user with connection id "
+              + connectionId
+              + " is triggering audio ice restart");
+    }
+  }
+
+  @Override
+  public void iceRestartVideo(String userId, String meetingId, @Nullable String sdp) {
+    VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
+    VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
+
+    if (sdp == null) {
+      iceRestartVideo(
+          videoServerSession.getConnectionId(), videoServerSession.getVideoInHandleId());
+    } else {
+      iceRestartVideoWithSdp(
+          videoServerSession.getConnectionId(), videoServerSession.getVideoOutHandleId(), sdp);
+    }
+  }
+
+  private void iceRestartVideo(String connectionId, String videoInHandleId) {
+
+    VideoRoomResponse videoRoomResponse =
+        sendVideoRoomPluginMessage(
+            connectionId,
+            videoInHandleId,
+            VideoRoomConfigureRequest.create()
+                .request(VideoRoomConfigureRequest.CONFIGURE)
+                .restart(true),
+            null);
+
+    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
+      throw new VideoServerException(
+          "An error occurred while user with connection id "
+              + connectionId
+              + " is triggering video in ice restart");
+    }
+  }
+
+  private void iceRestartVideoWithSdp(String connectionId, String videoOutHandleId, String sdp) {
+
+    VideoRoomResponse videoRoomResponse =
+        sendVideoRoomPluginMessage(
+            connectionId,
+            videoOutHandleId,
+            VideoRoomConfigureRequest.create().request(VideoRoomConfigureRequest.CONFIGURE),
+            RtcSessionDescription.create().type(RtcType.OFFER).sdp(sdp));
+
+    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
+      throw new VideoServerException(
+          "An error occurred while user with connection id "
+              + connectionId
+              + " is triggering video out ice restart");
+    }
+  }
+
   private VideoServerMeeting getVideoServerMeeting(String meetingId) {
     return videoServerMeetingRepository
         .getById(meetingId)
@@ -845,7 +913,7 @@ public class VideoServerServiceImpl implements VideoServerService {
    * This method checks if the video server is alive.
    *
    * @return true if the video server returns the server_info status, false otherwise
-   * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
+   * @see <a href= "https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
    */
   @Override
   public boolean isAlive() {
