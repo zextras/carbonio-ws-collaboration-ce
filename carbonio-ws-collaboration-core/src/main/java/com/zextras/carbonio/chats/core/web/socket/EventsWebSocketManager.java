@@ -220,7 +220,6 @@ public class EventsWebSocketManager {
     UUID queueId = UUID.fromString(sessionId);
     String userQueue = userId + "/" + queueId;
 
-    participantService.removeMeetingParticipant(queueId);
     cacheVideoServerSession.add(userId, queueId);
 
     if (channel == null || !channel.isOpen()) {

@@ -2447,6 +2447,9 @@ class VideoServerServiceImplTest {
           offerRtcAudioStreamRequestCaptor.getValue();
       assertEquals("message", offerRtcAudioStreamRequest.getMessageRequest());
       assertEquals("token", offerRtcAudioStreamRequest.getApiSecret());
+      assertEquals(
+          "session-description-protocol",
+          offerRtcAudioStreamRequest.getRtcSessionDescription().getSdp());
       AudioBridgeJoinRequest audioBridgeJoinRequest =
           (AudioBridgeJoinRequest) offerRtcAudioStreamRequest.getVideoServerPluginRequest();
       assertEquals("join", audioBridgeJoinRequest.getRequest());
