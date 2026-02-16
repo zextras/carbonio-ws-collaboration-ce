@@ -110,7 +110,7 @@ components:
       type: object
       properties:
         type:
-          $ref: "#/components/schemas/EventType"
+          $ref: '#/components/schemas/EventType'
         sentDate:
           type: string
           format: date-time
@@ -399,7 +399,7 @@ components:
               type: string
               format: uuid
             mediaType:
-              $ref: "#/components/schemas/MediaType"
+              $ref: '#/components/schemas/MediaType'
             active:
               type: boolean
           required:
@@ -420,7 +420,7 @@ components:
               type: string
               format: uuid
             mediaType:
-              $ref: "#/components/schemas/MediaType"
+              $ref: '#/components/schemas/MediaType'
             sdp:
               type: string
               description: SDP offer string
@@ -442,7 +442,7 @@ components:
               type: string
               format: uuid
             mediaType:
-              $ref: "#/components/schemas/MediaType"
+              $ref: '#/components/schemas/MediaType'
             sdp:
               type: string
               description: SDP answer string
@@ -581,7 +581,7 @@ components:
             streams:
               type: array
               items:
-                $ref: "#/components/schemas/SubscribedStream"
+                $ref: '#/components/schemas/SubscribedStream'
           required:
             - meetingId
             - userId
