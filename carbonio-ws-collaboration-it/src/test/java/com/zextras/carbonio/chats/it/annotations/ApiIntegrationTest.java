@@ -19,7 +19,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
@@ -31,6 +30,4 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(UserManagementExtension.class)
 @ExtendWith(MongooseIMExtension.class)
 @ExtendWith(VideoServerExtension.class)
-public @interface ApiIntegrationTest {
-
-}
+public @interface ApiIntegrationTest {}
