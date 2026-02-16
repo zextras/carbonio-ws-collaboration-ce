@@ -4,9 +4,6 @@
 
 package com.zextras.carbonio.chats.core.service;
 
-import java.util.Optional;
-import java.util.UUID;
-
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -17,41 +14,42 @@ import com.zextras.carbonio.chats.model.HandStatusDto;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
+import java.util.Optional;
+import java.util.UUID;
 
 public interface ParticipantService {
 
-    JoinStatus insertMeetingParticipant(
-            UUID meetingId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser);
+  JoinStatus insertMeetingParticipant(
+      UUID meetingId, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser);
 
-    void removeMeetingParticipant(UUID meetingId, UserPrincipal currentUser);
+  void removeMeetingParticipant(UUID meetingId, UserPrincipal currentUser);
 
-    void removeMeetingParticipant(Meeting meeting, Room room, UUID userId);
+  void removeMeetingParticipant(Meeting meeting, Room room, UUID userId);
 
-    void removeMeetingParticipant(UUID queueId);
+  void removeMeetingParticipant(UUID queueId);
 
-    void updateMediaStream(
-            UUID meetingId, MediaStreamSettingsDto mediaStreamSettingsDto, UserPrincipal currentUser);
+  void updateMediaStream(
+      UUID meetingId, MediaStreamSettingsDto mediaStreamSettingsDto, UserPrincipal currentUser);
 
-    void updateAudioStream(
-            UUID meetingId, AudioStreamSettingsDto audioStreamSettingsDto, UserPrincipal currentUser);
+  void updateAudioStream(
+      UUID meetingId, AudioStreamSettingsDto audioStreamSettingsDto, UserPrincipal currentUser);
 
-    void answerRtcMediaStream(UUID meetingId, String sdp, UserPrincipal currentUser);
+  void answerRtcMediaStream(UUID meetingId, String sdp, UserPrincipal currentUser);
 
-    void updateSubscriptionsMediaStream(
-            UUID meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto, UserPrincipal currentUser);
+  void updateSubscriptionsMediaStream(
+      UUID meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto, UserPrincipal currentUser);
 
-    void offerRtcAudioStream(UUID meetingId, String sdp, UserPrincipal currentUser);
+  void offerRtcAudioStream(UUID meetingId, String sdp, UserPrincipal currentUser);
 
-    void iceRestartAudio(UUID meetingId, String sdp, UserPrincipal currentUser);
+  void iceRestartAudio(UUID meetingId, String sdp, UserPrincipal currentUser);
 
-    void iceRestartVideo(UUID meetingId, String sdp, UserPrincipal currentUser);
+  void iceRestartVideo(UUID meetingId, String sdp, UserPrincipal currentUser);
 
-    void updateHandStatus(UUID meetingId, HandStatusDto handStatusDto, UserPrincipal currentUser);
+  void updateHandStatus(UUID meetingId, HandStatusDto handStatusDto, UserPrincipal currentUser);
 
-    void clear(UUID meetingId);
+  void clear(UUID meetingId);
 
-    Optional<Participant> getByQueueId(UUID queueId);
+  Optional<Participant> getByQueueId(UUID queueId);
 
-    Participant updateParticipantQueueId(UUID userId, UUID meetingId, UUID newQueueId);
-
+  Participant updateParticipantQueueId(UUID userId, UUID meetingId, UUID newQueueId);
 }

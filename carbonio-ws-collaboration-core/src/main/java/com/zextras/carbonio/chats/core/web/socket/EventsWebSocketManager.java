@@ -4,14 +4,6 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.time.OffsetDateTime;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -27,7 +19,6 @@ import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
-
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.OnClose;
 import jakarta.websocket.OnError;
@@ -35,6 +26,13 @@ import jakarta.websocket.OnMessage;
 import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
 import jakarta.websocket.server.ServerEndpoint;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Singleton
 @ServerEndpoint(value = "/events")
@@ -74,10 +72,11 @@ public class EventsWebSocketManager {
     UUID queueId = UUID.fromString(session.getId());
     String userQueue = userId + "/" + queueId;
 
-    DomainEvent wsConnected = WebsocketConnected.create()
-        .queueId(queueId)
-        .type(EventType.WEBSOCKET_CONNECTED)
-        .sentDate(OffsetDateTime.now());
+    DomainEvent wsConnected =
+        WebsocketConnected.create()
+            .queueId(queueId)
+            .type(EventType.WEBSOCKET_CONNECTED)
+            .sentDate(OffsetDateTime.now());
 
     session
         .getAsyncRemote()
@@ -93,23 +92,24 @@ public class EventsWebSocketManager {
       channel.exchangeDeclare(userId.toString(), BuiltinExchangeType.DIRECT, false, false, null);
       channel.queueDeclare(queueId.toString(), false, false, true, null);
       channel.queueBind(queueId.toString(), userId.toString(), USER_ROUTING_KEY);
-      DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-        String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-        try {
-          if (session.isOpen()) {
-            session
-                .getAsyncRemote()
-                .sendObject(migrator.downgradeIfNeeded(message, getVersion(session)));
-          }
-        } catch (Exception e) {
-          ChatsLogger.warn(
-              String.format(
-                  "Error sending event message to websocket for user/queue '%s'%nMessage: '%s'",
-                  userQueue, message));
-        }
-      };
-      String tag = channel.basicConsume(queueId.toString(), true, deliverCallback, consumerTag -> {
-      });
+      DeliverCallback deliverCallback =
+          (consumerTag, delivery) -> {
+            String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
+            try {
+              if (session.isOpen()) {
+                session
+                    .getAsyncRemote()
+                    .sendObject(migrator.downgradeIfNeeded(message, getVersion(session)));
+              }
+            } catch (Exception e) {
+              ChatsLogger.warn(
+                  String.format(
+                      "Error sending event message to websocket for user/queue '%s'%nMessage: '%s'",
+                      userQueue, message));
+            }
+          };
+      String tag =
+          channel.basicConsume(queueId.toString(), true, deliverCallback, consumerTag -> {});
       consumerTagMap.put(queueId.toString(), tag);
     } catch (Exception e) {
       ChatsLogger.warn(
@@ -119,23 +119,20 @@ public class EventsWebSocketManager {
 
   @OnMessage
   public void onMessage(Session session, String message) {
-    if (message == null || message.isBlank())
-      return;
+    if (message == null || message.isBlank()) return;
 
     try {
       /** Necessary for naming retro compatibility */
       ObjectNode node = objectMapper.readValue(message, ObjectNode.class);
       Optional<JsonNode> optTypeKey = getKey(node, "type");
-      if (optTypeKey.isEmpty())
-        return;
+      if (optTypeKey.isEmpty()) return;
 
       String type = optTypeKey.get().asText();
       if (session.isOpen()) {
         switch (type) {
           case "ping", "PING", "Ping" -> {
             /**
-             * TODO: The Ping event is not websocket native. It is not needed anymore so
-             * events
+             * TODO: The Ping event is not websocket native. It is not needed anymore so events
              * (EventType.PING, EventType.PONG) will be removed as soon as possible.
              */
             var pong = DomainEvent.create().type(EventType.PONG).sentDate(OffsetDateTime.now());
@@ -146,8 +143,7 @@ public class EventsWebSocketManager {
 
           case "IceRestart" -> {
             Optional<JsonNode> optMeetingIdKey = getKey(node, "meetingId");
-            if (optMeetingIdKey.isEmpty())
-              return;
+            if (optMeetingIdKey.isEmpty()) return;
             String meetingId = optMeetingIdKey.get().asText();
             cacheVideoServerSession.remove(
                 UUID.fromString(getUserIdFromSession(session)), meetingId);
@@ -158,8 +154,8 @@ public class EventsWebSocketManager {
           }
 
           default ->
-            ChatsLogger.warn(
-                String.format("Unknown event type '%s' when parsing websocket message", type));
+              ChatsLogger.warn(
+                  String.format("Unknown event type '%s' when parsing websocket message", type));
         }
       }
     } catch (Exception e) {
@@ -200,8 +196,9 @@ public class EventsWebSocketManager {
   }
 
   private String getUserIdFromSession(Session session) {
-    return (String) ((HttpSession) session.getUserProperties().get(HttpSession.class.getName()))
-        .getAttribute("userId");
+    return (String)
+        ((HttpSession) session.getUserProperties().get(HttpSession.class.getName()))
+            .getAttribute("userId");
   }
 
   private String getVersion(Session session) {

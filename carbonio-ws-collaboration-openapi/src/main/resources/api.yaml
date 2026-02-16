@@ -7,7 +7,7 @@ info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
   version: 1.6.6
-  x-supported-versions: ["1.6.6", "1.6.3", "1.6.2", "1.6.1", "1.6.0"]
+  x-supported-versions: [ "1.6.6", "1.6.3", "1.6.2", "1.6.1", "1.6.0" ]
 
 servers:
   - url: http://localhost:10000
@@ -1505,7 +1505,7 @@ components:
           format: uuid
           readOnly: true
           description: identifier
-      required: [id]
+      required: [ id ]
     ClearedDate:
       type: object
       properties:
@@ -1514,7 +1514,7 @@ components:
           format: date-time
           readOnly: true
           description: date since messages were cleared
-      required: [clearedAt]
+      required: [ clearedAt ]
     Capabilities:
       type: object
       properties:
@@ -1577,7 +1577,7 @@ components:
         statusMessage:
           type: string
           description: the user's status message
-      required: [id, email, name]
+      required: [ id, email, name ]
     RoomType:
       type: string
       description: Managed room types
@@ -1613,7 +1613,7 @@ components:
           items:
             $ref: "#/components/schemas/Member"
           description: list of users to add to the room
-      required: [type]
+      required: [ type ]
     Room:
       type: object
       description: Room data
@@ -1650,7 +1650,7 @@ components:
                 returned only if the room picture was set at least once
             userSettings:
               $ref: "#/components/schemas/RoomUserSettings"
-      required: [id, createdAt, updatedAt]
+      required: [ id, createdAt, updatedAt ]
     RoomUserSettings:
       type: object
       description: Preferences that an user has set for a room
@@ -1664,7 +1664,7 @@ components:
           description: |
             room clear history date,
             returned only if the room clear history has been cleared at least once
-      required: [muted, clearedAt]
+      required: [ muted, clearedAt ]
     RoomExtraField:
       type: string
       description: Room extra fields
@@ -1688,7 +1688,7 @@ components:
           type: boolean
           default: false
           description: indicates whether it is the owner
-      required: [userId]
+      required: [ userId ]
     MembersToInsert:
       type: array
       description: members to insert in the room
@@ -1707,7 +1707,7 @@ components:
               description: |
                 indicates whether it can see previous messages,
                 after it has been added to the room
-          required: [userId, owner, historyCleared]
+          required: [ userId, owner, historyCleared ]
     MembersInserted:
       type: array
       description: members inserted in the room
@@ -1726,7 +1726,7 @@ components:
               description: |
                 room clear history timestamp,
                 returned only if the room history has been cleared at least once
-          required: [userId, owner, clearedAt]
+          required: [ userId, owner, clearedAt ]
     Attachment:
       type: object
       description: Attachment of a message
@@ -1767,7 +1767,7 @@ components:
           type: string
           readOnly: true
           description: attachment's area
-      required: [id, name, size, mimeType, userId, roomId]
+      required: [ id, name, size, mimeType, userId, roomId ]
     AttachmentsPagination:
       type: object
       description: Attachment pagination
@@ -1831,7 +1831,7 @@ components:
         description:
           type: string
           description: description of the forwarded message
-      required: [originalMessage]
+      required: [ originalMessage ]
     NewMeetingData:
       type: object
       properties:
@@ -1848,7 +1848,7 @@ components:
             no more be necessary"
           type: string
           format: date-time
-      required: [name, meetingType]
+      required: [ name, meetingType ]
     JoinMeetingResult:
       type: object
       properties:
@@ -1961,7 +1961,7 @@ components:
           type: boolean
           default: false
           description: indicates the video stream status to join the meeting
-      required: [audioStreamEnabled, videoStreamEnabled]
+      required: [ audioStreamEnabled, videoStreamEnabled ]
     MediaStreamSettings:
       type: object
       description: settings to apply on user's media stream
@@ -1978,7 +1978,7 @@ components:
         sdp:
           type: string
           description: indicates the descriptor of the session
-      required: [type, enabled]
+      required: [ type, enabled ]
     AudioStreamSettings:
       type: object
       description: settings to apply on user's audio stream
@@ -1996,7 +1996,7 @@ components:
         sdp:
           type: string
           description: indicates the descriptor of the session
-      required: [sdp]
+      required: [ sdp ]
     SubscriptionUpdates:
       type: object
       description: subscriptions updates related to media streams
@@ -2011,7 +2011,7 @@ components:
           description: indicates the media streams which user wants to unsubscribe to
           items:
             $ref: "#/components/schemas/MediaStream"
-      required: [subscribe, unsubscribe]
+      required: [ subscribe, unsubscribe ]
     MediaStream:
       type: object
       description: representation of meeting media stream
@@ -2025,7 +2025,7 @@ components:
           enum:
             - video
             - screen
-      required: [userId, type]
+      required: [ userId, type ]
     HandStatus:
       type: object
       description: the hand action the user wants to perform
@@ -2036,4 +2036,4 @@ components:
         userToModerate:
           type: string
           description: optionally lower the user's hand if I'm a moderator, only works if raised is false
-      required: [raised]
+      required: [ raised ]
