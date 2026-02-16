@@ -1989,6 +1989,7 @@ components:
         userToModerate:
           type: string
           description: optional user to mute if i'm a moderator, only works if enabled is false
+      required: [ enabled ]
     SessionDescriptionProtocol:
       type: object
       description: contains sdp descriptor needed for a media stream to perform WebRTC negotiation
@@ -1996,7 +1997,6 @@ components:
         sdp:
           type: string
           description: indicates the descriptor of the session
-      required: [ sdp ]
     SubscriptionUpdates:
       type: object
       description: subscriptions updates related to media streams
