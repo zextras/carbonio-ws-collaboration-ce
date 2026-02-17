@@ -19,8 +19,10 @@ public interface MessageDispatcher extends HealthIndicator {
    * @param roomId identifier of the room to create
    * @param senderId creation user
    * @param memberIds identifiers of the members invited in this room
+   * @param sendAffiliationMessages if true, sends affiliation messages for room members
    */
-  void createRoom(String roomId, String senderId, List<String> memberIds);
+  void createRoom(
+      String roomId, String senderId, List<String> memberIds, boolean sendAffiliationMessages);
 
   /**
    * Sends a message to communicate that the room name has changed
@@ -57,6 +59,15 @@ public interface MessageDispatcher extends HealthIndicator {
    * @param senderId operation user
    */
   void deleteRoomPicture(String roomId, String senderId);
+
+  /**
+   * Sends a message to communicate that the room history has been cleared
+   *
+   * @param roomId room identifier
+   * @param senderId operation user
+   * @param timestamp timestamp of when the history was cleared
+   */
+  void clearRoomHistory(String roomId, String senderId, String timestamp);
 
   /**
    * Invites a member to join a room on XMPP server

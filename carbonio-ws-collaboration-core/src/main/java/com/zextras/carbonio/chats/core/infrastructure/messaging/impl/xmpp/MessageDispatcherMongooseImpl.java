@@ -67,7 +67,8 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   }
 
   @Override
-  public void createRoom(String roomId, String senderId, List<String> memberIds) {
+  public void createRoom(
+      String roomId, String senderId, List<String> memberIds, boolean sendAffiliationMessages) {
     String query =
         "mutation muc_light { muc_light { createRoom ("
             + String.format("mucDomain: \"%s\", ", MUC_DOMAIN)
@@ -89,7 +90,9 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
     memberIds.forEach(
         member -> {
           addRoomMember(roomId, senderId, member);
-          sendAffiliationMessage(roomId, senderId, member, MessageType.MEMBER_ADDED);
+          if (sendAffiliationMessages) {
+            sendAffiliationMessage(roomId, senderId, member, MessageType.MEMBER_ADDED);
+          }
         });
   }
 
@@ -167,6 +170,27 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
         throw new MessageDispatcherException(
             String.format(
                 "Error while sending update room picture: %s",
+                objectMapper.writeValueAsString(result.getErrors())));
+      } catch (JsonProcessingException e) {
+        throw new MessageDispatcherException(PARSING_ERROR, e);
+      }
+    }
+  }
+
+  @Override
+  public void clearRoomHistory(String roomId, String senderId, String timestamp) {
+    GraphQlResponse result =
+        sendStanza(
+            XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
+                .type(MessageType.ROOM_HISTORY_CLEARED)
+                .addConfig("user-id", senderId)
+                .addConfig("cleared-at", timestamp)
+                .build());
+    if (result.getErrors() != null) {
+      try {
+        throw new MessageDispatcherException(
+            String.format(
+                "Error while sending room history cleared: %s",
                 objectMapper.writeValueAsString(result.getErrors())));
       } catch (JsonProcessingException e) {
         throw new MessageDispatcherException(PARSING_ERROR, e);

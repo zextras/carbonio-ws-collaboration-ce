@@ -553,7 +553,8 @@ class RoomServiceImplTest {
             .createRoom(
                 roomGroup1Id.toString(),
                 user1Id.toString(),
-                List.of(user2Id.toString(), user3Id.toString()));
+                List.of(user2Id.toString(), user3Id.toString()),
+                true);
         verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
         verifyNoMoreInteractions(messageDispatcher);
       }
@@ -637,7 +638,8 @@ class RoomServiceImplTest {
             .createRoom(
                 roomGroup1Id.toString(),
                 user1Id.toString(),
-                List.of(user2Id.toString(), user3Id.toString()));
+                List.of(user2Id.toString(), user3Id.toString()),
+                true);
         verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
         verifyNoMoreInteractions(messageDispatcher);
       }
@@ -811,7 +813,7 @@ class RoomServiceImplTest {
                 List.of(user1Id.toString()), RoomCreated.create().roomId(roomTemporary1Id));
         verifyNoMoreInteractions(eventDispatcher);
         verify(messageDispatcher, times(1))
-            .createRoom(roomTemporary1Id.toString(), user1Id.toString(), List.of());
+            .createRoom(roomTemporary1Id.toString(), user1Id.toString(), List.of(), true);
         verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
         verifyNoMoreInteractions(messageDispatcher);
       }
@@ -886,7 +888,8 @@ class RoomServiceImplTest {
             .createRoom(
                 roomTemporary2Id.toString(),
                 user1Id.toString(),
-                List.of(user2Id.toString(), user3Id.toString()));
+                List.of(user2Id.toString(), user3Id.toString()),
+                true);
         verify(messageDispatcher, times(0)).addUsersToContacts(anyString(), anyString());
         verifyNoMoreInteractions(messageDispatcher);
       }
@@ -948,7 +951,7 @@ class RoomServiceImplTest {
         verifyNoMoreInteractions(eventDispatcher);
         verify(messageDispatcher, times(1))
             .createRoom(
-                roomOneToOne1Id.toString(), user1Id.toString(), List.of(user2Id.toString()));
+                roomOneToOne1Id.toString(), user1Id.toString(), List.of(user2Id.toString()), true);
         verify(messageDispatcher, times(1))
             .addUsersToContacts(user1Id.toString(), user2Id.toString());
         verifyNoMoreInteractions(messageDispatcher);
@@ -1615,8 +1618,9 @@ class RoomServiceImplTest {
   class ClearRoomTests {
 
     @Test
-    @DisplayName("Correctly sets the clear date to now when user settings doesn't exist")
-    void clearRoom_testOkUserSettingNotExists() {
+    @DisplayName(
+        "Correctly sets the clear date to now when user settings doesn't exist on permanent room")
+    void clearRoom_testOkUserSettingNotExistsOnPermanentRoom() {
       OffsetDateTime desiredDate = OffsetDateTime.ofInstant(clock.instant(), clock.getZone());
       RoomUserSettings userSettings =
           RoomUserSettings.create(roomGroup1, user1Id.toString()).clearedAt(desiredDate);
@@ -1640,11 +1644,12 @@ class RoomServiceImplTest {
               user1Id.toString(),
               RoomHistoryCleared.create().roomId(roomGroup1Id).clearedAt(clearedAt));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
+      verifyNoInteractions(messageDispatcher, attachmentService);
     }
 
     @Test
-    @DisplayName("Correctly sets the clear date to now when user settings exists")
-    void clearRoom_testOkUserSettingExists() {
+    @DisplayName("Correctly sets the clear date to now when user settings exists on permanent room")
+    void clearRoom_testOkUserSettingExistsOnPermanentRoom() {
       OffsetDateTime desiredDate = OffsetDateTime.ofInstant(clock.instant(), clock.getZone());
       RoomUserSettings userSettings =
           RoomUserSettings.create(roomGroup1, user1Id.toString()).clearedAt(desiredDate);
@@ -1673,11 +1678,59 @@ class RoomServiceImplTest {
               user1Id.toString(),
               RoomHistoryCleared.create().roomId(roomGroup1Id).clearedAt(clearedAt));
       verifyNoMoreInteractions(roomRepository, roomUserSettingsRepository, eventDispatcher);
+      verifyNoInteractions(messageDispatcher, attachmentService);
     }
 
     @Test
-    @DisplayName("If the authenticated user isn't a room member, it throws a 'forbidden' exception")
-    void clearRoom_testAuthenticatedUserIsNotARoomMember() {
+    @DisplayName("Correctly clears the temporary room performed by an owner")
+    void clearRoom_testOkTemporaryRoom() {
+      OffsetDateTime offsetDateTime = OffsetDateTime.ofInstant(clock.instant(), clock.getZone());
+
+      when(roomRepository.getById(roomTemporary2Id.toString()))
+          .thenReturn(Optional.of(roomTemporary2));
+      when(roomUserSettingsRepository.getByRoomIdAndUserId(
+              roomTemporary2Id.toString(), user1Id.toString()))
+          .thenReturn(Optional.empty());
+
+      OffsetDateTime clearedAt =
+          roomService.clearRoomHistory(roomTemporary2Id, UserPrincipal.create(user1Id));
+      assertEquals(offsetDateTime, clearedAt);
+
+      verify(roomRepository, times(1)).getById(roomTemporary2Id.toString());
+      verify(messageDispatcher, times(1))
+          .removeRoomMember(roomTemporary2Id.toString(), user1Id.toString());
+      verify(messageDispatcher, times(1))
+          .removeRoomMember(roomTemporary2Id.toString(), user2Id.toString());
+      verify(messageDispatcher, times(1))
+          .removeRoomMember(roomTemporary2Id.toString(), user3Id.toString());
+      verify(attachmentService, times(1))
+          .deleteAttachmentsByRoomId(roomTemporary2Id, UserPrincipal.create(user1Id));
+      verify(messageDispatcher, times(1))
+          .createRoom(
+              roomTemporary2Id.toString(),
+              user1Id.toString(),
+              List.of(user2Id.toString(), user3Id.toString()),
+              false);
+      verify(messageDispatcher, times(1))
+          .clearRoomHistory(
+              roomTemporary2Id.toString(), user1Id.toString(), offsetDateTime.toString());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
+              RoomHistoryCleared.create().roomId(roomTemporary2Id).clearedAt(clearedAt));
+      verifyNoMoreInteractions(
+          roomRepository,
+          roomUserSettingsRepository,
+          eventDispatcher,
+          messageDispatcher,
+          attachmentService);
+    }
+
+    @Test
+    @DisplayName(
+        "If the authenticated user isn't a room member of a permanent room, it throws a 'forbidden'"
+            + " exception")
+    void clearRoom_testAuthenticatedUserIsNotARoomMemberOfPermanentRoom() {
       when(roomRepository.getById(roomGroup2Id.toString())).thenReturn(Optional.of(roomGroup2));
       when(roomUserSettingsRepository.getByRoomIdAndUserId(
               roomGroup2Id.toString(), user1Id.toString()))
@@ -1697,7 +1750,34 @@ class RoomServiceImplTest {
 
       verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
       verifyNoMoreInteractions(roomRepository);
-      verifyNoInteractions(eventDispatcher, roomUserSettingsRepository);
+      verifyNoInteractions(
+          eventDispatcher, roomUserSettingsRepository, messageDispatcher, attachmentService);
+    }
+
+    @Test
+    @DisplayName(
+        "If the authenticated user isn't an owner of the temporary room, it throws a 'forbidden'"
+            + " exception")
+    void clearRoom_testAuthenticatedUserIsNotAnOwnerOfTemporaryRoom() {
+      when(roomRepository.getById(roomTemporary2Id.toString()))
+          .thenReturn(Optional.of(roomTemporary2));
+
+      ChatsHttpException exception =
+          assertThrows(
+              ForbiddenException.class,
+              () -> roomService.clearRoomHistory(roomTemporary2Id, UserPrincipal.create(user3Id)));
+
+      assertEquals(Status.FORBIDDEN.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.FORBIDDEN.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format(
+              "Forbidden - User '%s' is not an owner of room '%s'", user3Id, roomTemporary2Id),
+          exception.getMessage());
+
+      verify(roomRepository, times(1)).getById(roomTemporary2Id.toString());
+      verifyNoMoreInteractions(roomRepository);
+      verifyNoInteractions(
+          eventDispatcher, roomUserSettingsRepository, messageDispatcher, attachmentService);
     }
 
     @Test
@@ -1711,6 +1791,11 @@ class RoomServiceImplTest {
       assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
       assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
       assertEquals(String.format("Not Found - Room '%s'", roomGroup1Id), exception.getMessage());
+
+      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
+      verifyNoMoreInteractions(roomRepository);
+      verifyNoInteractions(
+          eventDispatcher, roomUserSettingsRepository, messageDispatcher, attachmentService);
     }
   }
 

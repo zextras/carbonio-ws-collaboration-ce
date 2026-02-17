@@ -6,8 +6,8 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.6
-  x-supported-versions: [ "1.6.6", "1.6.3", "1.6.2", "1.6.1", "1.6.0" ]
+  version: 1.6.7
+  x-supported-versions: [ "1.6.7", "1.6.6", "1.6.3", "1.6.2", "1.6.1", "1.6.0" ]
 
 servers:
   - url: http://localhost:10000
@@ -616,7 +616,7 @@ paths:
       operationId: getToken
       responses:
         200:
-          $ref: '#/components/responses/200GetTokensResponse'
+          $ref: '#/components/responses/200GetTokenResponse'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
         404:
@@ -1351,7 +1351,7 @@ components:
           schema:
             type: string
             format: binary
-    200GetTokensResponse:
+    200GetTokenResponse:
       description: The authenticated tokens.
       content:
         application/json:
@@ -1782,7 +1782,7 @@ components:
             $ref: '#/components/schemas/Attachment'
     Token:
       type: object
-      description: authenticated tokens
+      description: authenticated token
       properties:
         zmToken:
           type: string
@@ -1843,9 +1843,8 @@ components:
         meetingType:
           $ref: '#/components/schemas/MeetingType'
         expiration:
-          description:
-            "This field is only used for scheduled meetings to indicate when the meeting will
-            no more be necessary"
+          description: 'This field is only used for scheduled meetings to indicate when the meeting will
+            no more be necessary'
           type: string
           format: date-time
       required: [ name, meetingType ]
@@ -1866,9 +1865,8 @@ components:
           $ref: '#/components/schemas/MeetingUserType'
     MeetingType:
       type: string
-      description:
-        "Defines the type of meeting, if permanent it will never be automatically deleted,
-        if scheduled it will be removed after the expiration is passed"
+      description: 'Defines the type of meeting, if permanent it will never be automatically deleted,
+        if scheduled it will be removed after the expiration is passed'
       enum:
         - permanent
         - scheduled
