@@ -6,15 +6,7 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.zextras.carbonio.async.model.EventType;
-import com.zextras.carbonio.async.model.RoomCreated;
-import com.zextras.carbonio.async.model.RoomDeleted;
-import com.zextras.carbonio.async.model.RoomHistoryCleared;
-import com.zextras.carbonio.async.model.RoomMuted;
-import com.zextras.carbonio.async.model.RoomPictureChanged;
-import com.zextras.carbonio.async.model.RoomPictureDeleted;
-import com.zextras.carbonio.async.model.RoomUnmuted;
-import com.zextras.carbonio.async.model.RoomUpdated;
+import com.zextras.carbonio.async.model.*;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES;
 import com.zextras.carbonio.chats.core.config.ConfigName;
@@ -148,7 +140,7 @@ public class RoomServiceImpl implements RoomService {
     List<MemberDto> members = prepareRoomMembers(roomCreationFields, currentUser.getUUID());
     Room room = initializeRoom(roomCreationFields);
 
-    createRoom(room, currentUser, members);
+    createRoom(room, currentUser, members, true);
 
     room.subscriptions(membersService.initRoomSubscriptions(members, room));
     room = roomRepository.insert(room);
@@ -166,7 +158,7 @@ public class RoomServiceImpl implements RoomService {
   private List<MemberDto> prepareRoomMembers(
       RoomCreationFieldsDto roomCreationFields, UUID currentUserUUID) {
     List<MemberDto> members = new ArrayList<>(roomCreationFields.getMembers());
-    members.add(0, MemberDto.create().userId(currentUserUUID).owner(true));
+    members.addFirst(MemberDto.create().userId(currentUserUUID).owner(true));
     return members;
   }
 
@@ -179,13 +171,18 @@ public class RoomServiceImpl implements RoomService {
     return room;
   }
 
-  private void createRoom(Room room, UserPrincipal currentUser, List<MemberDto> members) {
+  private void createRoom(
+      Room room,
+      UserPrincipal currentUser,
+      List<MemberDto> members,
+      boolean sendAffiliationMessages) {
     List<String> memberIds =
         members.stream().map(MemberDto::getUserId).map(UUID::toString).toList();
     messageDispatcher.createRoom(
         room.getId(),
         currentUser.getId(),
-        memberIds.stream().filter(member -> !member.equals(currentUser.getId())).toList());
+        memberIds.stream().filter(member -> !member.equals(currentUser.getId())).toList(),
+        sendAffiliationMessages);
 
     if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
       messageDispatcher.addUsersToContacts(
@@ -354,9 +351,7 @@ public class RoomServiceImpl implements RoomService {
                 fileMetadataRepository.delete(metadata);
               });
     }
-    room.getSubscriptions().stream()
-        .map(Subscription::getUserId)
-        .forEach(userId -> messageDispatcher.removeRoomMember(room.getId(), userId));
+    deleteRoom(room);
     roomRepository.delete(roomId.toString());
     eventDispatcher.sendToUserExchange(
         room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
@@ -364,6 +359,12 @@ public class RoomServiceImpl implements RoomService {
             .roomId(roomId)
             .type(EventType.ROOM_DELETED)
             .sentDate(OffsetDateTime.now()));
+  }
+
+  private void deleteRoom(Room room) {
+    room.getSubscriptions().stream()
+        .map(Subscription::getUserId)
+        .forEach(userId -> messageDispatcher.removeRoomMember(room.getId(), userId));
   }
 
   @Override
@@ -405,22 +406,84 @@ public class RoomServiceImpl implements RoomService {
 
   @Override
   public OffsetDateTime clearRoomHistory(UUID roomId, UserPrincipal currentUser) {
-    Room room = getRoomAndValidateUser(roomId, currentUser, false);
+    Room room =
+        getRoom(roomId)
+            .orElseThrow(() -> new NotFoundException(String.format("Room '%s'", roomId)));
+
+    if (RoomTypeDto.TEMPORARY.equals(room.getType())) {
+      return clearTemporaryRoomHistory(room, currentUser);
+    } else {
+      return clearPermanentRoomHistory(room, currentUser);
+    }
+  }
+
+  private OffsetDateTime clearTemporaryRoomHistory(Room room, UserPrincipal currentUser) {
+    boolean isOwner =
+        room.getSubscriptions().stream()
+            .filter(s -> s.getUserId().equals(currentUser.getId()))
+            .findAny()
+            .map(Subscription::isOwner)
+            .orElse(false);
+
+    if (!isOwner) {
+      throw new ForbiddenException(
+          String.format(
+              "User '%s' is not an owner of room '%s'", currentUser.getId(), room.getId()));
+    }
+
+    List<MemberDto> members =
+        room.getSubscriptions().stream()
+            .map(s -> MemberDto.create().userId(UUID.fromString(s.getUserId())))
+            .toList();
+
+    deleteRoom(room);
+    attachmentService.deleteAttachmentsByRoomId(UUID.fromString(room.getId()), currentUser);
+    createRoom(room, currentUser, members, false);
+
+    List<String> subscribersIds =
+        room.getSubscriptions().stream().map(Subscription::getUserId).toList();
+
+    OffsetDateTime clearedAt = OffsetDateTime.ofInstant(clock.instant(), clock.getZone());
+    messageDispatcher.clearRoomHistory(room.getId(), currentUser.getId(), clearedAt.toString());
+    eventDispatcher.sendToUserExchange(
+        subscribersIds,
+        RoomHistoryCleared.create()
+            .roomId(UUID.fromString(room.getId()))
+            .clearedAt(clearedAt)
+            .type(EventType.ROOM_HISTORY_CLEARED)
+            .sentDate(OffsetDateTime.now()));
+
+    return clearedAt;
+  }
+
+  private OffsetDateTime clearPermanentRoomHistory(Room room, UserPrincipal currentUser) {
+    boolean isMember =
+        room.getSubscriptions().stream().anyMatch(s -> s.getUserId().equals(currentUser.getId()));
+
+    if (!isMember) {
+      throw new ForbiddenException(
+          String.format(
+              "User '%s' is not a member of room '%s'", currentUser.getId(), room.getId()));
+    }
+
     RoomUserSettings settings =
         roomUserSettingsRepository
-            .getByRoomIdAndUserId(roomId.toString(), currentUser.getId())
+            .getByRoomIdAndUserId(room.getId(), currentUser.getId())
             .orElseGet(() -> RoomUserSettings.create(room, currentUser.getId()));
-    settings =
-        roomUserSettingsRepository.save(
-            settings.clearedAt(OffsetDateTime.ofInstant(clock.instant(), clock.getZone())));
+
+    OffsetDateTime clearedAt = OffsetDateTime.ofInstant(clock.instant(), clock.getZone());
+
+    roomUserSettingsRepository.save(settings.clearedAt(clearedAt));
+
     eventDispatcher.sendToUserExchange(
         currentUser.getId(),
         RoomHistoryCleared.create()
-            .roomId(roomId)
-            .clearedAt(settings.getClearedAt())
+            .roomId(UUID.fromString(room.getId()))
+            .clearedAt(clearedAt)
             .type(EventType.ROOM_HISTORY_CLEARED)
             .sentDate(OffsetDateTime.now()));
-    return settings.getClearedAt();
+
+    return clearedAt;
   }
 
   @Override

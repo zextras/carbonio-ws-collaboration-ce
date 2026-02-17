@@ -4,6 +4,13 @@ This document tracks internal changes related to API versioning, both for the RE
 
 ---
 
+## Version 1.6.7 (Released with Carbonio 26.3.0)
+
+### Changes (1.6.7)
+
+- **API**: Updated PUT `/rooms/{roomId}/clear` endpoint to clear all messages and attachments of
+  a temporary room.
+
 ## Version 1.6.6 (Released with Carbonio 26.3.0)
 
 ### Changes (1.6.6)

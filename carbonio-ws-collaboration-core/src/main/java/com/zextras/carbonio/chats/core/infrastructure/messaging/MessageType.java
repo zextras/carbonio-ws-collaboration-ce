@@ -5,11 +5,11 @@
 package com.zextras.carbonio.chats.core.infrastructure.messaging;
 
 public enum MessageType {
-
   ROOM_NAME_CHANGED("roomNameChanged"),
   ROOM_DESCRIPTION_CHANGED("roomDescriptionChanged"),
   ROOM_PICTURE_UPDATED("roomPictureUpdated"),
   ROOM_PICTURE_DELETED("roomPictureDeleted"),
+  ROOM_HISTORY_CLEARED("roomHistoryCleared"),
   ATTACHMENT_ADDED("attachmentAdded"),
   MEMBER_ADDED("memberAdded"),
   MEMBER_REMOVED("memberRemoved");
@@ -23,5 +23,4 @@ public enum MessageType {
   public String getName() {
     return name;
   }
-
 }
