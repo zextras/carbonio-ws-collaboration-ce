@@ -2,7 +2,7 @@
   "branches": [
     "pre-release"
   ],
-  "repositoryUrl": "https://github.com/zextras/carbonio-ws-collanotification-ce",
+  "repositoryUrl": "https://github.com/zextras/carbonio-ws-collaboration-ce",
   "tagFormat": "v${version}",
   "plugins": [
     [
