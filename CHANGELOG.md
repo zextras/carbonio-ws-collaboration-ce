@@ -1,3 +1,15 @@
+## [1.7.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.6.3...v1.7.0) (2026-02-23)
+
+### Features
+
+* clear full history on temporary room ([#206](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/206)) ([595ae21](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/595ae21151e2957bd64bf76220655bd5752d587d))
+* implement ICE restart functionality ([#204](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/204)) ([72a1d95](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/72a1d959698ddf2dff1b71b57b9da821574ddc19))
+
+### Bug Fixes
+
+* repo url in releaserc.json ([#207](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/207)) ([a2893bc](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/a2893bc79d21304a51a1ad320bcde1d7f2ca5f13))
+* use ChatsIdentifier on file copy ([#197](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/197)) ([eb5511b](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/eb5511bfe405ca7b3bea3ef02a8c6136f17d7832))
+
 ## [](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.6.3...v) (2026-01-14)
 ## [1.6.3](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/0.6.0...v1.6.3) (2025-11-12)
 
