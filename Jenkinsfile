@@ -95,7 +95,7 @@ pipeline {
                 container('jdk-21') {
                     sh """
                         mvn ${MVN_OPTS} \
-                        -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
+                        -Dlogback.configurationFile="\$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
                         verify
                     """
                     recordCoverage(tools: [[pattern: 'target/site/jacoco-all-tests/jacoco.xml']])
