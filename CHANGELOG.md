@@ -1,3 +1,9 @@
+## [1.7.1](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.7.0...v1.7.1) (2026-03-02)
+
+### Bug Fixes
+
+* jar build with profile in Jenkinsfile ([#209](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/209)) ([87e0526](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/87e0526aeeee99c37446989114730029f06623f7))
+
 ## [1.7.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.6.3...v1.7.0) (2026-02-23)
 
 ### Features

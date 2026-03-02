@@ -1,5 +1,5 @@
 pkgname="carbonio-ws-collaboration-ce"
-pkgver="1.7.0"
+pkgver="1.7.1"
 pkgrel="SNAPSHOT"
 pkgdesc="Workstream Collaboration for Carbonio CE"
 maintainer="Zextras <packages@zextras.com>"
