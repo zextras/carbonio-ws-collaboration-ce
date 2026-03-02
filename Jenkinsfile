@@ -12,7 +12,7 @@ library(
 )
 
 library(
-    identifier: 'jenkins-lib-common@1.1.2',
+    identifier: 'jenkins-lib-common@1.3.3',
     retriever: modernSCM([
         $class: 'GitSCMSource',
         credentialsId: 'jenkins-integration-with-github-account',
@@ -79,9 +79,7 @@ pipeline {
                     }
                     container('jdk-21') {
                         sh """
-                            mvn -Dmaven.repo.local=\$(pwd)/m2 -N wrapper:wrapper
-                            mvn -Dmaven.repo.local=\$(pwd)/m2 -T1C -B compile
-                            mvn package -Dmaven.main.skip -Dmaven.repo.local=\$(pwd)/m2
+                            mvn ${MVN_OPTS} clean package ${profile}
                             cp carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar package/carbonio-ws-collaboration-ce.jar
                         """
                     }
@@ -95,11 +93,11 @@ pipeline {
             }
             steps {
                 container('jdk-21') {
-                    sh '''
-                        mvn -B \
-                        -Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
+                    sh """
+                        mvn ${MVN_OPTS} \
+                        -Dlogback.configurationFile="\$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
                         verify
-                    '''
+                    """
                     recordCoverage(tools: [[pattern: 'target/site/jacoco-all-tests/jacoco.xml']])
                 }
             }
