@@ -12,7 +12,7 @@ library(
 )
 
 library(
-    identifier: 'jenkins-lib-common@1.3.3',
+    identifier: 'jenkins-lib-common@feat/add-maven',
     retriever: modernSCM([
         $class: 'GitSCMSource',
         credentialsId: 'jenkins-integration-with-github-account',
@@ -27,13 +27,6 @@ pipeline {
         node {
             label 'zextras-v1'
         }
-    }
-
-    environment {
-        JAVA_OPTS = '-Dfile.encoding=UTF8'
-        LC_ALL = 'C.UTF-8'
-        jenkins_build = 'true'
-        MVN_OPTS = '-B'
     }
 
     options {
@@ -70,54 +63,16 @@ pipeline {
             }
         }
 
-        stage('Build jar') {
+        stage('Maven') {
             steps {
                 script {
-                    def profile = '-P dev'
-                    if (env.TAG_NAME) {
-                        profile = '-P prod'
-                    }
-                    container('jdk-21') {
-                        sh """
-                            mvn ${MVN_OPTS} clean package ${profile}
-                            cp carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar package/carbonio-ws-collaboration-ce.jar
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('Tests') {
-            when {
-                expression { params.SKIP_TESTS == false }
-            }
-            steps {
-                container('jdk-21') {
-                    sh """
-                        mvn ${MVN_OPTS} \
-                        -Dlogback.configurationFile="\$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
-                        verify
-                    """
-                    recordCoverage(tools: [[pattern: 'target/site/jacoco-all-tests/jacoco.xml']])
-                }
-            }
-        }
-
-        stage('SonarQube analysis') {
-            when {
-                allOf {
-                    expression { params.SKIP_CHECKS == false }
-                    anyOf {
-                        branch 'devel'
-                        expression { env.BRANCH_NAME.contains("PR") }
-                    }
-                }
-            }
-            steps {
-                container('jdk-21') {
-                    withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
-                        sh "mvn ${MVN_OPTS} org.sonarsource.scanner.maven:sonar-maven-plugin:sonar"
-                    }
+                    mavenStage(
+                        postBuildScript: 'cp carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar package/carbonio-ws-collaboration-ce.jar',
+                        extraTestArgs: '-Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml',
+                        skipTests: params.SKIP_TESTS,
+                        skipCoverage: params.SKIP_CHECKS,
+                        skipSonar: params.SKIP_CHECKS
+                    )
                 }
             }
         }
