@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 import com.google.inject.matcher.Matchers;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -37,7 +38,6 @@ import com.zextras.carbonio.chats.api.RoomsApi;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
-import com.zextras.carbonio.chats.core.cache.CacheHandler;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
@@ -129,9 +129,12 @@ import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.preview.PreviewClient;
-import com.zextras.carbonio.usermanagement.UserManagementClient;
+import com.zextras.carbonio.user_management.sdk.grpc.UserManagementServiceGrpc;
+import com.zextras.carbonio.user_management.sdk.grpc.UserManagementServiceGrpc.UserManagementServiceBlockingStub;
 import com.zextras.storages.api.StoragesClient;
 
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.annotation.Platform;
@@ -217,7 +220,6 @@ public class CoreModule extends AbstractModule {
     bindExceptionMapper();
 
     bind(VideoServerEventListener.class);
-    bind(CacheHandler.class);
     bind(CacheVideoServerSession.class);
     bind(WebsocketVersionMigrator.class);
   }
@@ -258,12 +260,20 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private UserManagementClient getUserManagementClient(AppConfig appConfig) {
-    return UserManagementClient.atURL(
-        String.format(
-            URL_PATTERN,
-            appConfig.get(String.class, ConfigName.USER_MANAGEMENT_HOST).orElseThrow(),
-            appConfig.get(String.class, ConfigName.USER_MANAGEMENT_PORT).orElseThrow()));
+  @Named("userManagementChannel")
+  private ManagedChannel getUserManagementChannel(AppConfig appConfig) {
+    String host = appConfig.get(String.class, ConfigName.USER_MANAGEMENT_HOST).orElseThrow();
+    int port = appConfig.get(Integer.class, ConfigName.USER_MANAGEMENT_PORT).orElseThrow();
+    return ManagedChannelBuilder.forAddress(host, port)
+        .usePlaintext()
+        .build();
+  }
+
+  @Singleton
+  @Provides
+  private UserManagementServiceBlockingStub getUserManagementStub(
+      @Named("userManagementChannel") ManagedChannel userManagementChannel) {
+    return UserManagementServiceGrpc.newBlockingStub(userManagementChannel);
   }
 
   @Singleton

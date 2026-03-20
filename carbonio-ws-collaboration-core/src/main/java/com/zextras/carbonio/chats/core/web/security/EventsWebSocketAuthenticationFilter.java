@@ -6,9 +6,8 @@ package com.zextras.carbonio.chats.core.web.security;
 
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.usermanagement.entities.UserMyself;
-import com.zextras.carbonio.usermanagement.enumerations.UserStatus;
-import com.zextras.carbonio.usermanagement.enumerations.UserType;
+import com.zextras.carbonio.user_management.sdk.grpc.UserMyselfProto;
+import com.zextras.carbonio.user_management.sdk.grpc.UserTypeProto;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -53,7 +52,7 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
       return;
     }
 
-    Optional<UserMyself> userMyselfOpt = authenticationService.getUserMyself(authToken.get());
+    Optional<UserMyselfProto> userMyselfOpt = authenticationService.getUserMyself(authToken.get());
 
     if (userMyselfOpt.isEmpty()) {
       ChatsLogger.warn("Websocket authentication failed for token " + authToken.get());
@@ -61,10 +60,10 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
       return;
     }
 
-    UserMyself userMyself = userMyselfOpt.get();
+    UserMyselfProto userMyself = userMyselfOpt.get();
 
     // Check if user status is ACTIVE
-    if (!userMyself.getStatus().equals(UserStatus.ACTIVE)) {
+    if (!userMyself.getInfo().getStatus().equalsIgnoreCase("active")) {
       ChatsLogger.warn("Websocket authentication failed: user is not active");
       httpServletResponse.setStatus(Status.UNAUTHORIZED.getStatusCode());
       return;
@@ -73,15 +72,14 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
     // Check if carbonioFeatureWscEnabled is TRUE
     // TODO we only do this check for internal users, since guests have all carbonioFeatureFlags set to false;
     // this can and should probably change in the future
-    String wscEnabled = userMyself.getCarbonioAttributes()
-        .getOrDefault("carbonioFeatureWscEnabled", "FALSE");
-    if (wscEnabled.equals("FALSE") && userMyself.getType().equals(UserType.INTERNAL)) {
+    boolean wscEnabled = userMyself.getFeaturesList().contains("carbonioFeatureWscEnabled");
+    if (!wscEnabled && userMyself.getInfo().getType() == UserTypeProto.INTERNAL) {
       ChatsLogger.warn("Websocket authentication failed: WSC feature not enabled for user");
       httpServletResponse.setStatus(Status.UNAUTHORIZED.getStatusCode());
       return;
     }
 
-    String userId = userMyself.getId().getUserId();
+    String userId = userMyself.getInfo().getUserId();
     httpRequest.getSession().setAttribute("userId", userId);
     chain.doFilter(request, response);
   }

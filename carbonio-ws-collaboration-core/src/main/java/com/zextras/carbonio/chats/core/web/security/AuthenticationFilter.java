@@ -8,9 +8,8 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
-import com.zextras.carbonio.usermanagement.entities.UserMyself;
-import com.zextras.carbonio.usermanagement.enumerations.UserStatus;
-import com.zextras.carbonio.usermanagement.enumerations.UserType;
+import com.zextras.carbonio.user_management.sdk.grpc.UserMyselfProto;
+import com.zextras.carbonio.user_management.sdk.grpc.UserTypeProto;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.PreMatching;
@@ -47,25 +46,25 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         .ifPresentOrElse(
             token -> {
               // If the user token is invalid, we won't authenticate him/her as anonymous
-              UserMyself userMyself = authenticationService
+              UserMyselfProto userMyself = authenticationService
                 .getUserMyself(token)
                 .orElseThrow(UnauthorizedException::new);
 
               // Check if user status is ACTIVE
-              if (!userMyself.getStatus().equals(UserStatus.ACTIVE)) {
+              if (!userMyself.getInfo().getStatus().equalsIgnoreCase("active")) {
                 throw new UnauthorizedException("User is not active");
               }
 
               // Check if carbonioFeatureWscEnabled is TRUE
               // TODO we only do this check for internal users, since guests have all carbonioFeatureFlags set to false;
               // this can and should probably change in the future
-              String wscEnabled = userMyself.getCarbonioAttributes().getOrDefault("carbonioFeatureWscEnabled", "FALSE");
-              if (wscEnabled.equals("FALSE") && userMyself.getType().equals(UserType.INTERNAL)) {
+              boolean wscEnabled = userMyself.getFeaturesList().contains("carbonioFeatureWscEnabled");
+              if (!wscEnabled && userMyself.getInfo().getType() == UserTypeProto.INTERNAL) {
                 throw new UnauthorizedException("WSC feature not enabled for this user");
               }
               requestContext.setSecurityContext(
                 SecurityContextImpl.create(
-                    UserPrincipal.create(UUID.fromString(userMyself.getId().getUserId()))
+                    UserPrincipal.create(UUID.fromString(userMyself.getInfo().getUserId()))
                         .authToken(token)
                         .queueId(queueId)));
             },

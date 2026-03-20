@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.infrastructure.profiling.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
@@ -16,13 +17,14 @@ import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.ProfilingException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.usermanagement.UserManagementClient;
-import com.zextras.carbonio.usermanagement.entities.UserId;
-import com.zextras.carbonio.usermanagement.entities.UserInfo;
-import com.zextras.carbonio.usermanagement.enumerations.UserStatus;
-import com.zextras.carbonio.usermanagement.enumerations.UserType;
-import com.zextras.carbonio.usermanagement.exceptions.UserNotFound;
-import io.vavr.control.Try;
+import com.zextras.carbonio.user_management.sdk.grpc.GetUserByIdRequest;
+import com.zextras.carbonio.user_management.sdk.grpc.UserInfoProto;
+import com.zextras.carbonio.user_management.sdk.grpc.UserInfoResponse;
+import com.zextras.carbonio.user_management.sdk.grpc.UserManagementServiceGrpc.UserManagementServiceBlockingStub;
+import com.zextras.carbonio.user_management.sdk.grpc.UserTypeProto;
+import io.grpc.ManagedChannel;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -34,16 +36,32 @@ import org.junit.jupiter.api.Test;
 class UserManagementProfilingServiceTest {
 
   private final UserManagementProfilingService profilingService;
-  private final UserManagementClient userManagementClient;
+  private final UserManagementServiceBlockingStub userManagementStub;
+  private final ManagedChannel userManagementChannel;
 
   public UserManagementProfilingServiceTest() {
-    this.userManagementClient = mock(UserManagementClient.class);
-    this.profilingService = new UserManagementProfilingService(userManagementClient);
+    this.userManagementStub = mock(UserManagementServiceBlockingStub.class);
+    this.userManagementChannel = mock(ManagedChannel.class);
+    this.profilingService =
+        new UserManagementProfilingService(userManagementStub, userManagementChannel);
   }
 
   @AfterEach
   public void cleanup() {
-    reset(userManagementClient);
+    reset(userManagementStub);
+  }
+
+  private UserInfoProto buildUserInfoProto(
+      String userId, String email, String fullName, String domain,
+      String status, UserTypeProto type) {
+    return UserInfoProto.newBuilder()
+        .setUserId(userId)
+        .setEmail(email)
+        .setFullName(fullName)
+        .setDomain(domain)
+        .setStatus(status)
+        .setType(type)
+        .build();
   }
 
   @Nested
@@ -54,16 +72,12 @@ class UserManagementProfilingServiceTest {
     @DisplayName("Returns the requested user correctly mapped")
     void getById_testOk() {
       UUID randomUUID = UUID.randomUUID();
-      when(userManagementClient.getUserById("ZM_AUTH_TOKEN=cookie", randomUUID.toString()))
-          .thenReturn(
-              Try.success(
-                  new UserInfo(
-                      new UserId(randomUUID.toString()),
-                      "email@test.com",
-                      "name hello",
-                      "mydomain.com",
-                      UserStatus.ACTIVE,
-                      UserType.INTERNAL)));
+      UserInfoProto userInfo = buildUserInfoProto(
+          randomUUID.toString(), "email@test.com", "name hello", "mydomain.com",
+          "active", UserTypeProto.INTERNAL);
+      when(userManagementStub.getUserById(any(GetUserByIdRequest.class)))
+          .thenReturn(UserInfoResponse.newBuilder().setUser(userInfo).build());
+
       Optional<UserProfile> userProfile =
           profilingService.getById(
               UserPrincipal.create(randomUUID).authToken("cookie"), randomUUID);
@@ -79,8 +93,9 @@ class UserManagementProfilingServiceTest {
     @DisplayName("Returns an empty optional if the user was not found")
     void getById_testNotFound() {
       UUID randomUUID = UUID.randomUUID();
-      when(userManagementClient.getUserById("ZM_AUTH_TOKEN=cookie", randomUUID.toString()))
-          .thenReturn(Try.failure(new UserNotFound(randomUUID.toString())));
+      when(userManagementStub.getUserById(any(GetUserByIdRequest.class)))
+          .thenThrow(new StatusRuntimeException(Status.NOT_FOUND));
+
       Optional<UserProfile> userProfile =
           profilingService.getById(
               UserPrincipal.create(randomUUID).authToken("cookie"), randomUUID);
@@ -103,8 +118,8 @@ class UserManagementProfilingServiceTest {
     @DisplayName("Throws an exception when the call fails for any other reason")
     void getById_testException() {
       UUID randomUUID = UUID.randomUUID();
-      when(userManagementClient.getUserById("ZM_AUTH_TOKEN=cookie", randomUUID.toString()))
-          .thenReturn(Try.failure(new Exception()));
+      when(userManagementStub.getUserById(any(GetUserByIdRequest.class)))
+          .thenThrow(new StatusRuntimeException(Status.INTERNAL));
       assertThrows(
           ProfilingException.class,
           () ->
