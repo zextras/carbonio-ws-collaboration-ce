@@ -4,67 +4,44 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
-import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.zextras.carbonio.chats.core.config.AppConfig;
-import com.zextras.carbonio.chats.core.config.ChatsConstant;
-import com.zextras.carbonio.chats.core.config.ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES;
-import com.zextras.carbonio.chats.core.config.ConfigName;
+import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
+import com.zextras.carbonio.chats.core.data.type.SizeUnit;
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.CapabilitiesDto;
+import java.time.Duration;
 
 @Singleton
 public class CapabilityServiceImpl implements CapabilityService {
 
-  private final AppConfig appConfig;
-
-  @Inject
-  public CapabilityServiceImpl(AppConfig appConfig) {
-    this.appConfig = appConfig;
-  }
-
   @Override
   public CapabilitiesDto getCapabilities(UserPrincipal currentUser) {
     return CapabilitiesDto.create()
-        .canVideoCall(
-            appConfig
-                .get(Boolean.class, ConfigName.CAN_VIDEO_CALL)
-                .orElse(CONFIGURATIONS_DEFAULT_VALUES.CAN_VIDEO_CALL))
-        .canUseVirtualBackground(
-            appConfig
-                .get(Boolean.class, ConfigName.CAN_USE_VIRTUAL_BACKGROUND)
-                .orElse(CONFIGURATIONS_DEFAULT_VALUES.CAN_USE_VIRTUAL_BACKGROUND))
-        .canSeeMessageReads(
-            appConfig
-                .get(Boolean.class, ConfigName.CAN_SEE_MESSAGE_READS)
-                .orElse(ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES.CAN_SEE_MESSAGE_READS))
-        .canSeeUsersPresence(
-            appConfig
-                .get(Boolean.class, ConfigName.CAN_SEE_USERS_PRESENCE)
-                .orElse(ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES.CAN_SEE_USERS_PRESENCE))
-        .editMessageTimeLimitInMinutes(
-            appConfig
-                .get(Integer.class, ConfigName.EDIT_MESSAGE_TIME_LIMIT_IN_MINUTES)
-                .orElse(
-                    ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES.EDIT_MESSAGE_TIME_LIMIT_IN_MINUTES))
-        .deleteMessageTimeLimitInMinutes(
-            appConfig
-                .get(Integer.class, ConfigName.DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES)
-                .orElse(
-                    ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES
-                        .DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES))
-        .maxGroupMembers(
-            appConfig
-                .get(Integer.class, ConfigName.MAX_GROUP_MEMBERS)
-                .orElse(ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES.MAX_GROUP_MEMBERS))
-        .maxRoomImageSizeInKb(
-            appConfig
-                .get(Integer.class, ConfigName.MAX_ROOM_IMAGE_SIZE_IN_KB)
-                .orElse(ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES.MAX_ROOM_IMAGE_SIZE_IN_KB))
-        .maxUserImageSizeInKb(
-            appConfig
-                .get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB)
-                .orElse(ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES.MAX_USER_IMAGE_SIZE_IN_KB));
+        .videoCallEnabled(currentUser.hasEnabled(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED))
+        .recordingEnabled(currentUser.hasEnabled(CarbonioAttribute.WSC_RECORDING_ENABLED))
+        .virtualBackgroundEnabled(
+            currentUser.hasEnabled(CarbonioAttribute.WSC_VIRTUAL_BACKGROUND_ENABLED))
+        .privateChatCreationEnabled(
+            currentUser.hasEnabled(CarbonioAttribute.WSC_PRIVATE_CHAT_CREATION))
+        .groupChatCreationEnabled(currentUser.hasEnabled(CarbonioAttribute.WSC_GROUP_CHAT_CREATION))
+        .attachmentUploadEnabled(currentUser.hasEnabled(CarbonioAttribute.WSC_ATTACHMENT_UPLOAD))
+        .maxGroupMembers(currentUser.getCountLimit(CarbonioAttribute.WSC_MAX_GROUP_MEMBERS, 0))
+        .maxAttachmentSize(
+            currentUser.getSizeLimit(CarbonioAttribute.WSC_MAX_ATTACHMENT_SIZE, 0).to(SizeUnit.MB))
+        .maxRoomPictureSize(
+            currentUser
+                .getSizeLimit(CarbonioAttribute.WSC_MAX_ROOM_PICTURE_SIZE, 0)
+                .to(SizeUnit.MB))
+        .messageEditTimeLimit(
+            currentUser
+                .getDurationLimit(CarbonioAttribute.WSC_MESSAGE_EDIT_TIME_LIMIT, Duration.ZERO)
+                .toMinutes())
+        .messageDeleteTimeLimit(
+            currentUser
+                .getDurationLimit(CarbonioAttribute.WSC_MESSAGE_DELETE_TIME_LIMIT, Duration.ZERO)
+                .toMinutes())
+        .showMessageReads(currentUser.hasEnabled(CarbonioAttribute.WSC_SHOW_MESSAGE_READS))
+        .showUsersPresence(currentUser.hasEnabled(CarbonioAttribute.WSC_SHOW_USERS_PRESENCE));
   }
 }

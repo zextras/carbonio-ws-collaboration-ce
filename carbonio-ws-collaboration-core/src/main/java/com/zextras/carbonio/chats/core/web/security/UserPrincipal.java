@@ -4,17 +4,23 @@
 
 package com.zextras.carbonio.chats.core.web.security;
 
+import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
+import com.zextras.carbonio.chats.core.data.type.Size;
+import com.zextras.carbonio.usermanagement.enumerations.UserType;
 import jakarta.annotation.Nullable;
 import java.security.Principal;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
+import java.time.Duration;
+import java.util.*;
 
 public class UserPrincipal implements Principal {
 
+  private UserType userType;
   @Nullable private UUID userId;
   private UUID queueId;
+  private String email;
+  private String name;
   @Nullable private String authToken;
+  private Map<String, String> carbonioAttributes = new HashMap<>();
 
   public UserPrincipal() {}
 
@@ -32,11 +38,25 @@ public class UserPrincipal implements Principal {
 
   @Override
   public String getName() {
-    return userId != null ? userId.toString() : null;
+    return name;
+  }
+
+  public UserPrincipal name(String name) {
+    this.name = name;
+    return this;
   }
 
   public String getId() {
     return userId != null ? userId.toString() : null;
+  }
+
+  public UserType getUserType() {
+    return userType;
+  }
+
+  public UserPrincipal userType(UserType userType) {
+    this.userType = userType;
+    return this;
   }
 
   public UUID getUUID() {
@@ -57,6 +77,15 @@ public class UserPrincipal implements Principal {
     return this;
   }
 
+  public String getEmail() {
+    return email;
+  }
+
+  public UserPrincipal email(String email) {
+    this.email = email;
+    return this;
+  }
+
   public Optional<String> getAuthToken() {
     return Optional.ofNullable(authToken);
   }
@@ -66,21 +95,44 @@ public class UserPrincipal implements Principal {
     return this;
   }
 
+  public Map<String, String> getCarbonioAttributes() {
+    return carbonioAttributes;
+  }
+
+  public UserPrincipal carbonioAttributes(Map<String, String> carbonioAttributes) {
+    this.carbonioAttributes = carbonioAttributes;
+    return this;
+  }
+
+  public boolean hasEnabled(CarbonioAttribute attribute) {
+    return attribute.asBoolean(carbonioAttributes);
+  }
+
+  public Size getSizeLimit(CarbonioAttribute attribute, long defaultValue) {
+    return attribute.getSize(carbonioAttributes, defaultValue);
+  }
+
+  public int getCountLimit(CarbonioAttribute attribute, int defaultValue) {
+    return attribute.asInt(carbonioAttributes, defaultValue);
+  }
+
+  public Duration getDurationLimit(CarbonioAttribute attribute, Duration defaultValue) {
+    return attribute.asDuration(carbonioAttributes, defaultValue);
+  }
+
   @Override
   public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    UserPrincipal that = (UserPrincipal) o;
-    return Objects.equals(userId, that.userId) && Objects.equals(queueId, that.queueId);
+    if (this == o) return true;
+    if (!(o instanceof UserPrincipal that)) return false;
+    return getUserType() == that.getUserType()
+        && Objects.equals(userId, that.userId)
+        && Objects.equals(getQueueId(), that.getQueueId())
+        && Objects.equals(getEmail(), that.getEmail());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(userId, queueId);
+    return Objects.hash(getUserType(), userId, getQueueId(), getEmail());
   }
 
   @Override

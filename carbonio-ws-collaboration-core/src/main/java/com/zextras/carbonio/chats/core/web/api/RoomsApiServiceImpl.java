@@ -8,7 +8,9 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
@@ -90,19 +92,40 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response insertRoom(
       RoomCreationFieldsDto insertRoomRequestDto, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    if (insertRoomRequestDto.getType().equals(RoomTypeDto.ONE_TO_ONE)
-        && (insertRoomRequestDto.getName() != null
-            || insertRoomRequestDto.getDescription() != null)) {
-      return Response.status(Status.BAD_REQUEST).build();
-    } else if ((insertRoomRequestDto.getType().equals(RoomTypeDto.GROUP)
-            || insertRoomRequestDto.getType().equals(RoomTypeDto.TEMPORARY))
-        && insertRoomRequestDto.getName() == null) {
-      return Response.status(Status.BAD_REQUEST).build();
-    } else {
-      return Response.status(Status.CREATED)
-          .entity(roomService.createRoom(insertRoomRequestDto, currentUser))
-          .build();
+    List<MemberDto> members =
+        Optional.ofNullable(insertRoomRequestDto.getMembers()).orElse(List.of());
+    if (RoomTypeDto.ONE_TO_ONE.equals(insertRoomRequestDto.getType())) {
+      if (!currentUser.hasEnabled(CarbonioAttribute.WSC_PRIVATE_CHAT_CREATION)) {
+        throw new ForbiddenException("Private chat creation is disabled for user");
+      }
+      if (members.size() != 1) {
+        return Response.status(Status.BAD_REQUEST).build();
+      }
+      if (insertRoomRequestDto.getName() != null || insertRoomRequestDto.getDescription() != null) {
+        return Response.status(Status.BAD_REQUEST).build();
+      }
     }
+    if (RoomTypeDto.GROUP.equals(insertRoomRequestDto.getType())) {
+      if (!currentUser.hasEnabled(CarbonioAttribute.WSC_GROUP_CHAT_CREATION)) {
+        throw new ForbiddenException("Group chat creation is disabled for user");
+      }
+      if (members.size() < 2) {
+        return Response.status(Status.BAD_REQUEST).build();
+      }
+      int maxMembers = currentUser.getCountLimit(CarbonioAttribute.WSC_MAX_GROUP_MEMBERS, 0);
+      if (members.size() > maxMembers) {
+        throw new ForbiddenException("Exceeded the max number of group members for user");
+      }
+    }
+    if (List.of(RoomTypeDto.GROUP, RoomTypeDto.TEMPORARY)
+        .contains(insertRoomRequestDto.getType())) {
+      if (insertRoomRequestDto.getName() == null) {
+        return Response.status(Status.BAD_REQUEST).build();
+      }
+    }
+    return Response.status(Status.CREATED)
+        .entity(roomService.createRoom(insertRoomRequestDto, currentUser))
+        .build();
   }
 
   @Override
@@ -112,7 +135,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(
             r -> {
-              if (room.get().getType().equals(RoomTypeDto.ONE_TO_ONE)) {
+              if (RoomTypeDto.ONE_TO_ONE.equals(room.get().getType())) {
                 return Response.status(Status.FORBIDDEN).build();
               } else {
                 roomService.deleteRoom(roomId, currentUser);
@@ -130,17 +153,18 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(
             r -> {
-              if (room.get().getType().equals(RoomTypeDto.ONE_TO_ONE)) {
+              if (RoomTypeDto.ONE_TO_ONE.equals(room.get().getType())) {
                 return Response.status(Status.BAD_REQUEST).build();
-              } else if (room.get().getType().equals(RoomTypeDto.GROUP)
-                  && (updateRoomRequestDto.getName() == null
-                      && updateRoomRequestDto.getDescription() == null)) {
-                return Response.status(Status.BAD_REQUEST).build();
-              } else {
-                return Response.status(Status.OK)
-                    .entity(roomService.updateRoom(roomId, updateRoomRequestDto, currentUser))
-                    .build();
               }
+              if (RoomTypeDto.GROUP.equals(room.get().getType())) {
+                if (updateRoomRequestDto.getName() == null
+                    && updateRoomRequestDto.getDescription() == null) {
+                  return Response.status(Status.BAD_REQUEST).build();
+                }
+              }
+              return Response.status(Status.OK)
+                  .entity(roomService.updateRoom(roomId, updateRoomRequestDto, currentUser))
+                  .build();
             })
         .orElse(Response.status(Status.NOT_FOUND).build());
   }
@@ -149,9 +173,17 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response updateRoomOwners(
       UUID roomId, List<@Valid MemberDto> memberDto, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    return Response.status(Status.OK)
-        .entity(membersService.updateRoomOwners(roomId, memberDto, currentUser))
-        .build();
+    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    return room.map(
+            r -> {
+              if (RoomTypeDto.ONE_TO_ONE.equals(room.get().getType())) {
+                return Response.status(Status.BAD_REQUEST).build();
+              }
+              return Response.status(Status.OK)
+                  .entity(membersService.updateRoomOwners(roomId, memberDto, currentUser))
+                  .build();
+            })
+        .orElse(Response.status(Status.NOT_FOUND).build());
   }
 
   @Override
@@ -175,10 +207,22 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       UUID roomId,
       String headerFileName,
       String headerMimeType,
-      Long headerContentLength,
+      Long contentLength,
       InputStream body,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+
+    long maxSizeBytes =
+        currentUser.getSizeLimit(CarbonioAttribute.WSC_MAX_ROOM_PICTURE_SIZE, 0).toBytes();
+
+    if (contentLength == null || contentLength < 0) {
+      throw new BadRequestException("Content length is missing or invalid");
+    }
+
+    if (contentLength > maxSizeBytes) {
+      throw new ForbiddenException("Room picture size exceeds the max limit");
+    }
+
     String filename;
     try {
       filename =
@@ -193,7 +237,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
         body,
         Optional.ofNullable(headerMimeType)
             .orElseThrow(() -> new BadRequestException(MIME_TYPE_NOT_FOUND)),
-        headerContentLength,
+        contentLength,
         filename,
         currentUser);
     return Response.status(Status.NO_CONTENT).build();
@@ -256,33 +300,72 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       List<@Valid MemberToInsertDto> memberToInsertDto,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    return Response.status(Status.CREATED)
-        .entity(membersService.insertRoomMembers(roomId, memberToInsertDto, currentUser))
-        .build();
+    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    return room.map(
+            r -> {
+              if (RoomTypeDto.ONE_TO_ONE.equals(room.get().getType())) {
+                return Response.status(Status.BAD_REQUEST).build();
+              }
+              if (RoomTypeDto.GROUP.equals(room.get().getType())) {
+                int maxMembers =
+                    currentUser.getCountLimit(CarbonioAttribute.WSC_MAX_GROUP_MEMBERS, 0);
+                if ((r.getMembers().size() + memberToInsertDto.size()) > maxMembers) {
+                  return Response.status(Status.BAD_REQUEST).build();
+                }
+              }
+              return Response.status(Status.CREATED)
+                  .entity(membersService.insertRoomMembers(roomId, memberToInsertDto, currentUser))
+                  .build();
+            })
+        .orElse(Response.status(Status.NOT_FOUND).build());
   }
 
   @Override
   @TimedCall
   public Response deleteRoomMember(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    membersService.deleteRoomMember(roomId, userId, currentUser);
-    return Response.status(Status.NO_CONTENT).build();
+    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    return room.map(
+            r -> {
+              if (RoomTypeDto.ONE_TO_ONE.equals(room.get().getType())) {
+                return Response.status(Status.BAD_REQUEST).build();
+              }
+              membersService.deleteRoomMember(roomId, userId, currentUser);
+              return Response.status(Status.NO_CONTENT).build();
+            })
+        .orElse(Response.status(Status.NOT_FOUND).build());
   }
 
   @Override
   @TimedCall
   public Response insertOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    membersService.promoteMemberToOwner(roomId, userId, currentUser);
-    return Response.status(Status.NO_CONTENT).build();
+    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    return room.map(
+            r -> {
+              if (RoomTypeDto.ONE_TO_ONE.equals(room.get().getType())) {
+                return Response.status(Status.BAD_REQUEST).build();
+              }
+              membersService.promoteMemberToOwner(roomId, userId, currentUser);
+              return Response.status(Status.NO_CONTENT).build();
+            })
+        .orElse(Response.status(Status.NOT_FOUND).build());
   }
 
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response deleteOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
-    membersService.demoteOwnerToMember(roomId, userId, currentUser);
-    return Response.status(Status.NO_CONTENT).build();
+    Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
+    return room.map(
+            r -> {
+              if (RoomTypeDto.ONE_TO_ONE.equals(room.get().getType())) {
+                return Response.status(Status.BAD_REQUEST).build();
+              }
+              membersService.demoteOwnerToMember(roomId, userId, currentUser);
+              return Response.status(Status.NO_CONTENT).build();
+            })
+        .orElse(Response.status(Status.NOT_FOUND).build());
   }
 
   @Override
@@ -310,6 +393,22 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       String area,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+
+    if (!currentUser.hasEnabled(CarbonioAttribute.WSC_ATTACHMENT_UPLOAD)) {
+      throw new ForbiddenException("Attachment upload is disabled for user");
+    }
+
+    long maxSizeBytes =
+        currentUser.getSizeLimit(CarbonioAttribute.WSC_MAX_ATTACHMENT_SIZE, 0).toBytes();
+
+    if (contentLength == null || contentLength < 0) {
+      throw new BadRequestException("Content length is missing or invalid");
+    }
+
+    if (maxSizeBytes > 0 && contentLength > maxSizeBytes) {
+      throw new ForbiddenException("Attachment size exceeds the max limit");
+    }
+
     String name;
     try {
       name =
@@ -353,6 +452,10 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
     UserPrincipal currentUser = getCurrentUser(securityContext);
 
+    if (!currentUser.hasEnabled(CarbonioAttribute.WSC_ATTACHMENT_UPLOAD)) {
+      throw new ForbiddenException("Attachment upload is disabled for user");
+    }
+
     Map<String, List<InputPart>> formDataMap = input.getFormDataMap();
 
     InputPart filePart = getFormPart(formDataMap, "file");
@@ -360,33 +463,51 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       return Response.status(Status.BAD_REQUEST).entity("File not found").build();
     }
 
+    String contentLength = getStringFromPart(formDataMap, "contentLength");
+
+    if (contentLength == null || contentLength.isEmpty()) {
+      return Response.status(Status.BAD_REQUEST).entity("Content length not found").build();
+    }
+
+    long maxSizeBytes =
+        currentUser.getSizeLimit(CarbonioAttribute.WSC_MAX_ATTACHMENT_SIZE, 0).toBytes();
+    long contentLengthBytes;
     try {
-      String fileName = filePart.getFileName();
-      MediaType mediaType = filePart.getMediaType();
+      contentLengthBytes = Long.parseLong(contentLength);
+    } catch (NumberFormatException e) {
+      throw new BadRequestException("Invalid content length format");
+    }
 
-      if (fileName == null || fileName.isEmpty()) {
-        return Response.status(Status.BAD_REQUEST).entity(FILE_NAME_NOT_FOUND).build();
-      }
+    if (contentLengthBytes < 0) {
+      throw new BadRequestException("Content length cannot be negative");
+    }
 
-      if (mediaType == null || mediaType.toString().isEmpty()) {
-        return Response.status(Status.BAD_REQUEST).entity(MIME_TYPE_NOT_FOUND).build();
-      }
+    if (maxSizeBytes > 0 && contentLengthBytes > maxSizeBytes) {
+      throw new ForbiddenException("Attachment size exceeds the max limit");
+    }
 
-      String mimeType = mediaType.toString();
-      String description = getStringFromPart(formDataMap, "description");
-      String contentLength = getStringFromPart(formDataMap, "contentLength");
-      String messageId = getStringFromPart(formDataMap, "messageId");
-      String replyId = getStringFromPart(formDataMap, "replyId");
-      String area = getStringFromPart(formDataMap, "area");
+    String fileName = filePart.getFileName();
+    MediaType mediaType = filePart.getMediaType();
 
-      if (contentLength == null || contentLength.isEmpty()) {
-        return Response.status(Status.BAD_REQUEST).entity("Content length not found").build();
-      }
+    if (fileName == null || fileName.isEmpty()) {
+      return Response.status(Status.BAD_REQUEST).entity(FILE_NAME_NOT_FOUND).build();
+    }
 
-      if (area != null && !isValidArea(area)) {
-        return Response.status(Status.BAD_REQUEST).entity("Invalid area format").build();
-      }
+    if (mediaType == null || mediaType.toString().isEmpty()) {
+      return Response.status(Status.BAD_REQUEST).entity(MIME_TYPE_NOT_FOUND).build();
+    }
 
+    String mimeType = mediaType.toString();
+    String description = getStringFromPart(formDataMap, "description");
+    String messageId = getStringFromPart(formDataMap, "messageId");
+    String replyId = getStringFromPart(formDataMap, "replyId");
+    String area = getStringFromPart(formDataMap, "area");
+
+    if (area != null && !isValidArea(area)) {
+      return Response.status(Status.BAD_REQUEST).entity("Invalid area format").build();
+    }
+
+    try {
       return Response.status(Status.CREATED)
           .entity(
               attachmentService.addAttachment(

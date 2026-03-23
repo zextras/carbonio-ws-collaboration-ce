@@ -4,13 +4,10 @@
 
 package com.zextras.carbonio.chats.it.web.api;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.zextras.carbonio.chats.core.config.AppConfig;
-import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import com.zextras.carbonio.chats.it.config.AppClock;
 import com.zextras.carbonio.chats.it.tools.ResteasyRequestDispatcher;
@@ -21,6 +18,7 @@ import com.zextras.carbonio.chats.it.utils.MockedAccount.MockUserProfile;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.UserDto;
+import com.zextras.carbonio.chats.model.UserDto.TypeEnum;
 import com.zextras.carbonio.usermanagement.entities.UserId;
 import com.zextras.carbonio.usermanagement.entities.UserInfo;
 import com.zextras.carbonio.usermanagement.enumerations.UserStatus;
@@ -45,21 +43,18 @@ class UsersApiIT {
   private final ObjectMapper objectMapper;
   private final IntegrationTestUtils integrationTestUtils;
   private final AppClock clock;
-  private final AppConfig appConfig;
 
   public UsersApiIT(
       ResteasyRequestDispatcher dispatcher,
       UserManagementMockServer userManagementMockServer,
       ObjectMapper objectMapper,
       IntegrationTestUtils integrationTestUtils,
-      Clock clock,
-      AppConfig appConfig) {
+      Clock clock) {
     this.dispatcher = dispatcher;
     this.userManagementMockServer = userManagementMockServer;
     this.objectMapper = objectMapper;
     this.integrationTestUtils = integrationTestUtils;
     this.clock = (AppClock) clock;
-    this.appConfig = appConfig;
   }
 
   @Nested
@@ -84,6 +79,7 @@ class UsersApiIT {
       assertEquals("332a9527-3388-4207-be77-6d7e2978a723", user.getId().toString());
       assertEquals("snoopy@peanuts.com", user.getEmail());
       assertEquals("Snoopy", user.getName());
+      assertEquals(TypeEnum.INTERNAL, user.getType());
       assertEquals("hello", user.getStatusMessage());
     }
 
@@ -107,8 +103,7 @@ class UsersApiIT {
       MockHttpResponse mockHttpResponse =
           dispatcher.get(url, "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
 
-      assertEquals(404, mockHttpResponse.getStatus(),
-          "Should return 404 for invalid UUID format");
+      assertEquals(404, mockHttpResponse.getStatus(), "Should return 404 for invalid UUID format");
     }
   }
 
@@ -150,10 +145,10 @@ class UsersApiIT {
               UserType.INTERNAL);
       UserInfo user3 =
           new UserInfo(
-              new UserId("ea7b9b61-bef5-4cf4-80cb-19612c42593a"),
-              "lucy.van.pelt@peanuts.com",
-              "Lucy van Pelt",
-              "peanuts.com",
+              new UserId("7156b7fa-78a8-47e3-8b50-102d1db31edc"),
+              "harlock@external.com",
+              "Capitan Harlock",
+              "external.com",
               UserStatus.ACTIVE,
               UserType.INTERNAL);
       userManagementMockServer.mockUsersBulk(userIds, List.of(user1, user2, user3), true);
@@ -166,13 +161,16 @@ class UsersApiIT {
       assertEquals("332a9527-3388-4207-be77-6d7e2978a723", users.get(0).getId().toString());
       assertEquals("snoopy@peanuts.com", users.get(0).getEmail());
       assertEquals("Snoopy", users.get(0).getName());
+      assertEquals(TypeEnum.INTERNAL, users.get(0).getType());
       assertEquals("status message 1", users.get(0).getStatusMessage());
       assertEquals("82735f6d-4c6c-471e-99d9-4eef91b1ec45", users.get(1).getId().toString());
       assertEquals("charlie.brown@peanuts.com", users.get(1).getEmail());
       assertEquals("Charlie Brown", users.get(1).getName());
-      assertEquals("ea7b9b61-bef5-4cf4-80cb-19612c42593a", users.get(2).getId().toString());
-      assertEquals("lucy.van.pelt@peanuts.com", users.get(2).getEmail());
-      assertEquals("Lucy van Pelt", users.get(2).getName());
+      assertEquals(TypeEnum.INTERNAL, users.get(1).getType());
+      assertEquals("7156b7fa-78a8-47e3-8b50-102d1db31edc", users.get(2).getId().toString());
+      assertEquals("harlock@external.com", users.get(2).getEmail());
+      assertEquals("Capitan Harlock", users.get(2).getName());
+      assertEquals(TypeEnum.INTERNAL, users.get(2).getType());
     }
 
     @Test
@@ -210,10 +208,12 @@ class UsersApiIT {
       assertEquals("332a9527-3388-4207-be77-6d7e2978a723", users.get(0).getId().toString());
       assertEquals("snoopy@peanuts.com", users.get(0).getEmail());
       assertEquals("Snoopy", users.get(0).getName());
+      assertEquals(TypeEnum.INTERNAL, users.get(0).getType());
       assertEquals("status message 1", users.get(0).getStatusMessage());
       assertEquals("82735f6d-4c6c-471e-99d9-4eef91b1ec45", users.get(1).getId().toString());
       assertEquals("charlie.brown@peanuts.com", users.get(1).getEmail());
       assertEquals("Charlie Brown", users.get(1).getName());
+      assertEquals(TypeEnum.INTERNAL, users.get(1).getType());
     }
 
     @Test
@@ -246,55 +246,20 @@ class UsersApiIT {
 
       CapabilitiesDto capabilities =
           objectMapper.readValue(response.getContentAsString(), CapabilitiesDto.class);
-      assertEquals(true, capabilities.isCanVideoCall());
-      assertEquals(true, capabilities.isCanUseVirtualBackground());
-      assertEquals(true, capabilities.isCanSeeMessageReads());
-      assertEquals(true, capabilities.isCanSeeUsersPresence());
-      assertEquals(10, capabilities.getEditMessageTimeLimitInMinutes());
-      assertEquals(10, capabilities.getDeleteMessageTimeLimitInMinutes());
+      assertNotNull(capabilities);
+      assertTrue(capabilities.isVideoCallEnabled());
+      assertTrue(capabilities.isRecordingEnabled());
+      assertTrue(capabilities.isVirtualBackgroundEnabled());
+      assertTrue(capabilities.isPrivateChatCreationEnabled());
+      assertTrue(capabilities.isGroupChatCreationEnabled());
+      assertTrue(capabilities.isAttachmentUploadEnabled());
       assertEquals(128, capabilities.getMaxGroupMembers());
-      assertEquals(512, capabilities.getMaxRoomImageSizeInKb());
-      assertEquals(512, capabilities.getMaxUserImageSizeInKb());
-    }
-
-    @Test
-    @DisplayName("Returns configured user capabilities")
-    void getCapabilities_configuredValuesTestOk() throws Exception {
-      appConfig.set(ConfigName.CAN_VIDEO_CALL, "true");
-      appConfig.set(ConfigName.CAN_USE_VIRTUAL_BACKGROUND, "false");
-      appConfig.set(ConfigName.CAN_SEE_MESSAGE_READS, "false");
-      appConfig.set(ConfigName.CAN_SEE_USERS_PRESENCE, "false");
-      appConfig.set(ConfigName.MAX_USER_IMAGE_SIZE_IN_KB, "512");
-      appConfig.set(ConfigName.MAX_ROOM_IMAGE_SIZE_IN_KB, "512");
-      appConfig.set(ConfigName.EDIT_MESSAGE_TIME_LIMIT_IN_MINUTES, "15");
-      appConfig.set(ConfigName.DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES, "15");
-      appConfig.set(ConfigName.MAX_GROUP_MEMBERS, "20");
-
-      MockUserProfile account = MockedAccount.getAccount(MockedAccountType.SNOOPY);
-      MockHttpResponse response = dispatcher.get(URL, account.getToken());
-      assertEquals(200, response.getStatus());
-
-      CapabilitiesDto capabilities =
-          objectMapper.readValue(response.getContentAsString(), CapabilitiesDto.class);
-      assertEquals(true, capabilities.isCanVideoCall());
-      assertEquals(false, capabilities.isCanUseVirtualBackground());
-      assertEquals(false, capabilities.isCanSeeMessageReads());
-      assertEquals(false, capabilities.isCanSeeUsersPresence());
-      assertEquals(15, capabilities.getEditMessageTimeLimitInMinutes());
-      assertEquals(15, capabilities.getDeleteMessageTimeLimitInMinutes());
-      assertEquals(20, capabilities.getMaxGroupMembers());
-      assertEquals(512, capabilities.getMaxRoomImageSizeInKb());
-      assertEquals(512, capabilities.getMaxUserImageSizeInKb());
-
-      appConfig.set(ConfigName.CAN_VIDEO_CALL, null);
-      appConfig.set(ConfigName.CAN_USE_VIRTUAL_BACKGROUND, null);
-      appConfig.set(ConfigName.CAN_SEE_MESSAGE_READS, null);
-      appConfig.set(ConfigName.CAN_SEE_USERS_PRESENCE, null);
-      appConfig.set(ConfigName.MAX_USER_IMAGE_SIZE_IN_KB, null);
-      appConfig.set(ConfigName.MAX_ROOM_IMAGE_SIZE_IN_KB, null);
-      appConfig.set(ConfigName.EDIT_MESSAGE_TIME_LIMIT_IN_MINUTES, null);
-      appConfig.set(ConfigName.DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES, null);
-      appConfig.set(ConfigName.MAX_GROUP_MEMBERS, null);
+      assertEquals(128, capabilities.getMaxAttachmentSize());
+      assertEquals(2, capabilities.getMaxRoomPictureSize());
+      assertEquals(10, capabilities.getMessageEditTimeLimit());
+      assertEquals(10, capabilities.getMessageDeleteTimeLimit());
+      assertTrue(capabilities.isShowUsersPresence());
+      assertTrue(capabilities.isShowMessageReads());
     }
 
     @Test

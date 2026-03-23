@@ -8,7 +8,9 @@ import static org.mockserver.model.HttpRequest.request;
 import static org.mockserver.model.HttpResponse.response;
 
 import com.zextras.carbonio.chats.core.config.ConfigName;
+import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
 import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
@@ -18,10 +20,7 @@ import com.zextras.carbonio.usermanagement.entities.UserInfo;
 import com.zextras.carbonio.usermanagement.entities.UserMyself;
 import com.zextras.carbonio.usermanagement.enumerations.UserStatus;
 import com.zextras.carbonio.usermanagement.enumerations.UserType;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -31,6 +30,7 @@ import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.ClearType;
+import org.mockserver.model.Cookie;
 import org.mockserver.model.JsonBody;
 
 public class UserManagementExtension
@@ -94,8 +94,7 @@ public class UserManagementExtension
     for (MockUserProfile mockAccount : MockedAccount.getAccounts()) {
       mockValidateUserToken(client, new UserId(mockAccount.getId()), mockAccount.getToken());
 
-      Map<String, String> carbonioAttributes = new HashMap<>();
-      carbonioAttributes.put("carbonioFeatureWscEnabled", "TRUE");
+      Map<String, String> carbonioAttributes = getCarbonioAttributes();
 
       UserMyself userMyself =
           new UserMyself(
@@ -116,10 +115,28 @@ public class UserManagementExtension
               mockAccount.getName(),
               mockAccount.getDomain(),
               UserStatus.ACTIVE,
-              UserType.INTERNAL);
+              mockAccount.getType());
       mockGetUserByUUID(client, userInfo);
       mockGetUserByEmail(client, userInfo);
     }
+  }
+
+  private static Map<String, String> getCarbonioAttributes() {
+    return Map.ofEntries(
+        Map.entry(CarbonioAttribute.FEATURE_WSC_ENABLED.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_RECORDING_ENABLED.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_VIRTUAL_BACKGROUND_ENABLED.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_PRIVATE_CHAT_CREATION.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_GROUP_CHAT_CREATION.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_MAX_GROUP_MEMBERS.getValue(), "128"),
+        Map.entry(CarbonioAttribute.WSC_ATTACHMENT_UPLOAD.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_MAX_ATTACHMENT_SIZE.getValue(), "128"),
+        Map.entry(CarbonioAttribute.WSC_MAX_ROOM_PICTURE_SIZE.getValue(), "2"),
+        Map.entry(CarbonioAttribute.WSC_MESSAGE_EDIT_TIME_LIMIT.getValue(), "10m"),
+        Map.entry(CarbonioAttribute.WSC_MESSAGE_DELETE_TIME_LIMIT.getValue(), "10m"),
+        Map.entry(CarbonioAttribute.WSC_SHOW_USERS_PRESENCE.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_SHOW_MESSAGE_READS.getValue(), "TRUE"));
   }
 
   private void mockHealthCheck(MockServerClient client) {
@@ -145,7 +162,10 @@ public class UserManagementExtension
             request()
                 .withMethod("GET")
                 .withPath("/users/myself/")
-                .withHeader("Cookie", "ZM_AUTH_TOKEN=" + carbonioUserToken))
+                .withHeader("Cookie", "ZM_AUTH_TOKEN=" + carbonioUserToken)
+                .withCookies(
+                    List.of(
+                        new Cookie(AuthenticationMethod.ZM_AUTH_TOKEN.name(), carbonioUserToken))))
         .respond(response().withStatusCode(200).withBody(JsonBody.json(userMyself)));
   }
 

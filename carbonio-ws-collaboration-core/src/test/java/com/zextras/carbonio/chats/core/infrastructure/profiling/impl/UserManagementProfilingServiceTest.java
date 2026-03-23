@@ -73,6 +73,7 @@ class UserManagementProfilingServiceTest {
       assertEquals("email@test.com", userProfile.get().getEmail());
       assertEquals("name hello", userProfile.get().getName());
       assertEquals("mydomain.com", userProfile.get().getDomain());
+      assertEquals(UserType.INTERNAL, userProfile.get().getType());
     }
 
     @Test

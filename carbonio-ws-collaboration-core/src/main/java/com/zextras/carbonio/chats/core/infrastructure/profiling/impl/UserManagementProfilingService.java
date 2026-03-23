@@ -41,7 +41,8 @@ public class UserManagementProfilingService implements ProfilingService {
                     UserProfile.create(userInfo.getId().getUserId())
                         .name(userInfo.getFullName())
                         .email(userInfo.getEmail())
-                        .domain(userInfo.getDomain()))
+                        .domain(userInfo.getDomain())
+                        .type(userInfo.getType()))
             .recover(UserNotFound.class, e -> null)
             .getOrElseThrow(fail -> new ProfilingException(fail)));
   }
@@ -58,7 +59,8 @@ public class UserManagementProfilingService implements ProfilingService {
                 UserProfile.create(userInfo.getId().getUserId())
                     .name(userInfo.getFullName())
                     .email(userInfo.getEmail())
-                    .domain(userInfo.getDomain()))
+                    .domain(userInfo.getDomain())
+                    .type(userInfo.getType()))
         .toList();
   }
 

@@ -6,8 +6,8 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.7
-  x-supported-versions: [ "1.6.7", "1.6.6", "1.6.3", "1.6.2", "1.6.1", "1.6.0" ]
+  version: 1.6.8
+  x-supported-versions: [ "1.6.8", "1.6.7", "1.6.6", "1.6.3", "1.6.2", "1.6.1", "1.6.0" ]
 
 servers:
   - url: http://localhost:10000
@@ -1518,44 +1518,63 @@ components:
     Capabilities:
       type: object
       properties:
-        canSeeMessageReads:
+        videoCallEnabled:
           type: boolean
-          description: indicates whether it can see if the messages have been read
-        canSeeUsersPresence:
+          description: whether the user can start a video call
+        recordingEnabled:
           type: boolean
-          description: indicates whether it can see the presence of the other users
-        canVideoCall:
+          description: whether the user can start a recording
+        virtualBackgroundEnabled:
           type: boolean
-          description: indicates whether it can access video calls
-        canUseVirtualBackground:
+          description: whether the user can set a virtual background
+        privateChatCreationEnabled:
           type: boolean
-          description: indicates whether it can use a virtual background
-        editMessageTimeLimitInMinutes:
-          type: integer
-          description: limit of minutes within which a message can be edited
-        deleteMessageTimeLimitInMinutes:
-          type: integer
-          description: limit of minutes within which a message can be deleted
+          description: whether the user can create a private chat
+        groupChatCreationEnabled:
+          type: boolean
+          description: whether the user can create a group chat
+        attachmentUploadEnabled:
+          type: boolean
+          description: whether the user can upload attachments
         maxGroupMembers:
           type: integer
-          description: maximum number of users who can be members of a group
-        maxRoomImageSizeInKb:
+          description: the maximum number of members allowed in a group chat
+        maxAttachmentSize:
           type: integer
-          description: maximum size for a room image in kB
-        maxUserImageSizeInKb:
+          format: int64
+          description: the maximum size of an attachment
+        maxRoomPictureSize:
           type: integer
-          description: maximum size for a user image in kB
+          format: int64
+          description: the maximum size of a room picture
+        messageEditTimeLimit:
+          type: integer
+          format: int64
+          description: the time limit for editing messages
+        messageDeleteTimeLimit:
+          type: integer
+          format: int64
+          description: the time limit for deleting messages
+        showUsersPresence:
+          type: boolean
+          description: whether the user can see the presence of other users
+        showMessageReads:
+          type: boolean
+          description: whether the user can see the read status of messages
       required:
-        - canSeeMessageReads
-        - canSeeUsersPresence
-        - canVideoCall
-        - canVideoCallRecord
-        - canUseVirtualBackground
-        - editMessageTimeLimitInMinutes
-        - deleteMessageTimeLimitInMinutes
+        - videoCallEnabled
+        - recordingEnabled
+        - virtualBackgroundEnabled
+        - privateChatCreationEnabled
+        - groupChatCreationEnabled
+        - attachmentUploadEnabled
         - maxGroupMembers
-        - maxRoomImageSizeInKb
-        - maxUserImageSizeInKb
+        - maxAttachmentSize
+        - maxRoomPictureSize
+        - messageEditTimeLimit
+        - messageDeleteTimeLimit
+        - showUsersPresence
+        - showMessageReads
     User:
       type: object
       description: User data
@@ -1574,6 +1593,12 @@ components:
           type: string
           readOnly: true
           description: user's name
+        type:
+          type: string
+          readOnly: true
+          description: user type
+          enum:
+            - internal
         statusMessage:
           type: string
           description: the user's status message

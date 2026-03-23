@@ -8,7 +8,9 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.api.MeetingsApiService;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
+import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
@@ -45,6 +47,11 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     this.cacheVideoServerSession = cacheVideoServerSession;
   }
 
+  private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
+    return Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+        .orElseThrow(UnauthorizedException::new);
+  }
+
   /**
    * Gets meetings list for authenticated user.
    *
@@ -78,9 +85,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response getMeeting(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.ok().entity(meetingService.getMeetingById(meetingId, currentUser)).build();
   }
 
@@ -96,9 +101,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   @Override
   public Response createMeeting(
       NewMeetingDataDto newMeetingDataDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     if (newMeetingDataDto.getRoomId() == null) {
       return Response.status(Status.BAD_REQUEST).build();
     } else {
@@ -123,10 +126,8 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response deleteMeeting(UUID meetingId, SecurityContext securityContext) {
-    meetingService.deleteMeetingById(
-        meetingId,
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new));
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    meetingService.deleteMeetingById(meetingId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -143,14 +144,11 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   @Override
   public Response joinMeeting(
       UUID meetingId, JoinSettingsDto joinSettingsDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
-    cacheVideoServerSession.remove(currentUser.getUUID(), meetingId.toString());
-    if (currentUser.getQueueId() == null) {
-      throw new BadRequestException(
-          "Queue identifier not specified for user " + currentUser.getId());
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (!currentUser.hasEnabled(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED)) {
+      throw new ForbiddenException("Video call is not enabled for user");
     }
+    cacheVideoServerSession.remove(currentUser.getUUID(), meetingId.toString());
     participantService.insertMeetingParticipant(meetingId, joinSettingsDto, currentUser);
     return Response.status(Status.OK)
         .entity(new JoinMeetingResultDto().status(JoinStatusDto.ACCEPTED))
@@ -167,9 +165,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response leaveMeeting(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     participantService.removeMeetingParticipant(meetingId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -187,9 +183,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response startMeeting(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (!currentUser.hasEnabled(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED)) {
+      throw new ForbiddenException("Video call is not enabled for user");
+    }
     return Response.status(Status.OK)
         .entity(meetingService.startMeeting(currentUser, meetingId))
         .build();
@@ -208,9 +205,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response stopMeeting(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK)
         .entity(meetingService.stopMeeting(currentUser, meetingId))
         .build();
@@ -234,9 +229,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       UUID meetingId,
       MediaStreamSettingsDto mediaStreamSettingsDto,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     if (mediaStreamSettingsDto.isEnabled() && mediaStreamSettingsDto.getSdp() == null) {
       throw new BadRequestException(
           String.format(
@@ -262,9 +255,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       UUID meetingId,
       AudioStreamSettingsDto audioStreamSettingsDto,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     participantService.updateAudioStream(meetingId, audioStreamSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -284,9 +275,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       UUID meetingId,
       SubscriptionUpdatesDto subscriptionUpdatesDto,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     if (subscriptionUpdatesDto.getSubscribe().isEmpty()
         && subscriptionUpdatesDto.getUnsubscribe().isEmpty()) {
       throw new BadRequestException("Subscription list and Unsubscription list must not be empty");
@@ -312,9 +301,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       UUID meetingId,
       SessionDescriptionProtocolDto sessionDescriptionProtocolDto,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     participantService.answerRtcMediaStream(
         meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
@@ -336,10 +323,30 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       UUID meetingId,
       SessionDescriptionProtocolDto sessionDescriptionProtocolDto,
       SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     participantService.offerRtcAudioStream(
+        meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
+  public Response iceRestartAudio(
+      UUID meetingId,
+      SessionDescriptionProtocolDto sessionDescriptionProtocolDto,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    participantService.iceRestartAudio(
+        meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
+  public Response iceRestartVideo(
+      UUID meetingId,
+      SessionDescriptionProtocolDto sessionDescriptionProtocolDto,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    participantService.iceRestartVideo(
         meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -351,32 +358,6 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
         Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
             .orElseThrow(UnauthorizedException::new);
     participantService.updateHandStatus(meetingId, handStatusDto, currentUser);
-    return Response.status(Status.NO_CONTENT).build();
-  }
-
-  @Override
-  public Response iceRestartAudio(
-      UUID meetingId,
-      SessionDescriptionProtocolDto sessionDescriptionProtocolDto,
-      SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
-    participantService.iceRestartAudio(
-        meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
-    return Response.status(Status.NO_CONTENT).build();
-  }
-
-  @Override
-  public Response iceRestartVideo(
-      UUID meetingId,
-      SessionDescriptionProtocolDto sessionDescriptionProtocolDto,
-      SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
-    participantService.iceRestartVideo(
-        meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
 }

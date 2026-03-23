@@ -18,8 +18,8 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.UserService;
-import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.usermanagement.enumerations.UserType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
@@ -52,17 +52,13 @@ class UsersApiServiceImplTest {
 
   private UserPrincipal user1;
 
-  private String snoopyFileName;
-
   @BeforeEach
   void init() {
     user1Id = UUID.randomUUID();
     user2Id = UUID.randomUUID();
     user3Id = UUID.randomUUID();
 
-    user1 = UserPrincipal.create(user1Id);
-
-    snoopyFileName = StringFormatUtils.encodeToUtf8("snoopy-image");
+    user1 = UserPrincipal.create(user1Id).userType(UserType.INTERNAL);
   }
 
   @AfterEach
@@ -106,12 +102,9 @@ class UsersApiServiceImplTest {
     void getUsers_testAuthenticatedUser() throws Exception {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
 
-      Response response =
-          usersApiService.getUsers(
-              List.of(user1Id, user2Id), securityContext);
+      Response response = usersApiService.getUsers(List.of(user1Id, user2Id), securityContext);
 
-      verify(userService, times(1))
-          .getUsersByIds(List.of(user1Id, user2Id), user1);
+      verify(userService, times(1)).getUsersByIds(List.of(user1Id, user2Id), user1);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
     }
