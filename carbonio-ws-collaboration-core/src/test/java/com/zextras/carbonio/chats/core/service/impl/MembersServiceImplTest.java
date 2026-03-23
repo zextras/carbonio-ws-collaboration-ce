@@ -36,14 +36,12 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
-import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberInsertedDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
@@ -72,7 +70,6 @@ class MembersServiceImplTest {
   private final MembersService membersService;
   private final MeetingService meetingService;
   private final ParticipantService participantService;
-  private final CapabilityService capabilityService;
 
   public MembersServiceImplTest(SubscriptionMapper subscriptionMapper) {
     this.roomService = mock(RoomService.class);
@@ -83,7 +80,6 @@ class MembersServiceImplTest {
     this.messageDispatcher = mock(MessageDispatcher.class);
     this.meetingService = mock(MeetingService.class);
     this.participantService = mock(ParticipantService.class);
-    this.capabilityService = mock(CapabilityService.class);
     this.membersService =
         new MembersServiceImpl(
             roomService,
@@ -94,14 +90,12 @@ class MembersServiceImplTest {
             userService,
             messageDispatcher,
             meetingService,
-            participantService,
-            capabilityService);
+            participantService);
   }
 
   private static UUID user1Id;
   private static UUID user2Id;
   private static UUID user3Id;
-  private static UUID user4Id;
   private static UUID roomId;
   private static UUID meetingId;
 
@@ -110,7 +104,6 @@ class MembersServiceImplTest {
     user1Id = UUID.randomUUID();
     user2Id = UUID.randomUUID();
     user3Id = UUID.randomUUID();
-    user4Id = UUID.randomUUID();
     roomId = UUID.randomUUID();
     meetingId = UUID.randomUUID();
   }
@@ -125,8 +118,7 @@ class MembersServiceImplTest {
         userService,
         messageDispatcher,
         meetingService,
-        participantService,
-        capabilityService);
+        participantService);
   }
 
   protected Room generateRoom(RoomTypeDto type) {
@@ -187,29 +179,6 @@ class MembersServiceImplTest {
       assertEquals(
           String.format("Forbidden - User '%s' is not a member of the room", user2Id.toString()),
           exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("If the room is a one-to-one room, it throws a 'bad request' exception")
-    void promoteMemberToOwner_roomIsOneToOne() {
-      Room room = generateRoom(RoomTypeDto.ONE_TO_ONE);
-      room.subscriptions(
-          List.of(
-              Subscription.create(room, user1Id.toString()).owner(true),
-              Subscription.create(room, user2Id.toString()).owner(false)));
-      UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
-
-      ChatsHttpException exception =
-          assertThrows(
-              BadRequestException.class,
-              () -> membersService.promoteMemberToOwner(roomId, user2Id, principal));
-
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
-
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Bad Request - Cannot update member on one_to_one room", exception.getMessage());
     }
 
     @Test
@@ -286,29 +255,6 @@ class MembersServiceImplTest {
     }
 
     @Test
-    @DisplayName("If the room is a one-to-one room, it throws a 'bad request' exception")
-    void demoteOwnerToMember_roomIsOneToOne() {
-      Room room = generateRoom(RoomTypeDto.ONE_TO_ONE);
-      room.subscriptions(
-          List.of(
-              Subscription.create(room, user1Id.toString()).owner(true),
-              Subscription.create(room, user2Id.toString()).owner(false)));
-      UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
-
-      ChatsHttpException exception =
-          assertThrows(
-              BadRequestException.class,
-              () -> membersService.demoteOwnerToMember(roomId, user2Id, principal));
-
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
-
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Bad Request - Cannot update member on one_to_one room", exception.getMessage());
-    }
-
-    @Test
     @DisplayName("If the target owner is the requester, it throws a 'bad request' exception")
     void demoteOwnerToMember_targetOwnerIsRequester() {
       Room room = generateRoom(RoomTypeDto.GROUP);
@@ -346,8 +292,6 @@ class MembersServiceImplTest {
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
       when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
-      when(capabilityService.getCapabilities(principal))
-          .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
       when(userService.userExists(user2Id, principal)).thenReturn(true);
       when(subscriptionRepository.insert(any(Subscription.class)))
           .thenReturn(Subscription.create(room, user2Id.toString()));
@@ -364,7 +308,6 @@ class MembersServiceImplTest {
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(1)).userExists(user2Id, principal);
-      verify(capabilityService, times(1)).getCapabilities(principal);
       verify(messageDispatcher, times(1))
           .addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
       verify(messageDispatcher, times(1))
@@ -381,30 +324,6 @@ class MembersServiceImplTest {
     }
 
     @Test
-    @DisplayName("if the room is a one-to-one room, it throws a 'bad request' exception")
-    void insertOneToOneRoomMember_testNo() {
-      Room room = generateRoom(RoomTypeDto.ONE_TO_ONE);
-      room.subscriptions(
-          List.of(
-              Subscription.create(room, user1Id.toString()).owner(true),
-              Subscription.create(room, user3Id.toString()).owner(false)));
-      UserPrincipal principal = UserPrincipal.create(user1Id);
-
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
-      ChatsHttpException exception =
-          assertThrows(
-              BadRequestException.class,
-              () ->
-                  membersService.insertRoomMembers(
-                      roomId, List.of(MemberToInsertDto.create().userId(user2Id)), principal));
-
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Bad Request - Cannot add member on one_to_one room", exception.getMessage());
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
-    }
-
-    @Test
     @DisplayName("If user is already a room member, it throws a 'bad request' exception")
     void insertRoomMember_userIsAlreadyARoomMember() {
       Room room = generateRoom(RoomTypeDto.GROUP);
@@ -416,8 +335,6 @@ class MembersServiceImplTest {
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
       when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
-      when(capabilityService.getCapabilities(principal))
-          .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
 
       ChatsHttpException exception =
           assertThrows(
@@ -431,7 +348,6 @@ class MembersServiceImplTest {
           String.format("Bad Request - User '%s' is already a room member", user2Id.toString()),
           exception.getMessage());
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
-      verify(capabilityService, times(1)).getCapabilities(principal);
     }
 
     @Test
@@ -445,8 +361,6 @@ class MembersServiceImplTest {
       UserPrincipal principal = UserPrincipal.create(user1Id);
 
       when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
-      when(capabilityService.getCapabilities(principal))
-          .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
       when(userService.userExists(user2Id, principal)).thenReturn(false);
       ChatsHttpException exception =
           assertThrows(
@@ -462,7 +376,6 @@ class MembersServiceImplTest {
           exception.getMessage());
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
       verify(userService, times(1)).userExists(user2Id, principal);
-      verify(capabilityService, times(1)).getCapabilities(principal);
     }
 
     @Test
@@ -482,8 +395,6 @@ class MembersServiceImplTest {
           .thenReturn(Subscription.create(room, user2Id.toString()));
       when(roomUserSettingsRepository.getByRoomIdAndUserId(roomId.toString(), user2Id.toString()))
           .thenReturn(Optional.of(RoomUserSettings.create().clearedAt(OffsetDateTime.now())));
-      when(capabilityService.getCapabilities(principal))
-          .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
 
       List<MemberInsertedDto> members =
           membersService.insertRoomMembers(
@@ -496,7 +407,6 @@ class MembersServiceImplTest {
       assertEquals(user2Id, memberInsertedDto.getUserId());
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
-      verify(capabilityService, times(1)).getCapabilities(principal);
       verify(userService, times(1)).userExists(user2Id, principal);
       verify(messageDispatcher, times(1))
           .addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
@@ -514,34 +424,6 @@ class MembersServiceImplTest {
                   .roomId(UUID.fromString(room.getId()))
                   .userId(user2Id)
                   .isOwner(false));
-    }
-
-    @Test
-    @DisplayName(
-        "Reached max group members when inviting a user, it throws a 'bad request' exception")
-    void insertRoomMember_maxGroupMembers() {
-      Room room = generateRoom(RoomTypeDto.GROUP);
-      room.subscriptions(
-          List.of(
-              Subscription.create(room, user1Id.toString()).owner(true),
-              Subscription.create(room, user2Id.toString()).owner(false),
-              Subscription.create(room, user3Id.toString()).owner(false)));
-      UserPrincipal principal = UserPrincipal.create(user1Id);
-
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
-      when(capabilityService.getCapabilities(principal))
-          .thenReturn(CapabilitiesDto.create().maxGroupMembers(3));
-      ChatsHttpException exception =
-          assertThrows(
-              BadRequestException.class,
-              () ->
-                  membersService.insertRoomMembers(
-                      roomId, List.of(MemberToInsertDto.create().userId(user4Id)), principal));
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Bad Request - Cannot add more members to this group", exception.getMessage());
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
-      verify(capabilityService, times(1)).getCapabilities(principal);
     }
   }
 
@@ -643,31 +525,6 @@ class MembersServiceImplTest {
       assertEquals(
           String.format("Forbidden - User '%s' is not a member of the room", user2Id.toString()),
           exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("If the room is a one-to-one room, it throws a 'bad request' exception")
-    void updateOwners_testErrorRoomIsOneToOne() {
-      Room room = generateRoom(RoomTypeDto.ONE_TO_ONE);
-      room.subscriptions(
-          List.of(
-              Subscription.create(room, user1Id.toString()).owner(true),
-              Subscription.create(room, user2Id.toString()).owner(false)));
-      UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
-
-      ChatsHttpException exception =
-          assertThrows(
-              BadRequestException.class,
-              () ->
-                  membersService.updateRoomOwners(
-                      roomId, List.of(MemberDto.create().userId(user2Id).owner(true)), principal));
-
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
-
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Bad Request - Cannot update member on one_to_one room", exception.getMessage());
     }
 
     @Test
@@ -865,30 +722,6 @@ class MembersServiceImplTest {
       assertEquals("Bad Request - Last owner can't leave the room", exception.getMessage());
 
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, false);
-    }
-
-    @Test
-    @DisplayName("If room is a one-to-one room, it throws a 'bad request' exception")
-    void deleteRoomMember_roomIsAOneToOne() {
-      Room room = generateRoom(RoomTypeDto.ONE_TO_ONE);
-      room.subscriptions(
-          List.of(
-              Subscription.create(room, user1Id.toString()).owner(true),
-              Subscription.create(room, user2Id.toString()).owner(false),
-              Subscription.create(room, user3Id.toString()).owner(false)));
-      UserPrincipal principal = UserPrincipal.create(user1Id);
-      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
-
-      ChatsHttpException exception =
-          assertThrows(
-              BadRequestException.class,
-              () -> membersService.deleteRoomMember(roomId, user2Id, principal));
-
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals("Bad Request - Cannot remove member on one_to_one room", exception.getMessage());
-
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
     }
   }
 

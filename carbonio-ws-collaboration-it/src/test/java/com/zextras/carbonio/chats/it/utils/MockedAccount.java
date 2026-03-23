@@ -5,10 +5,8 @@
 package com.zextras.carbonio.chats.it.utils;
 
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import com.zextras.carbonio.chats.core.data.type.UserType;
+import java.util.*;
 
 public class MockedAccount {
 
@@ -19,7 +17,8 @@ public class MockedAccount {
     LINUS_VAN_PELT,
     PEPERITA_PATTY,
     MARCIE_JOHNSON,
-    SCHROEDER
+    SCHROEDER,
+    HARLOCK
   }
 
   private static final Map<MockedAccountType, MockUserProfile> mockedAccountsMap =
@@ -28,40 +27,67 @@ public class MockedAccount {
           MockUserProfile.create("332a9527-3388-4207-be77-6d7e2978a723")
               .name("Snoopy")
               .email("snoopy@peanuts.com")
+              .type(UserType.INTERNAL)
               .token("6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL"),
           MockedAccountType.CHARLIE_BROWN,
           MockUserProfile.create("82735f6d-4c6c-471e-99d9-4eef91b1ec45")
               .name("Charlie Brown")
               .email("charlie.brown@peanuts.com")
+              .type(UserType.INTERNAL)
               .token("jQahMjjCaNOWTLZEvsec7ObuioEeeb4bKOzybjAd"),
           MockedAccountType.LUCY_VAN_PELT,
           MockUserProfile.create("ea7b9b61-bef5-4cf4-80cb-19612c42593a")
               .name("Lucy van Pelt")
               .email("lucy.van.pelt@peanuts.com")
+              .type(UserType.INTERNAL)
               .token("SuhM5XvKfc6Ex8w1VMeRkuEjuqXXXes0td5s3ce9"),
           MockedAccountType.LINUS_VAN_PELT,
           MockUserProfile.create("c91f0b6d-220e-408f-8575-5bf3633fc7f7")
               .name("Linus van Pelt")
               .email("linus.van.pelt@peanuts.com")
+              .type(UserType.INTERNAL)
               .token("Cj5x9bgeU4SvvfoiA7zYJnYCH1hQHCgtRJY7MCIH"),
           MockedAccountType.PEPERITA_PATTY,
           MockUserProfile.create("ef196327-acf0-4888-b155-d42dcc659e4d")
               .name("Peperita Patty")
               .email("peperita.patty@peanuts.com")
+              .type(UserType.INTERNAL)
               .token("EHh8T78Lr40Sr4D5ENGXvUunHmgdi8e9xVkBMMCy"),
           MockedAccountType.MARCIE_JOHNSON,
           MockUserProfile.create("120bbfbe-b97b-44d0-81ac-2f23bc244878")
               .name("Marcie Johnson")
               .email("marcie.johnson@peanuts.com")
+              .type(UserType.INTERNAL)
               .token("LkyrcPXr7JuZ1eUluFCYnvgmuQEDdOJNO6FaMdH9"),
           MockedAccountType.SCHROEDER,
           MockUserProfile.create("92d84bb0-9300-4409-a471-eece9abc614c")
               .name("Schroeder")
               .email("schroeder@peanuts.com")
-              .token("F2TkzabOK2pu91sL951ofbJ7Ur3zcJKV9gBwdB84"));
+              .type(UserType.INTERNAL)
+              .token("F2TkzabOK2pu91sL951ofbJ7Ur3zcJKV9gBwdB84"),
+          MockedAccountType.HARLOCK,
+          MockUserProfile.create("7156b7fa-78a8-47e3-8b50-102d1db31edc")
+              .name("Capitan Harlock")
+              .email("harlock@external.com")
+              .type(UserType.GUEST)
+              .token("8asYvWwPbNg8ESoQ4W0uWHKiDajA0zQ1riOckkfk"));
 
   public static List<MockUserProfile> getAccounts() {
     return new ArrayList<>(mockedAccountsMap.values());
+  }
+
+  public static List<MockUserProfile> getInternalAccounts() {
+    return new ArrayList<>(
+        mockedAccountsMap.values().stream()
+            .filter(account -> account.getType() == UserType.INTERNAL)
+            .toList());
+  }
+
+  public static List<MockUserProfile> getGuestAccounts() {
+    return new ArrayList<>(
+        mockedAccountsMap.values().stream()
+            .filter(account -> account.getType() == UserType.GUEST)
+            .toList());
   }
 
   public static MockUserProfile getAccount(MockedAccountType type) {
@@ -101,6 +127,11 @@ public class MockedAccount {
 
     public MockUserProfile domain(String domain) {
       super.domain(domain);
+      return this;
+    }
+
+    public MockUserProfile type(UserType type) {
+      super.type(type);
       return this;
     }
 

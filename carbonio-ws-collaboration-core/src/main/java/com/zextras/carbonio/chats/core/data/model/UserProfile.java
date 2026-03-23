@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.data.model;
 
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import java.util.UUID;
 
 public class UserProfile {
@@ -12,6 +13,7 @@ public class UserProfile {
   private String email;
   private String name;
   private String domain;
+  private UserType type;
 
   public UserProfile(String id) {
     this.id = id;
@@ -20,6 +22,7 @@ public class UserProfile {
   public static UserProfile create(String id) {
     return new UserProfile(id);
   }
+
   public static UserProfile create(UUID id) {
     return new UserProfile(id.toString());
   }
@@ -57,6 +60,15 @@ public class UserProfile {
 
   public UserProfile domain(String domain) {
     this.domain = domain;
+    return this;
+  }
+
+  public UserType getType() {
+    return type;
+  }
+
+  public UserProfile type(UserType type) {
+    this.type = type;
     return this;
   }
 }

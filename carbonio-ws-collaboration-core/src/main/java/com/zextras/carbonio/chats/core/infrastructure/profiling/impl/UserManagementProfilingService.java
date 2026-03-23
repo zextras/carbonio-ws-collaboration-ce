@@ -8,6 +8,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.ProfilingException;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
@@ -85,6 +86,7 @@ public class UserManagementProfilingService implements ProfilingService {
     return UserProfile.create(userInfo.getUserId())
         .name(userInfo.getFullName())
         .email(userInfo.getEmail())
-        .domain(userInfo.getDomain());
+        .domain(userInfo.getDomain())
+        .type(UserType.from(userInfo.getType()));
   }
 }

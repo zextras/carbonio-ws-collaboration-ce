@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.it.tools;
 
+import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.it.utils.MockedAccount;
 import com.zextras.carbonio.chats.it.utils.MockedAccount.MockUserProfile;
@@ -50,6 +51,12 @@ public class UserManagementMockServer implements CloseableResource {
 
   private void registerMockedAccounts() {
     for (MockUserProfile account : MockedAccount.getAccounts()) {
+      UserTypeProto typeProto =
+          switch (account.getType()) {
+            case GUEST -> UserTypeProto.GUEST;
+            default -> UserTypeProto.INTERNAL;
+          };
+
       UserInfoProto userInfo =
           UserInfoProto.newBuilder()
               .setUserId(account.getId())
@@ -57,7 +64,7 @@ public class UserManagementMockServer implements CloseableResource {
               .setFullName(account.getName())
               .setDomain(deriveDomain(account))
               .setStatus("active")
-              .setType(UserTypeProto.INTERNAL)
+              .setType(typeProto)
               .build();
 
       UserMyselfProto userMyself =
@@ -65,11 +72,30 @@ public class UserManagementMockServer implements CloseableResource {
               .setInfo(userInfo)
               .setLocale("en")
               .addFeatures("carbonioFeatureWscEnabled")
+              .putAllCapabilities(getDefaultCapabilities())
               .build();
 
       service.registerToken(account.getToken(), userMyself);
       service.registerUserById(account.getId(), userInfo);
     }
+  }
+
+  private static Map<String, String> getDefaultCapabilities() {
+    return Map.ofEntries(
+        Map.entry(CarbonioAttribute.FEATURE_WSC_ENABLED.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_RECORDING_ENABLED.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_VIRTUAL_BACKGROUND_ENABLED.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_PRIVATE_CHAT_CREATION.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_GROUP_CHAT_CREATION.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_MAX_GROUP_MEMBERS.getValue(), "128"),
+        Map.entry(CarbonioAttribute.WSC_ATTACHMENT_UPLOAD.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_MAX_ATTACHMENT_SIZE.getValue(), "128"),
+        Map.entry(CarbonioAttribute.WSC_MAX_ROOM_PICTURE_SIZE.getValue(), "2"),
+        Map.entry(CarbonioAttribute.WSC_MESSAGE_EDIT_TIME_LIMIT.getValue(), "10m"),
+        Map.entry(CarbonioAttribute.WSC_MESSAGE_DELETE_TIME_LIMIT.getValue(), "10m"),
+        Map.entry(CarbonioAttribute.WSC_SHOW_USERS_PRESENCE.getValue(), "TRUE"),
+        Map.entry(CarbonioAttribute.WSC_SHOW_MESSAGE_READS.getValue(), "TRUE"));
   }
 
   private static String deriveDomain(MockUserProfile account) {

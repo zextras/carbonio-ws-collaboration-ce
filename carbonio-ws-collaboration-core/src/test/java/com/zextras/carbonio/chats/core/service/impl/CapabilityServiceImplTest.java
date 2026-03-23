@@ -4,108 +4,102 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
-import com.zextras.carbonio.chats.core.config.AppConfig;
-import com.zextras.carbonio.chats.core.config.ConfigName;
+import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.CapabilitiesDto;
-import java.util.Optional;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @UnitTest
-public class CapabilityServiceImplTest {
+class CapabilityServiceImplTest {
 
-  private final AppConfig appConfig;
   private final CapabilityService capabilityService;
 
   public CapabilityServiceImplTest() {
-    this.appConfig = mock(AppConfig.class);
-    this.capabilityService = new CapabilityServiceImpl(appConfig);
+    this.capabilityService = new CapabilityServiceImpl();
   }
 
   @Test
   @DisplayName("Returns default user capabilities")
-  public void getCapabilities_defaultValuesTestOk() {
-    CapabilitiesDto capabilities =
-        capabilityService.getCapabilities(UserPrincipal.create(UUID.randomUUID()));
+  void getCapabilities_defaultValuesTestOk() {
+    UserPrincipal user =
+        UserPrincipal.create(UUID.randomUUID())
+            .carbonioAttributes(
+                Map.ofEntries(
+                    Map.entry(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED.getValue(), "TRUE"),
+                    Map.entry(CarbonioAttribute.WSC_RECORDING_ENABLED.getValue(), "TRUE"),
+                    Map.entry(CarbonioAttribute.WSC_VIRTUAL_BACKGROUND_ENABLED.getValue(), "TRUE"),
+                    Map.entry(CarbonioAttribute.WSC_PRIVATE_CHAT_CREATION.getValue(), "TRUE"),
+                    Map.entry(CarbonioAttribute.WSC_GROUP_CHAT_CREATION.getValue(), "TRUE"),
+                    Map.entry(CarbonioAttribute.WSC_ATTACHMENT_UPLOAD.getValue(), "TRUE"),
+                    Map.entry(CarbonioAttribute.WSC_MAX_GROUP_MEMBERS.getValue(), "128"),
+                    Map.entry(CarbonioAttribute.WSC_MAX_ATTACHMENT_SIZE.getValue(), "128"),
+                    Map.entry(CarbonioAttribute.WSC_MAX_ROOM_PICTURE_SIZE.getValue(), "2"),
+                    Map.entry(CarbonioAttribute.WSC_MESSAGE_EDIT_TIME_LIMIT.getValue(), "10m"),
+                    Map.entry(CarbonioAttribute.WSC_MESSAGE_DELETE_TIME_LIMIT.getValue(), "10m"),
+                    Map.entry(CarbonioAttribute.WSC_SHOW_USERS_PRESENCE.getValue(), "TRUE"),
+                    Map.entry(CarbonioAttribute.WSC_SHOW_MESSAGE_READS.getValue(), "TRUE")));
+
+    CapabilitiesDto capabilities = capabilityService.getCapabilities(user);
 
     assertNotNull(capabilities);
-    assertEquals(true, capabilities.isCanVideoCall());
-    assertEquals(true, capabilities.isCanUseVirtualBackground());
-    assertEquals(true, capabilities.isCanSeeMessageReads());
-    assertEquals(true, capabilities.isCanSeeUsersPresence());
-    assertEquals(10, capabilities.getEditMessageTimeLimitInMinutes());
-    assertEquals(10, capabilities.getDeleteMessageTimeLimitInMinutes());
+    assertTrue(capabilities.isVideoCallEnabled());
+    assertTrue(capabilities.isRecordingEnabled());
+    assertTrue(capabilities.isVirtualBackgroundEnabled());
+    assertTrue(capabilities.isPrivateChatCreationEnabled());
+    assertTrue(capabilities.isGroupChatCreationEnabled());
+    assertTrue(capabilities.isAttachmentUploadEnabled());
     assertEquals(128, capabilities.getMaxGroupMembers());
-    assertEquals(512, capabilities.getMaxRoomImageSizeInKb());
-    assertEquals(512, capabilities.getMaxUserImageSizeInKb());
-
-    verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_VIDEO_CALL);
-    verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_USE_VIRTUAL_BACKGROUND);
-    verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_SEE_MESSAGE_READS);
-    verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_SEE_USERS_PRESENCE);
-    verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB);
-    verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_ROOM_IMAGE_SIZE_IN_KB);
-    verify(appConfig, times(1)).get(Integer.class, ConfigName.EDIT_MESSAGE_TIME_LIMIT_IN_MINUTES);
-    verify(appConfig, times(1)).get(Integer.class, ConfigName.DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES);
-    verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_GROUP_MEMBERS);
-    verifyNoMoreInteractions(appConfig);
+    assertEquals(128, capabilities.getMaxAttachmentSize());
+    assertEquals(2, capabilities.getMaxRoomPictureSize());
+    assertEquals(10, capabilities.getMessageEditTimeLimit());
+    assertEquals(10, capabilities.getMessageDeleteTimeLimit());
+    assertTrue(capabilities.isShowUsersPresence());
+    assertTrue(capabilities.isShowMessageReads());
   }
 
   @Test
   @DisplayName("Returns configured user capabilities")
-  public void getCapabilities_configuredValuesTestOk() {
-    when(appConfig.get(Boolean.class, ConfigName.CAN_VIDEO_CALL)).thenReturn(Optional.of(true));
-    when(appConfig.get(Boolean.class, ConfigName.CAN_USE_VIRTUAL_BACKGROUND))
-        .thenReturn(Optional.of(false));
-    when(appConfig.get(Boolean.class, ConfigName.CAN_SEE_MESSAGE_READS))
-        .thenReturn(Optional.of(false));
-    when(appConfig.get(Boolean.class, ConfigName.CAN_SEE_USERS_PRESENCE))
-        .thenReturn(Optional.of(false));
-    when(appConfig.get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB))
-        .thenReturn(Optional.of(512));
-    when(appConfig.get(Integer.class, ConfigName.MAX_ROOM_IMAGE_SIZE_IN_KB))
-        .thenReturn(Optional.of(512));
-    when(appConfig.get(Integer.class, ConfigName.EDIT_MESSAGE_TIME_LIMIT_IN_MINUTES))
-        .thenReturn(Optional.of(15));
-    when(appConfig.get(Integer.class, ConfigName.DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES))
-        .thenReturn(Optional.of(15));
-    when(appConfig.get(Integer.class, ConfigName.MAX_GROUP_MEMBERS)).thenReturn(Optional.of(20));
+  void getCapabilities_configuredValuesTestOk() {
+    UserPrincipal user =
+        UserPrincipal.create(UUID.randomUUID())
+            .carbonioAttributes(
+                Map.ofEntries(
+                    Map.entry(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED.getValue(), "TRUE"),
+                    Map.entry(CarbonioAttribute.WSC_RECORDING_ENABLED.getValue(), "FALSE"),
+                    Map.entry(CarbonioAttribute.WSC_VIRTUAL_BACKGROUND_ENABLED.getValue(), "FALSE"),
+                    Map.entry(CarbonioAttribute.WSC_PRIVATE_CHAT_CREATION.getValue(), "TRUE"),
+                    Map.entry(CarbonioAttribute.WSC_GROUP_CHAT_CREATION.getValue(), "TRUE"),
+                    Map.entry(CarbonioAttribute.WSC_ATTACHMENT_UPLOAD.getValue(), "TRUE"),
+                    Map.entry(CarbonioAttribute.WSC_MAX_GROUP_MEMBERS.getValue(), "64"),
+                    Map.entry(CarbonioAttribute.WSC_MAX_ATTACHMENT_SIZE.getValue(), "512"),
+                    Map.entry(CarbonioAttribute.WSC_MAX_ROOM_PICTURE_SIZE.getValue(), "5"),
+                    Map.entry(CarbonioAttribute.WSC_MESSAGE_EDIT_TIME_LIMIT.getValue(), "5m"),
+                    Map.entry(CarbonioAttribute.WSC_MESSAGE_DELETE_TIME_LIMIT.getValue(), "15m"),
+                    Map.entry(CarbonioAttribute.WSC_SHOW_USERS_PRESENCE.getValue(), "FALSE"),
+                    Map.entry(CarbonioAttribute.WSC_SHOW_MESSAGE_READS.getValue(), "TRUE")));
 
-    CapabilitiesDto capabilities =
-        capabilityService.getCapabilities(UserPrincipal.create(UUID.randomUUID()));
+    CapabilitiesDto capabilities = capabilityService.getCapabilities(user);
 
     assertNotNull(capabilities);
-    assertEquals(true, capabilities.isCanVideoCall());
-    assertEquals(false, capabilities.isCanUseVirtualBackground());
-    assertEquals(false, capabilities.isCanSeeMessageReads());
-    assertEquals(false, capabilities.isCanSeeUsersPresence());
-    assertEquals(15, capabilities.getEditMessageTimeLimitInMinutes());
-    assertEquals(15, capabilities.getDeleteMessageTimeLimitInMinutes());
-    assertEquals(20, capabilities.getMaxGroupMembers());
-    assertEquals(512, capabilities.getMaxRoomImageSizeInKb());
-    assertEquals(512, capabilities.getMaxUserImageSizeInKb());
-
-    verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_VIDEO_CALL);
-    verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_USE_VIRTUAL_BACKGROUND);
-    verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_SEE_MESSAGE_READS);
-    verify(appConfig, times(1)).get(Boolean.class, ConfigName.CAN_SEE_USERS_PRESENCE);
-    verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_USER_IMAGE_SIZE_IN_KB);
-    verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_ROOM_IMAGE_SIZE_IN_KB);
-    verify(appConfig, times(1)).get(Integer.class, ConfigName.EDIT_MESSAGE_TIME_LIMIT_IN_MINUTES);
-    verify(appConfig, times(1)).get(Integer.class, ConfigName.DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES);
-    verify(appConfig, times(1)).get(Integer.class, ConfigName.MAX_GROUP_MEMBERS);
-    verifyNoMoreInteractions(appConfig);
+    assertTrue(capabilities.isVideoCallEnabled());
+    assertFalse(capabilities.isRecordingEnabled());
+    assertFalse(capabilities.isVirtualBackgroundEnabled());
+    assertTrue(capabilities.isPrivateChatCreationEnabled());
+    assertTrue(capabilities.isGroupChatCreationEnabled());
+    assertTrue(capabilities.isAttachmentUploadEnabled());
+    assertEquals(64, capabilities.getMaxGroupMembers());
+    assertEquals(512, capabilities.getMaxAttachmentSize());
+    assertEquals(5, capabilities.getMaxRoomPictureSize());
+    assertEquals(5, capabilities.getMessageEditTimeLimit());
+    assertEquals(15, capabilities.getMessageDeleteTimeLimit());
+    assertFalse(capabilities.isShowUsersPresence());
+    assertTrue(capabilities.isShowMessageReads());
   }
 }

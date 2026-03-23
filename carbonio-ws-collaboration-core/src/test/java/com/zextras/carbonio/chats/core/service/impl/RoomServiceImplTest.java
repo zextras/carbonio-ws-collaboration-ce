@@ -32,7 +32,6 @@ import com.zextras.carbonio.async.model.RoomPictureDeleted;
 import com.zextras.carbonio.async.model.RoomUnmuted;
 import com.zextras.carbonio.async.model.RoomUpdated;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
-import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.ParticipantBuilder;
@@ -55,13 +54,11 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
-import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
@@ -105,7 +102,6 @@ class RoomServiceImplTest {
   private final FileMetadataRepository fileMetadataRepository;
   private final StoragesService storagesService;
   private final Clock clock;
-  private final CapabilityService capabilityService;
 
   public RoomServiceImplTest(RoomMapper roomMapper) {
     this.roomRepository = mock(RoomRepository.class);
@@ -116,11 +112,9 @@ class RoomServiceImplTest {
     this.meetingService = mock(MeetingService.class);
     this.storagesService = mock(StoragesService.class);
     this.attachmentService = mock(AttachmentService.class);
-    this.capabilityService = mock(CapabilityService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.messageDispatcher = mock(MessageDispatcher.class);
     this.clock = mock(Clock.class);
-    AppConfig appConfig = mock(AppConfig.class);
     this.roomService =
         new RoomServiceImpl(
             this.roomRepository,
@@ -131,19 +125,15 @@ class RoomServiceImplTest {
             this.meetingService,
             this.storagesService,
             this.attachmentService,
-            this.capabilityService,
             this.eventDispatcher,
             this.messageDispatcher,
             roomMapper,
-            this.clock,
-            appConfig);
+            this.clock);
   }
 
   private UUID user1Id;
   private UUID user2Id;
   private UUID user3Id;
-  private UUID user4Id;
-  private UUID user5Id;
   private UUID roomGroup1Id;
   private UUID roomGroup2Id;
   private UUID roomTemporary1Id;
@@ -170,8 +160,6 @@ class RoomServiceImplTest {
     user1Id = UUID.fromString("332a9527-3388-4207-be77-6d7e2978a723");
     user2Id = UUID.fromString("82735f6d-4c6c-471e-99d9-4eef91b1ec45");
     user3Id = UUID.fromString("ea7b9b61-bef5-4cf4-80cb-19612c42593a");
-    user4Id = UUID.fromString("c91f0b6d-220e-408f-8575-5bf3633fc7f7");
-    user5Id = UUID.fromString("120bbfbe-b97b-44d0-81ac-2f23bc244878");
 
     roomGroup1Id = UUID.fromString("cdc44826-23b0-4e99-bec2-7fb2f00b6b13");
     roomGroup2Id = UUID.fromString("0471809c-e0bb-4bfd-85b6-b7b9a1eca597");
@@ -500,8 +488,6 @@ class RoomServiceImplTest {
                     Subscription.create(roomGroup1, user2Id.toString()),
                     Subscription.create(roomGroup1, user3Id.toString())));
         when(roomRepository.insert(roomGroup1)).thenReturn(roomGroup1);
-        when(capabilityService.getCapabilities(mockUserPrincipal))
-            .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
 
         RoomCreationFieldsDto creationFields =
             RoomCreationFieldsDto.create()
@@ -584,8 +570,6 @@ class RoomServiceImplTest {
                         Subscription.create(roomGroup1, user1Id.toString()).owner(true),
                         Subscription.create(roomGroup1, user2Id.toString()).owner(true),
                         Subscription.create(roomGroup1, user3Id.toString()).owner(false))));
-        when(capabilityService.getCapabilities(mockUserPrincipal))
-            .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
 
         RoomCreationFieldsDto creationFields =
             RoomCreationFieldsDto.create()
@@ -645,60 +629,6 @@ class RoomServiceImplTest {
       }
 
       @Test
-      @DisplayName(
-          "There are less than two members when creating a group, it throws a 'bad request'"
-              + " exception")
-      void createGroupRoom_errorWhenMembersAreLessThanTwo() {
-        UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
-        when(capabilityService.getCapabilities(mockUserPrincipal))
-            .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
-
-        RoomCreationFieldsDto creationFields =
-            RoomCreationFieldsDto.create()
-                .name("room1")
-                .description("Room one")
-                .type(RoomTypeDto.GROUP)
-                .members(List.of(MemberDto.create().userId(user2Id)));
-        ChatsHttpException exception =
-            assertThrows(
-                BadRequestException.class,
-                () -> roomService.createRoom(creationFields, mockUserPrincipal));
-        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
-        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-        assertEquals("Bad Request - Too few members (required at least 2)", exception.getMessage());
-      }
-
-      @Test
-      @DisplayName(
-          "There are more than max group members when creating a group, it throws a 'bad request'"
-              + " exception")
-      void createGroupRoom_errorWhenMembersAreMoreThanMaxGroupMembers() {
-        UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
-        when(capabilityService.getCapabilities(mockUserPrincipal))
-            .thenReturn(CapabilitiesDto.create().maxGroupMembers(3));
-
-        RoomCreationFieldsDto creationFields =
-            RoomCreationFieldsDto.create()
-                .name("room1")
-                .description("Room one")
-                .type(RoomTypeDto.GROUP)
-                .members(
-                    List.of(
-                        MemberDto.create().userId(user2Id),
-                        MemberDto.create().userId(user3Id),
-                        MemberDto.create().userId(user4Id),
-                        MemberDto.create().userId(user5Id)));
-        ChatsHttpException exception =
-            assertThrows(
-                BadRequestException.class,
-                () -> roomService.createRoom(creationFields, mockUserPrincipal));
-        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
-        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-        assertEquals(
-            "Bad Request - Too many members (required less than 2)", exception.getMessage());
-      }
-
-      @Test
       @DisplayName("If there are duplicate invites, it throws a 'bad request' exception")
       void createGroupRoom_testRoomToCreateWithDuplicateInvites() {
         RoomCreationFieldsDto creationFields =
@@ -745,8 +675,6 @@ class RoomServiceImplTest {
         UserPrincipal mockUserPrincipal = UserPrincipal.create(user1Id);
         when(userService.userExists(user3Id, mockUserPrincipal)).thenReturn(true);
         when(userService.userExists(user2Id, mockUserPrincipal)).thenReturn(false);
-        when(capabilityService.getCapabilities(mockUserPrincipal))
-            .thenReturn(CapabilitiesDto.create().maxGroupMembers(128));
 
         RoomCreationFieldsDto creationFields =
             RoomCreationFieldsDto.create()
@@ -955,52 +883,6 @@ class RoomServiceImplTest {
         verify(messageDispatcher, times(1))
             .addUsersToContacts(user1Id.toString(), user2Id.toString());
         verifyNoMoreInteractions(messageDispatcher);
-      }
-
-      @Test
-      @DisplayName(
-          "There are less than two members when creating a one-to-one, it throws a 'bad request'"
-              + " exception")
-      void createRoomOneToOne_errorWhenMembersAreLessThanTwo() {
-        RoomCreationFieldsDto creationFields =
-            RoomCreationFieldsDto.create()
-                .name("room1")
-                .description("Room one")
-                .type(RoomTypeDto.ONE_TO_ONE)
-                .members(List.of());
-        ChatsHttpException exception =
-            assertThrows(
-                BadRequestException.class,
-                () -> roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
-        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
-        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-        assertEquals(
-            "Bad Request - Only 2 users can participate in a one-to-one room",
-            exception.getMessage());
-      }
-
-      @Test
-      @DisplayName(
-          "There are more than two members when creating a one-to-one with the requester in it, it"
-              + " throws a 'bad request' exception")
-      void createRoomOneToOne_errorWhenMembersAreMoreThanTwo() {
-        RoomCreationFieldsDto creationFields =
-            RoomCreationFieldsDto.create()
-                .name("room1")
-                .description("Room one")
-                .type(RoomTypeDto.ONE_TO_ONE)
-                .members(
-                    List.of(
-                        MemberDto.create().userId(user2Id), MemberDto.create().userId(user3Id)));
-        ChatsHttpException exception =
-            assertThrows(
-                BadRequestException.class,
-                () -> roomService.createRoom(creationFields, UserPrincipal.create(user1Id)));
-        assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
-        assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-        assertEquals(
-            "Bad Request - Only 2 users can participate in a one-to-one room",
-            exception.getMessage());
       }
 
       @Test
@@ -2179,37 +2061,6 @@ class RoomServiceImplTest {
               "Forbidden - User '%s' is not an owner of room '%s'", user3Id, roomGroup2Id),
           exception.getMessage());
       verify(roomRepository, times(1)).getById(roomGroup2Id.toString());
-      verifyNoMoreInteractions(
-          roomRepository,
-          fileMetadataRepository,
-          storagesService,
-          eventDispatcher,
-          messageDispatcher);
-    }
-
-    @Test
-    @DisplayName("If the file is too large, It throws a BadRequestException")
-    void setRoomPicture_failsIfPictureIsTooBig() {
-      when(roomRepository.getById(roomGroup1Id.toString())).thenReturn(Optional.of(roomGroup1));
-      InputStream file = mock(InputStream.class);
-      BadRequestException exception =
-          assertThrows(
-              BadRequestException.class,
-              () ->
-                  roomService.setRoomPicture(
-                      roomGroup1Id,
-                      file,
-                      "image/jpeg",
-                      600L * 1024,
-                      "picture",
-                      UserPrincipal.create(user1Id)));
-      assertEquals(Status.BAD_REQUEST.getStatusCode(), exception.getHttpStatusCode());
-      assertEquals(Status.BAD_REQUEST.getReasonPhrase(), exception.getHttpStatusPhrase());
-      assertEquals(
-          String.format(
-              "Bad Request - The size of the room picture exceeds the maximum value of %d kB", 512),
-          exception.getMessage());
-      verify(roomRepository, times(1)).getById(roomGroup1Id.toString());
       verifyNoMoreInteractions(
           roomRepository,
           fileMetadataRepository,

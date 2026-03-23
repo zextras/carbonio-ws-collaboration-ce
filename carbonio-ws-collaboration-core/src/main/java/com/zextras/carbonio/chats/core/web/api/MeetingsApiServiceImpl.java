@@ -8,7 +8,9 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.api.MeetingsApiService;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
+import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
@@ -22,6 +24,7 @@ import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.chats.model.NewMeetingDataDto;
 import com.zextras.carbonio.chats.model.SessionDescriptionProtocolDto;
 import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
@@ -43,6 +46,11 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     this.meetingService = meetingService;
     this.participantService = participantService;
     this.cacheVideoServerSession = cacheVideoServerSession;
+  }
+
+  private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
+    return Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+        .orElseThrow(UnauthorizedException::new);
   }
 
   /**
@@ -78,9 +86,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response getMeeting(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.ok().entity(meetingService.getMeetingById(meetingId, currentUser)).build();
   }
 
@@ -96,9 +102,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   @Override
   public Response createMeeting(
       NewMeetingDataDto newMeetingDataDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     if (newMeetingDataDto.getRoomId() == null) {
       return Response.status(Status.BAD_REQUEST).build();
     } else {
@@ -143,9 +147,10 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   @Override
   public Response joinMeeting(
       UUID meetingId, JoinSettingsDto joinSettingsDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (!currentUser.hasEnabled(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED)) {
+      throw new ForbiddenException("Video call is not enabled for user");
+    }
     cacheVideoServerSession.remove(currentUser.getUUID(), meetingId.toString());
     if (currentUser.getQueueId() == null) {
       throw new BadRequestException(
@@ -187,9 +192,13 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
    */
   @Override
   public Response startMeeting(UUID meetingId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
+    if (!currentUser.hasEnabled(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED)) {
+      throw new ForbiddenException("Video call is not enabled for user");
+    }
     return Response.status(Status.OK)
         .entity(meetingService.startMeeting(currentUser, meetingId))
         .build();
@@ -347,9 +356,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   @Override
   public Response updateHandStatus(
       UUID meetingId, HandStatusDto handStatusDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     participantService.updateHandStatus(meetingId, handStatusDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }

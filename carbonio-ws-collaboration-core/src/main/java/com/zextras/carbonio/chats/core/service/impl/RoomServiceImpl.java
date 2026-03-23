@@ -7,9 +7,6 @@ package com.zextras.carbonio.chats.core.service.impl;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.async.model.*;
-import com.zextras.carbonio.chats.core.config.AppConfig;
-import com.zextras.carbonio.chats.core.config.ChatsConstant.CONFIGURATIONS_DEFAULT_VALUES;
-import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -29,7 +26,6 @@ import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.RoomRepository;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
-import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
@@ -67,12 +63,10 @@ public class RoomServiceImpl implements RoomService {
   private final MeetingService meetingService;
   private final StoragesService storagesService;
   private final AttachmentService attachmentService;
-  private final CapabilityService capabilityService;
   private final EventDispatcher eventDispatcher;
   private final MessageDispatcher messageDispatcher;
   private final RoomMapper roomMapper;
   private final Clock clock;
-  private final AppConfig appConfig;
 
   @Inject
   public RoomServiceImpl(
@@ -84,12 +78,10 @@ public class RoomServiceImpl implements RoomService {
       MeetingService meetingService,
       StoragesService storagesService,
       AttachmentService attachmentService,
-      CapabilityService capabilityService,
       EventDispatcher eventDispatcher,
       MessageDispatcher messageDispatcher,
       RoomMapper roomMapper,
-      Clock clock,
-      AppConfig appConfig) {
+      Clock clock) {
     this.roomRepository = roomRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
     this.fileMetadataRepository = fileMetadataRepository;
@@ -98,12 +90,10 @@ public class RoomServiceImpl implements RoomService {
     this.meetingService = meetingService;
     this.storagesService = storagesService;
     this.attachmentService = attachmentService;
-    this.capabilityService = capabilityService;
     this.eventDispatcher = eventDispatcher;
     this.messageDispatcher = messageDispatcher;
     this.roomMapper = roomMapper;
     this.clock = clock;
-    this.appConfig = appConfig;
   }
 
   @Override
@@ -207,13 +197,8 @@ public class RoomServiceImpl implements RoomService {
     validateNoDuplicateMembers(roomCreationFields, memberIds);
     validateRequesterNotIncluded(currentUser, memberIds);
 
-    switch (roomCreationFields.getType()) {
-      case ONE_TO_ONE -> validateOneToOneRoom(currentUser, memberIds);
-      case GROUP -> validateGroupRoom(currentUser, memberIds);
-      case TEMPORARY -> {
-        // No validation required for TEMPORARY
-      }
-      default -> throw new BadRequestException("Unsupported room type");
+    if (RoomTypeDto.ONE_TO_ONE.equals(roomCreationFields.getType())) {
+      validateOneToOneRoom(currentUser, memberIds);
     }
 
     validateAllUsersExist(memberIds, currentUser);
@@ -238,23 +223,10 @@ public class RoomServiceImpl implements RoomService {
   }
 
   private void validateOneToOneRoom(UserPrincipal currentUser, List<UUID> memberIds) {
-    if (memberIds.size() != 1) {
-      throw new BadRequestException("Only 2 users can participate in a one-to-one room");
-    }
     if (roomRepository
-        .getOneToOneByAllUserIds(currentUser.getId(), memberIds.get(0).toString())
+        .getOneToOneByAllUserIds(currentUser.getId(), memberIds.getFirst().toString())
         .isPresent()) {
       throw new ConflictException("The one-to-one room already exists for these users");
-    }
-  }
-
-  private void validateGroupRoom(UserPrincipal currentUser, List<UUID> memberIds) {
-    Integer maxGroupMembers = capabilityService.getCapabilities(currentUser).getMaxGroupMembers();
-    if (memberIds.size() < 2) {
-      throw new BadRequestException("Too few members (required at least 2)");
-    } else if (memberIds.size() > maxGroupMembers) {
-      throw new BadRequestException(
-          "Too many members (required less than " + (maxGroupMembers - 1) + ")");
     }
   }
 
@@ -546,15 +518,6 @@ public class RoomServiceImpl implements RoomService {
     Room room = getRoomAndValidateUser(roomId, currentUser, true);
     if (!RoomTypeDto.GROUP.equals(room.getType())) {
       throw new BadRequestException("The room picture can only be set for groups");
-    }
-    Integer maxImageSizeKb =
-        appConfig
-            .get(Integer.class, ConfigName.MAX_ROOM_IMAGE_SIZE_IN_KB)
-            .orElse(CONFIGURATIONS_DEFAULT_VALUES.MAX_ROOM_IMAGE_SIZE_IN_KB);
-    if (contentLength > maxImageSizeKb * 1024) {
-      throw new BadRequestException(
-          String.format(
-              "The size of the room picture exceeds the maximum value of %d kB", maxImageSizeKb));
     }
     if (!mimeType.startsWith("image/")) {
       throw new BadRequestException("The room picture must be an image");

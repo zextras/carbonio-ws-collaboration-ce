@@ -22,13 +22,13 @@ import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
+import com.zextras.carbonio.chats.model.UserDto.TypeEnum;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -65,7 +65,8 @@ class UserServiceImplTest {
                   UserProfile.create(requestedUserId)
                       .email("test@example.com")
                       .domain("mydomain.com")
-                      .name("test user")));
+                      .name("test user")
+                      .type(UserType.INTERNAL)));
 
       UserDto userById = userService.getUserById(requestedUserId, currentPrincipal);
 
@@ -74,6 +75,7 @@ class UserServiceImplTest {
       assertEquals("my status!", userById.getStatusMessage());
       assertEquals("test user", userById.getName());
       assertEquals("test@example.com", userById.getEmail());
+      assertEquals(TypeEnum.INTERNAL, userById.getType());
     }
 
     @Test
@@ -88,7 +90,8 @@ class UserServiceImplTest {
                   UserProfile.create(requestedUserId)
                       .email("test@example.com")
                       .domain("mydomain.com")
-                      .name("test user")));
+                      .name("test user")
+                      .type(UserType.INTERNAL)));
 
       UserDto userById = userService.getUserById(requestedUserId, currentPrincipal);
 
@@ -97,6 +100,7 @@ class UserServiceImplTest {
       assertNull(userById.getStatusMessage());
       assertEquals("test user", userById.getName());
       assertEquals("test@example.com", userById.getEmail());
+      assertEquals(TypeEnum.INTERNAL, userById.getType());
     }
 
     @Test
@@ -125,10 +129,7 @@ class UserServiceImplTest {
       UUID requestedUserId2 = UUID.randomUUID();
       UUID requestedUserId3 = UUID.randomUUID();
       List<UUID> requestedUserIds =
-          Arrays.asList(
-              requestedUserId1,
-              requestedUserId2,
-              requestedUserId3);
+          Arrays.asList(requestedUserId1, requestedUserId2, requestedUserId3);
       List<String> strUserIds = requestedUserIds.stream().map(UUID::toString).toList();
 
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId1);
@@ -145,15 +146,18 @@ class UserServiceImplTest {
                   UserProfile.create(requestedUserId1)
                       .email("test1@example.com")
                       .domain("mydomain.com")
-                      .name("test user 1"),
+                      .name("test user 1")
+                      .type(UserType.INTERNAL),
                   UserProfile.create(requestedUserId2)
                       .email("test2@example.com")
                       .domain("mydomain.com")
-                      .name("test user 2"),
+                      .name("test user 2")
+                      .type(UserType.INTERNAL),
                   UserProfile.create(requestedUserId3)
                       .email("test3@example.com")
                       .domain("mydomain.com")
-                      .name("test user 3")));
+                      .name("test user 3")
+                      .type(UserType.INTERNAL)));
 
       List<UserDto> usersById = userService.getUsersByIds(requestedUserIds, currentPrincipal);
 
@@ -162,22 +166,24 @@ class UserServiceImplTest {
       assertEquals("my status 1", usersById.get(0).getStatusMessage());
       assertEquals("test user 1", usersById.get(0).getName());
       assertEquals("test1@example.com", usersById.get(0).getEmail());
+      assertEquals(TypeEnum.INTERNAL, usersById.get(0).getType());
       assertEquals(requestedUserId2, usersById.get(1).getId());
       assertEquals("my status 2", usersById.get(1).getStatusMessage());
       assertEquals("test user 2", usersById.get(1).getName());
       assertEquals("test2@example.com", usersById.get(1).getEmail());
+      assertEquals(TypeEnum.INTERNAL, usersById.get(0).getType());
       assertEquals(requestedUserId3, usersById.get(2).getId());
       assertEquals("my status 3", usersById.get(2).getStatusMessage());
       assertEquals("test user 3", usersById.get(2).getName());
       assertEquals("test3@example.com", usersById.get(2).getEmail());
+      assertEquals(TypeEnum.INTERNAL, usersById.get(2).getType());
     }
 
     @Test
     @DisplayName("Don't returns duplicates")
     void getUsersByIds_testNoDuplicates() {
       UUID requestedUserId1 = UUID.randomUUID();
-      List<UUID> requestedUserIds =
-          Arrays.asList(requestedUserId1, requestedUserId1);
+      List<UUID> requestedUserIds = Arrays.asList(requestedUserId1, requestedUserId1);
       List<String> strUserIds = requestedUserIds.stream().map(UUID::toString).toList();
 
       UserPrincipal currentPrincipal = UserPrincipal.create(requestedUserId1);
@@ -192,7 +198,8 @@ class UserServiceImplTest {
                   UserProfile.create(requestedUserId1)
                       .email("test1@example.com")
                       .domain("mydomain.com")
-                      .name("test user 1")));
+                      .name("test user 1")
+                      .type(UserType.INTERNAL)));
 
       List<UserDto> usersById = userService.getUsersByIds(requestedUserIds, currentPrincipal);
 
@@ -225,17 +232,18 @@ class UserServiceImplTest {
                   UserProfile.create(requestedUserId)
                       .email("test@example.com")
                       .domain("mydomain.com")
-                      .name("test user")));
+                      .name("test user")
+                      .type(UserType.INTERNAL)));
 
       List<UserDto> usersById =
-          userService.getUsersByIds(
-              Collections.singletonList(requestedUserId), currentPrincipal);
+          userService.getUsersByIds(Collections.singletonList(requestedUserId), currentPrincipal);
 
       assertFalse(usersById.isEmpty());
       assertEquals(requestedUserId, usersById.get(0).getId());
       assertNull(usersById.get(0).getStatusMessage());
       assertEquals("test user", usersById.get(0).getName());
       assertEquals("test@example.com", usersById.get(0).getEmail());
+      assertEquals(TypeEnum.INTERNAL, usersById.get(0).getType());
     }
 
     @Test
@@ -250,8 +258,7 @@ class UserServiceImplTest {
           .thenReturn(Collections.emptyList());
 
       List<UserDto> usersById =
-          userService.getUsersByIds(
-              Collections.singletonList(requestedUserId), currentPrincipal);
+          userService.getUsersByIds(Collections.singletonList(requestedUserId), currentPrincipal);
 
       assertTrue(usersById.isEmpty());
     }
