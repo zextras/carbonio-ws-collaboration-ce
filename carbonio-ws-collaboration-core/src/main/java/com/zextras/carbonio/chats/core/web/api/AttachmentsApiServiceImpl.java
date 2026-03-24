@@ -8,11 +8,13 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.api.AttachmentsApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
@@ -62,6 +64,9 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
   @TimedCall
   public Response deleteAttachment(UUID fileId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     attachmentService.deleteAttachment(fileId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }

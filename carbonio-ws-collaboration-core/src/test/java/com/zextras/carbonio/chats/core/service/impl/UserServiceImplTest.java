@@ -23,7 +23,7 @@ import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
 import com.zextras.carbonio.chats.model.UserDto.TypeEnum;
-import com.zextras.carbonio.usermanagement.enumerations.UserType;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;

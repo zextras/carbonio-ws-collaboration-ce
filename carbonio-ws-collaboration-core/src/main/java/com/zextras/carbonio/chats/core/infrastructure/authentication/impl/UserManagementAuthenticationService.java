@@ -6,63 +6,79 @@ package com.zextras.carbonio.chats.core.infrastructure.authentication.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.zextras.carbonio.chats.core.cache.CacheHandler;
+import com.google.inject.name.Named;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.core.web.security.AuthenticationMethod;
-import com.zextras.carbonio.usermanagement.UserManagementClient;
-import com.zextras.carbonio.usermanagement.entities.UserId;
-import com.zextras.carbonio.usermanagement.entities.UserMyself;
+import com.zextras.carbonio.user_management.sdk.grpc.GetUserMyselfRequest;
+import com.zextras.carbonio.user_management.sdk.grpc.UserManagementServiceGrpc.UserManagementServiceBlockingStub;
+import com.zextras.carbonio.user_management.sdk.grpc.UserMyselfProto;
+import com.zextras.carbonio.user_management.sdk.grpc.UserMyselfResponse;
+import io.grpc.ConnectivityState;
+import io.grpc.ManagedChannel;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import java.util.Optional;
 
 @Singleton
 public class UserManagementAuthenticationService implements AuthenticationService {
 
-  private final UserManagementClient userManagementClient;
-  private final CacheHandler cacheHandler;
+  private final UserManagementServiceBlockingStub userManagementStub;
+  private final ManagedChannel userManagementChannel;
 
   @Inject
   public UserManagementAuthenticationService(
-      UserManagementClient userManagementClient, CacheHandler cacheHandler) {
-    this.userManagementClient = userManagementClient;
-    this.cacheHandler = cacheHandler;
+      UserManagementServiceBlockingStub userManagementStub,
+      @Named("userManagementChannel") ManagedChannel userManagementChannel) {
+    this.userManagementStub = userManagementStub;
+    this.userManagementChannel = userManagementChannel;
   }
 
   @Override
   public Optional<String> validateCredentials(String authToken) {
-    return Optional.ofNullable(authToken)
-        .map(
-            token ->
-                userManagementClient
-                    .validateUserToken(token)
-                    .map(UserId::getUserId)
-                    .getOrElse(() -> null));
-  }
-
-  public Optional<UserMyself> getUserMyself(String authToken) {
     if (authToken == null) {
       return Optional.empty();
     }
-    return Optional.ofNullable(
-        cacheHandler.getUserMyselfCache().get(authToken, this::fetchUserMyself));
+    try {
+      GetUserMyselfRequest request =
+          GetUserMyselfRequest.newBuilder().setToken(authToken).build();
+      UserMyselfResponse response = userManagementStub.getUserMyself(request);
+      return Optional.ofNullable(response.getUser().getInfo().getUserId());
+    } catch (StatusRuntimeException e) {
+      if (e.getStatus().getCode() == Status.Code.UNAUTHENTICATED) {
+        return Optional.empty();
+      }
+      ChatsLogger.warn(
+          "Credential validation failed for token " + authToken + "\n " + e.getMessage());
+      return Optional.empty();
+    }
   }
 
-  private UserMyself fetchUserMyself(String authToken) {
-    return userManagementClient
-        .getUserMyself(String.format("%s=%s", AuthenticationMethod.ZM_AUTH_TOKEN.name(), authToken))
-        .onFailure(
-            throwable ->
-                ChatsLogger.warn(
-                    "Authentication failed for token "
-                        + authToken
-                        + "\n "
-                        + throwable.getMessage()))
-        .toJavaOptional()
-        .orElse(null);
+  @Override
+  public Optional<UserMyselfProto> getUserMyself(String authToken) {
+    if (authToken == null) {
+      return Optional.empty();
+    }
+    return Optional.ofNullable(fetchUserMyself(authToken));
+  }
+
+  private UserMyselfProto fetchUserMyself(String authToken) {
+    try {
+      GetUserMyselfRequest request =
+          GetUserMyselfRequest.newBuilder().setToken(authToken).build();
+      UserMyselfResponse response = userManagementStub.getUserMyself(request);
+      return response.getUser();
+    } catch (StatusRuntimeException e) {
+      if (e.getStatus().getCode() != Status.Code.UNAUTHENTICATED) {
+        ChatsLogger.warn(
+            "Authentication failed for token " + authToken + "\n " + e.getMessage());
+      }
+      return null;
+    }
   }
 
   @Override
   public boolean isAlive() {
-    return userManagementClient.healthCheck();
+    ConnectivityState state = userManagementChannel.getState(true);
+    return state == ConnectivityState.READY || state == ConnectivityState.IDLE;
   }
 }

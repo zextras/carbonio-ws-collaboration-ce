@@ -6,7 +6,7 @@ package com.zextras.carbonio.chats.core.web.security;
 
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.data.type.Size;
-import com.zextras.carbonio.usermanagement.enumerations.UserType;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import jakarta.annotation.Nullable;
 import java.security.Principal;
 import java.time.Duration;

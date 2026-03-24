@@ -34,7 +34,7 @@ import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import com.zextras.carbonio.usermanagement.enumerations.UserType;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
@@ -79,12 +79,14 @@ class RoomsApiServiceImplTest {
 
   private UserPrincipal user1;
   private UserPrincipal user2;
+  private UserPrincipal guest;
 
   private String genericFileName;
   private String snoopyFileName;
 
   @BeforeEach
   void init() {
+    UUID guestId = UUID.randomUUID();
     user1Id = UUID.randomUUID();
     user2Id = UUID.randomUUID();
 
@@ -106,6 +108,7 @@ class RoomsApiServiceImplTest {
                     CarbonioAttribute.WSC_MAX_ROOM_PICTURE_SIZE.getValue(),
                     "2"));
     user2 = UserPrincipal.create(user2Id).userType(UserType.INTERNAL);
+    guest = UserPrincipal.create(guestId).userType(UserType.GUEST);
 
     roomId = UUID.randomUUID();
 
@@ -136,6 +139,18 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("List rooms with with a guest user without extra fields")
+    void listRooms_testGuestUser_without_extra_fields() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      Response response = roomsApiService.listRooms(null, securityContext);
+
+      verify(roomService, times(1)).getRooms(null, guest);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+    }
+
+    @Test
     @DisplayName("List rooms with with a non-valid user without extra fields")
     void listRooms_testUnauthorizedUser_without_extra_fields() {
       when(securityContext.getUserPrincipal()).thenReturn(null);
@@ -157,6 +172,18 @@ class RoomsApiServiceImplTest {
       Response response = roomsApiService.getRoom(roomId, securityContext);
 
       verify(roomService, times(1)).getRoomById(roomId, user1);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Get room with with a guest user")
+    void getRoom_testGuestUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      Response response = roomsApiService.getRoom(roomId, securityContext);
+
+      verify(roomService, times(1)).getRoomById(roomId, guest);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
     }
@@ -373,6 +400,19 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Insert room with with a guest user")
+    void insertRoom_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      RoomCreationFieldsDto roomCreationFieldsDto =
+          RoomCreationFieldsDto.create().type(RoomTypeDto.GROUP).name("test");
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> roomsApiService.insertRoom(roomCreationFieldsDto, securityContext));
+    }
+
+    @Test
     @DisplayName("Insert room with with a non-valid user")
     void insertRoom_testUnauthorizedUser() {
       when(securityContext.getUserPrincipal()).thenReturn(null);
@@ -430,6 +470,15 @@ class RoomsApiServiceImplTest {
       verify(roomService, times(1)).getRoomById(roomId, user1);
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Delete room with with a guest user")
+    void deleteRoom_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      assertThrows(
+          ForbiddenException.class, () -> roomsApiService.deleteRoom(roomId, securityContext));
     }
 
     @Test
@@ -511,6 +560,18 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update room with with a guest user")
+    void updateRoom_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      RoomEditableFieldsDto roomEditableFieldsDto = RoomEditableFieldsDto.create().name("test123");
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> roomsApiService.updateRoom(roomId, roomEditableFieldsDto, securityContext));
+    }
+
+    @Test
     @DisplayName("Update room with with a non-valid user")
     void updateRoom_testUnauthorizedUser() {
       when(securityContext.getUserPrincipal()).thenReturn(null);
@@ -559,6 +620,18 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update room owners with with a guest user")
+    void updateRoomOwners_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      List<MemberDto> memberDtos = List.of(MemberDto.create().userId(user2Id).owner(true));
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> roomsApiService.updateRoomOwners(roomId, memberDtos, securityContext));
+    }
+
+    @Test
     @DisplayName("Update room owners with with a non-valid user")
     void updateRoomOwners_testUnauthorizedUser() {
       when(securityContext.getUserPrincipal()).thenReturn(null);
@@ -588,6 +661,23 @@ class RoomsApiServiceImplTest {
       Response response = roomsApiService.getRoomPicture(roomId, securityContext);
 
       verify(roomService, times(1)).getRoomPicture(roomId, user1);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Get room picture with with a guest user")
+    void getRoomPicture_testGuestUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+      FileContentAndMetadata contentAndMetadata = mock(FileContentAndMetadata.class);
+      FileMetadata fileMetadata = mock(FileMetadata.class);
+      when(contentAndMetadata.getMetadata()).thenReturn(fileMetadata);
+      when(fileMetadata.getMimeType()).thenReturn("image/jpeg");
+      when(roomService.getRoomPicture(roomId, guest)).thenReturn(contentAndMetadata);
+
+      Response response = roomsApiService.getRoomPicture(roomId, securityContext);
+
+      verify(roomService, times(1)).getRoomPicture(roomId, guest);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
     }
@@ -717,6 +807,23 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Update room picture with a guest user")
+    void updateRoomPicture_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      assertThrows(
+          ForbiddenException.class,
+          () ->
+              roomsApiService.updateRoomPicture(
+                  roomId,
+                  snoopyFileName,
+                  "image/jpeg",
+                  256L,
+                  mock(InputStream.class),
+                  securityContext));
+    }
+
+    @Test
     @DisplayName("Update room picture with a non-valid user")
     void updateRoomPicture_testUnauthorizedUser() {
       when(securityContext.getUserPrincipal()).thenReturn(null);
@@ -751,6 +858,16 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Delete room picture with a guest user")
+    void deleteRoomPicture_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> roomsApiService.deleteRoomPicture(roomId, securityContext));
+    }
+
+    @Test
     @DisplayName("Delete room picture with a non-valid user")
     void deleteRoomPicture_testUnauthorizedUser() {
       when(securityContext.getUserPrincipal()).thenReturn(null);
@@ -776,6 +893,21 @@ class RoomsApiServiceImplTest {
           roomsApiService.forwardMessages(roomId, forwardMessageDtos, securityContext);
 
       verify(roomService, times(1)).forwardMessages(roomId, forwardMessageDtos, user1);
+
+      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Forward messages with a guest user")
+    void forwardMessages_testGuestUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      List<ForwardMessageDto> forwardMessageDtos =
+          List.of(ForwardMessageDto.create().originalMessage("original-message"));
+      Response response =
+          roomsApiService.forwardMessages(roomId, forwardMessageDtos, securityContext);
+
+      verify(roomService, times(1)).forwardMessages(roomId, forwardMessageDtos, guest);
 
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
     }
@@ -811,6 +943,15 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Mute room with a guest user")
+    void muteRoom_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      assertThrows(
+          ForbiddenException.class, () -> roomsApiService.muteRoom(roomId, securityContext));
+    }
+
+    @Test
     @DisplayName("Mute room with a non-valid user")
     void muteRoom_testUnauthorizedUser() {
       when(securityContext.getUserPrincipal()).thenReturn(null);
@@ -834,6 +975,15 @@ class RoomsApiServiceImplTest {
       verify(roomService, times(1)).unmuteRoom(roomId, user1);
 
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Unmute room with a guest user")
+    void unmuteRoom_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      assertThrows(
+          ForbiddenException.class, () -> roomsApiService.unmuteRoom(roomId, securityContext));
     }
 
     @Test
@@ -863,6 +1013,16 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Clear room history with a guest user")
+    void clearRoomHistory_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> roomsApiService.clearRoomHistory(roomId, securityContext));
+    }
+
+    @Test
     @DisplayName("Clear room history with a non-valid user")
     void clearRoomHistory_testUnauthorizedUser() {
       when(securityContext.getUserPrincipal()).thenReturn(null);
@@ -885,6 +1045,18 @@ class RoomsApiServiceImplTest {
       Response response = roomsApiService.listRoomMembers(roomId, securityContext);
 
       verify(membersService, times(1)).getRoomMembers(roomId, user1);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("List room members with a guest user")
+    void listRoomMembers_testGuestUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      Response response = roomsApiService.listRoomMembers(roomId, securityContext);
+
+      verify(membersService, times(1)).getRoomMembers(roomId, guest);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
     }
@@ -967,6 +1139,19 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Insert room members with a guest user")
+    void insertRoomMembers_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      List<MemberToInsertDto> memberToInsertDtos =
+          List.of(MemberToInsertDto.create().userId(user2Id));
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> roomsApiService.insertRoomMembers(roomId, memberToInsertDtos, securityContext));
+    }
+
+    @Test
     @DisplayName("Insert room members with a non-valid user")
     void insertRoomMembers_testUnauthorizedUser() {
       when(securityContext.getUserPrincipal()).thenReturn(null);
@@ -1014,6 +1199,16 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Delete room member with a guest user")
+    void deleteRoomMember_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> roomsApiService.deleteRoomMember(roomId, user2Id, securityContext));
+    }
+
+    @Test
     @DisplayName("Delete room member with a non-valid user")
     void deleteRoomMember_testUnauthorizedUser() {
       when(securityContext.getUserPrincipal()).thenReturn(null);
@@ -1055,6 +1250,16 @@ class RoomsApiServiceImplTest {
       verify(roomService, times(1)).getRoomById(roomId, user1);
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Insert owner with a guest user")
+    void insertOwner_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> roomsApiService.insertOwner(roomId, user2Id, securityContext));
     }
 
     @Test
@@ -1102,6 +1307,16 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Delete owner with a guest user")
+    void deleteOwner_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> roomsApiService.deleteOwner(roomId, user2Id, securityContext));
+    }
+
+    @Test
     @DisplayName("Delete owner with a non-valid user")
     void deleteOwner_testUnauthorizedUser() {
       when(securityContext.getUserPrincipal()).thenReturn(null);
@@ -1125,6 +1340,19 @@ class RoomsApiServiceImplTest {
           roomsApiService.listRoomAttachmentsInfo(roomId, 10, "test", securityContext);
 
       verify(attachmentService, times(1)).getAttachmentInfoByRoomId(roomId, 10, "test", user1);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("List room attachments info with a guest user")
+    void listRoomAttachmentsInfo_testGuestUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      Response response =
+          roomsApiService.listRoomAttachmentsInfo(roomId, 10, "test", securityContext);
+
+      verify(attachmentService, times(1)).getAttachmentInfoByRoomId(roomId, 10, "test", guest);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
     }
@@ -1400,6 +1628,27 @@ class RoomsApiServiceImplTest {
                   roomId,
                   genericFileName,
                   null,
+                  1024L,
+                  attachment,
+                  null,
+                  "message-id",
+                  "reply-id",
+                  "10x5",
+                  securityContext));
+    }
+
+    @Test
+    @DisplayName("Insert attachment with a guest user")
+    void insertAttachment_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      assertThrows(
+          ForbiddenException.class,
+          () ->
+              roomsApiService.insertAttachment(
+                  roomId,
+                  genericFileName,
+                  "image/jpeg",
                   1024L,
                   attachment,
                   null,
@@ -1729,6 +1978,20 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Insert attachment multipart with a guest user")
+    void insertAttachmentMultipart_testGuestUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
+
+      assertThrows(
+          ForbiddenException.class,
+          () ->
+              roomsApiService.insertAttachmentMultipart(
+                  multipartFormDataInput, roomId, securityContext));
+    }
+
+    @Test
     @DisplayName("Insert attachment multipart with a non-valid user")
     void insertAttachmentMultipart_testUnauthorizedUser() {
       when(securityContext.getUserPrincipal()).thenReturn(null);
@@ -1755,6 +2018,18 @@ class RoomsApiServiceImplTest {
       Response response = roomsApiService.getMeetingByRoomId(roomId, securityContext);
 
       verify(meetingService, times(1)).getMeetingByRoomId(roomId, user1);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Get meeting room by id with a guest user")
+    void getMeetingRoomById_testGuestUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      Response response = roomsApiService.getMeetingByRoomId(roomId, securityContext);
+
+      verify(meetingService, times(1)).getMeetingByRoomId(roomId, guest);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
     }

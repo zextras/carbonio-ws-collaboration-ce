@@ -5,7 +5,7 @@
 package com.zextras.carbonio.chats.it.utils;
 
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
-import com.zextras.carbonio.usermanagement.enumerations.UserType;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import java.util.*;
 
 public class MockedAccount {
@@ -69,7 +69,7 @@ public class MockedAccount {
           MockUserProfile.create("7156b7fa-78a8-47e3-8b50-102d1db31edc")
               .name("Capitan Harlock")
               .email("harlock@external.com")
-              .type(UserType.INTERNAL)
+              .type(UserType.GUEST)
               .token("8asYvWwPbNg8ESoQ4W0uWHKiDajA0zQ1riOckkfk"));
 
   public static List<MockUserProfile> getAccounts() {
@@ -80,6 +80,13 @@ public class MockedAccount {
     return new ArrayList<>(
         mockedAccountsMap.values().stream()
             .filter(account -> account.getType() == UserType.INTERNAL)
+            .toList());
+  }
+
+  public static List<MockUserProfile> getGuestAccounts() {
+    return new ArrayList<>(
+        mockedAccountsMap.values().stream()
+            .filter(account -> account.getType() == UserType.GUEST)
             .toList());
   }
 

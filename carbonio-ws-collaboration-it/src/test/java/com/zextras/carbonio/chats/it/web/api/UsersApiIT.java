@@ -19,10 +19,6 @@ import com.zextras.carbonio.chats.it.utils.MockedAccount.MockedAccountType;
 import com.zextras.carbonio.chats.model.CapabilitiesDto;
 import com.zextras.carbonio.chats.model.UserDto;
 import com.zextras.carbonio.chats.model.UserDto.TypeEnum;
-import com.zextras.carbonio.usermanagement.entities.UserId;
-import com.zextras.carbonio.usermanagement.entities.UserInfo;
-import com.zextras.carbonio.usermanagement.enumerations.UserStatus;
-import com.zextras.carbonio.usermanagement.enumerations.UserType;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -84,6 +80,24 @@ class UsersApiIT {
     }
 
     @Test
+    @DisplayName("Returns the requested guest user")
+    void getUser_testGuestOk() throws Exception {
+      UUID userId = UUID.fromString("7156b7fa-78a8-47e3-8b50-102d1db31edc");
+      integrationTestUtils.generateAndSaveUser(userId, "hello");
+
+      MockHttpResponse mockHttpResponse =
+          dispatcher.get(url(userId), "8asYvWwPbNg8ESoQ4W0uWHKiDajA0zQ1riOckkfk");
+      assertEquals(200, mockHttpResponse.getStatus());
+      UserDto user =
+          objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
+      assertEquals("7156b7fa-78a8-47e3-8b50-102d1db31edc", user.getId().toString());
+      assertEquals("harlock@external.com", user.getEmail());
+      assertEquals("Capitan Harlock", user.getName());
+      assertEquals(TypeEnum.GUEST, user.getType());
+      assertEquals("hello", user.getStatusMessage());
+    }
+
+    @Test
     @DisplayName("Returns the requested user")
     void getUser_testUserNotFound() throws Exception {
       UUID userId = UUID.fromString("332a9527-3388-4207-be77-6d7e2978a722");
@@ -127,31 +141,9 @@ class UsersApiIT {
               "82735f6d-4c6c-471e-99d9-4eef91b1ec45",
               "7156b7fa-78a8-47e3-8b50-102d1db31edc");
       integrationTestUtils.generateAndSaveUser(UUID.fromString(userIds.get(0)), "status message 1");
-      UserInfo user1 =
-          new UserInfo(
-              new UserId("332a9527-3388-4207-be77-6d7e2978a723"),
-              "snoopy@peanuts.com",
-              "Snoopy",
-              "peanuts.com",
-              UserStatus.ACTIVE,
-              UserType.INTERNAL);
-      UserInfo user2 =
-          new UserInfo(
-              new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"),
-              "charlie.brown@peanuts.com",
-              "Charlie Brown",
-              "peanuts.com",
-              UserStatus.ACTIVE,
-              UserType.INTERNAL);
-      UserInfo user3 =
-          new UserInfo(
-              new UserId("7156b7fa-78a8-47e3-8b50-102d1db31edc"),
-              "harlock@external.com",
-              "Capitan Harlock",
-              "external.com",
-              UserStatus.ACTIVE,
-              UserType.INTERNAL);
-      userManagementMockServer.mockUsersBulk(userIds, List.of(user1, user2, user3), true);
+
+      // Users are already registered in the gRPC mock server via MockedAccount.
+      // The getUsers RPC will return matching users from the registered data.
 
       MockHttpResponse mockHttpResponse =
           dispatcher.get(url(userIds), "F2TkzabOK2pu91sL951ofbJ7Ur3zcJKV9gBwdB84");
@@ -170,7 +162,7 @@ class UsersApiIT {
       assertEquals("7156b7fa-78a8-47e3-8b50-102d1db31edc", users.get(2).getId().toString());
       assertEquals("harlock@external.com", users.get(2).getEmail());
       assertEquals("Capitan Harlock", users.get(2).getName());
-      assertEquals(TypeEnum.INTERNAL, users.get(2).getType());
+      assertEquals(TypeEnum.GUEST, users.get(2).getType());
     }
 
     @Test
@@ -182,23 +174,9 @@ class UsersApiIT {
               "82735f6d-4c6c-471e-99d9-4eef91b1ec45",
               "ea7b9b61-bef5-4cf4-80cb-19612c42593a");
       integrationTestUtils.generateAndSaveUser(UUID.fromString(userIds.get(0)), "status message 1");
-      UserInfo user1 =
-          new UserInfo(
-              new UserId("332a9527-3388-4207-be77-6d7e2978a723"),
-              "snoopy@peanuts.com",
-              "Snoopy",
-              "peanuts.com",
-              UserStatus.ACTIVE,
-              UserType.INTERNAL);
-      UserInfo user2 =
-          new UserInfo(
-              new UserId("82735f6d-4c6c-471e-99d9-4eef91b1ec45"),
-              "charlie.brown@peanuts.com",
-              "Charlie Brown",
-              "peanuts.com",
-              UserStatus.ACTIVE,
-              UserType.INTERNAL);
-      userManagementMockServer.mockUsersBulk(userIds, List.of(user1, user2), true);
+
+      // All three users are registered in the gRPC mock server via MockedAccount,
+      // so the getUsers RPC will return all three.
 
       MockHttpResponse mockHttpResponse =
           dispatcher.get(url(userIds), "F2TkzabOK2pu91sL951ofbJ7Ur3zcJKV9gBwdB84");
@@ -223,7 +201,7 @@ class UsersApiIT {
 
       MockHttpResponse mockHttpResponse =
           dispatcher.get(url(userIds), "6g2R31FDn9epUpbyLhZSltqACqd33K9qa0b3lsJL");
-      userManagementMockServer.mockUsersBulk(userIds, Collections.emptyList(), true);
+      // The gRPC mock server returns an empty users list for unknown IDs
       List<UserDto> users =
           objectMapper.readValue(mockHttpResponse.getContentAsString(), new TypeReference<>() {});
       assertEquals(200, mockHttpResponse.getStatus());

@@ -19,7 +19,7 @@ import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.usermanagement.enumerations.UserType;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
@@ -46,19 +46,21 @@ class UsersApiServiceImplTest {
     this.usersApiService = new UsersApiServiceImpl(userService, capabilityService);
   }
 
+  private UUID guestId;
   private UUID user1Id;
   private UUID user2Id;
-  private UUID user3Id;
 
   private UserPrincipal user1;
+  private UserPrincipal guest;
 
   @BeforeEach
   void init() {
+    guestId = UUID.randomUUID();
     user1Id = UUID.randomUUID();
     user2Id = UUID.randomUUID();
-    user3Id = UUID.randomUUID();
 
     user1 = UserPrincipal.create(user1Id).userType(UserType.INTERNAL);
+    guest = UserPrincipal.create(guestId).userType(UserType.GUEST);
   }
 
   @AfterEach
@@ -79,6 +81,18 @@ class UsersApiServiceImplTest {
       Response response = usersApiService.getUser(user1Id, securityContext);
 
       verify(userService, times(1)).getUserById(user1Id, user1);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Get user info with a guest user")
+    void getUser_testGuestUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      Response response = usersApiService.getUser(user1Id, securityContext);
+
+      verify(userService, times(1)).getUserById(user1Id, guest);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
     }
@@ -127,10 +141,9 @@ class UsersApiServiceImplTest {
       Response response =
           usersApiService.getUsers(
               List.of(
-                  user1Id,
+                  guestId,
                   user1Id,
                   user2Id,
-                  user3Id,
                   UUID.randomUUID(),
                   UUID.randomUUID(),
                   UUID.randomUUID(),
@@ -142,6 +155,18 @@ class UsersApiServiceImplTest {
               securityContext);
 
       assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Get users info with a guest user")
+    void getUsers_testGuestUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      Response response = usersApiService.getUsers(List.of(user1Id, user2Id), securityContext);
+
+      verify(userService, times(1)).getUsersByIds(List.of(user1Id, user2Id), guest);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
     }
 
     @Test
@@ -167,6 +192,18 @@ class UsersApiServiceImplTest {
       Response response = usersApiService.getCapabilities(securityContext);
 
       verify(capabilityService, times(1)).getCapabilities(user1);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Get capabilities with a guest user")
+    void getCapabilities_testGuestUser() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(guest);
+
+      Response response = usersApiService.getCapabilities(securityContext);
+
+      verify(capabilityService, times(1)).getCapabilities(guest);
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
     }

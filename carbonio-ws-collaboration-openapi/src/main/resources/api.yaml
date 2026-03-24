@@ -7,7 +7,7 @@ info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
   version: 1.6.8
-  x-supported-versions: [ "1.6.8", "1.6.7", "1.6.6", "1.6.3", "1.6.2", "1.6.1", "1.6.0" ]
+  x-supported-versions: [ "1.6.8", "1.6.7", "1.6.6", "1.6.5", "1.6.4", "1.6.3", "1.6.2", "1.6.1", "1.6.0" ]
 
 servers:
   - url: http://localhost:10000
@@ -1599,6 +1599,7 @@ components:
           description: user type
           enum:
             - internal
+            - guest
         statusMessage:
           type: string
           description: the user's status message

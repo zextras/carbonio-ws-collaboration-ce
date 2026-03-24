@@ -29,6 +29,7 @@ import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -92,6 +93,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response insertRoom(
       RoomCreationFieldsDto insertRoomRequestDto, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     List<MemberDto> members =
         Optional.ofNullable(insertRoomRequestDto.getMembers()).orElse(List.of());
     if (RoomTypeDto.ONE_TO_ONE.equals(insertRoomRequestDto.getType())) {
@@ -132,6 +136,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response deleteRoom(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(
             r -> {
@@ -150,6 +157,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response updateRoom(
       UUID roomId, RoomEditableFieldsDto updateRoomRequestDto, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(
             r -> {
@@ -173,6 +183,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   public Response updateRoomOwners(
       UUID roomId, List<@Valid MemberDto> memberDto, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(
             r -> {
@@ -211,6 +224,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       InputStream body,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
 
     long maxSizeBytes =
         currentUser.getSizeLimit(CarbonioAttribute.WSC_MAX_ROOM_PICTURE_SIZE, 0).toBytes();
@@ -247,6 +263,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response deleteRoomPicture(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     roomService.deleteRoomPicture(roomId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -263,6 +282,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response muteRoom(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     roomService.muteRoom(roomId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -271,6 +293,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response unmuteRoom(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     roomService.unmuteRoom(roomId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -278,6 +303,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @Override
   public Response clearRoomHistory(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     return Response.status(Status.OK)
         .entity(
             ClearedDateDto.create().clearedAt(roomService.clearRoomHistory(roomId, currentUser)))
@@ -300,6 +328,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       List<@Valid MemberToInsertDto> memberToInsertDto,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(
             r -> {
@@ -324,6 +355,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response deleteRoomMember(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(
             r -> {
@@ -340,6 +374,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall
   public Response insertOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(
             r -> {
@@ -356,6 +393,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response deleteOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     Optional<RoomDto> room = Optional.ofNullable(roomService.getRoomById(roomId, currentUser));
     return room.map(
             r -> {
@@ -394,6 +434,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
 
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     if (!currentUser.hasEnabled(CarbonioAttribute.WSC_ATTACHMENT_UPLOAD)) {
       throw new ForbiddenException("Attachment upload is disabled for user");
     }
@@ -451,6 +494,9 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       MultipartFormDataInput input, UUID roomId, SecurityContext securityContext) {
 
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
 
     if (!currentUser.hasEnabled(CarbonioAttribute.WSC_ATTACHMENT_UPLOAD)) {
       throw new ForbiddenException("Attachment upload is disabled for user");

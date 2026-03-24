@@ -4,7 +4,7 @@
 
 package com.zextras.carbonio.chats.core.data.model;
 
-import com.zextras.carbonio.usermanagement.enumerations.UserType;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import java.util.UUID;
 
 public class UserProfile {

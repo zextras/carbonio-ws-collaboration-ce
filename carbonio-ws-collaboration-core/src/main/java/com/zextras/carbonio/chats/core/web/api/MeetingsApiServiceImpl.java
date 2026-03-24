@@ -24,6 +24,7 @@ import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.chats.model.NewMeetingDataDto;
 import com.zextras.carbonio.chats.model.SessionDescriptionProtocolDto;
 import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
@@ -184,6 +185,9 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   @Override
   public Response startMeeting(UUID meetingId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
     if (!currentUser.hasEnabled(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED)) {
       throw new ForbiddenException("Video call is not enabled for user");
     }
@@ -354,9 +358,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   @Override
   public Response updateHandStatus(
       UUID meetingId, HandStatusDto handStatusDto, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     participantService.updateHandStatus(meetingId, handStatusDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }

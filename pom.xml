@@ -57,12 +57,14 @@ SPDX-License-Identifier: AGPL-3.0-only
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <maven.version.ignore>(?i).*(.|-)(alpha|beta|m|rc)([-.]?\d+)?</maven.version.ignore>
-        <!-- Carbonio User Management -->
-        <carbonio-user-management-sdk.version>1.0.2</carbonio-user-management-sdk.version>
+        <!-- Carbonio User Management gRPC SDK -->
+        <carbonio-user-management-grpc-sdk.version>1.0.3-dev.1.324e7740</carbonio-user-management-grpc-sdk.version>
         <!-- Storages -->
         <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
         <!-- Previewer -->
         <preview-sdk.version>2.0.1</preview-sdk.version>
+        <!-- gRPC -->
+        <io.grpc.version>1.73.0</io.grpc.version>
         <!-- Jetty -->
         <org.eclipse.jetty.version>12.0.19</org.eclipse.jetty.version>
         <org.eclipse.jetty.servlet.version>12.0.19</org.eclipse.jetty.servlet.version>
@@ -144,11 +146,11 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <version>${project.version}</version>
             </dependency>
 
-            <!-- Carbonio User Management -->
+            <!-- Carbonio User Management gRPC SDK -->
             <dependency>
                 <groupId>com.zextras.carbonio.user-management</groupId>
-                <artifactId>carbonio-user-management-sdk</artifactId>
-                <version>${carbonio-user-management-sdk.version}</version>
+                <artifactId>carbonio-user-management-grpc-sdk</artifactId>
+                <version>${carbonio-user-management-grpc-sdk.version}</version>
             </dependency>
 
             <!-- Storages sdk -->
@@ -156,6 +158,19 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <groupId>com.zextras</groupId>
                 <artifactId>storages-ce-sdk</artifactId>
                 <version>${storages-sdk.version}</version>
+            </dependency>
+
+            <!-- gRPC dependencies -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-netty-shaded</artifactId>
+                <version>${io.grpc.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-inprocess</artifactId>
+                <version>${io.grpc.version}</version>
             </dependency>
 
             <!-- Previewer sdk -->
