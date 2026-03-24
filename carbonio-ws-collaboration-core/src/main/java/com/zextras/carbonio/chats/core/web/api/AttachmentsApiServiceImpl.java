@@ -29,12 +29,15 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
     this.attachmentService = attachmentService;
   }
 
+  private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
+    return Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+        .orElseThrow(UnauthorizedException::new);
+  }
+
   @Override
   @TimedCall(logLevel = ChatsLoggerLevel.INFO)
   public Response getAttachment(UUID fileId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     FileContentAndMetadata attachment = attachmentService.getAttachmentById(fileId, currentUser);
     return Response.status(Status.OK)
         .entity(attachment)
@@ -49,9 +52,7 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
   @Override
   @TimedCall
   public Response getAttachmentInfo(UUID fileId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.ok()
         .entity(attachmentService.getAttachmentInfoById(fileId, currentUser))
         .build();
@@ -60,9 +61,7 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
   @Override
   @TimedCall
   public Response deleteAttachment(UUID fileId, SecurityContext securityContext) {
-    UserPrincipal currentUser =
-        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
-            .orElseThrow(UnauthorizedException::new);
+    UserPrincipal currentUser = getCurrentUser(securityContext);
     attachmentService.deleteAttachment(fileId, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }

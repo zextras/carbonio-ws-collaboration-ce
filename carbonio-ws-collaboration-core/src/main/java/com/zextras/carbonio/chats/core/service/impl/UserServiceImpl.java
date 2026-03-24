@@ -13,9 +13,9 @@ import com.zextras.carbonio.chats.core.repository.UserRepository;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.UserDto;
+import com.zextras.carbonio.chats.model.UserDto.TypeEnum;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Singleton
 public class UserServiceImpl implements UserService {
@@ -39,7 +39,8 @@ public class UserServiceImpl implements UserService {
                     UserDto.create()
                         .id(UUID.fromString(p.getId()))
                         .email(p.getEmail())
-                        .name(p.getName()))
+                        .name(p.getName())
+                        .type(TypeEnum.valueOf(p.getType().name())))
             .orElseThrow(
                 () ->
                     new NotFoundException(
@@ -60,7 +61,8 @@ public class UserServiceImpl implements UserService {
                 UserDto.create()
                     .id(UUID.fromString(p.getId()))
                     .email(p.getEmail())
-                    .name(p.getName()))
+                    .name(p.getName())
+                    .type(TypeEnum.valueOf(p.getType().name())))
         .map(
             userDto -> {
               users.stream()

@@ -24,7 +24,6 @@ import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.repository.RoomUserSettingsRepository;
 import com.zextras.carbonio.chats.core.repository.SubscriptionRepository;
-import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
@@ -54,7 +53,6 @@ public class MembersServiceImpl implements MembersService {
   private final MessageDispatcher messageDispatcher;
   private final MeetingService meetingService;
   private final ParticipantService participantService;
-  private final CapabilityService capabilityService;
 
   @Inject
   public MembersServiceImpl(
@@ -66,8 +64,7 @@ public class MembersServiceImpl implements MembersService {
       UserService userService,
       MessageDispatcher messageDispatcher,
       MeetingService meetingService,
-      ParticipantService participantService,
-      CapabilityService capabilityService) {
+      ParticipantService participantService) {
     this.roomService = roomService;
     this.subscriptionRepository = subscriptionRepository;
     this.roomUserSettingsRepository = roomUserSettingsRepository;
@@ -77,13 +74,6 @@ public class MembersServiceImpl implements MembersService {
     this.messageDispatcher = messageDispatcher;
     this.meetingService = meetingService;
     this.participantService = participantService;
-    this.capabilityService = capabilityService;
-  }
-
-  private enum Action {
-    ADD,
-    REMOVE,
-    UPDATE
   }
 
   @Override
@@ -92,8 +82,6 @@ public class MembersServiceImpl implements MembersService {
     List<UUID> memberIds = extractUniqueMemberIds(membersToInsert);
     Room room = roomService.getRoomAndValidateUser(roomId, currentUser, true);
 
-    validateRoomTypeAction(room, Action.ADD);
-    validateRoomMaxCapacity(room, currentUser);
     validateMemberPresence(memberIds, room);
     validateUserExistence(memberIds, currentUser);
 
@@ -144,16 +132,6 @@ public class MembersServiceImpl implements MembersService {
             });
   }
 
-  private void validateRoomMaxCapacity(Room room, UserPrincipal currentUser) {
-    if (RoomTypeDto.GROUP.equals(room.getType())) {
-      Integer maxGroupMembers = capabilityService.getCapabilities(currentUser).getMaxGroupMembers();
-      if (room.getSubscriptions().size() >= maxGroupMembers) {
-        throw new BadRequestException(
-            String.format("Cannot add more members to this %s", room.getType()));
-      }
-    }
-  }
-
   private void addMemberToRoom(String memberId, Room room, String currentUserId) {
     messageDispatcher.addRoomMember(room.getId(), currentUserId, memberId);
     messageDispatcher.sendAffiliationMessage(
@@ -200,7 +178,6 @@ public class MembersServiceImpl implements MembersService {
     Room room =
         roomService.getRoomAndValidateUser(
             roomId, currentUser, !currentUser.getUUID().equals(userId));
-    validateRoomTypeAction(room, Action.REMOVE);
     validateUserMemberShip(userId, currentUser, room);
     if (room.getMeetingId() != null) {
       meetingService
@@ -273,7 +250,6 @@ public class MembersServiceImpl implements MembersService {
   public void promoteMemberToOwner(UUID roomId, UUID userId, UserPrincipal currentUser) {
     validateUserRequest(userId, currentUser);
     Room room = roomService.getRoomAndValidateUser(roomId, currentUser, true);
-    validateRoomTypeAction(room, Action.UPDATE);
     Subscription subscription = getSubscriptionFromRoom(userId, room);
     subscription.owner(true);
     subscriptionRepository.update(subscription);
@@ -290,7 +266,6 @@ public class MembersServiceImpl implements MembersService {
   public void demoteOwnerToMember(UUID roomId, UUID userId, UserPrincipal currentUser) {
     validateUserRequest(userId, currentUser);
     Room room = roomService.getRoomAndValidateUser(roomId, currentUser, true);
-    validateRoomTypeAction(room, Action.UPDATE);
     Subscription subscription = getSubscriptionFromRoom(userId, room);
     subscription.owner(false);
     subscriptionRepository.update(subscription);
@@ -313,14 +288,6 @@ public class MembersServiceImpl implements MembersService {
                     String.format("User '%s' is not a member of the room", userId)));
   }
 
-  private static void validateRoomTypeAction(Room room, Action action) {
-    if (room.getType().equals(RoomTypeDto.ONE_TO_ONE)) {
-      throw new BadRequestException(
-          String.format(
-              "Cannot %s member on %s room", action.toString().toLowerCase(), room.getType()));
-    }
-  }
-
   private static void validateUserRequest(UUID userId, UserPrincipal currentUser) {
     if (userId.equals(currentUser.getUUID())) {
       throw new BadRequestException("Cannot set owner privileges for itself");
@@ -332,7 +299,6 @@ public class MembersServiceImpl implements MembersService {
       UUID roomId, List<MemberDto> members, UserPrincipal currentUser) {
     validateUserRequest(members, currentUser);
     Room room = roomService.getRoomAndValidateUser(roomId, currentUser, true);
-    validateRoomTypeAction(room, Action.UPDATE);
 
     List<Subscription> subscriptionsToUpdate = new ArrayList<>();
     for (MemberDto member : members) {

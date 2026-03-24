@@ -4,11 +4,11 @@
 
 package com.zextras.carbonio.chats.core.web.security;
 
+import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.usermanagement.entities.UserMyself;
 import com.zextras.carbonio.usermanagement.enumerations.UserStatus;
-import com.zextras.carbonio.usermanagement.enumerations.UserType;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -71,11 +71,11 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
     }
 
     // Check if carbonioFeatureWscEnabled is TRUE
-    // TODO we only do this check for internal users, since guests have all carbonioFeatureFlags set to false;
-    // this can and should probably change in the future
-    String wscEnabled = userMyself.getCarbonioAttributes()
-        .getOrDefault("carbonioFeatureWscEnabled", "FALSE");
-    if (wscEnabled.equals("FALSE") && userMyself.getType().equals(UserType.INTERNAL)) {
+    String wscEnabled =
+        userMyself
+            .getCarbonioAttributes()
+            .getOrDefault(CarbonioAttribute.FEATURE_WSC_ENABLED.getValue(), "FALSE");
+    if (wscEnabled.equals("FALSE")) {
       ChatsLogger.warn("Websocket authentication failed: WSC feature not enabled for user");
       httpServletResponse.setStatus(Status.UNAUTHORIZED.getStatusCode());
       return;

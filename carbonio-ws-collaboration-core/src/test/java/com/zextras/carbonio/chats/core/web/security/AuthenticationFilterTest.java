@@ -53,22 +53,21 @@ class AuthenticationFilterTest {
       UUID userId = UUID.randomUUID();
       Map<String, String> attributes = new HashMap<>();
       attributes.put("carbonioFeatureWscEnabled", "TRUE");
-      UserMyself userMyself = new UserMyself(
-          new UserId(userId.toString()),
-          "user@example.com",
-          "Test User",
-          "example.com",
-          UserStatus.ACTIVE,
-          Locale.ENGLISH,
-          UserType.INTERNAL,
-          attributes
-      );
+      UserMyself userMyself =
+          new UserMyself(
+              new UserId(userId.toString()),
+              "user@example.com",
+              "Test User",
+              "example.com",
+              UserStatus.ACTIVE,
+              Locale.ENGLISH,
+              UserType.INTERNAL,
+              attributes);
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
-      when(authenticationService.getUserMyself("token"))
-          .thenReturn(Optional.of(userMyself));
+      when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
 
       authenticationFilter.filter(requestContext);
 
@@ -80,39 +79,9 @@ class AuthenticationFilterTest {
       assertEquals(userId.toString(), userPrincipal.getId());
       assertTrue(userPrincipal.getAuthToken().isPresent());
       assertEquals("token", userPrincipal.getAuthToken().get());
-    }
-
-    @Test
-    @DisplayName("Sets the correct security context for a guest user (WSC disabled is ok for guests)")
-    void filter_testOkForGuestUser() {
-      UUID userId = UUID.randomUUID();
-      Map<String, String> attributes = new HashMap<>();
-      attributes.put("carbonioFeatureWscEnabled", "FALSE");
-      UserMyself userMyself = new UserMyself(
-          new UserId(userId.toString()),
-          "guest@example.com",
-          "Guest User",
-          "example.com",
-          UserStatus.ACTIVE,
-          Locale.ENGLISH,
-          UserType.GUEST,
-          attributes
-      );
-
-      ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
-      when(requestContext.getCookies())
-          .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
-      when(authenticationService.getUserMyself("token"))
-          .thenReturn(Optional.of(userMyself));
-
-      authenticationFilter.filter(requestContext);
-
-      ArgumentCaptor<SecurityContextImpl> contextCaptor =
-          ArgumentCaptor.forClass(SecurityContextImpl.class);
-      verify(requestContext, times(1)).setSecurityContext(contextCaptor.capture());
-      SecurityContextImpl capturedContext = contextCaptor.getValue();
-      UserPrincipal userPrincipal = (UserPrincipal) capturedContext.getUserPrincipal();
-      assertEquals(userId.toString(), userPrincipal.getId());
+      assertEquals(UserType.INTERNAL, userPrincipal.getUserType());
+      assertEquals("user@example.com", userPrincipal.getEmail());
+      assertEquals("Test User", userPrincipal.getName());
     }
 
     @Test
@@ -136,7 +105,7 @@ class AuthenticationFilterTest {
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
-      when(authenticationService.validateCredentials("token")).thenReturn(Optional.empty());
+      when(authenticationService.getUserMyself("token")).thenReturn(Optional.empty());
 
       assertThrows(UnauthorizedException.class, () -> authenticationFilter.filter(requestContext));
     }
@@ -147,22 +116,21 @@ class AuthenticationFilterTest {
       UUID userId = UUID.randomUUID();
       Map<String, String> attributes = new HashMap<>();
       attributes.put("carbonioFeatureWscEnabled", "TRUE");
-      UserMyself userMyself = new UserMyself(
-          new UserId(userId.toString()),
-          "user@example.com",
-          "Test User",
-          "example.com",
-          UserStatus.CLOSED,
-          Locale.ENGLISH,
-          UserType.INTERNAL,
-          attributes
-      );
+      UserMyself userMyself =
+          new UserMyself(
+              new UserId(userId.toString()),
+              "user@example.com",
+              "Test User",
+              "example.com",
+              UserStatus.CLOSED,
+              Locale.ENGLISH,
+              UserType.INTERNAL,
+              attributes);
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
-      when(authenticationService.getUserMyself("token"))
-          .thenReturn(Optional.of(userMyself));
+      when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
 
       assertThrows(UnauthorizedException.class, () -> authenticationFilter.filter(requestContext));
     }
@@ -173,47 +141,46 @@ class AuthenticationFilterTest {
       UUID userId = UUID.randomUUID();
       Map<String, String> attributes = new HashMap<>();
       attributes.put("carbonioFeatureWscEnabled", "FALSE");
-      UserMyself userMyself = new UserMyself(
-          new UserId(userId.toString()),
-          "user@example.com",
-          "Test User",
-          "example.com",
-          UserStatus.ACTIVE,
-          Locale.ENGLISH,
-          UserType.INTERNAL,
-          attributes
-      );
+      UserMyself userMyself =
+          new UserMyself(
+              new UserId(userId.toString()),
+              "user@example.com",
+              "Test User",
+              "example.com",
+              UserStatus.ACTIVE,
+              Locale.ENGLISH,
+              UserType.INTERNAL,
+              attributes);
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
-      when(authenticationService.getUserMyself("token"))
-          .thenReturn(Optional.of(userMyself));
+      when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
 
       assertThrows(UnauthorizedException.class, () -> authenticationFilter.filter(requestContext));
     }
 
     @Test
-    @DisplayName("Throws an unauthorized exception if WSC feature attribute is missing for internal user")
+    @DisplayName(
+        "Throws an unauthorized exception if WSC feature attribute is missing for internal user")
     void filter_testWscFeatureMissingForInternalUser() {
       UUID userId = UUID.randomUUID();
       Map<String, String> attributes = new HashMap<>();
-      UserMyself userMyself = new UserMyself(
-          new UserId(userId.toString()),
-          "user@example.com",
-          "Test User",
-          "example.com",
-          UserStatus.ACTIVE,
-          Locale.ENGLISH,
-          UserType.INTERNAL,
-          attributes
-      );
+      UserMyself userMyself =
+          new UserMyself(
+              new UserId(userId.toString()),
+              "user@example.com",
+              "Test User",
+              "example.com",
+              UserStatus.ACTIVE,
+              Locale.ENGLISH,
+              UserType.INTERNAL,
+              attributes);
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
-      when(authenticationService.getUserMyself("token"))
-          .thenReturn(Optional.of(userMyself));
+      when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
 
       assertThrows(UnauthorizedException.class, () -> authenticationFilter.filter(requestContext));
     }
