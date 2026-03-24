@@ -1565,9 +1565,9 @@ components:
         - videoCallEnabled
         - recordingEnabled
         - virtualBackgroundEnabled
-        - privateChatCreation
-        - groupChatCreation
-        - attachmentUpload
+        - privateChatCreationEnabled
+        - groupChatCreationEnabled
+        - attachmentUploadEnabled
         - maxGroupMembers
         - maxAttachmentSize
         - maxRoomPictureSize

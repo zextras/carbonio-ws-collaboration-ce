@@ -266,6 +266,21 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Insert group room with an authenticated user with null members")
+    void insertGroupRoom_testAuthenticatedUser_nullMembers() throws Exception {
+      user2.carbonioAttributes(
+          Map.of(CarbonioAttribute.WSC_GROUP_CHAT_CREATION.getValue(), "TRUE"));
+      when(securityContext.getUserPrincipal()).thenReturn(user2);
+
+      RoomCreationFieldsDto roomCreationFieldsDto =
+          RoomCreationFieldsDto.create().type(RoomTypeDto.GROUP);
+
+      Response response = roomsApiService.insertRoom(roomCreationFieldsDto, securityContext);
+
+      assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+    }
+
+    @Test
     @DisplayName("Insert group room with an authenticated user with less than 2 members")
     void insertGroupRoom_testAuthenticatedUser_lessThanTwoMembers() throws Exception {
       user2.carbonioAttributes(
@@ -696,6 +711,40 @@ class RoomsApiServiceImplTest {
           .setRoomPicture(roomId, imageInputStream, "image/jpeg", 256L, "snoopy-image", user1);
 
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Update room picture with an authenticated user with null content length")
+    void updateRoomPicture_testAuthenticatedUser_nullContentLength() {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      assertThrows(
+          BadRequestException.class,
+          () ->
+              roomsApiService.updateRoomPicture(
+                  roomId,
+                  snoopyFileName,
+                  "image/jpeg",
+                  null,
+                  mock(InputStream.class),
+                  securityContext));
+    }
+
+    @Test
+    @DisplayName("Update room picture with an authenticated user with negative content length")
+    void updateRoomPicture_testAuthenticatedUser_negativeContentLength() {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      assertThrows(
+          BadRequestException.class,
+          () ->
+              roomsApiService.updateRoomPicture(
+                  roomId,
+                  snoopyFileName,
+                  "image/jpeg",
+                  -1L,
+                  mock(InputStream.class),
+                  securityContext));
     }
 
     @Test
@@ -1436,6 +1485,48 @@ class RoomsApiServiceImplTest {
     }
 
     @Test
+    @DisplayName("Insert attachment with an authenticated user with null content length")
+    void insertAttachment_testAuthenticatedUser_nullContentLength() {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      assertThrows(
+          BadRequestException.class,
+          () ->
+              roomsApiService.insertAttachment(
+                  roomId,
+                  genericFileName,
+                  "image/jpeg",
+                  null,
+                  attachment,
+                  null,
+                  "message-id",
+                  "reply-id",
+                  "10x5",
+                  securityContext));
+    }
+
+    @Test
+    @DisplayName("Insert attachment with an authenticated user with negative content length")
+    void insertAttachment_testAuthenticatedUser_negativeContentLength() {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      assertThrows(
+          BadRequestException.class,
+          () ->
+              roomsApiService.insertAttachment(
+                  roomId,
+                  genericFileName,
+                  "image/jpeg",
+                  -1L,
+                  attachment,
+                  null,
+                  "message-id",
+                  "reply-id",
+                  "10x5",
+                  securityContext));
+    }
+
+    @Test
     @DisplayName("Insert attachment that exceeds the max size limit with an authenticated user")
     void insertAttachment_testAuthenticatedUser_maxSizeLimitExceeded() {
       user2.carbonioAttributes(
@@ -1654,6 +1745,59 @@ class RoomsApiServiceImplTest {
 
       assertThrows(
           ForbiddenException.class,
+          () ->
+              roomsApiService.insertAttachmentMultipart(
+                  multipartFormDataInput, roomId, securityContext));
+    }
+
+    @Test
+    @DisplayName(
+        "Insert attachment multipart with an authenticated user with invalid content length format")
+    void insertAttachmentMultipart_testAuthenticatedUser_invalidContentLengthFormat()
+        throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
+
+      Map<String, List<InputPart>> formDataMap = new HashMap<>();
+      InputPart filePart = mock(InputPart.class);
+      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
+      when(filePart.getFileName())
+          .thenReturn("\\u0066\\u0069\\u006c\\u0065\\u004e\\u0061\\u006d\\u0065");
+      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
+      formDataMap.put("file", List.of(filePart));
+      InputPart contentLengthPart = mock(InputPart.class);
+      when(contentLengthPart.getBody(String.class, null)).thenReturn("not-a-number");
+      formDataMap.put("contentLength", List.of(contentLengthPart));
+      when(multipartFormDataInput.getFormDataMap()).thenReturn(formDataMap);
+
+      assertThrows(
+          BadRequestException.class,
+          () ->
+              roomsApiService.insertAttachmentMultipart(
+                  multipartFormDataInput, roomId, securityContext));
+    }
+
+    @Test
+    @DisplayName(
+        "Insert attachment multipart with an authenticated user with negative content length")
+    void insertAttachmentMultipart_testAuthenticatedUser_negativeContentLength() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      MultipartFormDataInput multipartFormDataInput = mock(MultipartFormDataInput.class);
+
+      Map<String, List<InputPart>> formDataMap = new HashMap<>();
+      InputPart filePart = mock(InputPart.class);
+      when(filePart.getBody(InputStream.class, null)).thenReturn(attachment);
+      when(filePart.getFileName())
+          .thenReturn("\\u0066\\u0069\\u006c\\u0065\\u004e\\u0061\\u006d\\u0065");
+      when(filePart.getMediaType()).thenReturn(MediaType.valueOf("image/jpeg"));
+      formDataMap.put("file", List.of(filePart));
+      InputPart contentLengthPart = mock(InputPart.class);
+      when(contentLengthPart.getBody(String.class, null)).thenReturn("-1");
+      formDataMap.put("contentLength", List.of(contentLengthPart));
+      when(multipartFormDataInput.getFormDataMap()).thenReturn(formDataMap);
+
+      assertThrows(
+          BadRequestException.class,
           () ->
               roomsApiService.insertAttachmentMultipart(
                   multipartFormDataInput, roomId, securityContext));

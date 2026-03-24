@@ -70,15 +70,15 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
       return;
     }
 
-    // Check if carbonioFeatureWscEnabled is TRUE
-    Map<String, String> capabilities = userMyself.getCapabilitiesMap();
-    String wscEnabled =
-        capabilities.getOrDefault(CarbonioAttribute.FEATURE_WSC_ENABLED.getValue(), "FALSE");
-    if (wscEnabled.equals("FALSE")) {
+    // Check if carbonioFeatureWscEnabled is in features list
+    boolean wscEnabled =
+        userMyself.getFeaturesList().contains(CarbonioAttribute.FEATURE_WSC_ENABLED.getValue());
+    if (!wscEnabled) {
       ChatsLogger.warn("Websocket authentication failed: WSC feature not enabled for user");
       httpServletResponse.setStatus(Status.UNAUTHORIZED.getStatusCode());
       return;
     }
+    Map<String, String> capabilities = userMyself.getCapabilitiesMap();
 
     String userId = userMyself.getInfo().getUserId();
     httpRequest.getSession().setAttribute("userId", userId);

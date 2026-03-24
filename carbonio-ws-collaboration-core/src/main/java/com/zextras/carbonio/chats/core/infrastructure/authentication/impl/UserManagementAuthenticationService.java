@@ -17,7 +17,6 @@ import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-
 import java.util.Optional;
 
 @Singleton

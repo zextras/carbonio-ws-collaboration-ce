@@ -96,11 +96,13 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     if (UserType.GUEST.equals(currentUser.getUserType())) {
       throw new ForbiddenException();
     }
+    List<MemberDto> members =
+        Optional.ofNullable(insertRoomRequestDto.getMembers()).orElse(List.of());
     if (RoomTypeDto.ONE_TO_ONE.equals(insertRoomRequestDto.getType())) {
       if (!currentUser.hasEnabled(CarbonioAttribute.WSC_PRIVATE_CHAT_CREATION)) {
         throw new ForbiddenException("Private chat creation is disabled for user");
       }
-      if (insertRoomRequestDto.getMembers().size() != 1) {
+      if (members.size() != 1) {
         return Response.status(Status.BAD_REQUEST).build();
       }
       if (insertRoomRequestDto.getName() != null || insertRoomRequestDto.getDescription() != null) {
@@ -111,11 +113,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       if (!currentUser.hasEnabled(CarbonioAttribute.WSC_GROUP_CHAT_CREATION)) {
         throw new ForbiddenException("Group chat creation is disabled for user");
       }
-      if (insertRoomRequestDto.getMembers().size() < 2) {
+      if (members.size() < 2) {
         return Response.status(Status.BAD_REQUEST).build();
       }
       int maxMembers = currentUser.getCountLimit(CarbonioAttribute.WSC_MAX_GROUP_MEMBERS, 0);
-      if (insertRoomRequestDto.getMembers().size() > maxMembers) {
+      if (members.size() > maxMembers) {
         throw new ForbiddenException("Exceeded the max number of group members for user");
       }
     }
@@ -228,6 +230,10 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
     long maxSizeBytes =
         currentUser.getSizeLimit(CarbonioAttribute.WSC_MAX_ROOM_PICTURE_SIZE, 0).toBytes();
+
+    if (contentLength == null || contentLength < 0) {
+      throw new BadRequestException("Content length is missing or invalid");
+    }
 
     if (contentLength > maxSizeBytes) {
       throw new ForbiddenException("Room picture size exceeds the max limit");
@@ -438,7 +444,11 @@ public class RoomsApiServiceImpl implements RoomsApiService {
     long maxSizeBytes =
         currentUser.getSizeLimit(CarbonioAttribute.WSC_MAX_ATTACHMENT_SIZE, 0).toBytes();
 
-    if (maxSizeBytes != 0 && contentLength > maxSizeBytes) {
+    if (contentLength == null || contentLength < 0) {
+      throw new BadRequestException("Content length is missing or invalid");
+    }
+
+    if (maxSizeBytes > 0 && contentLength > maxSizeBytes) {
       throw new ForbiddenException("Attachment size exceeds the max limit");
     }
 
@@ -507,9 +517,18 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
     long maxSizeBytes =
         currentUser.getSizeLimit(CarbonioAttribute.WSC_MAX_ATTACHMENT_SIZE, 0).toBytes();
-    long contentLengthBytes = Long.parseLong(contentLength);
+    long contentLengthBytes;
+    try {
+      contentLengthBytes = Long.parseLong(contentLength);
+    } catch (NumberFormatException e) {
+      throw new BadRequestException("Invalid content length format");
+    }
 
-    if (maxSizeBytes != 0 && contentLengthBytes > maxSizeBytes) {
+    if (contentLengthBytes < 0) {
+      throw new BadRequestException("Content length cannot be negative");
+    }
+
+    if (maxSizeBytes > 0 && contentLengthBytes > maxSizeBytes) {
       throw new ForbiddenException("Attachment size exceeds the max limit");
     }
 

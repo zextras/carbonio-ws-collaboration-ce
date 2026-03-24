@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.ProfilingException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -87,6 +88,7 @@ class UserManagementProfilingServiceTest {
       assertEquals("email@test.com", userProfile.get().getEmail());
       assertEquals("name hello", userProfile.get().getName());
       assertEquals("mydomain.com", userProfile.get().getDomain());
+      assertEquals(UserType.INTERNAL, userProfile.get().getType());
     }
 
     @Test

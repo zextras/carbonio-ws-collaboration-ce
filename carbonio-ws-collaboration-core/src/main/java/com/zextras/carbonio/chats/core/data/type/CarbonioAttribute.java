@@ -66,10 +66,13 @@ public enum CarbonioAttribute {
   public Duration asDuration(Map<String, String> attributes, Duration defaultValue) {
     String raw = attributes.get(value);
     if (raw == null || raw.isBlank()) return defaultValue;
+    String trimmed = raw.trim();
     try {
-      if (raw.trim().endsWith("s")) return Duration.ofSeconds(Long.parseLong(raw.replace("s", "")));
-      if (raw.trim().endsWith("m")) return Duration.ofMinutes(Long.parseLong(raw.replace("m", "")));
-      if (raw.trim().endsWith("h")) return Duration.ofHours(Long.parseLong(raw.replace("h", "")));
+      if (trimmed.endsWith("s"))
+        return Duration.ofSeconds(Long.parseLong(trimmed.replace("s", "")));
+      if (trimmed.endsWith("m"))
+        return Duration.ofMinutes(Long.parseLong(trimmed.replace("m", "")));
+      if (trimmed.endsWith("h")) return Duration.ofHours(Long.parseLong(trimmed.replace("h", "")));
       return defaultValue;
     } catch (NumberFormatException e) {
       return defaultValue;

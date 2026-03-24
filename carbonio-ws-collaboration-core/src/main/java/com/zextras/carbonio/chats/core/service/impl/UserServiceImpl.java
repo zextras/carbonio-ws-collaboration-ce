@@ -16,7 +16,6 @@ import com.zextras.carbonio.chats.model.UserDto;
 import com.zextras.carbonio.chats.model.UserDto.TypeEnum;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Singleton
 public class UserServiceImpl implements UserService {
