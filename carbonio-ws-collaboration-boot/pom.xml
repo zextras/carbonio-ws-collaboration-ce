@@ -181,6 +181,8 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                   <resource>META-INF/services/org.flywaydb.core.extensibility.Plugin</resource>
                 </transformer>
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
               </transformers>
             </configuration>
           </execution>
