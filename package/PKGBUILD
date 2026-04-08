@@ -27,6 +27,7 @@ source=(
   "carbonio-ws-collaboration.hcl"
   "carbonio-ws-collaboration.service"
   "carbonio-ws-collaboration-sidecar.service"
+  "carbonio-ws-collaboration-sidecar-legacy.service"
   "logback.xml"
   "intentions.json"
   "policies.json"
@@ -40,46 +41,60 @@ sha256sums=(
   '3b7439a5c9e2c84af0508ac9b4e20ca904dbf276a129c4c3c65f1fcb31ac9757'
   '97dafb135eec3ee429ee3c0044e8f5e5ad368314c43a32dc7a871b1efd114fa1'
   'd119cef22e0de99b2105cc87f479aa3ddfec3d51cf709353810267e61c430ada'
-  '99b886122ee345aed5ed9b807dabf4b86c645e99c8040ec70a0c0a80fb016efe'
+  '7b0d2fa3a5d3da5b657f0f9a595ac57e7d29584954088ab591a43cae34b23401'
+  '067d2da5321e6ed87394b78d9c6a071bb22e0f96f9e906e4ce4d4ed8c54c4b9e'
   '99fcaf768357c8be4a4301a1edf63d7059f5c032cf38a889cd3114d4737f60ee'
   '58c69efd45348762b3c603ecb8a7d3df5e4ada730b00a760d02d3f376a455d08'
   '7dbc2225d51fb07c1e3e5577f8ba80d8cd9634c7c47f5b0ab1edbc949d97ff21'
   'a805fcb27d94d7d935fed0e335850137d38e74b43dab06f478acf3308c25f089'
 )
 
-package() {
-  cd "${srcdir}"
-  install -Dm755 carbonio-ws-collaboration-ce.jar \
+_package_common() {
+  install -Dm755 "${srcdir}/carbonio-ws-collaboration-ce.jar" \
     "${pkgdir}/usr/share/carbonio/carbonio-ws-collaboration.jar"
-  install -Dm755 carbonio-ws-collaboration \
+  install -Dm755 "${srcdir}/carbonio-ws-collaboration" \
     "${pkgdir}/usr/bin/carbonio-ws-collaboration"
-  install -Dm755 carbonio-ws-collaboration-configs \
+  install -Dm755 "${srcdir}/carbonio-ws-collaboration-configs" \
     "${pkgdir}/usr/bin/carbonio-ws-collaboration-configs"
-  install -Dm755 carbonio-ws-collaboration-setup \
+  install -Dm755 "${srcdir}/carbonio-ws-collaboration-setup" \
     "${pkgdir}/usr/bin/carbonio-ws-collaboration-setup"
-  install -Dm644 611-carbonio-ws-collaboration.sh \
+  install -Dm644 "${srcdir}/611-carbonio-ws-collaboration.sh" \
     "${pkgdir}/etc/zextras/pending-setups.d/611-carbonio-ws-collaboration.sh"
-  install -Dm644 carbonio-ws-collaboration.hcl \
+  install -Dm644 "${srcdir}/carbonio-ws-collaboration.hcl" \
     "${pkgdir}/etc/zextras/service-discover/carbonio-ws-collaboration.hcl"
-  install -Dm644 carbonio-ws-collaboration.service \
+  install -Dm644 "${srcdir}/carbonio-ws-collaboration.service" \
     "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration.service"
-  install -Dm644 carbonio-ws-collaboration-sidecar.service \
-    "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration-sidecar.service"
-  install -Dm644 logback.xml \
+  install -Dm644 "${srcdir}/logback.xml" \
     "${pkgdir}/etc/carbonio/ws-collaboration/logback.xml"
-  install -Dm644 intentions.json \
+  install -Dm644 "${srcdir}/intentions.json" \
     "${pkgdir}/etc/carbonio/ws-collaboration/service-discover/intentions.json"
-  install -Dm644 policies.json \
+  install -Dm644 "${srcdir}/policies.json" \
     "${pkgdir}/etc/carbonio/ws-collaboration/service-discover/policies.json"
-  install -Dm644 service-protocol.json \
+  install -Dm644 "${srcdir}/service-protocol.json" \
     "${pkgdir}/etc/carbonio/ws-collaboration/service-discover/service-protocol.json"
 }
 
+_package_systemd() {
+  _package_common
+  install -Dm644 "${srcdir}/carbonio-ws-collaboration-sidecar.service" \
+    "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration-sidecar.service"
+}
+
+_package_legacy() {
+  _package_common
+  install -Dm644 "${srcdir}/carbonio-ws-collaboration-sidecar-legacy.service" \
+    "${pkgdir}/lib/systemd/system/carbonio-ws-collaboration-sidecar.service"
+}
+
+package() { _package_systemd; }
+package__rocky_8() { _package_legacy; }
+package__ubuntu_jammy() { _package_legacy; }
+
 postinst() {
-  getent group 'carbonio-ws-collaboration' >/dev/null ||
-    groupadd -r 'carbonio-ws-collaboration'
-  getent passwd 'carbonio-ws-collaboration' >/dev/null ||
-    useradd -r -M -g 'carbonio-ws-collaboration' -s /sbin/nologin 'carbonio-ws-collaboration'
+  getent group 'carbonio-ws-collaboration' >/dev/null \
+    || groupadd -r 'carbonio-ws-collaboration'
+  getent passwd 'carbonio-ws-collaboration' >/dev/null \
+    || useradd -r -M -g 'carbonio-ws-collaboration' -s /sbin/nologin 'carbonio-ws-collaboration'
 
   mkdir -p /var/log/carbonio/ws-collaboration
   chown carbonio-ws-collaboration:carbonio-ws-collaboration /var/log/carbonio/ws-collaboration
