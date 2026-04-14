@@ -9,6 +9,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.ServerConfiguration;
+import com.zextras.carbonio.systemd.SystemdNotify;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
@@ -111,6 +112,7 @@ public class Boot {
     videoServerEventListener.start();
 
     server.start();
+    SystemdNotify.ready("ws-collaboration ready");
 
     Runtime.getRuntime()
         .addShutdownHook(

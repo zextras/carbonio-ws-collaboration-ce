@@ -20,7 +20,6 @@ backup=(
 )
 source=(
   "611-carbonio-ws-collaboration.sh"
-  "carbonio-ws-collaboration"
   "carbonio-ws-collaboration-ce.jar"
   "carbonio-ws-collaboration-configs"
   "carbonio-ws-collaboration-setup"
@@ -35,12 +34,11 @@ source=(
 )
 sha256sums=(
   'e9f6604fd073a5cf3cf9b448d6f9f372a64e23f84fc26d7a0fac6d55b11f0c6a'
-  '7233d077c9cda00b53f482c30cc86af8ca37362f43f6c7f164d7d28c73447c3e'
   'SKIP'
   '67e2ffbd9f1292ca37f1ce1dc1fd6cd7159790e5e882279d926c53f564bfee3d'
   '3b7439a5c9e2c84af0508ac9b4e20ca904dbf276a129c4c3c65f1fcb31ac9757'
   '97dafb135eec3ee429ee3c0044e8f5e5ad368314c43a32dc7a871b1efd114fa1'
-  'd119cef22e0de99b2105cc87f479aa3ddfec3d51cf709353810267e61c430ada'
+  '9fe4d3b3d62ab0626fbc960dfb0e45a50e64f6837ca8fb5153890c838a57d31d'
   '7b0d2fa3a5d3da5b657f0f9a595ac57e7d29584954088ab591a43cae34b23401'
   '067d2da5321e6ed87394b78d9c6a071bb22e0f96f9e906e4ce4d4ed8c54c4b9e'
   '99fcaf768357c8be4a4301a1edf63d7059f5c032cf38a889cd3114d4737f60ee'
@@ -52,8 +50,6 @@ sha256sums=(
 _package_common() {
   install -Dm755 "${srcdir}/carbonio-ws-collaboration-ce.jar" \
     "${pkgdir}/usr/share/carbonio/carbonio-ws-collaboration.jar"
-  install -Dm755 "${srcdir}/carbonio-ws-collaboration" \
-    "${pkgdir}/usr/bin/carbonio-ws-collaboration"
   install -Dm755 "${srcdir}/carbonio-ws-collaboration-configs" \
     "${pkgdir}/usr/bin/carbonio-ws-collaboration-configs"
   install -Dm755 "${srcdir}/carbonio-ws-collaboration-setup" \
