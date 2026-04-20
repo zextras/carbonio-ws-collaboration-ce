@@ -6,8 +6,8 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.8
-  x-supported-versions: [ "1.6.8", "1.6.7", "1.6.6", "1.6.5", "1.6.4", "1.6.3", "1.6.2", "1.6.1", "1.6.0" ]
+  version: 1.6.9
+  x-supported-versions: [ "1.6.9", "1.6.8", "1.6.7", "1.6.6", "1.6.5", "1.6.4", "1.6.3", "1.6.2", "1.6.1", "1.6.0" ]
 
 servers:
   - url: http://localhost:10000
@@ -380,7 +380,7 @@ paths:
       tags:
         - Rooms
         - Attachments
-      summary: Retrieves paged list of metadata of every attachment uploaded to the room  and the filter for the next page
+      summary: Retrieves paged list of metadata of every attachment uploaded to the room and the filter for the next page
       operationId: listRoomAttachmentsInfo
       parameters:
         - $ref: '#/components/parameters/pathRoomId'
@@ -1714,6 +1714,14 @@ components:
           type: boolean
           default: false
           description: indicates whether it is the owner
+        external:
+          type: boolean
+          default: false
+          description: indicates whether it is an external user
+        temporary:
+          type: boolean
+          default: false
+          description: indicates whether it is a temporary user
       required: [ userId ]
     MembersToInsert:
       type: array

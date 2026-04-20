@@ -146,6 +146,8 @@ public class MembersServiceImpl implements MembersService {
                 .room(room)
                 .userId(member.getUserId().toString())
                 .owner(member.isOwner())
+                .external(member.isExternal())
+                .temporary(member.isTemporary())
                 .joinedAt(dateTime));
     room.getSubscriptions().add(subscription);
 
@@ -165,10 +167,7 @@ public class MembersServiceImpl implements MembersService {
               .getByRoomIdAndUserId(room.getId(), member.getUserId().toString())
               .orElseGet(() -> RoomUserSettings.create(room, member.getUserId().toString()));
 
-      if (member.isHistoryCleared()) {
-        settings.clearedAt(dateTime);
-      }
-
+      settings.clearedAt(dateTime);
       roomUserSettingsRepository.save(settings);
     }
   }
@@ -222,7 +221,9 @@ public class MembersServiceImpl implements MembersService {
             .filter(Subscription::isOwner)
             .map(Subscription::getUserId)
             .toList();
-    if (owners.size() == 1 && owners.get(0).equals(userId) && room.getSubscriptions().size() > 1) {
+    if (owners.size() == 1
+        && owners.getFirst().equals(userId)
+        && room.getSubscriptions().size() > 1) {
       throw new BadRequestException("Last owner can't leave the room");
     }
   }
@@ -233,7 +234,7 @@ public class MembersServiceImpl implements MembersService {
             .filter(Subscription::isOwner)
             .map(Subscription::getUserId)
             .toList()
-            .get(0);
+            .getFirst();
 
     messageDispatcher.removeRoomMember(room.getId(), memberId);
     messageDispatcher.sendAffiliationMessage(

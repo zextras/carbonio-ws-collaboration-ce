@@ -35,9 +35,7 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
-import com.zextras.carbonio.chats.core.service.MeetingService;
-import com.zextras.carbonio.chats.core.service.ParticipantService;
-import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.*;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.chats.model.HandStatusDto;
@@ -64,6 +62,7 @@ class ParticipantServiceImplTest {
   private final ParticipantService participantService;
   private final MeetingService meetingService;
   private final RoomService roomService;
+  private final MembersService membersService;
   private final ParticipantRepository participantRepository;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
@@ -72,6 +71,7 @@ class ParticipantServiceImplTest {
   public ParticipantServiceImplTest() {
     this.meetingService = mock(MeetingService.class);
     this.roomService = mock(RoomService.class);
+    this.membersService = mock(MembersService.class);
     this.participantRepository = mock(ParticipantRepository.class);
     this.videoServerService = mock(VideoServerService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
@@ -80,6 +80,7 @@ class ParticipantServiceImplTest {
         new ParticipantServiceImpl(
             meetingService,
             roomService,
+            membersService,
             participantRepository,
             videoServerService,
             eventDispatcher,
@@ -464,7 +465,12 @@ class ParticipantServiceImplTest {
               List.of(user1Id.toString(), user2Id.toString(), user3Id.toString()),
               MeetingParticipantLeft.create().meetingId(permanentMeetingId).userId(user4Id));
       verifyNoMoreInteractions(
-          meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
+          meetingService,
+          roomService,
+          membersService,
+          participantRepository,
+          videoServerService,
+          eventDispatcher);
     }
 
     @Test
@@ -491,7 +497,12 @@ class ParticipantServiceImplTest {
               MeetingParticipantLeft.create().meetingId(meeting2Id).userId(user2Id));
       verify(meetingService, times(1)).stopMeeting(UserPrincipal.create(user2Id), meeting2Id);
       verifyNoMoreInteractions(
-          meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
+          meetingService,
+          roomService,
+          membersService,
+          participantRepository,
+          videoServerService,
+          eventDispatcher);
     }
 
     @Test
@@ -523,13 +534,18 @@ class ParticipantServiceImplTest {
               List.of(user1Id.toString(), user4Id.toString()),
               MeetingParticipantLeft.create().meetingId(scheduledMeetingId).userId(user1Id));
       verifyNoMoreInteractions(
-          meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
+          meetingService,
+          roomService,
+          membersService,
+          participantRepository,
+          videoServerService,
+          eventDispatcher);
     }
 
     @Test
     @DisplayName(
-        "It removes the current non-owner user as meeting participant from a temporary room")
-    void removeMeetingParticipant_testOkRoomTemporaryAndUserIsNotOwner() {
+        "It removes the current external user as meeting participant from a temporary room")
+    void removeMeetingParticipant_testOkRoomTemporaryAndUserIsExternal() {
       UserPrincipal currentUser = UserPrincipal.create(user4Id).queueId(user4Queue1);
       scheduledMeeting.participants(List.of(participant1Session1, participant4Session1));
       when(meetingService.getMeetingEntity(scheduledMeetingId))
@@ -541,7 +557,7 @@ class ParticipantServiceImplTest {
       when(roomService.getRoomAndValidateUser(scheduledRoomId, currentUser, false))
           .thenReturn(scheduledRoom);
       when(participantRepository.getByMeetingId(scheduledMeetingId.toString()))
-          .thenReturn(List.of(participant4Session1));
+          .thenReturn(List.of(participant1Session1));
 
       participantService.removeMeetingParticipant(scheduledMeetingId, currentUser);
 
@@ -556,7 +572,51 @@ class ParticipantServiceImplTest {
               List.of(user1Id.toString(), user4Id.toString()),
               MeetingParticipantLeft.create().meetingId(scheduledMeetingId).userId(user4Id));
       verifyNoMoreInteractions(
-          meetingService, roomService, participantRepository, videoServerService, eventDispatcher);
+          meetingService,
+          roomService,
+          membersService,
+          participantRepository,
+          videoServerService,
+          eventDispatcher);
+    }
+
+    @Test
+    @DisplayName(
+        "It removes the current temporary user as meeting participant from a temporary room")
+    void removeMeetingParticipant_testOkRoomTemporaryAndUserIsTemporary() {
+      UserPrincipal currentUser = UserPrincipal.create(user4Id).queueId(user4Queue1);
+      scheduledMeeting.participants(List.of(participant1Session1, participant4Session1));
+      when(meetingService.getMeetingEntity(scheduledMeetingId))
+          .thenReturn(Optional.of(scheduledMeeting));
+      scheduledRoom.subscriptions(
+          List.of(
+              Subscription.create(scheduledRoom, user1Id.toString()).owner(true),
+              Subscription.create(scheduledRoom, user4Id.toString()).temporary(true)));
+      when(roomService.getRoomAndValidateUser(scheduledRoomId, currentUser, false))
+          .thenReturn(scheduledRoom);
+      when(participantRepository.getByMeetingId(scheduledMeetingId.toString()))
+          .thenReturn(List.of(participant1Session1));
+
+      participantService.removeMeetingParticipant(scheduledMeetingId, currentUser);
+
+      verify(meetingService, times(1)).getMeetingEntity(scheduledMeetingId);
+      verify(roomService, times(1)).getRoomAndValidateUser(scheduledRoomId, currentUser, false);
+      verify(participantRepository, times(1)).remove(participant4Session1);
+      verify(participantRepository, times(1)).getByMeetingId(scheduledMeetingId.toString());
+      verify(videoServerService, times(1))
+          .destroyMeetingParticipant(user4Id.toString(), scheduledMeetingId.toString());
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user4Id.toString()),
+              MeetingParticipantLeft.create().meetingId(scheduledMeetingId).userId(user4Id));
+      verify(membersService, times(1)).deleteRoomMember(user4Id.toString(), scheduledRoom);
+      verifyNoMoreInteractions(
+          meetingService,
+          roomService,
+          membersService,
+          participantRepository,
+          videoServerService,
+          eventDispatcher);
     }
 
     @Test
@@ -570,7 +630,7 @@ class ParticipantServiceImplTest {
 
       verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
-      verifyNoMoreInteractions(meetingService, roomService);
+      verifyNoMoreInteractions(meetingService, roomService, membersService);
       verifyNoInteractions(participantRepository, videoServerService, eventDispatcher);
     }
   }
