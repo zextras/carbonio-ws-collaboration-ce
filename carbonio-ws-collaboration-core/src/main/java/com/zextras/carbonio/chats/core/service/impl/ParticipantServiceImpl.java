@@ -27,9 +27,7 @@ import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
-import com.zextras.carbonio.chats.core.service.MeetingService;
-import com.zextras.carbonio.chats.core.service.ParticipantService;
-import com.zextras.carbonio.chats.core.service.RoomService;
+import com.zextras.carbonio.chats.core.service.*;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.chats.model.HandStatusDto;
@@ -48,6 +46,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
   private final MeetingService meetingService;
   private final RoomService roomService;
+  private final MembersService membersService;
   private final ParticipantRepository participantRepository;
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
@@ -57,12 +56,14 @@ public class ParticipantServiceImpl implements ParticipantService {
   public ParticipantServiceImpl(
       MeetingService meetingService,
       RoomService roomService,
+      MembersService membersService,
       ParticipantRepository participantRepository,
       VideoServerService videoServerService,
       EventDispatcher eventDispatcher,
       Clock clock) {
     this.meetingService = meetingService;
     this.roomService = roomService;
+    this.membersService = membersService;
     this.participantRepository = participantRepository;
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
@@ -258,42 +259,12 @@ public class ParticipantServiceImpl implements ParticipantService {
                                 UUID.fromString(participant.getUserId()))));
   }
 
-  @Override
-  public void iceRestartAudio(UUID meetingId, String sdp, UserPrincipal currentUser) {
-    Meeting meeting = validateMeeting(meetingId);
-    validateMeetingParticipant(currentUser.getId(), meeting);
-    videoServerService.iceRestartAudio(currentUser.getId(), meetingId.toString(), sdp);
-  }
-
-  @Override
-  public void iceRestartVideo(UUID meetingId, String sdp, UserPrincipal currentUser) {
-    Meeting meeting = validateMeeting(meetingId);
-    validateMeetingParticipant(currentUser.getId(), meeting);
-    videoServerService.iceRestartVideo(currentUser.getId(), meetingId.toString(), sdp);
-  }
-
-  @Override
-  public Optional<Participant> getByQueueId(UUID queueId) {
-    return participantRepository.getByQueueId(queueId.toString());
-  }
-
-  @Override
-  public Participant updateParticipantQueueId(UUID userId, UUID meetingId, UUID newQueueId) {
-    Optional<Participant> participant =
-        participantRepository.getById(meetingId.toString(), userId.toString());
-    if (participant.isPresent()) {
-      return participantRepository.update(participant.get().queueId(newQueueId.toString()));
-    } else {
-      throw new NotFoundException(
-          String.format("Participant '%s' not found in meeting '%s'", userId, meetingId));
-    }
-  }
-
   private void removeMeetingParticipant(Participant participant, Meeting meeting, Room room) {
     videoServerService.destroyMeetingParticipant(participant.getUserId(), meeting.getId());
     participantRepository.remove(participant);
+    List<Subscription> subscriptions = room.getSubscriptions();
     eventDispatcher.sendToUserExchange(
-        room.getSubscriptions().stream().map(Subscription::getUserId).toList(),
+        subscriptions.stream().map(Subscription::getUserId).toList(),
         MeetingParticipantLeft.create()
             .meetingId(UUID.fromString(meeting.getId()))
             .userId(UUID.fromString(participant.getUserId()))
@@ -304,6 +275,20 @@ public class ParticipantServiceImpl implements ParticipantService {
           UserPrincipal.create(UUID.fromString(participant.getUserId())),
           UUID.fromString(meeting.getId()));
     }
+    cleanupTemporaryMember(participant, room, subscriptions);
+  }
+
+  private void cleanupTemporaryMember(
+      Participant participant, Room room, List<Subscription> subscriptions) {
+    subscriptions.stream()
+        .filter(s -> s.getUserId().equals(participant.getUserId()))
+        .findFirst()
+        .ifPresent(
+            s -> {
+              if (s.isTemporary()) {
+                membersService.deleteRoomMember(s.getUserId(), room);
+              }
+            });
   }
 
   @Override
@@ -444,15 +429,29 @@ public class ParticipantServiceImpl implements ParticipantService {
     videoServerService.offerRtcAudioStream(currentUser.getId(), meetingId.toString(), sdp);
   }
 
+  @Override
+  public void iceRestartAudio(UUID meetingId, String sdp, UserPrincipal currentUser) {
+    Meeting meeting = validateMeeting(meetingId);
+    validateMeetingParticipant(currentUser.getId(), meeting);
+    videoServerService.iceRestartAudio(currentUser.getId(), meetingId.toString(), sdp);
+  }
+
+  @Override
+  public void iceRestartVideo(UUID meetingId, String sdp, UserPrincipal currentUser) {
+    Meeting meeting = validateMeeting(meetingId);
+    validateMeetingParticipant(currentUser.getId(), meeting);
+    videoServerService.iceRestartVideo(currentUser.getId(), meetingId.toString(), sdp);
+  }
+
   private Participant validateMeetingParticipant(String userId, Meeting meeting) {
     return meeting.getParticipants().stream()
         .filter(p -> userId.equals(p.getUserId()))
         .findAny()
         .orElseThrow(
-            () ->
-                new NotFoundException(
-                    String.format(
-                        "User '%s' not found into meeting '%s'", userId, meeting.getId())));
+            () -> {
+              return new NotFoundException(
+                  String.format("User '%s' not found into meeting '%s'", userId, meeting.getId()));
+            });
   }
 
   @Override
@@ -528,5 +527,22 @@ public class ParticipantServiceImpl implements ParticipantService {
   @Override
   public void clear(UUID meetingId) {
     participantRepository.clear(meetingId.toString());
+  }
+
+  @Override
+  public Optional<Participant> getByQueueId(UUID queueId) {
+    return participantRepository.getByQueueId(queueId.toString());
+  }
+
+  @Override
+  public Participant updateParticipantQueueId(UUID userId, UUID meetingId, UUID newQueueId) {
+    Optional<Participant> participant =
+        participantRepository.getById(meetingId.toString(), userId.toString());
+    if (participant.isPresent()) {
+      return participantRepository.update(participant.get().queueId(newQueueId.toString()));
+    } else {
+      throw new NotFoundException(
+          String.format("Participant '%s' not found in meeting '%s'", userId, meetingId));
+    }
   }
 }

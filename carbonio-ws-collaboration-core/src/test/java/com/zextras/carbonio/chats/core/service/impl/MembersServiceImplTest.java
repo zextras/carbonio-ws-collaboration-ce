@@ -57,6 +57,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 @UnitTest
 class MembersServiceImplTest {
@@ -413,10 +414,125 @@ class MembersServiceImplTest {
       verify(messageDispatcher, times(1))
           .sendAffiliationMessage(
               roomId.toString(), user1Id.toString(), user2Id.toString(), MessageType.MEMBER_ADDED);
-      verify(subscriptionRepository, times(1)).insert(any(Subscription.class));
+
+      ArgumentCaptor<Subscription> subscriptionCaptor = ArgumentCaptor.forClass(Subscription.class);
+      verify(subscriptionRepository, times(1)).insert(subscriptionCaptor.capture());
+      Subscription capturedSubscription = subscriptionCaptor.getValue();
+      assertEquals(user2Id.toString(), capturedSubscription.getUserId());
+      assertFalse(capturedSubscription.isOwner());
+      assertFalse(capturedSubscription.isExternal());
+      assertFalse(capturedSubscription.isTemporary());
+      assertNotNull(capturedSubscription.getJoinedAt());
+
       verify(roomUserSettingsRepository, times(1))
           .getByRoomIdAndUserId(roomId.toString(), user2Id.toString());
       verify(roomUserSettingsRepository, times(1)).save(any(RoomUserSettings.class));
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
+              RoomMemberAdded.create()
+                  .roomId(UUID.fromString(room.getId()))
+                  .userId(user2Id)
+                  .isOwner(false));
+    }
+
+    @Test
+    @DisplayName("Correctly adds a temporary member to a group room")
+    void insertRoomMember_temporaryMember() {
+      Room room = generateRoom(RoomTypeDto.TEMPORARY);
+      room.subscriptions(
+          new ArrayList<>(
+              List.of(
+                  Subscription.create(room, user1Id.toString()).owner(true),
+                  Subscription.create(room, user3Id.toString()).owner(false))));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(userService.userExists(user2Id, principal)).thenReturn(true);
+      when(subscriptionRepository.insert(any(Subscription.class)))
+          .thenReturn(Subscription.create(room, user2Id.toString()).temporary(true));
+
+      List<MemberInsertedDto> members =
+          membersService.insertRoomMembers(
+              roomId,
+              List.of(
+                  MemberToInsertDto.create().userId(user2Id).temporary(true).historyCleared(false)),
+              principal);
+      assertEquals(1, members.size());
+      MemberInsertedDto memberInsertedDto = members.get(0);
+      assertNotNull(memberInsertedDto);
+      assertEquals(user2Id, memberInsertedDto.getUserId());
+
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(userService, times(1)).userExists(user2Id, principal);
+      verify(messageDispatcher, times(1))
+          .addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
+      verify(messageDispatcher, times(1))
+          .sendAffiliationMessage(
+              roomId.toString(), user1Id.toString(), user2Id.toString(), MessageType.MEMBER_ADDED);
+
+      ArgumentCaptor<Subscription> subscriptionCaptor = ArgumentCaptor.forClass(Subscription.class);
+      verify(subscriptionRepository, times(1)).insert(subscriptionCaptor.capture());
+      Subscription capturedSubscription = subscriptionCaptor.getValue();
+      assertEquals(user2Id.toString(), capturedSubscription.getUserId());
+      assertFalse(capturedSubscription.isOwner());
+      assertFalse(capturedSubscription.isExternal());
+      assertTrue(capturedSubscription.isTemporary());
+      assertNotNull(capturedSubscription.getJoinedAt());
+
+      verify(eventDispatcher, times(1))
+          .sendToUserExchange(
+              List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
+              RoomMemberAdded.create()
+                  .roomId(UUID.fromString(room.getId()))
+                  .userId(user2Id)
+                  .isOwner(false));
+    }
+
+    @Test
+    @DisplayName("Correctly adds an external member to a group room")
+    void insertRoomMember_externalMember() {
+      Room room = generateRoom(RoomTypeDto.TEMPORARY);
+      room.subscriptions(
+          new ArrayList<>(
+              List.of(
+                  Subscription.create(room, user1Id.toString()).owner(true),
+                  Subscription.create(room, user3Id.toString()).owner(false))));
+      UserPrincipal principal = UserPrincipal.create(user1Id);
+
+      when(roomService.getRoomAndValidateUser(roomId, principal, true)).thenReturn(room);
+      when(userService.userExists(user2Id, principal)).thenReturn(true);
+      when(subscriptionRepository.insert(any(Subscription.class)))
+          .thenReturn(Subscription.create(room, user2Id.toString()).external(true));
+
+      List<MemberInsertedDto> members =
+          membersService.insertRoomMembers(
+              roomId,
+              List.of(
+                  MemberToInsertDto.create().userId(user2Id).external(true).historyCleared(false)),
+              principal);
+      assertEquals(1, members.size());
+      MemberInsertedDto memberInsertedDto = members.get(0);
+      assertNotNull(memberInsertedDto);
+      assertEquals(user2Id, memberInsertedDto.getUserId());
+
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, principal, true);
+      verify(userService, times(1)).userExists(user2Id, principal);
+      verify(messageDispatcher, times(1))
+          .addRoomMember(roomId.toString(), user1Id.toString(), user2Id.toString());
+      verify(messageDispatcher, times(1))
+          .sendAffiliationMessage(
+              roomId.toString(), user1Id.toString(), user2Id.toString(), MessageType.MEMBER_ADDED);
+
+      ArgumentCaptor<Subscription> subscriptionCaptor = ArgumentCaptor.forClass(Subscription.class);
+      verify(subscriptionRepository, times(1)).insert(subscriptionCaptor.capture());
+      Subscription capturedSubscription = subscriptionCaptor.getValue();
+      assertEquals(user2Id.toString(), capturedSubscription.getUserId());
+      assertFalse(capturedSubscription.isOwner());
+      assertTrue(capturedSubscription.isExternal());
+      assertFalse(capturedSubscription.isTemporary());
+      assertNotNull(capturedSubscription.getJoinedAt());
+
       verify(eventDispatcher, times(1))
           .sendToUserExchange(
               List.of(user1Id.toString(), user3Id.toString(), user2Id.toString()),
