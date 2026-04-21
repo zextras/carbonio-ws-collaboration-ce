@@ -9,7 +9,6 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.data.type.UserType;
-import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.ProfilingException;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -41,13 +40,11 @@ public class UserManagementProfilingService implements ProfilingService {
 
   @Override
   public Optional<UserProfile> getById(UserPrincipal principal, UUID userId) {
-    String token = principal.getAuthToken().orElseThrow(ForbiddenException::new);
     try {
       UserInfoProto userInfo =
           userManagementStub
               .getUserById(
                   GetUserByIdRequest.newBuilder()
-                      .setToken(token)
                       .setUserId(userId.toString())
                       .build())
               .getUser();
@@ -62,11 +59,10 @@ public class UserManagementProfilingService implements ProfilingService {
 
   @Override
   public List<UserProfile> getByIds(UserPrincipal principal, List<String> userIds) {
-    String token = principal.getAuthToken().orElseThrow(ForbiddenException::new);
     try {
       return userManagementStub
           .getUsers(
-              GetUsersRequest.newBuilder().setToken(token).addAllUserIds(userIds).build())
+              GetUsersRequest.newBuilder().addAllUserIds(userIds).build())
           .getUsersList()
           .stream()
           .map(this::mapToUserProfile)
