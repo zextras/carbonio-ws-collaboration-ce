@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.data.type.UserType;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.ProfilingException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.user_management.sdk.grpc.GetUserByIdRequest;
@@ -102,6 +103,17 @@ class UserManagementProfilingServiceTest {
               UserPrincipal.create(randomUUID).authToken("cookie"), randomUUID);
 
       assertTrue(userProfile.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Throws a forbidden exception when the user doesn't have an authentication token")
+    void getById_testForbiddenException() {
+      UUID randomUUID = UUID.randomUUID();
+      assertThrows(
+          ForbiddenException.class,
+          () ->
+              profilingService.getById(
+                  UserPrincipal.create(randomUUID).authToken(null), randomUUID));
     }
 
     @Test

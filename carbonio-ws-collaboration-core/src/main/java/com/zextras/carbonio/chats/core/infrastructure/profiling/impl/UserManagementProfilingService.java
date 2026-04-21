@@ -9,6 +9,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.zextras.carbonio.chats.core.data.model.UserProfile;
 import com.zextras.carbonio.chats.core.data.type.UserType;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.ProfilingException;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
@@ -40,6 +41,7 @@ public class UserManagementProfilingService implements ProfilingService {
 
   @Override
   public Optional<UserProfile> getById(UserPrincipal principal, UUID userId) {
+    principal.getAuthToken().orElseThrow(ForbiddenException::new);
     try {
       UserInfoProto userInfo =
           userManagementStub
@@ -59,6 +61,7 @@ public class UserManagementProfilingService implements ProfilingService {
 
   @Override
   public List<UserProfile> getByIds(UserPrincipal principal, List<String> userIds) {
+    principal.getAuthToken().orElseThrow(ForbiddenException::new);
     try {
       return userManagementStub
           .getUsers(
