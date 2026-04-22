@@ -58,7 +58,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <maven.compiler.target>21</maven.compiler.target>
         <maven.version.ignore>(?i).*(.|-)(alpha|beta|m|rc)([-.]?\d+)?</maven.version.ignore>
         <!-- Carbonio User Management gRPC SDK -->
-        <carbonio-user-management-grpc-sdk.version>1.0.3-dev.1.324e7740</carbonio-user-management-grpc-sdk.version>
+        <carbonio-user-management-grpc-sdk.version>1.0.3-dev.21.79fc3fa2</carbonio-user-management-grpc-sdk.version>
         <!-- Storages -->
         <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
         <!-- Previewer -->
