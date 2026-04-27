@@ -48,16 +48,6 @@ pipeline {
             defaultValue: false,
             description: 'Check this to prepare a new release (creates pre-release branch and PR)'
         )
-        booleanParam(
-            name: 'SKIP_TESTS',
-            defaultValue: false,
-            description: 'Skip unit tests and integration tests'
-        )
-        booleanParam(
-            name: 'SKIP_CHECKS',
-            defaultValue: false,
-            description: 'Skip coverage and SonarQube analysis'
-        )
     }
 
     stages {
@@ -70,54 +60,14 @@ pipeline {
             }
         }
 
-        stage('Build jar') {
+        stage('Maven') {
             steps {
                 script {
-                    def profile = '-P dev'
-                    if (env.TAG_NAME) {
-                        profile = '-P prod'
-                    }
-                    container('jdk-21') {
-                        sh """
-                            mvn ${MVN_OPTS} clean package ${profile}
-                            cp carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar package/carbonio-ws-collaboration-ce.jar
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('Tests') {
-            when {
-                expression { params.SKIP_TESTS == false }
-            }
-            steps {
-                container('jdk-21') {
-                    sh """
-                        mvn ${MVN_OPTS} \
-                        -Dlogback.configurationFile="\$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml \
-                        verify
-                    """
-                    recordCoverage(tools: [[pattern: 'target/site/jacoco-all-tests/jacoco.xml']])
-                }
-            }
-        }
-
-        stage('SonarQube analysis') {
-            when {
-                allOf {
-                    expression { params.SKIP_CHECKS == false }
-                    anyOf {
-                        branch 'devel'
-                        expression { env.BRANCH_NAME.contains("PR") }
-                    }
-                }
-            }
-            steps {
-                container('jdk-21') {
-                    withSonarQubeEnv(credentialsId: 'sonarqube-user-token', installationName: 'SonarQube instance') {
-                        sh "mvn ${MVN_OPTS} org.sonarsource.scanner.maven:sonar-maven-plugin:sonar"
-                    }
+                    mavenStage(
+                        postBuildScript: 'cp carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar package/carbonio-ws-collaboration-ce.jar',
+                        extraTestArgs: '-Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml',
+                        overrideCoverageCmd: 'true',
+                    )
                 }
             }
         }
