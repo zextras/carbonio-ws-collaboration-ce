@@ -42,4 +42,6 @@ public interface MeetingService {
   void deleteMeeting(String userId, Meeting meeting, Room room);
 
   void updateMeeting(Meeting updatedMeeting);
+
+  void declineMeeting(UUID meetingId, UserPrincipal currentUser);
 }

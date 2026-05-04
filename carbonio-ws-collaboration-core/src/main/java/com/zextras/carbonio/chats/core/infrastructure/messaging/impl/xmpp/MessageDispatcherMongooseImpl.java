@@ -99,11 +99,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   @Override
   public void updateRoomName(String roomId, String senderId, String name) {
     GraphQlResponse result =
-        sendStanza(
-            XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-                .type(MessageType.ROOM_NAME_CHANGED)
-                .addConfig("value", name, true)
-                .build());
+        sendStanza(XmppMessageFactory.buildRoomNameChangedMessage(roomId, senderId, name));
     if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
@@ -120,10 +116,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   public void updateRoomDescription(String roomId, String senderId, String description) {
     GraphQlResponse result =
         sendStanza(
-            XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-                .type(MessageType.ROOM_DESCRIPTION_CHANGED)
-                .addConfig("value", description, true)
-                .build());
+            XmppMessageFactory.buildRoomDescriptionChangedMessage(roomId, senderId, description));
     if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
@@ -141,11 +134,8 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
       String roomId, String senderId, String pictureId, String pictureName) {
     GraphQlResponse result =
         sendStanza(
-            XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-                .type(MessageType.ROOM_PICTURE_UPDATED)
-                .addConfig("picture-id", pictureId)
-                .addConfig("picture-name", pictureName, true)
-                .build());
+            XmppMessageFactory.buildRoomPictureUpdatedMessage(
+                roomId, senderId, pictureId, pictureName));
     if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
@@ -161,10 +151,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   @Override
   public void deleteRoomPicture(String roomId, String senderId) {
     GraphQlResponse result =
-        sendStanza(
-            XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-                .type(MessageType.ROOM_PICTURE_DELETED)
-                .build());
+        sendStanza(XmppMessageFactory.buildRoomPictureDeletedMessage(roomId, senderId));
     if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
@@ -180,12 +167,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
   @Override
   public void clearRoomHistory(String roomId, String senderId, String timestamp) {
     GraphQlResponse result =
-        sendStanza(
-            XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-                .type(MessageType.ROOM_HISTORY_CLEARED)
-                .addConfig("user-id", senderId)
-                .addConfig("cleared-at", timestamp)
-                .build());
+        sendStanza(XmppMessageFactory.buildRoomHistoryClearedMessage(roomId, senderId, timestamp));
     if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
@@ -301,20 +283,19 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
       @Nullable String messageId,
       @Nullable String replyId,
       @Nullable String area) {
-    XmppMessageBuilder xmppMsgBuilder =
-        XmppMessageBuilder.create(roomIdToRoomDomain(roomId), userIdToUserDomain(senderId))
-            .type(MessageType.ATTACHMENT_ADDED)
-            .addConfig(ATTACHMENT_ID, fileId)
-            .addConfig("filename", fileName, true)
-            .addConfig("mime-type", mimeType)
-            .addConfig("size", String.valueOf(originalSize))
-            .body(description)
-            .messageId(messageId)
-            .replyId(replyId);
-    if (area != null) {
-      xmppMsgBuilder.addConfig("area", area);
-    }
-    GraphQlResponse result = sendStanza(xmppMsgBuilder.build());
+    GraphQlResponse result =
+        sendStanza(
+            XmppMessageFactory.buildAttachmentAddedMessage(
+                roomId,
+                senderId,
+                fileId,
+                fileName,
+                mimeType,
+                originalSize,
+                description,
+                messageId,
+                replyId,
+                area));
     if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
@@ -353,6 +334,7 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
     return Optional.empty();
   }
 
+  @Override
   public void forwardMessage(
       String roomId,
       String senderId,
@@ -379,6 +361,22 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
         throw new MessageDispatcherException(
             String.format(
                 "Error while sending forward message: %s",
+                objectMapper.writeValueAsString(result.getErrors())));
+      } catch (JsonProcessingException e) {
+        throw new MessageDispatcherException(PARSING_ERROR, e);
+      }
+    }
+  }
+
+  @Override
+  public void sendXmlMessageToRoom(String xmlMessage) {
+    GraphQlResponse result = sendStanza(xmlMessage);
+    if (result.getErrors() != null) {
+
+      try {
+        throw new MessageDispatcherException(
+            String.format(
+                "Error while removing a room member: %s",
                 objectMapper.writeValueAsString(result.getErrors())));
       } catch (JsonProcessingException e) {
         throw new MessageDispatcherException(PARSING_ERROR, e);

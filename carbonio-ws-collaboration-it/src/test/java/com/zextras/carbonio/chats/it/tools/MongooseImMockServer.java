@@ -145,6 +145,20 @@ public class MongooseImMockServer extends ClientAndServer implements CloseableRe
     when(request).respond(getResponse(success));
   }
 
+  public void mockSendStanzaContaining(String partialXmppMessage, boolean success) {
+    HttpRequest request =
+        request()
+            .withMethod("POST")
+            .withPath("/api/graphql")
+            .withHeaders(
+                Header.header("Authorization", "Basic dXNlcm5hbWU6cGFzc3dvcmQ="),
+                Header.header("Content-Type", "application/json"),
+                Header.header("Accept", "application/json"))
+            .withBody(StringBody.subString(partialXmppMessage));
+    clear(request);
+    when(request).respond(getResponse(success));
+  }
+
   @Override
   public void close() {
     ChatsLogger.debug("Stopping mongooseIM mock...");

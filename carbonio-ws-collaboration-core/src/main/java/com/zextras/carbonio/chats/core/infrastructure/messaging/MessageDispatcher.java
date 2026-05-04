@@ -155,4 +155,11 @@ public interface MessageDispatcher extends HealthIndicator {
    *     exists
    */
   Optional<String> getAttachmentIdFromMessage(String message);
+
+  /**
+   * Sends a message to a room
+   *
+   * @param xmlMessage message to send
+   */
+  void sendXmlMessageToRoom(String xmlMessage);
 }

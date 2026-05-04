@@ -27,6 +27,8 @@ import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.XmppMessageFactory;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
@@ -50,6 +52,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.*;
+import org.mockito.MockedStatic;
 
 @UnitTest
 class MeetingServiceImplTest {
@@ -62,6 +65,7 @@ class MeetingServiceImplTest {
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
   private final Clock clock;
+  private final MessageDispatcher messageDispatcher;
 
   public MeetingServiceImplTest(MeetingMapper meetingMapper) {
     this.meetingRepository = mock(MeetingRepository.class);
@@ -71,6 +75,7 @@ class MeetingServiceImplTest {
     this.videoServerService = mock(VideoServerService.class);
     this.eventDispatcher = mock(EventDispatcher.class);
     this.clock = mock(Clock.class);
+    this.messageDispatcher = mock(MessageDispatcher.class);
     this.meetingService =
         new MeetingServiceImpl(
             meetingRepository,
@@ -80,7 +85,8 @@ class MeetingServiceImplTest {
             participantService,
             videoServerService,
             eventDispatcher,
-            clock);
+            clock,
+            messageDispatcher);
   }
 
   private UUID user1Id;
@@ -246,6 +252,7 @@ class MeetingServiceImplTest {
               .id(meetingId.toString())
               .startedAt(OffsetDateTime.parse("2022-01-01T13:00:00Z"))
               .active(true);
+      String xmppMessage = "xmpp-message";
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
       when(meetingRepository.update(updatedMeeting)).thenReturn(updatedMeeting);
       when(roomService.getRoomById(roomId, currentUser))
