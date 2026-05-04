@@ -362,4 +362,11 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     participantService.updateHandStatus(meetingId, handStatusDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
+
+  @Override
+  public Response declineMeeting(UUID meetingId, SecurityContext securityContext) {
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    meetingService.declineMeeting(meetingId, currentUser);
+    return Response.noContent().build();
+  }
 }

@@ -5,13 +5,26 @@
 openapi: 3.0.3
 info:
   title: Events Data Models
-  version: 1.6.8
+  version: 1.6.10
   description: |
     Data models for room and meeting events.
     This specification contains only the schemas for code generation purposes.
-  x-supported-versions: [ "1.6.8", "1.6.7", "1.6.6", "1.6.5", "1.6.4", "1.6.3", "1.6.2", "1.6.1", "1.6.0" ]
+  x-supported-versions:
+    [
+      "1.6.10",
+      "1.6.9",
+      "1.6.8",
+      "1.6.7",
+      "1.6.6",
+      "1.6.5",
+      "1.6.4",
+      "1.6.3",
+      "1.6.2",
+      "1.6.1",
+      "1.6.0",
+    ]
 
-paths: { }
+paths: {}
 
 components:
   schemas:
@@ -44,6 +57,7 @@ components:
         - MeetingSdpAnswered
         - MeetingStarted
         - MeetingStopped
+        - MeetingDeclined
         - MeetingParticipantTalking
         - MeetingParticipantClashed
         - MeetingWaitingParticipantJoined
@@ -63,7 +77,7 @@ components:
 
     MediaType:
       type: string
-      enum: [ AUDIO, VIDEO, SCREEN ]
+      enum: [AUDIO, VIDEO, SCREEN]
 
     # Base Event Schema
     DomainEvent:
@@ -86,6 +100,7 @@ components:
           meetingDeleted: "#/components/schemas/MeetingDeleted"
           meetingParticipantJoined: "#/components/schemas/MeetingParticipantJoined"
           meetingParticipantLeft: "#/components/schemas/MeetingParticipantLeft"
+          meetingDeclined: "#/components/schemas/meetingDeclined"
           meetingAudioStreamChanged: "#/components/schemas/MeetingAudioStreamChanged"
           meetingAudioAnswered: "#/components/schemas/MeetingAudioAnswered"
           meetingMediaStreamChanged: "#/components/schemas/MeetingMediaStreamChanged"
@@ -110,7 +125,7 @@ components:
       type: object
       properties:
         type:
-          $ref: '#/components/schemas/EventType'
+          $ref: "#/components/schemas/EventType"
         sentDate:
           type: string
           format: date-time
@@ -123,7 +138,7 @@ components:
     # Room Events
     RoomCreated:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             roomId:
@@ -135,7 +150,7 @@ components:
 
     RoomUpdated:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             roomId:
@@ -152,7 +167,7 @@ components:
 
     RoomDeleted:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             roomId:
@@ -163,7 +178,7 @@ components:
 
     RoomOwnerPromoted:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             roomId:
@@ -178,7 +193,7 @@ components:
 
     RoomOwnerDemoted:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             roomId:
@@ -193,7 +208,7 @@ components:
 
     RoomPictureChanged:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             roomId:
@@ -208,7 +223,7 @@ components:
 
     RoomPictureDeleted:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             roomId:
@@ -219,7 +234,7 @@ components:
 
     RoomMemberAdded:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             roomId:
@@ -237,7 +252,7 @@ components:
 
     RoomMemberRemoved:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             roomId:
@@ -252,7 +267,7 @@ components:
 
     RoomMuted:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             roomId:
@@ -263,7 +278,7 @@ components:
 
     RoomUnmuted:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             roomId:
@@ -274,7 +289,7 @@ components:
 
     RoomHistoryCleared:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             roomId:
@@ -290,7 +305,7 @@ components:
     # Meeting Events
     MeetingCreated:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -305,7 +320,7 @@ components:
 
     MeetingDeleted:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -316,7 +331,7 @@ components:
 
     MeetingParticipantJoined:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -333,7 +348,22 @@ components:
 
     MeetingParticipantLeft:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+          required:
+            - meetingId
+            - userId
+
+    meetingDeclined:
+      allOf:
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -348,7 +378,7 @@ components:
 
     MeetingAudioStreamChanged:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -370,7 +400,7 @@ components:
 
     MeetingAudioAnswered:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -389,7 +419,7 @@ components:
 
     MeetingMediaStreamChanged:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -399,7 +429,7 @@ components:
               type: string
               format: uuid
             mediaType:
-              $ref: '#/components/schemas/MediaType'
+              $ref: "#/components/schemas/MediaType"
             active:
               type: boolean
           required:
@@ -410,7 +440,7 @@ components:
 
     MeetingSdpOffered:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -420,7 +450,7 @@ components:
               type: string
               format: uuid
             mediaType:
-              $ref: '#/components/schemas/MediaType'
+              $ref: "#/components/schemas/MediaType"
             sdp:
               type: string
               description: SDP offer string
@@ -432,7 +462,7 @@ components:
 
     MeetingSdpAnswered:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -442,7 +472,7 @@ components:
               type: string
               format: uuid
             mediaType:
-              $ref: '#/components/schemas/MediaType'
+              $ref: "#/components/schemas/MediaType"
             sdp:
               type: string
               description: SDP answer string
@@ -454,7 +484,7 @@ components:
 
     MeetingStarted:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -473,7 +503,7 @@ components:
 
     MeetingStopped:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -484,7 +514,7 @@ components:
 
     MeetingParticipantTalking:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -502,7 +532,7 @@ components:
 
     MeetingParticipantClashed:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -513,7 +543,7 @@ components:
 
     MeetingWaitingParticipantJoined:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -528,7 +558,7 @@ components:
 
     MeetingWaitingParticipantClashed:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -539,7 +569,7 @@ components:
 
     MeetingWaitingParticipantAccepted:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -554,7 +584,7 @@ components:
 
     MeetingWaitingParticipantRejected:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -569,7 +599,7 @@ components:
 
     MeetingParticipantSubscribed:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -581,7 +611,7 @@ components:
             streams:
               type: array
               items:
-                $ref: '#/components/schemas/SubscribedStream'
+                $ref: "#/components/schemas/SubscribedStream"
           required:
             - meetingId
             - userId
@@ -604,7 +634,7 @@ components:
 
     MeetingRecordingStarted:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -619,7 +649,7 @@ components:
 
     MeetingRecordingStopped:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -634,7 +664,7 @@ components:
 
     MeetingParticipantHandRaised:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -661,7 +691,7 @@ components:
 
     MeetingParticipantHandRaisedList:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             meetingId:
@@ -679,7 +709,7 @@ components:
     # Websocket Events
     WebsocketConnected:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
           properties:
             queueId:
@@ -690,10 +720,10 @@ components:
 
     Ping:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object
 
     Pong:
       allOf:
-        - $ref: '#/components/schemas/DomainEvent'
+        - $ref: "#/components/schemas/DomainEvent"
         - type: object

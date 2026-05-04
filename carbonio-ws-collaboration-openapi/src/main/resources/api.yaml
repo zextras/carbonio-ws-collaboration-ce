@@ -6,8 +6,21 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.9
-  x-supported-versions: [ "1.6.9", "1.6.8", "1.6.7", "1.6.6", "1.6.5", "1.6.4", "1.6.3", "1.6.2", "1.6.1", "1.6.0" ]
+  version: 1.6.10
+  x-supported-versions:
+    [
+      "1.6.10",
+      "1.6.9",
+      "1.6.8",
+      "1.6.7",
+      "1.6.6",
+      "1.6.5",
+      "1.6.4",
+      "1.6.3",
+      "1.6.2",
+      "1.6.1",
+      "1.6.0",
+    ]
 
 servers:
   - url: http://localhost:10000
@@ -30,7 +43,7 @@ paths:
       operationId: getHealthStatus
       responses:
         200:
-          $ref: '#/components/responses/200HealthStatusResponse'
+          $ref: "#/components/responses/200HealthStatusResponse"
   /health/live:
     get:
       tags:
@@ -39,7 +52,7 @@ paths:
       operationId: isLive
       responses:
         204:
-          $ref: '#/components/responses/204IsLiveResponse'
+          $ref: "#/components/responses/204IsLiveResponse"
   /health/ready:
     get:
       tags:
@@ -48,11 +61,11 @@ paths:
       operationId: isReady
       responses:
         204:
-          $ref: '#/components/responses/204IsReadyResponse'
+          $ref: "#/components/responses/204IsReadyResponse"
         429:
-          $ref: '#/components/responses/429IsReadyResponse'
+          $ref: "#/components/responses/429IsReadyResponse"
         500:
-          $ref: '#/components/responses/500IsReadyResponse'
+          $ref: "#/components/responses/500IsReadyResponse"
   /rooms:
     get:
       tags:
@@ -60,10 +73,10 @@ paths:
       summary: Retrieves a list of every room the user has access to
       operationId: listRooms
       parameters:
-        - $ref: '#/components/parameters/queryRoomsExtraFields'
+        - $ref: "#/components/parameters/queryRoomsExtraFields"
       responses:
         200:
-          $ref: '#/components/responses/200ListRoomsResponse'
+          $ref: "#/components/responses/200ListRoomsResponse"
     post:
       tags:
         - Rooms
@@ -75,16 +88,16 @@ paths:
         there must be at least two members specified.
       operationId: insertRoom
       requestBody:
-        $ref: '#/components/requestBodies/InsertRoomRequest'
+        $ref: "#/components/requestBodies/InsertRoomRequest"
       responses:
         201:
-          $ref: '#/components/responses/201InsertRoomResponse'
+          $ref: "#/components/responses/201InsertRoomResponse"
         400:
-          $ref: '#/components/responses/400BadRequestResponse'
+          $ref: "#/components/responses/400BadRequestResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         409:
-          $ref: '#/components/responses/409Conflict'
+          $ref: "#/components/responses/409Conflict"
   /rooms/{roomId}:
     get:
       tags:
@@ -92,44 +105,44 @@ paths:
       summary: Retrieves the requested room
       operationId: getRoom
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: "#/components/parameters/pathRoomId"
       responses:
         200:
-          $ref: '#/components/responses/200GetRoomResponse'
+          $ref: "#/components/responses/200GetRoomResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
     put:
       tags:
         - Rooms
       summary: Updates a room information
       operationId: updateRoom
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: "#/components/parameters/pathRoomId"
       requestBody:
-        $ref: '#/components/requestBodies/UpdateRoomRequest'
+        $ref: "#/components/requestBodies/UpdateRoomRequest"
       responses:
         200:
-          $ref: '#/components/responses/200UpdateRoomResponse'
+          $ref: "#/components/responses/200UpdateRoomResponse"
         400:
-          $ref: '#/components/responses/400BadRequestResponse'
+          $ref: "#/components/responses/400BadRequestResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
     delete:
       tags:
         - Rooms
       summary: Deletes the specified room
       operationId: deleteRoom
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: "#/components/parameters/pathRoomId"
       responses:
         204:
-          $ref: '#/components/responses/204DeleteRoomResponse'
+          $ref: "#/components/responses/204DeleteRoomResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
   /rooms/{roomId}/picture:
     get:
       tags:
@@ -137,45 +150,45 @@ paths:
       summary: Retrieves the room picture
       operationId: getRoomPicture
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: "#/components/parameters/pathRoomId"
       responses:
         200:
-          $ref: '#/components/responses/200GetRoomPictureResponse'
+          $ref: "#/components/responses/200GetRoomPictureResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
     put:
       tags:
         - Rooms
       summary: Uploads and sets a new room picture
       operationId: updateRoomPicture
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
-        - $ref: '#/components/parameters/headerFileName'
-        - $ref: '#/components/parameters/headerMimeType'
-        - $ref: '#/components/parameters/headerContentLength'
+        - $ref: "#/components/parameters/pathRoomId"
+        - $ref: "#/components/parameters/headerFileName"
+        - $ref: "#/components/parameters/headerMimeType"
+        - $ref: "#/components/parameters/headerContentLength"
       requestBody:
-        $ref: '#/components/requestBodies/UpdateRoomPictureRequest'
+        $ref: "#/components/requestBodies/UpdateRoomPictureRequest"
       responses:
         204:
-          $ref: '#/components/responses/204UpdateRoomPictureResponse'
+          $ref: "#/components/responses/204UpdateRoomPictureResponse"
     delete:
       tags:
         - Rooms
       summary: Delete the room picture
       operationId: deleteRoomPicture
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: "#/components/parameters/pathRoomId"
       responses:
         204:
-          $ref: '#/components/responses/204DeleteRoomPictureResponse'
+          $ref: "#/components/responses/204DeleteRoomPictureResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /rooms/{roomId}/mute:
     put:
       tags:
@@ -183,28 +196,28 @@ paths:
       summary: Mutes notification for the specified room
       operationId: muteRoom
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: "#/components/parameters/pathRoomId"
       responses:
         204:
-          $ref: '#/components/responses/204MuteRoomResponse'
+          $ref: "#/components/responses/204MuteRoomResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
     delete:
       tags:
         - Rooms
       summary: Unmutes notification for the specified room
       operationId: unmuteRoom
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: "#/components/parameters/pathRoomId"
       responses:
         204:
-          $ref: '#/components/responses/204UnmuteRoomResponse'
+          $ref: "#/components/responses/204UnmuteRoomResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /rooms/{roomId}/clear:
     put:
       tags:
@@ -212,14 +225,14 @@ paths:
       summary: Clears all messages for the specified room
       operationId: clearRoomHistory
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: "#/components/parameters/pathRoomId"
       responses:
         200:
-          $ref: '#/components/responses/200ClearRoomResponse'
+          $ref: "#/components/responses/200ClearRoomResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /rooms/{roomId}/members:
     get:
       tags:
@@ -227,14 +240,14 @@ paths:
       summary: Retrieves every member to the given room
       operationId: listRoomMembers
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: "#/components/parameters/pathRoomId"
       responses:
         200:
-          $ref: '#/components/responses/200ListRoomMembersResponse'
+          $ref: "#/components/responses/200ListRoomMembersResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
     post:
       tags:
         - Rooms
@@ -244,16 +257,16 @@ paths:
         Add the specified users to the room. This can only be performed by an owner of the given room
       operationId: insertRoomMembers
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: "#/components/parameters/pathRoomId"
       requestBody:
-        $ref: '#/components/requestBodies/InsertRoomMembersRequest'
+        $ref: "#/components/requestBodies/InsertRoomMembersRequest"
       responses:
         201:
-          $ref: '#/components/responses/200InsertRoomMembersResponse'
+          $ref: "#/components/responses/200InsertRoomMembersResponse"
         400:
-          $ref: '#/components/responses/400BadRequestResponse'
+          $ref: "#/components/responses/400BadRequestResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
   /rooms/{roomId}/members/{userId}:
     delete:
       tags:
@@ -264,13 +277,13 @@ paths:
         the requester, this action is considered as a kick
       operationId: deleteRoomMember
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
-        - $ref: '#/components/parameters/pathUserId'
+        - $ref: "#/components/parameters/pathRoomId"
+        - $ref: "#/components/parameters/pathUserId"
       responses:
         204:
-          $ref: '#/components/responses/204DeleteRoomMemberResponse'
+          $ref: "#/components/responses/204DeleteRoomMemberResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
   /rooms/{roomId}/members/{userId}/owner:
     put:
       tags:
@@ -278,30 +291,30 @@ paths:
       summary: Promotes a member to owner
       operationId: insertOwner
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
-        - $ref: '#/components/parameters/pathUserId'
+        - $ref: "#/components/parameters/pathRoomId"
+        - $ref: "#/components/parameters/pathUserId"
       responses:
         204:
-          $ref: '#/components/responses/204InsertOwnerResponse'
+          $ref: "#/components/responses/204InsertOwnerResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
     delete:
       tags:
         - Members
       summary: Demotes a member from owner to normal member
       operationId: deleteOwner
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
-        - $ref: '#/components/parameters/pathUserId'
+        - $ref: "#/components/parameters/pathRoomId"
+        - $ref: "#/components/parameters/pathUserId"
       responses:
         204:
-          $ref: '#/components/responses/204DeleteOwnerResponse'
+          $ref: "#/components/responses/204DeleteOwnerResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
   /rooms/{roomId}/members/owners:
     put:
       tags:
@@ -310,18 +323,18 @@ paths:
       summary: Update existing room owners
       operationId: updateRoomOwners
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: "#/components/parameters/pathRoomId"
       requestBody:
-        $ref: '#/components/requestBodies/UpdateRoomOwnersRequest'
+        $ref: "#/components/requestBodies/UpdateRoomOwnersRequest"
       responses:
         201:
-          $ref: '#/components/responses/200UpdateRoomOwnersResponse'
+          $ref: "#/components/responses/200UpdateRoomOwnersResponse"
         400:
-          $ref: '#/components/responses/400BadRequestResponse'
+          $ref: "#/components/responses/400BadRequestResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /rooms/{roomId}/meeting:
     get:
       tags:
@@ -330,16 +343,16 @@ paths:
       summary: Retrieves the meeting associated with the requested room
       operationId: getMeetingByRoomId
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: "#/components/parameters/pathRoomId"
       responses:
         200:
-          $ref: '#/components/responses/200GetRoomMeetingResponse'
+          $ref: "#/components/responses/200GetRoomMeetingResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /users:
     get:
       tags:
@@ -347,10 +360,10 @@ paths:
       summary: Retrieves users
       operationId: getUsers
       parameters:
-        - $ref: '#/components/parameters/queryUserIds'
+        - $ref: "#/components/parameters/queryUserIds"
       responses:
         200:
-          $ref: '#/components/responses/200GetUsersByIdsResponse'
+          $ref: "#/components/responses/200GetUsersByIdsResponse"
   /users/capabilities:
     get:
       tags:
@@ -359,9 +372,9 @@ paths:
       operationId: getCapabilities
       responses:
         200:
-          $ref: '#/components/responses/200GetCapabilities'
+          $ref: "#/components/responses/200GetCapabilities"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
   /users/{userId}:
     get:
       tags:
@@ -383,18 +396,18 @@ paths:
       summary: Retrieves paged list of metadata of every attachment uploaded to the room and the filter for the next page
       operationId: listRoomAttachmentsInfo
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
-        - $ref: '#/components/parameters/queryPageItemsNumber'
-        - $ref: '#/components/parameters/queryPageFilter'
+        - $ref: "#/components/parameters/pathRoomId"
+        - $ref: "#/components/parameters/queryPageItemsNumber"
+        - $ref: "#/components/parameters/queryPageFilter"
       responses:
         200:
-          $ref: '#/components/responses/200ListRoomAttachmentsInfoResponse'
+          $ref: "#/components/responses/200ListRoomAttachmentsInfoResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
     post:
       tags:
         - Rooms
@@ -402,21 +415,21 @@ paths:
       summary: Insert an attachment
       operationId: insertAttachment
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
-        - $ref: '#/components/parameters/headerFileName'
-        - $ref: '#/components/parameters/headerMimeType'
-        - $ref: '#/components/parameters/headerDescription'
-        - $ref: '#/components/parameters/headerMessageId'
-        - $ref: '#/components/parameters/headerReplyId'
-        - $ref: '#/components/parameters/headerArea'
-        - $ref: '#/components/parameters/headerContentLength'
+        - $ref: "#/components/parameters/pathRoomId"
+        - $ref: "#/components/parameters/headerFileName"
+        - $ref: "#/components/parameters/headerMimeType"
+        - $ref: "#/components/parameters/headerDescription"
+        - $ref: "#/components/parameters/headerMessageId"
+        - $ref: "#/components/parameters/headerReplyId"
+        - $ref: "#/components/parameters/headerArea"
+        - $ref: "#/components/parameters/headerContentLength"
       requestBody:
-        $ref: '#/components/requestBodies/InsertAttachmentRequest'
+        $ref: "#/components/requestBodies/InsertAttachmentRequest"
       responses:
         201:
-          $ref: '#/components/responses/201InsertAttachmentResponse'
+          $ref: "#/components/responses/201InsertAttachmentResponse"
         413:
-          $ref: '#/components/responses/413PayloadTooLargeResponse'
+          $ref: "#/components/responses/413PayloadTooLargeResponse"
     put:
       tags:
         - Rooms
@@ -424,12 +437,12 @@ paths:
       summary: Insert an attachment with multipart/form-data
       operationId: insertAttachmentMultipart
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: "#/components/parameters/pathRoomId"
       requestBody:
-        $ref: '#/components/requestBodies/InsertAttachmentRequestMultipart'
+        $ref: "#/components/requestBodies/InsertAttachmentRequestMultipart"
       responses:
         201:
-          $ref: '#/components/responses/201InsertAttachmentResponse'
+          $ref: "#/components/responses/201InsertAttachmentResponse"
   /rooms/{roomId}/forward:
     post:
       tags:
@@ -438,18 +451,18 @@ paths:
       summary: Message forwarding
       operationId: forwardMessages
       parameters:
-        - $ref: '#/components/parameters/pathRoomId'
+        - $ref: "#/components/parameters/pathRoomId"
       requestBody:
-        $ref: '#/components/requestBodies/ForwardMessagesRequest'
+        $ref: "#/components/requestBodies/ForwardMessagesRequest"
       responses:
         204:
-          $ref: '#/components/responses/204ForwardMessagesResponse'
+          $ref: "#/components/responses/204ForwardMessagesResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /attachments/{fileId}:
     delete:
       tags:
@@ -457,26 +470,26 @@ paths:
       summary: Deletes an uploaded attachment
       operationId: deleteAttachment
       parameters:
-        - $ref: '#/components/parameters/pathFileId'
+        - $ref: "#/components/parameters/pathFileId"
       responses:
         204:
-          $ref: '#/components/responses/204DeleteAttachmentResponse'
+          $ref: "#/components/responses/204DeleteAttachmentResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
     get:
       tags:
         - Attachments
       summary: Retrieves info related to an uploaded attachment
       operationId: getAttachmentInfo
       parameters:
-        - $ref: '#/components/parameters/pathFileId'
+        - $ref: "#/components/parameters/pathFileId"
       responses:
         200:
-          $ref: '#/components/responses/200GetAttachmentInfoResponse'
+          $ref: "#/components/responses/200GetAttachmentInfoResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /attachments/{fileId}/download:
     get:
       tags:
@@ -484,14 +497,14 @@ paths:
       summary: Retrieves an uploaded attachment
       operationId: getAttachment
       parameters:
-        - $ref: '#/components/parameters/pathFileId'
+        - $ref: "#/components/parameters/pathFileId"
       responses:
         200:
-          $ref: '#/components/responses/200GetAttachmentResponse'
+          $ref: "#/components/responses/200GetAttachmentResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /preview/image/{fileId}/{area}/:
     get:
       tags:
@@ -512,18 +525,18 @@ paths:
         have borders to fill the requested size.
       operationId: getImagePreview
       parameters:
-        - $ref: '#/components/parameters/pathFileId'
-        - $ref: '#/components/parameters/pathPreviewArea'
-        - $ref: '#/components/parameters/queryImageQuality'
-        - $ref: '#/components/parameters/queryImageType'
-        - $ref: '#/components/parameters/queryImageCrop'
+        - $ref: "#/components/parameters/pathFileId"
+        - $ref: "#/components/parameters/pathPreviewArea"
+        - $ref: "#/components/parameters/queryImageQuality"
+        - $ref: "#/components/parameters/queryImageType"
+        - $ref: "#/components/parameters/queryImageCrop"
       responses:
         200:
-          $ref: '#/components/responses/200PreviewFileResponse'
+          $ref: "#/components/responses/200PreviewFileResponse"
         400:
-          $ref: '#/components/responses/400BadRequestResponse'
+          $ref: "#/components/responses/400BadRequestResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /preview/image/{fileId}/{area}/thumbnail:
     get:
       tags:
@@ -542,18 +555,18 @@ paths:
         - **shape**: Rounded and Rectangular are currently supported.
       operationId: getImageThumbnail
       parameters:
-        - $ref: '#/components/parameters/pathFileId'
-        - $ref: '#/components/parameters/pathPreviewArea'
-        - $ref: '#/components/parameters/queryImageQuality'
-        - $ref: '#/components/parameters/queryImageType'
-        - $ref: '#/components/parameters/queryImageShape'
+        - $ref: "#/components/parameters/pathFileId"
+        - $ref: "#/components/parameters/pathPreviewArea"
+        - $ref: "#/components/parameters/queryImageQuality"
+        - $ref: "#/components/parameters/queryImageType"
+        - $ref: "#/components/parameters/queryImageShape"
       responses:
         200:
-          $ref: '#/components/responses/200PreviewFileResponse'
+          $ref: "#/components/responses/200PreviewFileResponse"
         400:
-          $ref: '#/components/responses/400BadRequestResponse'
+          $ref: "#/components/responses/400BadRequestResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /preview/pdf/{fileId}/:
     get:
       tags:
@@ -568,16 +581,16 @@ paths:
         - **last_page**: integer value of last page to preview (0 = last of the original pdf)
       operationId: getPdfPreview
       parameters:
-        - $ref: '#/components/parameters/pathFileId'
-        - $ref: '#/components/parameters/queryFirstPage'
-        - $ref: '#/components/parameters/queryLastPage'
+        - $ref: "#/components/parameters/pathFileId"
+        - $ref: "#/components/parameters/queryFirstPage"
+        - $ref: "#/components/parameters/queryLastPage"
       responses:
         200:
-          $ref: '#/components/responses/200PreviewFileResponse'
+          $ref: "#/components/responses/200PreviewFileResponse"
         400:
-          $ref: '#/components/responses/400BadRequestResponse'
+          $ref: "#/components/responses/400BadRequestResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /preview/pdf/{fileId}/{area}/thumbnail:
     get:
       tags:
@@ -596,18 +609,18 @@ paths:
         - **shape**: Rounded and Rectangular are currently supported.
       operationId: getPdfThumbnail
       parameters:
-        - $ref: '#/components/parameters/pathFileId'
-        - $ref: '#/components/parameters/pathPreviewArea'
-        - $ref: '#/components/parameters/queryImageQuality'
-        - $ref: '#/components/parameters/queryImageType'
-        - $ref: '#/components/parameters/queryImageShape'
+        - $ref: "#/components/parameters/pathFileId"
+        - $ref: "#/components/parameters/pathPreviewArea"
+        - $ref: "#/components/parameters/queryImageQuality"
+        - $ref: "#/components/parameters/queryImageType"
+        - $ref: "#/components/parameters/queryImageShape"
       responses:
         200:
-          $ref: '#/components/responses/200PreviewFileResponse'
+          $ref: "#/components/responses/200PreviewFileResponse"
         400:
-          $ref: '#/components/responses/400BadRequestResponse'
+          $ref: "#/components/responses/400BadRequestResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /auth/token:
     get:
       tags:
@@ -629,17 +642,17 @@ paths:
       operationId: listMeeting
       responses:
         200:
-          $ref: '#/components/responses/200ListMeetingResponse'
+          $ref: "#/components/responses/200ListMeetingResponse"
     post:
       tags:
         - Meetings
       summary: Creates a new meeting
       operationId: createMeeting
       requestBody:
-        $ref: '#/components/requestBodies/CreateMeetingRequest'
+        $ref: "#/components/requestBodies/CreateMeetingRequest"
       responses:
         200:
-          $ref: '#/components/responses/200CreateMeetingResponse'
+          $ref: "#/components/responses/200CreateMeetingResponse"
   /meetings/{meetingId}:
     get:
       tags:
@@ -647,32 +660,32 @@ paths:
       summary: Retrieves the requested meeting
       operationId: getMeeting
       parameters:
-        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: "#/components/parameters/pathMeetingId"
       responses:
         200:
-          $ref: '#/components/responses/200GetMeetingResponse'
+          $ref: "#/components/responses/200GetMeetingResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
     delete:
       tags:
         - Meetings
       summary: Deletes the requested meeting
       operationId: deleteMeeting
       parameters:
-        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: "#/components/parameters/pathMeetingId"
       responses:
         204:
-          $ref: '#/components/responses/204DeleteMeetingResponse'
+          $ref: "#/components/responses/204DeleteMeetingResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /meetings/{meetingId}/start:
     post:
       tags:
@@ -680,16 +693,16 @@ paths:
       summary: Starts the current meeting
       operationId: startMeeting
       parameters:
-        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: "#/components/parameters/pathMeetingId"
       responses:
         200:
-          $ref: '#/components/responses/200StartMeetingResponse'
+          $ref: "#/components/responses/200StartMeetingResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /meetings/{meetingId}/stop:
     post:
       tags:
@@ -697,16 +710,16 @@ paths:
       summary: Stops the current meeting
       operationId: stopMeeting
       parameters:
-        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: "#/components/parameters/pathMeetingId"
       responses:
         200:
-          $ref: '#/components/responses/200StopMeetingResponse'
+          $ref: "#/components/responses/200StopMeetingResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /meetings/{meetingId}/join:
     post:
       tags:
@@ -714,18 +727,18 @@ paths:
       summary: Adds the current user to the specified meeting
       operationId: joinMeeting
       parameters:
-        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: "#/components/parameters/pathMeetingId"
       requestBody:
-        $ref: '#/components/requestBodies/JoinMeetingRequest'
+        $ref: "#/components/requestBodies/JoinMeetingRequest"
       responses:
         200:
-          $ref: '#/components/responses/200JoinMeetingResponse'
+          $ref: "#/components/responses/200JoinMeetingResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /meetings/{meetingId}/leave:
     post:
       tags:
@@ -743,6 +756,23 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/decline:
+    post:
+      tags:
+        - Meetings
+      summary: Decline the current user from the specified meeting
+      operationId: declineMeeting
+      parameters:
+        - $ref: "#/components/parameters/pathMeetingId"
+      responses:
+        204:
+          $ref: "#/components/responses/204DeclineMeetingResponse"
+        401:
+          $ref: "#/components/responses/401UnauthorizedResponse"
+        403:
+          $ref: "#/components/responses/403ForbiddenResponse"
+        404:
+          $ref: "#/components/responses/404NotFoundResponse"
   /meetings/{meetingId}/media:
     put:
       tags:
@@ -750,18 +780,18 @@ paths:
       summary: Update media stream status for the current session
       operationId: updateMediaStream
       parameters:
-        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: "#/components/parameters/pathMeetingId"
       requestBody:
-        $ref: '#/components/requestBodies/UpdateMediaStreamRequest'
+        $ref: "#/components/requestBodies/UpdateMediaStreamRequest"
       responses:
         204:
-          $ref: '#/components/responses/204MediaStreamResponse'
+          $ref: "#/components/responses/204MediaStreamResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /meetings/{meetingId}/media/answer:
     put:
       tags:
@@ -769,18 +799,18 @@ paths:
       summary: Complete WebRTC negotiation for media streams for the current session
       operationId: answerRtcMediaStream
       parameters:
-        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: "#/components/parameters/pathMeetingId"
       requestBody:
-        $ref: '#/components/requestBodies/RtcMediaStreamRequest'
+        $ref: "#/components/requestBodies/RtcMediaStreamRequest"
       responses:
         204:
-          $ref: '#/components/responses/204AnswerMediaStreamResponse'
+          $ref: "#/components/responses/204AnswerMediaStreamResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /meetings/{meetingId}/media/subscribe:
     put:
       tags:
@@ -788,18 +818,18 @@ paths:
       summary: Update subscriptions of the current session to the desired media streams
       operationId: updateSubscriptionsMediaStream
       parameters:
-        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: "#/components/parameters/pathMeetingId"
       requestBody:
-        $ref: '#/components/requestBodies/UpdateMediaStreamSubscriptionsRequest'
+        $ref: "#/components/requestBodies/UpdateMediaStreamSubscriptionsRequest"
       responses:
         204:
-          $ref: '#/components/responses/204SubscribeMediaStreamResponse'
+          $ref: "#/components/responses/204SubscribeMediaStreamResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /meetings/{meetingId}/audio:
     put:
       tags:
@@ -807,18 +837,18 @@ paths:
       summary: Update audio stream status for a user, a moderator can disable audio for another user
       operationId: updateAudioStream
       parameters:
-        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: "#/components/parameters/pathMeetingId"
       requestBody:
-        $ref: '#/components/requestBodies/UpdateAudioStreamRequest'
+        $ref: "#/components/requestBodies/UpdateAudioStreamRequest"
       responses:
         204:
-          $ref: '#/components/responses/204AudioStreamResponse'
+          $ref: "#/components/responses/204AudioStreamResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /meetings/{meetingId}/audio/offer:
     put:
       tags:
@@ -826,18 +856,18 @@ paths:
       summary: Start WebRTC negotiation for audio stream for the current session
       operationId: offerRtcAudioStream
       parameters:
-        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: "#/components/parameters/pathMeetingId"
       requestBody:
-        $ref: '#/components/requestBodies/RtcMediaStreamRequest'
+        $ref: "#/components/requestBodies/RtcMediaStreamRequest"
       responses:
         204:
-          $ref: '#/components/responses/204OfferAudioStreamResponse'
+          $ref: "#/components/responses/204OfferAudioStreamResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /meetings/{meetingId}/audio/iceRestart:
     put:
       tags:
@@ -845,18 +875,18 @@ paths:
       summary: Start WebRTC negotiation for audio stream for the current session on ICE restart
       operationId: iceRestartAudio
       parameters:
-        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: "#/components/parameters/pathMeetingId"
       requestBody:
-        $ref: '#/components/requestBodies/RtcMediaStreamRequest'
+        $ref: "#/components/requestBodies/RtcMediaStreamRequest"
       responses:
         204:
-          $ref: '#/components/responses/204IceRestartAudioStreamResponse'
+          $ref: "#/components/responses/204IceRestartAudioStreamResponse"
         401:
-          $ref: '#/components/responses/401UnauthorizedResponse'
+          $ref: "#/components/responses/401UnauthorizedResponse"
         403:
-          $ref: '#/components/responses/403ForbiddenResponse'
+          $ref: "#/components/responses/403ForbiddenResponse"
         404:
-          $ref: '#/components/responses/404NotFoundResponse'
+          $ref: "#/components/responses/404NotFoundResponse"
   /meetings/{meetingId}/video/iceRestart:
     put:
       tags:
@@ -942,13 +972,13 @@ components:
       in: query
       name: quality
       schema:
-        $ref: '#/components/schemas/ImageQualityEnum'
+        $ref: "#/components/schemas/ImageQualityEnum"
     queryImageType:
       in: query
       name: output_format
       schema:
         allOf:
-          - $ref: '#/components/schemas/ImageTypeEnum'
+          - $ref: "#/components/schemas/ImageTypeEnum"
       required: false
     queryImageCrop:
       in: query
@@ -963,7 +993,7 @@ components:
       name: shape
       schema:
         allOf:
-          - $ref: '#/components/schemas/ImageShapeEnum'
+          - $ref: "#/components/schemas/ImageShapeEnum"
         default: Rectangular
       required: false
     queryFirstPage:
@@ -1053,7 +1083,7 @@ components:
       schema:
         type: array
         items:
-          $ref: '#/components/schemas/RoomExtraField'
+          $ref: "#/components/schemas/RoomExtraField"
       required: false
     queryUserIds:
       in: query
@@ -1073,14 +1103,14 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RoomCreationFields'
+            $ref: "#/components/schemas/RoomCreationFields"
     UpdateRoomRequest:
       description: room fields to update
       required: true
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RoomEditableFields'
+            $ref: "#/components/schemas/RoomEditableFields"
     UpdateRoomPictureRequest:
       description: image to set
       required: true
@@ -1227,25 +1257,25 @@ components:
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/Room'
+              $ref: "#/components/schemas/Room"
     201InsertRoomResponse:
       description: The newly created room
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Room'
+            $ref: "#/components/schemas/Room"
     200GetRoomResponse:
       description: Requested room
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Room'
+            $ref: "#/components/schemas/Room"
     200UpdateRoomResponse:
       description: Updated room
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Room'
+            $ref: "#/components/schemas/Room"
     204DeleteRoomResponse:
       description: Room was deleted correctly or it never existed
     200GetRoomPictureResponse:
@@ -1268,7 +1298,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ClearedDate'
+            $ref: "#/components/schemas/ClearedDate"
     200ListRoomMembersResponse:
       description: The room members list
       content:
@@ -1276,13 +1306,13 @@ components:
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/Member'
+              $ref: "#/components/schemas/Member"
     200InsertRoomMembersResponse:
       description: The members added or invited
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/MembersInserted'
+            $ref: "#/components/schemas/MembersInserted"
     200UpdateRoomOwnersResponse:
       description: The list of the room members updated
       content:
@@ -1290,7 +1320,7 @@ components:
           schema:
             type: array
             items:
-              $ref: '#/components/schemas/Member'
+              $ref: "#/components/schemas/Member"
     204DeleteRoomMemberResponse:
       description: The member was deleted correctly or it never existed
     204InsertOwnerResponse:
@@ -1302,13 +1332,13 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Capabilities'
+            $ref: "#/components/schemas/Capabilities"
     200GetUserResponse:
       description: Requested user
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/User'
+            $ref: "#/components/schemas/User"
     200GetUsersByIdsResponse:
       description: The requested users list
       content:
@@ -1336,7 +1366,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Attachment'
+            $ref: "#/components/schemas/Attachment"
     200GetAttachmentResponse:
       description: The requested file
       content:
@@ -1356,13 +1386,13 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Token'
+            $ref: "#/components/schemas/Token"
     200GetRoomMeetingResponse:
       description: Gets the requested meeting data
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Meeting'
+            $ref: "#/components/schemas/Meeting"
     204ForwardMessagesResponse:
       description: successfully forwarded the messages
     200CreateMeetingResponse:
@@ -1370,7 +1400,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Meeting'
+            $ref: "#/components/schemas/Meeting"
     200ListMeetingResponse:
       description: List of every meeting that the user has access to
       content:
@@ -1409,6 +1439,8 @@ components:
       description: The meeting was deleted successfully
     204LeaveMeetingResponse:
       description: The user exited the meeting successfully
+    204DeclineMeetingResponse:
+      description: The user declined the meeting invitation successfully
     204AudioStreamResponse:
       description: The status of audio stream changed successfully
     204OfferAudioStreamResponse:
@@ -1461,12 +1493,12 @@ components:
           description: describes if the service is alive
           readOnly: true
         status:
-          $ref: '#/components/schemas/HealthStatusType'
+          $ref: "#/components/schemas/HealthStatusType"
         dependencies:
           type: array
           description: health of this service dependencies
           items:
-            $ref: '#/components/schemas/DependencyHealth'
+            $ref: "#/components/schemas/DependencyHealth"
     HealthStatusType:
       type: string
       description: Health status types
@@ -1479,7 +1511,7 @@ components:
       description: Health status of a service dependency
       properties:
         name:
-          $ref: '#/components/schemas/DependencyHealthType'
+          $ref: "#/components/schemas/DependencyHealthType"
         isHealthy:
           type: boolean
           description: whether the dependency is available and operative
@@ -1505,7 +1537,7 @@ components:
           format: uuid
           readOnly: true
           description: identifier
-      required: [ id ]
+      required: [id]
     ClearedDate:
       type: object
       properties:
@@ -1514,7 +1546,7 @@ components:
           format: date-time
           readOnly: true
           description: date since messages were cleared
-      required: [ clearedAt ]
+      required: [clearedAt]
     Capabilities:
       type: object
       properties:
@@ -1629,22 +1661,22 @@ components:
       type: object
       description: Room fields for its creation
       allOf:
-        - $ref: '#/components/schemas/RoomEditableFields'
+        - $ref: "#/components/schemas/RoomEditableFields"
         - type: object
           properties:
             type:
-              $ref: '#/components/schemas/RoomType'
+              $ref: "#/components/schemas/RoomType"
       properties:
         members:
           items:
-            $ref: '#/components/schemas/Member'
+            $ref: "#/components/schemas/Member"
           description: list of users to add to the room
-      required: [ type ]
+      required: [type]
     Room:
       type: object
       description: Room data
       allOf:
-        - $ref: '#/components/schemas/RoomCreationFields'
+        - $ref: "#/components/schemas/RoomCreationFields"
         - type: object
           properties:
             id:
@@ -1675,8 +1707,8 @@ components:
                 room profile picture update timestamp,
                 returned only if the room picture was set at least once
             userSettings:
-              $ref: '#/components/schemas/RoomUserSettings'
-      required: [ id, createdAt, updatedAt ]
+              $ref: "#/components/schemas/RoomUserSettings"
+      required: [id, createdAt, updatedAt]
     RoomUserSettings:
       type: object
       description: Preferences that an user has set for a room
@@ -1690,7 +1722,7 @@ components:
           description: |
             room clear history date,
             returned only if the room clear history has been cleared at least once
-      required: [ muted, clearedAt ]
+      required: [muted, clearedAt]
     RoomExtraField:
       type: string
       description: Room extra fields
@@ -1701,7 +1733,7 @@ components:
       type: array
       description: room member list
       items:
-        $ref: '#/components/schemas/Member'
+        $ref: "#/components/schemas/Member"
     Member:
       type: object
       description: Information about a user's role in the room
@@ -1722,17 +1754,17 @@ components:
           type: boolean
           default: false
           description: indicates whether it is a temporary user
-      required: [ userId ]
+      required: [userId]
     MembersToInsert:
       type: array
       description: members to insert in the room
       items:
-        $ref: '#/components/schemas/MemberToInsert'
+        $ref: "#/components/schemas/MemberToInsert"
     MemberToInsert:
       type: object
       description: Information about the members to insert in the room
       allOf:
-        - $ref: '#/components/schemas/Member'
+        - $ref: "#/components/schemas/Member"
         - type: object
           properties:
             historyCleared:
@@ -1741,17 +1773,17 @@ components:
               description: |
                 indicates whether it can see previous messages,
                 after it has been added to the room
-          required: [ userId, owner, historyCleared ]
+          required: [userId, owner, historyCleared]
     MembersInserted:
       type: array
       description: members inserted in the room
       items:
-        $ref: '#/components/schemas/MemberInserted'
+        $ref: "#/components/schemas/MemberInserted"
     MemberInserted:
       type: object
       description: Information about the member to inserted in the room
       allOf:
-        - $ref: '#/components/schemas/Member'
+        - $ref: "#/components/schemas/Member"
         - type: object
           properties:
             clearedAt:
@@ -1760,7 +1792,7 @@ components:
               description: |
                 room clear history timestamp,
                 returned only if the room history has been cleared at least once
-          required: [ userId, owner, clearedAt ]
+          required: [userId, owner, clearedAt]
     Attachment:
       type: object
       description: Attachment of a message
@@ -1801,7 +1833,7 @@ components:
           type: string
           readOnly: true
           description: attachment's area
-      required: [ id, name, size, mimeType, userId, roomId ]
+      required: [id, name, size, mimeType, userId, roomId]
     AttachmentsPagination:
       type: object
       description: Attachment pagination
@@ -1813,7 +1845,7 @@ components:
           type: array
           description: paged list of attachments metadata
           items:
-            $ref: '#/components/schemas/Attachment'
+            $ref: "#/components/schemas/Attachment"
     Token:
       type: object
       description: authenticated token
@@ -1850,7 +1882,7 @@ components:
       type: array
       description: Room data
       items:
-        $ref: '#/components/schemas/ForwardMessage'
+        $ref: "#/components/schemas/ForwardMessage"
     ForwardMessage:
       type: object
       description: Message to forward
@@ -1865,7 +1897,7 @@ components:
         description:
           type: string
           description: description of the forwarded message
-      required: [ originalMessage ]
+      required: [originalMessage]
     NewMeetingData:
       type: object
       properties:
@@ -1896,11 +1928,12 @@ components:
           format: uuid
           description: user identifier
         userType:
-          $ref: '#/components/schemas/MeetingUserType'
+          $ref: "#/components/schemas/MeetingUserType"
     MeetingType:
       type: string
-      description: 'Defines the type of meeting, if permanent it will never be automatically deleted,
-        if scheduled it will be removed after the expiration is passed'
+      description:
+        "Defines the type of meeting, if permanent it will never be automatically deleted,
+        if scheduled it will be removed after the expiration is passed"
       enum:
         - permanent
         - scheduled
@@ -1916,7 +1949,7 @@ components:
     Participant:
       description: Meeting participant data
       allOf:
-        - $ref: '#/components/schemas/MeetingUser'
+        - $ref: "#/components/schemas/MeetingUser"
         - type: object
           properties:
             queueId:
@@ -1968,7 +2001,7 @@ components:
         participants:
           type: array
           items:
-            $ref: '#/components/schemas/Participant'
+            $ref: "#/components/schemas/Participant"
         createdAt:
           type: string
           format: date-time
@@ -1993,7 +2026,7 @@ components:
           type: boolean
           default: false
           description: indicates the video stream status to join the meeting
-      required: [ audioStreamEnabled, videoStreamEnabled ]
+      required: [audioStreamEnabled, videoStreamEnabled]
     MediaStreamSettings:
       type: object
       description: settings to apply on user's media stream
@@ -2010,7 +2043,7 @@ components:
         sdp:
           type: string
           description: indicates the descriptor of the session
-      required: [ type, enabled ]
+      required: [type, enabled]
     AudioStreamSettings:
       type: object
       description: settings to apply on user's audio stream
@@ -2021,7 +2054,7 @@ components:
         userToModerate:
           type: string
           description: optional user to mute if i'm a moderator, only works if enabled is false
-      required: [ enabled ]
+      required: [enabled]
     SessionDescriptionProtocol:
       type: object
       description: contains sdp descriptor needed for a media stream to perform WebRTC negotiation
@@ -2037,13 +2070,13 @@ components:
           type: array
           description: indicates the media streams which user wants to subscribe to
           items:
-            $ref: '#/components/schemas/MediaStream'
+            $ref: "#/components/schemas/MediaStream"
         unsubscribe:
           type: array
           description: indicates the media streams which user wants to unsubscribe to
           items:
-            $ref: '#/components/schemas/MediaStream'
-      required: [ subscribe, unsubscribe ]
+            $ref: "#/components/schemas/MediaStream"
+      required: [subscribe, unsubscribe]
     MediaStream:
       type: object
       description: representation of meeting media stream
@@ -2068,4 +2101,4 @@ components:
         userToModerate:
           type: string
           description: optionally lower the user's hand if I'm a moderator, only works if raised is false
-      required: [ raised ]
+      required: [raised]

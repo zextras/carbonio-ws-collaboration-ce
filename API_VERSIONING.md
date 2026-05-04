@@ -4,6 +4,21 @@ This document tracks internal changes related to API versioning, both for the RE
 
 ---
 
+## Version 1.6.10
+
+### Changes (1.6.10)
+
+- **API**: Added POST `/meetings/{meetingId}/decline` endpoint — allows the current user to decline
+  an incoming meeting invitation. Returns 204 on success, 404 if the meeting is not found.
+- **XMPP**: Backend now sends a `meetingStarted` stanza to the room when a one-to-one meeting
+  starts, so clients can update the chat history accordingly.
+- **XMPP**: Backend now sends a `meetingEnded` stanza to the room when a one-to-one meeting
+  ends, so clients can update the chat history accordingly.
+- **XMPP**: Backend now sends a `meetingDeclined` stanza to the room when a user declines a
+  meeting invitation, so other participants are notified via the chat history.
+
+---
+
 ## Version 1.6.7 (Released with Carbonio 26.3.0)
 
 ### Changes (1.6.7)

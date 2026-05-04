@@ -98,3 +98,15 @@ path = "carbonio-ws-collaboration-boot/src/main/resources/banner.txt"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2023 Zextras"
 SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = "docs/notification-messages.md"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
+path = "docs/xmpp-messages.md"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"

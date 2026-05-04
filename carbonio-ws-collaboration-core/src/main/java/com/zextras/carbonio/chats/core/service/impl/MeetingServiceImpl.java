@@ -8,10 +8,12 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.async.model.MeetingCreated;
+import com.zextras.carbonio.async.model.MeetingDeclined;
 import com.zextras.carbonio.async.model.MeetingDeleted;
 import com.zextras.carbonio.async.model.MeetingStarted;
 import com.zextras.carbonio.async.model.MeetingStopped;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
+import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
 import com.zextras.carbonio.chats.core.data.type.MeetingType;
@@ -19,6 +21,8 @@ import com.zextras.carbonio.chats.core.exception.ConflictException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.XmppMessageFactory;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
@@ -29,8 +33,10 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.MeetingDto;
 import com.zextras.carbonio.chats.model.MeetingTypeDto;
+import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -47,6 +53,7 @@ public class MeetingServiceImpl implements MeetingService {
   private final VideoServerService videoServerService;
   private final EventDispatcher eventDispatcher;
   private final Clock clock;
+  private final MessageDispatcher messageDispatcher;
 
   @Inject
   public MeetingServiceImpl(
@@ -57,7 +64,8 @@ public class MeetingServiceImpl implements MeetingService {
       ParticipantService participantService,
       VideoServerService videoServerService,
       EventDispatcher eventDispatcher,
-      Clock clock) {
+      Clock clock,
+      MessageDispatcher messageDispatcher) {
     this.meetingRepository = meetingRepository;
     this.meetingMapper = meetingMapper;
     this.roomService = roomService;
@@ -66,6 +74,7 @@ public class MeetingServiceImpl implements MeetingService {
     this.videoServerService = videoServerService;
     this.eventDispatcher = eventDispatcher;
     this.clock = clock;
+    this.messageDispatcher = messageDispatcher;
   }
 
   @Override
@@ -122,6 +131,7 @@ public class MeetingServiceImpl implements MeetingService {
   @Override
   public MeetingDto stopMeeting(UserPrincipal user, UUID meetingId) {
     Meeting meeting = validateMeeting(meetingId);
+    OffsetDateTime startedAt = meeting.getStartedAt();
 
     Meeting updatedMeeting = deactivateMeeting(meeting);
 
@@ -130,10 +140,35 @@ public class MeetingServiceImpl implements MeetingService {
         .ifPresent(
             room -> {
               notifyMeetingStopped(updatedMeeting, room);
+              notifyMeetingStoppedForOneToOneMeeting(room, user.getId(), startedAt);
               cleanUpRoomMembers(room);
             });
 
     return meetingMapper.ent2dto(updatedMeeting);
+  }
+
+  @Override
+  public void declineMeeting(UUID meetingId, UserPrincipal currentUser) {
+    Meeting meeting = validateMeeting(meetingId);
+    Room room =
+        roomService.getRoomAndValidateUser(
+            UUID.fromString(meeting.getRoomId()), currentUser, false);
+    eventDispatcher.sendToUserExchange(
+        meeting.getParticipants().stream().map(Participant::getUserId).distinct().toList(),
+        MeetingDeclined.create()
+            .meetingId(UUID.fromString(meeting.getId()))
+            .userId(UUID.fromString(currentUser.getUUID().toString()))
+            .type(EventType.MEETING_DECLINED)
+            .sentDate(OffsetDateTime.now()));
+    String message =
+        XmppMessageFactory.buildMeetingDeclineMessage(
+            meeting.getRoomId(), currentUser.getUUID().toString());
+    messageDispatcher.sendXmlMessageToRoom(message);
+
+    if (room.getType() == RoomTypeDto.ONE_TO_ONE && meeting.getParticipants().size() == 1) {
+      Meeting updatedMeeting = deactivateMeeting(meeting);
+      notifyMeetingStopped(updatedMeeting, room);
+    }
   }
 
   private void cleanUpRoomMembers(Room room) {
@@ -168,13 +203,9 @@ public class MeetingServiceImpl implements MeetingService {
   }
 
   private void notifyMeetingStarted(UserPrincipal user, Meeting updatedMeeting) {
+    RoomDto room = roomService.getRoomById(UUID.fromString(updatedMeeting.getRoomId()), user);
     List<String> allReceivers =
-        roomService
-            .getRoomById(UUID.fromString(updatedMeeting.getRoomId()), user)
-            .getMembers()
-            .stream()
-            .map(m -> m.getUserId().toString())
-            .toList();
+        room.getMembers().stream().map(m -> m.getUserId().toString()).toList();
 
     eventDispatcher.sendToUserExchange(
         allReceivers,
@@ -184,6 +215,16 @@ public class MeetingServiceImpl implements MeetingService {
             .startedAt(updatedMeeting.getStartedAt())
             .type(EventType.MEETING_STARTED)
             .sentDate(OffsetDateTime.now(clock)));
+
+    notifyMeetingStartedForOneToOneMeeting(user, room);
+  }
+
+  private void notifyMeetingStartedForOneToOneMeeting(UserPrincipal user, RoomDto room) {
+    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+      String message =
+          XmppMessageFactory.buildMeetingStartMessage(room.getId().toString(), user.getId());
+      messageDispatcher.sendXmlMessageToRoom(message);
+    }
   }
 
   private void notifyMeetingStopped(Meeting updatedMeeting, Room room) {
@@ -193,6 +234,16 @@ public class MeetingServiceImpl implements MeetingService {
             .meetingId(UUID.fromString(updatedMeeting.getId()))
             .type(EventType.MEETING_STOPPED)
             .sentDate(OffsetDateTime.now(clock)));
+  }
+
+  private void notifyMeetingStoppedForOneToOneMeeting(
+      Room room, String userId, OffsetDateTime startedAt) {
+    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+      long duration = Duration.between(startedAt, OffsetDateTime.now(clock)).toSeconds();
+      String message =
+          XmppMessageFactory.buildMeetingEndedMessage(room.getId(), userId, startedAt, duration);
+      messageDispatcher.sendXmlMessageToRoom(message);
+    }
   }
 
   @Override

@@ -12,7 +12,10 @@ public enum MessageType {
   ROOM_HISTORY_CLEARED("roomHistoryCleared"),
   ATTACHMENT_ADDED("attachmentAdded"),
   MEMBER_ADDED("memberAdded"),
-  MEMBER_REMOVED("memberRemoved");
+  MEMBER_REMOVED("memberRemoved"),
+  MEETING_DECLINED("meetingDeclined"),
+  MEETING_STARTED("meetingStarted"),
+  MEETING_ENDED("meetingEnded");
 
   private final String name;
 
