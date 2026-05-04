@@ -12,6 +12,16 @@ public class XmppMessageFactory {
   private static final String DOMAIN = "carbonio";
   private static final String MUC_DOMAIN = "muclight.carbonio";
 
+  public record AttachmentMessageParams(
+      String fileId,
+      String fileName,
+      String mimeType,
+      long originalSize,
+      String description,
+      @Nullable String messageId,
+      @Nullable String replyId,
+      @Nullable String area) {}
+
   /**
    * Builds an XMPP groupchat stanza to notify room members that a user declined a meeting.
    *
@@ -249,28 +259,19 @@ public class XmppMessageFactory {
    * }</pre>
    */
   public static String buildAttachmentAddedMessage(
-      String roomId,
-      String senderId,
-      String fileId,
-      String fileName,
-      String mimeType,
-      long originalSize,
-      String description,
-      @Nullable String messageId,
-      @Nullable String replyId,
-      @Nullable String area) {
+      String roomId, String senderId, AttachmentMessageParams params) {
     XmppMessageBuilder builder =
         XmppMessageBuilder.create(toRoomJid(roomId), toUserJid(senderId))
             .type(MessageType.ATTACHMENT_ADDED)
-            .addConfig("attachment-id", fileId)
-            .addConfig("filename", fileName, true)
-            .addConfig("mime-type", mimeType)
-            .addConfig("size", String.valueOf(originalSize))
-            .body(description)
-            .messageId(messageId)
-            .replyId(replyId);
-    if (area != null) {
-      builder.addConfig("area", area);
+            .addConfig("attachment-id", params.fileId())
+            .addConfig("filename", params.fileName(), true)
+            .addConfig("mime-type", params.mimeType())
+            .addConfig("size", String.valueOf(params.originalSize()))
+            .body(params.description())
+            .messageId(params.messageId())
+            .replyId(params.replyId());
+    if (params.area() != null) {
+      builder.addConfig("area", params.area());
     }
     return builder.build();
   }

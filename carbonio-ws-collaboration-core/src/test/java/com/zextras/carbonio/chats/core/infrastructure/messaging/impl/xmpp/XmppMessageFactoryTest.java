@@ -149,14 +149,9 @@ class XmppMessageFactoryTest {
         factory.buildAttachmentAddedMessage(
             "room-id",
             "sender-id",
-            "file-uuid",
-            "document.pdf",
-            "application/pdf",
-            204800,
-            "Optional description",
-            "msg-123",
-            "reply-456",
-            "meeting-area");
+            new XmppMessageFactory.AttachmentMessageParams(
+                "file-uuid", "document.pdf", "application/pdf", 204800,
+                "Optional description", "msg-123", "reply-456", "meeting-area"));
 
     assertNotNull(result);
     assertTrue(result.contains("to='room-id@muclight.carbonio'"));
@@ -182,14 +177,9 @@ class XmppMessageFactoryTest {
         factory.buildAttachmentAddedMessage(
             "room-id",
             "sender-id",
-            "file-uuid",
-            "document.pdf",
-            "application/pdf",
-            204800,
-            "Optional description",
-            null,
-            null,
-            null);
+            new XmppMessageFactory.AttachmentMessageParams(
+                "file-uuid", "document.pdf", "application/pdf", 204800,
+                "Optional description", null, null, null));
 
     assertNotNull(result);
     assertTrue(result.contains("to='room-id@muclight.carbonio'"));

@@ -288,14 +288,9 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
             XmppMessageFactory.buildAttachmentAddedMessage(
                 roomId,
                 senderId,
-                fileId,
-                fileName,
-                mimeType,
-                originalSize,
-                description,
-                messageId,
-                replyId,
-                area));
+                new XmppMessageFactory.AttachmentMessageParams(
+                    fileId, fileName, mimeType, originalSize, description,
+                    messageId, replyId, area)));
     if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
