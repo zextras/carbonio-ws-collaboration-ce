@@ -23,7 +23,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -289,8 +288,14 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
                 roomId,
                 senderId,
                 new XmppMessageFactory.AttachmentMessageParams(
-                    fileId, fileName, mimeType, originalSize, description,
-                    messageId, replyId, area)));
+                    fileId,
+                    fileName,
+                    mimeType,
+                    originalSize,
+                    description,
+                    messageId,
+                    replyId,
+                    area)));
     if (result.getErrors() != null) {
       try {
         throw new MessageDispatcherException(
@@ -308,9 +313,9 @@ public class MessageDispatcherMongooseImpl implements MessageDispatcher {
     if (message.contains("<operation>attachmentAdded</operation>")) {
       try {
         Element node =
-            DocumentBuilderFactory.newInstance()
+            XmlUtils.createSecureDocumentBuilderFactory()
                 .newDocumentBuilder()
-                .parse(new ByteArrayInputStream(message.getBytes()))
+                .parse(new ByteArrayInputStream(message.getBytes(StandardCharsets.UTF_8)))
                 .getDocumentElement();
         Element x = (Element) node.getElementsByTagName("x").item(0);
         if (x != null) {
