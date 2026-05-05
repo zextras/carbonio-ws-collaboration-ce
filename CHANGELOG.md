@@ -1,3 +1,18 @@
+## [1.8.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.7.1...v1.8.0) (2026-05-05)
+
+### Features
+
+* add decline API, add meetingStart, meeting ended and meeting declined xmpp messages ([#222](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/222)) ([092de39](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/092de39cad1152ba4321907fbd59dd99a61042a6))
+* adopt carbonio-systemd-notify for native sd_notify readiness ([#215](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/215)) ([7418633](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/7418633d025a001bee6105549a9c69502170b6a8))
+* expose user capabilities API ([#191](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/191)) ([#211](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/211)) ([2a2c2d0](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/2a2c2d0a1c530e5a649b31b678afc1d76fbe3549))
+* migrate to gRPC UM SDK ([#212](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/212)) ([2457eda](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/2457edacfd8c7aa72ff31ad4a19f091f09b172c6))
+* systemd hardening and service-discover.target orchestration ([#214](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/214)) ([adcad7f](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/adcad7f379168b2d00ed509530e5589ad3a828e3))
+
+### Bug Fixes
+
+* add ServicesResourceTransformer to shade plugin for gRPC ([#213](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/213)) ([f39bf7a](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/f39bf7a720df35f94e98fc74a940befca0cdb17c))
+* remove non-owners internal users from temporary room when they leave the meeting ([#196](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/196)) ([#216](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/216)) ([c8b8083](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/c8b8083c301c830e52fa5d1426006300eb750539))
+
 ## [1.7.1](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.7.0...v1.7.1) (2026-03-02)
 
 ### Bug Fixes
