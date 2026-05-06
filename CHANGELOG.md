@@ -1,3 +1,9 @@
+## [1.8.2](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.8.1...v1.8.2) (2026-05-06)
+
+### Bug Fixes
+
+* restore buildPackages() to fix pkgrel on tag builds ([#226](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/226)) ([25d545e](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/25d545e084cbdf3a67d82e0406c664c4e0804640))
+
 ## [1.8.1](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.8.0...v1.8.1) (2026-05-05)
 
 ## [1.8.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.7.1...v1.8.0) (2026-05-05)
