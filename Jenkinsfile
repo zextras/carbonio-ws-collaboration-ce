@@ -75,9 +75,11 @@ pipeline {
         stage('Build deb/rpm') {
             steps {
                 script {
-                    buildStage(
-                        buildFlags: ' -ds ',
-                    )
+                    buildPackages([
+                        buildStageConfig: [
+                            buildFlags: ' -ds ',
+                        ]
+                    ])
                 }
             }
         }
