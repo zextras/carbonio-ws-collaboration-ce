@@ -76,9 +76,8 @@ pipeline {
             steps {
                 script {
                     buildPackages([
-                        buildStageConfig: [
-                            buildFlags: ' -ds ',
-                        ]
+                        pkgbuildPath: 'package/PKGBUILD',
+                        buildStageConfig: [:]
                     ])
                 }
             }
