@@ -75,9 +75,12 @@ pipeline {
         stage('Build deb/rpm') {
             steps {
                 script {
-                    buildStage(
-                        buildFlags: ' -ds ',
-                    )
+                    buildPackages([
+                        pkgbuildPath: 'package/PKGBUILD',
+                        buildStageConfig: [
+                            buildFlags: ' -ds ',
+                        ]
+                    ])
                 }
             }
         }
@@ -96,7 +99,7 @@ pipeline {
         stage('Prepare Release') {
             agent {
                 node {
-                    label 'nodejs-v1'
+                    label 'sm-release-v1'
                 }
             }
             when {
@@ -113,7 +116,7 @@ pipeline {
             }
             steps {
                 script {
-                    container('nodejs-20') {
+                    container('nodejs-22') {
                         prepareRelease(
                             repoName: 'carbonio-ws-collaboration-ce'
                         )
