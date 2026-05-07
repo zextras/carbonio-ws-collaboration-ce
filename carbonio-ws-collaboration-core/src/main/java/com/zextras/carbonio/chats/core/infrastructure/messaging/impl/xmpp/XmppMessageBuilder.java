@@ -16,7 +16,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
@@ -90,7 +89,8 @@ public class XmppMessageBuilder {
 
   public String build() {
     try {
-      Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+      Document document =
+          XmlUtils.createSecureDocumentBuilderFactory().newDocumentBuilder().newDocument();
       Element message = createMessageElement(document);
       document.appendChild(message);
       if (!configurations.isEmpty()) {
@@ -136,7 +136,7 @@ public class XmppMessageBuilder {
     Element messageTag;
     try {
       documentTag =
-          DocumentBuilderFactory.newInstance()
+          XmlUtils.createSecureDocumentBuilderFactory()
               .newDocumentBuilder()
               .parse(new ByteArrayInputStream(messageToForward.getBytes()));
     } catch (Exception e) {

