@@ -98,6 +98,18 @@ public class ConsulAppConfig extends AppConfig {
         "carbonio-ws-collaboration/broker/connection-pool-size");
     namesMapping.put(ConfigName.VIDEO_SERVER_TOKEN, "carbonio-videoserver/api-secret");
     namesMapping.put(
+        ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST, "carbonio-message-dispatcher-db/db-host");
+    namesMapping.put(
+        ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT, "carbonio-message-dispatcher-db/db-port");
+    namesMapping.put(
+        ConfigName.MESSAGE_DISPATCHER_DATABASE_NAME, "carbonio-message-dispatcher-db/db-name");
+    namesMapping.put(
+        ConfigName.MESSAGE_DISPATCHER_DATABASE_USERNAME,
+        "carbonio-message-dispatcher-db/db-username");
+    namesMapping.put(
+        ConfigName.MESSAGE_DISPATCHER_DATABASE_PASSWORD,
+        "carbonio-message-dispatcher-db/db-password");
+    namesMapping.put(
         ConfigName.VIDEO_ROOM_BITRATE, "carbonio-ws-collaboration/meeting/videoroom-bitrate");
     namesMapping.put(
         ConfigName.VIDEO_ROOM_BITRATE_CAP,

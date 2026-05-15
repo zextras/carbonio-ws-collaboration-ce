@@ -13,6 +13,9 @@
       "carbonio-message-dispatcher/": {
         "policy": "read"
       },
+      "carbonio-message-dispatcher-db/": {
+        "policy": "read"
+      },
       "carbonio-videoserver/": {
         "policy": "read"
       }

@@ -32,6 +32,7 @@ public class XmppMessageBuilder {
   private final String from;
   private final List<XmppConfiguration> configurations;
   private String messageId;
+  private String stanzaId;
   private String body;
   private String replyId;
   private String messageToForward;
@@ -49,6 +50,11 @@ public class XmppMessageBuilder {
 
   public XmppMessageBuilder messageId(String messageId) {
     this.messageId = messageId;
+    return this;
+  }
+
+  public XmppMessageBuilder stanzaId(String stanzaId) {
+    this.stanzaId = stanzaId;
     return this;
   }
 
@@ -93,6 +99,8 @@ public class XmppMessageBuilder {
           XmlUtils.createSecureDocumentBuilderFactory().newDocumentBuilder().newDocument();
       Element message = createMessageElement(document);
       document.appendChild(message);
+      Optional.ofNullable(stanzaId)
+          .ifPresent(id -> configurations.add(XmppConfiguration.create("stanza-id", id, false)));
       if (!configurations.isEmpty()) {
         message.appendChild(createConfigurationsElement(document));
       }

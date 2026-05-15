@@ -6,6 +6,9 @@ package com.zextras.carbonio.chats.core.web.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -16,8 +19,10 @@ import static org.mockito.Mockito.when;
 import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
+import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
@@ -27,6 +32,10 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.AttachmentOrderDto;
+import com.zextras.carbonio.chats.model.AttachmentSortByDto;
+import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsRequestDto;
+import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
@@ -34,12 +43,12 @@ import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import com.zextras.carbonio.chats.core.data.type.UserType;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
 import java.io.InputStream;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +60,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 @UnitTest
 class RoomsApiServiceImplTest {
@@ -1337,9 +1347,12 @@ class RoomsApiServiceImplTest {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
 
       Response response =
-          roomsApiService.listRoomAttachmentsInfo(roomId, 10, "test", securityContext);
+          roomsApiService.listRoomAttachmentsInfo(
+              roomId, 10, "test", null, null, null, null, null, null, null, null, securityContext);
 
-      verify(attachmentService, times(1)).getAttachmentInfoByRoomId(roomId, 10, "test", user1);
+      verify(attachmentService, times(1))
+          .getAttachmentInfoByRoomId(
+              eq(roomId), eq(10), eq("test"), any(AttachmentFilter.class), eq(user1));
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
     }
@@ -1350,9 +1363,12 @@ class RoomsApiServiceImplTest {
       when(securityContext.getUserPrincipal()).thenReturn(guest);
 
       Response response =
-          roomsApiService.listRoomAttachmentsInfo(roomId, 10, "test", securityContext);
+          roomsApiService.listRoomAttachmentsInfo(
+              roomId, 10, "test", null, null, null, null, null, null, null, null, securityContext);
 
-      verify(attachmentService, times(1)).getAttachmentInfoByRoomId(roomId, 10, "test", guest);
+      verify(attachmentService, times(1))
+          .getAttachmentInfoByRoomId(
+              eq(roomId), eq(10), eq("test"), any(AttachmentFilter.class), eq(guest));
 
       assertEquals(Status.OK.getStatusCode(), response.getStatus());
     }
@@ -1364,7 +1380,100 @@ class RoomsApiServiceImplTest {
 
       assertThrows(
           UnauthorizedException.class,
-          () -> roomsApiService.listRoomAttachmentsInfo(roomId, 10, "test", securityContext));
+          () ->
+              roomsApiService.listRoomAttachmentsInfo(
+                  roomId,
+                  10,
+                  "test",
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  securityContext));
+    }
+
+    @Test
+    @DisplayName("Maps all filter params correctly to AttachmentFilter")
+    void listRoomAttachmentsInfo_mapsAllFilterParamsToAttachmentFilter() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      UUID filterUserId = UUID.randomUUID();
+      OffsetDateTime after = OffsetDateTime.now().minusDays(1);
+      OffsetDateTime before = OffsetDateTime.now();
+
+      roomsApiService.listRoomAttachmentsInfo(
+          roomId,
+          20,
+          "cursor123",
+          filterUserId,
+          "image/jpeg",
+          after,
+          before,
+          100L,
+          5000L,
+          AttachmentSortByDto.SIZE,
+          AttachmentOrderDto.ASC,
+          securityContext);
+
+      ArgumentCaptor<AttachmentFilter> captor = ArgumentCaptor.forClass(AttachmentFilter.class);
+      verify(attachmentService, times(1))
+          .getAttachmentInfoByRoomId(
+              eq(roomId), eq(20), eq("cursor123"), captor.capture(), eq(user1));
+
+      AttachmentFilter captured = captor.getValue();
+      assertEquals(filterUserId.toString(), captured.getUserId());
+      assertEquals("image/jpeg", captured.getMimeType());
+      assertEquals(after, captured.getCreatedAfter());
+      assertEquals(before, captured.getCreatedBefore());
+      assertEquals(100L, captured.getMinSize());
+      assertEquals(5000L, captured.getMaxSize());
+      assertEquals("size", captured.getSortBy());
+      assertEquals("asc", captured.getOrder());
+    }
+
+    @Test
+    @DisplayName("Maps CREATED_AT sortBy enum to createdAt string")
+    void listRoomAttachmentsInfo_mapsSortByCreatedAtToString() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      roomsApiService.listRoomAttachmentsInfo(
+          roomId,
+          10,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          AttachmentSortByDto.CREATED_AT,
+          null,
+          securityContext);
+
+      ArgumentCaptor<AttachmentFilter> captor = ArgumentCaptor.forClass(AttachmentFilter.class);
+      verify(attachmentService, times(1))
+          .getAttachmentInfoByRoomId(eq(roomId), eq(10), isNull(), captor.capture(), eq(user1));
+
+      assertEquals("created_at", captor.getValue().getSortBy());
+    }
+
+    @Test
+    @DisplayName("Defaults sortBy to createdAt and order to desc when not provided")
+    void listRoomAttachmentsInfo_defaultsSortParamsWhenNotProvided() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      roomsApiService.listRoomAttachmentsInfo(
+          roomId, 10, null, null, null, null, null, null, null, null, null, securityContext);
+
+      ArgumentCaptor<AttachmentFilter> captor = ArgumentCaptor.forClass(AttachmentFilter.class);
+      verify(attachmentService, times(1))
+          .getAttachmentInfoByRoomId(eq(roomId), eq(10), isNull(), captor.capture(), eq(user1));
+
+      assertEquals("created_at", captor.getValue().getSortBy());
+      assertEquals("desc", captor.getValue().getOrder());
     }
   }
 
@@ -2003,6 +2112,47 @@ class RoomsApiServiceImplTest {
           () ->
               roomsApiService.insertAttachmentMultipart(
                   multipartFormDataInput, roomId, securityContext));
+    }
+  }
+
+  @Nested
+  @DisplayName("Bulk delete room attachments tests")
+  class BulkDeleteRoomAttachmentsTests {
+
+    @Test
+    @DisplayName("Authenticated user can bulk delete room attachments, returns 200 with result")
+    void bulkDeleteRoomAttachments_authenticatedUserSuccess() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+      UUID file1Id = UUID.randomUUID();
+      UUID file2Id = UUID.randomUUID();
+      BulkDeleteAttachmentsRequestDto request =
+          BulkDeleteAttachmentsRequestDto.create().attachmentIds(List.of(file1Id, file2Id));
+      BulkDeleteAttachmentsResponseDto serviceResult =
+          BulkDeleteAttachmentsResponseDto.create()
+              .successIds(List.of(file1Id, file2Id))
+              .failedIds(List.of());
+      when(attachmentService.bulkDeleteRoomAttachments(roomId, List.of(file1Id, file2Id), user1))
+          .thenReturn(serviceResult);
+
+      Response response =
+          roomsApiService.bulkDeleteRoomAttachments(roomId, request, securityContext);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+      assertEquals(serviceResult, response.getEntity());
+      verify(attachmentService, times(1))
+          .bulkDeleteRoomAttachments(roomId, List.of(file1Id, file2Id), user1);
+    }
+
+    @Test
+    @DisplayName("Unauthenticated user cannot bulk delete room attachments")
+    void bulkDeleteRoomAttachments_testUnauthorizedUser() {
+      when(securityContext.getUserPrincipal()).thenReturn(null);
+      BulkDeleteAttachmentsRequestDto request =
+          BulkDeleteAttachmentsRequestDto.create().attachmentIds(List.of(UUID.randomUUID()));
+
+      assertThrows(
+          UnauthorizedException.class,
+          () -> roomsApiService.bulkDeleteRoomAttachments(roomId, request, securityContext));
     }
   }
 

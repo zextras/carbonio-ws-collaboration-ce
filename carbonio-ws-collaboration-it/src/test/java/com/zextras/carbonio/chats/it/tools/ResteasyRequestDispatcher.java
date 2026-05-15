@@ -204,6 +204,14 @@ public class ResteasyRequestDispatcher {
     return sendRequest(prepareDelete(path, requestHeaders, userToken));
   }
 
+  public MockHttpResponse delete(
+      String path, @Nullable String requestBody, @Nullable String userToken)
+      throws URISyntaxException {
+    MockHttpRequest request = prepareDelete(path, Map.of(), userToken);
+    Optional.ofNullable(requestBody).ifPresent(body -> request.content(body.getBytes()));
+    return sendRequest(request);
+  }
+
   private MockHttpResponse sendRequest(MockHttpRequest request) {
     MockHttpResponse response = new MockHttpResponse();
     SynchronousExecutionContext synchronousExecutionContext =

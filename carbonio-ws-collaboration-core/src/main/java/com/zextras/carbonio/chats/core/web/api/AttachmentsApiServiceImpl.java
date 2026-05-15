@@ -8,13 +8,12 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.api.AttachmentsApiService;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
-import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.core.data.type.UserType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
@@ -37,7 +36,7 @@ public class AttachmentsApiServiceImpl implements AttachmentsApiService {
   }
 
   @Override
-  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
+  @TimedCall
   public Response getAttachment(UUID fileId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     FileContentAndMetadata attachment = attachmentService.getAttachmentById(fileId, currentUser);

@@ -61,6 +61,11 @@ mongoose/
 *.rpm
 artifacts
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
 # Superpowers skill working dirs (local-only)
 docs/superpowers/
 .superpowers/

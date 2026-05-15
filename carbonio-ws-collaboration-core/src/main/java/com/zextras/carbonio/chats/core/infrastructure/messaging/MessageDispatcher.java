@@ -6,8 +6,10 @@ package com.zextras.carbonio.chats.core.infrastructure.messaging;
 
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.graphql.StanzaResponse;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import jakarta.annotation.Nullable;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -108,7 +110,7 @@ public interface MessageDispatcher extends HealthIndicator {
   void addUsersToContacts(String user1id, String user2id);
 
   /**
-   * Sends the attachment
+   * Sends the attachment stanza to MongooseIM.
    *
    * @param roomId room identifier
    * @param senderId operation user identifier
@@ -119,9 +121,10 @@ public interface MessageDispatcher extends HealthIndicator {
    * @param description description of the attachment
    * @param messageId identifier of XMPP message to create
    * @param replyId identifier of the message being replied to
-   * @param area attachment's area
+   * @param area optional area metadata
+   * @return a {@link StanzaResponse} containing the message id and server-assigned stanza id
    */
-  void sendAttachment(
+  StanzaResponse sendAttachment(
       String roomId,
       String senderId,
       String fileId,
@@ -157,9 +160,28 @@ public interface MessageDispatcher extends HealthIndicator {
   Optional<String> getAttachmentIdFromMessage(String message);
 
   /**
-   * Sends a message to a room
+   * Notifies room members that a meeting has started.
    *
-   * @param xmlMessage message to send
+   * @param roomId room identifier
+   * @param senderId operation user identifier
    */
-  void sendXmlMessageToRoom(String xmlMessage);
+  void sendMeetingStarted(String roomId, String senderId);
+
+  /**
+   * Notifies room members that a meeting has ended.
+   *
+   * @param roomId room identifier
+   * @param senderId operation user identifier
+   * @param startedAt when the meeting started
+   * @param duration meeting duration in seconds
+   */
+  void sendMeetingEnded(String roomId, String senderId, OffsetDateTime startedAt, long duration);
+
+  /**
+   * Notifies room members that a user declined the meeting invitation.
+   *
+   * @param roomId room identifier
+   * @param senderId operation user identifier
+   */
+  void sendMeetingDeclined(String roomId, String senderId);
 }

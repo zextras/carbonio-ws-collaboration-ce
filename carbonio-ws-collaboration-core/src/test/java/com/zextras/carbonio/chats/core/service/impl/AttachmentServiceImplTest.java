@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -27,13 +28,16 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.Subscription;
+import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.exception.StorageException;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.graphql.StanzaResponse;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
@@ -42,6 +46,7 @@ import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
+import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
@@ -92,6 +97,7 @@ public class AttachmentServiceImplTest {
   private static UUID user3Id;
   private static UUID roomId;
   private static Room room1;
+  private static Room room2;
 
   @BeforeAll
   public static void initAll() {
@@ -105,6 +111,17 @@ public class AttachmentServiceImplTest {
         .type(RoomTypeDto.GROUP)
         .name("room1")
         .description("Room one")
+        .subscriptions(
+            List.of(
+                Subscription.create(room1, user1Id.toString()).owner(true),
+                Subscription.create(room1, user2Id.toString()).owner(false),
+                Subscription.create(room1, user3Id.toString()).owner(false)));
+    room2 = Room.create();
+    room2
+        .id(roomId.toString())
+        .type(RoomTypeDto.GROUP)
+        .name("room2")
+        .description("Room two")
         .subscriptions(
             List.of(
                 Subscription.create(room1, user1Id.toString()).owner(true),
@@ -124,7 +141,7 @@ public class AttachmentServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       OffsetDateTime attachmentTimestamp = OffsetDateTime.now();
       when(fileMetadataRepository.getByRoomIdAndType(
-              roomId.toString(), FileMetadataType.ATTACHMENT, 11, null))
+              roomId.toString(), FileMetadataType.ATTACHMENT, 11, null, null))
           .thenReturn(
               List.of(
                   FileMetadataBuilder.create()
@@ -150,12 +167,12 @@ public class AttachmentServiceImplTest {
                       .updatedAt(attachmentTimestamp.plusHours(1))
                       .build()));
       AttachmentsPaginationDto attachmentsPagination =
-          attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, currentUser);
+          attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, null, currentUser);
 
       assertEquals(2, attachmentsPagination.getAttachments().size());
       assertEquals(file1Id, attachmentsPagination.getAttachments().get(0).getId());
       assertEquals(file2Id, attachmentsPagination.getAttachments().get(1).getId());
-      assertNull(attachmentsPagination.getFilter());
+      assertNull(attachmentsPagination.getCursor());
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
@@ -169,7 +186,7 @@ public class AttachmentServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       OffsetDateTime attachmentTimestamp = OffsetDateTime.now();
       when(fileMetadataRepository.getByRoomIdAndType(
-              roomId.toString(), FileMetadataType.ATTACHMENT, 3, null))
+              roomId.toString(), FileMetadataType.ATTACHMENT, 3, null, null))
           .thenReturn(
               List.of(
                   FileMetadataBuilder.create()
@@ -206,19 +223,23 @@ public class AttachmentServiceImplTest {
                       .updatedAt(attachmentTimestamp)
                       .build()));
       AttachmentsPaginationDto attachmentsPagination =
-          attachmentService.getAttachmentInfoByRoomId(roomId, 2, null, currentUser);
+          attachmentService.getAttachmentInfoByRoomId(roomId, 2, null, null, currentUser);
 
       assertEquals(2, attachmentsPagination.getAttachments().size());
       assertEquals(file1Id, attachmentsPagination.getAttachments().get(0).getId());
       assertEquals(file2Id, attachmentsPagination.getAttachments().get(1).getId());
-      assertNotNull(attachmentsPagination.getFilter());
-      String expectedFilter =
+      assertNotNull(attachmentsPagination.getCursor());
+      String expectedCursor =
           Base64.getEncoder()
               .encodeToString(
                   objectMapper.writeValueAsBytes(
                       PaginationFilter.create(
-                          file2Id.toString(), attachmentTimestamp.plusHours(1))));
-      assertEquals(expectedFilter, attachmentsPagination.getFilter());
+                          file2Id.toString(),
+                          attachmentTimestamp.plusHours(1),
+                          null,
+                          "created_at",
+                          "desc")));
+      assertEquals(expectedCursor, attachmentsPagination.getCursor());
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
@@ -231,14 +252,15 @@ public class AttachmentServiceImplTest {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       OffsetDateTime attachmentTimestamp = OffsetDateTime.now();
       PaginationFilter paginationFilter =
-          PaginationFilter.create(file1Id.toString(), attachmentTimestamp.plusHours(1));
+          PaginationFilter.create(file1Id.toString(), attachmentTimestamp.plusHours(1), null);
       String filter =
           Base64.getEncoder().encodeToString(objectMapper.writeValueAsBytes(paginationFilter));
       when(fileMetadataRepository.getByRoomIdAndType(
               eq(roomId.toString()),
               eq(FileMetadataType.ATTACHMENT),
               eq(3),
-              any(PaginationFilter.class)))
+              any(PaginationFilter.class),
+              isNull()))
           .thenReturn(
               List.of(
                   FileMetadataBuilder.create()
@@ -254,11 +276,11 @@ public class AttachmentServiceImplTest {
                       .build()));
 
       AttachmentsPaginationDto attachmentsPagination =
-          attachmentService.getAttachmentInfoByRoomId(roomId, 2, filter, currentUser);
+          attachmentService.getAttachmentInfoByRoomId(roomId, 2, filter, null, currentUser);
 
       assertEquals(1, attachmentsPagination.getAttachments().size());
       assertEquals(file2Id, attachmentsPagination.getAttachments().get(0).getId());
-      assertNull(attachmentsPagination.getFilter());
+      assertNull(attachmentsPagination.getCursor());
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
@@ -277,7 +299,7 @@ public class AttachmentServiceImplTest {
 
       assertThrows(
           ForbiddenException.class,
-          () -> attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, currentUser));
+          () -> attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, null, currentUser));
     }
 
     @Test
@@ -290,7 +312,8 @@ public class AttachmentServiceImplTest {
       NotFoundException notFoundException =
           assertThrows(
               NotFoundException.class,
-              () -> attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, currentUser));
+              () ->
+                  attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, null, currentUser));
       assertEquals("Not Found - Not Found", notFoundException.getMessage());
     }
 
@@ -301,15 +324,15 @@ public class AttachmentServiceImplTest {
     void getAttachmentInfoByRoomId_testNoAttachment() {
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       when(fileMetadataRepository.getByRoomIdAndType(
-              roomId.toString(), FileMetadataType.ATTACHMENT, 11, null))
+              roomId.toString(), FileMetadataType.ATTACHMENT, 11, null, null))
           .thenReturn(List.of());
 
       AttachmentsPaginationDto attachmentsPagination =
-          attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, currentUser);
+          attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, null, currentUser);
 
       assertNotNull(attachmentsPagination);
       assertEquals(0, attachmentsPagination.getAttachments().size());
-      assertNull(attachmentsPagination.getFilter());
+      assertNull(attachmentsPagination.getCursor());
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
@@ -493,6 +516,7 @@ public class AttachmentServiceImplTest {
               .type(FileMetadataType.ATTACHMENT)
               .userId(user1Id.toString())
               .roomId(roomId.toString())
+              .messageId("xmpp-msg-id-123")
               .createdAt(OffsetDateTime.now())
               .updatedAt(OffsetDateTime.now())
               .build();
@@ -504,6 +528,7 @@ public class AttachmentServiceImplTest {
 
       assertNotNull(attachmentInfo);
       assertEquals(attachmentUuid, attachmentInfo.getId());
+      assertEquals("xmpp-msg-id-123", attachmentInfo.getMessageId());
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
     }
@@ -592,8 +617,20 @@ public class AttachmentServiceImplTest {
       OffsetDateTime attachmentDate = OffsetDateTime.parse("2022-01-01T00:00:00Z");
       UserPrincipal currentUser = UserPrincipal.create(user1Id);
       when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      when(messageDispatcher.sendAttachment(
+              eq(roomId.toString()),
+              eq(user1Id.toString()),
+              eq(attachmentUuid.toString()),
+              eq("temp.pdf"),
+              eq("application/pdf"),
+              eq(1024L),
+              eq("description"),
+              eq("xmpp-msg-abc"),
+              isNull(),
+              isNull()))
+          .thenReturn(new StanzaResponse("xmpp-msg-abc", "stanza-id-xyz"));
       InputStream fileStream = mock(InputStream.class);
-      FileMetadataBuilder metadataBuilder =
+      FileMetadata savedMetadata =
           FileMetadataBuilder.create()
               .id(attachmentUuid.toString())
               .name("temp.pdf")
@@ -601,10 +638,12 @@ public class AttachmentServiceImplTest {
               .mimeType("application/pdf")
               .type(FileMetadataType.ATTACHMENT)
               .userId(user1Id.toString())
-              .roomId(roomId.toString());
-      FileMetadata expectedMetadata = metadataBuilder.build();
-      FileMetadata savedMetadata = metadataBuilder.clone().createdAt(attachmentDate).build();
-      when(fileMetadataRepository.save(expectedMetadata)).thenReturn(savedMetadata);
+              .roomId(roomId.toString())
+              .messageId("xmpp-msg-abc")
+              .stanzaId("stanza-id-xyz")
+              .createdAt(attachmentDate)
+              .build();
+      when(fileMetadataRepository.save(any())).thenReturn(savedMetadata);
       try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
@@ -617,7 +656,7 @@ public class AttachmentServiceImplTest {
             1024L,
             "temp.pdf",
             "description",
-            "",
+            "xmpp-msg-abc",
             null,
             null,
             currentUser);
@@ -626,8 +665,24 @@ public class AttachmentServiceImplTest {
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verify(storagesService, times(1))
           .saveFile(fileStream, attachmentUuid.toString(), currentUser.toString(), 1024L);
-      verify(fileMetadataRepository, times(1)).save(expectedMetadata);
-      verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
+      verify(messageDispatcher, times(1))
+          .sendAttachment(
+              roomId.toString(),
+              user1Id.toString(),
+              attachmentUuid.toString(),
+              "temp.pdf",
+              "application/pdf",
+              1024L,
+              "description",
+              "xmpp-msg-abc",
+              null,
+              null);
+      ArgumentCaptor<FileMetadata> captor = ArgumentCaptor.forClass(FileMetadata.class);
+      verify(fileMetadataRepository, times(1)).save(captor.capture());
+      assertEquals("xmpp-msg-abc", captor.getValue().getMessageId());
+      assertEquals("stanza-id-xyz", captor.getValue().getStanzaId());
+      verifyNoMoreInteractions(
+          roomService, storagesService, fileMetadataRepository, messageDispatcher);
     }
 
     @Test
@@ -755,7 +810,7 @@ public class AttachmentServiceImplTest {
         uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
         uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
         uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
-        attachmentService.copyAttachment(room1, originalAttachmentId, currentUser);
+        attachmentService.copyAttachment(room2, originalAttachmentId, currentUser);
       }
 
       verify(fileMetadataRepository, times(1)).getById(originalAttachmentId.toString());
@@ -805,7 +860,7 @@ public class AttachmentServiceImplTest {
 
         assertThrows(
             NotFoundException.class,
-            () -> attachmentService.copyAttachment(room1, originalAttachmentId, currentUser));
+            () -> attachmentService.copyAttachment(room2, originalAttachmentId, currentUser));
       }
 
       verify(fileMetadataRepository, times(1)).getById(originalAttachmentId.toString());
@@ -838,7 +893,7 @@ public class AttachmentServiceImplTest {
 
         assertThrows(
             ForbiddenException.class,
-            () -> attachmentService.copyAttachment(room1, originalAttachmentId, currentUser));
+            () -> attachmentService.copyAttachment(room2, originalAttachmentId, currentUser));
       }
 
       verify(fileMetadataRepository, times(1)).getById(originalAttachmentId.toString());
@@ -879,7 +934,7 @@ public class AttachmentServiceImplTest {
 
         assertThrows(
             StorageException.class,
-            () -> attachmentService.copyAttachment(room1, originalAttachmentId, currentUser));
+            () -> attachmentService.copyAttachment(room2, originalAttachmentId, currentUser));
       }
 
       verify(fileMetadataRepository, times(1)).getById(originalAttachmentId.toString());
@@ -903,33 +958,6 @@ public class AttachmentServiceImplTest {
     void deleteAttachment_testOkByAttachmentOwner() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user2Id);
-      FileMetadata expectedMetadata =
-          FileMetadataBuilder.create()
-              .id(attachmentUuid.toString())
-              .name("temp.pdf")
-              .mimeType("application/pdf")
-              .type(FileMetadataType.ATTACHMENT)
-              .userId(user2Id.toString())
-              .roomId(roomId.toString())
-              .build();
-      when(fileMetadataRepository.getById(attachmentUuid.toString()))
-          .thenReturn(Optional.of(expectedMetadata));
-      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
-
-      attachmentService.deleteAttachment(attachmentUuid, currentUser);
-
-      verify(fileMetadataRepository, times(1)).getById(attachmentUuid.toString());
-      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
-      verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
-      verify(fileMetadataRepository, times(1)).delete(expectedMetadata);
-      verifyNoMoreInteractions(fileMetadataRepository, roomService, storagesService);
-    }
-
-    @Test
-    @DisplayName("Correctly deletes the attachment by room owner")
-    void deleteAttachment_testOkByRoomOwner() {
-      UUID attachmentUuid = UUID.randomUUID();
-      UserPrincipal currentUser = UserPrincipal.create(user1Id);
       FileMetadata expectedMetadata =
           FileMetadataBuilder.create()
               .id(attachmentUuid.toString())
@@ -999,7 +1027,7 @@ public class AttachmentServiceImplTest {
     @DisplayName("Re throws an exception when storages throws an exception")
     void deleteAttachment_testStoragesThrowsError() {
       UUID attachmentUuid = UUID.randomUUID();
-      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UserPrincipal currentUser = UserPrincipal.create(user2Id);
       FileMetadata expectedMetadata =
           FileMetadataBuilder.create()
               .id(attachmentUuid.toString())
@@ -1027,9 +1055,8 @@ public class AttachmentServiceImplTest {
     }
 
     @Test
-    @DisplayName(
-        "Throws a forbidden exception if authenticated user isn't attachment owner or room owner")
-    void deleteAttachment_testAuthenticatedUserIsNotAttachmentOwnerOrRoomOwner() {
+    @DisplayName("Throws a forbidden exception if authenticated user isn't the attachment owner")
+    void deleteAttachment_testAuthenticatedUserIsNotAttachmentOwner() {
       UUID attachmentUuid = UUID.randomUUID();
       UserPrincipal currentUser = UserPrincipal.create(user3Id);
       FileMetadata expectedMetadata =
@@ -1052,11 +1079,512 @@ public class AttachmentServiceImplTest {
   }
 
   @Nested
+  @DisplayName("Get attachment info by room id with filters tests")
+  class GetAttachmentInfoWithFiltersTests {
+
+    @Test
+    @DisplayName("Returns only attachments uploaded by the specified user")
+    void getAttachmentInfoByRoomId_withUserIdFilter() {
+      UUID file1Id = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      OffsetDateTime ts = OffsetDateTime.now();
+      AttachmentFilter filter = AttachmentFilter.create().userId(user2Id.toString());
+      when(fileMetadataRepository.getByRoomIdAndType(
+              eq(roomId.toString()),
+              eq(FileMetadataType.ATTACHMENT),
+              eq(11),
+              isNull(),
+              any(AttachmentFilter.class)))
+          .thenReturn(
+              List.of(
+                  FileMetadataBuilder.create()
+                      .id(file1Id.toString())
+                      .name("image1.jpg")
+                      .originalSize(1024L)
+                      .mimeType("image/jpg")
+                      .type(FileMetadataType.ATTACHMENT)
+                      .userId(user2Id.toString())
+                      .roomId(roomId.toString())
+                      .createdAt(ts)
+                      .updatedAt(ts)
+                      .build()));
+
+      AttachmentsPaginationDto result =
+          attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, filter, currentUser);
+
+      assertEquals(1, result.getAttachments().size());
+      assertEquals(user2Id, result.getAttachments().get(0).getUserId());
+      assertNull(result.getCursor());
+    }
+
+    @Test
+    @DisplayName("Returns only attachments matching the exact MIME type")
+    void getAttachmentInfoByRoomId_withMimeTypeExactFilter() {
+      UUID file1Id = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      OffsetDateTime ts = OffsetDateTime.now();
+      AttachmentFilter attachFilter = AttachmentFilter.create().mimeType("application/pdf");
+      when(fileMetadataRepository.getByRoomIdAndType(
+              eq(roomId.toString()),
+              eq(FileMetadataType.ATTACHMENT),
+              eq(11),
+              isNull(),
+              any(AttachmentFilter.class)))
+          .thenReturn(
+              List.of(
+                  FileMetadataBuilder.create()
+                      .id(file1Id.toString())
+                      .name("doc.pdf")
+                      .originalSize(2048L)
+                      .mimeType("application/pdf")
+                      .type(FileMetadataType.ATTACHMENT)
+                      .userId(user1Id.toString())
+                      .roomId(roomId.toString())
+                      .createdAt(ts)
+                      .updatedAt(ts)
+                      .build()));
+
+      AttachmentsPaginationDto result =
+          attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, attachFilter, currentUser);
+
+      assertEquals(1, result.getAttachments().size());
+      assertEquals("application/pdf", result.getAttachments().get(0).getMimeType());
+    }
+
+    @Test
+    @DisplayName("Returns attachments within the specified timestamp range")
+    void getAttachmentInfoByRoomId_withTimestampRange() {
+      UUID file1Id = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      OffsetDateTime base = OffsetDateTime.now();
+      AttachmentFilter attachFilter =
+          AttachmentFilter.create().createdAfter(base.minusDays(1)).createdBefore(base.plusDays(1));
+      when(fileMetadataRepository.getByRoomIdAndType(
+              eq(roomId.toString()),
+              eq(FileMetadataType.ATTACHMENT),
+              eq(11),
+              isNull(),
+              any(AttachmentFilter.class)))
+          .thenReturn(
+              List.of(
+                  FileMetadataBuilder.create()
+                      .id(file1Id.toString())
+                      .name("image.jpg")
+                      .originalSize(1024L)
+                      .mimeType("image/jpg")
+                      .type(FileMetadataType.ATTACHMENT)
+                      .userId(user1Id.toString())
+                      .roomId(roomId.toString())
+                      .createdAt(base)
+                      .updatedAt(base)
+                      .build()));
+
+      AttachmentsPaginationDto result =
+          attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, attachFilter, currentUser);
+
+      assertEquals(1, result.getAttachments().size());
+    }
+
+    @Test
+    @DisplayName("Returns attachments within the specified size range")
+    void getAttachmentInfoByRoomId_withSizeRange() {
+      UUID file1Id = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      OffsetDateTime ts = OffsetDateTime.now();
+      AttachmentFilter attachFilter = AttachmentFilter.create().minSize(1000L).maxSize(5000L);
+      when(fileMetadataRepository.getByRoomIdAndType(
+              eq(roomId.toString()),
+              eq(FileMetadataType.ATTACHMENT),
+              eq(11),
+              isNull(),
+              any(AttachmentFilter.class)))
+          .thenReturn(
+              List.of(
+                  FileMetadataBuilder.create()
+                      .id(file1Id.toString())
+                      .name("image.jpg")
+                      .originalSize(2048L)
+                      .mimeType("image/jpg")
+                      .type(FileMetadataType.ATTACHMENT)
+                      .userId(user1Id.toString())
+                      .roomId(roomId.toString())
+                      .createdAt(ts)
+                      .updatedAt(ts)
+                      .build()));
+
+      AttachmentsPaginationDto result =
+          attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, attachFilter, currentUser);
+
+      assertEquals(1, result.getAttachments().size());
+      assertEquals(2048L, result.getAttachments().get(0).getSize());
+    }
+
+    @Test
+    @DisplayName("Returns attachments sorted by size descending and encodes size-based cursor")
+    void getAttachmentInfoByRoomId_sortBySizeDescEncodesCursor() throws Exception {
+      UUID file1Id = UUID.randomUUID();
+      UUID file2Id = UUID.randomUUID();
+      UUID file3Id = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      OffsetDateTime ts = OffsetDateTime.now();
+      AttachmentFilter attachFilter = AttachmentFilter.create().sortBy("size").order("desc");
+      when(fileMetadataRepository.getByRoomIdAndType(
+              eq(roomId.toString()),
+              eq(FileMetadataType.ATTACHMENT),
+              eq(3),
+              isNull(),
+              any(AttachmentFilter.class)))
+          .thenReturn(
+              List.of(
+                  FileMetadataBuilder.create()
+                      .id(file1Id.toString())
+                      .name("a.jpg")
+                      .originalSize(3000L)
+                      .mimeType("image/jpg")
+                      .type(FileMetadataType.ATTACHMENT)
+                      .userId(user1Id.toString())
+                      .roomId(roomId.toString())
+                      .createdAt(ts)
+                      .updatedAt(ts)
+                      .build(),
+                  FileMetadataBuilder.create()
+                      .id(file2Id.toString())
+                      .name("b.jpg")
+                      .originalSize(2000L)
+                      .mimeType("image/jpg")
+                      .type(FileMetadataType.ATTACHMENT)
+                      .userId(user1Id.toString())
+                      .roomId(roomId.toString())
+                      .createdAt(ts)
+                      .updatedAt(ts)
+                      .build(),
+                  FileMetadataBuilder.create()
+                      .id(file3Id.toString())
+                      .name("c.jpg")
+                      .originalSize(1000L)
+                      .mimeType("image/jpg")
+                      .type(FileMetadataType.ATTACHMENT)
+                      .userId(user1Id.toString())
+                      .roomId(roomId.toString())
+                      .createdAt(ts)
+                      .updatedAt(ts)
+                      .build()));
+
+      AttachmentsPaginationDto result =
+          attachmentService.getAttachmentInfoByRoomId(roomId, 2, null, attachFilter, currentUser);
+
+      assertEquals(2, result.getAttachments().size());
+      assertNotNull(result.getCursor());
+      String expectedCursor =
+          Base64.getEncoder()
+              .encodeToString(
+                  objectMapper.writeValueAsBytes(
+                      PaginationFilter.create(file2Id.toString(), null, 2000L, "size", "desc")));
+      assertEquals(expectedCursor, result.getCursor());
+    }
+
+    @Test
+    @DisplayName("Returns empty list with no filter when no attachments match")
+    void getAttachmentInfoByRoomId_withFilterNoResults() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      AttachmentFilter attachFilter = AttachmentFilter.create().mimeType("video/mp4");
+      when(fileMetadataRepository.getByRoomIdAndType(
+              eq(roomId.toString()),
+              eq(FileMetadataType.ATTACHMENT),
+              eq(11),
+              isNull(),
+              any(AttachmentFilter.class)))
+          .thenReturn(List.of());
+
+      AttachmentsPaginationDto result =
+          attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, attachFilter, currentUser);
+
+      assertEquals(0, result.getAttachments().size());
+      assertNull(result.getCursor());
+    }
+
+    @Test
+    @DisplayName(
+        "Throws BadRequestException when cursor sort params do not match current sort params")
+    void getAttachmentInfoByRoomId_cursorSortMismatchThrowsBadRequest() throws Exception {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UUID someId = UUID.randomUUID();
+      String cursor =
+          Base64.getEncoder()
+              .encodeToString(
+                  objectMapper.writeValueAsBytes(
+                      PaginationFilter.create(someId.toString(), null, 2000L, "size", "desc")));
+      AttachmentFilter attachFilter = AttachmentFilter.create().sortBy("created_at").order("desc");
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+
+      assertThrows(
+          BadRequestException.class,
+          () ->
+              attachmentService.getAttachmentInfoByRoomId(
+                  roomId, 10, cursor, attachFilter, currentUser));
+
+      verifyNoInteractions(fileMetadataRepository);
+    }
+
+    @Test
+    @DisplayName("Throws BadRequestException for a malformed pagination cursor")
+    void getAttachmentInfoByRoomId_malformedCursorThrowsBadRequest() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      String cursor = Base64.getEncoder().encodeToString("not-valid-json".getBytes());
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+
+      assertThrows(
+          BadRequestException.class,
+          () -> attachmentService.getAttachmentInfoByRoomId(roomId, 10, cursor, null, currentUser));
+
+      verifyNoInteractions(fileMetadataRepository);
+    }
+
+    @Test
+    @DisplayName("Accepts a legacy cursor without sort fields skipping sort mismatch validation")
+    void getAttachmentInfoByRoomId_legacyCursorWithoutSortFieldsSkipsValidation() throws Exception {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UUID someId = UUID.randomUUID();
+      OffsetDateTime ts = OffsetDateTime.now();
+      String cursor =
+          Base64.getEncoder()
+              .encodeToString(
+                  objectMapper.writeValueAsBytes(
+                      PaginationFilter.create(someId.toString(), ts, null)));
+      AttachmentFilter attachFilter = AttachmentFilter.create().sortBy("created_at").order("desc");
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      when(fileMetadataRepository.getByRoomIdAndType(
+              eq(roomId.toString()),
+              eq(FileMetadataType.ATTACHMENT),
+              eq(11),
+              any(PaginationFilter.class),
+              any(AttachmentFilter.class)))
+          .thenReturn(List.of());
+
+      AttachmentsPaginationDto result =
+          attachmentService.getAttachmentInfoByRoomId(
+              roomId, 10, cursor, attachFilter, currentUser);
+
+      assertEquals(0, result.getAttachments().size());
+      assertNull(result.getCursor());
+    }
+
+    @Test
+    @DisplayName("Encodes ascending size-based cursor with asc sort context")
+    void getAttachmentInfoByRoomId_sortBySizeAscEncodesCursor() throws Exception {
+      UUID file1Id = UUID.randomUUID();
+      UUID file2Id = UUID.randomUUID();
+      UUID file3Id = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      OffsetDateTime ts = OffsetDateTime.now();
+      AttachmentFilter attachFilter = AttachmentFilter.create().sortBy("size").order("asc");
+      when(fileMetadataRepository.getByRoomIdAndType(
+              eq(roomId.toString()),
+              eq(FileMetadataType.ATTACHMENT),
+              eq(3),
+              isNull(),
+              any(AttachmentFilter.class)))
+          .thenReturn(
+              List.of(
+                  FileMetadataBuilder.create()
+                      .id(file1Id.toString())
+                      .name("small.jpg")
+                      .originalSize(500L)
+                      .mimeType("image/jpg")
+                      .type(FileMetadataType.ATTACHMENT)
+                      .userId(user1Id.toString())
+                      .roomId(roomId.toString())
+                      .createdAt(ts)
+                      .updatedAt(ts)
+                      .build(),
+                  FileMetadataBuilder.create()
+                      .id(file2Id.toString())
+                      .name("medium.jpg")
+                      .originalSize(1000L)
+                      .mimeType("image/jpg")
+                      .type(FileMetadataType.ATTACHMENT)
+                      .userId(user1Id.toString())
+                      .roomId(roomId.toString())
+                      .createdAt(ts)
+                      .updatedAt(ts)
+                      .build(),
+                  FileMetadataBuilder.create()
+                      .id(file3Id.toString())
+                      .name("large.jpg")
+                      .originalSize(2000L)
+                      .mimeType("image/jpg")
+                      .type(FileMetadataType.ATTACHMENT)
+                      .userId(user1Id.toString())
+                      .roomId(roomId.toString())
+                      .createdAt(ts)
+                      .updatedAt(ts)
+                      .build()));
+
+      AttachmentsPaginationDto result =
+          attachmentService.getAttachmentInfoByRoomId(roomId, 2, null, attachFilter, currentUser);
+
+      assertEquals(2, result.getAttachments().size());
+      assertNotNull(result.getCursor());
+      String expectedCursor =
+          Base64.getEncoder()
+              .encodeToString(
+                  objectMapper.writeValueAsBytes(
+                      PaginationFilter.create(file2Id.toString(), null, 1000L, "size", "asc")));
+      assertEquals(expectedCursor, result.getCursor());
+    }
+
+    @Test
+    @DisplayName("Returns attachments matching a MIME type prefix filter")
+    void getAttachmentInfoByRoomId_withMimeTypePrefixFilter() {
+      UUID file1Id = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      OffsetDateTime ts = OffsetDateTime.now();
+      AttachmentFilter attachFilter = AttachmentFilter.create().mimeType("image/");
+      when(fileMetadataRepository.getByRoomIdAndType(
+              eq(roomId.toString()),
+              eq(FileMetadataType.ATTACHMENT),
+              eq(11),
+              isNull(),
+              any(AttachmentFilter.class)))
+          .thenReturn(
+              List.of(
+                  FileMetadataBuilder.create()
+                      .id(file1Id.toString())
+                      .name("photo.png")
+                      .originalSize(1024L)
+                      .mimeType("image/png")
+                      .type(FileMetadataType.ATTACHMENT)
+                      .userId(user1Id.toString())
+                      .roomId(roomId.toString())
+                      .createdAt(ts)
+                      .updatedAt(ts)
+                      .build()));
+
+      AttachmentsPaginationDto result =
+          attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, attachFilter, currentUser);
+
+      assertEquals(1, result.getAttachments().size());
+      assertEquals("image/png", result.getAttachments().get(0).getMimeType());
+      assertNull(result.getCursor());
+    }
+  }
+
+  @Nested
+  @DisplayName("Bulk delete room attachments tests")
+  class BulkDeleteRoomAttachmentsTests {
+
+    @Test
+    @DisplayName("Room member successfully bulk-deletes their own attachments in the room")
+    void bulkDeleteRoomAttachments_testOk() {
+      UUID file1Id = UUID.randomUUID();
+      UUID file2Id = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user2Id);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      when(fileMetadataRepository.getIdsByIdsAndRoomIdAndUserId(
+              List.of(file1Id.toString(), file2Id.toString()),
+              roomId.toString(),
+              user2Id.toString()))
+          .thenReturn(List.of(file1Id.toString(), file2Id.toString()));
+      when(storagesService.deleteFileList(
+              List.of(file1Id.toString(), file2Id.toString()), user2Id.toString()))
+          .thenReturn(List.of());
+
+      BulkDeleteAttachmentsResponseDto result =
+          attachmentService.bulkDeleteRoomAttachments(
+              roomId, List.of(file1Id, file2Id), currentUser);
+
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verify(fileMetadataRepository, times(1))
+          .getIdsByIdsAndRoomIdAndUserId(
+              List.of(file1Id.toString(), file2Id.toString()),
+              roomId.toString(),
+              user2Id.toString());
+      verify(storagesService, times(1))
+          .deleteFileList(List.of(file1Id.toString(), file2Id.toString()), user2Id.toString());
+      verify(fileMetadataRepository, times(1))
+          .deleteByIds(List.of(file1Id.toString(), file2Id.toString()));
+      verifyNoMoreInteractions(roomService, fileMetadataRepository, storagesService);
+      assertEquals(List.of(file1Id, file2Id), result.getSuccessIds());
+      assertEquals(List.of(), result.getFailedIds());
+    }
+
+    @Test
+    @DisplayName("Returns partial success when some attachments fail to delete from storage")
+    void bulkDeleteRoomAttachments_partialFailure() {
+      UUID file1Id = UUID.randomUUID();
+      UUID file2Id = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user2Id);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      when(fileMetadataRepository.getIdsByIdsAndRoomIdAndUserId(
+              List.of(file1Id.toString(), file2Id.toString()),
+              roomId.toString(),
+              user2Id.toString()))
+          .thenReturn(List.of(file1Id.toString(), file2Id.toString()));
+      when(storagesService.deleteFileList(
+              List.of(file1Id.toString(), file2Id.toString()), user2Id.toString()))
+          .thenReturn(List.of(file2Id.toString()));
+
+      BulkDeleteAttachmentsResponseDto result =
+          attachmentService.bulkDeleteRoomAttachments(
+              roomId, List.of(file1Id, file2Id), currentUser);
+
+      verify(fileMetadataRepository, times(1)).deleteByIds(List.of(file1Id.toString()));
+      assertEquals(List.of(file1Id), result.getSuccessIds());
+      assertEquals(List.of(file2Id), result.getFailedIds());
+    }
+
+    @Test
+    @DisplayName("Throws ForbiddenException when user is not a room member")
+    void bulkDeleteRoomAttachments_testNotMember() {
+      UUID file1Id = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user3Id);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false))
+          .thenThrow(new ForbiddenException());
+
+      assertThrows(
+          ForbiddenException.class,
+          () -> attachmentService.bulkDeleteRoomAttachments(roomId, List.of(file1Id), currentUser));
+
+      verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
+      verifyNoInteractions(fileMetadataRepository, storagesService);
+    }
+
+    @Test
+    @DisplayName(
+        "Throws ForbiddenException when attachments are not found, not in room, or not owned")
+    void bulkDeleteRoomAttachments_testAccessDenied() {
+      UUID file1Id = UUID.randomUUID();
+      UUID file2Id = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user2Id);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      when(fileMetadataRepository.getIdsByIdsAndRoomIdAndUserId(
+              List.of(file1Id.toString(), file2Id.toString()),
+              roomId.toString(),
+              user2Id.toString()))
+          .thenReturn(List.of(file1Id.toString()));
+
+      assertThrows(
+          ForbiddenException.class,
+          () ->
+              attachmentService.bulkDeleteRoomAttachments(
+                  roomId, List.of(file1Id, file2Id), currentUser));
+
+      verify(fileMetadataRepository, times(1))
+          .getIdsByIdsAndRoomIdAndUserId(
+              List.of(file1Id.toString(), file2Id.toString()),
+              roomId.toString(),
+              user2Id.toString());
+      verifyNoInteractions(storagesService);
+      verifyNoMoreInteractions(fileMetadataRepository);
+    }
+  }
+
+  @Nested
   @DisplayName("Delete attachments by room id tests")
   class DeleteAttachmentsByRoomIdTests {
 
     @Test
-    @DisplayName("Correctly deletes all room attachments")
+    @DisplayName("Correctly deletes all room attachments when storage succeeds for all")
     void deleteAttachmentsByRoomId_testOk() {
       String file1Id = UUID.randomUUID().toString();
       String file2Id = UUID.randomUUID().toString();
@@ -1065,7 +1593,7 @@ public class AttachmentServiceImplTest {
               roomId.toString(), FileMetadataType.ATTACHMENT))
           .thenReturn(List.of(file1Id, file2Id));
       when(storagesService.deleteFileList(List.of(file1Id, file2Id), user1Id.toString()))
-          .thenReturn(List.of(file1Id, file2Id));
+          .thenReturn(List.of());
 
       attachmentService.deleteAttachmentsByRoomId(roomId, UserPrincipal.create(user1Id));
 
@@ -1078,8 +1606,8 @@ public class AttachmentServiceImplTest {
     }
 
     @Test
-    @DisplayName("Only deletes room's attachments deleted also from storage service")
-    void deleteAttachmentsByRoomId_onlyFilesDeletedAlsoFromStorageService() {
+    @DisplayName("Only deletes DB records for attachments successfully deleted from storage")
+    void deleteAttachmentsByRoomId_partialStorageFailure() {
       String file1Id = UUID.randomUUID().toString();
       String file2Id = UUID.randomUUID().toString();
 
@@ -1087,7 +1615,7 @@ public class AttachmentServiceImplTest {
               roomId.toString(), FileMetadataType.ATTACHMENT))
           .thenReturn(List.of(file1Id, file2Id));
       when(storagesService.deleteFileList(List.of(file1Id, file2Id), user1Id.toString()))
-          .thenReturn(List.of(file1Id));
+          .thenReturn(List.of(file2Id));
 
       attachmentService.deleteAttachmentsByRoomId(roomId, UserPrincipal.create(user1Id));
 

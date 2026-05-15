@@ -7,11 +7,11 @@ package com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-class XmlUtils {
+public class XmlUtils {
 
   private XmlUtils() {}
 
-  static DocumentBuilderFactory createSecureDocumentBuilderFactory()
+  public static DocumentBuilderFactory createSecureDocumentBuilderFactory()
       throws ParserConfigurationException {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);

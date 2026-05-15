@@ -7,12 +7,13 @@ package com.zextras.carbonio.chats.core.web.api;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.api.RoomsApiService;
+import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
-import com.zextras.carbonio.chats.core.logging.ChatsLoggerLevel;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
@@ -20,6 +21,9 @@ import com.zextras.carbonio.chats.core.service.MembersService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.utils.StringFormatUtils;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.model.AttachmentOrderDto;
+import com.zextras.carbonio.chats.model.AttachmentSortByDto;
+import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsRequestDto;
 import com.zextras.carbonio.chats.model.ClearedDateDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.MemberDto;
@@ -29,7 +33,6 @@ import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
 import com.zextras.carbonio.chats.model.RoomExtraFieldDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import com.zextras.carbonio.chats.core.data.type.UserType;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -37,6 +40,7 @@ import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -73,7 +77,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
+  @TimedCall
   public Response listRooms(List<RoomExtraFieldDto> extraFields, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     return Response.status(Status.OK)
@@ -200,7 +204,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
+  @TimedCall
   public Response getRoomPicture(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     FileContentAndMetadata roomPicture = roomService.getRoomPicture(roomId, currentUser);
@@ -215,7 +219,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
+  @TimedCall
   public Response updateRoomPicture(
       UUID roomId,
       String headerFileName,
@@ -260,7 +264,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
+  @TimedCall
   public Response deleteRoomPicture(UUID roomId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     if (UserType.GUEST.equals(currentUser.getUserType())) {
@@ -390,7 +394,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
+  @TimedCall
   public Response deleteOwner(UUID roomId, UUID userId, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
     if (UserType.GUEST.equals(currentUser.getUserType())) {
@@ -409,18 +413,40 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
+  @TimedCall
   public Response listRoomAttachmentsInfo(
-      UUID roomId, Integer itemsNumber, String filter, SecurityContext securityContext) {
+      UUID roomId,
+      Integer limit,
+      String cursor,
+      UUID userId,
+      String mimeType,
+      OffsetDateTime createdAfter,
+      OffsetDateTime createdBefore,
+      Long minSize,
+      Long maxSize,
+      AttachmentSortByDto sortBy,
+      AttachmentOrderDto order,
+      SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    AttachmentFilter attachmentFilter =
+        AttachmentFilter.create()
+            .userId(userId != null ? userId.toString() : null)
+            .mimeType(mimeType)
+            .createdAfter(createdAfter)
+            .createdBefore(createdBefore)
+            .minSize(minSize)
+            .maxSize(maxSize)
+            .sortBy(sortBy != null ? sortBy.toString() : null)
+            .order(order != null ? order.toString() : null);
     return Response.status(Status.OK)
         .entity(
-            attachmentService.getAttachmentInfoByRoomId(roomId, itemsNumber, filter, currentUser))
+            attachmentService.getAttachmentInfoByRoomId(
+                roomId, limit, cursor, attachmentFilter, currentUser))
         .build();
   }
 
   @Override
-  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
+  @TimedCall
   public Response insertAttachment(
       UUID roomId,
       String fileName,
@@ -489,7 +515,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
   }
 
   @Override
-  @TimedCall(logLevel = ChatsLoggerLevel.INFO)
+  @TimedCall
   public Response insertAttachmentMultipart(
       MultipartFormDataInput input, UUID roomId, SecurityContext securityContext) {
 
@@ -593,6 +619,20 @@ public class RoomsApiServiceImpl implements RoomsApiService {
 
   private String normalizeStringValue(String value) {
     return (value == null || value.isEmpty()) ? null : value;
+  }
+
+  @Override
+  @TimedCall
+  public Response bulkDeleteRoomAttachments(
+      UUID roomId,
+      BulkDeleteAttachmentsRequestDto bulkDeleteAttachmentsRequestDto,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    return Response.ok()
+        .entity(
+            attachmentService.bulkDeleteRoomAttachments(
+                roomId, bulkDeleteAttachmentsRequestDto.getAttachmentIds(), currentUser))
+        .build();
   }
 
   @Override

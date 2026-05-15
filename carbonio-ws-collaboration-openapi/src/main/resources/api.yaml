@@ -6,9 +6,10 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.11
+  version: 1.6.12
   x-supported-versions:
     [
+      "1.6.12",
       "1.6.11",
       "1.6.10",
       "1.6.9",
@@ -394,12 +395,20 @@ paths:
       tags:
         - Rooms
         - Attachments
-      summary: Retrieves paged list of metadata of every attachment uploaded to the room and the filter for the next page
+      summary: Retrieves paged list of metadata of every attachment uploaded to the room and the cursor for the next page
       operationId: listRoomAttachmentsInfo
       parameters:
         - $ref: "#/components/parameters/pathRoomId"
-        - $ref: "#/components/parameters/queryPageItemsNumber"
-        - $ref: "#/components/parameters/queryPageFilter"
+        - $ref: "#/components/parameters/queryAttachmentLimit"
+        - $ref: "#/components/parameters/queryAttachmentCursor"
+        - $ref: "#/components/parameters/queryAttachmentUserId"
+        - $ref: "#/components/parameters/queryAttachmentMimeType"
+        - $ref: "#/components/parameters/queryAttachmentCreatedAfter"
+        - $ref: "#/components/parameters/queryAttachmentCreatedBefore"
+        - $ref: "#/components/parameters/queryAttachmentMinSize"
+        - $ref: "#/components/parameters/queryAttachmentMaxSize"
+        - $ref: "#/components/parameters/queryAttachmentSortBy"
+        - $ref: "#/components/parameters/queryAttachmentOrder"
       responses:
         200:
           $ref: "#/components/responses/200ListRoomAttachmentsInfoResponse"
@@ -431,6 +440,25 @@ paths:
           $ref: "#/components/responses/201InsertAttachmentResponse"
         413:
           $ref: "#/components/responses/413PayloadTooLargeResponse"
+    delete:
+      tags:
+        - Rooms
+        - Attachments
+      summary: Bulk deletes a list of attachments uploaded to the room
+      operationId: bulkDeleteRoomAttachments
+      parameters:
+        - $ref: "#/components/parameters/pathRoomId"
+      requestBody:
+        $ref: "#/components/requestBodies/BulkDeleteAttachmentsRequest"
+      responses:
+        200:
+          $ref: "#/components/responses/200BulkDeleteAttachmentsResponse"
+        400:
+          $ref: "#/components/responses/400BadRequestResponse"
+        403:
+          $ref: "#/components/responses/403ForbiddenResponse"
+        404:
+          $ref: "#/components/responses/404NotFoundResponse"
     put:
       tags:
         - Rooms
@@ -1062,20 +1090,81 @@ components:
       schema:
         type: string
       required: false
-    queryPageItemsNumber:
+    queryAttachmentLimit:
       in: query
-      name: itemsNumber
-      description: number of page items
+      name: limit
+      description: maximum number of attachments to return per page
       schema:
         type: integer
         default: 10
       required: false
-    queryPageFilter:
+    queryAttachmentCursor:
       in: query
-      name: filter
-      description: pagination filter
+      name: cursor
+      description: opaque pagination token returned by the previous response; pass it as-is to fetch the next page
       schema:
         type: string
+      required: false
+    queryAttachmentUserId:
+      in: query
+      name: userId
+      description: filter attachments by uploader identifier
+      schema:
+        type: string
+        format: uuid
+      required: false
+    queryAttachmentMimeType:
+      in: query
+      name: mimeType
+      description: filter by MIME type (exact match or prefix ending with '/', e.g. 'image/')
+      schema:
+        type: string
+      required: false
+    queryAttachmentCreatedAfter:
+      in: query
+      name: createdAfter
+      description: return only attachments created strictly after this timestamp (ISO 8601)
+      schema:
+        type: string
+        format: date-time
+      required: false
+    queryAttachmentCreatedBefore:
+      in: query
+      name: createdBefore
+      description: return only attachments created strictly before this timestamp (ISO 8601)
+      schema:
+        type: string
+        format: date-time
+      required: false
+    queryAttachmentMinSize:
+      in: query
+      name: minSize
+      description: filter attachments with size greater than or equal to this value (bytes)
+      schema:
+        type: integer
+        format: int64
+      required: false
+    queryAttachmentMaxSize:
+      in: query
+      name: maxSize
+      description: filter attachments with size less than or equal to this value (bytes)
+      schema:
+        type: integer
+        format: int64
+      required: false
+    queryAttachmentSortBy:
+      in: query
+      name: sortBy
+      description: field to sort attachments by
+      schema:
+        $ref: '#/components/schemas/AttachmentSortBy'
+      required: false
+    queryAttachmentOrder:
+      in: query
+      name: order
+      description: sort direction
+      schema:
+        $ref: '#/components/schemas/AttachmentOrder'
       required: false
     queryRoomsExtraFields:
       in: query
@@ -1134,6 +1223,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Members'
+    BulkDeleteAttachmentsRequest:
+      description: list of attachment identifiers to delete
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BulkDeleteAttachmentsRequest"
     InsertAttachmentRequest:
       description: file stream
       required: true
@@ -1360,6 +1456,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/AttachmentsPagination'
+    200BulkDeleteAttachmentsResponse:
+      description: Bulk deletion result with successfully deleted and failed attachment identifiers
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/BulkDeleteAttachmentsResponse"
     204DeleteAttachmentResponse:
       description: The file was deleted correctly
     200GetAttachmentInfoResponse:
@@ -1830,18 +1932,66 @@ components:
           format: date-time
           readOnly: true
           description: creation date
+        messageId:
+          type: string
+          readOnly: true
+          description: identifier of the XMPP message that carries this attachment
+        stanzaId:
+          type: string
+          readOnly: true
+          description: identifier assigned by MongooseIM to the XMPP stanza that delivered this attachment
         area:
           type: string
           readOnly: true
           description: attachment's area
       required: [id, name, size, mimeType, userId, roomId]
+    AttachmentSortBy:
+      type: string
+      description: Field to sort attachments by
+      enum:
+        - created_at
+        - size
+    AttachmentOrder:
+      type: string
+      description: Sort direction
+      enum:
+        - asc
+        - desc
+    BulkDeleteAttachmentsRequest:
+      type: object
+      description: Request body for bulk attachment deletion
+      required: [attachmentIds]
+      properties:
+        attachmentIds:
+          type: array
+          description: list of attachment identifiers to delete
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+    BulkDeleteAttachmentsResponse:
+      type: object
+      description: Result of a bulk attachment deletion
+      properties:
+        successIds:
+          type: array
+          description: identifiers of attachments successfully deleted
+          items:
+            type: string
+            format: uuid
+        failedIds:
+          type: array
+          description: identifiers of attachments that could not be deleted from storage
+          items:
+            type: string
+            format: uuid
     AttachmentsPagination:
       type: object
       description: Attachment pagination
       properties:
-        filter:
+        cursor:
           type: string
-          description: filter for the next page
+          description: opaque token to pass as the cursor parameter to fetch the next page; absent when no further pages exist
         attachments:
           type: array
           description: paged list of attachments metadata

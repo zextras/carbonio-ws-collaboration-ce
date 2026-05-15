@@ -6,14 +6,16 @@ package com.zextras.carbonio.chats.core.service;
 
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.Room;
+import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
-import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
+import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
 import com.zextras.carbonio.chats.model.IdDto;
 import jakarta.annotation.Nullable;
 import java.io.InputStream;
+import java.util.List;
 import java.util.UUID;
 
 public interface AttachmentService {
@@ -28,17 +30,22 @@ public interface AttachmentService {
   FileContentAndMetadata getAttachmentById(UUID fileId, UserPrincipal currentUser);
 
   /**
-   * Retrieves paged list of metadata of every attachment uploaded to the room and the filter for
+   * Retrieves paged list of metadata of every attachment uploaded to the room and the cursor for
    * the next page
    *
    * @param roomId room identifier {@link UUID}
-   * @param itemsNumber items number for a page
-   * @param filter base64 encoded string of a json-serialized {@link PaginationFilter}
+   * @param limit maximum number of items to return per page
+   * @param cursor opaque base64-encoded pagination token from the previous response
+   * @param attachmentFilter optional field filters and sort options {@link AttachmentFilter}
    * @param currentUser current authenticated user {@link UserPrincipal}
    * @return paged list of attachments metadata for the requested room
    */
   AttachmentsPaginationDto getAttachmentInfoByRoomId(
-      UUID roomId, Integer itemsNumber, @Nullable String filter, UserPrincipal currentUser);
+      UUID roomId,
+      Integer limit,
+      @Nullable String cursor,
+      @Nullable AttachmentFilter attachmentFilter,
+      UserPrincipal currentUser);
 
   /**
    * Retrieves info related to an uploaded attachment
@@ -102,4 +109,17 @@ public interface AttachmentService {
    * @param currentUser current authenticated user {@link UserPrincipal}
    */
   void deleteAttachmentsByRoomId(UUID roomId, UserPrincipal currentUser);
+
+  /**
+   * Bulk deletes a list of attachments scoped to a specific room. The requesting user must be a
+   * room member and must own each attachment. Partial success is supported: attachments that fail
+   * to delete from storage keep their metadata and can be retried.
+   *
+   * @param roomId room identifier {@link UUID}
+   * @param fileIds list of attachment file identifiers to delete {@link UUID}
+   * @param currentUser current authenticated user {@link UserPrincipal}
+   * @return result containing successfully deleted and failed attachment identifiers
+   */
+  BulkDeleteAttachmentsResponseDto bulkDeleteRoomAttachments(
+      UUID roomId, List<UUID> fileIds, UserPrincipal currentUser);
 }

@@ -45,6 +45,12 @@ public class FileMetadata {
   @Column(name = "ROOM_ID", length = 64)
   private String roomId;
 
+  @Column(name = "MESSAGE_ID", length = 64)
+  private String messageId;
+
+  @Column(name = "STANZA_ID", length = 64)
+  private String stanzaId;
+
   @Column(name = "CREATED_AT")
   @Temporal(TemporalType.TIMESTAMP)
   @WhenCreated
@@ -119,6 +125,24 @@ public class FileMetadata {
 
   public FileMetadata roomId(String roomId) {
     this.roomId = roomId;
+    return this;
+  }
+
+  public String getMessageId() {
+    return messageId;
+  }
+
+  public FileMetadata messageId(String messageId) {
+    this.messageId = messageId;
+    return this;
+  }
+
+  public String getStanzaId() {
+    return stanzaId;
+  }
+
+  public FileMetadata stanzaId(String stanzaId) {
+    this.stanzaId = stanzaId;
     return this;
   }
 

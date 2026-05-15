@@ -4,6 +4,26 @@ This document tracks internal changes related to API versioning, both for the RE
 
 ---
 
+## Version 1.6.12
+
+### Changes (1.6.12)
+
+- **API**: Extended GET `/rooms/{roomId}/attachments` with 8 new optional query parameters:
+  - `userId` (UUID) — filter attachments by uploader
+  - `mimeType` (string) — filter by exact MIME type or prefix (e.g. `image/`)
+  - `timestampAfter` (date-time) — filter attachments created strictly after this timestamp
+  - `timestampBefore` (date-time) — filter attachments created strictly before this timestamp
+  - `minSize` (int64) — filter attachments with size ≥ N bytes
+  - `maxSize` (int64) — filter attachments with size ≤ N bytes
+  - `orderBy` (enum: `createdAt` | `size`, default `createdAt`) — field to sort by;
+    switching to `size` changes the keyset pagination cursor
+  - `orderDirection` (enum: `asc` | `desc`, default `desc`) — sort direction
+- **API**: Added DELETE `/attachments` endpoint — bulk deletes a list of attachments by their identifiers.
+  The request body is `{ "attachmentIds": ["uuid", ...] }` (min 1 item). The requesting user must own
+  each attachment or be a room owner of the attachment's room. Guests are forbidden.
+
+---
+
 ## Version 1.6.11
 
 ### Changes (1.6.11)

@@ -10,6 +10,7 @@ import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import jakarta.annotation.Nullable;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -29,7 +30,9 @@ public class AttachmentMapperImpl implements AttachmentMapper {
         .mimeType(metadata.getMimeType())
         .userId(UUID.fromString(metadata.getUserId()))
         .roomId(UUID.fromString(metadata.getRoomId()))
-        .createdAt(metadata.getCreatedAt());
+        .createdAt(metadata.getCreatedAt())
+        .messageId(metadata.getMessageId())
+        .stanzaId(metadata.getStanzaId());
   }
 
   @Override
@@ -37,7 +40,8 @@ public class AttachmentMapperImpl implements AttachmentMapper {
     return metadataList == null
         ? List.of()
         : metadataList.stream()
-            .map(fileMetadata -> ent2dto(fileMetadata))
+            .map(this::ent2dto)
+            .filter(Objects::nonNull)
             .collect(Collectors.toList());
   }
 }
