@@ -4,6 +4,17 @@ This document tracks internal changes related to API versioning, both for the RE
 
 ---
 
+## Version 1.6.11
+
+### Changes (1.6.11)
+
+- **WebSocket**: Added `MessageBrokerDisconnected` event — emitted when the backend loses the
+  connection to the message broker, so clients can surface a degraded-state indicator.
+- **WebSocket**: Added `MessageBrokerRestored` event — emitted when the backend reconnects to
+  the message broker, so clients can clear the degraded-state indicator.
+
+---
+
 ## Version 1.6.10
 
 ### Changes (1.6.10)
