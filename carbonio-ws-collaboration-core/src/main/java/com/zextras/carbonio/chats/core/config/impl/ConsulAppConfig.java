@@ -93,6 +93,9 @@ public class ConsulAppConfig extends AppConfig {
     namesMapping.put(
         ConfigName.TOPOLOGY_RECOVERY_ENABLED,
         "carbonio-ws-collaboration/broker/topology-recovery-enabled");
+    namesMapping.put(
+        ConfigName.EVENT_DISPATCHER_POOL_SIZE,
+        "carbonio-ws-collaboration/broker/connection-pool-size");
     namesMapping.put(ConfigName.VIDEO_SERVER_TOKEN, "carbonio-videoserver/api-secret");
     namesMapping.put(
         ConfigName.VIDEO_ROOM_BITRATE, "carbonio-ws-collaboration/meeting/videoroom-bitrate");

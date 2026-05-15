@@ -5,12 +5,13 @@
 openapi: 3.0.3
 info:
   title: Events Data Models
-  version: 1.6.10
+  version: 1.6.11
   description: |
     Data models for room and meeting events.
     This specification contains only the schemas for code generation purposes.
   x-supported-versions:
     [
+      "1.6.11",
       "1.6.10",
       "1.6.9",
       "1.6.8",
@@ -71,6 +72,8 @@ components:
         - MeetingParticipantHandRaisedList
         # Websocket connection Events
         - WebsocketConnected
+        - MessageBrokerDisconnected
+        - MessageBrokerRestored
         - Ping
         - Pong
       description: Type of event being published
@@ -120,6 +123,8 @@ components:
           meetingParticipantHandRaised: "#/components/schemas/MeetingParticipantHandRaised"
           meetingParticipantHandRaisedList: "#/components/schemas/MeetingParticipantHandRaisedList"
           websocketConnected: "#/components/schemas/WebsocketConnected"
+          messageBrokerDisconnected: "#/components/schemas/MessageBrokerDisconnected"
+          messageBrokerRestored: "#/components/schemas/MessageBrokerRestored"
           ping: "#/components/schemas/Ping"
           pong: "#/components/schemas/Pong"
       type: object
@@ -717,6 +722,16 @@ components:
               format: uuid
           required:
             - queueId
+
+    MessageBrokerDisconnected:
+      allOf:
+        - $ref: "#/components/schemas/DomainEvent"
+        - type: object
+
+    MessageBrokerRestored:
+      allOf:
+        - $ref: "#/components/schemas/DomainEvent"
+        - type: object
 
     Ping:
       allOf:

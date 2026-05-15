@@ -54,6 +54,7 @@ class VideoServerEventListenerTest {
   private Channel channel;
   private EventDispatcher eventDispatcher;
   private VideoServerService videoServerService;
+  private MessageBrokerHealthMonitor healthMonitor;
   private ArgumentCaptor<DeliverCallback> deliverCallbackCaptor;
   private ObjectMapper objectMapper;
   private VideoServerEventListener listener;
@@ -63,6 +64,7 @@ class VideoServerEventListenerTest {
     channel = mock(Channel.class, withSettings().extraInterfaces(Recoverable.class));
     eventDispatcher = mock(EventDispatcher.class);
     videoServerService = mock(VideoServerService.class);
+    healthMonitor = mock(MessageBrokerHealthMonitor.class);
     deliverCallbackCaptor = ArgumentCaptor.forClass(DeliverCallback.class);
     objectMapper = new ObjectMapper();
 
@@ -72,7 +74,8 @@ class VideoServerEventListenerTest {
         .thenReturn(CONSUMER_TAG);
 
     listener =
-        new VideoServerEventListener(channel, eventDispatcher, objectMapper, videoServerService);
+        new VideoServerEventListener(
+            channel, eventDispatcher, objectMapper, videoServerService, healthMonitor);
   }
 
   @Test
@@ -96,8 +99,18 @@ class VideoServerEventListenerTest {
   @Test
   void testStartWithNullChannel() {
     VideoServerEventListener listenerWithNullChannel =
-        new VideoServerEventListener(null, eventDispatcher, objectMapper, videoServerService);
+        new VideoServerEventListener(
+            null, eventDispatcher, objectMapper, videoServerService, healthMonitor);
     assertThrows(EventDispatcherException.class, listenerWithNullChannel::start);
+  }
+
+  @Test
+  void heartbeat_notifiesVideoServerReady() throws Exception {
+    VideoServerEvent event = new VideoServerEvent().type(256);
+
+    handleEvent(event);
+
+    verify(healthMonitor).notifyVideoServerReady();
   }
 
   @Test

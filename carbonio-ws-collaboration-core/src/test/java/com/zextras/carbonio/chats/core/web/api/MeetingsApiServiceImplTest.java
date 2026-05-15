@@ -19,6 +19,7 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.core.web.socket.MessageBrokerHealthMonitor;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.model.NewMeetingDataDto;
 import com.zextras.carbonio.chats.core.data.type.UserType;
@@ -38,6 +39,7 @@ class MeetingsApiServiceImplTest {
   private final MeetingService meetingService;
   private final ParticipantService participantService;
   private final SecurityContext securityContext;
+  private final MessageBrokerHealthMonitor healthMonitor;
   private UUID user1Id;
   private UUID roomId;
   private UUID meetingId;
@@ -48,8 +50,10 @@ class MeetingsApiServiceImplTest {
     this.meetingService = mock(MeetingService.class);
     this.participantService = mock(ParticipantService.class);
     CacheVideoServerSession cacheVideoServerSession = mock(CacheVideoServerSession.class);
+    this.healthMonitor = mock(MessageBrokerHealthMonitor.class);
     this.meetingsApiService =
-        new MeetingsApiServiceImpl(meetingService, participantService, cacheVideoServerSession);
+        new MeetingsApiServiceImpl(
+            meetingService, participantService, cacheVideoServerSession, healthMonitor);
   }
 
   @BeforeEach
@@ -68,11 +72,12 @@ class MeetingsApiServiceImplTest {
 
     roomId = UUID.randomUUID();
     meetingId = UUID.randomUUID();
+    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
   }
 
   @AfterEach
   void afterEach() {
-    reset(meetingService, participantService, securityContext);
+    reset(meetingService, participantService, securityContext, healthMonitor);
   }
 
   @Test
@@ -153,5 +158,69 @@ class MeetingsApiServiceImplTest {
     assertThrows(
         ForbiddenException.class,
         () -> meetingsApiService.joinMeeting(meetingId, JoinSettingsDto.create(), securityContext));
+  }
+
+  @Test
+  void messageBrokerDownBlocksJoinMeeting() {
+    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+    assertThrows(
+        ForbiddenException.class,
+        () -> meetingsApiService.joinMeeting(meetingId, JoinSettingsDto.create(), securityContext));
+  }
+
+  @Test
+  void messageBrokerDownBlocksStartMeeting() {
+    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+    assertThrows(
+        ForbiddenException.class,
+        () -> meetingsApiService.startMeeting(meetingId, securityContext));
+  }
+
+  @Test
+  void messageBrokerDownBlocksUpdateMediaStream() {
+    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+    assertThrows(
+        ForbiddenException.class,
+        () ->
+            meetingsApiService.updateMediaStream(
+                meetingId,
+                com.zextras.carbonio.chats.model.MediaStreamSettingsDto.create()
+                    .enabled(false)
+                    .type(com.zextras.carbonio.chats.model.MediaStreamSettingsDto.TypeEnum.VIDEO),
+                securityContext));
+  }
+
+  @Test
+  void messageBrokerDownBlocksUpdateAudioStream() {
+    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+    assertThrows(
+        ForbiddenException.class,
+        () ->
+            meetingsApiService.updateAudioStream(
+                meetingId,
+                com.zextras.carbonio.chats.model.AudioStreamSettingsDto.create().enabled(false),
+                securityContext));
+  }
+
+  @Test
+  void messageBrokerDownBlocksUpdateHandStatus() {
+    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+    assertThrows(
+        ForbiddenException.class,
+        () ->
+            meetingsApiService.updateHandStatus(
+                meetingId,
+                com.zextras.carbonio.chats.model.HandStatusDto.create().raised(false),
+                securityContext));
   }
 }

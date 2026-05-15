@@ -6,9 +6,10 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.10
+  version: 1.6.11
   x-supported-versions:
     [
+      "1.6.11",
       "1.6.10",
       "1.6.9",
       "1.6.8",

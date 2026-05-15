@@ -60,3 +60,7 @@ mongoose/
 *.deb
 *.rpm
 artifacts
+
+# Superpowers skill working dirs (local-only)
+docs/superpowers/
+.superpowers/

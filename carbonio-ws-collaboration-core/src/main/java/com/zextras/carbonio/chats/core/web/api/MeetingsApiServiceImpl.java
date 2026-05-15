@@ -15,6 +15,7 @@ import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import com.zextras.carbonio.chats.core.web.socket.MessageBrokerHealthMonitor;
 import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.chats.model.HandStatusDto;
 import com.zextras.carbonio.chats.model.JoinMeetingResultDto;
@@ -37,20 +38,29 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   private final MeetingService meetingService;
   private final ParticipantService participantService;
   private final CacheVideoServerSession cacheVideoServerSession;
+  private final MessageBrokerHealthMonitor healthMonitor;
 
   @Inject
   public MeetingsApiServiceImpl(
       MeetingService meetingService,
       ParticipantService participantService,
-      CacheVideoServerSession cacheVideoServerSession) {
+      CacheVideoServerSession cacheVideoServerSession,
+      MessageBrokerHealthMonitor healthMonitor) {
     this.meetingService = meetingService;
     this.participantService = participantService;
     this.cacheVideoServerSession = cacheVideoServerSession;
+    this.healthMonitor = healthMonitor;
   }
 
   private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
     return Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
         .orElseThrow(UnauthorizedException::new);
+  }
+
+  private void checkActiveSession(UserPrincipal user) {
+    if (!healthMonitor.isReadyForUser(user.getId())) {
+      throw new ForbiddenException("No active event pipeline for user");
+    }
   }
 
   /**
@@ -149,6 +159,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     if (!currentUser.hasEnabled(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED)) {
       throw new ForbiddenException("Video call is not enabled for user");
     }
+    checkActiveSession(currentUser);
     cacheVideoServerSession.remove(currentUser.getUUID(), meetingId.toString());
     participantService.insertMeetingParticipant(meetingId, joinSettingsDto, currentUser);
     return Response.status(Status.OK)
@@ -191,6 +202,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     if (!currentUser.hasEnabled(CarbonioAttribute.WSC_VIDEO_CALL_ENABLED)) {
       throw new ForbiddenException("Video call is not enabled for user");
     }
+    checkActiveSession(currentUser);
     return Response.status(Status.OK)
         .entity(meetingService.startMeeting(currentUser, meetingId))
         .build();
@@ -240,6 +252,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
               "User '%s' cannot enable the media stream without sending an rtc offer",
               currentUser.getId()));
     }
+    checkActiveSession(currentUser);
     participantService.updateMediaStream(meetingId, mediaStreamSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -260,6 +273,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
       AudioStreamSettingsDto audioStreamSettingsDto,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    checkActiveSession(currentUser);
     participantService.updateAudioStream(meetingId, audioStreamSettingsDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }
@@ -359,6 +373,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   public Response updateHandStatus(
       UUID meetingId, HandStatusDto handStatusDto, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    checkActiveSession(currentUser);
     participantService.updateHandStatus(meetingId, handStatusDto, currentUser);
     return Response.status(Status.NO_CONTENT).build();
   }

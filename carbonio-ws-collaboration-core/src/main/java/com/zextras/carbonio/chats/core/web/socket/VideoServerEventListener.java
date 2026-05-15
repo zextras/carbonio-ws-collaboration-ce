@@ -57,6 +57,7 @@ public class VideoServerEventListener {
 
   private static final int JSEP_TYPE = 8;
   private static final int PLUGIN_TYPE = 64;
+  private static final int HEARTBEAT_TYPE = 256;
 
   private volatile String consumerTag;
 
@@ -64,17 +65,20 @@ public class VideoServerEventListener {
   private final EventDispatcher eventDispatcher;
   private final ObjectMapper objectMapper;
   private final VideoServerService videoServerService;
+  private final MessageBrokerHealthMonitor healthMonitor;
 
   @Inject
   public VideoServerEventListener(
       Channel channel,
       EventDispatcher eventDispatcher,
       ObjectMapper objectMapper,
-      VideoServerService videoServerService) {
+      VideoServerService videoServerService,
+      MessageBrokerHealthMonitor healthMonitor) {
     this.channel = getRecoverableChannel(channel);
     this.eventDispatcher = eventDispatcher;
     this.objectMapper = objectMapper;
     this.videoServerService = videoServerService;
+    this.healthMonitor = healthMonitor;
     Runtime.getRuntime()
         .addShutdownHook(new Thread(this::stop, "Video server event listener shutdown hook"));
   }
@@ -138,6 +142,7 @@ public class VideoServerEventListener {
       switch (event.getType()) {
         case JSEP_TYPE -> handleJsepTypeEvent(event);
         case PLUGIN_TYPE -> handlePluginTypeEvent(event);
+        case HEARTBEAT_TYPE -> healthMonitor.notifyVideoServerReady();
         default -> {
           /* just ignore other events */
         }
@@ -182,7 +187,9 @@ public class VideoServerEventListener {
                   .type(EventType.MEETING_SDP_OFFERED)
                   .sentDate(OffsetDateTime.now()));
 
-      case ANSWER -> dispatchAnswerEvent(userFeed, rtc.getSdp(), mediaType);
+      case ANSWER -> {
+        dispatchAnswerEvent(userFeed, rtc.getSdp(), mediaType);
+      }
     }
   }
 
@@ -201,16 +208,17 @@ public class VideoServerEventListener {
                   .type(EventType.MEETING_AUDIO_ANSWERED)
                   .sentDate(OffsetDateTime.now()));
 
-      case VIDEO, SCREEN ->
-          eventDispatcher.sendToUserExchange(
-              userFeed.getUserId(),
-              MeetingSdpAnswered.create()
-                  .meetingId(meetingId)
-                  .userId(userId)
-                  .mediaType(mediaType)
-                  .sdp(sdp)
-                  .type(EventType.MEETING_SDP_ANSWERED)
-                  .sentDate(OffsetDateTime.now()));
+      case VIDEO, SCREEN -> {
+        eventDispatcher.sendToUserExchange(
+            userFeed.getUserId(),
+            MeetingSdpAnswered.create()
+                .meetingId(meetingId)
+                .userId(userId)
+                .mediaType(mediaType)
+                .sdp(sdp)
+                .type(EventType.MEETING_SDP_ANSWERED)
+                .sentDate(OffsetDateTime.now()));
+      }
     }
   }
 
@@ -252,7 +260,8 @@ public class VideoServerEventListener {
 
     UserFeed userFeed = UserFeed.fromString(event.getOpaqueId());
 
-    // Clients need only subscribed events for a VIDEO_IN media track type to let a user see others'
+    // Clients need only subscribed events for a VIDEO_IN media track type to let a
+    // user see others'
     // video and screen streams
     if (MediaTrackType.VIDEO_IN.equals(userFeed.getMediaTrackType())) {
       eventDispatcher.sendToUserExchange(

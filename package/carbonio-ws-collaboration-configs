@@ -26,6 +26,7 @@ CONFIGURATIONS=(
   "$MAIN_SERVICE_NAME/broker/automatic-recovery-enabled:true"
   "$MAIN_SERVICE_NAME/broker/topology-recovery-enabled:false"
   "$MAIN_SERVICE_NAME/broker/network-recovery-interval:30000"
+  "$MAIN_SERVICE_NAME/broker/connection-pool-size:10"
   "$MAIN_SERVICE_NAME/hikari/min-pool-size:10"
   "$MAIN_SERVICE_NAME/hikari/max-pool-size:10"
   "$MAIN_SERVICE_NAME/hikari/idle-timeout:10000"
