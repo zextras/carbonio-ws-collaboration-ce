@@ -71,6 +71,8 @@ components:
         - MeetingParticipantHandRaisedList
         # Websocket connection Events
         - WebsocketConnected
+        - MessageBrokerDisconnected
+        - MessageBrokerRestored
         - Ping
         - Pong
       description: Type of event being published
@@ -120,6 +122,8 @@ components:
           meetingParticipantHandRaised: "#/components/schemas/MeetingParticipantHandRaised"
           meetingParticipantHandRaisedList: "#/components/schemas/MeetingParticipantHandRaisedList"
           websocketConnected: "#/components/schemas/WebsocketConnected"
+          messageBrokerDisconnected: "#/components/schemas/MessageBrokerDisconnected"
+          messageBrokerRestored: "#/components/schemas/MessageBrokerRestored"
           ping: "#/components/schemas/Ping"
           pong: "#/components/schemas/Pong"
       type: object
@@ -717,6 +721,16 @@ components:
               format: uuid
           required:
             - queueId
+
+    MessageBrokerDisconnected:
+      allOf:
+        - $ref: "#/components/schemas/DomainEvent"
+        - type: object
+
+    MessageBrokerRestored:
+      allOf:
+        - $ref: "#/components/schemas/DomainEvent"
+        - type: object
 
     Ping:
       allOf:

@@ -17,8 +17,12 @@
 ## Framework
 
 - Guice + Jetty + RestEasy (NOT Quarkus). CDI annotations do NOT apply.
-- Dependency injection: Guice `@Provides` methods in `CoreModule.java`
-- All new infrastructure clients must be registered in `CoreModule.java`
+- Dependency injection: Guice `@Provides` methods in `CoreModule.java`.
+- **New classes**: annotate with `@com.google.inject.Singleton` (when stateful/shared), constructor-inject
+  dependencies with `@Inject`, never instantiate with `new` in production code, and add an explicit
+  `bind(NewClass.class);` in `CoreModule.java` (project convention, even though Guice can JIT-bind).
+  Tests that build the class directly must be updated to pass the new dependency.
+- All new infrastructure clients must be registered in `CoreModule.java`.
 
 ## Package / Deploy
 

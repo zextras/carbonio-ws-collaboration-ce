@@ -110,3 +110,9 @@ path = "docs/xmpp-messages.md"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Zextras"
 SPDX-License-Identifier = "AGPL-3.0-only"
+
+[[annotations]]
+path = "docs/websocket-events.md"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Zextras"
+SPDX-License-Identifier = "AGPL-3.0-only"

@@ -30,7 +30,10 @@ import com.zextras.carbonio.chats.core.web.api.versioning.ChangeSet;
 import com.zextras.carbonio.chats.core.web.api.versioning.VersionMigrationsRegistry;
 import com.zextras.carbonio.chats.core.web.security.EventsWebSocketAuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
+import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
+import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
+import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import jakarta.servlet.DispatcherType;
@@ -77,6 +80,7 @@ class VersionedWebsocketIT {
   private EventsWebSocketManager eventsWebSocketManager;
   private final AuthenticationService authenticationService;
   private final Channel channel;
+  private final RabbitConnectionPoolService rabbitPool;
   private final ObjectMapper objectMapper;
   private final WebsocketVersionMigrator websocketVersionMigrator;
   private final ParticipantService participantService;
@@ -85,12 +89,14 @@ class VersionedWebsocketIT {
   public VersionedWebsocketIT(
       AuthenticationService authenticationService,
       Channel channel,
+      RabbitConnectionPoolService rabbitPool,
       ObjectMapper objectMapper,
       WebsocketVersionMigrator websocketVersionMigrator,
       ParticipantService participantService,
       CacheVideoServerSession cacheVideoServerSession) {
     this.authenticationService = authenticationService;
     this.channel = channel;
+    this.rabbitPool = rabbitPool;
     this.objectMapper = objectMapper;
     this.websocketVersionMigrator = websocketVersionMigrator;
     this.participantService = participantService;
@@ -465,11 +471,12 @@ class VersionedWebsocketIT {
     jettyServer = new Server(8081);
     eventsWebSocketManager =
         new EventsWebSocketManager(
-            channel,
+            rabbitPool,
             objectMapper,
             websocketVersionMigrator,
+            cacheVideoServerSession,
             participantService,
-            cacheVideoServerSession);
+            new EventWebSocketSessions(new SessionPingManager()));
 
     ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
     context.setContextPath("/");

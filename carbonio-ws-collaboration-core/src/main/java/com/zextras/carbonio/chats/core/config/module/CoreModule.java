@@ -49,6 +49,7 @@ import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoServi
 import com.zextras.carbonio.chats.core.infrastructure.database.impl.EbeanDatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
+import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.MessageDispatcherMongooseImpl;
 import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
@@ -124,7 +125,10 @@ import com.zextras.carbonio.chats.core.web.exceptions.DefaultExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHandler;
 import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
+import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
+import com.zextras.carbonio.chats.core.web.socket.MessageBrokerHealthMonitor;
+import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
@@ -156,6 +160,9 @@ public class CoreModule extends AbstractModule {
     bind(VersionedRequestFilter.class);
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
     bind(EventsWebSocketManager.class);
+    bind(EventWebSocketSessions.class);
+    bind(SessionPingManager.class);
+    bind(MessageBrokerHealthMonitor.class);
 
     bind(RoomsApi.class);
     bind(RoomsApiService.class).to(RoomsApiServiceImpl.class);
@@ -368,6 +375,32 @@ public class CoreModule extends AbstractModule {
     } catch (IOException | TimeoutException e) {
       throw new EventDispatcherException("Could not create connection with message broker", e);
     }
+  }
+
+  @Singleton
+  @Provides
+  private RabbitConnectionPoolService getRabbitConnectionPoolFactory(
+      AppConfig appConfig, MessageBrokerHealthMonitor healthMonitor) {
+    ConnectionFactory factory = new ConnectionFactory();
+    factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
+    factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());
+    factory.setUsername(
+        appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_USERNAME).orElseThrow());
+    factory.setPassword(
+        appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_USER_PASSWORD).orElseThrow());
+    factory.setVirtualHost(appConfig.get(String.class, ConfigName.VIRTUAL_HOST).orElse("/"));
+    factory.setRequestedHeartbeat(
+        appConfig.get(Integer.class, ConfigName.REQUESTED_HEARTBEAT_IN_SEC).orElse(60));
+    factory.setNetworkRecoveryInterval(
+        appConfig.get(Integer.class, ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI).orElse(30000));
+    factory.setConnectionTimeout(
+        appConfig.get(Integer.class, ConfigName.CONNECTION_TIMEOUT_IN_MILLI).orElse(60000));
+    factory.setAutomaticRecoveryEnabled(
+        appConfig.get(Boolean.class, ConfigName.AUTOMATIC_RECOVERY_ENABLED).orElse(true));
+    factory.setTopologyRecoveryEnabled(
+        appConfig.get(Boolean.class, ConfigName.TOPOLOGY_RECOVERY_ENABLED).orElse(false));
+    int poolSize = appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_POOL_SIZE).orElse(10);
+    return new RabbitConnectionPoolService(factory, poolSize, healthMonitor);
   }
 
   @Provides

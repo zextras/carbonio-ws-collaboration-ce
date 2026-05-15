@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
+import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.websocket.Session;
 import java.io.IOException;
@@ -15,65 +16,56 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@Singleton
 public class SessionPingManager {
 
-  private static final int PING_INTERVAL = 30;
-  private static final int ARBITRARY_BYTE = 0x01;
-  private static final ByteBuffer PING_PAYLOAD = ByteBuffer.wrap(new byte[] {ARBITRARY_BYTE});
+  private static final int PING_INTERVAL_SECONDS = 30;
+  private static final ByteBuffer PING_PAYLOAD = ByteBuffer.wrap(new byte[] {0x01});
 
-  private static final AtomicInteger THREAD_NUMBER = new AtomicInteger(1);
-  private static final int THREAD_POOL_SIZE =
-      Math.max(4, Runtime.getRuntime().availableProcessors());
+  private final AtomicInteger threadNumber = new AtomicInteger(1);
+  private final ScheduledExecutorService scheduler;
+  private final ConcurrentHashMap<String, ScheduledFuture<?>> futures = new ConcurrentHashMap<>();
 
-  private static final ConcurrentHashMap<Session, ScheduledFuture<?>> ACTIVE_SESSIONS =
-      new ConcurrentHashMap<>();
+  public SessionPingManager() {
+    this.scheduler =
+        Executors.newScheduledThreadPool(
+            Math.max(4, Runtime.getRuntime().availableProcessors()),
+            r -> {
+              Thread t = new Thread(r, "SessionPingManager-" + threadNumber.getAndIncrement());
+              t.setDaemon(true);
+              return t;
+            });
+    Runtime.getRuntime().addShutdownHook(new Thread(this::stopAll, "SessionPingManager shutdown"));
+  }
 
-  private static final ScheduledExecutorService scheduler =
-      Executors.newScheduledThreadPool(THREAD_POOL_SIZE, r -> createDaemonThread(r));
-
-  public static void add(Session session) {
+  public void start(Session session) {
+    if (scheduler.isShutdown()) return;
     ScheduledFuture<?> future =
         scheduler.scheduleAtFixedRate(
-            () -> {
-              if (session.isOpen()) {
-                try {
-                  session.getAsyncRemote().sendPing(PING_PAYLOAD);
-                } catch (IOException e) {
-                  ChatsLogger.warn("Error sending ping to websocket session " + session.getId());
-                  remove(session);
-                }
-              } else {
-                remove(session);
-              }
-            },
-            0,
-            PING_INTERVAL,
-            TimeUnit.SECONDS);
-    ACTIVE_SESSIONS.put(session, future);
+            () -> sendPing(session), 0, PING_INTERVAL_SECONDS, TimeUnit.SECONDS);
+    futures.put(session.getId(), future);
   }
 
-  private static void closeSession(Session session) {
-    if (session.isOpen()) {
-      try {
-        session.close();
-      } catch (IOException e) {
-        ChatsLogger.warn("Error closing websocket session: " + session.getId(), e);
-      }
+  public void stop(String sessionId) {
+    ScheduledFuture<?> future = futures.remove(sessionId);
+    if (future != null) future.cancel(true);
+  }
+
+  public void stopAll() {
+    futures.values().forEach(f -> f.cancel(true));
+    futures.clear();
+    scheduler.shutdownNow();
+  }
+
+  private void sendPing(Session session) {
+    if (!session.isOpen()) {
+      stop(session.getId());
+      return;
     }
-  }
-
-  public static void remove(Session session) {
-    ScheduledFuture<?> future = ACTIVE_SESSIONS.remove(session);
-    if (future != null) {
-      future.cancel(true);
+    try {
+      session.getAsyncRemote().sendPing(PING_PAYLOAD.duplicate());
+    } catch (IOException e) {
+      ChatsLogger.warn("Error sending ping to websocket session " + session.getId());
     }
-    closeSession(session);
-  }
-
-  private static Thread createDaemonThread(Runnable r) {
-    Thread thread =
-        new Thread(r, "SessionPingManager-Scheduler-" + THREAD_NUMBER.getAndIncrement());
-    thread.setDaemon(true);
-    return thread;
   }
 }
