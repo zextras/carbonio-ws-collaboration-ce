@@ -4,21 +4,12 @@
 
 package com.zextras.carbonio.chats.core.config.module;
 
-import java.io.IOException;
-import java.time.Clock;
-import java.time.ZoneId;
-import java.util.Base64;
-import java.util.Properties;
-import java.util.concurrent.TimeoutException;
-
-import org.flywaydb.core.Flyway;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.google.inject.name.Named;
 import com.google.inject.matcher.Matchers;
+import com.google.inject.name.Named;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -32,6 +23,7 @@ import com.zextras.carbonio.chats.api.HealthApi;
 import com.zextras.carbonio.chats.api.HealthApiService;
 import com.zextras.carbonio.chats.api.MeetingsApi;
 import com.zextras.carbonio.chats.api.MeetingsApiService;
+import com.zextras.carbonio.chats.api.OffsetDateTimeProvider;
 import com.zextras.carbonio.chats.api.PreviewApi;
 import com.zextras.carbonio.chats.api.PreviewApiService;
 import com.zextras.carbonio.chats.api.RoomsApi;
@@ -42,6 +34,7 @@ import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.JacksonConfig;
+import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
@@ -51,7 +44,9 @@ import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.EventDispatcherRabbitMq;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.MessageDispatcherMongooseImpl;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcherClient;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherHttpClient;
+import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.MessageDispatcherMongooseImpl;
 import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.infrastructure.preview.impl.PreviewServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
@@ -76,6 +71,7 @@ import com.zextras.carbonio.chats.core.mapper.impl.MeetingMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.impl.ParticipantMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.impl.RoomMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.impl.SubscriptionMapperImpl;
+import com.zextras.carbonio.chats.core.migration.JavaMigrationsProvider;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
@@ -136,13 +132,20 @@ import com.zextras.carbonio.preview.PreviewClient;
 import com.zextras.carbonio.user_management.sdk.grpc.UserManagementServiceGrpc;
 import com.zextras.carbonio.user_management.sdk.grpc.UserManagementServiceGrpc.UserManagementServiceBlockingStub;
 import com.zextras.storages.api.StoragesClient;
-
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.annotation.Platform;
 import io.ebean.config.DatabaseConfig;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import java.io.IOException;
+import java.time.Clock;
+import java.time.ZoneId;
+import java.util.Base64;
+import java.util.Properties;
+import java.util.concurrent.TimeoutException;
+import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.migration.JavaMigration;
 
 public class CoreModule extends AbstractModule {
 
@@ -155,10 +158,12 @@ public class CoreModule extends AbstractModule {
     bind(JacksonConfig.class);
     bind(ObjectMapper.class).toProvider(JacksonConfig.class);
 
+    bind(OffsetDateTimeProvider.class);
     bind(AuthenticationFilter.class);
     bind(VersionedResponseFilter.class);
     bind(VersionedRequestFilter.class);
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
+    bind(MessageDispatcher.class).to(MessageDispatcherMongooseImpl.class);
     bind(EventsWebSocketManager.class);
     bind(EventWebSocketSessions.class);
     bind(SessionPingManager.class);
@@ -271,9 +276,7 @@ public class CoreModule extends AbstractModule {
   private ManagedChannel getUserManagementChannel(AppConfig appConfig) {
     String host = appConfig.get(String.class, ConfigName.USER_MANAGEMENT_HOST).orElseThrow();
     int port = appConfig.get(Integer.class, ConfigName.USER_MANAGEMENT_PORT).orElseThrow();
-    return ManagedChannelBuilder.forAddress(host, port)
-        .usePlaintext()
-        .build();
+    return ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
   }
 
   @Singleton
@@ -295,12 +298,14 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private Flyway getFlywayInstance(HikariDataSource dataSource) {
+  private Flyway getFlywayInstance(
+      HikariDataSource dataSource, JavaMigrationsProvider javaMigrationsProvider) {
     return Flyway.configure()
         .locations("classpath:migration")
         .schemas("chats")
         .dataSource(dataSource)
         .validateMigrationNaming(true)
+        .javaMigrations(javaMigrationsProvider.get().toArray(JavaMigration[]::new))
         .load();
   }
 
@@ -332,22 +337,33 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  private MessageDispatcher getMessageDispatcher(
+  private MessageDispatcherCredentials getMessageDispatcherCredentials(AppConfig appConfig) {
+    return new MessageDispatcherCredentials(
+        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST).orElseThrow(),
+        appConfig.get(Integer.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT).orElseThrow(),
+        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_NAME).orElse(null),
+        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_USERNAME).orElse(null),
+        appConfig.get(String.class, ConfigName.MESSAGE_DISPATCHER_DATABASE_PASSWORD).orElse(null));
+  }
+
+  @Singleton
+  @Provides
+  private MessageDispatcherClient getMessageDispatcherClient(
       AppConfig appConfig, HttpClient httpClient, ObjectMapper objectMapper) {
-    return new MessageDispatcherMongooseImpl(
-        httpClient,
+    String mongooseimUrl =
         String.format(
             URL_PATTERN,
             appConfig.get(String.class, ConfigName.XMPP_SERVER_HOST).orElseThrow(),
-            appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow()),
+            appConfig.get(String.class, ConfigName.XMPP_SERVER_HTTP_PORT).orElseThrow());
+    String authToken =
         Base64.getEncoder()
             .encodeToString(
                 String.join(
-                    ":",
-                    appConfig.get(String.class, ConfigName.XMPP_SERVER_USERNAME).orElseThrow(),
-                    appConfig.get(String.class, ConfigName.XMPP_SERVER_PASSWORD).orElseThrow())
-                    .getBytes()),
-        objectMapper);
+                        ":",
+                        appConfig.get(String.class, ConfigName.XMPP_SERVER_USERNAME).orElseThrow(),
+                        appConfig.get(String.class, ConfigName.XMPP_SERVER_PASSWORD).orElseThrow())
+                    .getBytes());
+    return new MessageDispatcherHttpClient(httpClient, mongooseimUrl, authToken, objectMapper);
   }
 
   @Provides

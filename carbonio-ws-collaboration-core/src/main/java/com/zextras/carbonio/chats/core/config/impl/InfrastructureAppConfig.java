@@ -36,6 +36,8 @@ public class InfrastructureAppConfig extends AppConfig {
     configs.put(ConfigName.EVENT_DISPATCHER_PORT, "20005");
     configs.put(ConfigName.VIDEO_SERVER_HOST, LOCAL_SERVICE_ADDRESS);
     configs.put(ConfigName.VIDEO_SERVER_PORT, "20006");
+    configs.put(ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST, LOCAL_SERVICE_ADDRESS);
+    configs.put(ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT, "20012");
   }
 
   public static AppConfig create() {

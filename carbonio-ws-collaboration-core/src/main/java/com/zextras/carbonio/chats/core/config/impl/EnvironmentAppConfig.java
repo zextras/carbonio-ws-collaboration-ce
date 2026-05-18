@@ -52,6 +52,12 @@ public class EnvironmentAppConfig extends AppConfig {
     configs.put(ConfigName.VIDEO_ROOM_BITRATE, System.getenv(ConfigName.VIDEO_ROOM_BITRATE.name()));
     configs.put(
         ConfigName.VIDEO_ROOM_BITRATE_CAP, System.getenv(ConfigName.VIDEO_ROOM_BITRATE_CAP.name()));
+    configs.put(
+        ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST,
+        System.getenv(ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST.name()));
+    configs.put(
+        ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT,
+        System.getenv(ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT.name()));
   }
 
   public static AppConfig create() {

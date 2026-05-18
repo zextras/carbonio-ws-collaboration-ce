@@ -11,18 +11,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import java.time.OffsetDateTime;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @UnitTest
 class XmppMessageFactoryTest {
 
-  private final XmppMessageFactory factory = new XmppMessageFactory();
-
   @Test
   @DisplayName("Builds a meetingDeclined stanza with correct JIDs, type, operation and timestamp")
   void buildMeetingDeclineMessage_testOk() {
-    String result = factory.buildMeetingDeclineMessage("room-id", "sender-id");
+    String result = XmppMessageFactory.buildMeetingDeclineMessage("room-id", "sender-id");
 
     assertNotNull(result);
     assertTrue(result.contains("to='room-id@muclight.carbonio'"));
@@ -35,7 +35,7 @@ class XmppMessageFactoryTest {
   @Test
   @DisplayName("Builds a meetingStarted stanza with correct JIDs, type, operation and timestamp")
   void buildMeetingStartMessage_testOk() {
-    String result = factory.buildMeetingStartMessage("room-id", "sender-id");
+    String result = XmppMessageFactory.buildMeetingStartMessage("room-id", "sender-id");
 
     assertNotNull(result);
     assertTrue(result.contains("to='room-id@muclight.carbonio'"));
@@ -51,7 +51,8 @@ class XmppMessageFactoryTest {
           + " duration")
   void buildMeetingEndedMessage_testOk() {
     OffsetDateTime startedAt = OffsetDateTime.now().minusMinutes(5);
-    String result = factory.buildMeetingEndedMessage("room-id", "sender-id", startedAt, 300);
+    String result =
+        XmppMessageFactory.buildMeetingEndedMessage("room-id", "sender-id", startedAt, 300);
 
     assertNotNull(result);
     assertTrue(result.contains("to='room-id@muclight.carbonio'"));
@@ -67,7 +68,8 @@ class XmppMessageFactoryTest {
   @Test
   @DisplayName("Builds a roomNameChanged stanza with correct JIDs, type, operation and value")
   void buildRoomNameChangedMessage_testOk() {
-    String result = factory.buildRoomNameChangedMessage("room-id", "sender-id", "New Room Name");
+    String result =
+        XmppMessageFactory.buildRoomNameChangedMessage("room-id", "sender-id", "New Room Name");
 
     assertNotNull(result);
     assertTrue(result.contains("to='room-id@muclight.carbonio'"));
@@ -82,7 +84,8 @@ class XmppMessageFactoryTest {
       "Builds a roomDescriptionChanged stanza with correct JIDs, type, operation and value")
   void buildRoomDescriptionChangedMessage_testOk() {
     String result =
-        factory.buildRoomDescriptionChangedMessage("room-id", "sender-id", "New description");
+        XmppMessageFactory.buildRoomDescriptionChangedMessage(
+            "room-id", "sender-id", "New description");
 
     assertNotNull(result);
     assertTrue(result.contains("to='room-id@muclight.carbonio'"));
@@ -98,7 +101,8 @@ class XmppMessageFactoryTest {
           + " picture-name")
   void buildRoomPictureUpdatedMessage_testOk() {
     String result =
-        factory.buildRoomPictureUpdatedMessage("room-id", "sender-id", "abc-123", "avatar.png");
+        XmppMessageFactory.buildRoomPictureUpdatedMessage(
+            "room-id", "sender-id", "abc-123", "avatar.png");
 
     assertNotNull(result);
     assertTrue(result.contains("to='room-id@muclight.carbonio'"));
@@ -112,7 +116,7 @@ class XmppMessageFactoryTest {
   @Test
   @DisplayName("Builds a roomPictureDeleted stanza with correct JIDs, type and operation")
   void buildRoomPictureDeletedMessage_testOk() {
-    String result = factory.buildRoomPictureDeletedMessage("room-id", "sender-id");
+    String result = XmppMessageFactory.buildRoomPictureDeletedMessage("room-id", "sender-id");
 
     assertNotNull(result);
     assertTrue(result.contains("to='room-id@muclight.carbonio'"));
@@ -129,7 +133,8 @@ class XmppMessageFactoryTest {
           + " cleared-at")
   void buildRoomHistoryClearedMessage_testOk() {
     String result =
-        factory.buildRoomHistoryClearedMessage("room-id", "sender-id", "2024-01-15T10:30:00Z");
+        XmppMessageFactory.buildRoomHistoryClearedMessage(
+            "room-id", "sender-id", "2024-01-15T10:30:00Z");
 
     assertNotNull(result);
     assertTrue(result.contains("to='room-id@muclight.carbonio'"));
@@ -146,12 +151,18 @@ class XmppMessageFactoryTest {
           + " and area")
   void buildAttachmentAddedMessage_withAllParams_testOk() {
     String result =
-        factory.buildAttachmentAddedMessage(
+        XmppMessageFactory.buildAttachmentAddedMessage(
             "room-id",
             "sender-id",
             new XmppMessageFactory.AttachmentMessageParams(
-                "file-uuid", "document.pdf", "application/pdf", 204800,
-                "Optional description", "msg-123", "reply-456", "meeting-area"));
+                "file-uuid",
+                "document.pdf",
+                "application/pdf",
+                204800,
+                "Optional description",
+                "msg-123",
+                "reply-456",
+                "meeting-area"));
 
     assertNotNull(result);
     assertTrue(result.contains("to='room-id@muclight.carbonio'"));
@@ -174,12 +185,18 @@ class XmppMessageFactoryTest {
   @DisplayName("Builds an attachmentAdded stanza without optional parameters when null")
   void buildAttachmentAddedMessage_withoutOptionalParams_testOk() {
     String result =
-        factory.buildAttachmentAddedMessage(
+        XmppMessageFactory.buildAttachmentAddedMessage(
             "room-id",
             "sender-id",
             new XmppMessageFactory.AttachmentMessageParams(
-                "file-uuid", "document.pdf", "application/pdf", 204800,
-                "Optional description", null, null, null));
+                "file-uuid",
+                "document.pdf",
+                "application/pdf",
+                204800,
+                "Optional description",
+                null,
+                null,
+                null));
 
     assertNotNull(result);
     assertTrue(result.contains("to='room-id@muclight.carbonio'"));
@@ -194,6 +211,66 @@ class XmppMessageFactoryTest {
   }
 
   @Test
+  @DisplayName(
+      "Builds a forwarded stanza without attachment containing body and forwarded element with"
+          + " delay stamp")
+  void buildForwardedMessage_withoutAttachment_testOk() {
+    OffsetDateTime sentAt = OffsetDateTime.parse("2024-01-15T10:30:00Z");
+    String original =
+        "<message xmlns='jabber:client' from='other@carbonio' to='room@muclight.carbonio'"
+            + " type='groupchat'><body>hello</body></message>";
+
+    String result =
+        XmppMessageFactory.buildForwardedMessage(
+            "room-id", "sender-id", original, sentAt, "Optional description", null);
+
+    assertNotNull(result);
+    assertTrue(result.contains("to='room-id@muclight.carbonio'"));
+    assertTrue(result.contains("from='sender-id@carbonio'"));
+    assertTrue(result.contains("type='groupchat'"));
+    assertTrue(result.contains("<body encoded='UTF-8'>Optional description</body>"));
+    assertTrue(result.contains("<forwarded xmlns='urn:xmpp:forward:0'"));
+    assertTrue(result.contains("<delay xmlns='urn:xmpp:delay' stamp='2024-01-15T10:30:00Z'"));
+    assertFalse(result.contains("<operation>attachmentAdded</operation>"));
+    assertFalse(result.contains("<attachment-id>"));
+  }
+
+  @Test
+  @DisplayName(
+      "Builds a forwarded stanza with attachment including attachmentAdded operation, attachment"
+          + " metadata and stanza-id")
+  void buildForwardedMessage_withAttachment_testOk() {
+    OffsetDateTime sentAt = OffsetDateTime.parse("2024-01-15T10:30:00Z");
+    String original =
+        "<message xmlns='jabber:client' from='other@carbonio' to='room@muclight.carbonio'"
+            + " type='groupchat'><body>hello</body></message>";
+
+    String result =
+        XmppMessageFactory.buildForwardedMessage(
+            "room-id",
+            "sender-id",
+            original,
+            sentAt,
+            "Optional description",
+            new XmppMessageFactory.ForwardedAttachmentParams(
+                "file-uuid", "document.pdf", "application/pdf", 204800, "msg-123", "stanza-789"));
+
+    assertNotNull(result);
+    assertTrue(result.contains("to='room-id@muclight.carbonio'"));
+    assertTrue(result.contains("from='sender-id@carbonio'"));
+    assertTrue(result.contains("type='groupchat'"));
+    assertTrue(result.contains("id='msg-123'"));
+    assertTrue(result.contains("<operation>attachmentAdded</operation>"));
+    assertTrue(result.contains("<attachment-id>file-uuid</attachment-id>"));
+    assertTrue(result.contains("<filename encoded='UTF-8'>document.pdf</filename>"));
+    assertTrue(result.contains("<mime-type>application/pdf</mime-type>"));
+    assertTrue(result.contains("<size>204800</size>"));
+    assertTrue(result.contains("<stanza-id>stanza-789</stanza-id>"));
+    assertTrue(result.contains("<body encoded='UTF-8'>Optional description</body>"));
+    assertTrue(result.contains("<forwarded xmlns='urn:xmpp:forward:0'"));
+  }
+
+  @Test
   @DisplayName("toRoomJid appends MUC domain to room id")
   void toRoomJid_testOk() {
     assertEquals("room-id@muclight.carbonio", XmppMessageFactory.toRoomJid("room-id"));
@@ -203,5 +280,32 @@ class XmppMessageFactoryTest {
   @DisplayName("toUserJid appends domain to user id")
   void toUserJid_testOk() {
     assertEquals("user-id@carbonio", XmppMessageFactory.toUserJid("user-id"));
+  }
+
+  @Test
+  @DisplayName("getAttachmentId returns the attachment id from an attachmentAdded stanza")
+  void getAttachmentId_returnsId() {
+    UUID attachmentId = UUID.randomUUID();
+    String message =
+        "<message from='userJid/roomJid' to='roomJid' id='messageId' type='groupchat'"
+            + " xmlns='jabber:client'><x xmlns='urn:xmpp:muclight:0#configuration'>"
+            + "<operation>attachmentAdded</operation><attachment-id>"
+            + attachmentId
+            + "</attachment-id>"
+            + "<filename>filename</filename><mime-type>mimeType</mime-type><size>1024</size>"
+            + "</x></message>";
+
+    assertEquals(
+        attachmentId.toString(), XmppMessageFactory.getAttachmentId(message).orElseThrow());
+  }
+
+  @Test
+  @DisplayName("getAttachmentId returns empty for a plain text stanza")
+  void getAttachmentId_returnsEmptyForPlainMessage() {
+    String message =
+        "<message from='userJid/roomJid' to='roomJid' id='messageId' type='groupchat'"
+            + " xmlns='jabber:client'><body>text message</body></message>";
+
+    assertEquals(Optional.empty(), XmppMessageFactory.getAttachmentId(message));
   }
 }

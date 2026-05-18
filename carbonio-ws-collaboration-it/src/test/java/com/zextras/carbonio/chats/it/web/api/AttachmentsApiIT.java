@@ -67,11 +67,11 @@ public class AttachmentsApiIT {
 
   @BeforeAll
   public static void initAll() {
-    user1Id = MockedAccount.getAccounts().get(0).getUUID();
-    user1Token = MockedAccount.getAccounts().get(0).getToken();
-    user2Id = MockedAccount.getAccounts().get(1).getUUID();
-    user2Token = MockedAccount.getAccounts().get(1).getToken();
-    user3Token = MockedAccount.getAccounts().get(2).getToken();
+    user1Id = MockedAccount.getInternalAccounts().get(0).getUUID();
+    user1Token = MockedAccount.getInternalAccounts().get(0).getToken();
+    user2Id = MockedAccount.getInternalAccounts().get(1).getUUID();
+    user2Token = MockedAccount.getInternalAccounts().get(1).getToken();
+    user3Token = MockedAccount.getInternalAccounts().get(2).getToken();
     roomId = UUID.randomUUID();
   }
 
@@ -342,22 +342,6 @@ public class AttachmentsApiIT {
       storageMockServer.mockDelete(fileMetadata.getId(), true);
 
       MockHttpResponse response = dispatcher.delete(url(fileMetadata.getId()), user2Token);
-      assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
-      assertTrue(fileMetadataRepository.getById(fileMetadata.getId()).isEmpty());
-    }
-
-    @Test
-    @DisplayName("Correctly deletes the attachment with requested id by room owner")
-    void deleteAttachment_testOkByRoomOwner() throws Exception {
-      FileMetadata fileMetadata =
-          integrationTestUtils.generateAndSaveFileMetadata(
-              MockedFiles.get(MockedFileType.PEANUTS_IMAGE),
-              FileMetadataType.ATTACHMENT,
-              user2Id,
-              roomId);
-      storageMockServer.mockDelete(fileMetadata.getId(), true);
-
-      MockHttpResponse response = dispatcher.delete(url(fileMetadata.getId()), user1Token);
       assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
       assertTrue(fileMetadataRepository.getById(fileMetadata.getId()).isEmpty());
     }

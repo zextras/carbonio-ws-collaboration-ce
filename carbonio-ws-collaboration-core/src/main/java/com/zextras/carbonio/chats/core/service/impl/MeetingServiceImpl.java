@@ -22,7 +22,6 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
-import com.zextras.carbonio.chats.core.infrastructure.messaging.impl.xmpp.XmppMessageFactory;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
@@ -157,13 +156,10 @@ public class MeetingServiceImpl implements MeetingService {
         meeting.getParticipants().stream().map(Participant::getUserId).distinct().toList(),
         MeetingDeclined.create()
             .meetingId(UUID.fromString(meeting.getId()))
-            .userId(UUID.fromString(currentUser.getUUID().toString()))
+            .userId(UUID.fromString(currentUser.getId()))
             .type(EventType.MEETING_DECLINED)
             .sentDate(OffsetDateTime.now()));
-    String message =
-        XmppMessageFactory.buildMeetingDeclineMessage(
-            meeting.getRoomId(), currentUser.getUUID().toString());
-    messageDispatcher.sendXmlMessageToRoom(message);
+    messageDispatcher.sendMeetingDeclined(meeting.getRoomId(), currentUser.getId());
 
     if (room.getType() == RoomTypeDto.ONE_TO_ONE && meeting.getParticipants().size() == 1) {
       Meeting updatedMeeting = deactivateMeeting(meeting);
@@ -221,9 +217,7 @@ public class MeetingServiceImpl implements MeetingService {
 
   private void notifyMeetingStartedForOneToOneMeeting(UserPrincipal user, RoomDto room) {
     if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
-      String message =
-          XmppMessageFactory.buildMeetingStartMessage(room.getId().toString(), user.getId());
-      messageDispatcher.sendXmlMessageToRoom(message);
+      messageDispatcher.sendMeetingStarted(room.getId().toString(), user.getId());
     }
   }
 
@@ -240,9 +234,7 @@ public class MeetingServiceImpl implements MeetingService {
       Room room, String userId, OffsetDateTime startedAt) {
     if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
       long duration = Duration.between(startedAt, OffsetDateTime.now(clock)).toSeconds();
-      String message =
-          XmppMessageFactory.buildMeetingEndedMessage(room.getId(), userId, startedAt, duration);
-      messageDispatcher.sendXmlMessageToRoom(message);
+      messageDispatcher.sendMeetingEnded(room.getId(), userId, startedAt, duration);
     }
   }
 

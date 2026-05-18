@@ -23,15 +23,17 @@ public class FileMetadataBuilder {
   @Override
   public FileMetadataBuilder clone() {
     return FileMetadataBuilder.create()
-      .id(fileMetadata.getId())
-      .name(fileMetadata.getName())
-      .originalSize(fileMetadata.getOriginalSize())
-      .mimeType(fileMetadata.getMimeType())
-      .type(fileMetadata.getType())
-      .userId(fileMetadata.getUserId())
-      .roomId(fileMetadata.getRoomId())
-      .createdAt(fileMetadata.getCreatedAt())
-      .updatedAt(fileMetadata.getUpdatedAt());
+        .id(fileMetadata.getId())
+        .name(fileMetadata.getName())
+        .originalSize(fileMetadata.getOriginalSize())
+        .mimeType(fileMetadata.getMimeType())
+        .type(fileMetadata.getType())
+        .userId(fileMetadata.getUserId())
+        .roomId(fileMetadata.getRoomId())
+        .messageId(fileMetadata.getMessageId())
+        .stanzaId(fileMetadata.getStanzaId())
+        .createdAt(fileMetadata.getCreatedAt())
+        .updatedAt(fileMetadata.getUpdatedAt());
   }
 
   public FileMetadataBuilder id(String id) {
@@ -66,6 +68,16 @@ public class FileMetadataBuilder {
 
   public FileMetadataBuilder roomId(String roomId) {
     fileMetadata.roomId(roomId);
+    return this;
+  }
+
+  public FileMetadataBuilder messageId(String messageId) {
+    fileMetadata.messageId(messageId);
+    return this;
+  }
+
+  public FileMetadataBuilder stanzaId(String stanzaId) {
+    fileMetadata.stanzaId(stanzaId);
     return this;
   }
 

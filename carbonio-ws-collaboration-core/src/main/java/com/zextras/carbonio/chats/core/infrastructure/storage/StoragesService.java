@@ -53,7 +53,7 @@ public interface StoragesService extends HealthIndicator {
    *
    * @param fileIds identifiers list of files to delete
    * @param ownerId identifier of the owner of the files
-   * @return identifiers list of files deleted
+   * @return identifiers list of files that failed to be deleted
    */
   List<String> deleteFileList(List<String> fileIds, String ownerId);
 }
