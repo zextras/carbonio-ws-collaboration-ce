@@ -1742,10 +1742,10 @@ public class RoomsApiIT {
         assertEquals(0, response.getOutput().length);
         assertTrue(integrationTestUtils.getRoomById(roomId).isEmpty());
         assertTrue(roomUserSettingsRepository.getByRoomId(roomId.toString()).isEmpty());
-        assertTrue(fileMetadataRepository.getById(file1Id).isEmpty());
-        Optional<FileMetadata> snoopy = fileMetadataRepository.getById(file2Id);
-        assertTrue(snoopy.isPresent());
-        assertNull(snoopy.get().getRoomId());
+        assertTrue(fileMetadataRepository.getById(file2Id).isEmpty());
+        Optional<FileMetadata> retained = fileMetadataRepository.getById(file1Id);
+        assertTrue(retained.isPresent());
+        assertNull(retained.get().getRoomId());
       }
 
       @Test
