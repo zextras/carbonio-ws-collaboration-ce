@@ -1,3 +1,14 @@
+## [1.9.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.8.2...v1.9.0) (2026-05-19)
+
+### Features
+
+* add attachment gallery API with paginated list and bulk delete for room attachments ([#231](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/231)) ([be2d0b9](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/be2d0b9cbe498f917d3bbbb6b5d058a80ba390f2))
+* **meetings:** add user feedback when RabbitMQ disconnects ([#230](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/230)) ([946ab94](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/946ab94f2c887f345e60266fe54f841559ec7ca0))
+
+### Bug Fixes
+
+* prevent XXE attacks in XML message parsers ([#225](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/225)) ([5e9d1ac](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/5e9d1acf83ac55505c4a22a6f008cf04dfe00a87))
+
 ## [1.8.2](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.8.1...v1.8.2) (2026-05-06)
 
 ### Bug Fixes
