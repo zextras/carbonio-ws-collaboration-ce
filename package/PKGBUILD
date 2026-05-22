@@ -13,6 +13,7 @@ depends=(
   "jq"
   "pending-setups"
   "service-discover"
+  "service-discover-base"
 )
 backup=(
   "etc/carbonio/ws-collaboration/logback.xml"
