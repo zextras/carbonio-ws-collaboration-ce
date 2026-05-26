@@ -10,7 +10,6 @@ import com.orbitz.consul.cache.KVCache;
 import com.orbitz.consul.config.CacheConfig;
 import com.orbitz.consul.config.ClientConfig;
 import com.orbitz.consul.model.kv.Value;
-import com.orbitz.consul.option.ImmutableQueryOptions;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
@@ -146,6 +145,7 @@ public class ConsulAppConfig extends AppConfig {
       return create(
           Consul.builder()
               .withUrl(new URL("http", consulHost, consulPort, ""))
+              .withTokenAuth(consulToken)
               .withReadTimeoutMillis(CONSUL_CLIENT_READ_TIMEOUT_SECONDS * 1000)
               .withClientConfiguration(
                   new ClientConfig(
@@ -174,8 +174,7 @@ public class ConsulAppConfig extends AppConfig {
                     KVCache.newCache(
                         consulClient.keyValueClient(),
                         prefix,
-                        CONSUL_CONFIG_WATCH_SECONDS,
-                        ImmutableQueryOptions.builder().token(consulToken).build());
+                        CONSUL_CONFIG_WATCH_SECONDS);
                 kvCache.addListener(values -> values.values().forEach(this::addToCache));
                 kvCache.start();
                 kvCacheList.add(kvCache);
@@ -213,7 +212,7 @@ public class ConsulAppConfig extends AppConfig {
           key ->
               consulClient
                   .keyValueClient()
-                  .getValue(key, ImmutableQueryOptions.builder().token(consulToken).build())
+                  .getValue(key)
                   .flatMap(Value::getValueAsString)
                   .orElse(null));
       return Optional.ofNullable(cache.get(consulName))
