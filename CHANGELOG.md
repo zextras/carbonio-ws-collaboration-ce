@@ -1,3 +1,9 @@
+## [1.9.1](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.9.0...v1.9.1) (2026-05-27)
+
+### Bug Fixes
+
+* **deps:** add explicit service-discover-base dependency ([#233](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/233)) ([f635bd8](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/f635bd849450acae53102794c886711e06a03d93))
+
 ## [1.9.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.8.2...v1.9.0) (2026-05-19)
 
 ### Features
