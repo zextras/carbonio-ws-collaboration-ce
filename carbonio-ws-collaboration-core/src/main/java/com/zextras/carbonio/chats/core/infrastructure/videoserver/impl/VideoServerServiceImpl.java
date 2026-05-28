@@ -886,6 +886,32 @@ public class VideoServerServiceImpl implements VideoServerService {
     }
   }
 
+  @Override
+  public void iceRestartScreen(String userId, String meetingId, String sdp) {
+    VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
+    VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
+
+    iceRestartScreenWithSdp(
+        videoServerSession.getConnectionId(), videoServerSession.getScreenHandleId(), sdp);
+  }
+
+  private void iceRestartScreenWithSdp(String connectionId, String screenHandleId, String sdp) {
+
+    VideoRoomResponse videoRoomResponse =
+        sendVideoRoomPluginMessage(
+            connectionId,
+            screenHandleId,
+            VideoRoomConfigureRequest.create().request(VideoRoomConfigureRequest.CONFIGURE),
+            RtcSessionDescription.create().type(RtcType.OFFER).sdp(sdp));
+
+    if (!VideoRoomResponse.ACK.equals(videoRoomResponse.getStatus())) {
+      throw new VideoServerException(
+          "An error occurred while user with connection id "
+              + connectionId
+              + " is triggering screen ice restart");
+    }
+  }
+
   private VideoServerMeeting getVideoServerMeeting(String meetingId) {
     return videoServerMeetingRepository
         .getById(meetingId)
