@@ -370,6 +370,17 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   }
 
   @Override
+  public Response iceRestartScreen(
+      UUID meetingId,
+      SessionDescriptionProtocolDto sessionDescriptionProtocolDto,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    participantService.iceRestartScreen(
+        meetingId, sessionDescriptionProtocolDto.getSdp(), currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  @Override
   public Response updateHandStatus(
       UUID meetingId, HandStatusDto handStatusDto, SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
