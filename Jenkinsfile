@@ -145,6 +145,7 @@ pipeline {
                 dockerStage([
                     dockerfile: 'docker/wsc/Dockerfile',
                     imageName: 'carbonio-ws-collaboration-ce',
+                    platforms: ['linux/amd64', 'linux/arm64'] as Set,
                     ocLabels: [
                         title: 'Carbonio WS Collaboration CE',
                         description: 'Carbonio WS Collaboration CE'
