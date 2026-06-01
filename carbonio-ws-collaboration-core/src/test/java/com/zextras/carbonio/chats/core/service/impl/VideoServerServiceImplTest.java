@@ -2869,6 +2869,130 @@ class VideoServerServiceImplTest {
   }
 
   @Nested
+  @DisplayName("Ice restart screen tests")
+  class IceRestartScreenTests {
+
+    @Test
+    @DisplayName("It triggers ice restart for screen")
+    void iceRestartScreen_testOk() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .screenHandleId(user1ScreenHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+
+      VideoRoomResponse iceRestartScreenResponse =
+          VideoRoomResponse.create()
+              .status("ack")
+              .connectionId(user1SessionId.toString())
+              .transactionId("transaction-id")
+              .handleId(user1ScreenHandleId.toString());
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1ScreenHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(iceRestartScreenResponse);
+
+      videoServerService.iceRestartScreen(
+          user1Id.toString(), meeting1Id.toString(), "session-description-protocol");
+
+      ArgumentCaptor<VideoServerMessageRequest> iceRestartScreenRequestCaptor =
+          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1ScreenHandleId.toString()),
+              iceRestartScreenRequestCaptor.capture());
+
+      assertEquals(1, iceRestartScreenRequestCaptor.getAllValues().size());
+      VideoServerMessageRequest iceRestartScreenRequest = iceRestartScreenRequestCaptor.getValue();
+      assertEquals("message", iceRestartScreenRequest.getMessageRequest());
+      assertEquals("token", iceRestartScreenRequest.getApiSecret());
+      assertEquals(
+          "session-description-protocol",
+          iceRestartScreenRequest.getRtcSessionDescription().getSdp());
+      VideoRoomConfigureRequest videoRoomConfigureRequest =
+          (VideoRoomConfigureRequest) iceRestartScreenRequest.getVideoServerPluginRequest();
+      assertEquals("configure", videoRoomConfigureRequest.getRequest());
+    }
+
+    @Test
+    @DisplayName("Try to trigger ice restart for screen stream on a meeting that does not exist")
+    void iceRestartScreen_testErrorMeetingNotExists() {
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.iceRestartScreen(
+                  user1Id.toString(), meeting1Id.toString(), "session-description-protocol"),
+          "No videoserver meeting found for the meeting " + meeting1Id);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName(
+        "Try to trigger ice restart for screen stream on a meeting of a participant that is not in")
+    void iceRestartScreen_testErrorParticipantNotExists() {
+      createVideoServerMeeting(meeting1Id);
+
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.iceRestartScreen(
+                  user1Id.toString(), meeting1Id.toString(), "session-description-protocol"),
+          "No Videoserver session found for user " + user1Id + " for the meeting " + meeting1Id);
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+    }
+
+    @Test
+    @DisplayName(
+        "Try to trigger ice restart for screen stream on a meeting but video server returns error")
+    void iceRestartScreen_testErrorResponseFromVideoServer() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .screenHandleId(user1ScreenHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+
+      VideoRoomResponse iceRestartScreenResponse = VideoRoomResponse.create().status("error");
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1ScreenHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(iceRestartScreenResponse);
+
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.iceRestartScreen(
+                  user1Id.toString(), meeting1Id.toString(), "session-description-protocol"),
+          "An error occurred while user "
+              + user1Id
+              + " with connection id "
+              + queue1Id
+              + " is triggering screen ice restart");
+
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1ScreenHandleId.toString()),
+              any(VideoServerMessageRequest.class));
+    }
+  }
+
+  @Nested
   @DisplayName("Health check tests")
   class HealthCheckTests {
 

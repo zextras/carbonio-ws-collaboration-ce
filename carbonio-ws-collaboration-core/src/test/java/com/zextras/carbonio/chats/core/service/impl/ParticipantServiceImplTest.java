@@ -1968,6 +1968,87 @@ class ParticipantServiceImplTest {
   }
 
   @Nested
+  @DisplayName("Ice restart screen tests")
+  class IceRestartScreenTests {
+
+    @Test
+    @DisplayName("It triggers ice restart for the screen stream for the current user")
+    void iceRestartScreen_testOk() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      permanentMeeting.participants(
+          List.of(participant1Session1, participant2Session1, participant4Session1));
+
+      participantService.iceRestartScreen(
+          permanentMeetingId, "sdp", UserPrincipal.create(user1Id).queueId(user1Queue1));
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verify(videoServerService, times(1))
+          .iceRestartScreen(user1Id.toString(), permanentMeetingId.toString(), "sdp");
+      verifyNoMoreInteractions(meetingService, videoServerService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the requested meeting doesn't exist, it throws a 'not found' exception")
+    void iceRestartScreen_testErrorMeetingNotExists() {
+      when(meetingService.getMeetingEntity(permanentMeetingId)).thenReturn(Optional.empty());
+
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () ->
+                  participantService.iceRestartScreen(
+                      permanentMeetingId,
+                      "sdp",
+                      UserPrincipal.create(user1Id).queueId(user1Queue1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format("Not Found - Meeting '%s' not found", permanentMeetingId),
+          exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(roomService, videoServerService, participantRepository, eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("If the requester is not a meeting participant, it throws a 'not found' exception")
+    void iceRestartScreen_testErrorUserIsNotMeetingParticipant() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      ChatsHttpException exception =
+          assertThrows(
+              NotFoundException.class,
+              () ->
+                  participantService.iceRestartScreen(
+                      permanentMeetingId,
+                      "sdp",
+                      UserPrincipal.create(user3Id).queueId(user3Queue1)));
+
+      assertEquals(Status.NOT_FOUND.getStatusCode(), exception.getHttpStatusCode());
+      assertEquals(Status.NOT_FOUND.getReasonPhrase(), exception.getHttpStatusPhrase());
+      assertEquals(
+          String.format(
+              "Not Found - User '%s' not found into meeting '%s'", user3Id, permanentMeetingId),
+          exception.getMessage());
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verifyNoMoreInteractions(meetingService);
+      verifyNoInteractions(
+          roomService,
+          videoServerService,
+          participantRepository,
+          eventDispatcher,
+          videoServerService);
+    }
+  }
+
+  @Nested
   @DisplayName("Get meeting participants tests")
   class GetMeetingParticipantsTests {
 

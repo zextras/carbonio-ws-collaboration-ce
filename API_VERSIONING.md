@@ -4,6 +4,16 @@ This document tracks internal changes related to API versioning, both for the RE
 
 ---
 
+## Version 1.6.13
+
+### Changes (1.6.13)
+
+- **API**: Added PUT `/meetings/${meetingId}/screen/iceRestart` endpoint — triggers WebRTC
+  ICE restart for the current user's screen-share (publisher) stream. Mirrors the existing
+  video ICE restart; the inbound side is already covered by the video ICE restart endpoint.
+
+---
+
 ## Version 1.6.12
 
 ### Changes (1.6.12)

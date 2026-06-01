@@ -45,6 +45,8 @@ public interface ParticipantService {
 
   void iceRestartVideo(UUID meetingId, String sdp, UserPrincipal currentUser);
 
+  void iceRestartScreen(UUID meetingId, String sdp, UserPrincipal currentUser);
+
   void updateHandStatus(UUID meetingId, HandStatusDto handStatusDto, UserPrincipal currentUser);
 
   void clear(UUID meetingId);

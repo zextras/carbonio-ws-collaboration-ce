@@ -443,6 +443,13 @@ public class ParticipantServiceImpl implements ParticipantService {
     videoServerService.iceRestartVideo(currentUser.getId(), meetingId.toString(), sdp);
   }
 
+  @Override
+  public void iceRestartScreen(UUID meetingId, String sdp, UserPrincipal currentUser) {
+    Meeting meeting = validateMeeting(meetingId);
+    validateMeetingParticipant(currentUser.getId(), meeting);
+    videoServerService.iceRestartScreen(currentUser.getId(), meetingId.toString(), sdp);
+  }
+
   private Participant validateMeetingParticipant(String userId, Meeting meeting) {
     return meeting.getParticipants().stream()
         .filter(p -> userId.equals(p.getUserId()))
