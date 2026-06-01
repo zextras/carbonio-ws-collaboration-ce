@@ -1,3 +1,9 @@
+## [1.10.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.9.1...v1.10.0) (2026-05-28)
+
+### Features
+
+* add iceRestartScreen endpoint for WebRTC ICE restart in meetings ([#235](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/235)) ([9ce8771](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/9ce87717d4007ce2c71e840c9aa4a8201e61e36b))
+
 ## [1.9.1](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.9.0...v1.9.1) (2026-05-27)
 
 ### Bug Fixes

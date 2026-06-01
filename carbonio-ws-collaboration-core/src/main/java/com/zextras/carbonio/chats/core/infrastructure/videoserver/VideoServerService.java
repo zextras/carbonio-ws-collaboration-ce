@@ -42,4 +42,6 @@ public interface VideoServerService extends HealthIndicator {
   void iceRestartAudio(String userId, String meetingId, String sdp);
 
   void iceRestartVideo(String userId, String meetingId, String sdp);
+
+  void iceRestartScreen(String userId, String meetingId, String sdp);
 }

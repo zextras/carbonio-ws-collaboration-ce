@@ -6,9 +6,10 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.12
+  version: 1.6.13
   x-supported-versions:
     [
+      "1.6.13",
       "1.6.12",
       "1.6.11",
       "1.6.10",
@@ -935,6 +936,25 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/screen/iceRestart:
+    put:
+      tags:
+        - Meetings
+      summary: Start WebRTC negotiation for screen stream for the current session on ICE restart
+      operationId: iceRestartScreen
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+      requestBody:
+        $ref: '#/components/requestBodies/RtcMediaStreamRequest'
+      responses:
+        204:
+          $ref: '#/components/responses/204IceRestartScreenStreamResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /meetings/{meetingId}/hand:
     put:
       tags:
@@ -1552,6 +1572,8 @@ components:
       description: The offer related to the audio stream has been processed and sent successfully on ICE restart
     204IceRestartVideoStreamResponse:
       description: The offer related to the video stream has been processed and sent successfully on ICE restart
+    204IceRestartScreenStreamResponse:
+      description: The offer related to the screen stream has been processed and sent successfully on ICE restart
     204MediaStreamResponse:
       description: The status of media stream changed successfully
     204AnswerMediaStreamResponse:
