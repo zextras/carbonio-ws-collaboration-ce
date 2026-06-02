@@ -84,7 +84,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <org.postgresql.version>42.7.4</org.postgresql.version>
         <!-- Logging -->
         <org.slf4j-api.version>2.0.16</org.slf4j-api.version>
-        <logback-classic.version>1.5.8</logback-classic.version>
+        <logback-classic.version>1.5.34</logback-classic.version>
         <!-- Jackson -->
         <com.fasterxml.jackson.version>2.18.0</com.fasterxml.jackson.version>
         <org.openapitools.jackson-databind-nullable.version>0.2.6</org.openapitools.jackson-databind-nullable.version>
