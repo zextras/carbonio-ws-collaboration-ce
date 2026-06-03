@@ -84,7 +84,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <org.postgresql.version>42.7.4</org.postgresql.version>
         <!-- Logging -->
         <org.slf4j-api.version>2.0.16</org.slf4j-api.version>
-        <logback-classic.version>1.5.8</logback-classic.version>
+        <logback-classic.version>1.5.34</logback-classic.version>
         <!-- Jackson -->
         <com.fasterxml.jackson.version>2.18.0</com.fasterxml.jackson.version>
         <org.openapitools.jackson-databind-nullable.version>0.2.10</org.openapitools.jackson-databind-nullable.version>
@@ -123,7 +123,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <!-- Plugins -->
         <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
         <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
-        <maven-surefire-plugin.version>3.5.1</maven-surefire-plugin.version>
+        <maven-surefire-plugin.version>3.5.6</maven-surefire-plugin.version>
         <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
         <maven-failsafe-plugin.version>3.5.6</maven-failsafe-plugin.version>
         <ebean-maven-plugin.version>15.6.0</ebean-maven-plugin.version>
