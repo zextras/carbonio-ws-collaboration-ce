@@ -1,11 +1,11 @@
-FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-21 AS local-dev
+FROM --platform=$BUILDPLATFORM docker.io/library/maven:3.9-eclipse-temurin-21 AS local-dev
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
 WORKDIR /app
 
-FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-21 AS deps
+FROM --platform=$BUILDPLATFORM docker.io/library/maven:3.9-eclipse-temurin-21 AS deps
 
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
