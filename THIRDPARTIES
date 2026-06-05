@@ -92,8 +92,8 @@ Apache-2.0 (https://spdx.org/licenses/Apache-2.0.html) applies to:
   Guava: Google Core Libraries for Java (com.google.guava:guava:31.0.1-jre)
   Guava: Google Core Libraries for Java (com.google.guava:guava:31.1-jre)
   Guava: Google Core Libraries for Java (com.google.guava:guava:33.3.1-android)
-  Hibernate Validator Engine (org.hibernate.validator:hibernate-validator:8.0.1.Final)
-  Hibernate Validator Portable Extension (org.hibernate.validator:hibernate-validator-cdi:8.0.1.Final)
+  Hibernate Validator Engine (org.hibernate.validator:hibernate-validator:8.0.3.Final)
+  Hibernate Validator Portable Extension (org.hibernate.validator:hibernate-validator-cdi:8.0.3.Final)
   HikariCP (com.zaxxer:HikariCP:6.0.0)
   IntelliJ IDEA Annotations (org.jetbrains:annotations:13.0)
   io.grpc:grpc-api (io.grpc:grpc-api:1.73.0)
@@ -181,11 +181,6 @@ EDL 1.0 (https://spdx.org/licenses/EDL 1.0.html) applies to:
   Jakarta Activation API (jakarta.activation:jakarta.activation-api:2.1.2)
   Jakarta Mail API (jakarta.mail:jakarta.mail-api:2.1.2)
 
-EPL-1.0 (https://spdx.org/licenses/EPL-1.0.html) applies to:
-
-  Logback Classic Module (ch.qos.logback:logback-classic:1.5.8)
-  Logback Core Module (ch.qos.logback:logback-core:1.5.8)
-
 EPL-2.0 (https://spdx.org/licenses/EPL-2.0.html) applies to:
 
   Angus Mail Provider (org.eclipse.angus:angus-mail:1.1.0)
@@ -196,6 +191,8 @@ EPL-2.0 (https://spdx.org/licenses/EPL-2.0.html) applies to:
   Jakarta RESTful WS API (jakarta.ws.rs:jakarta.ws.rs-api:4.0.0)
   Jakarta Servlet (jakarta.servlet:jakarta.servlet-api:6.0.0)
   jakarta.transaction API (jakarta.transaction:jakarta.transaction-api:2.0.1)
+  Logback Classic Module (ch.qos.logback:logback-classic:1.5.34)
+  Logback Core Module (ch.qos.logback:logback-core:1.5.34)
 
 Eclipse Distribution License - v 1.0 (https://spdx.org/licenses/Eclipse Distribution License - v 1.0.html) applies to:
 
@@ -255,11 +252,6 @@ GNU General Public License, version 2 with the GNU Classpath Exception (https://
   Jakarta WebSocket - Client API (jakarta.websocket:jakarta.websocket-client-api:2.1.1)
   Jakarta WebSocket - Server API (jakarta.websocket:jakarta.websocket-api:2.1.1)
 
-GNU Lesser General Public License (https://spdx.org/licenses/GNU Lesser General Public License.html) applies to:
-
-  Logback Classic Module (ch.qos.logback:logback-classic:1.5.8)
-  Logback Core Module (ch.qos.logback:logback-core:1.5.8)
-
 GPL v2 (https://spdx.org/licenses/GPL v2.html) applies to:
 
   RabbitMQ Java Client (com.rabbitmq:amqp-client:5.22.0)
@@ -277,6 +269,11 @@ GPL2 w/ CPE (https://spdx.org/licenses/GPL2 w/ CPE.html) applies to:
   Jakarta Mail API (jakarta.mail:jakarta.mail-api:2.1.2)
   Jakarta Servlet (jakarta.servlet:jakarta.servlet-api:6.0.0)
   jakarta.transaction API (jakarta.transaction:jakarta.transaction-api:2.0.1)
+
+LGPL-2.1-only (https://spdx.org/licenses/LGPL-2.1-only.html) applies to:
+
+  Logback Classic Module (ch.qos.logback:logback-classic:1.5.34)
+  Logback Core Module (ch.qos.logback:logback-core:1.5.34)
 
 LGPL-2.1-or-later (https://spdx.org/licenses/LGPL-2.1-or-later.html) applies to:
 
