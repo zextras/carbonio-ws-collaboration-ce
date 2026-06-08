@@ -15,27 +15,17 @@ library(
 // (carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar),
 // not a Quarkus *-runner.jar. dt3_pipeline's jarBuild copies only *-runner.jar patterns, so we use
 // appModule: 'carbonio-ws-collaboration-boot' to enable the Java build stage and handle the JAR copy
-// via packaging.overrides.preBuildScript (runs in the yap container after workspace unstash, before
+// via packaging.preBuildScript (runs in the yap container after workspace unstash, before
 // yap build). buildFlags: '-ds' skips makedep/dep resolution — no Zextras makedeps in PKGBUILD
 // (only runtime depends), so Zextras repo injection is not needed.
 dt3_pipeline(
     repoName: 'carbonio-ws-collaboration-ce',
     appModule: 'carbonio-ws-collaboration-boot',
     packaging: [
-        pkgbuildPath: 'package/PKGBUILD',
         buildFlags: '-ds',
-        overrides: [
-            ubuntu: [
-                preBuildScript: '''
-                    cp -a carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar package/carbonio-ws-collaboration-ce.jar
-                ''',
-            ],
-            rocky: [
-                preBuildScript: '''
-                    cp -a carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar package/carbonio-ws-collaboration-ce.jar
-                ''',
-            ],
-        ],
+        preBuildScript: '''
+            cp -a carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar package/carbonio-ws-collaboration-ce.jar
+        ''',
     ],
     docker: [[
         dockerfile: 'docker/wsc/Dockerfile',
