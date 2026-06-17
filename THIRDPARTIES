@@ -322,8 +322,6 @@ The Apache License, Version 2.0 (https://spdx.org/licenses/The Apache License, V
 Unknown license (https://spdx.org/licenses/Unknown license.html) applies to:
 
   carbonio-preview-sdk (com.zextras.carbonio.preview:carbonio-preview-sdk:2.0.1)
-  carbonio-ws-collaboration-ce-core (com.zextras.carbonio.ws-collaboration:carbonio-ws-collaboration-ce-core:0.0.0-SNAPSHOT)
-  carbonio-ws-collaboration-ce-openapi (com.zextras.carbonio.ws-collaboration:carbonio-ws-collaboration-ce-openapi:0.0.0-SNAPSHOT)
 
 WTFPL (https://spdx.org/licenses/WTFPL.html) applies to:
 
