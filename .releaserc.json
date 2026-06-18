@@ -38,13 +38,13 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "sed -i 's|<revision>.*</revision>|<revision>${nextRelease.version}</revision>|' pom.xml && sed -i 's/^pkgver=.*/pkgver=\"${nextRelease.version}\"/' package/PKGBUILD && sed -i 's/^  version: .*/  version: ${nextRelease.version}/' carbonio-ws-collaboration-openapi/src/main/resources/api.yaml && sed -i 's/^  version: .*/  version: ${nextRelease.version}/' carbonio-ws-collaboration-openapi/src/main/resources/asyncapi.yaml"
+        "prepareCmd": "sed -i 's|<revision>.*</revision>|<revision>${nextRelease.version}</revision>|' pom.xml && sed -i 's/^pkgver=.*/pkgver=\"${nextRelease.version}\"/' package/PKGBUILD"
       }
     ],
     [
       "@semantic-release/git",
       {
-        "assets": ["pom.xml", "CHANGELOG.md", "package/PKGBUILD", "carbonio-ws-collaboration-openapi/src/main/resources/api.yaml", "carbonio-ws-collaboration-openapi/src/main/resources/asyncapi.yaml"],
+        "assets": ["pom.xml", "CHANGELOG.md", "package/PKGBUILD"],
         "message": "chore(release): ${nextRelease.version}\n\n${nextRelease.notes}"
       }
     ]
