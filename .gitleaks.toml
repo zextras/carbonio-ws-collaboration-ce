@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 Zextras <https://www.zextras.com>
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# Allowlist mock tokens/JWTs used in unit and integration test code.
+# Test JWTs (e.g. in AuthenticationHandlerTest) are synthetic fixtures,
+# not real credentials — they must not block CI.
+[allowlist]
+description = "Ignore mock credentials in test source files"
+paths = [
+    '''.*Test\.java$''',
+    '''.*IT\.java$''',
+    '''.*Tests\.java$''',
+]

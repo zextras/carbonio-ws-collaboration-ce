@@ -3,155 +3,36 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 library(
-    identifier: 'jenkins-dt3-lib@v1.2.0',
-    retriever: modernSCM([
-        $class: 'GitSCMSource',
-        remote: 'git@github.com:zextras/jenkins-dt3-lib.git',
-        credentialsId: 'jenkins-integration-with-github-account'
-    ])
-)
-
-library(
-    identifier: 'jenkins-lib-common@v2.8.7',
+    identifier: 'jenkins-lib-common@dt3-pipeline',
     retriever: modernSCM([
         $class: 'GitSCMSource',
         credentialsId: 'jenkins-integration-with-github-account',
-        remote: 'git@github.com:zextras/jenkins-lib-common.git'
+        remote: 'git@github.com:zextras/jenkins-lib-common.git',
     ])
 )
 
-properties(defaultPipelineProperties())
-
-pipeline {
-    agent {
-        node {
-            label 'zextras-v1'
-        }
-    }
-
-    environment {
-        JAVA_OPTS = '-Dfile.encoding=UTF8'
-        LC_ALL = 'C.UTF-8'
-        jenkins_build = 'true'
-        MVN_OPTS = '-B'
-    }
-
-    options {
-        buildDiscarder(logRotator(numToKeepStr: '25'))
-        skipDefaultCheckout()
-        timeout(time: 2, unit: 'HOURS')
-    }
-
-    parameters {
-        booleanParam(
-            name: 'PREPARE_RELEASE',
-            defaultValue: false,
-            description: 'Check this to prepare a new release (creates pre-release branch and PR)'
-        )
-    }
-
-    stages {
-        stage('Setup') {
-            steps {
-                checkout scm
-                script {
-                    gitMetadata()
-                }
-            }
-        }
-
-        stage('Maven') {
-            steps {
-                script {
-                    mavenStage(
-                        postBuildScript: 'cp carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar package/carbonio-ws-collaboration-ce.jar',
-                        extraTestArgs: '-Dlogback.configurationFile="$(pwd)"/carbonio-ws-collaboration-boot/src/main/resources/logback-test-silent.xml',
-                        overrideCoverageCmd: 'true',
-                    )
-                }
-            }
-        }
-
-        stage('Build deb/rpm') {
-            steps {
-                script {
-                    buildPackages([
-                        pkgbuildPath: 'package/PKGBUILD',
-                        buildStageConfig: [
-                            buildFlags: ' -ds ',
-                        ]
-                    ])
-                }
-            }
-        }
-
-        stage('Upload artifacts') {
-            tools {
-                jfrog 'jfrog-cli'
-            }
-            steps {
-                uploadStage()
-            }
-        }
-
-        stage('Prepare Release') {
-            agent {
-                node {
-                    label 'sm-release-v1'
-                }
-            }
-            when {
-                allOf {
-                    branch 'devel'
-                    expression { params.PREPARE_RELEASE == true }
-                    not {
-                        expression {
-                            return env.GIT_COMMIT_MSG.contains('[skip ci]') ||
-                                   env.GIT_COMMIT_MSG.contains('chore(release):')
-                        }
-                    }
-                }
-            }
-            steps {
-                script {
-                    container('nodejs-22') {
-                        prepareRelease(
-                            repoName: 'carbonio-ws-collaboration-ce'
-                        )
-                    }
-                }
-            }
-        }
-
-        stage('Tag for release') {
-            when {
-                allOf {
-                    branch 'devel'
-                    expression {
-                        return env.GIT_COMMIT_MSG.contains('chore(release):') &&
-                               env.GIT_COMMIT_MSG.contains('[skip ci]')
-                    }
-                }
-            }
-            steps {
-                script {
-                    tagRelease()
-                }
-            }
-        }
-
-        stage('Publish docker images') {
-            steps {
-                dockerStage([
-                    dockerfile: 'docker/wsc/Dockerfile',
-                    imageName: 'carbonio-ws-collaboration-ce',
-                    platforms: ['linux/amd64', 'linux/arm64'] as Set,
-                    ocLabels: [
-                        title: 'Carbonio WS Collaboration CE',
-                        description: 'Carbonio WS Collaboration CE'
-                    ]
-                ])
-            }
-        }
-    }
-}
+// carbonio-ws-collaboration-ce uses a maven-shade fat JAR
+// (carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar),
+// not a Quarkus *-runner.jar. dt3_pipeline's jarBuild copies only *-runner.jar patterns, so we use
+// appModule: 'carbonio-ws-collaboration-boot' to enable the Java build stage and handle the JAR copy
+// via packaging.preBuildScript (runs in the yap container after workspace unstash, before
+// yap build). buildFlags: '-ds' skips makedep/dep resolution — no Zextras makedeps in PKGBUILD
+// (only runtime depends), so Zextras repo injection is not needed.
+dt3_pipeline(
+    repoName: 'carbonio-ws-collaboration-ce',
+    appModule: 'carbonio-ws-collaboration-boot',
+    packaging: [
+        buildFlags: '-ds',
+        preBuildScript: '''
+            cp -a carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar package/carbonio-ws-collaboration-ce.jar
+        ''',
+    ],
+    docker: [[
+        dockerfile: 'docker/wsc/Dockerfile',
+        imageName: 'carbonio-ws-collaboration-ce',
+        title: 'Carbonio WS Collaboration CE',
+        description: 'Carbonio WS Collaboration CE',
+        platforms: ['linux/amd64', 'linux/arm64'] as Set,
+    ]],
+    reuse: [projectType: 'CE'],
+)
