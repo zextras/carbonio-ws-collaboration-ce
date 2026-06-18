@@ -40,8 +40,8 @@ sha256sums=(
   '3b7439a5c9e2c84af0508ac9b4e20ca904dbf276a129c4c3c65f1fcb31ac9757'
   '799e3ac4354a2bef14912fa1057dd8fcec7bce3c6939df5ac1d91b749720384d'
   '9fe4d3b3d62ab0626fbc960dfb0e45a50e64f6837ca8fb5153890c838a57d31d'
-  '7b0d2fa3a5d3da5b657f0f9a595ac57e7d29584954088ab591a43cae34b23401'
-  '067d2da5321e6ed87394b78d9c6a071bb22e0f96f9e906e4ce4d4ed8c54c4b9e'
+  'ed484d5b078240142d77a9775cada9b41b4fc1a2125aab7c1cbbd274237ebfef'
+  'af2daa7a672dce2f4b3e71af6eb526b4dbc288b7e09744adb633f2c083c4a03a'
   '99fcaf768357c8be4a4301a1edf63d7059f5c032cf38a889cd3114d4737f60ee'
   '58c69efd45348762b3c603ecb8a7d3df5e4ada730b00a760d02d3f376a455d08'
   '202427eba34ef5b195575ff6cb48a5b21c6233114e09e468cc40017ea4e16f8b'
@@ -88,10 +88,10 @@ package__rocky_8() { _package_legacy; }
 package__ubuntu_jammy() { _package_legacy; }
 
 postinst() {
-  getent group 'carbonio-ws-collaboration' >/dev/null \
-    || groupadd -r 'carbonio-ws-collaboration'
-  getent passwd 'carbonio-ws-collaboration' >/dev/null \
-    || useradd -r -M -g 'carbonio-ws-collaboration' -s /sbin/nologin 'carbonio-ws-collaboration'
+  getent group 'carbonio-ws-collaboration' >/dev/null ||
+    groupadd -r 'carbonio-ws-collaboration'
+  getent passwd 'carbonio-ws-collaboration' >/dev/null ||
+    useradd -r -M -g 'carbonio-ws-collaboration' -s /sbin/nologin 'carbonio-ws-collaboration'
 
   mkdir -p /var/log/carbonio/ws-collaboration
   chown carbonio-ws-collaboration:carbonio-ws-collaboration /var/log/carbonio/ws-collaboration
