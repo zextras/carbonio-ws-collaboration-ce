@@ -103,7 +103,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <!-- Rabbit MQ -->
         <com.rabbitmq.amqp-client.version>5.22.0</com.rabbitmq.amqp-client.version>
         <!-- Web Socket -->
-        <jakarta.websocket-api.version>2.1.1</jakarta.websocket-api.version>
+        <jakarta.websocket-api.version>2.2.0</jakarta.websocket-api.version>
         <jakarta.el>5.0.0-M1</jakarta.el>
         <!-- Cache -->
         <caffeine.cache.version>3.1.8</caffeine.cache.version>
