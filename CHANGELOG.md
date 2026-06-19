@@ -1,3 +1,15 @@
+## [1.11.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.10.0...v1.11.0) (2026-06-19)
+
+### Features
+
+* **ci:** [IN-951] add arm64 platform to docker image builds ([#236](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/236)) ([d769a33](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/d769a33bf9bad513c44d67e56059c82afb06c45a))
+
+### Bug Fixes
+
+* **deps:** update dependency ch.qos.logback:logback-classic to v1.5.34 ([#195](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/195)) ([ae22446](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/ae22446a7053290b2284a782871807ffe71eb5ee))
+* **deps:** update dependency org.hibernate.validator:hibernate-validator-cdi to v8.0.3.final ([#202](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/202)) ([dca0930](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/dca093036c382b444bfe8a425d80b060eec7b4e2))
+* **reuse:** project-owned REUSE.toml (drop catch-all + legacy dep5) ([#257](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/257)) ([455a29a](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/455a29a7f16789bdd2600862da1272e4771b9502))
+
 ## [1.10.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.9.1...v1.10.0) (2026-05-28)
 
 ### Features
