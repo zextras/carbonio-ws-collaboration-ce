@@ -114,9 +114,9 @@ SPDX-License-Identifier: AGPL-3.0-only
         <!-- Mockito -->
         <org.mockito.version>5.14.1</org.mockito.version>
         <!-- Integration Tests dependency -->
-        <org.testcontainers.version>2.0.2</org.testcontainers.version>
-        <org.testcontainers.junit.jupiter.version>1.21.3</org.testcontainers.junit.jupiter.version>
-        <org.testcontainers.postgresql.version>1.21.3</org.testcontainers.postgresql.version>
+        <org.testcontainers.version>2.0.5</org.testcontainers.version>
+        <org.testcontainers.junit.jupiter.version>1.21.4</org.testcontainers.junit.jupiter.version>
+        <org.testcontainers.postgresql.version>1.21.4</org.testcontainers.postgresql.version>
         <org.mock-server.version>5.15.0</org.mock-server.version>
         <com.github.fridujo-rabbitmq-mock.version>1.2.0</com.github.fridujo-rabbitmq-mock.version>
         <org.awaitility.version>4.3.0</org.awaitility.version>
