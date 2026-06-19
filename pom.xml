@@ -79,7 +79,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <!-- Ebean -->
         <io.ebean.version>15.6.0</io.ebean.version>
         <!-- Database -->
-        <org.flywaydb.version>10.19.0</org.flywaydb.version>
+        <org.flywaydb.version>10.22.0</org.flywaydb.version>
         <com.zaxxer.HikariCP.version>6.0.0</com.zaxxer.HikariCP.version>
         <org.postgresql.version>42.7.4</org.postgresql.version>
         <!-- Logging -->
