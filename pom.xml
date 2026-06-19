@@ -106,7 +106,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <jakarta.websocket-api.version>2.1.1</jakarta.websocket-api.version>
         <jakarta.el>5.0.0-M1</jakarta.el>
         <!-- Cache -->
-        <caffeine.cache.version>3.1.8</caffeine.cache.version>
+        <caffeine.cache.version>3.2.4</caffeine.cache.version>
         <!-- Tests dependency -->
         <!-- JUnit Jupiter -->
         <org.junit.jupiter.version>5.11.2</org.junit.jupiter.version>
