@@ -64,7 +64,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <!-- Previewer -->
         <preview-sdk.version>2.0.1</preview-sdk.version>
         <!-- gRPC -->
-        <io.grpc.version>1.73.0</io.grpc.version>
+        <io.grpc.version>1.82.0</io.grpc.version>
         <!-- Jetty -->
         <org.eclipse.jetty.version>12.0.19</org.eclipse.jetty.version>
         <org.eclipse.jetty.servlet.version>12.0.19</org.eclipse.jetty.servlet.version>
