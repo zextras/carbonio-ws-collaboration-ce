@@ -94,7 +94,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <com.vdurmont.version>3.1.0</com.vdurmont.version>
         <org.yaml.version>2.4</org.yaml.version>
         <!-- Open api-->
-        <io.swagger.version>1.6.14</io.swagger.version>
+        <io.swagger.version>1.6.16</io.swagger.version>
         <org.hibernate.validator.version>8.0.3.Final</org.hibernate.validator.version>
         <!-- @Nullable annotation -->
         <com.google.code.findbugs.jsr305.version>3.0.2</com.google.code.findbugs.jsr305.version>
