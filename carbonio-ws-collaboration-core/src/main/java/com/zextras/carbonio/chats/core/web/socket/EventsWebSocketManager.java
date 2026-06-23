@@ -73,7 +73,7 @@ public class EventsWebSocketManager {
         .getAsyncRemote()
         .sendObject(migrator.downgradeIfNeeded(wsConnected, getVersion(session)));
 
-    sessions.add(session, userId.toString());
+    sessions.add(session);
 
     DeliverCallback deliverCallback =
         (consumerTag, delivery) -> {
@@ -159,22 +159,25 @@ public class EventsWebSocketManager {
 
   @OnClose
   public void onClose(Session session) {
-    sessions.removeUser(getUserIdFromSession(session));
-    sessions.remove(session.getId());
-    closeSessionWithBroker(session);
+    handleSessionClose(session);
   }
 
   @OnError
   public void onError(Session session, Throwable throwable) {
-    UUID userId = UUID.fromString(getUserIdFromSession(session));
-    UUID queueId = UUID.fromString(session.getId());
-    String userQueue = userId + "/" + queueId;
-    sessions.remove(session.getId());
+    handleSessionClose(session);
     try {
       session.close();
     } catch (Exception e) {
       ChatsLogger.warn(
-          String.format("Error closing websocket session for user/queue '%s'", userQueue));
+          String.format(
+              "Error closing websocket session for user/queue '%s/%s'",
+              getUserIdFromSession(session), session.getId()));
+    }
+  }
+
+  private void handleSessionClose(Session session) {
+    if (sessions.remove(session.getId())) {
+      closeSessionWithBroker(session);
     }
   }
 

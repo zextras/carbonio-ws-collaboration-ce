@@ -58,7 +58,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   }
 
   private void checkActiveSession(UserPrincipal user) {
-    if (!healthMonitor.isReadyForUser(user.getId())) {
+    if (!healthMonitor.isReadyForUser()) {
       throw new ForbiddenException("No active event pipeline for user");
     }
   }

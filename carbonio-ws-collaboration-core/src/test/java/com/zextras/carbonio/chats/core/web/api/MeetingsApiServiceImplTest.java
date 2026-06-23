@@ -72,7 +72,7 @@ class MeetingsApiServiceImplTest {
 
     roomId = UUID.randomUUID();
     meetingId = UUID.randomUUID();
-    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+    when(healthMonitor.isReadyForUser()).thenReturn(true);
   }
 
   @AfterEach
@@ -162,7 +162,7 @@ class MeetingsApiServiceImplTest {
 
   @Test
   void messageBrokerDownBlocksJoinMeeting() {
-    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    when(healthMonitor.isReadyForUser()).thenReturn(false);
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -172,7 +172,7 @@ class MeetingsApiServiceImplTest {
 
   @Test
   void messageBrokerDownBlocksStartMeeting() {
-    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    when(healthMonitor.isReadyForUser()).thenReturn(false);
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -182,7 +182,7 @@ class MeetingsApiServiceImplTest {
 
   @Test
   void messageBrokerDownBlocksUpdateMediaStream() {
-    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    when(healthMonitor.isReadyForUser()).thenReturn(false);
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -198,7 +198,7 @@ class MeetingsApiServiceImplTest {
 
   @Test
   void messageBrokerDownBlocksUpdateAudioStream() {
-    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    when(healthMonitor.isReadyForUser()).thenReturn(false);
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -212,7 +212,7 @@ class MeetingsApiServiceImplTest {
 
   @Test
   void messageBrokerDownBlocksUpdateHandStatus() {
-    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    when(healthMonitor.isReadyForUser()).thenReturn(false);
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(

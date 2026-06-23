@@ -16,7 +16,6 @@ public class EventWebSocketSessions {
   record SessionInfo(WeakReference<Session> sessionRef) {}
 
   private final ConcurrentHashMap<String, SessionInfo> sessionInfoMap = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<String, String> userSessionIndex = new ConcurrentHashMap<>();
   private final SessionPingManager pingManager;
 
   @Inject
@@ -24,19 +23,15 @@ public class EventWebSocketSessions {
     this.pingManager = pingManager;
   }
 
-  public void add(Session session, String userId) {
+  public void add(Session session) {
     sessionInfoMap.put(session.getId(), new SessionInfo(new WeakReference<>(session)));
-    userSessionIndex.put(userId, session.getId());
     pingManager.start(session);
   }
 
-  public void remove(String sessionId) {
-    sessionInfoMap.remove(sessionId);
+  public boolean remove(String sessionId) {
+    boolean existed = sessionInfoMap.remove(sessionId) != null;
     pingManager.stop(sessionId);
-  }
-
-  public void removeUser(String userId) {
-    userSessionIndex.remove(userId);
+    return existed;
   }
 
   public void broadcast(String message) {
@@ -52,13 +47,5 @@ public class EventWebSocketSessions {
             sessionInfoMap.remove(id);
           }
         });
-  }
-
-  public boolean hasActiveSessionForUser(String userId) {
-    return userSessionIndex.containsKey(userId);
-  }
-
-  public void registerUserSession(String userId, String sessionId) {
-    userSessionIndex.put(userId, sessionId);
   }
 }

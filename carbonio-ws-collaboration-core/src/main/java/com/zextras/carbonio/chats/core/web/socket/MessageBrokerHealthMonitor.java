@@ -55,10 +55,8 @@ public class MessageBrokerHealthMonitor {
     }
   }
 
-  public boolean isReadyForUser(String userId) {
-    return !messageBrokerDown.get()
-        && videoServerReady.get()
-        && sessions.hasActiveSessionForUser(userId);
+  public boolean isReadyForUser() {
+    return !messageBrokerDown.get() && videoServerReady.get();
   }
 
   private DomainEvent buildDisconnected() {

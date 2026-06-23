@@ -57,12 +57,11 @@ class MessageBrokerHealthMonitorTest {
   @Test
   void notifyBrokerDown_resetsVideoServerReadiness() {
     monitor.notifyVideoServerReady();
-    when(sessions.hasActiveSessionForUser(anyString())).thenReturn(true);
-    assertTrue(monitor.isReadyForUser("u"));
+    assertTrue(monitor.isReadyForUser());
 
     monitor.notifyBrokerDown();
 
-    assertFalse(monitor.isReadyForUser("u"));
+    assertFalse(monitor.isReadyForUser());
   }
 
   @Test
@@ -119,18 +118,13 @@ class MessageBrokerHealthMonitorTest {
   }
 
   @Test
-  void isReadyForUser_requiresBrokerUpAndVideoServerReadyAndActiveSession() {
-    when(sessions.hasActiveSessionForUser("u")).thenReturn(true);
-    assertFalse(monitor.isReadyForUser("u")); // videoServerReady=false
+  void isReadyForUser_requiresBrokerUpAndVideoServerReady() {
+    assertFalse(monitor.isReadyForUser()); // videoServerReady=false
 
     monitor.notifyVideoServerReady();
-    assertTrue(monitor.isReadyForUser("u"));
+    assertTrue(monitor.isReadyForUser());
 
-    when(sessions.hasActiveSessionForUser("u")).thenReturn(false);
-    assertFalse(monitor.isReadyForUser("u"));
-
-    when(sessions.hasActiveSessionForUser("u")).thenReturn(true);
     monitor.notifyBrokerDown();
-    assertFalse(monitor.isReadyForUser("u"));
+    assertFalse(monitor.isReadyForUser());
   }
 }
