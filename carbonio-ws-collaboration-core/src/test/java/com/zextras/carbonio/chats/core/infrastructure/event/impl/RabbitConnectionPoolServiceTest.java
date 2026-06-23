@@ -32,7 +32,7 @@ import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerHealthMonitor;
+import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.AfterEach;
@@ -48,13 +48,13 @@ class RabbitConnectionPoolServiceTest {
   private final ConnectionFactory factory;
   private final Connection connection;
   private final Channel channel;
-  private final MessageBrokerHealthMonitor monitor;
+  private final MessageBrokerVideoserverHealthMonitor monitor;
 
   public RabbitConnectionPoolServiceTest() {
     this.factory = mock(ConnectionFactory.class);
     this.connection = mock(Connection.class, withSettings().extraInterfaces(Recoverable.class));
     this.channel = mock(Channel.class);
-    this.monitor = mock(MessageBrokerHealthMonitor.class);
+    this.monitor = mock(MessageBrokerVideoserverHealthMonitor.class);
   }
 
   @BeforeEach

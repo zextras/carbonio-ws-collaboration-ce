@@ -65,7 +65,7 @@ public class VideoServerEventListener {
   private final EventDispatcher eventDispatcher;
   private final ObjectMapper objectMapper;
   private final VideoServerService videoServerService;
-  private final MessageBrokerHealthMonitor healthMonitor;
+  private final MessageBrokerVideoserverHealthMonitor messageBrokerVideoserverHealthMonitor;
 
   @Inject
   public VideoServerEventListener(
@@ -73,12 +73,12 @@ public class VideoServerEventListener {
       EventDispatcher eventDispatcher,
       ObjectMapper objectMapper,
       VideoServerService videoServerService,
-      MessageBrokerHealthMonitor healthMonitor) {
+      MessageBrokerVideoserverHealthMonitor messageBrokerVideoserverHealthMonitor) {
     this.channel = getRecoverableChannel(channel);
     this.eventDispatcher = eventDispatcher;
     this.objectMapper = objectMapper;
     this.videoServerService = videoServerService;
-    this.healthMonitor = healthMonitor;
+    this.messageBrokerVideoserverHealthMonitor = messageBrokerVideoserverHealthMonitor;
     Runtime.getRuntime()
         .addShutdownHook(new Thread(this::stop, "Video server event listener shutdown hook"));
   }
@@ -142,7 +142,7 @@ public class VideoServerEventListener {
       switch (event.getType()) {
         case JSEP_TYPE -> handleJsepTypeEvent(event);
         case PLUGIN_TYPE -> handlePluginTypeEvent(event);
-        case HEARTBEAT_TYPE -> healthMonitor.notifyVideoServerReady();
+        case HEARTBEAT_TYPE -> messageBrokerVideoserverHealthMonitor.notifyVideoServerReady();
         default -> {
           /* just ignore other events */
         }

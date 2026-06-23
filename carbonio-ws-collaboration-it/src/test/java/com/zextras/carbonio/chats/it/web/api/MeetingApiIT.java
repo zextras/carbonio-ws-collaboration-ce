@@ -64,7 +64,8 @@ class MeetingApiIT {
   private final ObjectMapper objectMapper;
   private final IntegrationTestUtils integrationTestUtils;
   private final VideoServerMockServer videoServerMockServer;
-  private final com.zextras.carbonio.chats.core.web.socket.MessageBrokerHealthMonitor healthMonitor;
+  private final com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor
+      healthMonitor;
 
   public MeetingApiIT(
       MeetingsApi meetingsApi,
@@ -74,7 +75,8 @@ class MeetingApiIT {
       ObjectMapper objectMapper,
       IntegrationTestUtils integrationTestUtils,
       VideoServerMockServer videoServerMockServer,
-      com.zextras.carbonio.chats.core.web.socket.MessageBrokerHealthMonitor healthMonitor) {
+      com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor
+          healthMonitor) {
     this.dispatcher = dispatcher;
     this.participantRepository = participantRepository;
     this.meetingTestUtils = meetingTestUtils;

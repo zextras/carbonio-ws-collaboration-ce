@@ -13,7 +13,7 @@ import com.rabbitmq.client.Recoverable;
 import com.rabbitmq.client.RecoveryListener;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerHealthMonitor;
+import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,10 +40,12 @@ public class RabbitConnectionPoolService {
   private final ConcurrentHashMap<String, SessionTopology> topologyMap = new ConcurrentHashMap<>();
   private final AtomicInteger recoveredCount = new AtomicInteger(0);
   private final AtomicBoolean brokerDownGate = new AtomicBoolean(false);
-  private final MessageBrokerHealthMonitor healthMonitor;
+  private final MessageBrokerVideoserverHealthMonitor healthMonitor;
 
   public RabbitConnectionPoolService(
-      ConnectionFactory factory, int poolSize, MessageBrokerHealthMonitor healthMonitor) {
+      ConnectionFactory factory,
+      int poolSize,
+      MessageBrokerVideoserverHealthMonitor healthMonitor) {
     this.healthMonitor = healthMonitor;
     this.connectionPool = new ArrayList<>(poolSize);
     for (int i = 0; i < poolSize; i++) {
