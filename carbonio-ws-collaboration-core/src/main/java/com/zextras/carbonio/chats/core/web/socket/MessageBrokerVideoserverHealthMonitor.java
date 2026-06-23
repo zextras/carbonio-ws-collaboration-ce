@@ -12,12 +12,14 @@ import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.async.model.MessageBrokerDisconnected;
 import com.zextras.carbonio.async.model.MessageBrokerRestored;
+import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
+import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import java.time.OffsetDateTime;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
-public class MessageBrokerHealthMonitor {
+public class MessageBrokerVideoserverHealthMonitor {
 
   private final EventWebSocketSessions sessions;
   private final ObjectMapper objectMapper;
@@ -27,7 +29,8 @@ public class MessageBrokerHealthMonitor {
   private final AtomicBoolean pendingRestoredNotification = new AtomicBoolean(false);
 
   @Inject
-  public MessageBrokerHealthMonitor(EventWebSocketSessions sessions, ObjectMapper objectMapper) {
+  public MessageBrokerVideoserverHealthMonitor(
+      EventWebSocketSessions sessions, ObjectMapper objectMapper) {
     this.sessions = sessions;
     this.objectMapper = objectMapper;
   }
@@ -55,10 +58,13 @@ public class MessageBrokerHealthMonitor {
     }
   }
 
-  public boolean isReadyForUser(String userId) {
-    return !messageBrokerDown.get()
-        && videoServerReady.get()
-        && sessions.hasActiveSessionForUser(userId);
+  public void checkStatus() {
+    if (messageBrokerDown.get()) {
+      throw new EventDispatcherException("Message broker is down");
+    }
+    if (!videoServerReady.get()) {
+      throw new VideoServerException("Video server is not ready");
+    }
   }
 
   private DomainEvent buildDisconnected() {

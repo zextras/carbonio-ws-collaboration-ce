@@ -4,7 +4,8 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
@@ -19,17 +20,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
+import com.zextras.carbonio.chats.core.exception.VideoServerException;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 @UnitTest
-class MessageBrokerHealthMonitorTest {
+class MessageBrokerVideoserverHealthMonitorTest {
 
   private EventWebSocketSessions sessions;
   private ObjectMapper objectMapper;
-  private MessageBrokerHealthMonitor monitor;
+  private MessageBrokerVideoserverHealthMonitor monitor;
 
   @BeforeEach
   void setUp() {
@@ -37,7 +40,7 @@ class MessageBrokerHealthMonitorTest {
     objectMapper = new ObjectMapper();
     objectMapper.findAndRegisterModules();
     objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    monitor = new MessageBrokerHealthMonitor(sessions, objectMapper);
+    monitor = new MessageBrokerVideoserverHealthMonitor(sessions, objectMapper);
   }
 
   @Test
@@ -57,12 +60,11 @@ class MessageBrokerHealthMonitorTest {
   @Test
   void notifyBrokerDown_resetsVideoServerReadiness() {
     monitor.notifyVideoServerReady();
-    when(sessions.hasActiveSessionForUser(anyString())).thenReturn(true);
-    assertTrue(monitor.isReadyForUser("u"));
+    assertDoesNotThrow(() -> monitor.checkStatus());
 
     monitor.notifyBrokerDown();
 
-    assertFalse(monitor.isReadyForUser("u"));
+    assertThrows(EventDispatcherException.class, () -> monitor.checkStatus());
   }
 
   @Test
@@ -119,18 +121,13 @@ class MessageBrokerHealthMonitorTest {
   }
 
   @Test
-  void isReadyForUser_requiresBrokerUpAndVideoServerReadyAndActiveSession() {
-    when(sessions.hasActiveSessionForUser("u")).thenReturn(true);
-    assertFalse(monitor.isReadyForUser("u")); // videoServerReady=false
+  void checkStatus() {
+    assertThrows(VideoServerException.class, () -> monitor.checkStatus()); // videoServerReady=false
 
     monitor.notifyVideoServerReady();
-    assertTrue(monitor.isReadyForUser("u"));
+    assertDoesNotThrow(() -> monitor.checkStatus());
 
-    when(sessions.hasActiveSessionForUser("u")).thenReturn(false);
-    assertFalse(monitor.isReadyForUser("u"));
-
-    when(sessions.hasActiveSessionForUser("u")).thenReturn(true);
     monitor.notifyBrokerDown();
-    assertFalse(monitor.isReadyForUser("u"));
+    assertThrows(EventDispatcherException.class, () -> monitor.checkStatus());
   }
 }

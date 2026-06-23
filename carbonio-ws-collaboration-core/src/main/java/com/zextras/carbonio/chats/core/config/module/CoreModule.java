@@ -123,7 +123,7 @@ import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerHealthMonitor;
+import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
@@ -167,7 +167,7 @@ public class CoreModule extends AbstractModule {
     bind(EventsWebSocketManager.class);
     bind(EventWebSocketSessions.class);
     bind(SessionPingManager.class);
-    bind(MessageBrokerHealthMonitor.class);
+    bind(MessageBrokerVideoserverHealthMonitor.class);
 
     bind(RoomsApi.class);
     bind(RoomsApiService.class).to(RoomsApiServiceImpl.class);
@@ -396,7 +396,7 @@ public class CoreModule extends AbstractModule {
   @Singleton
   @Provides
   private RabbitConnectionPoolService getRabbitConnectionPoolFactory(
-      AppConfig appConfig, MessageBrokerHealthMonitor healthMonitor) {
+      AppConfig appConfig, MessageBrokerVideoserverHealthMonitor healthMonitor) {
     ConnectionFactory factory = new ConnectionFactory();
     factory.setHost(appConfig.get(String.class, ConfigName.EVENT_DISPATCHER_HOST).orElseThrow());
     factory.setPort(appConfig.get(Integer.class, ConfigName.EVENT_DISPATCHER_PORT).orElseThrow());

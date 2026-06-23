@@ -54,7 +54,7 @@ class VideoServerEventListenerTest {
   private Channel channel;
   private EventDispatcher eventDispatcher;
   private VideoServerService videoServerService;
-  private MessageBrokerHealthMonitor healthMonitor;
+  private MessageBrokerVideoserverHealthMonitor healthMonitor;
   private ArgumentCaptor<DeliverCallback> deliverCallbackCaptor;
   private ObjectMapper objectMapper;
   private VideoServerEventListener listener;
@@ -64,7 +64,7 @@ class VideoServerEventListenerTest {
     channel = mock(Channel.class, withSettings().extraInterfaces(Recoverable.class));
     eventDispatcher = mock(EventDispatcher.class);
     videoServerService = mock(VideoServerService.class);
-    healthMonitor = mock(MessageBrokerHealthMonitor.class);
+    healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
     deliverCallbackCaptor = ArgumentCaptor.forClass(DeliverCallback.class);
     objectMapper = new ObjectMapper();
 

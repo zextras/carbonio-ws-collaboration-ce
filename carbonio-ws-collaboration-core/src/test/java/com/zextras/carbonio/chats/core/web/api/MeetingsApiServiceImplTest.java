@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.web.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
@@ -15,11 +16,12 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
+import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.chats.core.web.socket.MessageBrokerHealthMonitor;
+import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.model.NewMeetingDataDto;
 import com.zextras.carbonio.chats.core.data.type.UserType;
@@ -39,7 +41,7 @@ class MeetingsApiServiceImplTest {
   private final MeetingService meetingService;
   private final ParticipantService participantService;
   private final SecurityContext securityContext;
-  private final MessageBrokerHealthMonitor healthMonitor;
+  private final MessageBrokerVideoserverHealthMonitor healthMonitor;
   private UUID user1Id;
   private UUID roomId;
   private UUID meetingId;
@@ -50,7 +52,7 @@ class MeetingsApiServiceImplTest {
     this.meetingService = mock(MeetingService.class);
     this.participantService = mock(ParticipantService.class);
     CacheVideoServerSession cacheVideoServerSession = mock(CacheVideoServerSession.class);
-    this.healthMonitor = mock(MessageBrokerHealthMonitor.class);
+    this.healthMonitor = mock(MessageBrokerVideoserverHealthMonitor.class);
     this.meetingsApiService =
         new MeetingsApiServiceImpl(
             meetingService, participantService, cacheVideoServerSession, healthMonitor);
@@ -72,7 +74,6 @@ class MeetingsApiServiceImplTest {
 
     roomId = UUID.randomUUID();
     meetingId = UUID.randomUUID();
-    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
   }
 
   @AfterEach
@@ -162,31 +163,31 @@ class MeetingsApiServiceImplTest {
 
   @Test
   void messageBrokerDownBlocksJoinMeeting() {
-    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    doThrow(new EventDispatcherException("Message broker is down")).when(healthMonitor).checkStatus();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
-        ForbiddenException.class,
+        EventDispatcherException.class,
         () -> meetingsApiService.joinMeeting(meetingId, JoinSettingsDto.create(), securityContext));
   }
 
   @Test
   void messageBrokerDownBlocksStartMeeting() {
-    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    doThrow(new EventDispatcherException("Message broker is down")).when(healthMonitor).checkStatus();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
-        ForbiddenException.class,
+        EventDispatcherException.class,
         () -> meetingsApiService.startMeeting(meetingId, securityContext));
   }
 
   @Test
   void messageBrokerDownBlocksUpdateMediaStream() {
-    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    doThrow(new EventDispatcherException("Message broker is down")).when(healthMonitor).checkStatus();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
-        ForbiddenException.class,
+        EventDispatcherException.class,
         () ->
             meetingsApiService.updateMediaStream(
                 meetingId,
@@ -198,11 +199,11 @@ class MeetingsApiServiceImplTest {
 
   @Test
   void messageBrokerDownBlocksUpdateAudioStream() {
-    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    doThrow(new EventDispatcherException("Message broker is down")).when(healthMonitor).checkStatus();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
-        ForbiddenException.class,
+        EventDispatcherException.class,
         () ->
             meetingsApiService.updateAudioStream(
                 meetingId,
@@ -212,11 +213,11 @@ class MeetingsApiServiceImplTest {
 
   @Test
   void messageBrokerDownBlocksUpdateHandStatus() {
-    when(healthMonitor.isReadyForUser(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+    doThrow(new EventDispatcherException("Message broker is down")).when(healthMonitor).checkStatus();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
-        ForbiddenException.class,
+        EventDispatcherException.class,
         () ->
             meetingsApiService.updateHandStatus(
                 meetingId,
