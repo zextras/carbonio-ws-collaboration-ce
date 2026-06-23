@@ -1,3 +1,9 @@
+## [1.11.2](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.11.1...v1.11.2) (2026-06-23)
+
+### Bug Fixes
+
+* simplify session management by removing user session indexing ([#263](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/263)) ([210e17c](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/210e17c02e45d44e7325b1d4c30dbe39f6430bfe))
+
 ## [1.11.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.10.0...v1.11.0) (2026-06-19)
 
 ### Features
