@@ -19,6 +19,7 @@ class VideoRoomCreateRequestTest {
             .permanent(false)
             .description("description")
             .isPrivate(false)
+            .videoorientExt(false)
             .publishers(100)
             .bitrate(65000L)
             .bitrateCap(true)
@@ -30,6 +31,7 @@ class VideoRoomCreateRequestTest {
     assertFalse(videoRoomCreateRequest.getPermanent());
     assertEquals("description", videoRoomCreateRequest.getDescription());
     assertFalse(videoRoomCreateRequest.getIsPrivate());
+    assertFalse(videoRoomCreateRequest.getVideoorientExt());
     assertEquals(100, videoRoomCreateRequest.getPublishers());
     assertEquals(65000L, videoRoomCreateRequest.getBitrate());
     assertTrue(videoRoomCreateRequest.getBitrateCap());
@@ -46,6 +48,7 @@ class VideoRoomCreateRequestTest {
             .permanent(false)
             .description("description")
             .isPrivate(false)
+            .videoorientExt(false)
             .publishers(100)
             .bitrate(65000L)
             .bitrateCap(true)
@@ -59,6 +62,7 @@ class VideoRoomCreateRequestTest {
             .permanent(false)
             .description("description")
             .isPrivate(false)
+            .videoorientExt(false)
             .publishers(100)
             .bitrate(65000L)
             .bitrateCap(true)

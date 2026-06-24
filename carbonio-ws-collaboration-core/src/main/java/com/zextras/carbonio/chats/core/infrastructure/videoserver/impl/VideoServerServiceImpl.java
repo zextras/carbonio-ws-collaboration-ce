@@ -184,6 +184,7 @@ public class VideoServerServiceImpl implements VideoServerService {
             .description(VideoRoomCreateRequest.DESCRIPTION_DEFAULT + meetingId)
             .isPrivate(false)
             .record(false)
+            .videoorientExt(false)
             .publishers(VideoRoomCreateRequest.MAX_PUBLISHERS_DEFAULT)
             .bitrate(videoServerConfig.getBitrate())
             .bitrateCap(videoServerConfig.getBitrateCap())

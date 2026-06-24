@@ -29,6 +29,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
   private Boolean permanent;
   private String description;
   private Boolean isPrivate;
+  private Boolean videoorientExt;
 
   private Integer publishers;
   private Long bitrate;
@@ -88,6 +89,15 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
     return this;
   }
 
+  public Boolean getVideoorientExt() {
+    return videoorientExt;
+  }
+
+  public VideoRoomCreateRequest videoorientExt(boolean videoorientExt) {
+    this.videoorientExt = videoorientExt;
+    return this;
+  }
+
   public Integer getPublishers() {
     return publishers;
   }
@@ -142,6 +152,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
         && Objects.equals(getPermanent(), that.getPermanent())
         && Objects.equals(getDescription(), that.getDescription())
         && Objects.equals(getIsPrivate(), that.getIsPrivate())
+        && Objects.equals(getVideoorientExt(), that.getVideoorientExt())
         && Objects.equals(getPublishers(), that.getPublishers())
         && Objects.equals(getBitrate(), that.getBitrate())
         && Objects.equals(getBitrateCap(), that.getBitrateCap())
@@ -157,6 +168,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
         getPermanent(),
         getDescription(),
         getIsPrivate(),
+        getVideoorientExt(),
         getPublishers(),
         getBitrate(),
         getBitrateCap(),
