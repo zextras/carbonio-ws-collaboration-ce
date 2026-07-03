@@ -10,9 +10,6 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ImageQualityEnumDto;
 import com.zextras.carbonio.chats.model.ImageShapeEnumDto;
 import com.zextras.carbonio.chats.model.ImageTypeEnumDto;
-import com.zextras.carbonio.preview.queries.enums.Format;
-import com.zextras.carbonio.preview.queries.enums.Quality;
-import com.zextras.carbonio.preview.queries.enums.Shape;
 import io.vavr.control.Option;
 import java.util.UUID;
 
@@ -27,8 +24,8 @@ public interface PreviewService extends HealthIndicator {
    * @param user the user trying to access the preview attachment
    * @param fileId identifier of attachment file to preview {@link UUID}
    * @param area area ot preview in format widthXheight
-   * @param quality the quality of the preview {@link Quality}
-   * @param outputFormat the format of the preview {@link Format}
+   * @param quality the quality of the preview
+   * @param outputFormat the format of the preview
    * @param crop if true will crop borders, otherwise will fill them
    * @return the preview requested with necessary data {@link FileResponse}
    */
@@ -40,9 +37,9 @@ public interface PreviewService extends HealthIndicator {
    * @param user the user trying to access the preview attachment
    * @param fileId identifier of attachment file to preview {@link UUID}
    * @param area area ot preview in format widthXheight
-   * @param quality the quality of the preview {@link Quality}
-   * @param outputFormat the format of the preview {@link Format}
-   * @param shape rounded or rectangular are supported {@link Shape}
+   * @param quality the quality of the preview
+   * @param outputFormat the format of the preview
+   * @param shape rounded or rectangular are supported
    * @return the preview requested with necessary data {@link FileResponse}
    */
   FileResponse getImageThumbnail(UserPrincipal user, UUID fileId, String area, Option<ImageQualityEnumDto> quality, Option<ImageTypeEnumDto> outputFormat, Option<ImageShapeEnumDto> shape);
@@ -63,9 +60,9 @@ public interface PreviewService extends HealthIndicator {
    * @param user the user trying to access the preview attachment
    * @param fileId identifier of attachment file to preview {@link UUID}
    * @param area area ot preview in format widthXheight
-   * @param quality the quality of the preview {@link Quality}
-   * @param outputFormat the format of the preview {@link Format}
-   * @param shape rounded or rectangular are supported {@link Shape}
+   * @param quality the quality of the preview
+   * @param outputFormat the format of the preview
+   * @param shape rounded or rectangular are supported
    * @return the preview requested with necessary data {@link FileResponse}
    */
   FileResponse getPDFThumbnail(UserPrincipal user, UUID fileId, String area, Option<ImageQualityEnumDto> quality, Option<ImageTypeEnumDto> outputFormat, Option<ImageShapeEnumDto> shape);

@@ -29,15 +29,10 @@ import com.zextras.carbonio.chats.model.ImageQualityEnumDto;
 import com.zextras.carbonio.chats.model.ImageShapeEnumDto;
 import com.zextras.carbonio.chats.model.ImageTypeEnumDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import com.zextras.carbonio.preview.PreviewClient;
-import com.zextras.carbonio.preview.queries.BlobResponse;
-import com.zextras.carbonio.preview.queries.Query;
-import com.zextras.carbonio.preview.queries.enums.Format;
-import com.zextras.carbonio.preview.queries.enums.Quality;
-import com.zextras.carbonio.preview.queries.enums.ServiceType;
-import com.zextras.carbonio.preview.queries.enums.Shape;
+import com.zextras.carbonio.preview.sdk.PreviewClient;
+import com.zextras.carbonio.preview.sdk.PreviewResponse;
+import com.zextras.carbonio.preview.sdk.Query;
 import io.vavr.control.Option;
-import io.vavr.control.Try;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
@@ -101,24 +96,10 @@ class PreviewServiceImplTest {
         .thenReturn(Optional.of(expectedMetadata));
     when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
         .thenReturn(room1);
-    Query parameters =
-        new Query.QueryBuilder()
-            .setFileOwnerId(user1Id.toString())
-            .setServiceType(ServiceType.CHATS)
-            .setFileId(fileId.toString())
-            .setVersion(0)
-            .setPreviewArea("100x100")
-            .setQuality(Quality.HIGH)
-            .setOutputFormat(Format.JPEG)
-            .setCrop(false)
-            .build();
-    BlobResponse mockBlobResponse = mock(BlobResponse.class);
-    when(mockBlobResponse.getContent()).thenReturn(new ByteArrayInputStream("image".getBytes()));
-    when(mockBlobResponse.getLength()).thenReturn(5L);
-    when(mockBlobResponse.getMimeType()).thenReturn("image/jpeg");
+    PreviewResponse mockPreviewResponse =
+        new PreviewResponse(new ByteArrayInputStream("image".getBytes()), 5L, "image/jpeg");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
-    when(previewClient.getPreviewOfImage(any(Query.class)))
-        .thenReturn(Try.success(mockBlobResponse));
+    when(previewClient.getPreviewOfImage(any(Query.class))).thenReturn(mockPreviewResponse);
     FileResponse previewImageResponse =
         previewService.getImage(
             currentUser,
@@ -129,7 +110,15 @@ class PreviewServiceImplTest {
             Option.of(false));
 
     verify(previewClient, times(1)).getPreviewOfImage(parametersCapture.capture());
-    assertEquals(parametersCapture.getValue().toString(), parameters.toString());
+    Query captured = parametersCapture.getValue();
+    assertEquals(user1Id.toString(), captured.getOwnerId());
+    assertEquals("chats", captured.getServiceType());
+    assertEquals(fileId.toString(), captured.getFileId());
+    assertEquals(0, captured.getVersion());
+    assertEquals("100x100", captured.getArea());
+    assertEquals("high", captured.getQuality());
+    assertEquals("jpeg", captured.getOutputFormat());
+    assertEquals(false, captured.isCrop());
     assertEquals("image", new String(previewImageResponse.getContent().readAllBytes()));
     assertEquals(5, previewImageResponse.getLength());
     assertEquals("image/jpeg", previewImageResponse.getMimeType());
@@ -153,24 +142,10 @@ class PreviewServiceImplTest {
         .thenReturn(Optional.of(expectedMetadata));
     when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
         .thenReturn(room1);
-    Query parameters =
-        new Query.QueryBuilder()
-            .setFileOwnerId(user1Id.toString())
-            .setServiceType(ServiceType.CHATS)
-            .setFileId(fileId.toString())
-            .setVersion(0)
-            .setPreviewArea("100x100")
-            .setQuality(Quality.HIGH)
-            .setOutputFormat(Format.JPEG)
-            .setShape(Shape.RECTANGULAR)
-            .build();
-    BlobResponse mockBlobResponse = mock(BlobResponse.class);
-    when(mockBlobResponse.getContent()).thenReturn(new ByteArrayInputStream("image".getBytes()));
-    when(mockBlobResponse.getLength()).thenReturn(5L);
-    when(mockBlobResponse.getMimeType()).thenReturn("image/jpeg");
+    PreviewResponse mockPreviewResponse =
+        new PreviewResponse(new ByteArrayInputStream("image".getBytes()), 5L, "image/jpeg");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
-    when(previewClient.getThumbnailOfImage(any(Query.class)))
-        .thenReturn(Try.success(mockBlobResponse));
+    when(previewClient.getThumbnailOfImage(any(Query.class))).thenReturn(mockPreviewResponse);
     FileResponse previewImageResponse =
         previewService.getImageThumbnail(
             currentUser,
@@ -181,9 +156,17 @@ class PreviewServiceImplTest {
             Option.of(ImageShapeEnumDto.RECTANGULAR));
 
     verify(previewClient, times(1)).getThumbnailOfImage(parametersCapture.capture());
-    assertEquals(parametersCapture.getValue().toString(), parameters.toString());
+    Query captured = parametersCapture.getValue();
+    assertEquals(user1Id.toString(), captured.getOwnerId());
+    assertEquals("chats", captured.getServiceType());
+    assertEquals(fileId.toString(), captured.getFileId());
+    assertEquals(0, captured.getVersion());
+    assertEquals("100x100", captured.getArea());
+    assertEquals("high", captured.getQuality());
+    assertEquals("jpeg", captured.getOutputFormat());
+    assertEquals("rectangular", captured.getShape());
     assertEquals("image", new String(previewImageResponse.getContent().readAllBytes()));
-    assertEquals(5, previewImageResponse.getLength(), 5);
+    assertEquals(5, previewImageResponse.getLength());
     assertEquals("image/jpeg", previewImageResponse.getMimeType());
   }
 
@@ -205,27 +188,22 @@ class PreviewServiceImplTest {
         .thenReturn(Optional.of(expectedMetadata));
     when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
         .thenReturn(room1);
-    Query parameters =
-        new Query.QueryBuilder()
-            .setFileOwnerId(user1Id.toString())
-            .setServiceType(ServiceType.CHATS)
-            .setFileId(fileId.toString())
-            .setVersion(0)
-            .setFirstPage(1)
-            .setLastPage(0)
-            .build();
-    BlobResponse mockBlobResponse = mock(BlobResponse.class);
-    when(mockBlobResponse.getContent()).thenReturn(new ByteArrayInputStream("pdf".getBytes()));
-    when(mockBlobResponse.getLength()).thenReturn(3L);
-    when(mockBlobResponse.getMimeType()).thenReturn("application/pdf");
+    PreviewResponse mockPreviewResponse =
+        new PreviewResponse(new ByteArrayInputStream("pdf".getBytes()), 3L, "application/pdf");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
-    when(previewClient.getPreviewOfPdf(any(Query.class))).thenReturn(Try.success(mockBlobResponse));
+    when(previewClient.getPreviewOfPdf(any(Query.class))).thenReturn(mockPreviewResponse);
     FileResponse previewImageResponse = previewService.getPDF(currentUser, fileId, 1, 0);
 
     verify(previewClient, times(1)).getPreviewOfPdf(parametersCapture.capture());
-    assertEquals(parametersCapture.getValue().toString(), parameters.toString());
+    Query captured = parametersCapture.getValue();
+    assertEquals(user1Id.toString(), captured.getOwnerId());
+    assertEquals("chats", captured.getServiceType());
+    assertEquals(fileId.toString(), captured.getFileId());
+    assertEquals(0, captured.getVersion());
+    assertEquals(1, captured.getFirstPage());
+    assertEquals(0, captured.getLastPage());
     assertEquals("pdf", new String(previewImageResponse.getContent().readAllBytes()));
-    assertEquals(3, previewImageResponse.getLength(), 3);
+    assertEquals(3, previewImageResponse.getLength());
     assertEquals("application/pdf", previewImageResponse.getMimeType());
   }
 
@@ -247,24 +225,10 @@ class PreviewServiceImplTest {
         .thenReturn(Optional.of(expectedMetadata));
     when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
         .thenReturn(room1);
-    Query parameters =
-        new Query.QueryBuilder()
-            .setFileOwnerId(user1Id.toString())
-            .setServiceType(ServiceType.CHATS)
-            .setFileId(fileId.toString())
-            .setVersion(0)
-            .setPreviewArea("100x100")
-            .setQuality(Quality.HIGH)
-            .setOutputFormat(Format.JPEG)
-            .setShape(Shape.RECTANGULAR)
-            .build();
-    BlobResponse mockBlobResponse = mock(BlobResponse.class);
-    when(mockBlobResponse.getContent()).thenReturn(new ByteArrayInputStream("pdf".getBytes()));
-    when(mockBlobResponse.getLength()).thenReturn(3L);
-    when(mockBlobResponse.getMimeType()).thenReturn("application/pdf");
+    PreviewResponse mockPreviewResponse =
+        new PreviewResponse(new ByteArrayInputStream("pdf".getBytes()), 3L, "application/pdf");
     ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
-    when(previewClient.getThumbnailOfPdf(any(Query.class)))
-        .thenReturn(Try.success(mockBlobResponse));
+    when(previewClient.getThumbnailOfPdf(any(Query.class))).thenReturn(mockPreviewResponse);
     FileResponse previewImageResponse =
         previewService.getPDFThumbnail(
             currentUser,
@@ -275,9 +239,17 @@ class PreviewServiceImplTest {
             Option.of(ImageShapeEnumDto.RECTANGULAR));
 
     verify(previewClient, times(1)).getThumbnailOfPdf(parametersCapture.capture());
-    assertEquals(parametersCapture.getValue().toString(), parameters.toString());
+    Query captured = parametersCapture.getValue();
+    assertEquals(user1Id.toString(), captured.getOwnerId());
+    assertEquals("chats", captured.getServiceType());
+    assertEquals(fileId.toString(), captured.getFileId());
+    assertEquals(0, captured.getVersion());
+    assertEquals("100x100", captured.getArea());
+    assertEquals("high", captured.getQuality());
+    assertEquals("jpeg", captured.getOutputFormat());
+    assertEquals("rectangular", captured.getShape());
     assertEquals("pdf", new String(previewImageResponse.getContent().readAllBytes()));
-    assertEquals(3, previewImageResponse.getLength(), 3);
+    assertEquals(3, previewImageResponse.getLength());
     assertEquals("application/pdf", previewImageResponse.getMimeType());
   }
 
@@ -331,7 +303,7 @@ class PreviewServiceImplTest {
     when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
         .thenReturn(room1);
     when(previewClient.getPreviewOfImage(any(Query.class)))
-        .thenReturn(Try.failure(new RuntimeException()));
+        .thenThrow(new com.zextras.carbonio.preview.sdk.PreviewException(500, "server error"));
     assertThrows(
         PreviewException.class,
         () ->
