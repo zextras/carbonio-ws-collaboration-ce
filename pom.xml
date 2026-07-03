@@ -62,7 +62,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <!-- Storages -->
         <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
         <!-- Previewer -->
-        <preview-sdk.version>2.0.1-1</preview-sdk.version>
+        <preview-sdk.version>2.0.2-1</preview-sdk.version>
         <!-- Vavr: was a transitive dependency of the old carbonio-preview-sdk (not depended on by
              the new REST SDK), but io.vavr.control.Option/Try are used directly across this
              codebase, so it must now be declared explicitly. -->
