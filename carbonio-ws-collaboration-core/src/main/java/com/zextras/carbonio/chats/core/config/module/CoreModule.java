@@ -128,7 +128,7 @@ import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
-import com.zextras.carbonio.preview.PreviewClient;
+import com.zextras.carbonio.preview.sdk.PreviewClient;
 import com.zextras.carbonio.user_management.sdk.grpc.UserManagementServiceGrpc;
 import com.zextras.carbonio.user_management.sdk.grpc.UserManagementServiceGrpc.UserManagementServiceBlockingStub;
 import com.zextras.storages.api.StoragesClient;

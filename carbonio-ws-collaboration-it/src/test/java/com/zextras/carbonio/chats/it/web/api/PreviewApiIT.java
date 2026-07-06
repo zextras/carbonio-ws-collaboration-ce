@@ -24,9 +24,6 @@ import com.zextras.carbonio.chats.model.ImageQualityEnumDto;
 import com.zextras.carbonio.chats.model.ImageShapeEnumDto;
 import com.zextras.carbonio.chats.model.ImageTypeEnumDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
-import com.zextras.carbonio.preview.queries.enums.Format;
-import com.zextras.carbonio.preview.queries.enums.Quality;
-import com.zextras.carbonio.preview.queries.enums.Shape;
 import jakarta.ws.rs.core.Response.Status;
 import java.io.IOException;
 import java.util.List;
@@ -94,7 +91,7 @@ class PreviewApiIT {
   class PreviewImageTests {
 
     private HttpRequest mockGetPreviewImageRequest(
-        String fileId, String area, Quality quality, Format format, Boolean crop) {
+        String fileId, String area, String quality, String format, Boolean crop) {
       HttpRequest request =
           request()
               .withMethod("GET")
@@ -102,22 +99,23 @@ class PreviewApiIT {
               .withPathParameter("fileId", fileId)
               .withPathParameter("area", area)
               .withQueryStringParameter(param("service_type", "chats"));
-      if (crop != null)
-        request.withQueryStringParameter(param("crop", crop.toString().toLowerCase()));
+      // The REST preview SDK only emits crop=true; when crop is false/absent it sends no crop
+      // query param at all (see PreviewClient#buildImageQueryString), so only stub it when true.
+      if (Boolean.TRUE.equals(crop)) request.withQueryStringParameter(param("crop", "true"));
       if (quality != null)
-        request.withQueryStringParameter(param("quality", quality.toString().toLowerCase()));
+        request.withQueryStringParameter(param("quality", quality.toLowerCase()));
       if (format != null)
-        request.withQueryStringParameter(param("output_format", format.toString().toLowerCase()));
+        request.withQueryStringParameter(param("output_format", format.toLowerCase()));
       return request;
     }
 
     private HttpResponse mockGetPreviewImageResponse(
-        Format format, Integer status, String filename) {
+        String format, Integer status, String filename) {
       try {
         HttpResponse response = response().withStatusCode(status);
         if (filename != null) response.withBody(BinaryBody.binary(getFileBytes(filename)));
         if (format != null) {
-          if (format == Format.JPEG) {
+          if ("JPEG".equalsIgnoreCase(format)) {
             response.withContentType(MediaType.JPEG);
           } else {
             response.withContentType(MediaType.PNG);
@@ -132,9 +130,9 @@ class PreviewApiIT {
     private void mockGetThumbnailImage(
         String fileId,
         String area,
-        Quality quality,
-        Format format,
-        Shape shape,
+        String quality,
+        String format,
+        String shape,
         Integer status,
         String filename) {
       try {
@@ -146,16 +144,16 @@ class PreviewApiIT {
                 .withPathParameter("area", area)
                 .withQueryStringParameter(param("service_type", "chats"));
         if (quality != null)
-          request.withQueryStringParameter(param("quality", quality.toString().toLowerCase()));
+          request.withQueryStringParameter(param("quality", quality.toLowerCase()));
         if (format != null)
-          request.withQueryStringParameter(param("output_format", format.toString().toLowerCase()));
+          request.withQueryStringParameter(param("output_format", format.toLowerCase()));
         if (shape != null)
-          request.withQueryStringParameter(param("shape", shape.toString().toLowerCase()));
+          request.withQueryStringParameter(param("shape", shape.toLowerCase()));
 
         HttpResponse response = response().withStatusCode(status);
         if (filename != null) response.withBody(BinaryBody.binary(getFileBytes(filename)));
         if (format != null) {
-          if (format == Format.JPEG) {
+          if ("JPEG".equalsIgnoreCase(format)) {
             response.withContentType(MediaType.JPEG);
           } else {
             response.withContentType(MediaType.PNG);
@@ -176,9 +174,11 @@ class PreviewApiIT {
                 .withPath("/preview/pdf/{fileId}/0/")
                 .withPathParameter("fileId", fileId)
                 .withQueryStringParameter(param("service_type", "chats"));
-        if (firstPage != null)
+        // The REST preview SDK only emits first_page/last_page when the value is > 0
+        // (see PreviewClient#buildPdfQueryString), so only stub them under the same condition.
+        if (firstPage != null && firstPage > 0)
           request.withQueryStringParameter(param("first_page", firstPage.toString()));
-        if (lastPage != null)
+        if (lastPage != null && lastPage > 0)
           request.withQueryStringParameter(param("last_page", lastPage.toString()));
 
         HttpResponse response = response().withStatusCode(status);
@@ -194,9 +194,9 @@ class PreviewApiIT {
     private void mockGetThumbnailPDF(
         String fileId,
         String area,
-        Quality quality,
-        Format format,
-        Shape shape,
+        String quality,
+        String format,
+        String shape,
         Integer status,
         String filename) {
       try {
@@ -208,16 +208,16 @@ class PreviewApiIT {
                 .withPathParameter("area", area)
                 .withQueryStringParameter(param("service_type", "chats"));
         if (quality != null)
-          request.withQueryStringParameter(param("quality", quality.toString().toLowerCase()));
+          request.withQueryStringParameter(param("quality", quality.toLowerCase()));
         if (format != null)
-          request.withQueryStringParameter(param("output_format", format.toString().toLowerCase()));
+          request.withQueryStringParameter(param("output_format", format.toLowerCase()));
         if (shape != null)
-          request.withQueryStringParameter(param("shape", shape.toString().toLowerCase()));
+          request.withQueryStringParameter(param("shape", shape.toLowerCase()));
 
         HttpResponse response = response().withStatusCode(status);
         if (filename != null) response.withBody(BinaryBody.binary(getFileBytes(filename)));
         if (format != null) {
-          if (format == Format.JPEG) {
+          if ("JPEG".equalsIgnoreCase(format)) {
             response.withContentType(MediaType.JPEG);
           } else {
             response.withContentType(MediaType.PNG);
@@ -286,10 +286,10 @@ class PreviewApiIT {
       previewMockServer
           .when(
               mockGetPreviewImageRequest(
-                  fileMock.getId(), "320x160", Quality.HIGH, Format.JPEG, false))
+                  fileMock.getId(), "320x160", "HIGH", "JPEG", false))
           .respond(
               mockGetPreviewImageResponse(
-                  Format.JPEG, Status.OK.getStatusCode(), expectedFile.getName()));
+                  "JPEG", Status.OK.getStatusCode(), expectedFile.getName()));
 
       MockHttpResponse response =
           dispatcher.get(
@@ -316,9 +316,9 @@ class PreviewApiIT {
       mockGetThumbnailImage(
           fileMock.getId(),
           "320x160",
-          Quality.HIGH,
-          Format.JPEG,
-          Shape.RECTANGULAR,
+          "HIGH",
+          "JPEG",
+          "RECTANGULAR",
           Status.OK.getStatusCode(),
           expectedFile.getName());
 
@@ -364,9 +364,9 @@ class PreviewApiIT {
       mockGetThumbnailPDF(
           fileMock.getId(),
           "320x160",
-          Quality.HIGH,
-          Format.JPEG,
-          Shape.RECTANGULAR,
+          "HIGH",
+          "JPEG",
+          "RECTANGULAR",
           Status.OK.getStatusCode(),
           expectedFile.getName());
 
@@ -394,7 +394,7 @@ class PreviewApiIT {
       previewMockServer
           .when(
               mockGetPreviewImageRequest(
-                  fileMock.getId(), "320x160", Quality.HIGH, Format.JPEG, false))
+                  fileMock.getId(), "320x160", "HIGH", "JPEG", false))
           .respond(mockGetPreviewImageResponse(null, 500, null));
 
       MockHttpResponse response =

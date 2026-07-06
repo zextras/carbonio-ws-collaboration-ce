@@ -48,7 +48,13 @@ SPDX-License-Identifier: AGPL-3.0-only
         <!-- Previewer sdk -->
         <dependency>
             <groupId>com.zextras.carbonio.preview</groupId>
-            <artifactId>carbonio-preview-sdk</artifactId>
+            <artifactId>carbonio-preview-ce-rest-sdk</artifactId>
+        </dependency>
+
+        <!-- Vavr: no longer transitively provided by the preview SDK, used directly here -->
+        <dependency>
+            <groupId>io.vavr</groupId>
+            <artifactId>vavr</artifactId>
         </dependency>
 
         <!-- Jetty dependencies -->

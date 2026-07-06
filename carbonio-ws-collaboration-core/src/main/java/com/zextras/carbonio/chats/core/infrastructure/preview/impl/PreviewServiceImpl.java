@@ -16,17 +16,17 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.ImageQualityEnumDto;
 import com.zextras.carbonio.chats.model.ImageShapeEnumDto;
 import com.zextras.carbonio.chats.model.ImageTypeEnumDto;
-import com.zextras.carbonio.preview.PreviewClient;
-import com.zextras.carbonio.preview.queries.BlobResponse;
-import com.zextras.carbonio.preview.queries.Query;
-import com.zextras.carbonio.preview.queries.enums.ServiceType;
+import com.zextras.carbonio.preview.sdk.PreviewClient;
+import com.zextras.carbonio.preview.sdk.PreviewResponse;
+import com.zextras.carbonio.preview.sdk.QueryBuilder;
 import io.vavr.control.Option;
-import io.vavr.control.Try;
 
 import java.util.UUID;
 
 @Singleton
 public class PreviewServiceImpl implements PreviewService {
+
+  private static final String SERVICE_TYPE_CHATS = "chats";
 
   private final PreviewClient previewClient;
 
@@ -44,16 +44,12 @@ public class PreviewServiceImpl implements PreviewService {
     this.fileMetadataRepository = fileMetadataRepository;
   }
 
-  private FileResponse remapBlobToDataFile(Try<BlobResponse> response) {
-    return response
-        .map(
-            bResp ->
-                Try.of(
-                        () ->
-                            new FileResponse(
-                                bResp.getContent(), bResp.getLength(), bResp.getMimeType()))
-                    .getOrElseThrow(t -> new PreviewException(t)))
-        .getOrElseThrow(t -> new PreviewException(t));
+  private FileResponse remapPreviewResponse(PreviewResponse response) {
+    try {
+      return new FileResponse(response.getContent(), response.getLength(), response.getMimeType());
+    } catch (Exception t) {
+      throw new PreviewException(t);
+    }
   }
 
   @Override
@@ -67,18 +63,22 @@ public class PreviewServiceImpl implements PreviewService {
     FileMetadata metadata = getValidMetadata(fileId);
     roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
 
-    Query.QueryBuilder parameters =
-        new Query.QueryBuilder()
-            .setFileOwnerId(metadata.getUserId())
-            .setServiceType(ServiceType.CHATS)
-            .setFileId(fileId.toString())
-            .setVersion(0)
-            .setPreviewArea(area);
-    quality.map(q -> parameters.setQuality(q.toString().toUpperCase()));
-    outputFormat.map(f -> parameters.setOutputFormat(f.toString().toUpperCase()));
-    crop.map(parameters::setCrop);
+    QueryBuilder parameters =
+        new QueryBuilder()
+            .ownerId(metadata.getUserId())
+            .serviceType(SERVICE_TYPE_CHATS)
+            .fileId(fileId.toString())
+            .version(0)
+            .area(area);
+    quality.forEach(q -> parameters.quality(q.toString().toLowerCase()));
+    outputFormat.forEach(f -> parameters.outputFormat(f.toString().toLowerCase()));
+    crop.forEach(parameters::crop);
 
-    return remapBlobToDataFile(previewClient.getPreviewOfImage(parameters.build()));
+    try {
+      return remapPreviewResponse(previewClient.getPreviewOfImage(parameters.build()));
+    } catch (com.zextras.carbonio.preview.sdk.PreviewException e) {
+      throw new PreviewException(e);
+    }
   }
 
   @Override
@@ -92,18 +92,22 @@ public class PreviewServiceImpl implements PreviewService {
     FileMetadata metadata = getValidMetadata(fileId);
     roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
 
-    Query.QueryBuilder parameters =
-        new Query.QueryBuilder()
-            .setFileOwnerId(metadata.getUserId())
-            .setServiceType(ServiceType.CHATS)
-            .setFileId(fileId.toString())
-            .setVersion(0)
-            .setPreviewArea(area);
-    quality.map(q -> parameters.setQuality(q.toString().toUpperCase()));
-    outputFormat.map(f -> parameters.setOutputFormat(f.toString().toUpperCase()));
-    shape.map(s -> parameters.setShape(s.toString().toUpperCase()));
+    QueryBuilder parameters =
+        new QueryBuilder()
+            .ownerId(metadata.getUserId())
+            .serviceType(SERVICE_TYPE_CHATS)
+            .fileId(fileId.toString())
+            .version(0)
+            .area(area);
+    quality.forEach(q -> parameters.quality(q.toString().toLowerCase()));
+    outputFormat.forEach(f -> parameters.outputFormat(f.toString().toLowerCase()));
+    shape.forEach(s -> parameters.shape(s.toString().toLowerCase()));
 
-    return remapBlobToDataFile(previewClient.getThumbnailOfImage(parameters.build()));
+    try {
+      return remapPreviewResponse(previewClient.getThumbnailOfImage(parameters.build()));
+    } catch (com.zextras.carbonio.preview.sdk.PreviewException e) {
+      throw new PreviewException(e);
+    }
   }
 
   @Override
@@ -111,16 +115,20 @@ public class PreviewServiceImpl implements PreviewService {
     FileMetadata metadata = getValidMetadata(fileId);
     roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
 
-    Query.QueryBuilder parameters =
-        new Query.QueryBuilder()
-            .setFileOwnerId(metadata.getUserId())
-            .setServiceType(ServiceType.CHATS)
-            .setFileId(fileId.toString())
-            .setVersion(0);
-    Option.of(firstPage).peek(parameters::setFirstPage);
-    Option.of(lastPage).peek(parameters::setLastPage);
+    QueryBuilder parameters =
+        new QueryBuilder()
+            .ownerId(metadata.getUserId())
+            .serviceType(SERVICE_TYPE_CHATS)
+            .fileId(fileId.toString())
+            .version(0);
+    Option.of(firstPage).forEach(parameters::firstPage);
+    Option.of(lastPage).forEach(parameters::lastPage);
 
-    return remapBlobToDataFile(previewClient.getPreviewOfPdf(parameters.build()));
+    try {
+      return remapPreviewResponse(previewClient.getPreviewOfPdf(parameters.build()));
+    } catch (com.zextras.carbonio.preview.sdk.PreviewException e) {
+      throw new PreviewException(e);
+    }
   }
 
   @Override
@@ -134,18 +142,22 @@ public class PreviewServiceImpl implements PreviewService {
     FileMetadata metadata = getValidMetadata(fileId);
     roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
 
-    Query.QueryBuilder parameters =
-        new Query.QueryBuilder()
-            .setFileOwnerId(metadata.getUserId())
-            .setServiceType(ServiceType.CHATS)
-            .setFileId(fileId.toString())
-            .setVersion(0)
-            .setPreviewArea(area);
-    quality.map(q -> parameters.setQuality(q.toString().toUpperCase()));
-    outputFormat.map(f -> parameters.setOutputFormat(f.toString().toUpperCase()));
-    shape.map(s -> parameters.setShape(s.toString().toUpperCase()));
+    QueryBuilder parameters =
+        new QueryBuilder()
+            .ownerId(metadata.getUserId())
+            .serviceType(SERVICE_TYPE_CHATS)
+            .fileId(fileId.toString())
+            .version(0)
+            .area(area);
+    quality.forEach(q -> parameters.quality(q.toString().toLowerCase()));
+    outputFormat.forEach(f -> parameters.outputFormat(f.toString().toLowerCase()));
+    shape.forEach(s -> parameters.shape(s.toString().toLowerCase()));
 
-    return remapBlobToDataFile(previewClient.getThumbnailOfPdf(parameters.build()));
+    try {
+      return remapPreviewResponse(previewClient.getThumbnailOfPdf(parameters.build()));
+    } catch (com.zextras.carbonio.preview.sdk.PreviewException e) {
+      throw new PreviewException(e);
+    }
   }
 
   private FileMetadata getValidMetadata(UUID fileId) {
