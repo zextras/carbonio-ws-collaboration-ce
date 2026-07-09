@@ -33,7 +33,13 @@ public abstract class ExceptionHandler<E extends Throwable> implements Exception
               "An error occurred on %s %n at %s %n %s",
               getRequestUri(), getExceptionPosition(exception), msg));
     }
-    return Response.status(httpStatusCode).type(httpStatusPhrase).build();
+    // NOTE: do NOT set the Content-Type to the status phrase (e.g. "Not Found"): it is not a valid
+    // media type. For 4xx/5xx it happened to be harmless because the response is not
+    // body-processed,
+    // but a 2xx ChatsHttpException (e.g. 202 "video preview generating") is routed through the
+    // VersionedResponseFilter, which calls getMediaType() and would fail to parse the phrase. The
+    // response carries no body, so no Content-Type is needed; the reason phrase is set explicitly.
+    return Response.status(httpStatusCode, httpStatusPhrase).build();
   }
 
   private String getExceptionPosition(Exception exception) {

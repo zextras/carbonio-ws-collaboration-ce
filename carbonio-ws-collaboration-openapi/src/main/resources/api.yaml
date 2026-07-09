@@ -6,9 +6,10 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.13
+  version: 1.6.14
   x-supported-versions:
     [
+      "1.6.14",
       "1.6.13",
       "1.6.12",
       "1.6.11",
@@ -396,7 +397,7 @@ paths:
       tags:
         - Rooms
         - Attachments
-      summary: Retrieves paged list of metadata of every attachment uploaded to the room and the cursor for the next page
+      summary: Retrieves paged attachment metadata, next-page cursor, and total count for a room
       operationId: listRoomAttachmentsInfo
       parameters:
         - $ref: "#/components/parameters/pathRoomId"
@@ -404,6 +405,7 @@ paths:
         - $ref: "#/components/parameters/queryAttachmentCursor"
         - $ref: "#/components/parameters/queryAttachmentUserId"
         - $ref: "#/components/parameters/queryAttachmentMimeType"
+        - $ref: "#/components/parameters/queryAttachmentMimeTypeCategory"
         - $ref: "#/components/parameters/queryAttachmentCreatedAfter"
         - $ref: "#/components/parameters/queryAttachmentCreatedBefore"
         - $ref: "#/components/parameters/queryAttachmentMinSize"
@@ -651,6 +653,88 @@ paths:
           $ref: "#/components/responses/400BadRequestResponse"
         404:
           $ref: "#/components/responses/404NotFoundResponse"
+  /preview/video/{fileId}/{area}/:
+    get:
+      tags:
+        - Preview
+      summary: Get video preview
+      description: |
+        Creates and returns a preview (first-frame image) of the video fetched by id
+        with the given size, quality and format
+        - **fileId**: UUID of the video
+        - **quality**: quality of the output image
+        (the higher you go the slower the process)
+        - **output_format**: format of the output image
+        - **area**: width of the output image (>=0) x
+        height of the output image (>=0), width x height => 100x200.
+        The first is width, the latter height, the order is important!
+        - **crop**: True will crop the picture starting from the borders.
+        This option will lose information, leaving it False will scale and
+        have borders to fill the requested size.
+      operationId: getVideoPreview
+      parameters:
+        - $ref: "#/components/parameters/pathFileId"
+        - $ref: "#/components/parameters/pathPreviewArea"
+        - $ref: "#/components/parameters/queryImageQuality"
+        - $ref: "#/components/parameters/queryImageType"
+        - $ref: "#/components/parameters/queryImageCrop"
+      responses:
+        200:
+          $ref: "#/components/responses/200PreviewFileResponse"
+        202:
+          $ref: "#/components/responses/202VideoPreviewGeneratingResponse"
+        400:
+          $ref: "#/components/responses/400BadRequestResponse"
+        404:
+          $ref: "#/components/responses/404NotFoundResponse"
+        413:
+          $ref: "#/components/responses/413VideoPreviewTooLargeResponse"
+        415:
+          $ref: "#/components/responses/415VideoPreviewUnsupportedResponse"
+        422:
+          $ref: "#/components/responses/422VideoPreviewFailedResponse"
+        424:
+          $ref: "#/components/responses/424VideoPreviewFailedDependencyResponse"
+  /preview/video/{fileId}/{area}/thumbnail/:
+    get:
+      tags:
+        - Preview
+      summary: Get video thumbnail
+      description: |
+        Creates and returns a thumbnail of the video fetched by id
+        with the given size, quality and format
+        - **fileId**: UUID of the video
+        - **quality**: quality of the output image
+        (the higher you go the slower the process)
+        - **output_format**: format of the output image
+        - **area**: width of the output image (>=0) x
+        height of the output image (>=0), width x height => 100x200.
+        The first is width, the latter height, the order is important!
+        - **shape**: Rounded and Rectangular are currently supported.
+      operationId: getVideoThumbnail
+      parameters:
+        - $ref: "#/components/parameters/pathFileId"
+        - $ref: "#/components/parameters/pathPreviewArea"
+        - $ref: "#/components/parameters/queryImageQuality"
+        - $ref: "#/components/parameters/queryImageType"
+        - $ref: "#/components/parameters/queryImageShape"
+      responses:
+        200:
+          $ref: "#/components/responses/200PreviewFileResponse"
+        202:
+          $ref: "#/components/responses/202VideoPreviewGeneratingResponse"
+        400:
+          $ref: "#/components/responses/400BadRequestResponse"
+        404:
+          $ref: "#/components/responses/404NotFoundResponse"
+        413:
+          $ref: "#/components/responses/413VideoPreviewTooLargeResponse"
+        415:
+          $ref: "#/components/responses/415VideoPreviewUnsupportedResponse"
+        422:
+          $ref: "#/components/responses/422VideoPreviewFailedResponse"
+        424:
+          $ref: "#/components/responses/424VideoPreviewFailedDependencyResponse"
   /auth/token:
     get:
       tags:
@@ -1140,6 +1224,13 @@ components:
       schema:
         type: string
       required: false
+    queryAttachmentMimeTypeCategory:
+      in: query
+      name: mimeTypeCategory
+      description: filter by high-level MIME type category (IMAGES, VIDEOS or DOCUMENTS); mutually exclusive with mimeType, providing both returns 400 Bad Request
+      schema:
+        $ref: '#/components/schemas/MimeTypeCategory'
+      required: false
     queryAttachmentCreatedAfter:
       in: query
       name: createdAfter
@@ -1582,6 +1673,10 @@ components:
       description: The user subscribed to media streams successfully
     204HandStatusResponse:
       description: The hand action has been performed successfully
+    202VideoPreviewGeneratingResponse:
+      description: >
+        The video preview is being generated and is not ready yet. The client should retry the
+        request after a short delay (poll until 200, or a terminal 4xx).
     400BadRequestResponse:
       description: The request had wrong or missing parameters
     401UnauthorizedResponse:
@@ -1594,6 +1689,24 @@ components:
       description: The request conflict with the current state
     413PayloadTooLargeResponse:
       description: The request had a payload that was too big
+    413VideoPreviewTooLargeResponse:
+      description: >
+        The source video exceeds the configured maximum size for preview generation, so no preview
+        will ever be produced. Terminal: the client should stop polling.
+    415VideoPreviewUnsupportedResponse:
+      description: >
+        The video format/codec cannot be decoded (e.g. AV1), so no preview can be produced.
+        Terminal: the client should stop polling and surface a "format not supported" state.
+    422VideoPreviewFailedResponse:
+      description: >
+        Video preview generation was attempted and definitively failed (source blob gone, or the
+        retry budget was exhausted). Terminal: the client should stop polling and surface a
+        "preview unavailable" state.
+    424VideoPreviewFailedDependencyResponse:
+      description: >
+        Failed Dependency: the previewer's database dependency is unavailable, so video previews
+        are temporarily disabled while other preview types keep working. The client should treat
+        this like any other previewer-down state and may retry later.
     502BadGatewayResponse:
       description: The service was unavailable
   schemas:
@@ -1979,6 +2092,13 @@ components:
       enum:
         - asc
         - desc
+    MimeTypeCategory:
+      type: string
+      description: High-level MIME type category for the attachments UI tabs; IMAGES groups image/* attachments, VIDEOS groups video/* attachments, DOCUMENTS is every other MIME type (including audio)
+      enum:
+        - IMAGES
+        - VIDEOS
+        - DOCUMENTS
     BulkDeleteAttachmentsRequest:
       type: object
       description: Request body for bulk attachment deletion
@@ -2014,6 +2134,10 @@ components:
         cursor:
           type: string
           description: opaque token to pass as the cursor parameter to fetch the next page; absent when no further pages exist
+        total:
+          type: integer
+          format: int64
+          description: total number of attachments matching the current room and filters, excluding cursor pagination
         attachments:
           type: array
           description: paged list of attachments metadata

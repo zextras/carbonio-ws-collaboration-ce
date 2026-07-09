@@ -109,6 +109,8 @@ public abstract class AppConfig {
       return (T) Boolean.valueOf(stringValue);
     } else if (clazz.equals(Integer.class)) {
       return (T) Integer.valueOf(stringValue);
+    } else if (clazz.equals(Long.class)) {
+      return (T) Long.valueOf(stringValue);
     } else if (clazz.equals(Double.class)) {
       return (T) Double.valueOf(stringValue);
     } else {

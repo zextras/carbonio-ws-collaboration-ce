@@ -13,6 +13,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.entity.FileMetadataBuilder;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -21,6 +23,10 @@ import com.zextras.carbonio.chats.core.data.model.FileResponse;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.PreviewException;
+import com.zextras.carbonio.chats.core.exception.VideoPreviewFailedException;
+import com.zextras.carbonio.chats.core.exception.VideoPreviewGeneratingException;
+import com.zextras.carbonio.chats.core.exception.VideoPreviewTooLargeException;
+import com.zextras.carbonio.chats.core.exception.VideoPreviewUnsupportedException;
 import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.service.RoomService;
@@ -49,6 +55,7 @@ class PreviewServiceImplTest {
   private final RoomService roomService;
   private final FileMetadataRepository fileMetadataRepository;
   private final PreviewClient previewClient;
+  private final AppConfig appConfig;
   private final PreviewService previewService;
   private static Room room1;
   private static UUID user1Id;
@@ -58,8 +65,13 @@ class PreviewServiceImplTest {
     this.roomService = mock(RoomService.class);
     this.fileMetadataRepository = mock(FileMetadataRepository.class);
     this.previewClient = mock(PreviewClient.class);
+    this.appConfig = mock(AppConfig.class);
+    // Default to a very large max size so the literal size-gate doesn't interfere with tests
+    // that don't care about it. Individual tests override as needed.
+    when(this.appConfig.get(Long.class, ConfigName.MAX_VIDEO_SIZE_PREVIEW_IN_MB))
+        .thenReturn(Optional.of(100_000L));
     this.previewService =
-        new PreviewServiceImpl(roomService, fileMetadataRepository, previewClient);
+        new PreviewServiceImpl(roomService, fileMetadataRepository, previewClient, appConfig);
   }
 
   @BeforeAll
@@ -251,6 +263,269 @@ class PreviewServiceImplTest {
     assertEquals("pdf", new String(previewImageResponse.getContent().readAllBytes()));
     assertEquals(3, previewImageResponse.getLength());
     assertEquals("application/pdf", previewImageResponse.getMimeType());
+  }
+
+  @Test
+  @DisplayName("Proxies video preview request to preview service and returns frame bytes")
+  void getVideoPreview_proxiesToPreviewService() throws IOException {
+    UUID fileId = UUID.randomUUID();
+    UserPrincipal currentUser = UserPrincipal.create(user1Id);
+    FileMetadata expectedMetadata =
+        FileMetadataBuilder.create()
+            .id(fileId.toString())
+            .name("clip.mp4")
+            .mimeType("video/mp4")
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString())
+            .roomId(room1.getId())
+            .originalSize(1024L)
+            .build();
+    when(fileMetadataRepository.getById(fileId.toString()))
+        .thenReturn(Optional.of(expectedMetadata));
+    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
+        .thenReturn(room1);
+    PreviewResponse mockPreviewResponse =
+        new PreviewResponse(new ByteArrayInputStream("frame".getBytes()), 5L, "image/jpeg");
+    ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
+    when(previewClient.getPreviewOfVideo(any(Query.class))).thenReturn(mockPreviewResponse);
+
+    FileResponse previewResponse =
+        previewService.getVideo(
+            currentUser,
+            fileId,
+            "100x100",
+            Option.of(ImageQualityEnumDto.HIGH),
+            Option.of(ImageTypeEnumDto.JPEG),
+            Option.of(false));
+
+    verify(previewClient, times(1)).getPreviewOfVideo(parametersCapture.capture());
+    Query captured = parametersCapture.getValue();
+    assertEquals(fileId.toString(), captured.getFileId()); // the video file id itself
+    assertEquals("100x100", captured.getArea());
+    assertEquals("high", captured.getQuality());
+    assertEquals("jpeg", captured.getOutputFormat());
+    assertEquals(false, captured.isCrop());
+    assertEquals("frame", new String(previewResponse.getContent().readAllBytes()));
+    assertEquals(5, previewResponse.getLength());
+    assertEquals("image/jpeg", previewResponse.getMimeType());
+  }
+
+  @Test
+  @DisplayName("When preview returns 202 (generating), throws VideoPreviewGeneratingException")
+  void getVideoPreview_when202_throwsVideoPreviewGeneratingException() {
+    UUID fileId = UUID.randomUUID();
+    UserPrincipal currentUser = UserPrincipal.create(user1Id);
+    FileMetadata expectedMetadata =
+        FileMetadataBuilder.create()
+            .id(fileId.toString())
+            .name("clip.mp4")
+            .mimeType("video/mp4")
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString())
+            .roomId(room1.getId())
+            .originalSize(1024L)
+            .build();
+    when(fileMetadataRepository.getById(fileId.toString()))
+        .thenReturn(Optional.of(expectedMetadata));
+    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
+        .thenReturn(room1);
+    when(previewClient.getPreviewOfVideo(any(Query.class)))
+        .thenThrow(new com.zextras.carbonio.preview.sdk.PreviewException(202, "Accepted"));
+
+    assertThrows(
+        VideoPreviewGeneratingException.class,
+        () ->
+            previewService.getVideo(
+                currentUser,
+                fileId,
+                "100x100",
+                Option.of(ImageQualityEnumDto.HIGH),
+                Option.of(ImageTypeEnumDto.JPEG),
+                Option.of(false)));
+  }
+
+  @Test
+  @DisplayName("When preview returns 415 (unsupported), throws VideoPreviewUnsupportedException")
+  void getVideoPreview_when415_throwsVideoPreviewUnsupportedException() {
+    UUID fileId = UUID.randomUUID();
+    UserPrincipal currentUser = UserPrincipal.create(user1Id);
+    FileMetadata expectedMetadata =
+        FileMetadataBuilder.create()
+            .id(fileId.toString())
+            .name("clip.mp4")
+            .mimeType("video/mp4")
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString())
+            .roomId(room1.getId())
+            .originalSize(1024L)
+            .build();
+    when(fileMetadataRepository.getById(fileId.toString()))
+        .thenReturn(Optional.of(expectedMetadata));
+    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
+        .thenReturn(room1);
+    when(previewClient.getPreviewOfVideo(any(Query.class)))
+        .thenThrow(
+            new com.zextras.carbonio.preview.sdk.PreviewException(415, "Unsupported Media Type"));
+
+    assertThrows(
+        VideoPreviewUnsupportedException.class,
+        () ->
+            previewService.getVideo(
+                currentUser,
+                fileId,
+                "100x100",
+                Option.of(ImageQualityEnumDto.HIGH),
+                Option.of(ImageTypeEnumDto.JPEG),
+                Option.of(false)));
+  }
+
+  @Test
+  @DisplayName("When preview returns 422 (failed), throws VideoPreviewFailedException")
+  void getVideoPreview_when422_throwsVideoPreviewFailedException() {
+    UUID fileId = UUID.randomUUID();
+    UserPrincipal currentUser = UserPrincipal.create(user1Id);
+    FileMetadata expectedMetadata =
+        FileMetadataBuilder.create()
+            .id(fileId.toString())
+            .name("clip.mp4")
+            .mimeType("video/mp4")
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString())
+            .roomId(room1.getId())
+            .originalSize(1024L)
+            .build();
+    when(fileMetadataRepository.getById(fileId.toString()))
+        .thenReturn(Optional.of(expectedMetadata));
+    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
+        .thenReturn(room1);
+    when(previewClient.getPreviewOfVideo(any(Query.class)))
+        .thenThrow(
+            new com.zextras.carbonio.preview.sdk.PreviewException(422, "Unprocessable Content"));
+
+    assertThrows(
+        VideoPreviewFailedException.class,
+        () ->
+            previewService.getVideo(
+                currentUser,
+                fileId,
+                "100x100",
+                Option.of(ImageQualityEnumDto.HIGH),
+                Option.of(ImageTypeEnumDto.JPEG),
+                Option.of(false)));
+  }
+
+  @Test
+  @DisplayName("When preview returns 424 (previewer DB dependency down), throws PreviewException")
+  void getVideoPreview_when424_throwsPreviewException() {
+    UUID fileId = UUID.randomUUID();
+    UserPrincipal currentUser = UserPrincipal.create(user1Id);
+    FileMetadata expectedMetadata =
+        FileMetadataBuilder.create()
+            .id(fileId.toString())
+            .name("clip.mp4")
+            .mimeType("video/mp4")
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString())
+            .roomId(room1.getId())
+            .originalSize(1024L)
+            .build();
+    when(fileMetadataRepository.getById(fileId.toString()))
+        .thenReturn(Optional.of(expectedMetadata));
+    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
+        .thenReturn(room1);
+    when(previewClient.getPreviewOfVideo(any(Query.class)))
+        .thenThrow(new com.zextras.carbonio.preview.sdk.PreviewException(424, "Failed Dependency"));
+
+    assertThrows(
+        PreviewException.class,
+        () ->
+            previewService.getVideo(
+                currentUser,
+                fileId,
+                "100x100",
+                Option.of(ImageQualityEnumDto.HIGH),
+                Option.of(ImageTypeEnumDto.JPEG),
+                Option.of(false)));
+  }
+
+  @Test
+  @DisplayName("Thumbnail: proxies video thumbnail request to preview service")
+  void getVideoThumbnail_proxiesToPreviewService() throws IOException {
+    UUID fileId = UUID.randomUUID();
+    UserPrincipal currentUser = UserPrincipal.create(user1Id);
+    FileMetadata expectedMetadata =
+        FileMetadataBuilder.create()
+            .id(fileId.toString())
+            .name("clip.mp4")
+            .mimeType("video/mp4")
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString())
+            .roomId(room1.getId())
+            .originalSize(1024L)
+            .build();
+    when(fileMetadataRepository.getById(fileId.toString()))
+        .thenReturn(Optional.of(expectedMetadata));
+    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
+        .thenReturn(room1);
+    PreviewResponse mockPreviewResponse =
+        new PreviewResponse(new ByteArrayInputStream("frame".getBytes()), 5L, "image/jpeg");
+    ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
+    when(previewClient.getThumbnailOfVideo(any(Query.class))).thenReturn(mockPreviewResponse);
+
+    FileResponse previewResponse =
+        previewService.getVideoThumbnail(
+            currentUser,
+            fileId,
+            "100x100",
+            Option.of(ImageQualityEnumDto.HIGH),
+            Option.of(ImageTypeEnumDto.JPEG),
+            Option.of(ImageShapeEnumDto.RECTANGULAR));
+
+    verify(previewClient, times(1)).getThumbnailOfVideo(parametersCapture.capture());
+    Query captured = parametersCapture.getValue();
+    assertEquals(fileId.toString(), captured.getFileId());
+    assertEquals("100x100", captured.getArea());
+    assertEquals("high", captured.getQuality());
+    assertEquals("jpeg", captured.getOutputFormat());
+    assertEquals("rectangular", captured.getShape());
+    assertEquals("frame", new String(previewResponse.getContent().readAllBytes()));
+    assertEquals(5, previewResponse.getLength());
+    assertEquals("image/jpeg", previewResponse.getMimeType());
+  }
+
+  @Test
+  @DisplayName("Size gate: maxMb=0 is a literal 0 (rejects every video), not unlimited")
+  void getVideoPreview_whenMaxSizeZero_throwsTooLarge() {
+    UUID fileId = UUID.randomUUID();
+    UserPrincipal currentUser = UserPrincipal.create(user1Id);
+    FileMetadata expectedMetadata =
+        FileMetadataBuilder.create()
+            .id(fileId.toString())
+            .name("clip.mp4")
+            .mimeType("video/mp4")
+            .type(FileMetadataType.ATTACHMENT)
+            .userId(user1Id.toString())
+            .roomId(room1.getId())
+            .originalSize(1024L)
+            .build();
+    when(fileMetadataRepository.getById(fileId.toString()))
+        .thenReturn(Optional.of(expectedMetadata));
+    when(roomService.getRoomAndValidateUser(UUID.fromString(room1.getId()), currentUser, false))
+        .thenReturn(room1);
+    when(appConfig.get(Long.class, ConfigName.MAX_VIDEO_SIZE_PREVIEW_IN_MB))
+        .thenReturn(Optional.of(0L));
+
+    assertThrows(
+        VideoPreviewTooLargeException.class,
+        () ->
+            previewService.getVideo(
+                currentUser,
+                fileId,
+                "100x100",
+                Option.of(ImageQualityEnumDto.HIGH),
+                Option.of(ImageTypeEnumDto.JPEG),
+                Option.of(false)));
+    verify(previewClient, times(0)).getPreviewOfVideo(any(Query.class));
   }
 
   @Test

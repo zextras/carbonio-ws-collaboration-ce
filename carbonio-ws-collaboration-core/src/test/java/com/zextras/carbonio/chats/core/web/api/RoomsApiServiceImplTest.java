@@ -5,6 +5,7 @@
 package com.zextras.carbonio.chats.core.web.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -22,6 +23,7 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
+import com.zextras.carbonio.chats.core.data.type.MimeTypeCategory;
 import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
@@ -39,6 +41,7 @@ import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
+import com.zextras.carbonio.chats.model.MimeTypeCategoryDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
@@ -1348,7 +1351,19 @@ class RoomsApiServiceImplTest {
 
       Response response =
           roomsApiService.listRoomAttachmentsInfo(
-              roomId, 10, "test", null, null, null, null, null, null, null, null, securityContext);
+              roomId,
+              10,
+              "test",
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              securityContext);
 
       verify(attachmentService, times(1))
           .getAttachmentInfoByRoomId(
@@ -1364,7 +1379,19 @@ class RoomsApiServiceImplTest {
 
       Response response =
           roomsApiService.listRoomAttachmentsInfo(
-              roomId, 10, "test", null, null, null, null, null, null, null, null, securityContext);
+              roomId,
+              10,
+              "test",
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              securityContext);
 
       verify(attachmentService, times(1))
           .getAttachmentInfoByRoomId(
@@ -1393,6 +1420,7 @@ class RoomsApiServiceImplTest {
                   null,
                   null,
                   null,
+                  null,
                   securityContext));
     }
 
@@ -1410,6 +1438,7 @@ class RoomsApiServiceImplTest {
           "cursor123",
           filterUserId,
           "image/jpeg",
+          null,
           after,
           before,
           100L,
@@ -1426,12 +1455,124 @@ class RoomsApiServiceImplTest {
       AttachmentFilter captured = captor.getValue();
       assertEquals(filterUserId.toString(), captured.getUserId());
       assertEquals("image/jpeg", captured.getMimeType());
+      assertNull(captured.getMimeTypeCategory());
       assertEquals(after, captured.getCreatedAfter());
       assertEquals(before, captured.getCreatedBefore());
       assertEquals(100L, captured.getMinSize());
       assertEquals(5000L, captured.getMaxSize());
       assertEquals("size", captured.getSortBy());
       assertEquals("asc", captured.getOrder());
+    }
+
+    @Test
+    @DisplayName("Maps the IMAGES mimeTypeCategory enum to the domain MimeTypeCategory")
+    void listRoomAttachmentsInfo_mapsImagesMimeTypeCategoryToDomainEnum() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      roomsApiService.listRoomAttachmentsInfo(
+          roomId,
+          10,
+          null,
+          null,
+          null,
+          MimeTypeCategoryDto.IMAGES,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          securityContext);
+
+      ArgumentCaptor<AttachmentFilter> captor = ArgumentCaptor.forClass(AttachmentFilter.class);
+      verify(attachmentService, times(1))
+          .getAttachmentInfoByRoomId(eq(roomId), eq(10), isNull(), captor.capture(), eq(user1));
+
+      AttachmentFilter captured = captor.getValue();
+      assertEquals(MimeTypeCategory.IMAGES, captured.getMimeTypeCategory());
+      assertNull(captured.getMimeType());
+    }
+
+    @Test
+    @DisplayName("Maps the VIDEOS mimeTypeCategory enum to the domain MimeTypeCategory")
+    void listRoomAttachmentsInfo_mapsVideosMimeTypeCategoryToDomainEnum() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      roomsApiService.listRoomAttachmentsInfo(
+          roomId,
+          10,
+          null,
+          null,
+          null,
+          MimeTypeCategoryDto.VIDEOS,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          securityContext);
+
+      ArgumentCaptor<AttachmentFilter> captor = ArgumentCaptor.forClass(AttachmentFilter.class);
+      verify(attachmentService, times(1))
+          .getAttachmentInfoByRoomId(eq(roomId), eq(10), isNull(), captor.capture(), eq(user1));
+
+      AttachmentFilter captured = captor.getValue();
+      assertEquals(MimeTypeCategory.VIDEOS, captured.getMimeTypeCategory());
+      assertNull(captured.getMimeType());
+    }
+
+    @Test
+    @DisplayName("Maps the DOCUMENTS mimeTypeCategory enum to the domain MimeTypeCategory")
+    void listRoomAttachmentsInfo_mapsDocumentsMimeTypeCategoryToDomainEnum() throws Exception {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      roomsApiService.listRoomAttachmentsInfo(
+          roomId,
+          10,
+          null,
+          null,
+          null,
+          MimeTypeCategoryDto.DOCUMENTS,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          securityContext);
+
+      ArgumentCaptor<AttachmentFilter> captor = ArgumentCaptor.forClass(AttachmentFilter.class);
+      verify(attachmentService, times(1))
+          .getAttachmentInfoByRoomId(eq(roomId), eq(10), isNull(), captor.capture(), eq(user1));
+
+      assertEquals(MimeTypeCategory.DOCUMENTS, captor.getValue().getMimeTypeCategory());
+    }
+
+    @Test
+    @DisplayName("Rejects with bad request when both mimeType and mimeTypeCategory are provided")
+    void listRoomAttachmentsInfo_rejectsWhenBothMimeTypeAndCategoryProvided() {
+      when(securityContext.getUserPrincipal()).thenReturn(user1);
+
+      assertThrows(
+          BadRequestException.class,
+          () ->
+              roomsApiService.listRoomAttachmentsInfo(
+                  roomId,
+                  10,
+                  null,
+                  null,
+                  "image/png",
+                  MimeTypeCategoryDto.IMAGES,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  null,
+                  securityContext));
+
+      verifyNoMoreInteractions(attachmentService);
     }
 
     @Test
@@ -1442,6 +1583,7 @@ class RoomsApiServiceImplTest {
       roomsApiService.listRoomAttachmentsInfo(
           roomId,
           10,
+          null,
           null,
           null,
           null,
@@ -1466,7 +1608,7 @@ class RoomsApiServiceImplTest {
       when(securityContext.getUserPrincipal()).thenReturn(user1);
 
       roomsApiService.listRoomAttachmentsInfo(
-          roomId, 10, null, null, null, null, null, null, null, null, null, securityContext);
+          roomId, 10, null, null, null, null, null, null, null, null, null, null, securityContext);
 
       ArgumentCaptor<AttachmentFilter> captor = ArgumentCaptor.forClass(AttachmentFilter.class);
       verify(attachmentService, times(1))

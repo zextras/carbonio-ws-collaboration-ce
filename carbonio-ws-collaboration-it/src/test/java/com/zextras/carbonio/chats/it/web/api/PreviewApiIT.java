@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import org.jboss.resteasy.mock.MockHttpResponse;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -147,8 +146,7 @@ class PreviewApiIT {
           request.withQueryStringParameter(param("quality", quality.toLowerCase()));
         if (format != null)
           request.withQueryStringParameter(param("output_format", format.toLowerCase()));
-        if (shape != null)
-          request.withQueryStringParameter(param("shape", shape.toLowerCase()));
+        if (shape != null) request.withQueryStringParameter(param("shape", shape.toLowerCase()));
 
         HttpResponse response = response().withStatusCode(status);
         if (filename != null) response.withBody(BinaryBody.binary(getFileBytes(filename)));
@@ -211,8 +209,7 @@ class PreviewApiIT {
           request.withQueryStringParameter(param("quality", quality.toLowerCase()));
         if (format != null)
           request.withQueryStringParameter(param("output_format", format.toLowerCase()));
-        if (shape != null)
-          request.withQueryStringParameter(param("shape", shape.toLowerCase()));
+        if (shape != null) request.withQueryStringParameter(param("shape", shape.toLowerCase()));
 
         HttpResponse response = response().withStatusCode(status);
         if (filename != null) response.withBody(BinaryBody.binary(getFileBytes(filename)));
@@ -284,9 +281,7 @@ class PreviewApiIT {
           fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
       FileMock expectedFile = MockedFiles.getPreview(MockedFileType.SNOOPY_PREVIEW);
       previewMockServer
-          .when(
-              mockGetPreviewImageRequest(
-                  fileMock.getId(), "320x160", "HIGH", "JPEG", false))
+          .when(mockGetPreviewImageRequest(fileMock.getId(), "320x160", "HIGH", "JPEG", false))
           .respond(
               mockGetPreviewImageResponse(
                   "JPEG", Status.OK.getStatusCode(), expectedFile.getName()));
@@ -392,9 +387,7 @@ class PreviewApiIT {
       integrationTestUtils.generateAndSaveFileMetadata(
           fileMock, FileMetadataType.ATTACHMENT, user1Id, roomId);
       previewMockServer
-          .when(
-              mockGetPreviewImageRequest(
-                  fileMock.getId(), "320x160", "HIGH", "JPEG", false))
+          .when(mockGetPreviewImageRequest(fileMock.getId(), "320x160", "HIGH", "JPEG", false))
           .respond(mockGetPreviewImageResponse(null, 500, null));
 
       MockHttpResponse response =
@@ -465,6 +458,166 @@ class PreviewApiIT {
               user1Token);
 
       assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
+    }
+  }
+
+  @Nested
+  @DisplayName("Preview video tests")
+  class PreviewVideoTests {
+
+    /**
+     * Stubs the preview service for a READY video preview (HTTP 200 with frame bytes). With the new
+     * stateless proxy architecture, WSC calls GET /preview/video/{fileId}/0/{area}/ and preview
+     * returns the frame directly.
+     */
+    private void mockVideoPreviewReady(String fileId, String area, String filename)
+        throws IOException {
+      previewMockServer
+          .when(
+              request()
+                  .withMethod("GET")
+                  .withPath("/preview/video/{fileId}/0/{area}/")
+                  .withPathParameter("fileId", fileId)
+                  .withPathParameter("area", area)
+                  .withQueryStringParameter(param("service_type", "chats")))
+          .respond(
+              response()
+                  .withStatusCode(Status.OK.getStatusCode())
+                  .withBody(BinaryBody.binary(getFileBytes(filename)))
+                  .withContentType(MediaType.JPEG));
+    }
+
+    /** Stubs the preview service for a READY video thumbnail (HTTP 200 with frame bytes). */
+    private void mockVideoThumbnailReady(String fileId, String area, String filename)
+        throws IOException {
+      previewMockServer
+          .when(
+              request()
+                  .withMethod("GET")
+                  .withPath("/preview/video/{fileId}/0/{area}/thumbnail/")
+                  .withPathParameter("fileId", fileId)
+                  .withPathParameter("area", area)
+                  .withQueryStringParameter(param("service_type", "chats")))
+          .respond(
+              response()
+                  .withStatusCode(Status.OK.getStatusCode())
+                  .withBody(BinaryBody.binary(getFileBytes(filename)))
+                  .withContentType(MediaType.JPEG));
+    }
+
+    /** Stubs the preview service to return 202 (preview is generating). */
+    private void mockVideoPreviewGenerating(String fileId, String area) {
+      previewMockServer
+          .when(
+              request()
+                  .withMethod("GET")
+                  .withPath("/preview/video/{fileId}/0/{area}/")
+                  .withPathParameter("fileId", fileId)
+                  .withPathParameter("area", area)
+                  .withQueryStringParameter(param("service_type", "chats")))
+          .respond(response().withStatusCode(202));
+    }
+
+    /** Stubs the preview service to return 415 (format unsupported). */
+    private void mockVideoPreviewUnsupported(String fileId, String area) {
+      previewMockServer
+          .when(
+              request()
+                  .withMethod("GET")
+                  .withPath("/preview/video/{fileId}/0/{area}/")
+                  .withPathParameter("fileId", fileId)
+                  .withPathParameter("area", area)
+                  .withQueryStringParameter(param("service_type", "chats")))
+          .respond(response().withStatusCode(415));
+    }
+
+    /** Stubs the preview service to return 422 (generation failed). */
+    private void mockVideoPreviewFailed(String fileId, String area) {
+      previewMockServer
+          .when(
+              request()
+                  .withMethod("GET")
+                  .withPath("/preview/video/{fileId}/0/{area}/")
+                  .withPathParameter("fileId", fileId)
+                  .withPathParameter("area", area)
+                  .withQueryStringParameter(param("service_type", "chats")))
+          .respond(response().withStatusCode(422));
+    }
+
+    @Test
+    @DisplayName("When preview returns 200 (READY) the frame is served (200)")
+    void getVideoPreview_whenReady_returns200WithFrameBytes() throws Exception {
+      UUID videoId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveFileMetadata(
+          videoId, "clip.mp4", "video/mp4", FileMetadataType.ATTACHMENT, user1Id, roomId);
+      FileMock frame = MockedFiles.getPreview(MockedFileType.SNOOPY_PREVIEW);
+      mockVideoPreviewReady(videoId.toString(), "320x160", frame.getName());
+
+      MockHttpResponse response =
+          dispatcher.get("/preview/video/" + videoId + "/320x160/?crop=false", user1Token);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+      assertArrayEquals(frame.getFileBytes(), response.getOutput());
+      assertEquals("image/jpeg", response.getOutputHeaders().get("Content-Type").get(0).toString());
+    }
+
+    @Test
+    @DisplayName("When preview returns 200 (READY) the thumbnail is served (200)")
+    void getVideoThumbnail_whenReady_returns200WithFrameBytes() throws Exception {
+      UUID videoId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveFileMetadata(
+          videoId, "clip.mp4", "video/mp4", FileMetadataType.ATTACHMENT, user1Id, roomId);
+      FileMock frame = MockedFiles.getPreview(MockedFileType.SNOOPY_PREVIEW);
+      mockVideoThumbnailReady(videoId.toString(), "320x160", frame.getName());
+
+      MockHttpResponse response =
+          dispatcher.get("/preview/video/" + videoId + "/320x160/thumbnail/", user1Token);
+
+      assertEquals(Status.OK.getStatusCode(), response.getStatus());
+      assertArrayEquals(frame.getFileBytes(), response.getOutput());
+      assertEquals("image/jpeg", response.getOutputHeaders().get("Content-Type").get(0).toString());
+    }
+
+    @Test
+    @DisplayName("When preview returns 202 (GENERATING/PENDING) the endpoint proxies 202")
+    void getVideoPreview_whenGenerating_returns202() throws Exception {
+      UUID videoId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveFileMetadata(
+          videoId, "clip.mp4", "video/mp4", FileMetadataType.ATTACHMENT, user1Id, roomId);
+      mockVideoPreviewGenerating(videoId.toString(), "320x160");
+
+      MockHttpResponse response =
+          dispatcher.get("/preview/video/" + videoId + "/320x160/?crop=false", user1Token);
+
+      assertEquals(202, response.getStatus());
+    }
+
+    @Test
+    @DisplayName("When preview returns 415 (UNSUPPORTED) the endpoint proxies 415")
+    void getVideoPreview_whenUnsupported_returns415() throws Exception {
+      UUID videoId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveFileMetadata(
+          videoId, "clip.mp4", "video/mp4", FileMetadataType.ATTACHMENT, user1Id, roomId);
+      mockVideoPreviewUnsupported(videoId.toString(), "320x160");
+
+      MockHttpResponse response =
+          dispatcher.get("/preview/video/" + videoId + "/320x160/?crop=false", user1Token);
+
+      assertEquals(415, response.getStatus());
+    }
+
+    @Test
+    @DisplayName("When preview returns 422 (FAILED) the endpoint proxies 422")
+    void getVideoPreview_whenFailed_returns422() throws Exception {
+      UUID videoId = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveFileMetadata(
+          videoId, "clip.mp4", "video/mp4", FileMetadataType.ATTACHMENT, user1Id, roomId);
+      mockVideoPreviewFailed(videoId.toString(), "320x160");
+
+      MockHttpResponse response =
+          dispatcher.get("/preview/video/" + videoId + "/320x160/?crop=false", user1Token);
+
+      assertEquals(422, response.getStatus());
     }
   }
 }

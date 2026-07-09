@@ -121,4 +121,59 @@ public class PreviewApiServiceImpl implements PreviewApiService {
         .header("Content-Length", image.getLength())
         .build();
   }
+
+  @Override
+  public Response getVideoPreview(
+      UUID fileId,
+      String area,
+      ImageQualityEnumDto quality,
+      ImageTypeEnumDto outputFormat,
+      Boolean crop,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+    // Non-READY states throw a distinct ChatsHttpException (202 generating / 413 too-large /
+    // 415 unsupported / 422 failed; a missing attachment is 404) handled by the global exception
+    // handler, so the client can act on each case instead of one opaque 404.
+    FileResponse video =
+        previewService.getVideo(
+            currentUser,
+            fileId,
+            area,
+            Option.of(quality),
+            Option.of(outputFormat),
+            Option.of(crop));
+    return Response.status(Response.Status.OK)
+        .entity(video.getContent())
+        .header("Content-Type", video.getMimeType())
+        .header("Content-Length", video.getLength())
+        .build();
+  }
+
+  @Override
+  public Response getVideoThumbnail(
+      UUID fileId,
+      String area,
+      ImageQualityEnumDto quality,
+      ImageTypeEnumDto outputFormat,
+      ImageShapeEnumDto shape,
+      SecurityContext securityContext) {
+    UserPrincipal currentUser =
+        Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
+            .orElseThrow(UnauthorizedException::new);
+    FileResponse video =
+        previewService.getVideoThumbnail(
+            currentUser,
+            fileId,
+            area,
+            Option.of(quality),
+            Option.of(outputFormat),
+            Option.of(shape));
+    return Response.status(Response.Status.OK)
+        .entity(video.getContent())
+        .header("Content-Type", video.getMimeType())
+        .header("Content-Length", video.getLength())
+        .build();
+  }
 }

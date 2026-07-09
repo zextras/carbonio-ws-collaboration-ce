@@ -35,6 +35,8 @@ import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
 import com.zextras.carbonio.chats.model.IdDto;
+import com.zextras.carbonio.preview.sdk.PreviewClient;
+import com.zextras.carbonio.preview.sdk.QueryBuilder;
 import jakarta.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,10 +44,14 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Singleton
 public class AttachmentServiceImpl implements AttachmentService {
+
+  private static final String VIDEO_MIME_PREFIX = "video/";
+  private static final String SERVICE_TYPE_CHATS = "chats";
 
   private final FileMetadataRepository fileMetadataRepository;
   private final AttachmentMapper attachmentMapper;
@@ -53,6 +59,7 @@ public class AttachmentServiceImpl implements AttachmentService {
   private final RoomService roomService;
   private final MessageDispatcher messageDispatcher;
   private final ObjectMapper objectMapper;
+  private final PreviewClient previewClient;
 
   @Inject
   public AttachmentServiceImpl(
@@ -61,13 +68,15 @@ public class AttachmentServiceImpl implements AttachmentService {
       StoragesService storagesService,
       RoomService roomService,
       MessageDispatcher messageDispatcher,
-      ObjectMapper objectMapper) {
+      ObjectMapper objectMapper,
+      PreviewClient previewClient) {
     this.fileMetadataRepository = fileMetadataRepository;
     this.attachmentMapper = attachmentMapper;
     this.storagesService = storagesService;
     this.roomService = roomService;
     this.messageDispatcher = messageDispatcher;
     this.objectMapper = objectMapper;
+    this.previewClient = previewClient;
   }
 
   @Override
@@ -116,7 +125,11 @@ public class AttachmentServiceImpl implements AttachmentService {
             limit + 1,
             paginationFilter,
             attachmentFilter);
+    long total =
+        fileMetadataRepository.countByRoomIdAndType(
+            roomId.toString(), FileMetadataType.ATTACHMENT, attachmentFilter);
     return AttachmentsPaginationDto.create()
+        .total(total)
         .attachments(
             attachmentMapper.ent2dto(metadataList.subList(0, min(limit, metadataList.size()))))
         .cursor(createNextCursor(metadataList, limit, attachmentFilter).orElse(null));
@@ -194,6 +207,8 @@ public class AttachmentServiceImpl implements AttachmentService {
             replyId,
             area);
     fileMetadataRepository.save(metadata.stanzaId(stanzaResponse.stanzaId()));
+    // Q3: lazy generation on first view — no upload trigger. Preview will enqueue and generate
+    // when the client first calls GET /preview/video/... and preview returns 202.
     return IdDtoBuilder.create().id(fileId).build();
   }
 
@@ -221,6 +236,35 @@ public class AttachmentServiceImpl implements AttachmentService {
     storagesService.copyFile(
         sourceMetadata.getId(), sourceMetadata.getUserId(), metadata.getId(), currentUser.getId());
     fileMetadataRepository.save(metadata);
+    // Fire-and-forget: copy the video preview frame in preview service, off the request thread so a
+    // slow/unreachable previewer can't stall the copy response. If the source is not READY (no
+    // preview yet / still generating) preview returns 404 which we silently swallow — the copy's
+    // preview will be generated lazily on first view.
+    if (sourceMetadata.getMimeType() != null
+        && sourceMetadata.getMimeType().startsWith(VIDEO_MIME_PREFIX)) {
+      CompletableFuture.runAsync(
+          () -> {
+            try {
+              previewClient.copyVideoPreview(
+                  new QueryBuilder()
+                      .fileId(sourceMetadata.getId())
+                      .version(0)
+                      .serviceType(SERVICE_TYPE_CHATS)
+                      .ownerId(sourceMetadata.getUserId())
+                      .build(),
+                  metadata.getId(),
+                  currentUser.getId());
+            } catch (Exception e) {
+              ChatsLogger.warn(
+                  "Failed to copy video preview for attachment "
+                      + originalAttachmentId
+                      + " → "
+                      + metadata.getId()
+                      + ": "
+                      + e.getMessage());
+            }
+          });
+    }
     return metadata;
   }
 
@@ -238,6 +282,11 @@ public class AttachmentServiceImpl implements AttachmentService {
     }
     storagesService.deleteFile(fileId.toString(), metadata.getUserId());
     fileMetadataRepository.delete(metadata);
+    // Fire-and-forget: delete the video preview in the preview service. Orphaned previews are
+    // acceptable (Q: orphan preview is acceptable per spec); never fail WSC delete because of this.
+    if (metadata.getMimeType() != null && metadata.getMimeType().startsWith(VIDEO_MIME_PREFIX)) {
+      deleteVideoPreviewSilently(fileId.toString(), metadata.getUserId());
+    }
   }
 
   @Override
@@ -258,6 +307,12 @@ public class AttachmentServiceImpl implements AttachmentService {
       }
       List<String> successIds = allIds.stream().filter(id -> !failedIds.contains(id)).toList();
       fileMetadataRepository.deleteByIds(successIds);
+      // Fire-and-forget: delete video previews for successfully deleted attachments.
+      // We do not have the mime types at this point, so we attempt delete for all ids and let
+      // preview return 404 for non-video ones (the call is idempotent from WSC's perspective).
+      for (String id : successIds) {
+        deleteVideoPreviewSilently(id, currentUser.getId());
+      }
     } catch (StorageException e) {
       ChatsLogger.warn("Error while deleting attachments of room " + roomId, e);
     }
@@ -286,8 +341,37 @@ public class AttachmentServiceImpl implements AttachmentService {
     }
     List<String> successIds = fileIdStrings.stream().filter(id -> !failedIds.contains(id)).toList();
     fileMetadataRepository.deleteByIds(successIds);
+    // Fire-and-forget: delete video previews for successfully deleted attachments. Owner id is
+    // the current user (all are owned by them per the accessibleIds check above).
+    for (String id : successIds) {
+      deleteVideoPreviewSilently(id, currentUser.getId());
+    }
     return BulkDeleteAttachmentsResponseDto.create()
         .successIds(successIds.stream().map(UUID::fromString).toList())
         .failedIds(failedIds.stream().map(UUID::fromString).toList());
+  }
+
+  /**
+   * Calls {@link PreviewClient#deleteVideoPreview} off the request thread and swallows any
+   * exception. Used in delete paths where preview cleanup must never fail or stall the WSC request.
+   * A 404 from preview (no preview exists) is treated as a no-op; any other error is logged at WARN
+   * level.
+   */
+  private void deleteVideoPreviewSilently(String fileId, String ownerId) {
+    CompletableFuture.runAsync(
+        () -> {
+          try {
+            previewClient.deleteVideoPreview(
+                new QueryBuilder()
+                    .fileId(fileId)
+                    .version(0)
+                    .serviceType(SERVICE_TYPE_CHATS)
+                    .ownerId(ownerId)
+                    .build());
+          } catch (Exception e) {
+            ChatsLogger.warn(
+                "Failed to delete video preview for attachment " + fileId + ": " + e.getMessage());
+          }
+        });
   }
 }

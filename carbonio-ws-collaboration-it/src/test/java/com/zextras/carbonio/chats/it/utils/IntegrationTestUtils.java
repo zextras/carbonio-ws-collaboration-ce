@@ -208,6 +208,25 @@ public class IntegrationTestUtils {
   }
 
   public FileMetadata generateAndSaveFileMetadata(
+      UUID fileId,
+      String name,
+      String mimeType,
+      FileMetadataType fileType,
+      long originalSize,
+      UUID userId,
+      @Nullable UUID roomId) {
+    return fileMetadataRepository.save(
+        FileMetadata.create()
+            .id(fileId.toString())
+            .name(name)
+            .originalSize(originalSize)
+            .mimeType(mimeType)
+            .type(fileType)
+            .userId(userId.toString())
+            .roomId(roomId == null ? null : roomId.toString()));
+  }
+
+  public FileMetadata generateAndSaveFileMetadata(
       MockedFiles.FileMock fileMock,
       FileMetadataType fileType,
       UUID userId,

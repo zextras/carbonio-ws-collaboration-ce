@@ -10,10 +10,12 @@ import com.zextras.carbonio.chats.api.RoomsApiService;
 import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
 import com.zextras.carbonio.chats.core.data.model.FileContentAndMetadata;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
+import com.zextras.carbonio.chats.core.data.type.MimeTypeCategory;
 import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.BadRequestException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.MeetingService;
@@ -28,6 +30,7 @@ import com.zextras.carbonio.chats.model.ClearedDateDto;
 import com.zextras.carbonio.chats.model.ForwardMessageDto;
 import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.MemberToInsertDto;
+import com.zextras.carbonio.chats.model.MimeTypeCategoryDto;
 import com.zextras.carbonio.chats.model.RoomCreationFieldsDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomEditableFieldsDto;
@@ -420,6 +423,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       String cursor,
       UUID userId,
       String mimeType,
+      MimeTypeCategoryDto mimeTypeCategory,
       OffsetDateTime createdAfter,
       OffsetDateTime createdBefore,
       Long minSize,
@@ -428,10 +432,15 @@ public class RoomsApiServiceImpl implements RoomsApiService {
       AttachmentOrderDto order,
       SecurityContext securityContext) {
     UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (mimeType != null && mimeTypeCategory != null) {
+      throw new BadRequestException("mimeType and mimeTypeCategory filters are mutually exclusive");
+    }
     AttachmentFilter attachmentFilter =
         AttachmentFilter.create()
             .userId(userId != null ? userId.toString() : null)
             .mimeType(mimeType)
+            .mimeTypeCategory(
+                mimeTypeCategory != null ? MimeTypeCategory.valueOf(mimeTypeCategory.name()) : null)
             .createdAfter(createdAfter)
             .createdBefore(createdBefore)
             .minSize(minSize)
@@ -595,6 +604,7 @@ public class RoomsApiServiceImpl implements RoomsApiService {
                   currentUser))
           .build();
     } catch (Exception e) {
+      ChatsLogger.error("Error processing attachment upload for room " + roomId, e);
       return Response.status(Status.INTERNAL_SERVER_ERROR).entity("Error processing file").build();
     }
   }

@@ -4,6 +4,28 @@ This document tracks internal changes related to API versioning, both for the RE
 
 ---
 
+## Version 1.6.14
+
+### Changes (1.6.14)
+
+- **API**: Extended GET `/rooms/{roomId}/attachments` with a new optional `mimeTypeCategory`
+  query parameter (enum: `IMAGES` | `VIDEOS` | `DOCUMENTS`). `IMAGES` and `VIDEOS` filter by their
+  respective MIME type prefix (`image/`, `video/`); `DOCUMENTS` filters every other MIME type
+  (including audio). The parameter is mutually exclusive with the existing free-text `mimeType`
+  filter: supplying both in the same request returns `400 Bad Request`.
+- **API**: Extended the GET `/rooms/{roomId}/attachments` response with a new `total` field — the
+  total number of attachments matching the requested room and filters, excluding cursor pagination.
+- **API**: Added GET `/preview/video/{fileId}/{area}/` endpoint — returns a preview (the video's
+  first frame, as an image) of the video identified by `fileId`, scaled to `area` (`width x height`, e.g. `320x240`).
+  Optional query parameters mirror the image preview endpoint: `quality` (image quality enum), `output_format` (output
+  image format enum) and `crop` (boolean, default `false`)
+- **API**: Added GET `/preview/video/{fileId}/{area}/thumbnail/` endpoint — returns a thumbnail (the
+  video's first frame, as an image) of the video identified by `fileId`, scaled to `area` (`width x height`, e.g.
+  `320x240`). Optional query parameters mirror the image thumbnail endpoint: `quality` (image quality enum),
+  `output_format` (output image format enum) and `shape` (`Rounded` | `Rectangular`, default `Rectangular`).
+
+---
+
 ## Version 1.6.13
 
 ### Changes (1.6.13)
@@ -26,7 +48,7 @@ This document tracks internal changes related to API versioning, both for the RE
   - `minSize` (int64) — filter attachments with size ≥ N bytes
   - `maxSize` (int64) — filter attachments with size ≤ N bytes
   - `orderBy` (enum: `createdAt` | `size`, default `createdAt`) — field to sort by;
-    switching to `size` changes the keyset pagination cursor
+      switching to `size` changes the keyset pagination cursor
   - `orderDirection` (enum: `asc` | `desc`, default `desc`) — sort direction
 - **API**: Added DELETE `/attachments` endpoint — bulk deletes a list of attachments by their identifiers.
   The request body is `{ "attachmentIds": ["uuid", ...] }` (min 1 item). The requesting user must own
