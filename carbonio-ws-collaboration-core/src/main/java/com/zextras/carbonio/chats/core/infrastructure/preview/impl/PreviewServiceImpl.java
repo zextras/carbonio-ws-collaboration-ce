@@ -175,7 +175,7 @@ public class PreviewServiceImpl implements PreviewService {
     roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
 
     // Q2 size gate: WSC rejects over-size videos before hitting preview.
-    checkVideoSizeGate(metadata, fileId);
+    checkVideoSizeGate(metadata);
 
     QueryBuilder parameters =
         new QueryBuilder()
@@ -207,7 +207,7 @@ public class PreviewServiceImpl implements PreviewService {
     roomService.getRoomAndValidateUser(UUID.fromString(metadata.getRoomId()), user, false);
 
     // Q2 size gate: WSC rejects over-size videos before hitting preview.
-    checkVideoSizeGate(metadata, fileId);
+    checkVideoSizeGate(metadata);
 
     QueryBuilder parameters =
         new QueryBuilder()
@@ -264,7 +264,7 @@ public class PreviewServiceImpl implements PreviewService {
    * very large KV value. A missing or null size is treated as exceeding the limit (fail-safe,
    * avoids NPE).
    */
-  private void checkVideoSizeGate(FileMetadata metadata, UUID fileId) {
+  private void checkVideoSizeGate(FileMetadata metadata) {
     long maxMb =
         appConfig
             .get(Long.class, ConfigName.MAX_VIDEO_SIZE_PREVIEW_IN_MB)
