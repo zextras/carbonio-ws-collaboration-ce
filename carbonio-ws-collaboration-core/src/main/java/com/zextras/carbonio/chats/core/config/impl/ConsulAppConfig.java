@@ -77,6 +77,9 @@ public class ConsulAppConfig extends AppConfig {
         "carbonio-ws-collaboration/configs/delete-message-time-limit-in-minutes");
     namesMapping.put(
         ConfigName.MAX_GROUP_MEMBERS, "carbonio-ws-collaboration/configs/max-group-members");
+    namesMapping.put(
+        ConfigName.MAX_VIDEO_SIZE_PREVIEW_IN_MB,
+        "carbonio-ws-collaboration/configs/max-video-size-preview-in-mb");
     namesMapping.put(ConfigName.VIRTUAL_HOST, "carbonio-ws-collaboration/broker/virtual-host");
     namesMapping.put(
         ConfigName.REQUESTED_HEARTBEAT_IN_SEC,

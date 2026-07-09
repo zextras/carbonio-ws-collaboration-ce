@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.data.model;
 
+import com.zextras.carbonio.chats.core.data.type.MimeTypeCategory;
 import jakarta.annotation.Nullable;
 import java.time.OffsetDateTime;
 
@@ -11,6 +12,7 @@ public class AttachmentFilter {
 
   @Nullable private String userId;
   @Nullable private String mimeType;
+  @Nullable private MimeTypeCategory mimeTypeCategory;
   @Nullable private OffsetDateTime createdAfter;
   @Nullable private OffsetDateTime createdBefore;
   @Nullable private Long minSize;
@@ -34,6 +36,11 @@ public class AttachmentFilter {
 
   public AttachmentFilter mimeType(@Nullable String mimeType) {
     this.mimeType = mimeType;
+    return this;
+  }
+
+  public AttachmentFilter mimeTypeCategory(@Nullable MimeTypeCategory mimeTypeCategory) {
+    this.mimeTypeCategory = mimeTypeCategory;
     return this;
   }
 
@@ -75,6 +82,11 @@ public class AttachmentFilter {
   @Nullable
   public String getMimeType() {
     return mimeType;
+  }
+
+  @Nullable
+  public MimeTypeCategory getMimeTypeCategory() {
+    return mimeTypeCategory;
   }
 
   @Nullable

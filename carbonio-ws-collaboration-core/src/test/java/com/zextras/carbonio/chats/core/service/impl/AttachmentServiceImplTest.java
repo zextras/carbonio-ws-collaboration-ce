@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
@@ -47,7 +48,9 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AttachmentDto;
 import com.zextras.carbonio.chats.model.AttachmentsPaginationDto;
 import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
+import com.zextras.carbonio.chats.model.IdDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
+import com.zextras.carbonio.preview.sdk.PreviewClient;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.Base64;
@@ -89,7 +92,8 @@ public class AttachmentServiceImplTest {
             this.storagesService,
             this.roomService,
             this.messageDispatcher,
-            this.objectMapper);
+            this.objectMapper,
+            mock(PreviewClient.class));
   }
 
   private static UUID user1Id;
@@ -166,10 +170,14 @@ public class AttachmentServiceImplTest {
                       .createdAt(attachmentTimestamp.plusHours(1))
                       .updatedAt(attachmentTimestamp.plusHours(1))
                       .build()));
+      when(fileMetadataRepository.countByRoomIdAndType(
+              roomId.toString(), FileMetadataType.ATTACHMENT, null))
+          .thenReturn(2L);
       AttachmentsPaginationDto attachmentsPagination =
           attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, null, currentUser);
 
       assertEquals(2, attachmentsPagination.getAttachments().size());
+      assertEquals(2L, attachmentsPagination.getTotal());
       assertEquals(file1Id, attachmentsPagination.getAttachments().get(0).getId());
       assertEquals(file2Id, attachmentsPagination.getAttachments().get(1).getId());
       assertNull(attachmentsPagination.getCursor());
@@ -222,10 +230,14 @@ public class AttachmentServiceImplTest {
                       .createdAt(attachmentTimestamp)
                       .updatedAt(attachmentTimestamp)
                       .build()));
+      when(fileMetadataRepository.countByRoomIdAndType(
+              roomId.toString(), FileMetadataType.ATTACHMENT, null))
+          .thenReturn(3L);
       AttachmentsPaginationDto attachmentsPagination =
           attachmentService.getAttachmentInfoByRoomId(roomId, 2, null, null, currentUser);
 
       assertEquals(2, attachmentsPagination.getAttachments().size());
+      assertEquals(3L, attachmentsPagination.getTotal());
       assertEquals(file1Id, attachmentsPagination.getAttachments().get(0).getId());
       assertEquals(file2Id, attachmentsPagination.getAttachments().get(1).getId());
       assertNotNull(attachmentsPagination.getCursor());
@@ -274,11 +286,15 @@ public class AttachmentServiceImplTest {
                       .createdAt(attachmentTimestamp)
                       .updatedAt(attachmentTimestamp)
                       .build()));
+      when(fileMetadataRepository.countByRoomIdAndType(
+              roomId.toString(), FileMetadataType.ATTACHMENT, null))
+          .thenReturn(2L);
 
       AttachmentsPaginationDto attachmentsPagination =
           attachmentService.getAttachmentInfoByRoomId(roomId, 2, filter, null, currentUser);
 
       assertEquals(1, attachmentsPagination.getAttachments().size());
+      assertEquals(2L, attachmentsPagination.getTotal());
       assertEquals(file2Id, attachmentsPagination.getAttachments().get(0).getId());
       assertNull(attachmentsPagination.getCursor());
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
@@ -326,12 +342,16 @@ public class AttachmentServiceImplTest {
       when(fileMetadataRepository.getByRoomIdAndType(
               roomId.toString(), FileMetadataType.ATTACHMENT, 11, null, null))
           .thenReturn(List.of());
+      when(fileMetadataRepository.countByRoomIdAndType(
+              roomId.toString(), FileMetadataType.ATTACHMENT, null))
+          .thenReturn(0L);
 
       AttachmentsPaginationDto attachmentsPagination =
           attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, null, currentUser);
 
       assertNotNull(attachmentsPagination);
       assertEquals(0, attachmentsPagination.getAttachments().size());
+      assertEquals(0L, attachmentsPagination.getTotal());
       assertNull(attachmentsPagination.getCursor());
       verify(roomService, times(1)).getRoomAndValidateUser(roomId, currentUser, false);
       verifyNoMoreInteractions(roomService);
@@ -683,6 +703,69 @@ public class AttachmentServiceImplTest {
       assertEquals("stanza-id-xyz", captor.getValue().getStanzaId());
       verifyNoMoreInteractions(
           roomService, storagesService, fileMetadataRepository, messageDispatcher);
+    }
+
+    @Test
+    @DisplayName(
+        "Creating a video attachment does NOT call preview (lazy generation on first view)")
+    void addAttachment_videoDoesNotTriggerGeneration() {
+      UUID attachmentUuid = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      when(messageDispatcher.sendAttachment(
+              any(), any(), any(), any(), any(), anyLong(), any(), any(), any(), any()))
+          .thenReturn(new StanzaResponse("xmpp-msg-abc", "stanza-id-xyz"));
+      when(fileMetadataRepository.save(any())).thenReturn(FileMetadata.create());
+      InputStream fileStream = mock(InputStream.class);
+
+      IdDto result;
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        result =
+            attachmentService.addAttachment(
+                roomId,
+                fileStream,
+                "video/mp4",
+                2048L,
+                "clip.mp4",
+                "description",
+                "xmpp-msg-abc",
+                null,
+                null,
+                currentUser);
+      }
+
+      // Upload succeeds end-to-end; preview is NOT called on upload (lazy generation).
+      assertEquals(attachmentUuid, result.getId());
+    }
+
+    @Test
+    @DisplayName("Creating an image attachment does NOT call preview")
+    void addAttachment_imageDoesNotCallPreview() {
+      UUID attachmentUuid = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      when(messageDispatcher.sendAttachment(
+              any(), any(), any(), any(), any(), anyLong(), any(), any(), any(), any()))
+          .thenReturn(new StanzaResponse("xmpp-msg-abc", "stanza-id-xyz"));
+      when(fileMetadataRepository.save(any())).thenReturn(FileMetadata.create());
+      InputStream fileStream = mock(InputStream.class);
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        attachmentService.addAttachment(
+            roomId,
+            fileStream,
+            "image/png",
+            2048L,
+            "pic.png",
+            "description",
+            "xmpp-msg-abc",
+            null,
+            null,
+            currentUser);
+      }
     }
 
     @Test
@@ -1108,11 +1191,15 @@ public class AttachmentServiceImplTest {
                       .createdAt(ts)
                       .updatedAt(ts)
                       .build()));
+      when(fileMetadataRepository.countByRoomIdAndType(
+              eq(roomId.toString()), eq(FileMetadataType.ATTACHMENT), any(AttachmentFilter.class)))
+          .thenReturn(1L);
 
       AttachmentsPaginationDto result =
           attachmentService.getAttachmentInfoByRoomId(roomId, 10, null, filter, currentUser);
 
       assertEquals(1, result.getAttachments().size());
+      assertEquals(1L, result.getTotal());
       assertEquals(user2Id, result.getAttachments().get(0).getUserId());
       assertNull(result.getCursor());
     }

@@ -10,8 +10,11 @@ import com.zextras.carbonio.chats.core.data.entity.FileMetadata;
 import com.zextras.carbonio.chats.core.data.model.AttachmentFilter;
 import com.zextras.carbonio.chats.core.data.model.PaginationFilter;
 import com.zextras.carbonio.chats.core.data.type.FileMetadataType;
+import com.zextras.carbonio.chats.core.data.type.MimeTypeCategory;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import io.ebean.Database;
+import io.ebean.Expr;
+import io.ebean.Expression;
 import io.ebean.ExpressionList;
 import io.ebean.Query;
 import io.ebean.annotation.Transactional;
@@ -63,6 +66,34 @@ public class EbeanFileMetadataRepository implements FileMetadataRepository {
       int itemsNumber,
       @Nullable PaginationFilter paginationFilter,
       @Nullable AttachmentFilter attachmentFilter) {
+    ExpressionList<FileMetadata> query = createRoomTypeQuery(roomId, type, attachmentFilter);
+
+    boolean sortByCreatedAt = attachmentFilter == null || attachmentFilter.isSortByCreatedAt();
+    boolean ascending = attachmentFilter != null && attachmentFilter.isAscending();
+    String sortField = sortByCreatedAt ? "createdAt" : "originalSize";
+
+    if (paginationFilter != null) {
+      if (sortByCreatedAt) {
+        applyCursorFilter(
+            query, sortField, paginationFilter.getCreatedAt(), paginationFilter.getId(), ascending);
+      } else {
+        applyCursorFilter(
+            query, sortField, paginationFilter.getSize(), paginationFilter.getId(), ascending);
+      }
+    }
+
+    String sortOrder = ascending ? sortField + " asc, id asc" : sortField + " desc, id desc";
+    return query.orderBy(sortOrder).setMaxRows(itemsNumber).findList();
+  }
+
+  @Override
+  public long countByRoomIdAndType(
+      String roomId, FileMetadataType type, @Nullable AttachmentFilter attachmentFilter) {
+    return createRoomTypeQuery(roomId, type, attachmentFilter).findCount();
+  }
+
+  private ExpressionList<FileMetadata> createRoomTypeQuery(
+      String roomId, FileMetadataType type, @Nullable AttachmentFilter attachmentFilter) {
     ExpressionList<FileMetadata> query =
         db.find(FileMetadata.class).where().eq("roomId", roomId).eq("type", type);
 
@@ -81,24 +112,34 @@ public class EbeanFileMetadataRepository implements FileMetadataRepository {
           query.eq("mimeType", mimeType);
         }
       }
+
+      applyMimeTypeCategoryFilter(query, attachmentFilter.getMimeTypeCategory());
     }
+    return query;
+  }
 
-    boolean sortByCreatedAt = attachmentFilter == null || attachmentFilter.isSortByCreatedAt();
-    boolean ascending = attachmentFilter != null && attachmentFilter.isAscending();
-    String sortField = sortByCreatedAt ? "createdAt" : "originalSize";
-
-    if (paginationFilter != null) {
-      if (sortByCreatedAt) {
-        applyCursorFilter(
-            query, sortField, paginationFilter.getCreatedAt(), paginationFilter.getId(), ascending);
-      } else {
-        applyCursorFilter(
-            query, sortField, paginationFilter.getSize(), paginationFilter.getId(), ascending);
-      }
+  /**
+   * Restricts the query to a {@link MimeTypeCategory}. A prefixed category ({@code IMAGES}, {@code
+   * VIDEOS}) matches any MIME type starting with its prefix (image/, video/); {@code DOCUMENTS}
+   * matches everything else (including audio), i.e. the negation of the disjunction of all prefixed
+   * categories.
+   */
+  private static void applyMimeTypeCategoryFilter(
+      ExpressionList<FileMetadata> query, @Nullable MimeTypeCategory mimeTypeCategory) {
+    if (mimeTypeCategory == null) {
+      return;
     }
-
-    String sortOrder = ascending ? sortField + " asc, id asc" : sortField + " desc, id desc";
-    return query.orderBy(sortOrder).setMaxRows(itemsNumber).findList();
+    String mimeTypePrefix = mimeTypeCategory.mimeTypePrefix();
+    if (mimeTypePrefix != null) {
+      query.startsWith("mimeType", mimeTypePrefix);
+      return;
+    }
+    Expression prefixedPredicate =
+        MimeTypeCategory.prefixedCategoryPrefixes().stream()
+            .map(prefix -> Expr.startsWith("mimeType", prefix))
+            .reduce(Expr::or)
+            .orElseThrow();
+    query.add(Expr.not(prefixedPredicate));
   }
 
   private static <T> ExpressionList<FileMetadata> eqIfNotNull(

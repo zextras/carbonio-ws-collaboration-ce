@@ -59,6 +59,17 @@ public interface FileMetadataRepository {
       @Nullable AttachmentFilter attachmentFilter);
 
   /**
+   * Counts file metadata rows filtered by roomId and type.
+   *
+   * @param roomId room identifier
+   * @param type file metadata type {@link FileMetadataType}
+   * @param attachmentFilter {@link AttachmentFilter} optional field filters
+   * @return number of matching file metadata rows
+   */
+  long countByRoomIdAndType(
+      String roomId, FileMetadataType type, @Nullable AttachmentFilter attachmentFilter);
+
+  /**
    * Gets identifiers of files that match the given IDs, belong to the specified room, and are owned
    * by the specified user
    *

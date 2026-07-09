@@ -3344,6 +3344,26 @@ public class RoomsApiIT {
       return String.format("/rooms/%s/attachments", roomId);
     }
 
+    private void seedMixedAttachments(UUID roomId) {
+      integrationTestUtils.generateAndSaveFileMetadata(
+          UUID.randomUUID(), "png", "image/png", FileMetadataType.ATTACHMENT, user1Id, roomId);
+      integrationTestUtils.generateAndSaveFileMetadata(
+          UUID.randomUUID(), "jpeg", "image/jpeg", FileMetadataType.ATTACHMENT, user1Id, roomId);
+      integrationTestUtils.generateAndSaveFileMetadata(
+          UUID.randomUUID(), "mp4", "video/mp4", FileMetadataType.ATTACHMENT, user1Id, roomId);
+      integrationTestUtils.generateAndSaveFileMetadata(
+          UUID.randomUUID(), "mpeg", "audio/mpeg", FileMetadataType.ATTACHMENT, user1Id, roomId);
+      integrationTestUtils.generateAndSaveFileMetadata(
+          UUID.randomUUID(),
+          "pdf",
+          "application/pdf",
+          FileMetadataType.ATTACHMENT,
+          user1Id,
+          roomId);
+      integrationTestUtils.generateAndSaveFileMetadata(
+          UUID.randomUUID(), "txt", "text/plain", FileMetadataType.ATTACHMENT, user1Id, roomId);
+    }
+
     @Test
     @DisplayName(
         "Given a room identifier, correctly returns a single paged list of attachments info of the"
@@ -3396,6 +3416,7 @@ public class RoomsApiIT {
       AttachmentsPaginationDto attachments =
           objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
       assertEquals(4, attachments.getAttachments().size());
+      assertEquals(4L, attachments.getTotal());
       assertEquals(
           List.of(file3.getId(), file4.getId(), file1.getId(), file2.getId()),
           attachments.getAttachments().stream()
@@ -3456,6 +3477,7 @@ public class RoomsApiIT {
       AttachmentsPaginationDto attachmentsPage1 =
           objectMapper.readValue(response1.getContentAsString(), AttachmentsPaginationDto.class);
       assertEquals(2, attachmentsPage1.getAttachments().size());
+      assertEquals(4L, attachmentsPage1.getTotal());
       assertEquals(
           List.of(file3.getId(), file1.getId()),
           attachmentsPage1.getAttachments().stream()
@@ -3471,6 +3493,7 @@ public class RoomsApiIT {
       AttachmentsPaginationDto attachmentsPage2 =
           objectMapper.readValue(response2.getContentAsString(), AttachmentsPaginationDto.class);
       assertEquals(2, attachmentsPage2.getAttachments().size());
+      assertEquals(4L, attachmentsPage2.getTotal());
       assertEquals(
           List.of(file4.getId(), file2.getId()),
           attachmentsPage2.getAttachments().stream()
@@ -3501,6 +3524,81 @@ public class RoomsApiIT {
       MockHttpResponse response = dispatcher.get(url(roomId), user3Token);
       assertEquals(403, response.getStatus());
       assertEquals(0, response.getOutput().length);
+    }
+
+    @Test
+    @DisplayName("Given an IMAGES mimeTypeCategory filter, returns only images")
+    void listRoomAttachmentInfo_filterByImagesCategory() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+      seedMixedAttachments(room1Id);
+
+      MockHttpResponse response =
+          dispatcher.get(url(room1Id) + "?mimeTypeCategory=IMAGES", user1Token);
+
+      assertEquals(200, response.getStatus());
+      AttachmentsPaginationDto result =
+          objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(2L, result.getTotal());
+      assertEquals(
+          List.of("image/jpeg", "image/png"),
+          result.getAttachments().stream().map(a -> a.getMimeType()).sorted().toList());
+    }
+
+    @Test
+    @DisplayName("Given a VIDEOS mimeTypeCategory filter, returns only videos")
+    void listRoomAttachmentInfo_filterByVideosCategory() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+      seedMixedAttachments(room1Id);
+
+      MockHttpResponse response =
+          dispatcher.get(url(room1Id) + "?mimeTypeCategory=VIDEOS", user1Token);
+
+      assertEquals(200, response.getStatus());
+      AttachmentsPaginationDto result =
+          objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(1L, result.getTotal());
+      assertEquals(
+          List.of("video/mp4"),
+          result.getAttachments().stream().map(a -> a.getMimeType()).sorted().toList());
+    }
+
+    @Test
+    @DisplayName(
+        "Given a DOCUMENTS mimeTypeCategory filter, returns every other MIME type incl. audio")
+    void listRoomAttachmentInfo_filterByDocumentsCategory() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+      seedMixedAttachments(room1Id);
+
+      MockHttpResponse response =
+          dispatcher.get(url(room1Id) + "?mimeTypeCategory=DOCUMENTS", user1Token);
+
+      assertEquals(200, response.getStatus());
+      AttachmentsPaginationDto result =
+          objectMapper.readValue(response.getContentAsString(), new TypeReference<>() {});
+      assertEquals(3L, result.getTotal());
+      assertEquals(
+          List.of("application/pdf", "audio/mpeg", "text/plain"),
+          result.getAttachments().stream().map(a -> a.getMimeType()).sorted().toList());
+    }
+
+    @Test
+    @DisplayName("Given both mimeType and mimeTypeCategory filters, returns status code 400")
+    void listRoomAttachmentInfo_mimeTypeAndCategoryMutuallyExclusive() throws Exception {
+      UUID room1Id = UUID.randomUUID();
+      integrationTestUtils.generateAndSaveRoom(
+          room1Id, RoomTypeDto.GROUP, "room1", List.of(user1Id, user2Id, user3Id));
+
+      MockHttpResponse response =
+          dispatcher.get(
+              url(room1Id) + "?mimeType=image%2Fpng&mimeTypeCategory=IMAGES", user1Token);
+
+      assertEquals(400, response.getStatus());
     }
   }
 

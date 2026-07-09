@@ -23,5 +23,10 @@ public class ChatsConstant {
     public static final int EDIT_MESSAGE_TIME_LIMIT_IN_MINUTES = 10;
     public static final int DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES = 10;
     public static final int MAX_GROUP_MEMBERS = 128;
+
+    /**
+     * Max video attachment size (MB) eligible for first-frame preview generation; 0 = unlimited.
+     */
+    public static final int MAX_VIDEO_SIZE_PREVIEW_IN_MB = 128;
   }
 }

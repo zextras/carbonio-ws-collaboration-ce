@@ -38,7 +38,8 @@ public interface AttachmentService {
    * @param cursor opaque base64-encoded pagination token from the previous response
    * @param attachmentFilter optional field filters and sort options {@link AttachmentFilter}
    * @param currentUser current authenticated user {@link UserPrincipal}
-   * @return paged list of attachments metadata for the requested room
+   * @return paged list of attachments metadata, next cursor, and total matching attachment count
+   *     for the requested room
    */
   AttachmentsPaginationDto getAttachmentInfoByRoomId(
       UUID roomId,
