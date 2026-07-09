@@ -44,6 +44,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -235,31 +236,34 @@ public class AttachmentServiceImpl implements AttachmentService {
     storagesService.copyFile(
         sourceMetadata.getId(), sourceMetadata.getUserId(), metadata.getId(), currentUser.getId());
     fileMetadataRepository.save(metadata);
-    // Fire-and-forget: copy the video preview frame in preview service. If the source is not READY
-    // (no preview yet / still generating) preview returns 404 which we silently swallow — the
-    // copy's
+    // Fire-and-forget: copy the video preview frame in preview service, off the request thread so a
+    // slow/unreachable previewer can't stall the copy response. If the source is not READY (no
+    // preview yet / still generating) preview returns 404 which we silently swallow — the copy's
     // preview will be generated lazily on first view.
     if (sourceMetadata.getMimeType() != null
         && sourceMetadata.getMimeType().startsWith(VIDEO_MIME_PREFIX)) {
-      try {
-        previewClient.copyVideoPreview(
-            new QueryBuilder()
-                .fileId(sourceMetadata.getId())
-                .version(0)
-                .serviceType(SERVICE_TYPE_CHATS)
-                .ownerId(sourceMetadata.getUserId())
-                .build(),
-            metadata.getId(),
-            currentUser.getId());
-      } catch (Exception e) {
-        ChatsLogger.warn(
-            "Failed to copy video preview for attachment "
-                + originalAttachmentId
-                + " → "
-                + metadata.getId()
-                + ": "
-                + e.getMessage());
-      }
+      CompletableFuture.runAsync(
+          () -> {
+            try {
+              previewClient.copyVideoPreview(
+                  new QueryBuilder()
+                      .fileId(sourceMetadata.getId())
+                      .version(0)
+                      .serviceType(SERVICE_TYPE_CHATS)
+                      .ownerId(sourceMetadata.getUserId())
+                      .build(),
+                  metadata.getId(),
+                  currentUser.getId());
+            } catch (Exception e) {
+              ChatsLogger.warn(
+                  "Failed to copy video preview for attachment "
+                      + originalAttachmentId
+                      + " → "
+                      + metadata.getId()
+                      + ": "
+                      + e.getMessage());
+            }
+          });
     }
     return metadata;
   }
@@ -348,22 +352,26 @@ public class AttachmentServiceImpl implements AttachmentService {
   }
 
   /**
-   * Calls {@link PreviewClient#deleteVideoPreview} and swallows any exception. Used in delete paths
-   * where preview cleanup must never fail the WSC request. A 404 from preview (no preview exists)
-   * is treated as a no-op; any other error is logged at WARN level.
+   * Calls {@link PreviewClient#deleteVideoPreview} off the request thread and swallows any
+   * exception. Used in delete paths where preview cleanup must never fail or stall the WSC request.
+   * A 404 from preview (no preview exists) is treated as a no-op; any other error is logged at WARN
+   * level.
    */
   private void deleteVideoPreviewSilently(String fileId, String ownerId) {
-    try {
-      previewClient.deleteVideoPreview(
-          new QueryBuilder()
-              .fileId(fileId)
-              .version(0)
-              .serviceType(SERVICE_TYPE_CHATS)
-              .ownerId(ownerId)
-              .build());
-    } catch (Exception e) {
-      ChatsLogger.warn(
-          "Failed to delete video preview for attachment " + fileId + ": " + e.getMessage());
-    }
+    CompletableFuture.runAsync(
+        () -> {
+          try {
+            previewClient.deleteVideoPreview(
+                new QueryBuilder()
+                    .fileId(fileId)
+                    .version(0)
+                    .serviceType(SERVICE_TYPE_CHATS)
+                    .ownerId(ownerId)
+                    .build());
+          } catch (Exception e) {
+            ChatsLogger.warn(
+                "Failed to delete video preview for attachment " + fileId + ": " + e.getMessage());
+          }
+        });
   }
 }

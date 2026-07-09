@@ -14,6 +14,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -51,6 +52,7 @@ import com.zextras.carbonio.chats.model.BulkDeleteAttachmentsResponseDto;
 import com.zextras.carbonio.chats.model.IdDto;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
 import com.zextras.carbonio.preview.sdk.PreviewClient;
+import com.zextras.carbonio.preview.sdk.Query;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.Base64;
@@ -74,6 +76,7 @@ public class AttachmentServiceImplTest {
   private final RoomService roomService;
   private final MessageDispatcher messageDispatcher;
   private final ObjectMapper objectMapper;
+  private final PreviewClient previewClient;
 
   public AttachmentServiceImplTest(AttachmentMapper attachmentMapper) {
     this.fileMetadataRepository = mock(FileMetadataRepository.class);
@@ -85,6 +88,7 @@ public class AttachmentServiceImplTest {
             .addModule(new JavaTimeModule())
             .build()
             .setDateFormat(new RFC3339DateFormat());
+    this.previewClient = mock(PreviewClient.class);
     this.attachmentService =
         new AttachmentServiceImpl(
             this.fileMetadataRepository,
@@ -93,7 +97,7 @@ public class AttachmentServiceImplTest {
             this.roomService,
             this.messageDispatcher,
             this.objectMapper,
-            mock(PreviewClient.class));
+            this.previewClient);
   }
 
   private static UUID user1Id;
@@ -916,6 +920,77 @@ public class AttachmentServiceImplTest {
       assertEquals(user1Id.toString(), copiedFileMetadata.getUserId());
       assertEquals(roomId.toString(), copiedFileMetadata.getRoomId());
       verifyNoMoreInteractions(roomService, storagesService, fileMetadataRepository);
+      verifyNoInteractions(previewClient);
+    }
+
+    @Test
+    @DisplayName("Copies a video attachment and asynchronously copies its preview frame")
+    void copyAttachment_videoTriggersAsyncPreviewCopy() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UUID originalAttachmentId = UUID.randomUUID();
+      FileMetadata fileMetadata =
+          FileMetadataBuilder.create()
+              .id(originalAttachmentId.toString())
+              .name("clip.mp4")
+              .originalSize(1024L)
+              .mimeType("video/mp4")
+              .type(FileMetadataType.ATTACHMENT)
+              .userId(user1Id.toString())
+              .roomId(roomId.toString())
+              .build();
+      when(fileMetadataRepository.getById(originalAttachmentId.toString()))
+          .thenReturn(Optional.of(fileMetadata));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      UUID attachmentUuid = UUID.randomUUID();
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        attachmentService.copyAttachment(room2, originalAttachmentId, currentUser);
+      }
+
+      ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
+      verify(previewClient, timeout(1000))
+          .copyVideoPreview(
+              parametersCapture.capture(), eq(attachmentUuid.toString()), eq(user1Id.toString()));
+      Query captured = parametersCapture.getValue();
+      assertEquals(originalAttachmentId.toString(), captured.getFileId());
+      assertEquals(user1Id.toString(), captured.getOwnerId());
+    }
+
+    @Test
+    @DisplayName("Copy still succeeds even if the async preview copy call fails")
+    void copyAttachment_previewCopyFailureDoesNotFailCopy() {
+      UserPrincipal currentUser = UserPrincipal.create(user1Id);
+      UUID originalAttachmentId = UUID.randomUUID();
+      FileMetadata fileMetadata =
+          FileMetadataBuilder.create()
+              .id(originalAttachmentId.toString())
+              .name("clip.mp4")
+              .originalSize(1024L)
+              .mimeType("video/mp4")
+              .type(FileMetadataType.ATTACHMENT)
+              .userId(user1Id.toString())
+              .roomId(roomId.toString())
+              .build();
+      when(fileMetadataRepository.getById(originalAttachmentId.toString()))
+          .thenReturn(Optional.of(fileMetadata));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      doThrow(new RuntimeException("previewer unreachable"))
+          .when(previewClient)
+          .copyVideoPreview(any(), any(), any());
+      UUID attachmentUuid = UUID.randomUUID();
+
+      FileMetadata result;
+      try (MockedStatic<UUID> uuid = Mockito.mockStatic(UUID.class)) {
+        uuid.when(UUID::randomUUID).thenReturn(attachmentUuid);
+        uuid.when(() -> UUID.fromString(user1Id.toString())).thenReturn(user1Id);
+        uuid.when(() -> UUID.fromString(roomId.toString())).thenReturn(roomId);
+        result = attachmentService.copyAttachment(room2, originalAttachmentId, currentUser);
+      }
+
+      assertEquals(attachmentUuid.toString(), result.getId());
+      verify(previewClient, timeout(1000)).copyVideoPreview(any(), any(), any());
     }
 
     @Test
@@ -1061,6 +1136,60 @@ public class AttachmentServiceImplTest {
       verify(storagesService, times(1)).deleteFile(attachmentUuid.toString(), user2Id.toString());
       verify(fileMetadataRepository, times(1)).delete(expectedMetadata);
       verifyNoMoreInteractions(fileMetadataRepository, roomService, storagesService);
+      verifyNoInteractions(previewClient);
+    }
+
+    @Test
+    @DisplayName("Deleting a video attachment asynchronously deletes its preview")
+    void deleteAttachment_videoTriggersAsyncPreviewDelete() {
+      UUID attachmentUuid = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user2Id);
+      FileMetadata expectedMetadata =
+          FileMetadataBuilder.create()
+              .id(attachmentUuid.toString())
+              .name("clip.mp4")
+              .mimeType("video/mp4")
+              .type(FileMetadataType.ATTACHMENT)
+              .userId(user2Id.toString())
+              .roomId(roomId.toString())
+              .build();
+      when(fileMetadataRepository.getById(attachmentUuid.toString()))
+          .thenReturn(Optional.of(expectedMetadata));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+
+      attachmentService.deleteAttachment(attachmentUuid, currentUser);
+
+      ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
+      verify(previewClient, timeout(1000)).deleteVideoPreview(parametersCapture.capture());
+      assertEquals(attachmentUuid.toString(), parametersCapture.getValue().getFileId());
+      assertEquals(user2Id.toString(), parametersCapture.getValue().getOwnerId());
+    }
+
+    @Test
+    @DisplayName("Delete still succeeds even if the async preview delete call fails")
+    void deleteAttachment_previewDeleteFailureDoesNotFailDelete() {
+      UUID attachmentUuid = UUID.randomUUID();
+      UserPrincipal currentUser = UserPrincipal.create(user2Id);
+      FileMetadata expectedMetadata =
+          FileMetadataBuilder.create()
+              .id(attachmentUuid.toString())
+              .name("clip.mp4")
+              .mimeType("video/mp4")
+              .type(FileMetadataType.ATTACHMENT)
+              .userId(user2Id.toString())
+              .roomId(roomId.toString())
+              .build();
+      when(fileMetadataRepository.getById(attachmentUuid.toString()))
+          .thenReturn(Optional.of(expectedMetadata));
+      when(roomService.getRoomAndValidateUser(roomId, currentUser, false)).thenReturn(room1);
+      doThrow(new RuntimeException("previewer unreachable"))
+          .when(previewClient)
+          .deleteVideoPreview(any());
+
+      attachmentService.deleteAttachment(attachmentUuid, currentUser);
+
+      verify(fileMetadataRepository, times(1)).delete(expectedMetadata);
+      verify(previewClient, timeout(1000)).deleteVideoPreview(any());
     }
 
     @Test
@@ -1593,6 +1722,11 @@ public class AttachmentServiceImplTest {
       verifyNoMoreInteractions(roomService, fileMetadataRepository, storagesService);
       assertEquals(List.of(file1Id, file2Id), result.getSuccessIds());
       assertEquals(List.of(), result.getFailedIds());
+      ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
+      verify(previewClient, timeout(1000).times(2)).deleteVideoPreview(parametersCapture.capture());
+      assertEquals(
+          List.of(file1Id.toString(), file2Id.toString()).stream().sorted().toList(),
+          parametersCapture.getAllValues().stream().map(Query::getFileId).sorted().toList());
     }
 
     @Test
@@ -1690,6 +1824,11 @@ public class AttachmentServiceImplTest {
           .deleteFileList(List.of(file1Id, file2Id), user1Id.toString());
       verify(fileMetadataRepository, times(1)).deleteByIds(List.of(file1Id, file2Id));
       verifyNoMoreInteractions(storagesService, fileMetadataRepository);
+      ArgumentCaptor<Query> parametersCapture = ArgumentCaptor.forClass(Query.class);
+      verify(previewClient, timeout(1000).times(2)).deleteVideoPreview(parametersCapture.capture());
+      assertEquals(
+          List.of(file1Id, file2Id).stream().sorted().toList(),
+          parametersCapture.getAllValues().stream().map(Query::getFileId).sorted().toList());
     }
 
     @Test
