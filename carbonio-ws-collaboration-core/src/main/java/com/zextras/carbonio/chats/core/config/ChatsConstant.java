@@ -25,7 +25,9 @@ public class ChatsConstant {
     public static final int MAX_GROUP_MEMBERS = 128;
 
     /**
-     * Max video attachment size (MB) eligible for first-frame preview generation; 0 = unlimited.
+     * Max video attachment size (MB) eligible for first-frame preview generation. The limit is
+     * literal: 0 rejects every video (see {@code PreviewServiceImpl#checkVideoSizeGate}), it is not
+     * an "unlimited" sentinel.
      */
     public static final int MAX_VIDEO_SIZE_PREVIEW_IN_MB = 128;
   }
