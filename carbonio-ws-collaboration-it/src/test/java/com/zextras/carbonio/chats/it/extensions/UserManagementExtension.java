@@ -4,7 +4,9 @@
 
 package com.zextras.carbonio.chats.it.extensions;
 
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
+import com.zextras.carbonio.chats.it.config.InMemoryConfigStore;
 import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import java.util.Optional;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -16,6 +18,8 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 
 public class UserManagementExtension implements BeforeAllCallback, ParameterResolver {
 
+  private static final String SERVER_HOST = "127.0.0.1";
+  private static final int SERVER_PORT = 7899;
   private static final Namespace EXTENSION_NAMESPACE =
       Namespace.create(UserManagementExtension.class);
   private static final String CLIENT_STORE_ENTRY = "user_management_client";
@@ -28,8 +32,12 @@ public class UserManagementExtension implements BeforeAllCallback, ParameterReso
         .getOrComputeIfAbsent(
             CLIENT_STORE_ENTRY,
             (key) -> {
-              ChatsLogger.debug("Starting User Management gRPC mock...");
-              return new UserManagementMockServer();
+              ChatsLogger.debug("Starting User Management mock...");
+              UserManagementMockServer client = new UserManagementMockServer(SERVER_PORT);
+              InMemoryConfigStore.set(ConfigName.USER_MANAGEMENT_HOST, SERVER_HOST);
+              InMemoryConfigStore.set(
+                  ConfigName.USER_MANAGEMENT_PORT, Integer.toString(SERVER_PORT));
+              return client;
             },
             UserManagementMockServer.class);
   }

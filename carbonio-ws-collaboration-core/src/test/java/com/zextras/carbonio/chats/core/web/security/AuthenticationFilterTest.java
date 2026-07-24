@@ -17,9 +17,8 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
-import com.zextras.carbonio.user_management.sdk.grpc.UserInfoProto;
-import com.zextras.carbonio.user_management.sdk.grpc.UserMyselfProto;
-import com.zextras.carbonio.user_management.sdk.grpc.UserTypeProto;
+import com.zextras.carbonio.user_management.sdk.rest.model.MyselfDto;
+import com.zextras.carbonio.user_management.sdk.rest.model.UserInfoDto;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Cookie;
 import java.util.Map;
@@ -41,25 +40,24 @@ class AuthenticationFilterTest {
     authenticationFilter = new AuthenticationFilter(authenticationService);
   }
 
-  private UserMyselfProto buildUserMyselfProto(
+  private MyselfDto buildMyselfDto(
       String userId, String email, String fullName, String domain,
-      UserTypeProto type, String status, Map<String, String> capabilities, String... features) {
-    UserInfoProto info = UserInfoProto.newBuilder()
-        .setUserId(userId)
-        .setEmail(email)
-        .setFullName(fullName)
-        .setDomain(domain)
-        .setType(type)
-        .setStatus(status)
-        .build();
-    UserMyselfProto.Builder builder = UserMyselfProto.newBuilder()
-        .setInfo(info)
-        .setLocale("en")
-        .putAllCapabilities(capabilities);
+      String type, String status, Map<String, String> capabilities, String... features) {
+    UserInfoDto info = new UserInfoDto()
+        .userId(userId)
+        .email(email)
+        .fullName(fullName)
+        .domain(domain)
+        .type(type)
+        .status(status);
+    MyselfDto myself = new MyselfDto()
+        .info(info)
+        .locale("en")
+        .capabilities(capabilities);
     for (String feature : features) {
-      builder.addFeatures(feature);
+      myself.addFeaturesItem(feature);
     }
-    return builder.build();
+    return myself;
   }
 
   @Nested
@@ -71,9 +69,9 @@ class AuthenticationFilterTest {
     void filter_testOk() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of("carbonioFeatureWscEnabled", "TRUE");
-      UserMyselfProto userMyself = buildUserMyselfProto(
+      MyselfDto userMyself = buildMyselfDto(
           userId.toString(), "user@example.com", "Test User", "example.com",
-          UserTypeProto.INTERNAL, "active", capabilities, "carbonioFeatureWscEnabled");
+          "INTERNAL", "active", capabilities, "carbonioFeatureWscEnabled");
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
@@ -100,9 +98,9 @@ class AuthenticationFilterTest {
     void filter_testOkForGuestUser() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of("carbonioFeatureWscEnabled", "TRUE");
-      UserMyselfProto userMyself = buildUserMyselfProto(
+      MyselfDto userMyself = buildMyselfDto(
           userId.toString(), "guest@example.com", "Guest User", "example.com",
-          UserTypeProto.GUEST, "active", capabilities, "carbonioFeatureWscEnabled");
+          "GUEST", "active", capabilities, "carbonioFeatureWscEnabled");
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
@@ -150,9 +148,9 @@ class AuthenticationFilterTest {
     void filter_testUserNotActive() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of("carbonioFeatureWscEnabled", "TRUE");
-      UserMyselfProto userMyself = buildUserMyselfProto(
+      MyselfDto userMyself = buildMyselfDto(
           userId.toString(), "user@example.com", "Test User", "example.com",
-          UserTypeProto.INTERNAL, "closed", capabilities, "carbonioFeatureWscEnabled");
+          "INTERNAL", "closed", capabilities, "carbonioFeatureWscEnabled");
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
@@ -167,9 +165,9 @@ class AuthenticationFilterTest {
     void filter_testWscFeatureDisabledForInternalUser() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of("carbonioFeatureWscEnabled", "FALSE");
-      UserMyselfProto userMyself = buildUserMyselfProto(
+      MyselfDto userMyself = buildMyselfDto(
           userId.toString(), "user@example.com", "Test User", "example.com",
-          UserTypeProto.INTERNAL, "active", capabilities);
+          "INTERNAL", "active", capabilities);
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
@@ -184,9 +182,9 @@ class AuthenticationFilterTest {
     void filter_testWscFeatureDisabledForGuestUser() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of("carbonioFeatureWscEnabled", "FALSE");
-      UserMyselfProto userMyself = buildUserMyselfProto(
+      MyselfDto userMyself = buildMyselfDto(
           userId.toString(), "user@example.com", "Test User", "example.com",
-          UserTypeProto.GUEST, "active", capabilities);
+          "GUEST", "active", capabilities);
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
@@ -202,9 +200,9 @@ class AuthenticationFilterTest {
     void filter_testWscFeatureMissingForInternalUser() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of();
-      UserMyselfProto userMyself = buildUserMyselfProto(
+      MyselfDto userMyself = buildMyselfDto(
           userId.toString(), "user@example.com", "Test User", "example.com",
-          UserTypeProto.INTERNAL, "active", capabilities);
+          "INTERNAL", "active", capabilities);
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())

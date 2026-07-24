@@ -129,15 +129,13 @@ import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.preview.sdk.PreviewClient;
-import com.zextras.carbonio.user_management.sdk.grpc.UserManagementServiceGrpc;
-import com.zextras.carbonio.user_management.sdk.grpc.UserManagementServiceGrpc.UserManagementServiceBlockingStub;
+import com.zextras.carbonio.user_management.sdk.rest.ApiClient;
+import com.zextras.carbonio.user_management.sdk.rest.api.UserResourceApi;
 import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.annotation.Platform;
 import io.ebean.config.DatabaseConfig;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.ZoneId;
@@ -272,18 +270,25 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  @Named("userManagementChannel")
-  private ManagedChannel getUserManagementChannel(AppConfig appConfig) {
-    String host = appConfig.get(String.class, ConfigName.USER_MANAGEMENT_HOST).orElseThrow();
-    int port = appConfig.get(Integer.class, ConfigName.USER_MANAGEMENT_PORT).orElseThrow();
-    return ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
+  @Named("userManagementBaseUrl")
+  private String getUserManagementBaseUrl(AppConfig appConfig) {
+    return String.format(
+        URL_PATTERN,
+        appConfig.get(String.class, ConfigName.USER_MANAGEMENT_HOST).orElseThrow(),
+        appConfig.get(String.class, ConfigName.USER_MANAGEMENT_PORT).orElseThrow());
   }
 
   @Singleton
   @Provides
-  private UserManagementServiceBlockingStub getUserManagementStub(
-      @Named("userManagementChannel") ManagedChannel userManagementChannel) {
-    return UserManagementServiceGrpc.newBlockingStub(userManagementChannel);
+  private UserResourceApi getUserResourceApi(
+      @Named("userManagementBaseUrl") String userManagementBaseUrl) {
+    // Pin HTTP/1.1: the User Management service does not support h2c cleartext upgrade.
+    java.net.http.HttpClient.Builder httpClientBuilder =
+        java.net.http.HttpClient.newBuilder().version(java.net.http.HttpClient.Version.HTTP_1_1);
+    ApiClient apiClient =
+        new ApiClient(
+            httpClientBuilder, ApiClient.createDefaultObjectMapper(), userManagementBaseUrl);
+    return new UserResourceApi(apiClient);
   }
 
   @Singleton

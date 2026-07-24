@@ -10,7 +10,7 @@ import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
-import com.zextras.carbonio.user_management.sdk.grpc.UserMyselfProto;
+import com.zextras.carbonio.user_management.sdk.rest.model.MyselfDto;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.PreMatching;
@@ -48,7 +48,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         .ifPresentOrElse(
             token -> {
               // If the user token is invalid, we won't authenticate him/her as anonymous
-              UserMyselfProto userMyself =
+              MyselfDto userMyself =
                   authenticationService
                       .getUserMyself(token)
                       .orElseThrow(UnauthorizedException::new);
@@ -60,12 +60,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
               // Check if carbonioFeatureWscEnabled is in features list
               boolean wscEnabled =
-                  userMyself.getFeaturesList().contains(
+                  userMyself.getFeatures().contains(
                       CarbonioAttribute.FEATURE_WSC_ENABLED.getValue());
               if (!wscEnabled) {
                 throw new UnauthorizedException("WSC feature not enabled for user");
               }
-              Map<String, String> capabilities = userMyself.getCapabilitiesMap();
+              Map<String, String> capabilities = userMyself.getCapabilities();
               requestContext.setSecurityContext(
                   SecurityContextImpl.create(
                       UserPrincipal.create(userMyself.getInfo().getUserId())

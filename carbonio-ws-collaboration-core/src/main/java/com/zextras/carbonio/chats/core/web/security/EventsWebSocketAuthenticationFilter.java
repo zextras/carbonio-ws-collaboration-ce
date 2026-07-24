@@ -7,7 +7,7 @@ package com.zextras.carbonio.chats.core.web.security;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
-import com.zextras.carbonio.user_management.sdk.grpc.UserMyselfProto;
+import com.zextras.carbonio.user_management.sdk.rest.model.MyselfDto;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -53,7 +53,7 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
       return;
     }
 
-    Optional<UserMyselfProto> userMyselfOpt = authenticationService.getUserMyself(authToken.get());
+    Optional<MyselfDto> userMyselfOpt = authenticationService.getUserMyself(authToken.get());
 
     if (userMyselfOpt.isEmpty()) {
       ChatsLogger.warn("Websocket authentication failed for token " + authToken.get());
@@ -61,7 +61,7 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
       return;
     }
 
-    UserMyselfProto userMyself = userMyselfOpt.get();
+    MyselfDto userMyself = userMyselfOpt.get();
 
     // Check if user status is ACTIVE
     if (!userMyself.getInfo().getStatus().equalsIgnoreCase("active")) {
@@ -72,13 +72,13 @@ public class EventsWebSocketAuthenticationFilter implements Filter {
 
     // Check if carbonioFeatureWscEnabled is in features list
     boolean wscEnabled =
-        userMyself.getFeaturesList().contains(CarbonioAttribute.FEATURE_WSC_ENABLED.getValue());
+        userMyself.getFeatures().contains(CarbonioAttribute.FEATURE_WSC_ENABLED.getValue());
     if (!wscEnabled) {
       ChatsLogger.warn("Websocket authentication failed: WSC feature not enabled for user");
       httpServletResponse.setStatus(Status.UNAUTHORIZED.getStatusCode());
       return;
     }
-    Map<String, String> capabilities = userMyself.getCapabilitiesMap();
+    Map<String, String> capabilities = userMyself.getCapabilities();
 
     String userId = userMyself.getInfo().getUserId();
     httpRequest.getSession().setAttribute("userId", userId);

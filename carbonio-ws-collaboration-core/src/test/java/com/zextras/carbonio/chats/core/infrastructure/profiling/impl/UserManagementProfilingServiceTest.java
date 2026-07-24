@@ -7,7 +7,7 @@ package com.zextras.carbonio.chats.core.infrastructure.profiling.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
@@ -18,14 +18,10 @@ import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.ProfilingException;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.user_management.sdk.grpc.GetUserByIdRequest;
-import com.zextras.carbonio.user_management.sdk.grpc.UserInfoProto;
-import com.zextras.carbonio.user_management.sdk.grpc.UserInfoResponse;
-import com.zextras.carbonio.user_management.sdk.grpc.UserManagementServiceGrpc.UserManagementServiceBlockingStub;
-import com.zextras.carbonio.user_management.sdk.grpc.UserTypeProto;
-import io.grpc.ManagedChannel;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
+import com.zextras.carbonio.chats.core.web.utility.HttpClient;
+import com.zextras.carbonio.user_management.sdk.rest.ApiException;
+import com.zextras.carbonio.user_management.sdk.rest.api.UserResourceApi;
+import com.zextras.carbonio.user_management.sdk.rest.model.UserInfoDto;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -36,33 +32,32 @@ import org.junit.jupiter.api.Test;
 @UnitTest
 class UserManagementProfilingServiceTest {
 
+  private static final String USER_MANAGEMENT_BASE_URL = "http://127.78.0.2:20001";
+
   private final UserManagementProfilingService profilingService;
-  private final UserManagementServiceBlockingStub userManagementStub;
-  private final ManagedChannel userManagementChannel;
+  private final UserResourceApi userResourceApi;
 
   public UserManagementProfilingServiceTest() {
-    this.userManagementStub = mock(UserManagementServiceBlockingStub.class);
-    this.userManagementChannel = mock(ManagedChannel.class);
+    this.userResourceApi = mock(UserResourceApi.class);
+    HttpClient httpClient = mock(HttpClient.class);
     this.profilingService =
-        new UserManagementProfilingService(userManagementStub, userManagementChannel);
+        new UserManagementProfilingService(userResourceApi, httpClient, USER_MANAGEMENT_BASE_URL);
   }
 
   @AfterEach
   public void cleanup() {
-    reset(userManagementStub);
+    reset(userResourceApi);
   }
 
-  private UserInfoProto buildUserInfoProto(
-      String userId, String email, String fullName, String domain,
-      String status, UserTypeProto type) {
-    return UserInfoProto.newBuilder()
-        .setUserId(userId)
-        .setEmail(email)
-        .setFullName(fullName)
-        .setDomain(domain)
-        .setStatus(status)
-        .setType(type)
-        .build();
+  private UserInfoDto buildUserInfoDto(
+      String userId, String email, String fullName, String domain, String status, String type) {
+    return new UserInfoDto()
+        .userId(userId)
+        .email(email)
+        .fullName(fullName)
+        .domain(domain)
+        .status(status)
+        .type(type);
   }
 
   @Nested
@@ -71,13 +66,13 @@ class UserManagementProfilingServiceTest {
 
     @Test
     @DisplayName("Returns the requested user correctly mapped")
-    void getById_testOk() {
+    void getById_testOk() throws ApiException {
       UUID randomUUID = UUID.randomUUID();
-      UserInfoProto userInfo = buildUserInfoProto(
-          randomUUID.toString(), "email@test.com", "name hello", "mydomain.com",
-          "active", UserTypeProto.INTERNAL);
-      when(userManagementStub.getUserById(any(GetUserByIdRequest.class)))
-          .thenReturn(UserInfoResponse.newBuilder().setUser(userInfo).build());
+      UserInfoDto userInfo =
+          buildUserInfoDto(
+              randomUUID.toString(), "email@test.com", "name hello", "mydomain.com", "active",
+              "INTERNAL");
+      when(userResourceApi.internalUsersIdUserIdGet(anyString())).thenReturn(userInfo);
 
       Optional<UserProfile> userProfile =
           profilingService.getById(
@@ -93,10 +88,10 @@ class UserManagementProfilingServiceTest {
 
     @Test
     @DisplayName("Returns an empty optional if the user was not found")
-    void getById_testNotFound() {
+    void getById_testNotFound() throws ApiException {
       UUID randomUUID = UUID.randomUUID();
-      when(userManagementStub.getUserById(any(GetUserByIdRequest.class)))
-          .thenThrow(new StatusRuntimeException(Status.NOT_FOUND));
+      when(userResourceApi.internalUsersIdUserIdGet(anyString()))
+          .thenThrow(new ApiException(404, "Not Found"));
 
       Optional<UserProfile> userProfile =
           profilingService.getById(
@@ -118,10 +113,10 @@ class UserManagementProfilingServiceTest {
 
     @Test
     @DisplayName("Throws an exception when the call fails for any other reason")
-    void getById_testException() {
+    void getById_testException() throws ApiException {
       UUID randomUUID = UUID.randomUUID();
-      when(userManagementStub.getUserById(any(GetUserByIdRequest.class)))
-          .thenThrow(new StatusRuntimeException(Status.INTERNAL));
+      when(userResourceApi.internalUsersIdUserIdGet(anyString()))
+          .thenThrow(new ApiException(500, "Internal Server Error"));
       assertThrows(
           ProfilingException.class,
           () ->

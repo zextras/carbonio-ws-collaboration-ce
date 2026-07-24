@@ -8,7 +8,6 @@ import com.github.fridujo.rabbitmq.mock.MockConnectionFactory;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.google.inject.name.Named;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -16,12 +15,9 @@ import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
-import com.zextras.carbonio.chats.it.tools.UserManagementMockServer;
 import com.zextras.carbonio.chats.it.utils.IntegrationTestUtils;
 import com.zextras.carbonio.chats.it.utils.MeetingTestUtils;
 import com.zextras.carbonio.chats.it.web.api.versioning.DummyVersionedApi;
-import io.grpc.ManagedChannel;
-import io.grpc.inprocess.InProcessChannelBuilder;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.ZoneId;
@@ -78,14 +74,5 @@ public class TestModule extends AbstractModule {
     } catch (IOException e) {
       throw new EventDispatcherException("Failed to create RabbitMQ channel", e);
     }
-  }
-
-  @Singleton
-  @Provides
-  @Named("userManagementChannel")
-  private ManagedChannel getUserManagementChannel() {
-    return InProcessChannelBuilder.forName(UserManagementMockServer.SERVER_NAME)
-        .directExecutor()
-        .build();
   }
 }

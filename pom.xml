@@ -57,8 +57,8 @@ SPDX-License-Identifier: AGPL-3.0-only
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <maven.version.ignore>(?i).*(.|-)(alpha|beta|m|rc)([-.]?\d+)?</maven.version.ignore>
-        <!-- Carbonio User Management gRPC SDK -->
-        <carbonio-user-management-grpc-sdk.version>1.0.3-dev.21.79fc3fa2</carbonio-user-management-grpc-sdk.version>
+        <!-- Carbonio User Management REST SDK -->
+        <carbonio-user-management-rest-sdk.version>1.2.5-SNAPSHOT.161.d4c8d51b</carbonio-user-management-rest-sdk.version>
         <!-- Storages -->
         <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
         <!-- Previewer -->
@@ -67,8 +67,6 @@ SPDX-License-Identifier: AGPL-3.0-only
              the new REST SDK), but io.vavr.control.Option/Try are used directly across this
              codebase, so it must now be declared explicitly. -->
         <io.vavr.version>0.11.0</io.vavr.version>
-        <!-- gRPC -->
-        <io.grpc.version>1.73.0</io.grpc.version>
         <!-- Jetty -->
         <org.eclipse.jetty.version>12.0.19</org.eclipse.jetty.version>
         <org.eclipse.jetty.servlet.version>12.0.19</org.eclipse.jetty.servlet.version>
@@ -150,11 +148,11 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <version>${project.version}</version>
             </dependency>
 
-            <!-- Carbonio User Management gRPC SDK -->
+            <!-- Carbonio User Management REST SDK -->
             <dependency>
                 <groupId>com.zextras.carbonio.user-management</groupId>
-                <artifactId>carbonio-user-management-grpc-sdk</artifactId>
-                <version>${carbonio-user-management-grpc-sdk.version}</version>
+                <artifactId>carbonio-user-management-rest-sdk</artifactId>
+                <version>${carbonio-user-management-rest-sdk.version}</version>
             </dependency>
 
             <!-- Storages sdk -->
@@ -162,19 +160,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <groupId>com.zextras</groupId>
                 <artifactId>storages-ce-sdk</artifactId>
                 <version>${storages-sdk.version}</version>
-            </dependency>
-
-            <!-- gRPC dependencies -->
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-netty-shaded</artifactId>
-                <version>${io.grpc.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-inprocess</artifactId>
-                <version>${io.grpc.version}</version>
             </dependency>
 
             <!-- Previewer sdk -->
