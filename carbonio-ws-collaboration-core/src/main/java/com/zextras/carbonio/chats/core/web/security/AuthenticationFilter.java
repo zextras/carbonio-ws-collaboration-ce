@@ -8,6 +8,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.data.type.UserType;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.user_management.sdk.rest.model.MyselfDto;
@@ -55,7 +56,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
               // Check if user status is ACTIVE
               if (!userMyself.getInfo().getStatus().equalsIgnoreCase("active")) {
-                throw new UnauthorizedException("User is not active");
+                throw new ForbiddenException("User is not active");
               }
 
               // Check if carbonioFeatureWscEnabled is in features list
@@ -63,7 +64,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                   userMyself.getFeatures().contains(
                       CarbonioAttribute.FEATURE_WSC_ENABLED.getValue());
               if (!wscEnabled) {
-                throw new UnauthorizedException("WSC feature not enabled for user");
+                throw new ForbiddenException("WSC feature not enabled for user");
               }
               Map<String, String> capabilities = userMyself.getCapabilities();
               requestContext.setSecurityContext(

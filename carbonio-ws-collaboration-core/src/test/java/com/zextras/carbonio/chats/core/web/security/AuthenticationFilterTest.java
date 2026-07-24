@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.type.UserType;
+import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.UnauthorizedException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.user_management.sdk.rest.model.MyselfDto;
@@ -144,7 +145,7 @@ class AuthenticationFilterTest {
     }
 
     @Test
-    @DisplayName("Throws an unauthorized exception if user status is not ACTIVE")
+    @DisplayName("Throws a forbidden exception if user status is not ACTIVE")
     void filter_testUserNotActive() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of("carbonioFeatureWscEnabled", "TRUE");
@@ -157,11 +158,11 @@ class AuthenticationFilterTest {
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
       when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
 
-      assertThrows(UnauthorizedException.class, () -> authenticationFilter.filter(requestContext));
+      assertThrows(ForbiddenException.class, () -> authenticationFilter.filter(requestContext));
     }
 
     @Test
-    @DisplayName("Throws an unauthorized exception if WSC feature is disabled for internal user")
+    @DisplayName("Throws a forbidden exception if WSC feature is disabled for internal user")
     void filter_testWscFeatureDisabledForInternalUser() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of("carbonioFeatureWscEnabled", "FALSE");
@@ -174,11 +175,11 @@ class AuthenticationFilterTest {
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
       when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
 
-      assertThrows(UnauthorizedException.class, () -> authenticationFilter.filter(requestContext));
+      assertThrows(ForbiddenException.class, () -> authenticationFilter.filter(requestContext));
     }
 
     @Test
-    @DisplayName("Throws an unauthorized exception if WSC feature is disabled for guest user")
+    @DisplayName("Throws a forbidden exception if WSC feature is disabled for guest user")
     void filter_testWscFeatureDisabledForGuestUser() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of("carbonioFeatureWscEnabled", "FALSE");
@@ -191,12 +192,12 @@ class AuthenticationFilterTest {
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
       when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
 
-      assertThrows(UnauthorizedException.class, () -> authenticationFilter.filter(requestContext));
+      assertThrows(ForbiddenException.class, () -> authenticationFilter.filter(requestContext));
     }
 
     @Test
     @DisplayName(
-        "Throws an unauthorized exception if WSC feature attribute is missing for internal user")
+        "Throws a forbidden exception if WSC feature attribute is missing for internal user")
     void filter_testWscFeatureMissingForInternalUser() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of();
@@ -209,7 +210,7 @@ class AuthenticationFilterTest {
           .thenReturn(Map.of("ZM_AUTH_TOKEN", new Cookie("ZM_AUTH_TOKEN", "token")));
       when(authenticationService.getUserMyself("token")).thenReturn(Optional.of(userMyself));
 
-      assertThrows(UnauthorizedException.class, () -> authenticationFilter.filter(requestContext));
+      assertThrows(ForbiddenException.class, () -> authenticationFilter.filter(requestContext));
     }
   }
 }
