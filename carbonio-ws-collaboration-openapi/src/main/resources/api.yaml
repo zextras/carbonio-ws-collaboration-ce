@@ -379,6 +379,8 @@ paths:
           $ref: "#/components/responses/200GetCapabilities"
         401:
           $ref: "#/components/responses/401UnauthorizedResponse"
+        403:
+          $ref: "#/components/responses/403ForbiddenResponse"
   /users/{userId}:
     get:
       tags:
@@ -746,6 +748,8 @@ paths:
           $ref: '#/components/responses/200GetTokenResponse'
         401:
           $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
   /meetings:
