@@ -23,6 +23,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
+import org.mockserver.matchers.Times;
+import org.mockserver.matchers.TimeToLive;
 import org.mockserver.model.Header;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.JsonBody;
@@ -52,6 +54,7 @@ public class UserManagementMockServer extends ClientAndServer implements Closeab
 
   private void init() {
     registerMockedAccounts();
+    registerUnauthorizedMyselfFallback();
     mockBulkGetUsers();
     setIsAliveResponse(true);
   }
@@ -89,15 +92,27 @@ public class UserManagementMockServer extends ClientAndServer implements Closeab
     }
   }
 
-  /** Stubs {@code GET /internal/users/myself} with the {@code ZM_AUTH_TOKEN} cookie for the given token. */
+  /** Stubs {@code GET /internal/users/myself} matching the {@code ZM_AUTH_TOKEN} header for the given token. */
   public void registerToken(String token, MyselfDto userMyself) {
     HttpRequest request =
         request()
             .withMethod("GET")
             .withPath("/internal/users/myself")
-            .withHeader(Header.header("Cookie", "ZM_AUTH_TOKEN=" + token));
+            .withHeader(Header.header("ZM_AUTH_TOKEN", token));
     clear(request);
     when(request).respond(response().withStatusCode(200).withBody(JsonBody.json(userMyself)));
+  }
+
+  /**
+   * Low-priority fallback for {@code GET /internal/users/myself}: returns 401 whenever the
+   * request's {@code ZM_AUTH_TOKEN} header doesn't match any token registered via
+   * {@link #registerToken(String, MyselfDto)}, mirroring real User Management behaviour for
+   * unknown/invalid tokens.
+   */
+  private void registerUnauthorizedMyselfFallback() {
+    HttpRequest request = request().withMethod("GET").withPath("/internal/users/myself");
+    when(request, Times.unlimited(), TimeToLive.unlimited(), -10)
+        .respond(response().withStatusCode(401));
   }
 
   /**

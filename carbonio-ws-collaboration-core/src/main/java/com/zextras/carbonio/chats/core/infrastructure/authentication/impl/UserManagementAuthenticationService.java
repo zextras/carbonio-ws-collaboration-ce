@@ -44,7 +44,7 @@ public class UserManagementAuthenticationService implements AuthenticationServic
       return Optional.empty();
     }
     try {
-      MyselfDto myself = userResourceApi.internalUsersMyselfGet(cookieHeader(authToken));
+      MyselfDto myself = userResourceApi.internalUsersMyselfGet(authToken);
       return Optional.ofNullable(myself.getInfo().getUserId());
     } catch (ApiException e) {
       if (e.getCode() == HTTP_UNAUTHORIZED) {
@@ -66,17 +66,13 @@ public class UserManagementAuthenticationService implements AuthenticationServic
 
   private MyselfDto fetchUserMyself(String authToken) {
     try {
-      return userResourceApi.internalUsersMyselfGet(cookieHeader(authToken));
+      return userResourceApi.internalUsersMyselfGet(authToken);
     } catch (ApiException e) {
       if (e.getCode() != HTTP_UNAUTHORIZED) {
         ChatsLogger.warn("Authentication failed for token " + authToken + "\n " + e.getMessage());
       }
       return null;
     }
-  }
-
-  private Map<String, String> cookieHeader(String authToken) {
-    return Map.of("Cookie", "ZM_AUTH_TOKEN=" + authToken);
   }
 
   @Override

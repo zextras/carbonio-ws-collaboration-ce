@@ -6,7 +6,7 @@ package com.zextras.carbonio.chats.core.infrastructure.authentication.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
@@ -76,7 +76,7 @@ class UserManagementAuthenticationServiceTest {
               "active",
               "carbonioFeatureWscEnabled");
 
-      when(userResourceApi.internalUsersMyselfGet(anyMap())).thenReturn(mockUser);
+      when(userResourceApi.internalUsersMyselfGet(anyString())).thenReturn(mockUser);
 
       Optional<MyselfDto> userMyself =
           userManagementAuthenticationService.getUserMyself("tokenz");
@@ -89,7 +89,7 @@ class UserManagementAuthenticationServiceTest {
     @Test
     @DisplayName("Returns an empty optional if the token could not be verified")
     void getUserMyself_testFailingToken() throws ApiException {
-      when(userResourceApi.internalUsersMyselfGet(anyMap()))
+      when(userResourceApi.internalUsersMyselfGet(anyString()))
           .thenThrow(new ApiException(401, "Unauthorized"));
 
       Optional<MyselfDto> userMyself =
@@ -119,7 +119,7 @@ class UserManagementAuthenticationServiceTest {
     @Test
     @DisplayName("Returns an empty optional if the validation fails for a generic error")
     void getUserMyself_testGenericFailure() throws ApiException {
-      when(userResourceApi.internalUsersMyselfGet(anyMap()))
+      when(userResourceApi.internalUsersMyselfGet(anyString()))
           .thenThrow(new ApiException(500, "Internal Server Error"));
 
       Optional<MyselfDto> userMyself =
@@ -146,12 +146,12 @@ class UserManagementAuthenticationServiceTest {
               "active",
               "carbonioFeatureWscEnabled");
 
-      when(userResourceApi.internalUsersMyselfGet(anyMap())).thenReturn(mockUser);
+      when(userResourceApi.internalUsersMyselfGet(anyString())).thenReturn(mockUser);
 
       Optional<MyselfDto> userProfile =
           userManagementAuthenticationService.getUserMyself("tokenz");
 
-      verify(userResourceApi, times(1)).internalUsersMyselfGet(anyMap());
+      verify(userResourceApi, times(1)).internalUsersMyselfGet(anyString());
 
       assertTrue(userProfile.isPresent());
       assertEquals("my-user-id", userProfile.get().getInfo().getUserId());
@@ -174,13 +174,13 @@ class UserManagementAuthenticationServiceTest {
               "active",
               "carbonioFeatureWscEnabled");
 
-      when(userResourceApi.internalUsersMyselfGet(anyMap())).thenReturn(mockUser);
+      when(userResourceApi.internalUsersMyselfGet(anyString())).thenReturn(mockUser);
 
       userManagementAuthenticationService.getUserMyself("tokenz");
       Optional<MyselfDto> userProfile =
           userManagementAuthenticationService.getUserMyself("tokenz");
 
-      verify(userResourceApi, times(2)).internalUsersMyselfGet(anyMap());
+      verify(userResourceApi, times(2)).internalUsersMyselfGet(anyString());
 
       assertTrue(userProfile.isPresent());
       assertEquals("my-user-id", userProfile.get().getInfo().getUserId());
@@ -193,13 +193,13 @@ class UserManagementAuthenticationServiceTest {
     @Test
     @DisplayName("Returns an empty optional if the token is not authenticated")
     void getUserProfile_testTokenNotAuthenticated() throws ApiException {
-      when(userResourceApi.internalUsersMyselfGet(anyMap()))
+      when(userResourceApi.internalUsersMyselfGet(anyString()))
           .thenThrow(new ApiException(404, "Not Found"));
 
       Optional<MyselfDto> userProfile =
           userManagementAuthenticationService.getUserMyself("tokenz");
 
-      verify(userResourceApi, times(1)).internalUsersMyselfGet(anyMap());
+      verify(userResourceApi, times(1)).internalUsersMyselfGet(anyString());
 
       assertTrue(userProfile.isEmpty());
     }
