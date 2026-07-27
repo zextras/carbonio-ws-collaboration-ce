@@ -7,13 +7,13 @@ package com.zextras.carbonio.chats.core.infrastructure.authentication.impl;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import com.zextras.carbonio.chats.core.exception.AuthenticationException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.user_management.sdk.rest.ApiException;
 import com.zextras.carbonio.user_management.sdk.rest.api.UserResourceApi;
 import com.zextras.carbonio.user_management.sdk.rest.model.MyselfDto;
-import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -50,9 +50,11 @@ public class UserManagementAuthenticationService implements AuthenticationServic
       if (e.getCode() == HTTP_UNAUTHORIZED) {
         return Optional.empty();
       }
-      ChatsLogger.warn(
-          "Credential validation failed for token " + authToken + "\n " + e.getMessage());
-      return Optional.empty();
+      // Anything other than a 401 (including code 0 from a network failure/timeout, and 4xx/5xx)
+      // is not a real "bad credentials" answer: it means User Management itself could not be
+      // reached or misbehaved, so it must surface as a dependency failure, not a silent logout.
+      ChatsLogger.warn("Credential validation failed for the provided token\n " + e.getMessage());
+      throw new AuthenticationException(e);
     }
   }
 
@@ -68,10 +70,14 @@ public class UserManagementAuthenticationService implements AuthenticationServic
     try {
       return userResourceApi.internalUsersMyselfGet(authToken);
     } catch (ApiException e) {
-      if (e.getCode() != HTTP_UNAUTHORIZED) {
-        ChatsLogger.warn("Authentication failed for token " + authToken + "\n " + e.getMessage());
+      if (e.getCode() == HTTP_UNAUTHORIZED) {
+        return null;
       }
-      return null;
+      // Same reasoning as validateCredentials: only a genuine 401 means "not authenticated".
+      // Everything else is a dependency failure and must not be swallowed into an anonymous/401
+      // response by the caller.
+      ChatsLogger.warn("Authentication failed for the provided token\n " + e.getMessage());
+      throw new AuthenticationException(e);
     }
   }
 
@@ -80,7 +86,12 @@ public class UserManagementAuthenticationService implements AuthenticationServic
     try (CloseableHttpResponse response =
         httpClient.sendGet(userManagementBaseUrl + HEALTH_LIVE_PATH, Map.of())) {
       return response.getStatusLine().getStatusCode() == 200;
-    } catch (IOException e) {
+    } catch (Exception e) {
+      // HttpClient wraps connection failures (refused, DNS, timeout) in an unchecked
+      // ChatsHttpException instead of the checked IOException declared on sendGet(), so this must
+      // catch Exception, not IOException, or a dead User Management takes the whole healthcheck
+      // down with it instead of being reported as an unhealthy dependency.
+      ChatsLogger.warn("Can't communicate with User Management due to: " + e);
       return false;
     }
   }

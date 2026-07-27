@@ -4,14 +4,19 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
+import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
@@ -19,10 +24,14 @@ import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
+import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.chats.model.DependencyHealthDto;
 import com.zextras.carbonio.chats.model.DependencyHealthTypeDto;
 import com.zextras.carbonio.chats.model.HealthStatusDto;
 import com.zextras.carbonio.chats.model.HealthStatusTypeDto;
+import com.zextras.carbonio.user_management.sdk.rest.api.UserResourceApi;
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -346,6 +355,77 @@ class HealthcheckServiceImplTest {
       assertTrue(dependencyHealthDto.containsAll(serviceHealth.getDependencies()));
     }
 
+    @Test
+    @DisplayName("Calls isAlive() on each dependency only once per getServiceHealth() invocation")
+    public void getServiceHealth_testNoRedundantIsAliveCalls() {
+      when(messageDispatcher.isAlive()).thenReturn(true);
+      when(databaseInfoService.isAlive()).thenReturn(true);
+      when(eventDispatcher.isAlive()).thenReturn(true);
+      when(storagesService.isAlive()).thenReturn(true);
+      when(previewService.isAlive()).thenReturn(true);
+      when(authenticationService.isAlive()).thenReturn(true);
+      when(profilingService.isAlive()).thenReturn(true);
+      when(videoServerService.isAlive()).thenReturn(true);
+
+      healthcheckService.getServiceHealth();
+
+      // Before the fix, HealthcheckServiceImpl called isAlive() on each dependency once per
+      // anyMatch pass in checkServiceStatus() plus once more in the DTO mapping: up to 3 real
+      // network round trips per dependency for a single /health request.
+      verify(authenticationService, times(1)).isAlive();
+      verify(profilingService, times(1)).isAlive();
+    }
+
+  }
+
+  @Nested
+  @DisplayName("User Management unreachable regression tests")
+  class UserManagementUnreachableTests {
+
+    @Test
+    @DisplayName(
+        "getServiceHealth() returns ERROR with the auth dependency unhealthy instead of throwing"
+            + " (i.e. /health responds 200, not 500) when User Management is unreachable")
+    public void getServiceHealth_testUserManagementUnreachable() throws IOException {
+      when(messageDispatcher.isAlive()).thenReturn(true);
+      when(databaseInfoService.isAlive()).thenReturn(true);
+      when(eventDispatcher.isAlive()).thenReturn(true);
+      when(storagesService.isAlive()).thenReturn(true);
+      when(previewService.isAlive()).thenReturn(true);
+      when(profilingService.isAlive()).thenReturn(true);
+      when(videoServerService.isAlive()).thenReturn(true);
+
+      int closedPort;
+      try (ServerSocket socket = new ServerSocket(0)) {
+        closedPort = socket.getLocalPort();
+      }
+      AuthenticationService unreachableAuthenticationService =
+          new UserManagementAuthenticationService(
+              mock(UserResourceApi.class), new HttpClient(), "http://127.0.0.1:" + closedPort);
+
+      HealthcheckServiceImpl healthcheckServiceWithUnreachableUm =
+          new HealthcheckServiceImpl(
+              messageDispatcher,
+              databaseInfoService,
+              eventDispatcher,
+              storagesService,
+              previewService,
+              unreachableAuthenticationService,
+              profilingService,
+              videoServerService);
+
+      HealthStatusDto serviceHealth =
+          assertDoesNotThrow(healthcheckServiceWithUnreachableUm::getServiceHealth);
+
+      assertEquals(HealthStatusTypeDto.ERROR, serviceHealth.getStatus());
+      boolean authIsHealthy =
+          serviceHealth.getDependencies().stream()
+              .filter(dependency -> dependency.getName() == DependencyHealthTypeDto.AUTHENTICATION_SERVICE)
+              .findFirst()
+              .orElseThrow()
+              .isIsHealthy();
+      assertFalse(authIsHealthy);
+    }
   }
 
 }

@@ -4,7 +4,9 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.profiling.impl;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -22,6 +24,8 @@ import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.user_management.sdk.rest.ApiException;
 import com.zextras.carbonio.user_management.sdk.rest.api.UserResourceApi;
 import com.zextras.carbonio.user_management.sdk.rest.model.UserInfoDto;
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -122,6 +126,29 @@ class UserManagementProfilingServiceTest {
           () ->
               profilingService.getById(
                   UserPrincipal.create(randomUUID).authToken("cookie"), randomUUID));
+    }
+  }
+
+  @Nested
+  @DisplayName("Is alive tests")
+  class IsAliveTests {
+
+    @Test
+    @DisplayName(
+        "Reports the dependency as unhealthy, without throwing, when User Management is"
+            + " genuinely unreachable (connection refused)")
+    void isAlive_testUnreachable() throws IOException {
+      int closedPort;
+      try (ServerSocket socket = new ServerSocket(0)) {
+        closedPort = socket.getLocalPort();
+      }
+      UserManagementProfilingService serviceWithRealClient =
+          new UserManagementProfilingService(
+              userResourceApi, new HttpClient(), "http://127.0.0.1:" + closedPort);
+
+      boolean isAlive = assertDoesNotThrow(serviceWithRealClient::isAlive);
+
+      assertFalse(isAlive);
     }
   }
 }

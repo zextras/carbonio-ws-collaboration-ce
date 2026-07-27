@@ -12,12 +12,12 @@ import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.ProfilingException;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.user_management.sdk.rest.ApiException;
 import com.zextras.carbonio.user_management.sdk.rest.api.UserResourceApi;
 import com.zextras.carbonio.user_management.sdk.rest.model.UserInfoDto;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -75,7 +75,12 @@ public class UserManagementProfilingService implements ProfilingService {
     try (CloseableHttpResponse response =
         httpClient.sendGet(userManagementBaseUrl + HEALTH_LIVE_PATH, Map.of())) {
       return response.getStatusLine().getStatusCode() == 200;
-    } catch (IOException e) {
+    } catch (Exception e) {
+      // HttpClient wraps connection failures (refused, DNS, timeout) in an unchecked
+      // ChatsHttpException instead of the checked IOException declared on sendGet(), so this must
+      // catch Exception, not IOException, or a dead User Management takes the whole healthcheck
+      // down with it instead of being reported as an unhealthy dependency.
+      ChatsLogger.warn("Can't communicate with User Management due to: " + e);
       return false;
     }
   }

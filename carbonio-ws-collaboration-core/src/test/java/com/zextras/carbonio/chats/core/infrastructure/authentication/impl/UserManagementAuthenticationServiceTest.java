@@ -4,17 +4,23 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.authentication.impl;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
+import com.zextras.carbonio.chats.core.exception.AuthenticationException;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.user_management.sdk.rest.ApiException;
 import com.zextras.carbonio.user_management.sdk.rest.api.UserResourceApi;
 import com.zextras.carbonio.user_management.sdk.rest.model.MyselfDto;
 import com.zextras.carbonio.user_management.sdk.rest.model.UserInfoDto;
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -117,15 +123,27 @@ class UserManagementAuthenticationServiceTest {
     }
 
     @Test
-    @DisplayName("Returns an empty optional if the validation fails for a generic error")
+    @DisplayName("Throws an authentication exception if the validation fails for a generic error")
     void getUserMyself_testGenericFailure() throws ApiException {
       when(userResourceApi.internalUsersMyselfGet(anyString()))
           .thenThrow(new ApiException(500, "Internal Server Error"));
 
-      Optional<MyselfDto> userMyself =
-          userManagementAuthenticationService.getUserMyself("tokenz");
+      assertThrows(
+          AuthenticationException.class,
+          () -> userManagementAuthenticationService.getUserMyself("tokenz"));
+    }
 
-      assertTrue(userMyself.isEmpty());
+    @Test
+    @DisplayName(
+        "Throws an authentication exception when the call fails at the transport level"
+            + " (code 0, e.g. connection refused/timeout)")
+    void getUserMyself_testTransportFailure() throws ApiException {
+      when(userResourceApi.internalUsersMyselfGet(anyString()))
+          .thenThrow(new ApiException(new IOException("Connection refused")));
+
+      assertThrows(
+          AuthenticationException.class,
+          () -> userManagementAuthenticationService.getUserMyself("tokenz"));
     }
   }
 
@@ -191,10 +209,10 @@ class UserManagementAuthenticationServiceTest {
     }
 
     @Test
-    @DisplayName("Returns an empty optional if the token is not authenticated")
+    @DisplayName("Returns an empty optional only for a genuine 401 (invalid credentials)")
     void getUserProfile_testTokenNotAuthenticated() throws ApiException {
       when(userResourceApi.internalUsersMyselfGet(anyString()))
-          .thenThrow(new ApiException(404, "Not Found"));
+          .thenThrow(new ApiException(401, "Unauthorized"));
 
       Optional<MyselfDto> userProfile =
           userManagementAuthenticationService.getUserMyself("tokenz");
@@ -202,6 +220,40 @@ class UserManagementAuthenticationServiceTest {
       verify(userResourceApi, times(1)).internalUsersMyselfGet(anyString());
 
       assertTrue(userProfile.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Throws an authentication exception for an unexpected (non-401) status code")
+    void getUserProfile_testUnexpectedStatusCode() throws ApiException {
+      when(userResourceApi.internalUsersMyselfGet(anyString()))
+          .thenThrow(new ApiException(404, "Not Found"));
+
+      assertThrows(
+          AuthenticationException.class,
+          () -> userManagementAuthenticationService.getUserMyself("tokenz"));
+    }
+  }
+
+  @Nested
+  @DisplayName("Is alive tests")
+  class IsAliveTests {
+
+    @Test
+    @DisplayName(
+        "Reports the dependency as unhealthy, without throwing, when User Management is"
+            + " genuinely unreachable (connection refused)")
+    void isAlive_testUnreachable() throws IOException {
+      int closedPort;
+      try (ServerSocket socket = new ServerSocket(0)) {
+        closedPort = socket.getLocalPort();
+      }
+      UserManagementAuthenticationService serviceWithRealClient =
+          new UserManagementAuthenticationService(
+              userResourceApi, new HttpClient(), "http://127.0.0.1:" + closedPort);
+
+      boolean isAlive = assertDoesNotThrow(serviceWithRealClient::isAlive);
+
+      assertFalse(isAlive);
     }
   }
 }
