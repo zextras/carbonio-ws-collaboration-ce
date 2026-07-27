@@ -131,6 +131,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <ebean-maven-plugin.version>15.6.0</ebean-maven-plugin.version>
         <versions-maven-plugin.version>2.18.0</versions-maven-plugin.version>
         <flatten-maven-plugin.version>1.7.3</flatten-maven-plugin.version>
+        <sonar-maven-plugin.version>5.5.0.6356</sonar-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -572,6 +573,14 @@ SPDX-License-Identifier: AGPL-3.0-only
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
+            </plugin>
+            <!-- Maven Central dropped the "sonar" prefix from the org.codehaus.mojo group
+                 metadata, so mvn sonar:sonar can no longer resolve the plugin prefix on its
+                 own. Declaring it here makes the prefix resolvable from the project. -->
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>${sonar-maven-plugin.version}</version>
             </plugin>
         </plugins>
     </build>
