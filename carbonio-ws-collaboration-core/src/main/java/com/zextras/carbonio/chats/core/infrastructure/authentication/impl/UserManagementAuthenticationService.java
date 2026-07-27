@@ -44,7 +44,7 @@ public class UserManagementAuthenticationService implements AuthenticationServic
       return Optional.empty();
     }
     try {
-      MyselfDto myself = userResourceApi.internalUsersMyselfGet(authToken);
+      MyselfDto myself = userResourceApi.internalUsersMyselfGet(null, authToken);
       return Optional.ofNullable(myself.getInfo().getUserId());
     } catch (ApiException e) {
       if (e.getCode() == HTTP_UNAUTHORIZED) {
@@ -68,7 +68,7 @@ public class UserManagementAuthenticationService implements AuthenticationServic
 
   private MyselfDto fetchUserMyself(String authToken) {
     try {
-      return userResourceApi.internalUsersMyselfGet(authToken);
+      return userResourceApi.internalUsersMyselfGet(null, authToken);
     } catch (ApiException e) {
       if (e.getCode() == HTTP_UNAUTHORIZED) {
         return null;

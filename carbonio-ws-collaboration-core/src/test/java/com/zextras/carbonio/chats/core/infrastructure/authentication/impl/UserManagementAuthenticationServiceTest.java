@@ -82,7 +82,7 @@ class UserManagementAuthenticationServiceTest {
               "active",
               "carbonioFeatureWscEnabled");
 
-      when(userResourceApi.internalUsersMyselfGet(anyString())).thenReturn(mockUser);
+      when(userResourceApi.internalUsersMyselfGet(any(), anyString())).thenReturn(mockUser);
 
       Optional<MyselfDto> userMyself =
           userManagementAuthenticationService.getUserMyself("tokenz");
@@ -95,7 +95,7 @@ class UserManagementAuthenticationServiceTest {
     @Test
     @DisplayName("Returns an empty optional if the token could not be verified")
     void getUserMyself_testFailingToken() throws ApiException {
-      when(userResourceApi.internalUsersMyselfGet(anyString()))
+      when(userResourceApi.internalUsersMyselfGet(any(), anyString()))
           .thenThrow(new ApiException(401, "Unauthorized"));
 
       Optional<MyselfDto> userMyself =
@@ -125,7 +125,7 @@ class UserManagementAuthenticationServiceTest {
     @Test
     @DisplayName("Throws an authentication exception if the validation fails for a generic error")
     void getUserMyself_testGenericFailure() throws ApiException {
-      when(userResourceApi.internalUsersMyselfGet(anyString()))
+      when(userResourceApi.internalUsersMyselfGet(any(), anyString()))
           .thenThrow(new ApiException(500, "Internal Server Error"));
 
       assertThrows(
@@ -138,7 +138,7 @@ class UserManagementAuthenticationServiceTest {
         "Throws an authentication exception when the call fails at the transport level"
             + " (code 0, e.g. connection refused/timeout)")
     void getUserMyself_testTransportFailure() throws ApiException {
-      when(userResourceApi.internalUsersMyselfGet(anyString()))
+      when(userResourceApi.internalUsersMyselfGet(any(), anyString()))
           .thenThrow(new ApiException(new IOException("Connection refused")));
 
       assertThrows(
@@ -164,12 +164,12 @@ class UserManagementAuthenticationServiceTest {
               "active",
               "carbonioFeatureWscEnabled");
 
-      when(userResourceApi.internalUsersMyselfGet(anyString())).thenReturn(mockUser);
+      when(userResourceApi.internalUsersMyselfGet(any(), anyString())).thenReturn(mockUser);
 
       Optional<MyselfDto> userProfile =
           userManagementAuthenticationService.getUserMyself("tokenz");
 
-      verify(userResourceApi, times(1)).internalUsersMyselfGet(anyString());
+      verify(userResourceApi, times(1)).internalUsersMyselfGet(any(), anyString());
 
       assertTrue(userProfile.isPresent());
       assertEquals("my-user-id", userProfile.get().getInfo().getUserId());
@@ -192,13 +192,13 @@ class UserManagementAuthenticationServiceTest {
               "active",
               "carbonioFeatureWscEnabled");
 
-      when(userResourceApi.internalUsersMyselfGet(anyString())).thenReturn(mockUser);
+      when(userResourceApi.internalUsersMyselfGet(any(), anyString())).thenReturn(mockUser);
 
       userManagementAuthenticationService.getUserMyself("tokenz");
       Optional<MyselfDto> userProfile =
           userManagementAuthenticationService.getUserMyself("tokenz");
 
-      verify(userResourceApi, times(2)).internalUsersMyselfGet(anyString());
+      verify(userResourceApi, times(2)).internalUsersMyselfGet(any(), anyString());
 
       assertTrue(userProfile.isPresent());
       assertEquals("my-user-id", userProfile.get().getInfo().getUserId());
@@ -211,13 +211,13 @@ class UserManagementAuthenticationServiceTest {
     @Test
     @DisplayName("Returns an empty optional only for a genuine 401 (invalid credentials)")
     void getUserProfile_testTokenNotAuthenticated() throws ApiException {
-      when(userResourceApi.internalUsersMyselfGet(anyString()))
+      when(userResourceApi.internalUsersMyselfGet(any(), anyString()))
           .thenThrow(new ApiException(401, "Unauthorized"));
 
       Optional<MyselfDto> userProfile =
           userManagementAuthenticationService.getUserMyself("tokenz");
 
-      verify(userResourceApi, times(1)).internalUsersMyselfGet(anyString());
+      verify(userResourceApi, times(1)).internalUsersMyselfGet(any(), anyString());
 
       assertTrue(userProfile.isEmpty());
     }
@@ -225,7 +225,7 @@ class UserManagementAuthenticationServiceTest {
     @Test
     @DisplayName("Throws an authentication exception for an unexpected (non-401) status code")
     void getUserProfile_testUnexpectedStatusCode() throws ApiException {
-      when(userResourceApi.internalUsersMyselfGet(anyString()))
+      when(userResourceApi.internalUsersMyselfGet(any(), anyString()))
           .thenThrow(new ApiException(404, "Not Found"));
 
       assertThrows(
