@@ -138,6 +138,7 @@ import io.ebean.annotation.Platform;
 import io.ebean.config.DatabaseConfig;
 import java.io.IOException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.ZoneId;
 import java.util.Base64;
 import java.util.Properties;
@@ -148,6 +149,12 @@ import org.flywaydb.core.api.migration.JavaMigration;
 public class CoreModule extends AbstractModule {
 
   private static final String URL_PATTERN = "http://%s:%s";
+
+  // 5s connect + read timeout: this codebase's existing convention for a shared client calling
+  // another Carbonio service over the mesh (see HttpClientProvider.TIMEOUT_MILLIS, also 5000ms).
+  // Without it, the generated ApiClient defaults to null timeouts, i.e. no request timeout at
+  // the JDK HttpClient level and an OS-default (~2 min) TCP connect timeout.
+  private static final Duration USER_MANAGEMENT_TIMEOUT = Duration.ofMillis(5000);
 
   @Override
   protected void configure() {
@@ -288,6 +295,10 @@ public class CoreModule extends AbstractModule {
     ApiClient apiClient =
         new ApiClient(
             httpClientBuilder, ApiClient.createDefaultObjectMapper(), userManagementBaseUrl);
+    // Must be set before constructing UserResourceApi: its constructor snapshots the ApiClient's
+    // timeouts into final fields, so setting them afterwards would be a silent no-op.
+    apiClient.setConnectTimeout(USER_MANAGEMENT_TIMEOUT);
+    apiClient.setReadTimeout(USER_MANAGEMENT_TIMEOUT);
     return new UserResourceApi(apiClient);
   }
 
