@@ -88,7 +88,6 @@ SPDX-License-Identifier: AGPL-3.0-only
         <logback-classic.version>1.5.34</logback-classic.version>
         <!-- Jackson -->
         <com.fasterxml.jackson.version>2.22.0</com.fasterxml.jackson.version>
-        <!-- jackson-annotations drops the trailing patch digit from 2.20 onwards -->
         <com.fasterxml.jackson.annotations.version>2.22</com.fasterxml.jackson.annotations.version>
         <org.openapitools.jackson-databind-nullable.version>0.2.10</org.openapitools.jackson-databind-nullable.version>
         <!-- Utilities -->
@@ -235,8 +234,6 @@ SPDX-License-Identifier: AGPL-3.0-only
                 <version>${org.jboss.resteasy.version}</version>
             </dependency>
 
-            <!-- resteasy-guice pulls in resteasy-core-spi 6.2.9.Final transitively; resteasy-core
-                 needs Registry.of(ResteasyProviderFactory), which only exists from 7.x onwards. -->
             <dependency>
                 <groupId>org.jboss.resteasy</groupId>
                 <artifactId>resteasy-core-spi</artifactId>
