@@ -12,47 +12,46 @@ import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.ProfilingException;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
-import com.zextras.carbonio.user_management.sdk.grpc.GetUserByIdRequest;
-import com.zextras.carbonio.user_management.sdk.grpc.GetUsersRequest;
-import com.zextras.carbonio.user_management.sdk.grpc.UserInfoProto;
-import com.zextras.carbonio.user_management.sdk.grpc.UserManagementServiceGrpc.UserManagementServiceBlockingStub;
-import io.grpc.ConnectivityState;
-import io.grpc.ManagedChannel;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
+import com.zextras.carbonio.chats.core.web.utility.HttpClient;
+import com.zextras.carbonio.user_management.sdk.rest.ApiException;
+import com.zextras.carbonio.user_management.sdk.rest.api.UserResourceApi;
+import com.zextras.carbonio.user_management.sdk.rest.model.UserInfoDto;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.apache.http.client.methods.CloseableHttpResponse;
 
 @Singleton
 public class UserManagementProfilingService implements ProfilingService {
 
-  private final UserManagementServiceBlockingStub userManagementStub;
-  private final ManagedChannel userManagementChannel;
+  private static final String HEALTH_LIVE_PATH = "/q/health/live";
+  private static final int HTTP_NOT_FOUND = 404;
+
+  private final UserResourceApi userResourceApi;
+  private final HttpClient httpClient;
+  private final String userManagementBaseUrl;
 
   @Inject
   public UserManagementProfilingService(
-      UserManagementServiceBlockingStub userManagementStub,
-      @Named("userManagementChannel") ManagedChannel userManagementChannel) {
-    this.userManagementStub = userManagementStub;
-    this.userManagementChannel = userManagementChannel;
+      UserResourceApi userResourceApi,
+      HttpClient httpClient,
+      @Named("userManagementBaseUrl") String userManagementBaseUrl) {
+    this.userResourceApi = userResourceApi;
+    this.httpClient = httpClient;
+    this.userManagementBaseUrl = userManagementBaseUrl;
   }
 
   @Override
   public Optional<UserProfile> getById(UserPrincipal principal, UUID userId) {
     principal.getAuthToken().orElseThrow(ForbiddenException::new);
     try {
-      UserInfoProto userInfo =
-          userManagementStub
-              .getUserById(
-                  GetUserByIdRequest.newBuilder()
-                      .setUserId(userId.toString())
-                      .build())
-              .getUser();
+      UserInfoDto userInfo = userResourceApi.internalUsersIdUserIdGet(userId.toString());
       return Optional.of(mapToUserProfile(userInfo));
-    } catch (StatusRuntimeException e) {
-      if (e.getStatus().getCode() == Status.Code.NOT_FOUND) {
+    } catch (ApiException e) {
+      if (e.getCode() == HTTP_NOT_FOUND) {
         return Optional.empty();
       }
       throw new ProfilingException(e);
@@ -63,25 +62,30 @@ public class UserManagementProfilingService implements ProfilingService {
   public List<UserProfile> getByIds(UserPrincipal principal, List<String> userIds) {
     principal.getAuthToken().orElseThrow(ForbiddenException::new);
     try {
-      return userManagementStub
-          .getUsers(
-              GetUsersRequest.newBuilder().addAllUserIds(userIds).build())
-          .getUsersList()
-          .stream()
+      return userResourceApi.internalUsersPost(userIds).stream()
           .map(this::mapToUserProfile)
           .toList();
-    } catch (StatusRuntimeException e) {
+    } catch (ApiException e) {
       throw new ProfilingException(e);
     }
   }
 
   @Override
   public boolean isAlive() {
-    ConnectivityState state = userManagementChannel.getState(true);
-    return state == ConnectivityState.READY || state == ConnectivityState.IDLE;
+    try (CloseableHttpResponse response =
+        httpClient.sendGet(userManagementBaseUrl + HEALTH_LIVE_PATH, Map.of())) {
+      return response.getStatusLine().getStatusCode() == 200;
+    } catch (Exception e) {
+      // HttpClient wraps connection failures (refused, DNS, timeout) in an unchecked
+      // ChatsHttpException instead of the checked IOException declared on sendGet(), so this must
+      // catch Exception, not IOException, or a dead User Management takes the whole healthcheck
+      // down with it instead of being reported as an unhealthy dependency.
+      ChatsLogger.warn("Can't communicate with User Management due to: " + e);
+      return false;
+    }
   }
 
-  private UserProfile mapToUserProfile(UserInfoProto userInfo) {
+  private UserProfile mapToUserProfile(UserInfoDto userInfo) {
     return UserProfile.create(userInfo.getUserId())
         .name(userInfo.getFullName())
         .email(userInfo.getEmail())

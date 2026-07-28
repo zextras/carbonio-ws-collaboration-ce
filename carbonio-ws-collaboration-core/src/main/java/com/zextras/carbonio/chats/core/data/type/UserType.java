@@ -4,17 +4,16 @@
 
 package com.zextras.carbonio.chats.core.data.type;
 
-import com.zextras.carbonio.user_management.sdk.grpc.UserTypeProto;
-
 public enum UserType {
   INTERNAL,
   GUEST;
 
-  public static UserType from(UserTypeProto umType) {
-    return switch (umType) {
-      case GUEST -> GUEST;
-      case INTERNAL -> INTERNAL;
-      default -> INTERNAL;
-    };
+  /**
+   * Maps the plain-string {@code type} field returned by the User Management REST SDK (e.g.
+   * {@code UserInfoDto.getType()}) to a {@link UserType}. Unknown/unexpected values default to
+   * {@link #INTERNAL}, matching the previous gRPC enum mapping's default branch.
+   */
+  public static UserType from(String umType) {
+    return "GUEST".equalsIgnoreCase(umType) ? GUEST : INTERNAL;
   }
 }

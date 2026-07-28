@@ -52,34 +52,49 @@ public class HealthcheckServiceImpl implements HealthcheckService {
 
   @Override
   public HealthStatusTypeDto getServiceStatus() {
-    return checkServiceStatus();
+    return checkServiceStatus(snapshotDependencies());
   }
 
   @Override
   public HealthStatusDto getServiceHealth() {
+    List<DependencySnapshot> snapshot = snapshotDependencies();
     return HealthStatusDto.create()
         .isLive(true)
-        .status(checkServiceStatus())
+        .status(checkServiceStatus(snapshot))
         .dependencies(
-            dependencies.stream()
+            snapshot.stream()
                 .map(
-                    dependency ->
+                    entry ->
                         DependencyHealthDto.create()
-                            .name(dependency.getDependencyHealthType())
-                            .isHealthy(dependency.isAlive()))
+                            .name(entry.dependency().getDependencyHealthType())
+                            .isHealthy(entry.alive()))
                 .toList());
   }
 
-  private HealthStatusTypeDto checkServiceStatus() {
-    if (dependencies.stream()
-        .anyMatch(dependency -> dependency.getType().isRequired() && !dependency.isAlive())) {
+  /**
+   * Calls {@code isAlive()} on every dependency exactly once and snapshots the result. Each
+   * dependency is a real network round trip (e.g. to User Management), so without this the
+   * required/optional passes below and the DTO mapping would each re-check every dependency,
+   * turning a single {@code /health} request into several redundant calls per dependency.
+   */
+  private List<DependencySnapshot> snapshotDependencies() {
+    return dependencies.stream()
+        .map(dependency -> new DependencySnapshot(dependency, dependency.isAlive()))
+        .toList();
+  }
+
+  private HealthStatusTypeDto checkServiceStatus(List<DependencySnapshot> snapshot) {
+    if (snapshot.stream()
+        .anyMatch(entry -> entry.dependency().getType().isRequired() && !entry.alive())) {
       return HealthStatusTypeDto.ERROR;
-    } else if (dependencies.stream()
-        .anyMatch(dependency -> !dependency.getType().isRequired() && !dependency.isAlive())) {
+    } else if (snapshot.stream()
+        .anyMatch(entry -> !entry.dependency().getType().isRequired() && !entry.alive())) {
       return HealthStatusTypeDto.WARN;
     }
     return HealthStatusTypeDto.OK;
   }
+
+  private record DependencySnapshot(HealthDependency dependency, boolean alive) {}
 
   private static class HealthDependency {
 

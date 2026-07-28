@@ -5,7 +5,7 @@
 package com.zextras.carbonio.chats.core.infrastructure.authentication;
 
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
-import com.zextras.carbonio.user_management.sdk.grpc.UserMyselfProto;
+import com.zextras.carbonio.user_management.sdk.rest.model.MyselfDto;
 
 import java.util.Optional;
 
@@ -23,7 +23,7 @@ public interface AuthenticationService extends HealthIndicator {
    * Validates the user's credentials
    *
    * @param authToken the token needed to be authenticated
-   * @return the {@link UserMyselfProto} if the token is valid
+   * @return the {@link MyselfDto} if the token is valid
    */
-  Optional<UserMyselfProto> getUserMyself(String authToken);
+  Optional<MyselfDto> getUserMyself(String authToken);
 }

@@ -129,17 +129,16 @@ import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.preview.sdk.PreviewClient;
-import com.zextras.carbonio.user_management.sdk.grpc.UserManagementServiceGrpc;
-import com.zextras.carbonio.user_management.sdk.grpc.UserManagementServiceGrpc.UserManagementServiceBlockingStub;
+import com.zextras.carbonio.user_management.sdk.rest.ApiClient;
+import com.zextras.carbonio.user_management.sdk.rest.api.UserResourceApi;
 import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.DatabaseFactory;
 import io.ebean.annotation.Platform;
 import io.ebean.config.DatabaseConfig;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import java.io.IOException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.ZoneId;
 import java.util.Base64;
 import java.util.Properties;
@@ -150,6 +149,12 @@ import org.flywaydb.core.api.migration.JavaMigration;
 public class CoreModule extends AbstractModule {
 
   private static final String URL_PATTERN = "http://%s:%s";
+
+  // 5s connect + read timeout: this codebase's existing convention for a shared client calling
+  // another Carbonio service over the mesh (see HttpClientProvider.TIMEOUT_MILLIS, also 5000ms).
+  // Without it, the generated ApiClient defaults to null timeouts, i.e. no request timeout at
+  // the JDK HttpClient level and an OS-default (~2 min) TCP connect timeout.
+  private static final Duration USER_MANAGEMENT_TIMEOUT = Duration.ofMillis(5000);
 
   @Override
   protected void configure() {
@@ -272,18 +277,29 @@ public class CoreModule extends AbstractModule {
 
   @Singleton
   @Provides
-  @Named("userManagementChannel")
-  private ManagedChannel getUserManagementChannel(AppConfig appConfig) {
-    String host = appConfig.get(String.class, ConfigName.USER_MANAGEMENT_HOST).orElseThrow();
-    int port = appConfig.get(Integer.class, ConfigName.USER_MANAGEMENT_PORT).orElseThrow();
-    return ManagedChannelBuilder.forAddress(host, port).usePlaintext().build();
+  @Named("userManagementBaseUrl")
+  private String getUserManagementBaseUrl(AppConfig appConfig) {
+    return String.format(
+        URL_PATTERN,
+        appConfig.get(String.class, ConfigName.USER_MANAGEMENT_HOST).orElseThrow(),
+        appConfig.get(String.class, ConfigName.USER_MANAGEMENT_PORT).orElseThrow());
   }
 
   @Singleton
   @Provides
-  private UserManagementServiceBlockingStub getUserManagementStub(
-      @Named("userManagementChannel") ManagedChannel userManagementChannel) {
-    return UserManagementServiceGrpc.newBlockingStub(userManagementChannel);
+  private UserResourceApi getUserResourceApi(
+      @Named("userManagementBaseUrl") String userManagementBaseUrl) {
+    // Pin HTTP/1.1: the User Management service does not support h2c cleartext upgrade.
+    java.net.http.HttpClient.Builder httpClientBuilder =
+        java.net.http.HttpClient.newBuilder().version(java.net.http.HttpClient.Version.HTTP_1_1);
+    ApiClient apiClient =
+        new ApiClient(
+            httpClientBuilder, ApiClient.createDefaultObjectMapper(), userManagementBaseUrl);
+    // Must be set before constructing UserResourceApi: its constructor snapshots the ApiClient's
+    // timeouts into final fields, so setting them afterwards would be a silent no-op.
+    apiClient.setConnectTimeout(USER_MANAGEMENT_TIMEOUT);
+    apiClient.setReadTimeout(USER_MANAGEMENT_TIMEOUT);
+    return new UserResourceApi(apiClient);
   }
 
   @Singleton

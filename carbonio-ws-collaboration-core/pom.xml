@@ -27,16 +27,10 @@ SPDX-License-Identifier: AGPL-3.0-only
             <artifactId>carbonio-ws-collaboration-ce-openapi</artifactId>
         </dependency>
 
-        <!-- Carbonio User Management gRPC SDK -->
+        <!-- Carbonio User Management REST SDK -->
         <dependency>
             <groupId>com.zextras.carbonio.user-management</groupId>
-            <artifactId>carbonio-user-management-grpc-sdk</artifactId>
-        </dependency>
-
-        <!-- gRPC dependencies -->
-        <dependency>
-            <groupId>io.grpc</groupId>
-            <artifactId>grpc-netty-shaded</artifactId>
+            <artifactId>carbonio-user-management-rest-sdk</artifactId>
         </dependency>
 
         <!-- Storages sdk -->
