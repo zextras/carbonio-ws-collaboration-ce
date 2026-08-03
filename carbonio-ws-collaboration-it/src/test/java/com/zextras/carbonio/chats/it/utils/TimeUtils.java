@@ -21,5 +21,4 @@ public class TimeUtils {
     sb.append(ms > 0 || h + m + s > 0 ? ms + "ms" : "");
     return sb.toString();
   }
-
 }

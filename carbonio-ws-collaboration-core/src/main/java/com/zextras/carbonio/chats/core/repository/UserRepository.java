@@ -33,5 +33,4 @@ public interface UserRepository {
    * @return the inserted {@link User}
    */
   User save(User user);
-
 }

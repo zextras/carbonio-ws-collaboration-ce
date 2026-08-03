@@ -67,9 +67,10 @@ public class Stream {
       return false;
     }
     Stream stream = (Stream) o;
-    return Objects.equals(getFeed(), stream.getFeed()) && Objects.equals(getMid(), stream.getMid())
-      && Objects.equals(getCrossrefid(), stream.getCrossrefid()) && Objects.equals(getSubMid(),
-      stream.getSubMid());
+    return Objects.equals(getFeed(), stream.getFeed())
+        && Objects.equals(getMid(), stream.getMid())
+        && Objects.equals(getCrossrefid(), stream.getCrossrefid())
+        && Objects.equals(getSubMid(), stream.getSubMid());
   }
 
   @Override

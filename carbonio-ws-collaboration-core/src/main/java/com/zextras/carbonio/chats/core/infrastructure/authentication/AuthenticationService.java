@@ -6,7 +6,6 @@ package com.zextras.carbonio.chats.core.infrastructure.authentication;
 
 import com.zextras.carbonio.chats.core.infrastructure.HealthIndicator;
 import com.zextras.carbonio.user_management.sdk.rest.model.MyselfDto;
-
 import java.util.Optional;
 
 public interface AuthenticationService extends HealthIndicator {

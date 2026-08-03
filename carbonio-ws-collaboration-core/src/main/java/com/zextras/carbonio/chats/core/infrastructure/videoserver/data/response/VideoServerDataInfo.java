@@ -7,7 +7,8 @@ package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
- * This class represents the data info contained in the video server response provided by VideoServer.
+ * This class represents the data info contained in the video server response provided by
+ * VideoServer.
  *
  * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
  */

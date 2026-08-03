@@ -4,9 +4,7 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media;
 
-/**
- * This enum represents the two possible ways to join a video room.
- */
+/** This enum represents the two possible ways to join a video room. */
 public enum Ptype {
   PUBLISHER,
   SUBSCRIBER

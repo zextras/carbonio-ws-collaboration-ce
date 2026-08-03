@@ -24,9 +24,11 @@ class AppConfigTest {
     @Test
     @DisplayName("Retrieves attribute from the first chain block")
     public void get_valueFromFirstBlock() {
-      AppConfig appConfig = MockAppConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value1")
-        .add(MockAppConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value2"))
-        .add(MockAppConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value3"));
+      AppConfig appConfig =
+          MockAppConfig.create()
+              .set(ConfigName.DATABASE_JDBC_URL, "value1")
+              .add(MockAppConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value2"))
+              .add(MockAppConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value3"));
 
       assertTrue(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
       assertEquals("value1", appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
@@ -35,9 +37,10 @@ class AppConfigTest {
     @Test
     @DisplayName("Retrieves attribute from the second chain block if the first is null")
     public void get_valueFromSecondBlock() {
-      AppConfig appConfig = MockAppConfig.create()
-        .add(MockAppConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value2"))
-        .add(MockAppConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value3"));
+      AppConfig appConfig =
+          MockAppConfig.create()
+              .add(MockAppConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value2"))
+              .add(MockAppConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value3"));
 
       assertTrue(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
       assertEquals("value2", appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
@@ -46,9 +49,10 @@ class AppConfigTest {
     @Test
     @DisplayName("Retrieves attribute from the third chain block if the second is null")
     public void get_valueFromThirdBlock() {
-      AppConfig appConfig = MockAppConfig.create()
-        .add(MockAppConfig.create())
-        .add(MockAppConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value3"));
+      AppConfig appConfig =
+          MockAppConfig.create()
+              .add(MockAppConfig.create())
+              .add(MockAppConfig.create().set(ConfigName.DATABASE_JDBC_URL, "value3"));
 
       assertTrue(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
       assertEquals("value3", appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).get());
@@ -57,9 +61,8 @@ class AppConfigTest {
     @Test
     @DisplayName("Returns and empty optional if no one solves the attribute")
     public void get_returnsEmptyOptional() {
-      AppConfig appConfig = MockAppConfig.create()
-        .add(MockAppConfig.create())
-        .add(MockAppConfig.create());
+      AppConfig appConfig =
+          MockAppConfig.create().add(MockAppConfig.create()).add(MockAppConfig.create());
 
       assertFalse(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).isPresent());
     }

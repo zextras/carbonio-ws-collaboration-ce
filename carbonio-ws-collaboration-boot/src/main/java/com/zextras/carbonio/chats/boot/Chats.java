@@ -30,18 +30,20 @@ public class Chats {
   }
 
   private static void printBanner() {
-    try (BufferedReader br = new BufferedReader(
-      new InputStreamReader(Objects.requireNonNull(
-        Chats.class.getClassLoader().getResourceAsStream("banner.txt"))))) {
+    try (BufferedReader br =
+        new BufferedReader(
+            new InputStreamReader(
+                Objects.requireNonNull(
+                    Chats.class.getClassLoader().getResourceAsStream("banner.txt"))))) {
       br.lines().collect(Collectors.toList()).forEach(System.out::println);
     } catch (Exception e) {
       ChatsLogger.error(Chats.class, "Error while printing Chats banner", e);
     }
   }
 
-
   private static void loadLoggingConfigurations() {
-    System.out.printf("Loading logging configurations from file '%s' ...%n", ChatsConstant.LOGGER_CONFIG_PATH);
+    System.out.printf(
+        "Loading logging configurations from file '%s' ...%n", ChatsConstant.LOGGER_CONFIG_PATH);
     LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
     JoranConfigurator configurator = new JoranConfigurator();
     configurator.setContext(context);

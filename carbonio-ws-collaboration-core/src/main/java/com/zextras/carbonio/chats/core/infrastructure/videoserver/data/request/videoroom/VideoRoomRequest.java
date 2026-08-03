@@ -10,6 +10,5 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.V
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "className")
 public class VideoRoomRequest extends VideoServerPluginRequest {
 
-  public VideoRoomRequest() {
-  }
+  public VideoRoomRequest() {}
 }

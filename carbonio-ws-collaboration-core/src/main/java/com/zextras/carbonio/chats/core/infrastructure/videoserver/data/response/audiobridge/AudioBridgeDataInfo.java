@@ -9,7 +9,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 /**
- * This class represents the data info contained in the audio bridge response provided by VideoServer.
+ * This class represents the data info contained in the audio bridge response provided by
+ * VideoServer.
  *
  * @see <a href="https://janus.conf.meetecho.com/docs/audiobridge.html">AudioBridgeResponse</a>
  */
@@ -17,13 +18,16 @@ import java.util.List;
 public class AudioBridgeDataInfo {
 
   @JsonProperty("audiobridge")
-  private String                           audioBridge;
-  private String                           room;
-  private Boolean                          permanent;
-  private Boolean                          exists;
-  private List<String>                     allowed;
+  private String audioBridge;
+
+  private String room;
+  private Boolean permanent;
+  private Boolean exists;
+  private List<String> allowed;
+
   @JsonProperty("list")
-  private List<AudioBridgeDataRoom>        rooms;
+  private List<AudioBridgeDataRoom> rooms;
+
   private List<AudioBridgeDataParticipant> participants;
 
   private String errorCode;

@@ -9,7 +9,8 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 /**
- * This class represents the data room contained in the audio bridge response provided by VideoServer.
+ * This class represents the data room contained in the audio bridge response provided by
+ * VideoServer.
  *
  * @see <a href="https://janus.conf.meetecho.com/docs/audiobridge.html">AudioBridgeResponse</a>
  */
@@ -17,10 +18,10 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class AudioBridgeDataRoom {
 
-  private String  room;
-  private String  description;
+  private String room;
+  private String description;
   private Boolean pinRequired;
-  private Long    samplingRate;
+  private Long samplingRate;
   private Boolean spatialAudio;
   private Boolean record;
   private Boolean muted;

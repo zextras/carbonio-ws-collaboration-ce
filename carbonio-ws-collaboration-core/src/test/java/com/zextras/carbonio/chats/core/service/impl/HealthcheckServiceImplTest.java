@@ -20,10 +20,10 @@ import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserMa
 import com.zextras.carbonio.chats.core.infrastructure.database.DatabaseInfoService;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.messaging.MessageDispatcher;
+import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
-import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import com.zextras.carbonio.chats.model.DependencyHealthDto;
 import com.zextras.carbonio.chats.model.DependencyHealthTypeDto;
@@ -42,14 +42,14 @@ import org.junit.jupiter.api.Test;
 class HealthcheckServiceImplTest {
 
   private final HealthcheckServiceImpl healthcheckService;
-  private final MessageDispatcher      messageDispatcher;
-  private final DatabaseInfoService    databaseInfoService;
-  private final EventDispatcher        eventDispatcher;
-  private final StoragesService        storagesService;
-  private final PreviewService         previewService;
-  private final AuthenticationService  authenticationService;
-  private final ProfilingService       profilingService;
-  private final VideoServerService     videoServerService;
+  private final MessageDispatcher messageDispatcher;
+  private final DatabaseInfoService databaseInfoService;
+  private final EventDispatcher eventDispatcher;
+  private final StoragesService storagesService;
+  private final PreviewService previewService;
+  private final AuthenticationService authenticationService;
+  private final ProfilingService profilingService;
+  private final VideoServerService videoServerService;
 
   public HealthcheckServiceImplTest() {
     this.messageDispatcher = mock(MessageDispatcher.class);
@@ -60,28 +60,27 @@ class HealthcheckServiceImplTest {
     this.authenticationService = mock(AuthenticationService.class);
     this.profilingService = mock(ProfilingService.class);
     this.videoServerService = mock(VideoServerService.class);
-    this.healthcheckService = new HealthcheckServiceImpl(
-      this.messageDispatcher,
-      this.databaseInfoService,
-      this.eventDispatcher,
-      this.storagesService,
-      this.previewService,
-      this.authenticationService,
-      this.profilingService,
-      this.videoServerService
-    );
+    this.healthcheckService =
+        new HealthcheckServiceImpl(
+            this.messageDispatcher,
+            this.databaseInfoService,
+            this.eventDispatcher,
+            this.storagesService,
+            this.previewService,
+            this.authenticationService,
+            this.profilingService,
+            this.videoServerService);
   }
 
   @AfterEach
   public void cleanup() {
     reset(
-      messageDispatcher,
-      databaseInfoService,
-      eventDispatcher,
-      storagesService,
-      previewService,
-      authenticationService
-    );
+        messageDispatcher,
+        databaseInfoService,
+        eventDispatcher,
+        storagesService,
+        previewService,
+        authenticationService);
   }
 
   @Nested
@@ -224,7 +223,8 @@ class HealthcheckServiceImplTest {
     }
 
     @Test
-    @DisplayName("Returns error when both a non-fundamental service and a fundamental one are not healthy")
+    @DisplayName(
+        "Returns error when both a non-fundamental service and a fundamental one are not healthy")
     public void getServiceStatus_testErrorOnMoreThanOne() {
       when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
@@ -236,7 +236,6 @@ class HealthcheckServiceImplTest {
 
       assertEquals(HealthStatusTypeDto.ERROR, healthcheckService.getServiceStatus());
     }
-
   }
 
   @Nested
@@ -255,16 +254,30 @@ class HealthcheckServiceImplTest {
       when(profilingService.isAlive()).thenReturn(true);
       when(videoServerService.isAlive()).thenReturn(true);
 
-      List<DependencyHealthDto> dependencyHealthDto = List.of(
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.XMPP_SERVER).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.DATABASE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.EVENT_DISPATCHER).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.STORAGE_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.PREVIEWER_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.AUTHENTICATION_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.PROFILING_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.VIDEOSERVER_SERVICE).isHealthy(true)
-      );
+      List<DependencyHealthDto> dependencyHealthDto =
+          List.of(
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.XMPP_SERVER)
+                  .isHealthy(true),
+              DependencyHealthDto.create().name(DependencyHealthTypeDto.DATABASE).isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.EVENT_DISPATCHER)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.STORAGE_SERVICE)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.PREVIEWER_SERVICE)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.AUTHENTICATION_SERVICE)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.PROFILING_SERVICE)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.VIDEOSERVER_SERVICE)
+                  .isHealthy(true));
       HealthStatusDto serviceHealth = healthcheckService.getServiceHealth();
       assertTrue(serviceHealth.isIsLive());
       assertEquals(HealthStatusTypeDto.OK, serviceHealth.getStatus());
@@ -283,16 +296,30 @@ class HealthcheckServiceImplTest {
       when(profilingService.isAlive()).thenReturn(false);
       when(videoServerService.isAlive()).thenReturn(true);
 
-      List<DependencyHealthDto> dependencyHealthDto = List.of(
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.XMPP_SERVER).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.DATABASE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.EVENT_DISPATCHER).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.STORAGE_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.PREVIEWER_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.AUTHENTICATION_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.PROFILING_SERVICE).isHealthy(false),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.VIDEOSERVER_SERVICE).isHealthy(true)
-      );
+      List<DependencyHealthDto> dependencyHealthDto =
+          List.of(
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.XMPP_SERVER)
+                  .isHealthy(true),
+              DependencyHealthDto.create().name(DependencyHealthTypeDto.DATABASE).isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.EVENT_DISPATCHER)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.STORAGE_SERVICE)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.PREVIEWER_SERVICE)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.AUTHENTICATION_SERVICE)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.PROFILING_SERVICE)
+                  .isHealthy(false),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.VIDEOSERVER_SERVICE)
+                  .isHealthy(true));
       HealthStatusDto serviceHealth = healthcheckService.getServiceHealth();
       assertTrue(serviceHealth.isIsLive());
       assertEquals(HealthStatusTypeDto.ERROR, serviceHealth.getStatus());
@@ -311,16 +338,30 @@ class HealthcheckServiceImplTest {
       when(profilingService.isAlive()).thenReturn(true);
       when(videoServerService.isAlive()).thenReturn(true);
 
-      List<DependencyHealthDto> dependencyHealthDto = List.of(
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.XMPP_SERVER).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.DATABASE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.EVENT_DISPATCHER).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.STORAGE_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.PREVIEWER_SERVICE).isHealthy(false),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.AUTHENTICATION_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.PROFILING_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.VIDEOSERVER_SERVICE).isHealthy(true)
-      );
+      List<DependencyHealthDto> dependencyHealthDto =
+          List.of(
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.XMPP_SERVER)
+                  .isHealthy(true),
+              DependencyHealthDto.create().name(DependencyHealthTypeDto.DATABASE).isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.EVENT_DISPATCHER)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.STORAGE_SERVICE)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.PREVIEWER_SERVICE)
+                  .isHealthy(false),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.AUTHENTICATION_SERVICE)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.PROFILING_SERVICE)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.VIDEOSERVER_SERVICE)
+                  .isHealthy(true));
       HealthStatusDto serviceHealth = healthcheckService.getServiceHealth();
       assertTrue(serviceHealth.isIsLive());
       assertEquals(HealthStatusTypeDto.WARN, serviceHealth.getStatus());
@@ -328,7 +369,9 @@ class HealthcheckServiceImplTest {
     }
 
     @Test
-    @DisplayName("Returns the service health status when both a non-fundamental and a fundamental service are not healthy")
+    @DisplayName(
+        "Returns the service health status when both a non-fundamental and a fundamental service"
+            + " are not healthy")
     public void getServiceHealth_testBothNonHealthy() {
       when(messageDispatcher.isAlive()).thenReturn(true);
       when(databaseInfoService.isAlive()).thenReturn(true);
@@ -339,16 +382,30 @@ class HealthcheckServiceImplTest {
       when(profilingService.isAlive()).thenReturn(false);
       when(videoServerService.isAlive()).thenReturn(true);
 
-      List<DependencyHealthDto> dependencyHealthDto = List.of(
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.XMPP_SERVER).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.DATABASE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.EVENT_DISPATCHER).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.STORAGE_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.PREVIEWER_SERVICE).isHealthy(false),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.AUTHENTICATION_SERVICE).isHealthy(true),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.PROFILING_SERVICE).isHealthy(false),
-        DependencyHealthDto.create().name(DependencyHealthTypeDto.VIDEOSERVER_SERVICE).isHealthy(true)
-      );
+      List<DependencyHealthDto> dependencyHealthDto =
+          List.of(
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.XMPP_SERVER)
+                  .isHealthy(true),
+              DependencyHealthDto.create().name(DependencyHealthTypeDto.DATABASE).isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.EVENT_DISPATCHER)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.STORAGE_SERVICE)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.PREVIEWER_SERVICE)
+                  .isHealthy(false),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.AUTHENTICATION_SERVICE)
+                  .isHealthy(true),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.PROFILING_SERVICE)
+                  .isHealthy(false),
+              DependencyHealthDto.create()
+                  .name(DependencyHealthTypeDto.VIDEOSERVER_SERVICE)
+                  .isHealthy(true));
       HealthStatusDto serviceHealth = healthcheckService.getServiceHealth();
       assertTrue(serviceHealth.isIsLive());
       assertEquals(HealthStatusTypeDto.ERROR, serviceHealth.getStatus());
@@ -375,7 +432,6 @@ class HealthcheckServiceImplTest {
       verify(authenticationService, times(1)).isAlive();
       verify(profilingService, times(1)).isAlive();
     }
-
   }
 
   @Nested
@@ -420,12 +476,13 @@ class HealthcheckServiceImplTest {
       assertEquals(HealthStatusTypeDto.ERROR, serviceHealth.getStatus());
       boolean authIsHealthy =
           serviceHealth.getDependencies().stream()
-              .filter(dependency -> dependency.getName() == DependencyHealthTypeDto.AUTHENTICATION_SERVICE)
+              .filter(
+                  dependency ->
+                      dependency.getName() == DependencyHealthTypeDto.AUTHENTICATION_SERVICE)
               .findFirst()
               .orElseThrow()
               .isIsHealthy();
       assertFalse(authIsHealthy);
     }
   }
-
 }

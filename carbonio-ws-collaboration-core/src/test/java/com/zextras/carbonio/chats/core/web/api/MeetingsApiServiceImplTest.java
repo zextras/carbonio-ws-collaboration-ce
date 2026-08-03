@@ -16,6 +16,7 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
+import com.zextras.carbonio.chats.core.data.type.UserType;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.service.MeetingService;
@@ -24,7 +25,6 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
 import com.zextras.carbonio.chats.model.NewMeetingDataDto;
-import com.zextras.carbonio.chats.core.data.type.UserType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.SecurityContext;
@@ -163,7 +163,9 @@ class MeetingsApiServiceImplTest {
 
   @Test
   void messageBrokerDownBlocksJoinMeeting() {
-    doThrow(new EventDispatcherException("Message broker is down")).when(healthMonitor).checkStatus();
+    doThrow(new EventDispatcherException("Message broker is down"))
+        .when(healthMonitor)
+        .checkStatus();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -173,7 +175,9 @@ class MeetingsApiServiceImplTest {
 
   @Test
   void messageBrokerDownBlocksStartMeeting() {
-    doThrow(new EventDispatcherException("Message broker is down")).when(healthMonitor).checkStatus();
+    doThrow(new EventDispatcherException("Message broker is down"))
+        .when(healthMonitor)
+        .checkStatus();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -183,7 +187,9 @@ class MeetingsApiServiceImplTest {
 
   @Test
   void messageBrokerDownBlocksUpdateMediaStream() {
-    doThrow(new EventDispatcherException("Message broker is down")).when(healthMonitor).checkStatus();
+    doThrow(new EventDispatcherException("Message broker is down"))
+        .when(healthMonitor)
+        .checkStatus();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -199,7 +205,9 @@ class MeetingsApiServiceImplTest {
 
   @Test
   void messageBrokerDownBlocksUpdateAudioStream() {
-    doThrow(new EventDispatcherException("Message broker is down")).when(healthMonitor).checkStatus();
+    doThrow(new EventDispatcherException("Message broker is down"))
+        .when(healthMonitor)
+        .checkStatus();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(
@@ -213,7 +221,9 @@ class MeetingsApiServiceImplTest {
 
   @Test
   void messageBrokerDownBlocksUpdateHandStatus() {
-    doThrow(new EventDispatcherException("Message broker is down")).when(healthMonitor).checkStatus();
+    doThrow(new EventDispatcherException("Message broker is down"))
+        .when(healthMonitor)
+        .checkStatus();
     when(securityContext.getUserPrincipal()).thenReturn(user1);
 
     assertThrows(

@@ -11,10 +11,11 @@ public interface HealthcheckService {
 
   /**
    * Returns a {@link HealthStatusTypeDto} which indicates the service status:
+   *
    * <ul>
-   *   <li>{@link HealthStatusTypeDto#OK}</li> indicates that everything is working properly
-   *   <li>{@link HealthStatusTypeDto#WARN}</li> indicates that a non-fundamental service is not healthy
-   *   <li>{@link HealthStatusTypeDto#ERROR}</li> indicates that a fundamental service is not healthy
+   *   <li>{@link HealthStatusTypeDto#OK} indicates that everything is working properly
+   *   <li>{@link HealthStatusTypeDto#WARN} indicates that a non-fundamental service is not healthy
+   *   <li>{@link HealthStatusTypeDto#ERROR} indicates that a fundamental service is not healthy
    * </ul>
    *
    * @return a {@link HealthStatusTypeDto} which indicates the service status

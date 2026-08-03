@@ -84,8 +84,7 @@ class UserManagementAuthenticationServiceTest {
 
       when(userResourceApi.internalUsersMyselfGet(any(), anyString())).thenReturn(mockUser);
 
-      Optional<MyselfDto> userMyself =
-          userManagementAuthenticationService.getUserMyself("tokenz");
+      Optional<MyselfDto> userMyself = userManagementAuthenticationService.getUserMyself("tokenz");
 
       assertTrue(userMyself.isPresent());
       assertEquals("myUser", userMyself.get().getInfo().getUserId());
@@ -98,8 +97,7 @@ class UserManagementAuthenticationServiceTest {
       when(userResourceApi.internalUsersMyselfGet(any(), anyString()))
           .thenThrow(new ApiException(401, "Unauthorized"));
 
-      Optional<MyselfDto> userMyself =
-          userManagementAuthenticationService.getUserMyself("tokenz");
+      Optional<MyselfDto> userMyself = userManagementAuthenticationService.getUserMyself("tokenz");
 
       assertTrue(userMyself.isEmpty());
     }
@@ -107,8 +105,7 @@ class UserManagementAuthenticationServiceTest {
     @Test
     @DisplayName("Returns an empty optional if credential is null")
     void getUserMyself_testEmptyCredentials() {
-      Optional<MyselfDto> userMyself =
-          userManagementAuthenticationService.getUserMyself(null);
+      Optional<MyselfDto> userMyself = userManagementAuthenticationService.getUserMyself(null);
 
       assertTrue(userMyself.isEmpty());
     }
@@ -116,8 +113,7 @@ class UserManagementAuthenticationServiceTest {
     @Test
     @DisplayName("Returns an empty optional if the token is not present")
     void getUserMyself_testNoZmAuthToken() {
-      Optional<MyselfDto> userMyself =
-          userManagementAuthenticationService.getUserMyself(null);
+      Optional<MyselfDto> userMyself = userManagementAuthenticationService.getUserMyself(null);
 
       assertTrue(userMyself.isEmpty());
     }
@@ -166,8 +162,7 @@ class UserManagementAuthenticationServiceTest {
 
       when(userResourceApi.internalUsersMyselfGet(any(), anyString())).thenReturn(mockUser);
 
-      Optional<MyselfDto> userProfile =
-          userManagementAuthenticationService.getUserMyself("tokenz");
+      Optional<MyselfDto> userProfile = userManagementAuthenticationService.getUserMyself("tokenz");
 
       verify(userResourceApi, times(1)).internalUsersMyselfGet(any(), anyString());
 
@@ -195,8 +190,7 @@ class UserManagementAuthenticationServiceTest {
       when(userResourceApi.internalUsersMyselfGet(any(), anyString())).thenReturn(mockUser);
 
       userManagementAuthenticationService.getUserMyself("tokenz");
-      Optional<MyselfDto> userProfile =
-          userManagementAuthenticationService.getUserMyself("tokenz");
+      Optional<MyselfDto> userProfile = userManagementAuthenticationService.getUserMyself("tokenz");
 
       verify(userResourceApi, times(2)).internalUsersMyselfGet(any(), anyString());
 
@@ -214,8 +208,7 @@ class UserManagementAuthenticationServiceTest {
       when(userResourceApi.internalUsersMyselfGet(any(), anyString()))
           .thenThrow(new ApiException(401, "Unauthorized"));
 
-      Optional<MyselfDto> userProfile =
-          userManagementAuthenticationService.getUserMyself("tokenz");
+      Optional<MyselfDto> userProfile = userManagementAuthenticationService.getUserMyself("tokenz");
 
       verify(userResourceApi, times(1)).internalUsersMyselfGet(any(), anyString());
 

@@ -5,5 +5,6 @@
 package com.zextras.carbonio.chats.core.data.type;
 
 public enum MeetingType {
-  PERMANENT, SCHEDULED
+  PERMANENT,
+  SCHEDULED
 }

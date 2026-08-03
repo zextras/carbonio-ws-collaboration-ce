@@ -61,8 +61,9 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
               // Check if carbonioFeatureWscEnabled is in features list
               boolean wscEnabled =
-                  userMyself.getFeatures().contains(
-                      CarbonioAttribute.FEATURE_WSC_ENABLED.getValue());
+                  userMyself
+                      .getFeatures()
+                      .contains(CarbonioAttribute.FEATURE_WSC_ENABLED.getValue());
               if (!wscEnabled) {
                 throw new ForbiddenException("WSC feature not enabled for user");
               }

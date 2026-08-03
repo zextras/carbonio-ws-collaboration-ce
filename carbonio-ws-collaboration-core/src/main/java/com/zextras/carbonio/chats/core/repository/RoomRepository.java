@@ -22,7 +22,7 @@ public interface RoomRepository {
   /**
    * Retrieves all {@link Room} of which the user is subscribed
    *
-   * @param userId            user identifier
+   * @param userId user identifier
    * @param withSubscriptions if true, rooms will also have subscriptions {@link Subscription}
    * @return {@link Room} {@link List} of which the user is subscribed
    */
@@ -67,5 +67,4 @@ public interface RoomRepository {
    * @param roomId room identifier
    */
   void delete(String roomId);
-
 }
