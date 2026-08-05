@@ -1,7 +1,6 @@
 services {
   checks = [
     {
-      id       = "live"
       http     = "http://127.78.0.4:10000/health/live"
       method   = "GET"
       timeout  = "1s"
