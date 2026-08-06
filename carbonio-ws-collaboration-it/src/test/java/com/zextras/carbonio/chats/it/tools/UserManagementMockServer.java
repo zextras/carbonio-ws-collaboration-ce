@@ -23,18 +23,18 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.mockserver.integration.ClientAndServer;
-import org.mockserver.matchers.Times;
 import org.mockserver.matchers.TimeToLive;
+import org.mockserver.matchers.Times;
 import org.mockserver.model.Header;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.JsonBody;
 
 /**
- * MockServer-backed stand-in for the User Management REST service. Replaces the previous
- * in-process gRPC mock server: it stubs the {@code /internal/users/*} REST endpoints instead of
- * implementing a gRPC service, but keeps the same in-memory-user seeding API
- * ({@link #registerToken(String, MyselfDto)}, {@link #registerUserById(String, UserInfoDto)}) so
- * existing tests don't need to change how they inject fixtures.
+ * MockServer-backed stand-in for the User Management REST service. Replaces the previous in-process
+ * gRPC mock server: it stubs the {@code /internal/users/*} REST endpoints instead of implementing a
+ * gRPC service, but keeps the same in-memory-user seeding API ({@link #registerToken(String,
+ * MyselfDto)}, {@link #registerUserById(String, UserInfoDto)}) so existing tests don't need to
+ * change how they inject fixtures.
  */
 public class UserManagementMockServer extends ClientAndServer implements CloseableResource {
 
@@ -92,7 +92,10 @@ public class UserManagementMockServer extends ClientAndServer implements Closeab
     }
   }
 
-  /** Stubs {@code GET /internal/users/myself} matching the {@code ZM_AUTH_TOKEN} header for the given token. */
+  /**
+   * Stubs {@code GET /internal/users/myself} matching the {@code ZM_AUTH_TOKEN} header for the
+   * given token.
+   */
   public void registerToken(String token, MyselfDto userMyself) {
     HttpRequest request =
         request()
@@ -105,8 +108,8 @@ public class UserManagementMockServer extends ClientAndServer implements Closeab
 
   /**
    * Low-priority fallback for {@code GET /internal/users/myself}: returns 401 whenever the
-   * request's {@code ZM_AUTH_TOKEN} header doesn't match any token registered via
-   * {@link #registerToken(String, MyselfDto)}, mirroring real User Management behaviour for
+   * request's {@code ZM_AUTH_TOKEN} header doesn't match any token registered via {@link
+   * #registerToken(String, MyselfDto)}, mirroring real User Management behaviour for
    * unknown/invalid tokens.
    */
   private void registerUnauthorizedMyselfFallback() {
@@ -116,8 +119,8 @@ public class UserManagementMockServer extends ClientAndServer implements Closeab
   }
 
   /**
-   * Stubs {@code GET /internal/users/id/{userId}} and registers the user so it is also returned
-   * by the bulk {@code POST /internal/users} endpoint.
+   * Stubs {@code GET /internal/users/id/{userId}} and registers the user so it is also returned by
+   * the bulk {@code POST /internal/users} endpoint.
    */
   public void registerUserById(String userId, UserInfoDto userInfo) {
     userIdToInfo.put(userId, userInfo);
@@ -128,8 +131,8 @@ public class UserManagementMockServer extends ClientAndServer implements Closeab
 
   /**
    * Stubs {@code POST /internal/users} once with a dynamic callback: it reads the requested user
-   * ids from the JSON request body and returns whichever of them are currently registered, mirroring
-   * the previous gRPC mock's {@code getUsers} behaviour.
+   * ids from the JSON request body and returns whichever of them are currently registered,
+   * mirroring the previous gRPC mock's {@code getUsers} behaviour.
    */
   private void mockBulkGetUsers() {
     when(request().withMethod("POST").withPath("/internal/users"))

@@ -12,7 +12,7 @@ import java.util.List;
 public class AttachmentsPaginationResult {
 
   private List<FileMetadata> attachments = new ArrayList<>();
-  private String             filter;
+  private String filter;
 
   public static AttachmentsPaginationResult create() {
     return new AttachmentsPaginationResult();

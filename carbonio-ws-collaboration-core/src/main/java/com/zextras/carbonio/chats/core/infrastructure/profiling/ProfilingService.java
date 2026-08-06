@@ -18,7 +18,7 @@ public interface ProfilingService extends HealthIndicator {
    * Returns the user identified by the given id.
    *
    * @param principal the authenticated user that's performing the request
-   * @param userId    id of the user to retrieve
+   * @param userId id of the user to retrieve
    * @return an {@link Optional} which contains {@link UserDto} if it was found, or empty otherwise
    */
   Optional<UserProfile> getById(UserPrincipal principal, UUID userId);
@@ -27,10 +27,9 @@ public interface ProfilingService extends HealthIndicator {
    * Returns the {@link List} of users identified by the given ids.
    *
    * @param principal the authenticated user that's performing the request
-   * @param userIds   {@link List} of ids of the users to retrieve
+   * @param userIds {@link List} of ids of the users to retrieve
    * @return a {@link List} which contains the of {@link UserDto} if they are found, or empty
-   * otherwise
+   *     otherwise
    */
   List<UserProfile> getByIds(UserPrincipal principal, List<String> userIds);
-
 }

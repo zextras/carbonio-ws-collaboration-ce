@@ -18,4 +18,4 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @Inherited
 @ExtendWith(GuiceMappersExtension.class)
 @ExtendWith(EbeanTestExtension.class)
-public @interface UnitTest { }
+public @interface UnitTest {}

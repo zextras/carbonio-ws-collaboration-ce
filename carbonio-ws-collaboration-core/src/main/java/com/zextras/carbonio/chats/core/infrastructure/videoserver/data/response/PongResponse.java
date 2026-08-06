@@ -12,11 +12,12 @@ import java.util.Objects;
 
 /**
  * This class represents a pong response provided by VideoServer when a ping request is sent
- * <p>
- * The successful response is composed of:
+ *
+ * <p>The successful response is composed of:
+ *
  * <ul>
- *   <li>janus: "pong"</li>
- *   <li>transaction: the transaction identifier related to the request previously sent</li>
+ *   <li>janus: "pong"
+ *   <li>transaction: the transaction identifier related to the request previously sent
  * </ul>
  *
  * @see <a href="https://janus.conf.meetecho.com/docs/rest.html">JanusRestApi</a>
@@ -29,6 +30,7 @@ public class PongResponse {
 
   @JsonProperty("janus")
   private String status;
+
   @JsonProperty("transaction")
   private String transactionId;
 
@@ -63,8 +65,8 @@ public class PongResponse {
       return false;
     }
     PongResponse that = (PongResponse) o;
-    return Objects.equals(getStatus(), that.getStatus()) && Objects.equals(getTransactionId(),
-      that.getTransactionId());
+    return Objects.equals(getStatus(), that.getStatus())
+        && Objects.equals(getTransactionId(), that.getTransactionId());
   }
 
   @Override

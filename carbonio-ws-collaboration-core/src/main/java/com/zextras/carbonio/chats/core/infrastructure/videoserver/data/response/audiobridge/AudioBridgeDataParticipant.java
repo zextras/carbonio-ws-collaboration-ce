@@ -9,7 +9,8 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 /**
- * This class represents the participant data contained in the audio bridge response provided by VideoServer.
+ * This class represents the participant data contained in the audio bridge response provided by
+ * VideoServer.
  *
  * @see <a href="https://janus.conf.meetecho.com/docs/audiobridge.html">AudioBridgeResponse</a>
  */
@@ -17,8 +18,8 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class AudioBridgeDataParticipant {
 
-  private String  id;
-  private String  display;
+  private String id;
+  private String display;
   private Boolean setup;
   private Boolean muted;
   private Boolean talking;

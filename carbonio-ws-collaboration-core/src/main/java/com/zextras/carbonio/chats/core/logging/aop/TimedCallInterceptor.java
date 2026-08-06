@@ -26,17 +26,19 @@ public class TimedCallInterceptor implements MethodInterceptor {
     }
     long callStart = System.nanoTime();
     Object invocation = methodInvocation.proceed();
-    String parameterString = Arrays.stream(methodInvocation.getArguments())
-      .map(argument -> Optional.ofNullable(argument).map(Object::toString).orElse("null"))
-      .collect(Collectors.joining(", "));
+    String parameterString =
+        Arrays.stream(methodInvocation.getArguments())
+            .map(argument -> Optional.ofNullable(argument).map(Object::toString).orElse("null"))
+            .collect(Collectors.joining(", "));
     ChatsLogger.log(
-      loggerLevel,
-      this.getClass(),
-      String.format("%s [ %s ] call lasted: %dms", methodName, parameterString,
-        Duration.ofNanos(System.nanoTime() - callStart).toMillis()),
-      null
-    );
+        loggerLevel,
+        this.getClass(),
+        String.format(
+            "%s [ %s ] call lasted: %dms",
+            methodName,
+            parameterString,
+            Duration.ofNanos(System.nanoTime() - callStart).toMillis()),
+        null);
     return invocation;
   }
-
 }

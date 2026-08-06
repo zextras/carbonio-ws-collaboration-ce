@@ -4,9 +4,11 @@
 
 package com.zextras.carbonio.chats.core.logging;
 
-/**
- * Enumerator to define logging levels
- */
+/** Enumerator to define logging levels */
 public enum ChatsLoggerLevel {
-  ERROR, WARN, INFO, DEBUG, TRACE
+  ERROR,
+  WARN,
+  INFO,
+  DEBUG,
+  TRACE
 }

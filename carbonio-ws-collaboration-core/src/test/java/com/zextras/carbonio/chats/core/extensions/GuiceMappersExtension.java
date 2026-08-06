@@ -28,43 +28,49 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 
 public class GuiceMappersExtension implements ParameterResolver, BeforeAllCallback {
 
-  private final static Namespace EXTENSION_NAMESPACE = Namespace.create(GuiceMappersExtension.class);
-  private final static String    GUICE_STORE_ENTRY   = "guice";
+  private static final Namespace EXTENSION_NAMESPACE =
+      Namespace.create(GuiceMappersExtension.class);
+  private static final String GUICE_STORE_ENTRY = "guice";
 
   @Override
   public void beforeAll(ExtensionContext context) {
-    context.getStore(EXTENSION_NAMESPACE)
-      .put(GUICE_STORE_ENTRY,
-        Guice.createInjector(new AbstractModule() {
-          @Override
-          protected void configure() {
-            bind(RoomMapper.class).to(RoomMapperImpl.class);
-            bind(SubscriptionMapper.class).to(SubscriptionMapperImpl.class);
-            bind(AttachmentMapper.class).to(AttachmentMapperImpl.class);
-            bind(MeetingMapper.class).to(MeetingMapperImpl.class);
-            bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
-          }
-        })
-      );
+    context
+        .getStore(EXTENSION_NAMESPACE)
+        .put(
+            GUICE_STORE_ENTRY,
+            Guice.createInjector(
+                new AbstractModule() {
+                  @Override
+                  protected void configure() {
+                    bind(RoomMapper.class).to(RoomMapperImpl.class);
+                    bind(SubscriptionMapper.class).to(SubscriptionMapperImpl.class);
+                    bind(AttachmentMapper.class).to(AttachmentMapperImpl.class);
+                    bind(MeetingMapper.class).to(MeetingMapperImpl.class);
+                    bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
+                  }
+                }));
   }
 
   @Override
   public boolean supportsParameter(
-    ParameterContext parameterContext, ExtensionContext extensionContext
-  ) throws ParameterResolutionException {
-    return !Optional.ofNullable(extensionContext.getStore(EXTENSION_NAMESPACE).get(GUICE_STORE_ENTRY))
-      .map(objectInjector -> (Injector) objectInjector)
-      .orElseThrow(() -> new ParameterResolutionException("No Guice injector found"))
-      .findBindingsByType(TypeLiteral.get(parameterContext.getParameter().getType())).isEmpty();
+      ParameterContext parameterContext, ExtensionContext extensionContext)
+      throws ParameterResolutionException {
+    return !Optional.ofNullable(
+            extensionContext.getStore(EXTENSION_NAMESPACE).get(GUICE_STORE_ENTRY))
+        .map(objectInjector -> (Injector) objectInjector)
+        .orElseThrow(() -> new ParameterResolutionException("No Guice injector found"))
+        .findBindingsByType(TypeLiteral.get(parameterContext.getParameter().getType()))
+        .isEmpty();
   }
 
   @Override
   public Object resolveParameter(
-    ParameterContext parameterContext, ExtensionContext extensionContext
-  ) throws ParameterResolutionException {
-    return Optional.ofNullable(extensionContext.getStore(EXTENSION_NAMESPACE).get(GUICE_STORE_ENTRY))
-      .map(objectInjector -> (Injector) objectInjector)
-      .orElseThrow(() -> new ParameterResolutionException("No Guice injector found"))
-      .getInstance(parameterContext.getParameter().getType());
+      ParameterContext parameterContext, ExtensionContext extensionContext)
+      throws ParameterResolutionException {
+    return Optional.ofNullable(
+            extensionContext.getStore(EXTENSION_NAMESPACE).get(GUICE_STORE_ENTRY))
+        .map(objectInjector -> (Injector) objectInjector)
+        .orElseThrow(() -> new ParameterResolutionException("No Guice injector found"))
+        .getInstance(parameterContext.getParameter().getType());
   }
 }

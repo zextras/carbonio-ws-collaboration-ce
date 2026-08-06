@@ -12,7 +12,7 @@ import java.util.Optional;
 
 public class MockAppConfig extends AppConfig {
 
-  private final AppConfigType           appConfigType;
+  private final AppConfigType appConfigType;
   private final Map<ConfigName, String> configMap;
 
   private boolean loaded = true;
@@ -52,7 +52,7 @@ public class MockAppConfig extends AppConfig {
   @Override
   protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigName configName) {
     return Optional.ofNullable(configMap.get(configName))
-      .map((stringValue) -> castToGeneric(clazz, stringValue));
+        .map((stringValue) -> castToGeneric(clazz, stringValue));
   }
 
   @Override

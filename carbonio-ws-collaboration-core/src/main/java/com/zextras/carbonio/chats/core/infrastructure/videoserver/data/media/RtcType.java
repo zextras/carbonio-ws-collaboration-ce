@@ -5,5 +5,6 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.media;
 
 public enum RtcType {
-  OFFER, ANSWER
+  OFFER,
+  ANSWER
 }

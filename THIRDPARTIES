@@ -1,326 +1,352 @@
-AGPL-3.0-only (https://spdx.org/licenses/AGPL-3.0-only.html) applies to:
 
-  Carbonio Systemd Notify (com.zextras.carbonio:carbonio-systemd-notify:1.0.1)
-  Carbonio User Management - REST SDK (com.zextras.carbonio.user-management:carbonio-user-management-rest-sdk:1.3.0-1)
-  filestore-sdk-common (com.zextras:filestore-sdk-common:0.0.15-20251106.164324-4)
-  storages-ce-sdk (com.zextras:storages-ce-sdk:0.0.15-20251106.164324-4)
+List of third-party dependencies grouped by their license type.
 
-Apache Software License, version 2.0 (https://spdx.org/licenses/Apache Software License, version 2.0.html) applies to:
+    AGPL-3.0-only:
 
-  btf (com.github.java-json-tools:btf:1.3)
-  jackson-coreutils (com.github.java-json-tools:jackson-coreutils:2.0)
-  json-patch (com.github.java-json-tools:json-patch:1.13)
-  msg-simple (com.github.java-json-tools:msg-simple:1.2)
+        * Carbonio Systemd Notify (com.zextras.carbonio:carbonio-systemd-notify:1.0.1 - https://github.com/zextras/carbonio-systemd-notify)
+        * Carbonio User Management - REST SDK (com.zextras.carbonio.user-management:carbonio-user-management-rest-sdk:1.3.0-1 - no url defined)
+        * filestore-sdk-common (com.zextras:filestore-sdk-common:0.0.15-20251106.164324-4 - https://github.com/Zextras/carbonio-storages-ce-java-sdk/filestore-sdk-common/)
+        * storages-ce-sdk (com.zextras:storages-ce-sdk:0.0.15-20251106.164324-4 - https://github.com/Zextras/carbonio-storages-ce-java-sdk/storages-ce-sdk/)
 
-Apache-2.0 (https://spdx.org/licenses/Apache-2.0.html) applies to:
+    AL 2.0:
 
-  Apache Commons Codec (commons-codec:commons-codec:1.19.0)
-  Apache Commons IO (commons-io:commons-io:2.11.0)
-  Apache Commons IO (commons-io:commons-io:2.20.0)
-  Apache Commons Lang (org.apache.commons:commons-lang3:3.20.0)
-  Apache Commons Logging (commons-logging:commons-logging:1.2)
-  Apache Commons Text (org.apache.commons:commons-text:1.15.0)
-  Apache HttpClient (org.apache.httpcomponents:httpclient:4.5.14)
-  Apache HttpClient Mime (org.apache.httpcomponents:httpmime:4.5.14)
-  Apache HttpCore (org.apache.httpcomponents:httpcore:4.4.16)
-  Apache James :: Mime4j :: Core (org.apache.james:apache-mime4j-core:0.8.13)
-  Apache James :: Mime4j :: DOM (org.apache.james:apache-mime4j-dom:0.8.13)
-  Apache James :: Mime4j :: Storage (org.apache.james:apache-mime4j-storage:0.8.13)
-  asyncutil (com.ibm.async:asyncutil:0.1.0)
-  avaje-applog (io.avaje:avaje-applog:1.0)
-  avaje-applog-slf4j (io.avaje:avaje-applog-slf4j:1.0)
-  avaje-config (io.avaje:avaje-config:4.0)
-  avaje-lang (io.avaje:avaje-lang:1.1)
-  Bean Validation API (javax.validation:validation-api:1.1.0.Final)
-  Caffeine cache (com.github.ben-manes.caffeine:caffeine:3.2.4)
-  CDI APIs (jakarta.enterprise:jakarta.enterprise.cdi-api:4.1.0)
-  CDI Language Model (jakarta.enterprise:jakarta.enterprise.lang-model:4.1.0)
-  ClassMate (com.fasterxml:classmate:1.7.3)
-  classpath-scanner (io.avaje:classpath-scanner:7.1)
-  classpath-scanner-api (io.avaje:classpath-scanner-api:7.1)
-  consul-client (com.orbitz.consul:consul-client:1.5.3)
-  Converter: Gson (com.squareup.retrofit2:converter-gson:2.9.0)
-  Converter: Jackson (com.squareup.retrofit2:converter-jackson:2.9.0)
-  Core :: ALPN :: Client (org.eclipse.jetty:jetty-alpn-client:12.0.19)
-  Core :: EE Common (org.eclipse.jetty:jetty-ee:12.0.19)
-  Core :: HTTP (org.eclipse.jetty:jetty-http:12.0.19)
-  Core :: HTTP Client (org.eclipse.jetty:jetty-client:12.0.19)
-  Core :: IO (org.eclipse.jetty:jetty-io:12.0.19)
-  Core :: JNDI (org.eclipse.jetty:jetty-jndi:12.0.19)
-  Core :: Plus (org.eclipse.jetty:jetty-plus:12.0.19)
-  Core :: Security (org.eclipse.jetty:jetty-security:12.0.19)
-  Core :: Server (org.eclipse.jetty:jetty-server:12.0.19)
-  Core :: Sessions (org.eclipse.jetty:jetty-session:12.0.19)
-  Core :: Utilities (org.eclipse.jetty:jetty-util:12.0.19)
-  Core :: Websocket :: Client (org.eclipse.jetty.websocket:jetty-websocket-core-client:12.0.19)
-  Core :: Websocket :: Common (org.eclipse.jetty.websocket:jetty-websocket-core-common:12.0.19)
-  Core :: Websocket :: Server (org.eclipse.jetty.websocket:jetty-websocket-core-server:12.0.19)
-  Core :: XML (org.eclipse.jetty:jetty-xml:12.0.19)
-  ebean api (io.ebean:ebean-api:15.11.0)
-  ebean core (io.ebean:ebean-core:15.11.0)
-  ebean core type (io.ebean:ebean-core-type:15.11.0)
-  ebean datasource (io.ebean:ebean-datasource:9.3)
-  ebean datasource api (io.ebean:ebean-datasource-api:9.3)
-  ebean ddl runner (io.ebean:ebean-ddl-runner:2.3)
-  ebean querybean (io.ebean:ebean-querybean:15.11.0)
-  ebean-annotation (io.ebean:ebean-annotation:8.4)
-  ebean-migration (io.ebean:ebean-migration:14.2.0)
-  ebean-migration-auto (io.ebean:ebean-migration-auto:1.2)
-  ebean-platform-postgres (io.ebean:ebean-platform-postgres:15.11.0)
-  ebean-postgres (io.ebean:ebean-postgres:15.11.0)
-  ebean-types (io.ebean:ebean-types:3.0)
-  EE10 :: Plus (org.eclipse.jetty.ee10:jetty-ee10-plus:12.0.19)
-  EE10 :: Servlet (org.eclipse.jetty.ee10:jetty-ee10-servlet:12.0.19)
-  EE10 :: Servlet Annotations (org.eclipse.jetty.ee10:jetty-ee10-annotations:12.0.19)
-  EE10 :: WebApp (org.eclipse.jetty.ee10:jetty-ee10-webapp:12.0.19)
-  EE10 :: Websocket :: Jakarta Client (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-jakarta-client:12.0.19)
-  EE10 :: Websocket :: Jakarta Common (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-jakarta-common:12.0.19)
-  EE10 :: Websocket :: Jakarta Server (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-jakarta-server:12.0.19)
-  EE10 :: Websocket :: Servlet (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-servlet:12.0.19)
-  error-prone annotations (com.google.errorprone:error_prone_annotations:2.49.0)
-  error-prone annotations (com.google.errorprone:error_prone_annotations:2.7.1)
-  FindBugs-jsr305 (com.google.code.findbugs:jsr305:3.0.2)
-  flyway-core (org.flywaydb:flyway-core:10.22.0)
-  flyway-database-postgresql (org.flywaydb:flyway-database-postgresql:10.22.0)
-  Google Guice - Core Library (com.google.inject:guice:7.0.0)
-  Gson (com.google.code.gson:gson:2.8.5)
-  Guava InternalFutureFailureAccess and InternalFutures (com.google.guava:failureaccess:1.0.1)
-  Guava ListenableFuture only (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava)
-  Guava: Google Core Libraries for Java (com.google.guava:guava:31.0.1-jre)
-  Guava: Google Core Libraries for Java (com.google.guava:guava:31.1-jre)
-  Hibernate Validator Engine (org.hibernate.validator:hibernate-validator:8.0.3.Final)
-  Hibernate Validator Portable Extension (org.hibernate.validator:hibernate-validator-cdi:8.0.3.Final)
-  HikariCP (com.zaxxer:HikariCP:6.3.3)
-  IntelliJ IDEA Annotations (org.jetbrains:annotations:13.0)
-  J2ObjC Annotations (com.google.j2objc:j2objc-annotations:1.3)
-  Jackson datatype: Guava (com.fasterxml.jackson.datatype:jackson-datatype-guava:2.12.0)
-  Jackson datatype: jdk8 (com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.21.2)
-  Jackson datatype: JSR310 (com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.22.0)
-  Jackson Jakarta-RS: base (com.fasterxml.jackson.jakarta.rs:jackson-jakarta-rs-base:2.21.2)
-  Jackson Jakarta-RS: JSON (com.fasterxml.jackson.jakarta.rs:jackson-jakarta-rs-json-provider:2.21.2)
-  Jackson module: Jakarta XML Bind Annotations (jakarta.xml.bind) (com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations:2.21.2)
-  Jackson-annotations (com.fasterxml.jackson.core:jackson-annotations:2.22)
-  Jackson-core (com.fasterxml.jackson.core:jackson-core:2.22.0)
-  jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.22.0)
-  Jackson-dataformat-TOML (com.fasterxml.jackson.dataformat:jackson-dataformat-toml:2.15.2)
-  Jackson-dataformat-YAML (com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.19.0)
-  Jakarta Bean Validation API (jakarta.validation:jakarta.validation-api:3.0.2)
-  Jakarta Dependency Injection (jakarta.inject:jakarta.inject-api:2.0.1)
-  Jakarta Validation API (jakarta.validation:jakarta.validation-api:3.1.1)
-  jakarta-persistence-api (io.ebean:jakarta-persistence-api:3.0)
-  Jandex: Core (io.smallrye:jandex:3.4.0)
-  Javassist (org.javassist:javassist:3.28.0-GA)
-  JBoss Logging 3 (org.jboss.logging:jboss-logging:3.6.0.Final)
-  JBoss Logging 3 (org.jboss.logging:jboss-logging:3.6.3.Final)
-  JetBrains Java Annotations (org.jetbrains:annotations:17.0.0)
-  JsonNullable Jackson module (org.openapitools:jackson-databind-nullable:0.2.10)
-  Netty/Buffer (io.netty:netty-buffer:4.1.86.Final)
-  Netty/Buffer (io.netty:netty-buffer:4.2.15.Final)
-  Netty/Codec (io.netty:netty-codec:4.1.86.Final)
-  Netty/Codec (io.netty:netty-codec:4.2.15.Final)
-  Netty/Codec/Base (io.netty:netty-codec-base:4.2.15.Final)
-  Netty/Codec/Compression (io.netty:netty-codec-compression:4.2.15.Final)
-  Netty/Codec/Marshalling (io.netty:netty-codec-marshalling:4.2.15.Final)
-  Netty/Codec/Protobuf (io.netty:netty-codec-protobuf:4.2.15.Final)
-  Netty/Common (io.netty:netty-common:4.1.86.Final)
-  Netty/Common (io.netty:netty-common:4.2.15.Final)
-  Netty/Handler (io.netty:netty-handler:4.1.86.Final)
-  Netty/Handler (io.netty:netty-handler:4.2.15.Final)
-  Netty/Resolver (io.netty:netty-resolver:4.1.86.Final)
-  Netty/Resolver (io.netty:netty-resolver:4.2.15.Final)
-  Netty/Transport (io.netty:netty-transport:4.1.86.Final)
-  Netty/Transport (io.netty:netty-transport:4.2.15.Final)
-  Netty/Transport/Native/Unix/Common (io.netty:netty-transport-native-unix-common:4.1.86.Final)
-  Netty/Transport/Native/Unix/Common (io.netty:netty-transport-native-unix-common:4.2.15.Final)
-  okhttp (com.squareup.okhttp3:okhttp:4.9.0)
-  Okio (com.squareup.okio:okio:2.8.0)
-  RabbitMQ Java Client (com.rabbitmq:amqp-client:5.32.0)
-  Reflections (org.reflections:reflections:0.10.2)
-  RESTEasy CDI integration module (org.jboss.resteasy:resteasy-cdi:7.0.2.Final)
-  RESTEasy Client (org.jboss.resteasy:resteasy-client:7.0.2.Final)
-  RESTEasy Client API (org.jboss.resteasy:resteasy-client-api:7.0.2.Final)
-  RESTEasy Core (org.jboss.resteasy:resteasy-core:7.0.2.Final)
-  RESTEasy Core SPI (org.jboss.resteasy:resteasy-core-spi:7.0.2.Final)
-  RESTEasy Guice (dev.resteasy.guice:resteasy-guice:1.0.0.Alpha1)
-  RESTEasy Jackson 2 Provider (org.jboss.resteasy:resteasy-jackson2-provider:7.0.2.Final)
-  RESTEasy JAXB Provider (org.jboss.resteasy:resteasy-jaxb-provider:7.0.2.Final)
-  RESTEasy Multipart Provider (org.jboss.resteasy:resteasy-multipart-provider:7.0.2.Final)
-  RESTEasy Servlet Container Initializer (org.jboss.resteasy:resteasy-servlet-initializer:7.0.2.Final)
-  RESTEasy Validator Provider (org.jboss.resteasy:resteasy-validator-provider:7.0.2.Final)
-  Retrofit (com.squareup.retrofit2:retrofit:2.9.0)
-  SnakeYAML (org.yaml:snakeyaml:2.4)
-  swagger-annotations (io.swagger:swagger-annotations:1.6.16)
-  swagger-annotations-jakarta (io.swagger.core.v3:swagger-annotations-jakarta:2.2.22)
-  swagger-core (io.swagger:swagger-core:1.6.16)
-  swagger-jaxrs (io.swagger:swagger-jaxrs:1.6.16)
-  swagger-models (io.swagger:swagger-models:1.6.16)
-  Vavr (io.vavr:vavr:0.11.0)
-  Vavr Match (io.vavr:vavr-match:0.11.0)
+        * RabbitMQ Java Client (com.rabbitmq:amqp-client:5.32.0 - https://www.rabbitmq.com)
 
-BSD-2-Clause (https://spdx.org/licenses/BSD-2-Clause.html) applies to:
+    Apache 2.0:
 
-  PostgreSQL JDBC Driver (org.postgresql:postgresql:42.7.11)
+        * error-prone annotations (com.google.errorprone:error_prone_annotations:2.49.0 - https://errorprone.info/error_prone_annotations)
+        * error-prone annotations (com.google.errorprone:error_prone_annotations:2.7.1 - http://nexus.sonatype.org/oss-repository-hosting.html/error_prone_parent/error_prone_annotations)
+        * Gson (com.google.code.gson:gson:2.8.5 - https://github.com/google/gson/gson)
 
-BSD-3-Clause (https://spdx.org/licenses/BSD-3-Clause.html) applies to:
+    Apache License 2.0:
 
-  asm (org.ow2.asm:asm:9.7.1)
-  asm-commons (org.ow2.asm:asm-commons:9.7.1)
-  asm-tree (org.ow2.asm:asm-tree:9.7.1)
+        * CDI APIs (jakarta.enterprise:jakarta.enterprise.cdi-api:4.1.0 - http://cdi-spec.org)
+        * CDI Language Model (jakarta.enterprise:jakarta.enterprise.lang-model:4.1.0 - https://projects.eclipse.org/projects/ee4j/jakarta.enterprise.cdi-parent/jakarta.enterprise.lang-model)
+        * Hibernate Validator Engine (org.hibernate.validator:hibernate-validator:8.0.3.Final - https://hibernate.org/validator)
+        * Hibernate Validator Portable Extension (org.hibernate.validator:hibernate-validator-cdi:8.0.3.Final - https://hibernate.org/validator)
+        * Jakarta Bean Validation API (jakarta.validation:jakarta.validation-api:3.0.2 - https://beanvalidation.org)
+        * Jakarta Validation API (jakarta.validation:jakarta.validation-api:3.1.1 - https://beanvalidation.org)
+        * Javassist (org.javassist:javassist:3.28.0-GA - http://www.javassist.org/)
+        * JBoss Logging 3 (org.jboss.logging:jboss-logging:3.6.0.Final - http://www.jboss.org)
+        * JBoss Logging 3 (org.jboss.logging:jboss-logging:3.6.3.Final - https://www.jboss.org)
+        * JsonNullable Jackson module (org.openapitools:jackson-databind-nullable:0.2.10 - https://github.com/OpenAPITools/jackson-databind-nullable)
+        * RESTEasy CDI integration module (org.jboss.resteasy:resteasy-cdi:7.0.2.Final - https://resteasy.dev)
+        * RESTEasy Client (org.jboss.resteasy:resteasy-client:7.0.2.Final - https://resteasy.dev)
+        * RESTEasy Client API (org.jboss.resteasy:resteasy-client-api:7.0.2.Final - https://resteasy.dev)
+        * RESTEasy Core (org.jboss.resteasy:resteasy-core:7.0.2.Final - https://resteasy.dev)
+        * RESTEasy Core SPI (org.jboss.resteasy:resteasy-core-spi:7.0.2.Final - https://resteasy.dev)
+        * RESTEasy Guice (dev.resteasy.guice:resteasy-guice:1.0.0.Alpha1 - https://resteasy.dev)
+        * RESTEasy Jackson 2 Provider (org.jboss.resteasy:resteasy-jackson2-provider:7.0.2.Final - https://resteasy.dev)
+        * RESTEasy JAXB Provider (org.jboss.resteasy:resteasy-jaxb-provider:7.0.2.Final - https://resteasy.dev)
+        * RESTEasy Multipart Provider (org.jboss.resteasy:resteasy-multipart-provider:7.0.2.Final - https://resteasy.dev)
+        * RESTEasy Servlet Container Initializer (org.jboss.resteasy:resteasy-servlet-initializer:7.0.2.Final - https://resteasy.dev)
+        * RESTEasy Validator Provider (org.jboss.resteasy:resteasy-validator-provider:7.0.2.Final - https://resteasy.dev)
+        * swagger-annotations (io.swagger:swagger-annotations:1.6.16 - https://github.com/swagger-api/swagger-core/modules/swagger-annotations)
+        * swagger-annotations-jakarta (io.swagger.core.v3:swagger-annotations-jakarta:2.2.22 - https://github.com/swagger-api/swagger-core/modules/swagger-annotations-jakarta)
+        * swagger-core (io.swagger:swagger-core:1.6.16 - https://github.com/swagger-api/swagger-core/modules/swagger-core)
+        * swagger-jaxrs (io.swagger:swagger-jaxrs:1.6.16 - https://github.com/swagger-api/swagger-core/modules/swagger-jaxrs)
+        * swagger-models (io.swagger:swagger-models:1.6.16 - https://github.com/swagger-api/swagger-core/modules/swagger-models)
 
-CDDL + GPLv2 with classpath exception (https://spdx.org/licenses/CDDL + GPLv2 with classpath exception.html) applies to:
+    Apache License, Version 2.0:
 
-  javax.annotation API (javax.annotation:javax.annotation-api:1.3.2)
+        * Apache Commons IO (commons-io:commons-io:2.11.0 - https://commons.apache.org/proper/commons-io/)
+        * Apache HttpClient (org.apache.httpcomponents:httpclient:4.5.14 - http://hc.apache.org/httpcomponents-client-ga)
+        * Apache HttpClient Mime (org.apache.httpcomponents:httpmime:4.5.14 - http://hc.apache.org/httpcomponents-client-ga)
+        * Apache HttpCore (org.apache.httpcomponents:httpcore:4.4.16 - http://hc.apache.org/httpcomponents-core-ga)
+        * Caffeine cache (com.github.ben-manes.caffeine:caffeine:3.2.4 - https://github.com/ben-manes/caffeine)
+        * ClassMate (com.fasterxml:classmate:1.7.3 - https://github.com/FasterXML/java-classmate)
+        * flyway-core (org.flywaydb:flyway-core:10.22.0 - https://flywaydb.org/flyway-core)
+        * flyway-database-postgresql (org.flywaydb:flyway-database-postgresql:10.22.0 - https://flywaydb.org/flyway-database-postgresql)
+        * Guava: Google Core Libraries for Java (com.google.guava:guava:31.0.1-jre - https://github.com/google/guava)
+        * Guava: Google Core Libraries for Java (com.google.guava:guava:31.1-jre - https://github.com/google/guava)
+        * Jandex: Core (io.smallrye:jandex:3.4.0 - https://smallrye.io)
+        * Netty/Buffer (io.netty:netty-buffer:4.1.86.Final - https://netty.io/netty-buffer/)
+        * Netty/Buffer (io.netty:netty-buffer:4.2.15.Final - https://netty.io/netty-buffer/)
+        * Netty/Codec (io.netty:netty-codec:4.1.86.Final - https://netty.io/netty-codec/)
+        * Netty/Codec (io.netty:netty-codec:4.2.15.Final - https://netty.io/netty-codec/)
+        * Netty/Codec/Base (io.netty:netty-codec-base:4.2.15.Final - https://netty.io/netty-codec-base/)
+        * Netty/Codec/Compression (io.netty:netty-codec-compression:4.2.15.Final - https://netty.io/netty-codec-compression/)
+        * Netty/Codec/Marshalling (io.netty:netty-codec-marshalling:4.2.15.Final - https://netty.io/netty-codec-marshalling/)
+        * Netty/Codec/Protobuf (io.netty:netty-codec-protobuf:4.2.15.Final - https://netty.io/netty-codec-protobuf/)
+        * Netty/Common (io.netty:netty-common:4.1.86.Final - https://netty.io/netty-common/)
+        * Netty/Common (io.netty:netty-common:4.2.15.Final - https://netty.io/netty-common/)
+        * Netty/Handler (io.netty:netty-handler:4.1.86.Final - https://netty.io/netty-handler/)
+        * Netty/Handler (io.netty:netty-handler:4.2.15.Final - https://netty.io/netty-handler/)
+        * Netty/Resolver (io.netty:netty-resolver:4.1.86.Final - https://netty.io/netty-resolver/)
+        * Netty/Resolver (io.netty:netty-resolver:4.2.15.Final - https://netty.io/netty-resolver/)
+        * Netty/Transport (io.netty:netty-transport:4.1.86.Final - https://netty.io/netty-transport/)
+        * Netty/Transport (io.netty:netty-transport:4.2.15.Final - https://netty.io/netty-transport/)
+        * Netty/Transport/Native/Unix/Common (io.netty:netty-transport-native-unix-common:4.1.86.Final - https://netty.io/netty-transport-native-unix-common/)
+        * Netty/Transport/Native/Unix/Common (io.netty:netty-transport-native-unix-common:4.2.15.Final - https://netty.io/netty-transport-native-unix-common/)
+        * SnakeYAML (org.yaml:snakeyaml:2.4 - https://bitbucket.org/snakeyaml/snakeyaml)
 
-CDDL License (https://spdx.org/licenses/CDDL License.html) applies to:
+    Apache Software License - Version 2.0:
 
-  jsr311-api (javax.ws.rs:jsr311-api:1.1.1)
+        * Core :: ALPN :: Client (org.eclipse.jetty:jetty-alpn-client:12.0.19 - https://jetty.org/jetty-core/jetty-alpn/jetty-alpn-client)
+        * Core :: EE Common (org.eclipse.jetty:jetty-ee:12.0.19 - https://jetty.org/jetty-core/jetty-ee)
+        * Core :: HTTP (org.eclipse.jetty:jetty-http:12.0.19 - https://jetty.org/jetty-core/jetty-http)
+        * Core :: HTTP Client (org.eclipse.jetty:jetty-client:12.0.19 - https://jetty.org/jetty-core/jetty-client)
+        * Core :: IO (org.eclipse.jetty:jetty-io:12.0.19 - https://jetty.org/jetty-core/jetty-io)
+        * Core :: JNDI (org.eclipse.jetty:jetty-jndi:12.0.19 - https://jetty.org/jetty-core/jetty-jndi)
+        * Core :: Plus (org.eclipse.jetty:jetty-plus:12.0.19 - https://jetty.org/jetty-core/jetty-plus)
+        * Core :: Security (org.eclipse.jetty:jetty-security:12.0.19 - https://jetty.org/jetty-core/jetty-security)
+        * Core :: Server (org.eclipse.jetty:jetty-server:12.0.19 - https://jetty.org/jetty-core/jetty-server)
+        * Core :: Sessions (org.eclipse.jetty:jetty-session:12.0.19 - https://jetty.org/jetty-core/jetty-session)
+        * Core :: Utilities (org.eclipse.jetty:jetty-util:12.0.19 - https://jetty.org/jetty-core/jetty-util)
+        * Core :: Websocket :: Client (org.eclipse.jetty.websocket:jetty-websocket-core-client:12.0.19 - https://jetty.org/jetty-core/jetty-websocket/jetty-websocket-core-client)
+        * Core :: Websocket :: Common (org.eclipse.jetty.websocket:jetty-websocket-core-common:12.0.19 - https://jetty.org/jetty-core/jetty-websocket/jetty-websocket-core-common)
+        * Core :: Websocket :: Server (org.eclipse.jetty.websocket:jetty-websocket-core-server:12.0.19 - https://jetty.org/jetty-core/jetty-websocket/jetty-websocket-core-server)
+        * Core :: XML (org.eclipse.jetty:jetty-xml:12.0.19 - https://jetty.org/jetty-core/jetty-xml)
+        * EE10 :: Plus (org.eclipse.jetty.ee10:jetty-ee10-plus:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-plus)
+        * EE10 :: Servlet (org.eclipse.jetty.ee10:jetty-ee10-servlet:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-servlet)
+        * EE10 :: Servlet Annotations (org.eclipse.jetty.ee10:jetty-ee10-annotations:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-annotations)
+        * EE10 :: WebApp (org.eclipse.jetty.ee10:jetty-ee10-webapp:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-webapp)
+        * EE10 :: Websocket :: Jakarta Client (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-jakarta-client:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-websocket/jetty-ee10-websocket-jakarta-client)
+        * EE10 :: Websocket :: Jakarta Common (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-jakarta-common:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-websocket/jetty-ee10-websocket-jakarta-common)
+        * EE10 :: Websocket :: Jakarta Server (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-jakarta-server:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-websocket/jetty-ee10-websocket-jakarta-server)
+        * EE10 :: Websocket :: Servlet (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-servlet:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-websocket/jetty-ee10-websocket-servlet)
 
-EDL 1.0 (https://spdx.org/licenses/EDL 1.0.html) applies to:
+    Apache Software License, version 2.0:
 
-  Angus Activation Registries (org.eclipse.angus:angus-activation:2.0.3)
-  Angus Mail Provider (org.eclipse.angus:angus-mail:2.0.5)
-  Jakarta Activation (com.sun.activation:jakarta.activation:2.0.1)
-  Jakarta Activation API (jakarta.activation:jakarta.activation-api:2.1.4)
-  Jakarta Mail API (jakarta.mail:jakarta.mail-api:2.1.5)
+        * btf (com.github.java-json-tools:btf:1.3 - https://github.com/java-json-tools/btf)
+        * jackson-coreutils (com.github.java-json-tools:jackson-coreutils:2.0 - https://github.com/java-json-tools/jackson-coreutils)
+        * json-patch (com.github.java-json-tools:json-patch:1.13 - https://github.com/java-json-tools/json-patch)
+        * msg-simple (com.github.java-json-tools:msg-simple:1.2 - https://github.com/java-json-tools/msg-simple)
 
-EPL-2.0 (https://spdx.org/licenses/EPL-2.0.html) applies to:
+    Apache-2.0:
 
-  Angus Mail Provider (org.eclipse.angus:angus-mail:2.0.5)
-  Jakarta Annotations API (jakarta.annotation:jakarta.annotation-api:2.1.1)
-  Jakarta Annotations API (jakarta.annotation:jakarta.annotation-api:3.0.0)
-  Jakarta Interceptors (jakarta.interceptor:jakarta.interceptor-api:2.2.0)
-  Jakarta Mail API (jakarta.mail:jakarta.mail-api:2.1.5)
-  Jakarta RESTful WS API (jakarta.ws.rs:jakarta.ws.rs-api:4.0.0)
-  Jakarta Servlet (jakarta.servlet:jakarta.servlet-api:6.0.0)
-  jakarta.transaction API (jakarta.transaction:jakarta.transaction-api:2.0.1)
-  Logback Classic Module (ch.qos.logback:logback-classic:1.5.34)
-  Logback Core Module (ch.qos.logback:logback-core:1.5.34)
+        * Apache Commons Codec (commons-codec:commons-codec:1.19.0 - https://commons.apache.org/proper/commons-codec/)
+        * Apache Commons IO (commons-io:commons-io:2.20.0 - https://commons.apache.org/proper/commons-io/)
+        * Apache Commons Lang (org.apache.commons:commons-lang3:3.20.0 - https://commons.apache.org/proper/commons-lang/)
+        * Apache Commons Text (org.apache.commons:commons-text:1.15.0 - https://commons.apache.org/proper/commons-text)
+        * Apache James :: Mime4j :: Core (org.apache.james:apache-mime4j-core:0.8.13 - http://james.apache.org/mime4j/apache-mime4j-core)
+        * Apache James :: Mime4j :: DOM (org.apache.james:apache-mime4j-dom:0.8.13 - http://james.apache.org/mime4j/apache-mime4j-dom)
+        * Apache James :: Mime4j :: Storage (org.apache.james:apache-mime4j-storage:0.8.13 - http://james.apache.org/mime4j/apache-mime4j-storage)
 
-Eclipse Distribution License - v 1.0 (https://spdx.org/licenses/Eclipse Distribution License - v 1.0.html) applies to:
+    BSD-2-Clause:
 
-  Codemodel Core (org.glassfish.jaxb:codemodel:4.0.7)
-  istack common utility code runtime (com.sun.istack:istack-commons-runtime:4.1.2)
-  istack common utility code tools (com.sun.istack:istack-commons-tools:4.1.2)
-  Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:3.0.1)
-  Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:4.0.0)
-  JAXB Core (org.glassfish.jaxb:jaxb-core:4.0.3)
-  JAXB Core (org.glassfish.jaxb:jaxb-core:4.0.7)
-  JAXB JXC (org.glassfish.jaxb:jaxb-jxc:4.0.7)
-  JAXB Runtime (org.glassfish.jaxb:jaxb-runtime:4.0.3)
-  JAXB Runtime (org.glassfish.jaxb:jaxb-runtime:4.0.7)
-  JAXB XJC (org.glassfish.jaxb:jaxb-xjc:4.0.7)
-  RelaxNG Datatype (com.sun.xml.bind.external:relaxng-datatype:4.0.7)
-  RNGOM (com.sun.xml.bind.external:rngom:4.0.7)
-  TXW2 Runtime (org.glassfish.jaxb:txw2:4.0.7)
-  XSOM (org.glassfish.jaxb:xsom:4.0.7)
+        * PostgreSQL JDBC Driver (org.postgresql:postgresql:42.7.11 - https://jdbc.postgresql.org)
 
-Eclipse Public License - Version 2.0 (https://spdx.org/licenses/Eclipse Public License - Version 2.0.html) applies to:
+    BSD-3-Clause:
 
-  Core :: ALPN :: Client (org.eclipse.jetty:jetty-alpn-client:12.0.19)
-  Core :: EE Common (org.eclipse.jetty:jetty-ee:12.0.19)
-  Core :: HTTP (org.eclipse.jetty:jetty-http:12.0.19)
-  Core :: HTTP Client (org.eclipse.jetty:jetty-client:12.0.19)
-  Core :: IO (org.eclipse.jetty:jetty-io:12.0.19)
-  Core :: JNDI (org.eclipse.jetty:jetty-jndi:12.0.19)
-  Core :: Plus (org.eclipse.jetty:jetty-plus:12.0.19)
-  Core :: Security (org.eclipse.jetty:jetty-security:12.0.19)
-  Core :: Server (org.eclipse.jetty:jetty-server:12.0.19)
-  Core :: Sessions (org.eclipse.jetty:jetty-session:12.0.19)
-  Core :: Utilities (org.eclipse.jetty:jetty-util:12.0.19)
-  Core :: Websocket :: Client (org.eclipse.jetty.websocket:jetty-websocket-core-client:12.0.19)
-  Core :: Websocket :: Common (org.eclipse.jetty.websocket:jetty-websocket-core-common:12.0.19)
-  Core :: Websocket :: Server (org.eclipse.jetty.websocket:jetty-websocket-core-server:12.0.19)
-  Core :: XML (org.eclipse.jetty:jetty-xml:12.0.19)
-  EE10 :: Plus (org.eclipse.jetty.ee10:jetty-ee10-plus:12.0.19)
-  EE10 :: Servlet (org.eclipse.jetty.ee10:jetty-ee10-servlet:12.0.19)
-  EE10 :: Servlet Annotations (org.eclipse.jetty.ee10:jetty-ee10-annotations:12.0.19)
-  EE10 :: WebApp (org.eclipse.jetty.ee10:jetty-ee10-webapp:12.0.19)
-  EE10 :: Websocket :: Jakarta Client (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-jakarta-client:12.0.19)
-  EE10 :: Websocket :: Jakarta Common (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-jakarta-common:12.0.19)
-  EE10 :: Websocket :: Jakarta Server (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-jakarta-server:12.0.19)
-  EE10 :: Websocket :: Servlet (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-servlet:12.0.19)
+        * asm (org.ow2.asm:asm:9.7.1 - http://asm.ow2.io/)
+        * asm-commons (org.ow2.asm:asm-commons:9.7.1 - http://asm.ow2.io/)
+        * asm-tree (org.ow2.asm:asm-tree:9.7.1 - http://asm.ow2.io/)
 
-Eclipse Public License v. 2.0 (https://spdx.org/licenses/Eclipse Public License v. 2.0.html) applies to:
+    CDDL + GPLv2 with classpath exception:
 
-  Jakarta Expression Language API (jakarta.el:jakarta.el-api:5.0.0)
-  Jakarta Expression Language Implementation (org.glassfish:jakarta.el:5.0.0-M1)
-  Jakarta WebSocket - Client API (jakarta.websocket:jakarta.websocket-client-api:2.2.0)
-  Jakarta WebSocket - Server API (jakarta.websocket:jakarta.websocket-api:2.2.0)
+        * javax.annotation API (javax.annotation:javax.annotation-api:1.3.2 - http://jcp.org/en/jsr/detail?id=250)
 
-GNU General Public License, version 2 with the GNU Classpath Exception (https://spdx.org/licenses/GNU General Public License, version 2 with the GNU Classpath Exception.html) applies to:
+    CDDL License:
 
-  Jakarta Expression Language API (jakarta.el:jakarta.el-api:5.0.0)
-  Jakarta Expression Language Implementation (org.glassfish:jakarta.el:5.0.0-M1)
-  Jakarta WebSocket - Client API (jakarta.websocket:jakarta.websocket-client-api:2.2.0)
-  Jakarta WebSocket - Server API (jakarta.websocket:jakarta.websocket-api:2.2.0)
+        * jsr311-api (javax.ws.rs:jsr311-api:1.1.1 - https://jsr311.dev.java.net)
 
-GPL v2 (https://spdx.org/licenses/GPL v2.html) applies to:
+    EDL 1.0:
 
-  RabbitMQ Java Client (com.rabbitmq:amqp-client:5.32.0)
+        * Angus Activation Registries (org.eclipse.angus:angus-activation:2.0.3 - https://github.com/eclipse-ee4j/angus-activation/angus-activation)
+        * Angus Mail Provider (org.eclipse.angus:angus-mail:2.0.5 - http://eclipse-ee4j.github.io/angus-mail/angus-mail)
+        * Jakarta Activation (com.sun.activation:jakarta.activation:2.0.1 - https://github.com/eclipse-ee4j/jaf/jakarta.activation)
+        * Jakarta Activation API (jakarta.activation:jakarta.activation-api:2.1.4 - https://github.com/jakartaee/jaf-api)
+        * Jakarta Mail API (jakarta.mail:jakarta.mail-api:2.1.5 - https://projects.eclipse.org/projects/ee4j/jakarta.mail-api)
 
-GPL-2.0-with-classpath-exception (https://spdx.org/licenses/GPL-2.0-with-classpath-exception.html) applies to:
+    EPL 2.0:
 
-  Jakarta RESTful WS API (jakarta.ws.rs:jakarta.ws.rs-api:4.0.0)
+        * Angus Mail Provider (org.eclipse.angus:angus-mail:2.0.5 - http://eclipse-ee4j.github.io/angus-mail/angus-mail)
+        * Jakarta Annotations API (jakarta.annotation:jakarta.annotation-api:2.1.1 - https://projects.eclipse.org/projects/ee4j.ca)
+        * Jakarta Annotations API (jakarta.annotation:jakarta.annotation-api:3.0.0 - https://projects.eclipse.org/projects/ee4j.ca)
+        * Jakarta Interceptors (jakarta.interceptor:jakarta.interceptor-api:2.2.0 - https://github.com/jakartaee/interceptors)
+        * Jakarta Mail API (jakarta.mail:jakarta.mail-api:2.1.5 - https://projects.eclipse.org/projects/ee4j/jakarta.mail-api)
+        * Jakarta Servlet (jakarta.servlet:jakarta.servlet-api:6.0.0 - https://projects.eclipse.org/projects/ee4j.servlet)
+        * jakarta.transaction API (jakarta.transaction:jakarta.transaction-api:2.0.1 - https://projects.eclipse.org/projects/ee4j.jta)
 
-GPL2 w/ CPE (https://spdx.org/licenses/GPL2 w/ CPE.html) applies to:
+    EPL-2.0:
 
-  Angus Mail Provider (org.eclipse.angus:angus-mail:2.0.5)
-  Jakarta Annotations API (jakarta.annotation:jakarta.annotation-api:2.1.1)
-  Jakarta Annotations API (jakarta.annotation:jakarta.annotation-api:3.0.0)
-  Jakarta Interceptors (jakarta.interceptor:jakarta.interceptor-api:2.2.0)
-  Jakarta Mail API (jakarta.mail:jakarta.mail-api:2.1.5)
-  Jakarta Servlet (jakarta.servlet:jakarta.servlet-api:6.0.0)
-  jakarta.transaction API (jakarta.transaction:jakarta.transaction-api:2.0.1)
+        * Jakarta RESTful WS API (jakarta.ws.rs:jakarta.ws.rs-api:4.0.0 - https://github.com/jakartaee/rest/jakarta.ws.rs-api)
+        * Logback Classic Module (ch.qos.logback:logback-classic:1.5.34 - http://logback.qos.ch/logback-classic)
+        * Logback Core Module (ch.qos.logback:logback-core:1.5.34 - http://logback.qos.ch/logback-core)
 
-LGPL-2.1-only (https://spdx.org/licenses/LGPL-2.1-only.html) applies to:
+    Eclipse Distribution License - v 1.0:
 
-  Logback Classic Module (ch.qos.logback:logback-classic:1.5.34)
-  Logback Core Module (ch.qos.logback:logback-core:1.5.34)
+        * Codemodel Core (org.glassfish.jaxb:codemodel:4.0.7 - https://eclipse-ee4j.github.io/jaxb-ri/)
+        * istack common utility code runtime (com.sun.istack:istack-commons-runtime:4.1.2 - https://projects.eclipse.org/projects/ee4j/istack-commons/istack-commons-runtime)
+        * istack common utility code tools (com.sun.istack:istack-commons-tools:4.1.2 - https://projects.eclipse.org/projects/ee4j/istack-commons/istack-commons-tools)
+        * Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:3.0.1 - https://github.com/eclipse-ee4j/jaxb-api/jakarta.xml.bind-api)
+        * Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:4.0.0 - https://github.com/eclipse-ee4j/jaxb-api/jakarta.xml.bind-api)
+        * JAXB Core (org.glassfish.jaxb:jaxb-core:4.0.3 - https://eclipse-ee4j.github.io/jaxb-ri/)
+        * JAXB Core (org.glassfish.jaxb:jaxb-core:4.0.7 - https://eclipse-ee4j.github.io/jaxb-ri/)
+        * JAXB JXC (org.glassfish.jaxb:jaxb-jxc:4.0.7 - https://eclipse-ee4j.github.io/jaxb-ri/)
+        * JAXB Runtime (org.glassfish.jaxb:jaxb-runtime:4.0.3 - https://eclipse-ee4j.github.io/jaxb-ri/)
+        * JAXB Runtime (org.glassfish.jaxb:jaxb-runtime:4.0.7 - https://eclipse-ee4j.github.io/jaxb-ri/)
+        * JAXB XJC (org.glassfish.jaxb:jaxb-xjc:4.0.7 - https://eclipse-ee4j.github.io/jaxb-ri/)
+        * RelaxNG Datatype (com.sun.xml.bind.external:relaxng-datatype:4.0.7 - https://eclipse-ee4j.github.io/jaxb-ri/)
+        * RNGOM (com.sun.xml.bind.external:rngom:4.0.7 - https://eclipse-ee4j.github.io/jaxb-ri/)
+        * TXW2 Runtime (org.glassfish.jaxb:txw2:4.0.7 - https://eclipse-ee4j.github.io/jaxb-ri/)
+        * XSOM (org.glassfish.jaxb:xsom:4.0.7 - https://eclipse-ee4j.github.io/jaxb-ri/)
 
-LGPL-2.1-or-later (https://spdx.org/licenses/LGPL-2.1-or-later.html) applies to:
+    Eclipse Public License - Version 2.0:
 
-  Javassist (org.javassist:javassist:3.28.0-GA)
+        * Core :: ALPN :: Client (org.eclipse.jetty:jetty-alpn-client:12.0.19 - https://jetty.org/jetty-core/jetty-alpn/jetty-alpn-client)
+        * Core :: EE Common (org.eclipse.jetty:jetty-ee:12.0.19 - https://jetty.org/jetty-core/jetty-ee)
+        * Core :: HTTP (org.eclipse.jetty:jetty-http:12.0.19 - https://jetty.org/jetty-core/jetty-http)
+        * Core :: HTTP Client (org.eclipse.jetty:jetty-client:12.0.19 - https://jetty.org/jetty-core/jetty-client)
+        * Core :: IO (org.eclipse.jetty:jetty-io:12.0.19 - https://jetty.org/jetty-core/jetty-io)
+        * Core :: JNDI (org.eclipse.jetty:jetty-jndi:12.0.19 - https://jetty.org/jetty-core/jetty-jndi)
+        * Core :: Plus (org.eclipse.jetty:jetty-plus:12.0.19 - https://jetty.org/jetty-core/jetty-plus)
+        * Core :: Security (org.eclipse.jetty:jetty-security:12.0.19 - https://jetty.org/jetty-core/jetty-security)
+        * Core :: Server (org.eclipse.jetty:jetty-server:12.0.19 - https://jetty.org/jetty-core/jetty-server)
+        * Core :: Sessions (org.eclipse.jetty:jetty-session:12.0.19 - https://jetty.org/jetty-core/jetty-session)
+        * Core :: Utilities (org.eclipse.jetty:jetty-util:12.0.19 - https://jetty.org/jetty-core/jetty-util)
+        * Core :: Websocket :: Client (org.eclipse.jetty.websocket:jetty-websocket-core-client:12.0.19 - https://jetty.org/jetty-core/jetty-websocket/jetty-websocket-core-client)
+        * Core :: Websocket :: Common (org.eclipse.jetty.websocket:jetty-websocket-core-common:12.0.19 - https://jetty.org/jetty-core/jetty-websocket/jetty-websocket-core-common)
+        * Core :: Websocket :: Server (org.eclipse.jetty.websocket:jetty-websocket-core-server:12.0.19 - https://jetty.org/jetty-core/jetty-websocket/jetty-websocket-core-server)
+        * Core :: XML (org.eclipse.jetty:jetty-xml:12.0.19 - https://jetty.org/jetty-core/jetty-xml)
+        * EE10 :: Plus (org.eclipse.jetty.ee10:jetty-ee10-plus:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-plus)
+        * EE10 :: Servlet (org.eclipse.jetty.ee10:jetty-ee10-servlet:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-servlet)
+        * EE10 :: Servlet Annotations (org.eclipse.jetty.ee10:jetty-ee10-annotations:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-annotations)
+        * EE10 :: WebApp (org.eclipse.jetty.ee10:jetty-ee10-webapp:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-webapp)
+        * EE10 :: Websocket :: Jakarta Client (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-jakarta-client:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-websocket/jetty-ee10-websocket-jakarta-client)
+        * EE10 :: Websocket :: Jakarta Common (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-jakarta-common:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-websocket/jetty-ee10-websocket-jakarta-common)
+        * EE10 :: Websocket :: Jakarta Server (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-jakarta-server:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-websocket/jetty-ee10-websocket-jakarta-server)
+        * EE10 :: Websocket :: Servlet (org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-servlet:12.0.19 - https://jetty.org/jetty-ee10/jetty-ee10-websocket/jetty-ee10-websocket-servlet)
 
-Lesser General Public License, version 3 or greater (https://spdx.org/licenses/Lesser General Public License, version 3 or greater.html) applies to:
+    Eclipse Public License v. 2.0:
 
-  btf (com.github.java-json-tools:btf:1.3)
-  jackson-coreutils (com.github.java-json-tools:jackson-coreutils:2.0)
-  json-patch (com.github.java-json-tools:json-patch:1.13)
-  msg-simple (com.github.java-json-tools:msg-simple:1.2)
+        * Jakarta Expression Language API (jakarta.el:jakarta.el-api:5.0.0 - https://projects.eclipse.org/projects/ee4j.el)
+        * Jakarta Expression Language Implementation (org.glassfish:jakarta.el:5.0.0-M1 - https://projects.eclipse.org/projects/ee4j.el)
+        * Jakarta WebSocket - Client API (jakarta.websocket:jakarta.websocket-client-api:2.2.0 - https://projects.eclipse.org/projects/ee4j.websocket)
+        * Jakarta WebSocket - Server API (jakarta.websocket:jakarta.websocket-api:2.2.0 - https://projects.eclipse.org/projects/ee4j.websocket)
 
-MIT (https://spdx.org/licenses/MIT.html) applies to:
+    GNU General Public License, version 2 with the GNU Classpath Exception:
 
-  Checker Qual (org.checkerframework:checker-qual:3.12.0)
-  semver4j (com.vdurmont:semver4j:3.1.0)
-  SLF4J API Module (org.slf4j:slf4j-api:2.0.18)
+        * Jakarta Expression Language API (jakarta.el:jakarta.el-api:5.0.0 - https://projects.eclipse.org/projects/ee4j.el)
+        * Jakarta Expression Language Implementation (org.glassfish:jakarta.el:5.0.0-M1 - https://projects.eclipse.org/projects/ee4j.el)
+        * Jakarta WebSocket - Client API (jakarta.websocket:jakarta.websocket-client-api:2.2.0 - https://projects.eclipse.org/projects/ee4j.websocket)
+        * Jakarta WebSocket - Server API (jakarta.websocket:jakarta.websocket-api:2.2.0 - https://projects.eclipse.org/projects/ee4j.websocket)
 
-MIT-0 (https://spdx.org/licenses/MIT-0.html) applies to:
+    GPL v2:
 
-  reactive-streams (org.reactivestreams:reactive-streams:1.0.4)
+        * RabbitMQ Java Client (com.rabbitmq:amqp-client:5.32.0 - https://www.rabbitmq.com)
 
-MPL 1.1 (https://spdx.org/licenses/MPL 1.1.html) applies to:
+    GPL-2.0-with-classpath-exception:
 
-  Javassist (org.javassist:javassist:3.28.0-GA)
+        * Jakarta RESTful WS API (jakarta.ws.rs:jakarta.ws.rs-api:4.0.0 - https://github.com/jakartaee/rest/jakarta.ws.rs-api)
 
-MPL-2.0 (https://spdx.org/licenses/MPL-2.0.html) applies to:
+    GPL2 w/ CPE:
 
-  RabbitMQ Java Client (com.rabbitmq:amqp-client:5.32.0)
+        * Angus Mail Provider (org.eclipse.angus:angus-mail:2.0.5 - http://eclipse-ee4j.github.io/angus-mail/angus-mail)
+        * Jakarta Annotations API (jakarta.annotation:jakarta.annotation-api:2.1.1 - https://projects.eclipse.org/projects/ee4j.ca)
+        * Jakarta Annotations API (jakarta.annotation:jakarta.annotation-api:3.0.0 - https://projects.eclipse.org/projects/ee4j.ca)
+        * Jakarta Interceptors (jakarta.interceptor:jakarta.interceptor-api:2.2.0 - https://github.com/jakartaee/interceptors)
+        * Jakarta Mail API (jakarta.mail:jakarta.mail-api:2.1.5 - https://projects.eclipse.org/projects/ee4j/jakarta.mail-api)
+        * Jakarta Servlet (jakarta.servlet:jakarta.servlet-api:6.0.0 - https://projects.eclipse.org/projects/ee4j.servlet)
+        * jakarta.transaction API (jakarta.transaction:jakarta.transaction-api:2.0.1 - https://projects.eclipse.org/projects/ee4j.jta)
 
-Public Domain (https://spdx.org/licenses/Public Domain.html) applies to:
+    LGPL 2.1:
 
-  AOP alliance (aopalliance:aopalliance:1.0)
+        * Javassist (org.javassist:javassist:3.28.0-GA - http://www.javassist.org/)
 
-The Apache License, Version 2.0 (https://spdx.org/licenses/The Apache License, Version 2.0.html) applies to:
+    LGPL-2.1-only:
 
-  JSpecify annotations (org.jspecify:jspecify:1.0.0)
-  org.jetbrains.kotlin:kotlin-stdlib (org.jetbrains.kotlin:kotlin-stdlib:1.4.10)
-  org.jetbrains.kotlin:kotlin-stdlib-common (org.jetbrains.kotlin:kotlin-stdlib-common:1.4.0)
+        * Logback Classic Module (ch.qos.logback:logback-classic:1.5.34 - http://logback.qos.ch/logback-classic)
+        * Logback Core Module (ch.qos.logback:logback-core:1.5.34 - http://logback.qos.ch/logback-core)
 
-Unknown license (https://spdx.org/licenses/Unknown license.html) applies to:
+    Lesser General Public License, version 3 or greater:
 
-  Carbonio Preview CE - REST SDK (com.zextras.carbonio.preview:carbonio-preview-ce-rest-sdk:2.0.2-1)
+        * btf (com.github.java-json-tools:btf:1.3 - https://github.com/java-json-tools/btf)
+        * jackson-coreutils (com.github.java-json-tools:jackson-coreutils:2.0 - https://github.com/java-json-tools/jackson-coreutils)
+        * json-patch (com.github.java-json-tools:json-patch:1.13 - https://github.com/java-json-tools/json-patch)
+        * msg-simple (com.github.java-json-tools:msg-simple:1.2 - https://github.com/java-json-tools/msg-simple)
 
-WTFPL (https://spdx.org/licenses/WTFPL.html) applies to:
+    MIT:
 
-  Reflections (org.reflections:reflections:0.10.2)
+        * SLF4J API Module (org.slf4j:slf4j-api:2.0.18 - http://www.slf4j.org)
 
+    MIT-0:
+
+        * reactive-streams (org.reactivestreams:reactive-streams:1.0.4 - http://www.reactive-streams.org/)
+
+    MPL 1.1:
+
+        * Javassist (org.javassist:javassist:3.28.0-GA - http://www.javassist.org/)
+
+    MPL 2.0:
+
+        * RabbitMQ Java Client (com.rabbitmq:amqp-client:5.32.0 - https://www.rabbitmq.com)
+
+    Public Domain:
+
+        * AOP alliance (aopalliance:aopalliance:1.0 - http://aopalliance.sourceforge.net)
+
+    The Apache License, Version 2.0:
+
+        * JSpecify annotations (org.jspecify:jspecify:1.0.0 - http://jspecify.org/)
+        * org.jetbrains.kotlin:kotlin-stdlib (org.jetbrains.kotlin:kotlin-stdlib:1.4.10 - https://kotlinlang.org/)
+        * org.jetbrains.kotlin:kotlin-stdlib-common (org.jetbrains.kotlin:kotlin-stdlib-common:1.4.0 - https://kotlinlang.org/)
+
+    The Apache Software License, Version 2.0:
+
+        * Apache Commons Logging (commons-logging:commons-logging:1.2 - http://commons.apache.org/proper/commons-logging/)
+        * asyncutil (com.ibm.async:asyncutil:0.1.0 - http://github.com/ibm/java-async-util)
+        * avaje-applog (io.avaje:avaje-applog:1.0 - https://avaje.io/avaje-applog)
+        * avaje-applog-slf4j (io.avaje:avaje-applog-slf4j:1.0 - https://avaje.io/avaje-applog-slf4j)
+        * avaje-config (io.avaje:avaje-config:4.0 - https://avaje.io/avaje-config)
+        * avaje-lang (io.avaje:avaje-lang:1.1 - https://avaje.io/avaje-lang)
+        * Bean Validation API (javax.validation:validation-api:1.1.0.Final - http://beanvalidation.org)
+        * classpath-scanner (io.avaje:classpath-scanner:7.1 - http://www.avaje.org/classpath-scanner)
+        * classpath-scanner-api (io.avaje:classpath-scanner-api:7.1 - http://www.avaje.org/classpath-scanner-api)
+        * consul-client (com.orbitz.consul:consul-client:1.5.3 - http://maven.apache.org)
+        * Converter: Gson (com.squareup.retrofit2:converter-gson:2.9.0 - https://github.com/square/retrofit)
+        * Converter: Jackson (com.squareup.retrofit2:converter-jackson:2.9.0 - https://github.com/square/retrofit)
+        * ebean api (io.ebean:ebean-api:15.11.0 - https://ebean.io/ebean-api/)
+        * ebean core (io.ebean:ebean-core:15.11.0 - https://ebean.io/)
+        * ebean core type (io.ebean:ebean-core-type:15.11.0 - https://ebean.io/ebean-core-type/)
+        * ebean datasource (io.ebean:ebean-datasource:9.3 - https://avaje.io/ebean-datasource-parent/ebean-datasource)
+        * ebean datasource api (io.ebean:ebean-datasource-api:9.3 - https://avaje.io/ebean-datasource-parent/ebean-datasource-api)
+        * ebean ddl runner (io.ebean:ebean-ddl-runner:2.3 - https://ebean.io/)
+        * ebean querybean (io.ebean:ebean-querybean:15.11.0 - https://ebean.io/ebean-querybean/)
+        * ebean-annotation (io.ebean:ebean-annotation:8.4 - https://avaje.io/ebean-annotation)
+        * ebean-migration (io.ebean:ebean-migration:14.2.0 - https://avaje.io/ebean-migration)
+        * ebean-migration-auto (io.ebean:ebean-migration-auto:1.2 - https://avaje.io/ebean-migration-auto)
+        * ebean-platform-postgres (io.ebean:ebean-platform-postgres:15.11.0 - https://ebean.io/ebean-platform-postgres/)
+        * ebean-postgres (io.ebean:ebean-postgres:15.11.0 - https://ebean.io/ebean-postgres/)
+        * ebean-types (io.ebean:ebean-types:3.0 - https://avaje.io/ebean-types)
+        * FindBugs-jsr305 (com.google.code.findbugs:jsr305:3.0.2 - http://findbugs.sourceforge.net/)
+        * Google Guice - Core Library (com.google.inject:guice:7.0.0 - https://github.com/google/guice/guice)
+        * Guava InternalFutureFailureAccess and InternalFutures (com.google.guava:failureaccess:1.0.1 - https://github.com/google/guava/failureaccess)
+        * Guava ListenableFuture only (com.google.guava:listenablefuture:9999.0-empty-to-avoid-conflict-with-guava - https://github.com/google/guava/listenablefuture)
+        * HikariCP (com.zaxxer:HikariCP:6.3.3 - https://github.com/brettwooldridge/HikariCP)
+        * IntelliJ IDEA Annotations (org.jetbrains:annotations:13.0 - http://www.jetbrains.org)
+        * J2ObjC Annotations (com.google.j2objc:j2objc-annotations:1.3 - https://github.com/google/j2objc/)
+        * Jackson datatype: Guava (com.fasterxml.jackson.datatype:jackson-datatype-guava:2.12.0 - https://github.com/FasterXML/jackson-datatypes-collections)
+        * Jackson datatype: jdk8 (com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.21.2 - https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jdk8)
+        * Jackson datatype: JSR310 (com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.22.0 - https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jsr310)
+        * Jackson Jakarta-RS: base (com.fasterxml.jackson.jakarta.rs:jackson-jakarta-rs-base:2.21.2 - https://github.com/FasterXML/jackson-jakarta-rs-providers/jackson-jakarta-rs-base)
+        * Jackson Jakarta-RS: JSON (com.fasterxml.jackson.jakarta.rs:jackson-jakarta-rs-json-provider:2.21.2 - https://github.com/FasterXML/jackson-jakarta-rs-providers/jackson-jakarta-rs-json-provider)
+        * Jackson module: Jakarta XML Bind Annotations (jakarta.xml.bind) (com.fasterxml.jackson.module:jackson-module-jakarta-xmlbind-annotations:2.21.2 - https://github.com/FasterXML/jackson-modules-base)
+        * Jackson-annotations (com.fasterxml.jackson.core:jackson-annotations:2.22 - https://github.com/FasterXML/jackson)
+        * Jackson-core (com.fasterxml.jackson.core:jackson-core:2.22.0 - https://github.com/FasterXML/jackson-core)
+        * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.22.0 - https://github.com/FasterXML/jackson)
+        * Jackson-dataformat-TOML (com.fasterxml.jackson.dataformat:jackson-dataformat-toml:2.15.2 - https://github.com/FasterXML/jackson-dataformats-text)
+        * Jackson-dataformat-YAML (com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.19.0 - https://github.com/FasterXML/jackson-dataformats-text)
+        * Jakarta Dependency Injection (jakarta.inject:jakarta.inject-api:2.0.1 - https://github.com/eclipse-ee4j/injection-api)
+        * jakarta-persistence-api (io.ebean:jakarta-persistence-api:3.0 - https://avaje.io/jakarta-persistence-api)
+        * JetBrains Java Annotations (org.jetbrains:annotations:17.0.0 - https://github.com/JetBrains/java-annotations)
+        * okhttp (com.squareup.okhttp3:okhttp:4.9.0 - https://square.github.io/okhttp/)
+        * Okio (com.squareup.okio:okio:2.8.0 - https://github.com/square/okio/)
+        * Reflections (org.reflections:reflections:0.10.2 - http://github.com/ronmamo/reflections)
+        * Retrofit (com.squareup.retrofit2:retrofit:2.9.0 - https://github.com/square/retrofit)
+        * Vavr (io.vavr:vavr:0.11.0 - https://vavr.io)
+        * Vavr Match (io.vavr:vavr-match:0.11.0 - https://vavr.io)
+
+    The MIT License:
+
+        * Checker Qual (org.checkerframework:checker-qual:3.12.0 - https://checkerframework.org)
+        * semver4j (com.vdurmont:semver4j:3.1.0 - https://github.com/vdurmont/semver4j)
+
+    Unknown license:
+
+        * Carbonio Preview CE - REST SDK (com.zextras.carbonio.preview:carbonio-preview-ce-rest-sdk:2.0.2-1 - no url defined)
+
+    WTFPL:
+
+        * Reflections (org.reflections:reflections:0.10.2 - http://github.com/ronmamo/reflections)

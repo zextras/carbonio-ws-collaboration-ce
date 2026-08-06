@@ -10,6 +10,5 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.V
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "className")
 public class AudioBridgeRequest extends VideoServerPluginRequest {
 
-  public AudioBridgeRequest() {
-  }
+  public AudioBridgeRequest() {}
 }

@@ -19,38 +19,46 @@ import java.util.List;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class VideoRoomDataRoom {
 
-  private String       room;
-  private String       description;
-  private Boolean      pinRequired;
-  private Boolean      isPrivate;
-  private Integer      maxPublishers;
-  private Long         bitrate;
-  private Boolean      bitrateCap;
-  private Integer      firFreq;
+  private String room;
+  private String description;
+  private Boolean pinRequired;
+  private Boolean isPrivate;
+  private Integer maxPublishers;
+  private Long bitrate;
+  private Boolean bitrateCap;
+  private Integer firFreq;
+
   @JsonProperty("require_pvtid")
-  private Boolean      requirePvtId;
-  private Boolean      requireE2ee;
-  private Boolean      dummyPublisher;
-  private Boolean      notifyJoining;
+  private Boolean requirePvtId;
+
+  private Boolean requireE2ee;
+  private Boolean dummyPublisher;
+  private Boolean notifyJoining;
   private List<String> audioCodec;
   private List<String> videoCodec;
-  private Boolean      opusFec;
-  private Boolean      opusDtx;
-  private Boolean      record;
-  private String       recDir;
-  private Boolean      lockRecord;
-  private Integer      numParticipants;
+  private Boolean opusFec;
+  private Boolean opusDtx;
+  private Boolean record;
+  private String recDir;
+  private Boolean lockRecord;
+  private Integer numParticipants;
+
   @JsonProperty("audiolevel_ext")
-  private Boolean      audioLevelExt;
+  private Boolean audioLevelExt;
+
   @JsonProperty("audiolevel_event")
-  private Boolean      audioLevelEvent;
-  private Long         audioActivePackets;
-  private Long         audioLevelAverage;
+  private Boolean audioLevelEvent;
+
+  private Long audioActivePackets;
+  private Long audioLevelAverage;
+
   @JsonProperty("videoorient_ext")
-  private Boolean      videoOrientExt;
+  private Boolean videoOrientExt;
+
   @JsonProperty("playoutdelay_ext")
-  private Boolean      playOutDelayExt;
-  private Boolean      transportWideCcExt;
+  private Boolean playOutDelayExt;
+
+  private Boolean transportWideCcExt;
 
   public static VideoRoomDataRoom create() {
     return new VideoRoomDataRoom();

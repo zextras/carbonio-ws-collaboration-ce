@@ -9,7 +9,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.ServerConfiguration;
-import com.zextras.carbonio.systemd.SystemdNotify;
 import com.zextras.carbonio.chats.core.exception.InternalErrorException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
@@ -18,13 +17,13 @@ import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigu
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
 import com.zextras.carbonio.chats.openapi.versioning.VersionProvider;
+import com.zextras.carbonio.systemd.SystemdNotify;
 import dev.resteasy.guice.GuiceResteasyBootstrapServletContextListener;
 import jakarta.servlet.DispatcherType;
 import jakarta.websocket.server.ServerEndpointConfig;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.ee10.websocket.jakarta.server.config.JakartaWebSocketServletContainerInitializer;
@@ -133,9 +132,11 @@ public class Boot {
   private ThreadPool createThreadPool() {
     Integer maxThreads = appConfig.get(Integer.class, ConfigName.MAX_THREADS).orElse(2048);
     Integer minThreads = appConfig.get(Integer.class, ConfigName.MIN_THREADS).orElse(8);
-    Integer maxQueuedRequests = appConfig.get(Integer.class, ConfigName.MAX_QUEUE_REQUESTS).orElse(2048);
+    Integer maxQueuedRequests =
+        appConfig.get(Integer.class, ConfigName.MAX_QUEUE_REQUESTS).orElse(2048);
 
-    final BlockingQueue<Runnable> queue = new BlockingArrayQueue<>(minThreads, maxThreads, maxQueuedRequests);
+    final BlockingQueue<Runnable> queue =
+        new BlockingArrayQueue<>(minThreads, maxThreads, maxQueuedRequests);
     final QueuedThreadPool threadPool = new QueuedThreadPool(maxThreads, minThreads, queue);
     threadPool.setName("WSC-Jetty-ThreadPool");
     return threadPool;

@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 class EbeanRoomRepositoryTest {
 
   private EbeanRoomRepository ebeanRoomRepository;
-  private Database            database;
+  private Database database;
 
   public EbeanRoomRepositoryTest() {
     this.database = mock(Database.class, RETURNS_DEEP_STUBS);
@@ -44,16 +44,21 @@ class EbeanRoomRepositoryTest {
     @Test
     @DisplayName("Retrieves a one-to-one room by both users")
     public void getOneToOneByAllUserIds_testOK() {
-      when(database.find(Room.class).where()
-        .eq("type", RoomTypeDto.ONE_TO_ONE)
-        .and().raw("id in ( " +
-          "select distinct a.room_id from chats.subscription a " +
-          "inner join chats.subscription b on a.room_id = b.room_id " +
-          "and (a.user_id = 'user1Id' or a.user_id = 'user2Id') " +
-          "and (b.user_id = 'user1Id' or b.user_id = 'user2Id') " +
-          "where (a.user_id = 'user1Id' and b.user_id = 'user2Id') " +
-          "or (a.user_id = 'user2Id' and b.user_id = 'user1Id'))")
-        .findOneOrEmpty()).thenReturn(Optional.of(Room.create().id("roomId")));
+      when(database
+              .find(Room.class)
+              .where()
+              .eq("type", RoomTypeDto.ONE_TO_ONE)
+              .and()
+              .raw(
+                  "id in ( "
+                      + "select distinct a.room_id from chats.subscription a "
+                      + "inner join chats.subscription b on a.room_id = b.room_id "
+                      + "and (a.user_id = 'user1Id' or a.user_id = 'user2Id') "
+                      + "and (b.user_id = 'user1Id' or b.user_id = 'user2Id') "
+                      + "where (a.user_id = 'user1Id' and b.user_id = 'user2Id') "
+                      + "or (a.user_id = 'user2Id' and b.user_id = 'user1Id'))")
+              .findOneOrEmpty())
+          .thenReturn(Optional.of(Room.create().id("roomId")));
 
       Optional<Room> room = ebeanRoomRepository.getOneToOneByAllUserIds("user1Id", "user2Id");
 
@@ -64,16 +69,21 @@ class EbeanRoomRepositoryTest {
     @Test
     @DisplayName("Returns an empty optional if there isn't a one-to-one room for required users")
     public void getOneToOneByAllUserIds_testNotFound() {
-      when(database.find(Room.class).where()
-        .eq("type", RoomTypeDto.ONE_TO_ONE)
-        .and().raw("id in ( " +
-          "select distinct a.room_id from chats.subscription a " +
-          "inner join chats.subscription b on a.room_id = b.room_id " +
-          "and (a.user_id = 'user1Id' or a.user_id = 'user2Id') " +
-          "and (b.user_id = 'user1Id' or b.user_id = 'user2Id') " +
-          "where (a.user_id = 'user1Id' and b.user_id = 'user2Id') " +
-          "or (a.user_id = 'user2Id' and b.user_id = 'user1Id'))")
-        .findOneOrEmpty()).thenReturn(Optional.empty());
+      when(database
+              .find(Room.class)
+              .where()
+              .eq("type", RoomTypeDto.ONE_TO_ONE)
+              .and()
+              .raw(
+                  "id in ( "
+                      + "select distinct a.room_id from chats.subscription a "
+                      + "inner join chats.subscription b on a.room_id = b.room_id "
+                      + "and (a.user_id = 'user1Id' or a.user_id = 'user2Id') "
+                      + "and (b.user_id = 'user1Id' or b.user_id = 'user2Id') "
+                      + "where (a.user_id = 'user1Id' and b.user_id = 'user2Id') "
+                      + "or (a.user_id = 'user2Id' and b.user_id = 'user1Id'))")
+              .findOneOrEmpty())
+          .thenReturn(Optional.empty());
 
       Optional<Room> room = ebeanRoomRepository.getOneToOneByAllUserIds("user1Id", "user2Id");
 

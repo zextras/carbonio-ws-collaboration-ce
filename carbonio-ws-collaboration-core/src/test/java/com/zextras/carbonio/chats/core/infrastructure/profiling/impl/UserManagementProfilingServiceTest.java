@@ -74,7 +74,11 @@ class UserManagementProfilingServiceTest {
       UUID randomUUID = UUID.randomUUID();
       UserInfoDto userInfo =
           buildUserInfoDto(
-              randomUUID.toString(), "email@test.com", "name hello", "mydomain.com", "active",
+              randomUUID.toString(),
+              "email@test.com",
+              "name hello",
+              "mydomain.com",
+              "active",
               "INTERNAL");
       when(userResourceApi.internalUsersIdUserIdGet(anyString())).thenReturn(userInfo);
 

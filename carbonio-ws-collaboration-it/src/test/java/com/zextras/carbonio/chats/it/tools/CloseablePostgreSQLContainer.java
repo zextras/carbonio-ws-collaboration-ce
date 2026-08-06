@@ -9,8 +9,8 @@ import org.junit.jupiter.api.extension.ExtensionContext.Store.CloseableResource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
-public class CloseablePostgreSQLContainer<SELF extends PostgreSQLContainer<SELF>> extends
-  PostgreSQLContainer<SELF> implements CloseableResource {
+public class CloseablePostgreSQLContainer<SELF extends PostgreSQLContainer<SELF>>
+    extends PostgreSQLContainer<SELF> implements CloseableResource {
 
   public CloseablePostgreSQLContainer(String dockerImageName) {
     super(dockerImageName);

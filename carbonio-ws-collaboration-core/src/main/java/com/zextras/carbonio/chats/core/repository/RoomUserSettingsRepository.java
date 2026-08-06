@@ -13,12 +13,13 @@ import java.util.Optional;
 public interface RoomUserSettingsRepository {
 
   /**
-   * Returns the user settings for the required room if it exists, or else it returns an empty {@link Optional}
+   * Returns the user settings for the required room if it exists, or else it returns an empty
+   * {@link Optional}
    *
    * @param roomId room identifier
    * @param userId user identifier
-   * @return Returns the user settings for the room if it exists, or else it returns an empty {@link Optional} {@link
-   * RoomUserSettings}
+   * @return Returns the user settings for the room if it exists, or else it returns an empty {@link
+   *     Optional} {@link RoomUserSettings}
    */
   Optional<RoomUserSettings> getByRoomIdAndUserId(String roomId, String userId);
 
@@ -34,7 +35,8 @@ public interface RoomUserSettingsRepository {
    * Returns a map with every room setting set by the user
    *
    * @param userId user identifier
-   * @return {@link Map} with the room id {@link String} as the key and that room settings {@link RoomUserSettings} as the value
+   * @return {@link Map} with the room id {@link String} as the key and that room settings {@link
+   *     RoomUserSettings} as the value
    */
   Map<String, RoomUserSettings> getMapGroupedByUserId(String userId);
 
@@ -64,7 +66,8 @@ public interface RoomUserSettingsRepository {
   /**
    * Saves a collection of room user settings
    *
-   * @param roomUserSettingsList collection {@link Collection} of room user settings to save {@link RoomUserSettings}
+   * @param roomUserSettingsList collection {@link Collection} of room user settings to save {@link
+   *     RoomUserSettings}
    */
   void save(Collection<RoomUserSettings> roomUserSettingsList);
 }

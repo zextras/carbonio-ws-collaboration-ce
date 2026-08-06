@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 class EbeanUserRepositoryTest {
 
   private EbeanUserRepository ebeanUserRepository;
-  private Database            database;
+  private Database database;
 
   public EbeanUserRepositoryTest() {
     this.database = mock(Database.class, RETURNS_DEEP_STUBS);
@@ -43,8 +43,8 @@ class EbeanUserRepositoryTest {
     @Test
     @DisplayName("Retrieves a user by it's id")
     public void getById_testOK() {
-      when(database.find(User.class).where().eq("id", "123").findOneOrEmpty()).thenReturn(
-        Optional.of(User.create().id("123")));
+      when(database.find(User.class).where().eq("id", "123").findOneOrEmpty())
+          .thenReturn(Optional.of(User.create().id("123")));
 
       Optional<User> user = ebeanUserRepository.getById("123");
 
@@ -55,13 +55,11 @@ class EbeanUserRepositoryTest {
     @Test
     @DisplayName("Returns an empty optional if the user was not found")
     public void getById_testNotFound() {
-      when(database.find(User.class).where().eq("id", "123").findOneOrEmpty()).thenReturn(
-        Optional.empty());
+      when(database.find(User.class).where().eq("id", "123").findOneOrEmpty())
+          .thenReturn(Optional.empty());
       Optional<User> user = ebeanUserRepository.getById("123");
 
       assertTrue(user.isEmpty());
     }
-
   }
-
 }

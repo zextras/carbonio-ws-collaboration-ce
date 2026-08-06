@@ -9,6 +9,5 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, property = "className")
 public class VideoServerPluginRequest {
 
-  public VideoServerPluginRequest() {
-  }
+  public VideoServerPluginRequest() {}
 }

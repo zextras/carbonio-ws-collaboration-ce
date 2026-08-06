@@ -8,8 +8,8 @@ import java.io.InputStream;
 
 public class FileResponse {
   private final InputStream content;
-  private final long        length;
-  private final String      mimeType;
+  private final long length;
+  private final String mimeType;
 
   public FileResponse(InputStream content, long length, String mimeType) {
     this.content = content;
@@ -28,6 +28,4 @@ public class FileResponse {
   public String getMimeType() {
     return this.mimeType;
   }
-
 }
-

@@ -19,5 +19,4 @@ public class InMemoryConfigStore {
   public static void set(ConfigName key, String value) {
     store.put(key, value);
   }
-
 }

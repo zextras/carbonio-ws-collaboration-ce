@@ -17,13 +17,16 @@ import java.util.List;
 public class VideoRoomDataInfo {
 
   @JsonProperty("videoroom")
-  private String                         videoRoom;
-  private String                         room;
-  private Boolean                        permanent;
-  private Boolean                        exists;
-  private List<String>                   allowed;
+  private String videoRoom;
+
+  private String room;
+  private Boolean permanent;
+  private Boolean exists;
+  private List<String> allowed;
+
   @JsonProperty("list")
-  private List<VideoRoomDataRoom>        rooms;
+  private List<VideoRoomDataRoom> rooms;
+
   private List<VideoRoomDataParticipant> participants;
 
   private String errorCode;

@@ -8,8 +8,8 @@ import java.util.Map;
 
 public class GraphQlBody {
 
-  private String              query;
-  private String              operationName;
+  private String query;
+  private String operationName;
   private Map<String, String> variables;
 
   public GraphQlBody(String query, String operationName, Map<String, String> variables) {
@@ -18,7 +18,8 @@ public class GraphQlBody {
     this.variables = variables;
   }
 
-  public static GraphQlBody create(String query, String operationName, Map<String, String> variables) {
+  public static GraphQlBody create(
+      String query, String operationName, Map<String, String> variables) {
     return new GraphQlBody(query, operationName, variables);
   }
 

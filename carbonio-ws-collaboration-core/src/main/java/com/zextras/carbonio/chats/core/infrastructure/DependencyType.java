@@ -16,7 +16,7 @@ public enum DependencyType {
   PREVIEWER_SERVICE(DependencyHealthTypeDto.PREVIEWER_SERVICE.toString(), false),
   VIDEOSERVER_SERVICE(DependencyHealthTypeDto.VIDEOSERVER_SERVICE.toString(), false);
 
-  private final String  name;
+  private final String name;
   private final boolean required;
 
   DependencyType(String name, boolean required) {

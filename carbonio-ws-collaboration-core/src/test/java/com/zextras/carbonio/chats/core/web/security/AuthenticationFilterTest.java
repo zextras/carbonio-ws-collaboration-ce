@@ -42,19 +42,23 @@ class AuthenticationFilterTest {
   }
 
   private MyselfDto buildMyselfDto(
-      String userId, String email, String fullName, String domain,
-      String type, String status, Map<String, String> capabilities, String... features) {
-    UserInfoDto info = new UserInfoDto()
-        .userId(userId)
-        .email(email)
-        .fullName(fullName)
-        .domain(domain)
-        .type(type)
-        .status(status);
-    MyselfDto myself = new MyselfDto()
-        .info(info)
-        .locale("en")
-        .capabilities(capabilities);
+      String userId,
+      String email,
+      String fullName,
+      String domain,
+      String type,
+      String status,
+      Map<String, String> capabilities,
+      String... features) {
+    UserInfoDto info =
+        new UserInfoDto()
+            .userId(userId)
+            .email(email)
+            .fullName(fullName)
+            .domain(domain)
+            .type(type)
+            .status(status);
+    MyselfDto myself = new MyselfDto().info(info).locale("en").capabilities(capabilities);
     for (String feature : features) {
       myself.addFeaturesItem(feature);
     }
@@ -70,9 +74,16 @@ class AuthenticationFilterTest {
     void filter_testOk() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of("carbonioFeatureWscEnabled", "TRUE");
-      MyselfDto userMyself = buildMyselfDto(
-          userId.toString(), "user@example.com", "Test User", "example.com",
-          "INTERNAL", "active", capabilities, "carbonioFeatureWscEnabled");
+      MyselfDto userMyself =
+          buildMyselfDto(
+              userId.toString(),
+              "user@example.com",
+              "Test User",
+              "example.com",
+              "INTERNAL",
+              "active",
+              capabilities,
+              "carbonioFeatureWscEnabled");
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
@@ -99,9 +110,16 @@ class AuthenticationFilterTest {
     void filter_testOkForGuestUser() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of("carbonioFeatureWscEnabled", "TRUE");
-      MyselfDto userMyself = buildMyselfDto(
-          userId.toString(), "guest@example.com", "Guest User", "example.com",
-          "GUEST", "active", capabilities, "carbonioFeatureWscEnabled");
+      MyselfDto userMyself =
+          buildMyselfDto(
+              userId.toString(),
+              "guest@example.com",
+              "Guest User",
+              "example.com",
+              "GUEST",
+              "active",
+              capabilities,
+              "carbonioFeatureWscEnabled");
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
@@ -149,9 +167,16 @@ class AuthenticationFilterTest {
     void filter_testUserNotActive() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of("carbonioFeatureWscEnabled", "TRUE");
-      MyselfDto userMyself = buildMyselfDto(
-          userId.toString(), "user@example.com", "Test User", "example.com",
-          "INTERNAL", "closed", capabilities, "carbonioFeatureWscEnabled");
+      MyselfDto userMyself =
+          buildMyselfDto(
+              userId.toString(),
+              "user@example.com",
+              "Test User",
+              "example.com",
+              "INTERNAL",
+              "closed",
+              capabilities,
+              "carbonioFeatureWscEnabled");
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
@@ -166,9 +191,15 @@ class AuthenticationFilterTest {
     void filter_testWscFeatureDisabledForInternalUser() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of("carbonioFeatureWscEnabled", "FALSE");
-      MyselfDto userMyself = buildMyselfDto(
-          userId.toString(), "user@example.com", "Test User", "example.com",
-          "INTERNAL", "active", capabilities);
+      MyselfDto userMyself =
+          buildMyselfDto(
+              userId.toString(),
+              "user@example.com",
+              "Test User",
+              "example.com",
+              "INTERNAL",
+              "active",
+              capabilities);
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
@@ -183,9 +214,15 @@ class AuthenticationFilterTest {
     void filter_testWscFeatureDisabledForGuestUser() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of("carbonioFeatureWscEnabled", "FALSE");
-      MyselfDto userMyself = buildMyselfDto(
-          userId.toString(), "user@example.com", "Test User", "example.com",
-          "GUEST", "active", capabilities);
+      MyselfDto userMyself =
+          buildMyselfDto(
+              userId.toString(),
+              "user@example.com",
+              "Test User",
+              "example.com",
+              "GUEST",
+              "active",
+              capabilities);
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())
@@ -201,9 +238,15 @@ class AuthenticationFilterTest {
     void filter_testWscFeatureMissingForInternalUser() {
       UUID userId = UUID.randomUUID();
       Map<String, String> capabilities = Map.of();
-      MyselfDto userMyself = buildMyselfDto(
-          userId.toString(), "user@example.com", "Test User", "example.com",
-          "INTERNAL", "active", capabilities);
+      MyselfDto userMyself =
+          buildMyselfDto(
+              userId.toString(),
+              "user@example.com",
+              "Test User",
+              "example.com",
+              "INTERNAL",
+              "active",
+              capabilities);
 
       ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
       when(requestContext.getCookies())

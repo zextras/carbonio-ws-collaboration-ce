@@ -16,5 +16,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 public @interface TimedCall {
   String name() default "";
+
   ChatsLoggerLevel logLevel() default ChatsLoggerLevel.DEBUG;
 }

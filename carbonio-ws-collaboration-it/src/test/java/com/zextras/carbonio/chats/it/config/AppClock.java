@@ -11,7 +11,7 @@ import java.time.ZoneId;
 public class AppClock extends Clock {
 
   private Instant instant;
-  private ZoneId  zone;
+  private ZoneId zone;
 
   public AppClock(ZoneId zone) {
     this.zone = zone;
@@ -43,7 +43,7 @@ public class AppClock extends Clock {
 
   @Override
   public long millis() {
-    if(instant == null) {
+    if (instant == null) {
       return Clock.systemUTC().millis();
     } else {
       return instant.toEpochMilli();

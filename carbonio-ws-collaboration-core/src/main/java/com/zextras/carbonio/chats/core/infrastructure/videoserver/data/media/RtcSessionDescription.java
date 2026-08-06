@@ -11,10 +11,9 @@ import java.util.Objects;
 public class RtcSessionDescription {
 
   private RtcType type;
-  private String  sdp;
+  private String sdp;
 
-  public RtcSessionDescription() {
-  }
+  public RtcSessionDescription() {}
 
   public static RtcSessionDescription create() {
     return new RtcSessionDescription();
