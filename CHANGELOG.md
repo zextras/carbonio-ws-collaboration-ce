@@ -1,3 +1,9 @@
+## [1.13.6](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.13.5...v1.13.6) (2026-09-01)
+
+### Bug Fixes
+
+* **ci:** point semantic-release at main ahead of devel->main rename ([#276](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/276)) ([93879d2](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/93879d279a026041883ebb33007986147bf5179c))
+
 ## [1.13.5](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.13.4...v1.13.5) (2026-08-26)
 
 ## [1.13.4](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.13.3...v1.13.4) (2026-08-14)
