@@ -10,7 +10,7 @@ List of third-party dependencies grouped by their license type.
 
     AL 2.0:
 
-        * RabbitMQ Java Client (com.rabbitmq:amqp-client:5.32.0 - https://www.rabbitmq.com)
+        * RabbitMQ Java Client (com.rabbitmq:amqp-client:5.36.0 - https://www.rabbitmq.com)
 
     Apache 2.0:
 
@@ -61,23 +61,23 @@ List of third-party dependencies grouped by their license type.
         * Guava: Google Core Libraries for Java (com.google.guava:guava:31.1-jre - https://github.com/google/guava)
         * Jandex: Core (io.smallrye:jandex:3.4.0 - https://smallrye.io)
         * Netty/Buffer (io.netty:netty-buffer:4.1.86.Final - https://netty.io/netty-buffer/)
-        * Netty/Buffer (io.netty:netty-buffer:4.2.15.Final - https://netty.io/netty-buffer/)
+        * Netty/Buffer (io.netty:netty-buffer:4.2.18.Final - https://netty.io/netty-buffer/)
         * Netty/Codec (io.netty:netty-codec:4.1.86.Final - https://netty.io/netty-codec/)
-        * Netty/Codec (io.netty:netty-codec:4.2.15.Final - https://netty.io/netty-codec/)
-        * Netty/Codec/Base (io.netty:netty-codec-base:4.2.15.Final - https://netty.io/netty-codec-base/)
-        * Netty/Codec/Compression (io.netty:netty-codec-compression:4.2.15.Final - https://netty.io/netty-codec-compression/)
-        * Netty/Codec/Marshalling (io.netty:netty-codec-marshalling:4.2.15.Final - https://netty.io/netty-codec-marshalling/)
-        * Netty/Codec/Protobuf (io.netty:netty-codec-protobuf:4.2.15.Final - https://netty.io/netty-codec-protobuf/)
+        * Netty/Codec (io.netty:netty-codec:4.2.18.Final - https://netty.io/netty-codec/)
+        * Netty/Codec/Base (io.netty:netty-codec-base:4.2.18.Final - https://netty.io/netty-codec-base/)
+        * Netty/Codec/Compression (io.netty:netty-codec-compression:4.2.18.Final - https://netty.io/netty-codec-compression/)
+        * Netty/Codec/Marshalling (io.netty:netty-codec-marshalling:4.2.18.Final - https://netty.io/netty-codec-marshalling/)
+        * Netty/Codec/Protobuf (io.netty:netty-codec-protobuf:4.2.18.Final - https://netty.io/netty-codec-protobuf/)
         * Netty/Common (io.netty:netty-common:4.1.86.Final - https://netty.io/netty-common/)
-        * Netty/Common (io.netty:netty-common:4.2.15.Final - https://netty.io/netty-common/)
+        * Netty/Common (io.netty:netty-common:4.2.18.Final - https://netty.io/netty-common/)
         * Netty/Handler (io.netty:netty-handler:4.1.86.Final - https://netty.io/netty-handler/)
-        * Netty/Handler (io.netty:netty-handler:4.2.15.Final - https://netty.io/netty-handler/)
+        * Netty/Handler (io.netty:netty-handler:4.2.18.Final - https://netty.io/netty-handler/)
         * Netty/Resolver (io.netty:netty-resolver:4.1.86.Final - https://netty.io/netty-resolver/)
-        * Netty/Resolver (io.netty:netty-resolver:4.2.15.Final - https://netty.io/netty-resolver/)
+        * Netty/Resolver (io.netty:netty-resolver:4.2.18.Final - https://netty.io/netty-resolver/)
         * Netty/Transport (io.netty:netty-transport:4.1.86.Final - https://netty.io/netty-transport/)
-        * Netty/Transport (io.netty:netty-transport:4.2.15.Final - https://netty.io/netty-transport/)
+        * Netty/Transport (io.netty:netty-transport:4.2.18.Final - https://netty.io/netty-transport/)
         * Netty/Transport/Native/Unix/Common (io.netty:netty-transport-native-unix-common:4.1.86.Final - https://netty.io/netty-transport-native-unix-common/)
-        * Netty/Transport/Native/Unix/Common (io.netty:netty-transport-native-unix-common:4.2.15.Final - https://netty.io/netty-transport-native-unix-common/)
+        * Netty/Transport/Native/Unix/Common (io.netty:netty-transport-native-unix-common:4.2.18.Final - https://netty.io/netty-transport-native-unix-common/)
         * SnakeYAML (org.yaml:snakeyaml:2.4 - https://bitbucket.org/snakeyaml/snakeyaml)
 
     Apache Software License - Version 2.0:
@@ -225,7 +225,7 @@ List of third-party dependencies grouped by their license type.
 
     GPL v2:
 
-        * RabbitMQ Java Client (com.rabbitmq:amqp-client:5.32.0 - https://www.rabbitmq.com)
+        * RabbitMQ Java Client (com.rabbitmq:amqp-client:5.36.0 - https://www.rabbitmq.com)
 
     GPL-2.0-with-classpath-exception:
 
@@ -271,7 +271,7 @@ List of third-party dependencies grouped by their license type.
 
     MPL 2.0:
 
-        * RabbitMQ Java Client (com.rabbitmq:amqp-client:5.32.0 - https://www.rabbitmq.com)
+        * RabbitMQ Java Client (com.rabbitmq:amqp-client:5.36.0 - https://www.rabbitmq.com)
 
     Public Domain:
 
