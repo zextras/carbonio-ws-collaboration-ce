@@ -89,7 +89,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <!-- Jackson -->
         <com.fasterxml.jackson.version>2.22.0</com.fasterxml.jackson.version>
         <com.fasterxml.jackson.annotations.version>2.22</com.fasterxml.jackson.annotations.version>
-        <org.openapitools.jackson-databind-nullable.version>0.2.10</org.openapitools.jackson-databind-nullable.version>
+        <org.openapitools.jackson-databind-nullable.version>0.2.11</org.openapitools.jackson-databind-nullable.version>
         <!-- Utilities -->
         <org.apache.commons.lang3.version>3.20.0</org.apache.commons.lang3.version>
         <org.apache.commons.text.version>1.15.0</org.apache.commons.text.version>
