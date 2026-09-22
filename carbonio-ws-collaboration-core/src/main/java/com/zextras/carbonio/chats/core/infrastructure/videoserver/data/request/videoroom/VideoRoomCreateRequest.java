@@ -39,6 +39,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
   private String videoCodec;
 
   private Boolean record;
+  private String recDir;
 
   public static VideoRoomCreateRequest create() {
     return new VideoRoomCreateRequest();
@@ -143,6 +144,15 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
     return this;
   }
 
+  public String getRecDir() {
+    return recDir;
+  }
+
+  public VideoRoomCreateRequest recDir(String recDir) {
+    this.recDir = recDir;
+    return this;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -157,7 +167,8 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
         && Objects.equals(getBitrate(), that.getBitrate())
         && Objects.equals(getBitrateCap(), that.getBitrateCap())
         && Objects.equals(getVideoCodec(), that.getVideoCodec())
-        && Objects.equals(getRecord(), that.getRecord());
+        && Objects.equals(getRecord(), that.getRecord())
+        && Objects.equals(getRecDir(), that.getRecDir());
   }
 
   @Override
@@ -173,6 +184,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
         getBitrate(),
         getBitrateCap(),
         getVideoCodec(),
-        getRecord());
+        getRecord(),
+        getRecDir());
   }
 }

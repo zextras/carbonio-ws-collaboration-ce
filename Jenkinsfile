@@ -21,6 +21,7 @@ library(
 dt3_pipeline(
     repoName: 'carbonio-ws-collaboration-ce',
     appModule: 'carbonio-ws-collaboration-boot',
+    mavenPublish: ['carbonio-ws-collaboration-openapi', 'carbonio-ws-collaboration-core', 'carbonio-ws-collaboration-it'],
     packaging: [
         buildFlags: '-ds',
         preBuildScript: '''
@@ -36,6 +37,6 @@ dt3_pipeline(
     ]],
     reuse: [projectType: 'CE'],
     flywayGuard: [
-        migrationPaths: ['carbonio-ws-collaboration-core/src/main/resources/migration'],
+        migrationPaths: ['carbonio-ws-collaboration-core/src/main/resources/migration/ce'],
     ],
 )

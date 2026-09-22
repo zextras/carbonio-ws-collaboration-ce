@@ -19,6 +19,10 @@ public class SecurityContextImpl implements SecurityContext {
     return new SecurityContextImpl(principal);
   }
 
+  public UserPrincipal getPrincipal() {
+    return principal;
+  }
+
   @Override
   public Principal getUserPrincipal() {
     return principal.getName() != null ? principal : null;

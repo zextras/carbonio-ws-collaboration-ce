@@ -31,6 +31,7 @@ import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -56,7 +57,11 @@ class ConsulAppConfigTest {
     when(keyValueClient.getNetworkTimeoutConfig()).thenReturn(networkTimeoutConfig);
     consulClient = mock(Consul.class);
     when(consulClient.keyValueClient()).thenReturn(keyValueClient);
-    appConfig = Optional.of(ConsulAppConfig.create(consulClient, "TOKEN")).orElseThrow();
+    appConfig =
+        Optional.of(
+                ConsulAppConfig.create(
+                    consulClient, "TOKEN", List.of(new CoreConfigContribution())))
+            .orElseThrow();
   }
 
   @Nested

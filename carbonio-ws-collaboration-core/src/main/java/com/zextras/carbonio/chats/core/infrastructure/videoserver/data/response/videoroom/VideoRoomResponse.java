@@ -26,6 +26,7 @@ public class VideoRoomResponse {
   public static final String EDITED = "edited";
   public static final String DESTROYED = "destroyed";
   public static final String ACK = "ack";
+  public static final String SUCCESS = "success";
 
   @JsonProperty("janus")
   private String status;

@@ -36,9 +36,9 @@ import java.util.UUID;
 public class MeetingsApiServiceImpl implements MeetingsApiService {
 
   private final MeetingService meetingService;
-  private final ParticipantService participantService;
-  private final CacheVideoServerSession cacheVideoServerSession;
-  private final MessageBrokerVideoserverHealthMonitor messageBrokerVideoserverHealthMonitor;
+  protected final ParticipantService participantService;
+  protected final CacheVideoServerSession cacheVideoServerSession;
+  protected final MessageBrokerVideoserverHealthMonitor messageBrokerVideoserverHealthMonitor;
 
   @Inject
   public MeetingsApiServiceImpl(
@@ -52,7 +52,7 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
     this.messageBrokerVideoserverHealthMonitor = messageBrokerVideoserverHealthMonitor;
   }
 
-  private static UserPrincipal getCurrentUser(SecurityContext securityContext) {
+  protected static UserPrincipal getCurrentUser(SecurityContext securityContext) {
     return Optional.ofNullable((UserPrincipal) securityContext.getUserPrincipal())
         .orElseThrow(UnauthorizedException::new);
   }

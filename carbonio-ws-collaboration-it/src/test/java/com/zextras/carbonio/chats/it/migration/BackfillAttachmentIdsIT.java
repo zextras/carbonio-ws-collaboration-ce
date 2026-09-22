@@ -59,7 +59,7 @@ class BackfillAttachmentIdsIT {
 
     Flyway.configure()
         .cleanDisabled(false)
-        .locations("classpath:migration")
+        .locations("classpath:migration/ce")
         .schemas("chats")
         .dataSource(wscDataSource)
         .validateMigrationNaming(true)

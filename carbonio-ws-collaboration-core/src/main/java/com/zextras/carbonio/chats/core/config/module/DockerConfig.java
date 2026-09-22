@@ -8,15 +8,17 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigContribution;
 import com.zextras.carbonio.chats.core.config.ServerConfiguration;
 import com.zextras.carbonio.chats.core.config.impl.EnvironmentAppConfig;
+import java.util.Set;
 
 public class DockerConfig extends AbstractModule {
 
   @Singleton
   @Provides
-  private AppConfig getAppConfig() {
-    return EnvironmentAppConfig.create().load();
+  private AppConfig getAppConfig(Set<ConfigContribution> contributions) {
+    return EnvironmentAppConfig.create(contributions).load();
   }
 
   @Provides

@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -53,6 +54,9 @@ public class VideoServerMessageRequest {
   private RtcSessionDescription rtcSessionDescription;
 
   private String opaqueId;
+
+  // Not serialized to Janus; used only for gateway routing by Advanced edition
+  @JsonIgnore private String serverId;
 
   public static VideoServerMessageRequest create() {
     return new VideoServerMessageRequest();
@@ -120,6 +124,15 @@ public class VideoServerMessageRequest {
 
   public VideoServerMessageRequest opaqueId(String opaqueId) {
     this.opaqueId = opaqueId;
+    return this;
+  }
+
+  public String getServerId() {
+    return serverId;
+  }
+
+  public VideoServerMessageRequest serverId(String serverId) {
+    this.serverId = serverId;
     return this;
   }
 

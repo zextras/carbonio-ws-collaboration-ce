@@ -9,6 +9,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.matcher.Matchers;
+import com.google.inject.multibindings.Multibinder;
 import com.google.inject.name.Named;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -32,9 +33,11 @@ import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigContribution;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.JacksonConfig;
 import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
+import com.zextras.carbonio.chats.core.config.impl.CoreConfigContribution;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
@@ -141,6 +144,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.util.Base64;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.TimeoutException;
 import org.flywaydb.core.Flyway;
@@ -159,6 +163,11 @@ public class CoreModule extends AbstractModule {
   @Override
   protected void configure() {
     super.configure();
+
+    Multibinder.newSetBinder(binder(), ConfigContribution.class)
+        .addBinding()
+        .to(CoreConfigContribution.class);
+
     // This is bound twice, once for RestEasy injection and one for everything else
     bind(JacksonConfig.class);
     bind(ObjectMapper.class).toProvider(JacksonConfig.class);
@@ -316,18 +325,23 @@ public class CoreModule extends AbstractModule {
   @Provides
   private Flyway getFlywayInstance(
       HikariDataSource dataSource, JavaMigrationsProvider javaMigrationsProvider) {
-    return Flyway.configure()
-        .locations("classpath:migration")
-        .schemas("chats")
-        .dataSource(dataSource)
-        .validateMigrationNaming(true)
-        .javaMigrations(javaMigrationsProvider.get().toArray(JavaMigration[]::new))
-        .load();
+    return buildFlyway(dataSource, "classpath:migration/ce", javaMigrationsProvider.get());
   }
 
   @Singleton
   @Provides
   private HikariDataSource getHikariDataSource(AppConfig appConfig) {
+    HikariConfig config = baseHikariConfig(appConfig);
+
+    Properties properties = new Properties();
+    properties.setProperty("sslmode", "disable");
+    properties.setProperty("ApplicationName", "ws-collaboration");
+    config.setDataSourceProperties(properties);
+
+    return new HikariDataSource(config);
+  }
+
+  public static HikariConfig baseHikariConfig(AppConfig appConfig) {
     HikariConfig config = new HikariConfig();
     config.setJdbcUrl(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).orElseThrow());
     config.setPoolName("ws-collaboration-db-pool");
@@ -342,13 +356,18 @@ public class CoreModule extends AbstractModule {
         appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(5000));
     config.setMaxLifetime(
         appConfig.get(Integer.class, ConfigName.HIKARI_MAX_LIFETIME).orElse(600000));
+    return config;
+  }
 
-    Properties properties = new Properties();
-    properties.setProperty("sslmode", "disable");
-    properties.setProperty("ApplicationName", "ws-collaboration");
-    config.setDataSourceProperties(properties);
-
-    return new HikariDataSource(config);
+  public static Flyway buildFlyway(
+      HikariDataSource dataSource, String location, List<JavaMigration> javaMigrations) {
+    return Flyway.configure()
+        .locations(location)
+        .schemas("chats")
+        .dataSource(dataSource)
+        .validateMigrationNaming(true)
+        .javaMigrations(javaMigrations.toArray(JavaMigration[]::new))
+        .load();
   }
 
   @Singleton
