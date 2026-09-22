@@ -31,16 +31,21 @@ public class MeetingMapperImpl implements MeetingMapper {
     if (meeting == null) {
       return null;
     }
-    return MeetingDto.create()
-        .id(UUID.fromString(meeting.getId()))
-        .roomId(UUID.fromString(meeting.getRoomId()))
-        .meetingType(MeetingTypeDto.fromString(meeting.getMeetingType().toString()))
-        .name(meeting.getName())
-        .createdAt(meeting.getCreatedAt())
-        .startedAt(meeting.getStartedAt())
-        .active(meeting.getActive())
-        .participants(participantMapper.ent2dto(meeting.getParticipants()));
+    MeetingDto dto =
+        MeetingDto.create()
+            .id(UUID.fromString(meeting.getId()))
+            .roomId(UUID.fromString(meeting.getRoomId()))
+            .meetingType(MeetingTypeDto.fromString(meeting.getMeetingType().toString()))
+            .name(meeting.getName())
+            .createdAt(meeting.getCreatedAt())
+            .startedAt(meeting.getStartedAt())
+            .active(meeting.getActive())
+            .participants(participantMapper.ent2dto(meeting.getParticipants()));
+    enrich(dto, meeting);
+    return dto;
   }
+
+  protected void enrich(MeetingDto dto, Meeting meeting) {}
 
   @Override
   @Nullable

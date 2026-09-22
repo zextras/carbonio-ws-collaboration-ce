@@ -12,6 +12,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "VIDEOSERVER_MEETING", schema = "CHATS")
@@ -20,6 +21,9 @@ public class VideoServerMeeting {
   @Id
   @Column(name = "MEETING_ID", length = 64, nullable = false)
   private String meetingId;
+
+  @Column(name = "SERVER_ID", length = 64, nullable = false)
+  private String serverId;
 
   @Column(name = "CONNECTION_ID", length = 64, nullable = false)
   private String connectionId;
@@ -49,6 +53,15 @@ public class VideoServerMeeting {
 
   public VideoServerMeeting meetingId(String meetingId) {
     this.meetingId = meetingId;
+    return this;
+  }
+
+  public String getServerId() {
+    return serverId;
+  }
+
+  public VideoServerMeeting serverId(String serverId) {
+    this.serverId = serverId;
     return this;
   }
 
@@ -104,5 +117,32 @@ public class VideoServerMeeting {
   public VideoServerMeeting videoServerSessions(List<VideoServerSession> videoServerSessions) {
     this.videoServerSessions = videoServerSessions;
     return this;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (!(o instanceof VideoServerMeeting that)) return false;
+    return Objects.equals(getMeetingId(), that.getMeetingId())
+        && Objects.equals(getServerId(), that.getServerId())
+        && Objects.equals(getConnectionId(), that.getConnectionId())
+        && Objects.equals(getAudioHandleId(), that.getAudioHandleId())
+        && Objects.equals(getVideoHandleId(), that.getVideoHandleId())
+        && Objects.equals(getAudioRoomId(), that.getAudioRoomId())
+        && Objects.equals(getVideoRoomId(), that.getVideoRoomId())
+        && Objects.equals(getVideoServerSessions(), that.getVideoServerSessions());
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        getMeetingId(),
+        getServerId(),
+        getConnectionId(),
+        getAudioHandleId(),
+        getVideoHandleId(),
+        getAudioRoomId(),
+        getVideoRoomId(),
+        getVideoServerSessions());
   }
 }

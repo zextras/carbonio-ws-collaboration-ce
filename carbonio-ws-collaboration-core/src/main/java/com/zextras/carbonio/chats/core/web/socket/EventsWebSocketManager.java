@@ -193,8 +193,11 @@ public class EventsWebSocketManager {
     UUID userId = UUID.fromString(getUserIdFromSession(session));
     UUID queueId = UUID.fromString(session.getId());
     cacheVideoServerSession.add(userId, queueId);
+    onSessionDisconnected(queueId);
     rabbitPool.teardownSession(session.getId());
   }
+
+  protected void onSessionDisconnected(UUID queueId) {}
 
   private String getUserIdFromSession(Session session) {
     return (String)

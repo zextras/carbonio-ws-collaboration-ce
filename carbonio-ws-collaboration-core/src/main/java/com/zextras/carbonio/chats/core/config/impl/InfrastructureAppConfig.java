@@ -5,43 +5,32 @@
 package com.zextras.carbonio.chats.core.config.impl;
 
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigContribution;
 import com.zextras.carbonio.chats.core.config.ConfigName;
+import java.util.Collection;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public class InfrastructureAppConfig extends AppConfig {
 
   private static final AppConfigType CONFIG_TYPE = AppConfigType.INFRASTRUCTURE;
-  private static final String LOCAL_SERVICE_ADDRESS = "127.78.0.4";
 
-  private static final Map<ConfigName, String> configs;
+  private final Map<ConfigName, String> configs;
 
-  static {
-    configs = new EnumMap<>(ConfigName.class);
-    configs.put(
-        ConfigName.DATABASE_JDBC_URL,
-        "jdbc:postgresql://127.78.0.4:20003/carbonio-ws-collaboration-db");
-    configs.put(ConfigName.CONSUL_HOST, "localhost");
-    configs.put(ConfigName.CONSUL_PORT, "8500");
-    configs.put(ConfigName.STORAGES_HOST, LOCAL_SERVICE_ADDRESS);
-    configs.put(ConfigName.STORAGES_PORT, "20000");
-    configs.put(ConfigName.USER_MANAGEMENT_HOST, LOCAL_SERVICE_ADDRESS);
-    configs.put(ConfigName.USER_MANAGEMENT_PORT, "20001");
-    configs.put(ConfigName.PREVIEWER_HOST, LOCAL_SERVICE_ADDRESS);
-    configs.put(ConfigName.PREVIEWER_PORT, "20002");
-    configs.put(ConfigName.XMPP_SERVER_HOST, LOCAL_SERVICE_ADDRESS);
-    configs.put(ConfigName.XMPP_SERVER_HTTP_PORT, "20004");
-    configs.put(ConfigName.EVENT_DISPATCHER_HOST, LOCAL_SERVICE_ADDRESS);
-    configs.put(ConfigName.EVENT_DISPATCHER_PORT, "20005");
-    configs.put(ConfigName.VIDEO_SERVER_HOST, LOCAL_SERVICE_ADDRESS);
-    configs.put(ConfigName.VIDEO_SERVER_PORT, "20006");
-    configs.put(ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST, LOCAL_SERVICE_ADDRESS);
-    configs.put(ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT, "20012");
+  private InfrastructureAppConfig(Collection<ConfigContribution> catalog) {
+    this.configs = new EnumMap<>(ConfigName.class);
+    catalog.forEach(contribution -> configs.putAll(contribution.infrastructureDefaults()));
   }
 
   public static AppConfig create() {
-    return new InfrastructureAppConfig();
+    // No-catalog overload: CE's own defaults, preserving pre-registry behavior.
+    return create(List.of(new CoreConfigContribution()));
+  }
+
+  public static AppConfig create(Collection<ConfigContribution> catalog) {
+    return new InfrastructureAppConfig(catalog);
   }
 
   @Override

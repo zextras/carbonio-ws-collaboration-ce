@@ -18,6 +18,16 @@ public class HttpClient {
 
   private static final CloseableHttpClient client = HttpClientProvider.getHttpClient();
 
+  public CloseableHttpResponse sendPost(String url, Map<String, String> headers) {
+    HttpPost request = new HttpPost(url);
+    headers.forEach(request::addHeader);
+    try {
+      return client.execute(request);
+    } catch (IOException e) {
+      throw new InternalErrorException(e);
+    }
+  }
+
   public CloseableHttpResponse sendPost(String url, Map<String, String> headers, String body)
       throws IOException {
     HttpPost request = new HttpPost(url);

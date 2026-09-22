@@ -9,6 +9,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.matcher.Matchers;
+import com.google.inject.multibindings.Multibinder;
 import com.google.inject.name.Named;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
@@ -32,9 +33,11 @@ import com.zextras.carbonio.chats.api.UsersApi;
 import com.zextras.carbonio.chats.api.UsersApiService;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigContribution;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.JacksonConfig;
 import com.zextras.carbonio.chats.core.config.MessageDispatcherCredentials;
+import com.zextras.carbonio.chats.core.config.impl.CoreConfigContribution;
 import com.zextras.carbonio.chats.core.exception.EventDispatcherException;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.chats.core.infrastructure.authentication.impl.UserManagementAuthenticationService;
@@ -159,6 +162,11 @@ public class CoreModule extends AbstractModule {
   @Override
   protected void configure() {
     super.configure();
+
+    Multibinder.newSetBinder(binder(), ConfigContribution.class)
+        .addBinding()
+        .to(CoreConfigContribution.class);
+
     // This is bound twice, once for RestEasy injection and one for everything else
     bind(JacksonConfig.class);
     bind(ObjectMapper.class).toProvider(JacksonConfig.class);
@@ -317,7 +325,7 @@ public class CoreModule extends AbstractModule {
   private Flyway getFlywayInstance(
       HikariDataSource dataSource, JavaMigrationsProvider javaMigrationsProvider) {
     return Flyway.configure()
-        .locations("classpath:migration")
+        .locations("classpath:migration/ce")
         .schemas("chats")
         .dataSource(dataSource)
         .validateMigrationNaming(true)

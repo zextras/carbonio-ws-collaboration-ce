@@ -39,6 +39,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
   private String videoCodec;
 
   private Boolean record;
+  private String recDir;
 
   public static VideoRoomCreateRequest create() {
     return new VideoRoomCreateRequest();
@@ -143,6 +144,15 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
     return this;
   }
 
+  public String getRecDir() {
+    return recDir;
+  }
+
+  public VideoRoomCreateRequest recDir(String recDir) {
+    this.recDir = recDir;
+    return this;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -152,12 +162,12 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
         && Objects.equals(getPermanent(), that.getPermanent())
         && Objects.equals(getDescription(), that.getDescription())
         && Objects.equals(getIsPrivate(), that.getIsPrivate())
-        && Objects.equals(getVideoorientExt(), that.getVideoorientExt())
         && Objects.equals(getPublishers(), that.getPublishers())
         && Objects.equals(getBitrate(), that.getBitrate())
         && Objects.equals(getBitrateCap(), that.getBitrateCap())
         && Objects.equals(getVideoCodec(), that.getVideoCodec())
-        && Objects.equals(getRecord(), that.getRecord());
+        && Objects.equals(getRecord(), that.getRecord())
+        && Objects.equals(getRecDir(), that.getRecDir());
   }
 
   @Override
@@ -168,11 +178,11 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
         getPermanent(),
         getDescription(),
         getIsPrivate(),
-        getVideoorientExt(),
         getPublishers(),
         getBitrate(),
         getBitrateCap(),
         getVideoCodec(),
-        getRecord());
+        getRecord(),
+        getRecDir());
   }
 }

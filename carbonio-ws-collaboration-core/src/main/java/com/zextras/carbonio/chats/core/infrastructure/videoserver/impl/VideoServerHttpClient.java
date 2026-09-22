@@ -27,6 +27,7 @@ public class VideoServerHttpClient implements VideoServerClient {
 
   private static final String JANUS_ENDPOINT = "/janus";
   private static final String JANUS_INFO_ENDPOINT = "/info";
+  private static final String VIDEOSERVER_ROUTING_QUERY_PARAM = "?service_id=%s";
 
   private final HttpClient httpClient;
   private final String videoServerURL;
@@ -64,7 +65,7 @@ public class VideoServerHttpClient implements VideoServerClient {
   public VideoServerResponse sendVideoServerRequest(VideoServerMessageRequest request) {
     try (CloseableHttpResponse response =
         httpClient.sendPost(
-            buildVideoServerUrl(),
+            withServiceId(buildVideoServerUrl(), request),
             Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(request))) {
 
@@ -87,7 +88,7 @@ public class VideoServerHttpClient implements VideoServerClient {
       String connectionId, VideoServerMessageRequest request) {
     try (CloseableHttpResponse response =
         httpClient.sendPost(
-            buildVideoServerUrl(connectionId),
+            withServiceId(buildVideoServerUrl(connectionId), request),
             Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(request))) {
 
@@ -110,7 +111,7 @@ public class VideoServerHttpClient implements VideoServerClient {
       String connectionId, String handleId, VideoServerMessageRequest request) {
     try (CloseableHttpResponse response =
         httpClient.sendPost(
-            buildVideoServerUrl(connectionId, handleId),
+            withServiceId(buildVideoServerUrl(connectionId, handleId), request),
             Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(request))) {
 
@@ -133,7 +134,7 @@ public class VideoServerHttpClient implements VideoServerClient {
       String connectionId, String handleId, VideoServerMessageRequest request) {
     try (CloseableHttpResponse response =
         httpClient.sendPost(
-            buildVideoServerUrl(connectionId, handleId),
+            withServiceId(buildVideoServerUrl(connectionId, handleId), request),
             Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(request))) {
 
@@ -156,7 +157,7 @@ public class VideoServerHttpClient implements VideoServerClient {
       String connectionId, String handleId, VideoServerMessageRequest request) {
     try (CloseableHttpResponse response =
         httpClient.sendPost(
-            buildVideoServerUrl(connectionId, handleId),
+            withServiceId(buildVideoServerUrl(connectionId, handleId), request),
             Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(request))) {
 
@@ -172,6 +173,11 @@ public class VideoServerHttpClient implements VideoServerClient {
     } catch (IOException e) {
       throw new VideoServerException("Something went wrong executing request", e);
     }
+  }
+
+  private String withServiceId(String url, VideoServerMessageRequest request) {
+    String serverId = request.getServerId();
+    return serverId == null ? url : url + String.format(VIDEOSERVER_ROUTING_QUERY_PARAM, serverId);
   }
 
   private String buildVideoServerUrl() {

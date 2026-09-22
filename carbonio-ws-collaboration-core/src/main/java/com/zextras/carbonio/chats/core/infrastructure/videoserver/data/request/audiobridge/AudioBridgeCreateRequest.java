@@ -38,8 +38,8 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
 
   private Long audioActivePackets;
   private Integer audioLevelAverage;
-
   private Boolean record;
+  private String mjrsDir;
 
   public static AudioBridgeCreateRequest create() {
     return new AudioBridgeCreateRequest();
@@ -135,6 +135,15 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
     return this;
   }
 
+  public String getMjrsDir() {
+    return mjrsDir;
+  }
+
+  public AudioBridgeCreateRequest mjrsDir(String mjrsDir) {
+    this.mjrsDir = mjrsDir;
+    return this;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -148,7 +157,8 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
         && Objects.equals(getAudioLevelEvent(), that.getAudioLevelEvent())
         && Objects.equals(getAudioActivePackets(), that.getAudioActivePackets())
         && Objects.equals(getAudioLevelAverage(), that.getAudioLevelAverage())
-        && Objects.equals(getRecord(), that.getRecord());
+        && Objects.equals(getRecord(), that.getRecord())
+        && Objects.equals(getMjrsDir(), that.getMjrsDir());
   }
 
   @Override
@@ -163,6 +173,7 @@ public class AudioBridgeCreateRequest extends AudioBridgeRequest {
         getAudioLevelEvent(),
         getAudioActivePackets(),
         getAudioLevelAverage(),
-        getRecord());
+        getRecord(),
+        getMjrsDir());
   }
 }

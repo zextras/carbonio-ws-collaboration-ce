@@ -5,63 +5,35 @@
 package com.zextras.carbonio.chats.core.config.impl;
 
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigContribution;
 import com.zextras.carbonio.chats.core.config.ConfigName;
+import java.util.Collection;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public class EnvironmentAppConfig extends AppConfig {
   private static final AppConfigType CONFIG_TYPE = AppConfigType.DOCKER;
 
-  private static final Map<ConfigName, String> configs;
+  private final Map<ConfigName, String> configs;
 
-  static {
-    configs = new EnumMap<>(ConfigName.class);
-    configs.put(ConfigName.DATABASE_JDBC_URL, System.getenv(ConfigName.DATABASE_JDBC_URL.name()));
-    configs.put(ConfigName.CONSUL_HOST, System.getenv(ConfigName.CONSUL_HOST.name()));
-    configs.put(ConfigName.CONSUL_PORT, System.getenv(ConfigName.CONSUL_PORT.name()));
-    configs.put(
-        ConfigName.USER_MANAGEMENT_HOST, System.getenv(ConfigName.USER_MANAGEMENT_HOST.name()));
-    configs.put(
-        ConfigName.USER_MANAGEMENT_PORT, System.getenv(ConfigName.USER_MANAGEMENT_PORT.name()));
-    configs.put(ConfigName.PREVIEWER_HOST, System.getenv(ConfigName.PREVIEWER_HOST.name()));
-    configs.put(ConfigName.PREVIEWER_PORT, System.getenv(ConfigName.PREVIEWER_PORT.name()));
-    configs.put(ConfigName.XMPP_SERVER_HOST, System.getenv(ConfigName.XMPP_SERVER_HOST.name()));
-    configs.put(
-        ConfigName.XMPP_SERVER_HTTP_PORT, System.getenv(ConfigName.XMPP_SERVER_HTTP_PORT.name()));
-    configs.put(
-        ConfigName.XMPP_SERVER_USERNAME, System.getenv(ConfigName.XMPP_SERVER_USERNAME.name()));
-    configs.put(
-        ConfigName.XMPP_SERVER_PASSWORD, System.getenv(ConfigName.XMPP_SERVER_PASSWORD.name()));
-    configs.put(
-        ConfigName.EVENT_DISPATCHER_HOST, System.getenv(ConfigName.EVENT_DISPATCHER_HOST.name()));
-    configs.put(
-        ConfigName.EVENT_DISPATCHER_PORT, System.getenv(ConfigName.EVENT_DISPATCHER_PORT.name()));
-    configs.put(
-        ConfigName.EVENT_DISPATCHER_USER_USERNAME,
-        System.getenv(ConfigName.EVENT_DISPATCHER_USER_USERNAME.name()));
-    configs.put(
-        ConfigName.EVENT_DISPATCHER_USER_PASSWORD,
-        System.getenv(ConfigName.EVENT_DISPATCHER_USER_PASSWORD.name()));
-    configs.put(ConfigName.VIDEO_SERVER_HOST, System.getenv(ConfigName.VIDEO_SERVER_HOST.name()));
-    configs.put(ConfigName.VIDEO_SERVER_PORT, System.getenv(ConfigName.VIDEO_SERVER_PORT.name()));
-
-    configs.put(ConfigName.STORAGES_HOST, System.getenv(ConfigName.STORAGES_HOST.name()));
-    configs.put(ConfigName.STORAGES_PORT, System.getenv(ConfigName.STORAGES_PORT.name()));
-    configs.put(ConfigName.VIDEO_SERVER_TOKEN, System.getenv(ConfigName.VIDEO_SERVER_TOKEN.name()));
-    configs.put(ConfigName.VIDEO_ROOM_BITRATE, System.getenv(ConfigName.VIDEO_ROOM_BITRATE.name()));
-    configs.put(
-        ConfigName.VIDEO_ROOM_BITRATE_CAP, System.getenv(ConfigName.VIDEO_ROOM_BITRATE_CAP.name()));
-    configs.put(
-        ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST,
-        System.getenv(ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST.name()));
-    configs.put(
-        ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT,
-        System.getenv(ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT.name()));
+  private EnvironmentAppConfig(Collection<ConfigContribution> catalog) {
+    this.configs = new EnumMap<>(ConfigName.class);
+    catalog.forEach(
+        contribution ->
+            contribution
+                .environmentKeys()
+                .forEach(key -> configs.put(key, System.getenv(key.name()))));
   }
 
   public static AppConfig create() {
-    return new EnvironmentAppConfig();
+    // No-catalog overload: CE's own key set, preserving pre-registry behavior.
+    return create(List.of(new CoreConfigContribution()));
+  }
+
+  public static AppConfig create(Collection<ConfigContribution> catalog) {
+    return new EnvironmentAppConfig(catalog);
   }
 
   @Override

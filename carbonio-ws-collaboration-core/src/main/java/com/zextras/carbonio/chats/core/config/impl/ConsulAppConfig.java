@@ -12,6 +12,7 @@ import com.orbitz.consul.config.ClientConfig;
 import com.orbitz.consul.model.kv.Value;
 import com.orbitz.consul.option.ImmutableQueryOptions;
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigContribution;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.annotation.Nullable;
@@ -29,122 +30,53 @@ public class ConsulAppConfig extends AppConfig {
   private final List<KVCache> kvCacheList;
   private final String consulToken;
   private final Map<String, String> cache;
-
-  private static final Map<ConfigName, String> namesMapping;
-
-  static {
-    namesMapping = new EnumMap<>(ConfigName.class);
-    namesMapping.put(ConfigName.DATABASE_USERNAME, "carbonio-ws-collaboration-db/db-username");
-    namesMapping.put(ConfigName.DATABASE_PASSWORD, "carbonio-ws-collaboration-db/db-password");
-    namesMapping.put(
-        ConfigName.HIKARI_IDLE_TIMEOUT, "carbonio-ws-collaboration/hikari/idle-timeout");
-    namesMapping.put(
-        ConfigName.HIKARI_MIN_POOL_SIZE, "carbonio-ws-collaboration/hikari/min-pool-size");
-    namesMapping.put(
-        ConfigName.HIKARI_MAX_POOL_SIZE, "carbonio-ws-collaboration/hikari/max-pool-size");
-    namesMapping.put(
-        ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD,
-        "carbonio-ws-collaboration/hikari/leak-detection-threshold");
-    namesMapping.put(
-        ConfigName.HIKARI_MAX_LIFETIME, "carbonio-ws-collaboration/hikari/max-lifetime");
-    namesMapping.put(ConfigName.XMPP_SERVER_USERNAME, "carbonio-message-dispatcher/api/username");
-    namesMapping.put(ConfigName.XMPP_SERVER_PASSWORD, "carbonio-message-dispatcher/api/password");
-    namesMapping.put(
-        ConfigName.EVENT_DISPATCHER_USER_USERNAME, "carbonio-message-broker/default/username");
-    namesMapping.put(
-        ConfigName.EVENT_DISPATCHER_USER_PASSWORD, "carbonio-message-broker/default/password");
-    namesMapping.put(ConfigName.CAN_VIDEO_CALL, "carbonio-ws-collaboration/configs/can-video-call");
-    namesMapping.put(
-        ConfigName.CAN_USE_VIRTUAL_BACKGROUND,
-        "carbonio-ws-collaboration/configs/can-use-virtual-background");
-    namesMapping.put(
-        ConfigName.CAN_SEE_MESSAGE_READS,
-        "carbonio-ws-collaboration/configs/can-see-message-reads");
-    namesMapping.put(
-        ConfigName.CAN_SEE_USERS_PRESENCE,
-        "carbonio-ws-collaboration/configs/can-see-users-presence");
-    namesMapping.put(
-        ConfigName.MAX_USER_IMAGE_SIZE_IN_KB,
-        "carbonio-ws-collaboration/configs/max-user-image-size-in-kb");
-    namesMapping.put(
-        ConfigName.MAX_ROOM_IMAGE_SIZE_IN_KB,
-        "carbonio-ws-collaboration/configs/max-room-image-size-in-kb");
-    namesMapping.put(
-        ConfigName.EDIT_MESSAGE_TIME_LIMIT_IN_MINUTES,
-        "carbonio-ws-collaboration/configs/edit-message-time-limit-in-minutes");
-    namesMapping.put(
-        ConfigName.DELETE_MESSAGE_TIME_LIMIT_IN_MINUTES,
-        "carbonio-ws-collaboration/configs/delete-message-time-limit-in-minutes");
-    namesMapping.put(
-        ConfigName.MAX_GROUP_MEMBERS, "carbonio-ws-collaboration/configs/max-group-members");
-    namesMapping.put(
-        ConfigName.MAX_VIDEO_SIZE_PREVIEW_IN_MB,
-        "carbonio-ws-collaboration/preview/max-video-size-preview-in-mb");
-    namesMapping.put(ConfigName.VIRTUAL_HOST, "carbonio-ws-collaboration/broker/virtual-host");
-    namesMapping.put(
-        ConfigName.REQUESTED_HEARTBEAT_IN_SEC,
-        "carbonio-ws-collaboration/broker/requested-heartbeat-in-sec");
-    namesMapping.put(
-        ConfigName.NETWORK_RECOVERY_INTERVAL_IN_MILLI,
-        "carbonio-ws-collaboration/broker/network-recovery-interval-in-milli");
-    namesMapping.put(
-        ConfigName.CONNECTION_TIMEOUT_IN_MILLI,
-        "carbonio-ws-collaboration/broker/connection-timeout-in-milli");
-    namesMapping.put(
-        ConfigName.AUTOMATIC_RECOVERY_ENABLED,
-        "carbonio-ws-collaboration/broker/automatic-recovery-enabled");
-    namesMapping.put(
-        ConfigName.TOPOLOGY_RECOVERY_ENABLED,
-        "carbonio-ws-collaboration/broker/topology-recovery-enabled");
-    namesMapping.put(
-        ConfigName.EVENT_DISPATCHER_POOL_SIZE,
-        "carbonio-ws-collaboration/broker/connection-pool-size");
-    namesMapping.put(ConfigName.VIDEO_SERVER_TOKEN, "carbonio-videoserver/api-secret");
-    namesMapping.put(
-        ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST, "carbonio-message-dispatcher-db/db-host");
-    namesMapping.put(
-        ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT, "carbonio-message-dispatcher-db/db-port");
-    namesMapping.put(
-        ConfigName.MESSAGE_DISPATCHER_DATABASE_NAME, "carbonio-message-dispatcher-db/db-name");
-    namesMapping.put(
-        ConfigName.MESSAGE_DISPATCHER_DATABASE_USERNAME,
-        "carbonio-message-dispatcher-db/db-username");
-    namesMapping.put(
-        ConfigName.MESSAGE_DISPATCHER_DATABASE_PASSWORD,
-        "carbonio-message-dispatcher-db/db-password");
-    namesMapping.put(
-        ConfigName.VIDEO_ROOM_BITRATE, "carbonio-ws-collaboration/meeting/videoroom-bitrate");
-    namesMapping.put(
-        ConfigName.VIDEO_ROOM_BITRATE_CAP,
-        "carbonio-ws-collaboration/meeting/videoroom-bitrate-cap");
-    namesMapping.put(ConfigName.MAX_THREADS, "carbonio-ws-collaboration/server/max-threads");
-    namesMapping.put(ConfigName.MIN_THREADS, "carbonio-ws-collaboration/server/min-threads");
-    namesMapping.put(
-        ConfigName.MAX_QUEUE_REQUESTS, "carbonio-ws-collaboration/server/max-queue-requests");
-  }
+  private final Map<ConfigName, String> namesMapping;
 
   private boolean loaded = false;
 
-  private ConsulAppConfig(Consul consulClient, String consulToken) {
+  private ConsulAppConfig(
+      Consul consulClient, String consulToken, Collection<ConfigContribution> catalog) {
     super();
     this.consulClient = consulClient;
     this.kvCacheList = new ArrayList<>();
     this.consulToken = consulToken;
     this.cache = new HashMap<>();
+    this.namesMapping = mergeConsulKvMappings(catalog);
 
     namesMapping.values().forEach(consulName -> cache.put(consulName, null));
   }
 
+  private static Map<ConfigName, String> mergeConsulKvMappings(
+      Collection<ConfigContribution> catalog) {
+    Map<ConfigName, String> merged = new EnumMap<>(ConfigName.class);
+    catalog.forEach(contribution -> merged.putAll(contribution.consulKvMappings()));
+    return merged;
+  }
+
   public static AppConfig create(Consul consulClient, @Nullable String consulToken) {
+    // No-catalog overload: CE's own key set, preserving pre-registry behavior.
+    return create(consulClient, consulToken, List.of(new CoreConfigContribution()));
+  }
+
+  public static AppConfig create(
+      Consul consulClient, @Nullable String consulToken, Collection<ConfigContribution> catalog) {
     if (consulToken == null) {
       ChatsLogger.warn("Consul token not found");
       return null;
     }
-    return new ConsulAppConfig(consulClient, consulToken);
+    return new ConsulAppConfig(consulClient, consulToken, catalog);
   }
 
   public static AppConfig create(
       String consulHost, Integer consulPort, @Nullable String consulToken) {
+    return create(consulHost, consulPort, consulToken, List.of(new CoreConfigContribution()));
+  }
+
+  public static AppConfig create(
+      String consulHost,
+      Integer consulPort,
+      @Nullable String consulToken,
+      Collection<ConfigContribution> catalog) {
     try {
       return create(
           Consul.builder()
@@ -158,7 +90,8 @@ public class ConsulAppConfig extends AppConfig {
                           .withBackOffDelay(Duration.ofSeconds(30))
                           .build()))
               .build(),
-          consulToken);
+          consulToken,
+          catalog);
     } catch (Exception e) {
       ChatsLogger.warn("Unable to connect to Consul", e);
       return null;

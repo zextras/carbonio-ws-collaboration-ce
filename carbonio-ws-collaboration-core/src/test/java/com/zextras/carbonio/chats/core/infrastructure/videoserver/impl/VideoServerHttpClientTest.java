@@ -216,4 +216,53 @@ class VideoServerHttpClientTest {
             Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(VideoServerMessageRequest.create()));
   }
+
+  @Test
+  @DisplayName("Appends ?service_id to base URL when serverId is set on video server request")
+  void sendVideoServerRequestAppendsServiceIdWhenPresent() throws IOException {
+    VideoServerMessageRequest request = VideoServerMessageRequest.create().serverId("srv-1");
+    String url = videoServerURL + janusEndpoint + "?service_id=srv-1";
+    mockResponse(url, 200, VideoServerResponse.create());
+
+    videoServerHttpClient.sendVideoServerRequest(request);
+
+    verify(httpClient, times(1))
+        .sendPost(
+            url,
+            Map.of("Content-Type", "application/json"),
+            objectMapper.writeValueAsString(request));
+  }
+
+  @Test
+  @DisplayName("Appends ?service_id to connection URL when serverId is set")
+  void sendConnectionVideoServerRequestAppendsServiceIdWhenPresent() throws IOException {
+    VideoServerMessageRequest request = VideoServerMessageRequest.create().serverId("srv-1");
+    String url = videoServerURL + janusEndpoint + "/connectionId" + "?service_id=srv-1";
+    mockResponse(url, 200, VideoServerResponse.create());
+
+    videoServerHttpClient.sendConnectionVideoServerRequest("connectionId", request);
+
+    verify(httpClient, times(1))
+        .sendPost(
+            url,
+            Map.of("Content-Type", "application/json"),
+            objectMapper.writeValueAsString(request));
+  }
+
+  @Test
+  @DisplayName("Appends ?service_id to handle URL when serverId is set on video room request")
+  void sendVideoRoomRequestAppendsServiceIdWhenPresent() throws IOException {
+    VideoServerMessageRequest request = VideoServerMessageRequest.create().serverId("srv-1");
+    String url =
+        videoServerURL + janusEndpoint + "/connectionId" + "/handleId" + "?service_id=srv-1";
+    mockResponse(url, 200, VideoRoomResponse.create());
+
+    videoServerHttpClient.sendVideoRoomRequest("connectionId", "handleId", request);
+
+    verify(httpClient, times(1))
+        .sendPost(
+            url,
+            Map.of("Content-Type", "application/json"),
+            objectMapper.writeValueAsString(request));
+  }
 }

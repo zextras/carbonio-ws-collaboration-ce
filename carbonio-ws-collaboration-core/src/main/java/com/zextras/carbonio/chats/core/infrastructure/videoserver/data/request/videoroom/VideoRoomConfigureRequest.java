@@ -13,7 +13,7 @@ import java.util.Objects;
 /**
  * This class represents the audio bridge request to join a room.
  *
- * @see <a href= "https://janus.conf.meetecho.com/docs/audiobridge.html">AudioBridgeJoinRequest</a>
+ * @see <a href="https://janus.conf.meetecho.com/docs/audiobridge.html">AudioBridgeJoinRequest</a>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)

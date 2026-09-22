@@ -49,7 +49,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   private final MembersService membersService;
   private final ParticipantRepository participantRepository;
   private final VideoServerService videoServerService;
-  private final EventDispatcher eventDispatcher;
+  protected final EventDispatcher eventDispatcher;
   private final Clock clock;
 
   @Inject
@@ -137,7 +137,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   // Handles joining for a permanent meeting
-  private JoinStatus handleScheduledMeetingParticipant(
+  protected JoinStatus handleScheduledMeetingParticipant(
       Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser, Room room) {
 
     boolean isRoomOwner =
@@ -151,7 +151,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   @NotNull
-  private JoinStatus joinMeetingParticipant(
+  protected JoinStatus joinMeetingParticipant(
       Meeting meeting, UserPrincipal currentUser, Room room, JoinSettingsDto joinSettingsDto) {
     if (participantRepository.getById(meeting.getId(), currentUser.getId()).isEmpty()) {
       addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);

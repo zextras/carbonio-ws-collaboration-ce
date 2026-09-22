@@ -86,6 +86,10 @@ public class VideoServerServiceImpl implements VideoServerService {
     this.videoServerConfig = videoServerConfig;
   }
 
+  protected String selectServerId() {
+    return null;
+  }
+
   @Override
   public void startMeeting(String meetingId) {
     if (videoServerMeetingRepository.getById(meetingId).isPresent()) {
@@ -93,16 +97,20 @@ public class VideoServerServiceImpl implements VideoServerService {
       return;
     }
 
-    VideoServerResponse connectionResponse = createMeetingConnection();
+    String serverId = selectServerId();
+
+    VideoServerResponse connectionResponse = createMeetingConnection(serverId);
     String connectionId = connectionResponse.getDataId();
 
     VideoServerResponse audioPluginResponse =
         attachToPlugin(
+            serverId,
             connectionId,
             JANUS_AUDIOBRIDGE_PLUGIN,
             String.format(MEETING_AUDIO_OPAQUE_ID_PATTERN, meetingId));
     VideoServerResponse videoPluginResponse =
         attachToPlugin(
+            serverId,
             connectionId,
             JANUS_VIDEOROOM_PLUGIN,
             String.format(MEETING_VIDEO_OPAQUE_ID_PATTERN, meetingId));
@@ -111,14 +119,16 @@ public class VideoServerServiceImpl implements VideoServerService {
     String videoHandleId = videoPluginResponse.getDataId();
 
     AudioBridgeResponse audioRoomResponse =
-        createAudioBridgeRoom(meetingId, connectionId, audioHandleId);
-    VideoRoomResponse videoRoomResponse = createVideoRoom(meetingId, connectionId, videoHandleId);
+        createAudioBridgeRoom(serverId, meetingId, connectionId, audioHandleId);
+    VideoRoomResponse videoRoomResponse =
+        createVideoRoom(serverId, meetingId, connectionId, videoHandleId);
 
     String audioRoomId = audioRoomResponse.getRoom();
     String videoRoomId = videoRoomResponse.getRoom();
 
     videoServerMeetingRepository.insert(
         VideoServerMeeting.create()
+            .serverId(serverId)
             .meetingId(meetingId)
             .connectionId(connectionId)
             .audioHandleId(audioHandleId)
@@ -127,8 +137,8 @@ public class VideoServerServiceImpl implements VideoServerService {
             .videoRoomId(videoRoomId));
   }
 
-  private VideoServerResponse createMeetingConnection() {
-    VideoServerResponse response = createConnection();
+  private VideoServerResponse createMeetingConnection(String serverId) {
+    VideoServerResponse response = createConnection(serverId);
     if (!JANUS_SUCCESS.equals(response.getStatus())) {
       throw new VideoServerException("Error creating video server connection");
     }
@@ -136,9 +146,9 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private VideoServerResponse attachToPlugin(
-      String connectionId, String pluginType, String opaqueId) {
+      String serverId, String connectionId, String pluginType, String opaqueId) {
     VideoServerResponse response =
-        interactWithConnection(connectionId, JANUS_ATTACH, pluginType, opaqueId);
+        interactWithConnection(serverId, connectionId, JANUS_ATTACH, pluginType, opaqueId);
     if (!JANUS_SUCCESS.equals(response.getStatus())) {
       throw new VideoServerException("Error attaching to plugin " + pluginType);
     }
@@ -146,7 +156,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private AudioBridgeResponse createAudioBridgeRoom(
-      String meetingId, String connectionId, String audioHandleId) {
+      String serverId, String meetingId, String connectionId, String audioHandleId) {
     AudioBridgeCreateRequest audioRequest =
         AudioBridgeCreateRequest.create()
             .request(AudioBridgeCreateRequest.CREATE)
@@ -161,7 +171,7 @@ public class VideoServerServiceImpl implements VideoServerService {
             .audioLevelEvent(true);
 
     AudioBridgeResponse response =
-        sendAudioBridgePluginMessage(connectionId, audioHandleId, audioRequest, null);
+        sendAudioBridgePluginMessage(serverId, connectionId, audioHandleId, audioRequest, null);
     if (!AudioBridgeResponse.CREATED.equals(response.getAudioBridge())) {
       throw new VideoServerException(
           "An error occurred when creating an audiobridge room for the connection "
@@ -175,7 +185,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private VideoRoomResponse createVideoRoom(
-      String meetingId, String connectionId, String videoHandleId) {
+      String serverId, String meetingId, String connectionId, String videoHandleId) {
     VideoRoomCreateRequest videoRequest =
         VideoRoomCreateRequest.create()
             .request(VideoRoomCreateRequest.CREATE)
@@ -194,7 +204,7 @@ public class VideoServerServiceImpl implements VideoServerService {
                     .collect(Collectors.joining(",")));
 
     VideoRoomResponse response =
-        sendVideoRoomPluginMessage(connectionId, videoHandleId, videoRequest, null);
+        sendVideoRoomPluginMessage(serverId, connectionId, videoHandleId, videoRequest, null);
     if (!VideoRoomResponse.CREATED.equals(response.getVideoRoom())) {
       throw new VideoServerException(
           "An error occurred when creating a videoroom room for the connection "
@@ -213,33 +223,40 @@ public class VideoServerServiceImpl implements VideoServerService {
         .getById(meetingId)
         .ifPresent(
             videoServerMeeting -> {
+              String serverId = videoServerMeeting.getServerId();
+
               destroyAudioBridgeRoom(
+                  serverId,
                   meetingId,
                   videoServerMeeting.getConnectionId(),
                   videoServerMeeting.getAudioHandleId(),
                   videoServerMeeting.getAudioRoomId());
               destroyVideoRoom(
+                  serverId,
                   meetingId,
                   videoServerMeeting.getConnectionId(),
                   videoServerMeeting.getVideoHandleId(),
                   videoServerMeeting.getVideoRoomId());
 
               destroyPluginHandle(
+                  serverId,
                   videoServerMeeting.getConnectionId(),
                   videoServerMeeting.getAudioHandleId(),
                   meetingId);
               destroyPluginHandle(
+                  serverId,
                   videoServerMeeting.getConnectionId(),
                   videoServerMeeting.getVideoHandleId(),
                   meetingId);
 
-              destroyConnection(videoServerMeeting.getConnectionId(), meetingId);
+              destroyConnection(serverId, videoServerMeeting.getConnectionId(), meetingId);
               videoServerMeetingRepository.deleteById(meetingId);
             });
   }
 
-  private void destroyPluginHandle(String connectionId, String handleId, String meetingId) {
-    VideoServerResponse response = destroyPluginHandle(connectionId, handleId);
+  private void destroyPluginHandle(
+      String serverId, String connectionId, String handleId, String meetingId) {
+    VideoServerResponse response = destroyPluginHandle(serverId, connectionId, handleId);
     if (!JANUS_SUCCESS.equals(response.getStatus())) {
       ChatsLogger.debug(
           "An error occurred when destroying the plugin handle for the connection "
@@ -251,8 +268,8 @@ public class VideoServerServiceImpl implements VideoServerService {
     }
   }
 
-  private void destroyConnection(String connectionId, String meetingId) {
-    VideoServerResponse response = destroyConnection(connectionId);
+  private void destroyConnection(String serverId, String connectionId, String meetingId) {
+    VideoServerResponse response = destroyConnection(serverId, connectionId);
     if (!JANUS_SUCCESS.equals(response.getStatus())) {
       ChatsLogger.debug(
           "An error occurred when destroying the video server connection "
@@ -263,7 +280,11 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private void destroyVideoRoom(
-      String meetingId, String connectionId, String videoHandleId, String videoRoomId) {
+      String serverId,
+      String meetingId,
+      String connectionId,
+      String videoHandleId,
+      String videoRoomId) {
     VideoRoomDestroyRequest destroyRequest =
         VideoRoomDestroyRequest.create()
             .request(VideoRoomDestroyRequest.DESTROY)
@@ -271,7 +292,7 @@ public class VideoServerServiceImpl implements VideoServerService {
             .permanent(false);
 
     VideoRoomResponse response =
-        sendVideoRoomPluginMessage(connectionId, videoHandleId, destroyRequest, null);
+        sendVideoRoomPluginMessage(serverId, connectionId, videoHandleId, destroyRequest, null);
     if (!VideoRoomResponse.DESTROYED.equals(response.getVideoRoom())) {
       ChatsLogger.debug(
           "An error occurred when destroying the video room for the connection "
@@ -284,7 +305,11 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private void destroyAudioBridgeRoom(
-      String meetingId, String connectionId, String audioHandleId, String audioRoomId) {
+      String serverId,
+      String meetingId,
+      String connectionId,
+      String audioHandleId,
+      String audioRoomId) {
     AudioBridgeDestroyRequest destroyRequest =
         AudioBridgeDestroyRequest.create()
             .request(AudioBridgeDestroyRequest.DESTROY)
@@ -292,7 +317,7 @@ public class VideoServerServiceImpl implements VideoServerService {
             .permanent(false);
 
     AudioBridgeResponse response =
-        sendAudioBridgePluginMessage(connectionId, audioHandleId, destroyRequest, null);
+        sendAudioBridgePluginMessage(serverId, connectionId, audioHandleId, destroyRequest, null);
     if (!AudioBridgeResponse.DESTROYED.equals(response.getAudioBridge())) {
       ChatsLogger.debug(
           "An error occurred when destroying the audio bridge room for the connection "
@@ -313,6 +338,8 @@ public class VideoServerServiceImpl implements VideoServerService {
       boolean audioStreamOn) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
 
+    String serverId = videoServerMeeting.getServerId();
+
     Optional<VideoServerSession> videoServerSession =
         videoServerMeeting.getVideoServerSessions().stream()
             .filter(sessionUser -> sessionUser.getUserId().equals(userId))
@@ -327,34 +354,39 @@ public class VideoServerServiceImpl implements VideoServerService {
       return;
     }
 
-    String connectionId = createConnection().getDataId();
+    String connectionId = createConnection(serverId).getDataId();
 
     String audioHandleId =
         attachToPlugin(
+                serverId,
                 connectionId,
                 JANUS_AUDIOBRIDGE_PLUGIN,
                 String.format(USER_AUDIO_OPAQUE_ID_PATTERN, userId, meetingId))
             .getDataId();
     String videoOutHandleId =
         attachToPlugin(
+                serverId,
                 connectionId,
                 JANUS_VIDEOROOM_PLUGIN,
                 String.format(USER_VIDEO_OUT_OPAQUE_ID_PATTERN, userId, meetingId))
             .getDataId();
     String videoInHandleId =
         attachToPlugin(
+                serverId,
                 connectionId,
                 JANUS_VIDEOROOM_PLUGIN,
                 String.format(USER_VIDEO_IN_OPAQUE_ID_PATTERN, userId, meetingId))
             .getDataId();
     String screenHandleId =
         attachToPlugin(
+                serverId,
                 connectionId,
                 JANUS_VIDEOROOM_PLUGIN,
                 String.format(USER_SCREEN_OPAQUE_ID_PATTERN, userId, meetingId))
             .getDataId();
 
     joinVideoRoomAsPublisher(
+        serverId,
         connectionId,
         userId,
         videoOutHandleId,
@@ -362,6 +394,7 @@ public class VideoServerServiceImpl implements VideoServerService {
         MediaType.VIDEO);
 
     joinVideoRoomAsPublisher(
+        serverId,
         connectionId,
         userId,
         screenHandleId,
@@ -391,6 +424,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private void joinVideoRoomAsPublisher(
+      String serverId,
       String connectionId,
       String userId,
       String videoHandleId,
@@ -398,6 +432,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       MediaType mediaType) {
     VideoRoomResponse videoRoomResponse =
         sendVideoRoomPluginMessage(
+            serverId,
             connectionId,
             videoHandleId,
             VideoRoomJoinRequest.create()
@@ -421,29 +456,44 @@ public class VideoServerServiceImpl implements VideoServerService {
   public void destroyMeetingParticipant(String userId, String meetingId) {
     videoServerMeetingRepository
         .getById(meetingId)
-        .flatMap(
-            videoServerMeeting ->
-                videoServerMeeting.getVideoServerSessions().stream()
-                    .filter(sessionUser -> sessionUser.getUserId().equals(userId))
-                    .findFirst())
         .ifPresent(
-            videoServerSession -> {
-              destroyParticipantSession(meetingId, videoServerSession);
-              videoServerSessionRepository.remove(videoServerSession);
+            videoServerMeeting -> {
+              String serverId = videoServerMeeting.getServerId();
+              videoServerMeeting.getVideoServerSessions().stream()
+                  .filter(sessionUser -> sessionUser.getUserId().equals(userId))
+                  .findFirst()
+                  .ifPresent(
+                      videoServerSession -> {
+                        destroyParticipantSession(serverId, meetingId, videoServerSession);
+                        videoServerSessionRepository.remove(videoServerSession);
+                      });
             });
   }
 
-  private void destroyParticipantSession(String meetingId, VideoServerSession videoServerSession) {
+  private void destroyParticipantSession(
+      String serverId, String meetingId, VideoServerSession videoServerSession) {
     destroyPluginHandle(
-        videoServerSession.getConnectionId(), videoServerSession.getAudioHandleId(), meetingId);
+        serverId,
+        videoServerSession.getConnectionId(),
+        videoServerSession.getAudioHandleId(),
+        meetingId);
     destroyPluginHandle(
-        videoServerSession.getConnectionId(), videoServerSession.getVideoOutHandleId(), meetingId);
+        serverId,
+        videoServerSession.getConnectionId(),
+        videoServerSession.getVideoOutHandleId(),
+        meetingId);
     destroyPluginHandle(
-        videoServerSession.getConnectionId(), videoServerSession.getVideoInHandleId(), meetingId);
+        serverId,
+        videoServerSession.getConnectionId(),
+        videoServerSession.getVideoInHandleId(),
+        meetingId);
     destroyPluginHandle(
-        videoServerSession.getConnectionId(), videoServerSession.getScreenHandleId(), meetingId);
+        serverId,
+        videoServerSession.getConnectionId(),
+        videoServerSession.getScreenHandleId(),
+        meetingId);
 
-    destroyConnection(videoServerSession.getConnectionId(), meetingId);
+    destroyConnection(serverId, videoServerSession.getConnectionId(), meetingId);
   }
 
   @Override
@@ -457,11 +507,13 @@ public class VideoServerServiceImpl implements VideoServerService {
 
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
+    String serverId = videoServerMeeting.getServerId();
 
     try {
       switch (mediaStreamSettingsDto.getType()) {
         case VIDEO ->
             updateVideoStream(
+                serverId,
                 userId,
                 meetingId,
                 videoServerSession,
@@ -469,6 +521,7 @@ public class VideoServerServiceImpl implements VideoServerService {
                 mediaStreamSettingsDto.getSdp());
         case SCREEN ->
             updateScreenStream(
+                serverId,
                 userId,
                 meetingId,
                 videoServerSession,
@@ -482,6 +535,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private void updateVideoStream(
+      String serverId,
       String userId,
       String meetingId,
       VideoServerSession videoServerSession,
@@ -499,6 +553,7 @@ public class VideoServerServiceImpl implements VideoServerService {
 
     if (enabled) {
       publishStreamOnVideoRoom(
+          serverId,
           userId,
           videoServerSession.getConnectionId(),
           videoServerSession.getVideoOutHandleId(),
@@ -510,6 +565,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private void updateScreenStream(
+      String serverId,
       String userId,
       String meetingId,
       VideoServerSession videoServerSession,
@@ -527,6 +583,7 @@ public class VideoServerServiceImpl implements VideoServerService {
 
     if (enabled) {
       publishStreamOnVideoRoom(
+          serverId,
           userId,
           videoServerSession.getConnectionId(),
           videoServerSession.getScreenHandleId(),
@@ -538,10 +595,16 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private void publishStreamOnVideoRoom(
-      String userId, String connectionId, String handleId, String sdp, String mediaType) {
+      String serverId,
+      String userId,
+      String connectionId,
+      String handleId,
+      String sdp,
+      String mediaType) {
 
     VideoRoomResponse videoRoomResponse =
         sendVideoRoomPluginMessage(
+            serverId,
             connectionId,
             handleId,
             VideoRoomPublishRequest.create()
@@ -579,6 +642,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     }
 
     muteAudioStream(
+        videoServerMeeting.getServerId(),
         videoServerMeeting.getConnectionId(),
         videoServerSession.getConnectionId(),
         userId,
@@ -590,6 +654,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private void muteAudioStream(
+      String serverId,
       String meetingConnectionId,
       String connectionId,
       String userId,
@@ -599,6 +664,7 @@ public class VideoServerServiceImpl implements VideoServerService {
 
     AudioBridgeResponse audioBridgeResponse =
         sendAudioBridgePluginMessage(
+            serverId,
             meetingConnectionId,
             meetingAudioHandleId,
             AudioBridgeMuteRequest.create()
@@ -622,12 +688,17 @@ public class VideoServerServiceImpl implements VideoServerService {
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
 
     startVideoIn(
-        videoServerSession.getConnectionId(), videoServerSession.getVideoInHandleId(), sdp);
+        videoServerMeeting.getServerId(),
+        videoServerSession.getConnectionId(),
+        videoServerSession.getVideoInHandleId(),
+        sdp);
   }
 
-  private void startVideoIn(String connectionId, String videoInHandleId, String sdp) {
+  private void startVideoIn(
+      String serverId, String connectionId, String videoInHandleId, String sdp) {
     VideoRoomResponse videoRoomResponse =
         sendVideoRoomPluginMessage(
+            serverId,
             connectionId,
             videoInHandleId,
             VideoRoomStartVideoInRequest.create().request(VideoRoomStartVideoInRequest.START),
@@ -647,9 +718,11 @@ public class VideoServerServiceImpl implements VideoServerService {
       String userId, String meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
+    String serverId = videoServerMeeting.getServerId();
 
     if (!videoServerSession.hasVideoInStreamOn()) {
       joinVideoRoomAsSubscriber(
+          serverId,
           videoServerSession.getConnectionId(),
           userId,
           videoServerSession.getVideoInHandleId(),
@@ -658,6 +731,7 @@ public class VideoServerServiceImpl implements VideoServerService {
       videoServerSessionRepository.update(videoServerSession.videoInStreamOn(true));
     } else {
       updateSubscriptions(
+          serverId,
           videoServerSession.getConnectionId(),
           userId,
           videoServerSession.getVideoInHandleId(),
@@ -666,6 +740,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private void joinVideoRoomAsSubscriber(
+      String serverId,
       String connectionId,
       String userId,
       String videoHandleId,
@@ -674,6 +749,7 @@ public class VideoServerServiceImpl implements VideoServerService {
 
     VideoRoomResponse videoRoomResponse =
         sendVideoRoomPluginMessage(
+            serverId,
             connectionId,
             videoHandleId,
             VideoRoomJoinRequest.create()
@@ -710,6 +786,7 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private void updateSubscriptions(
+      String serverId,
       String connectionId,
       String userId,
       String videoInHandleId,
@@ -717,6 +794,7 @@ public class VideoServerServiceImpl implements VideoServerService {
 
     VideoRoomResponse videoRoomResponse =
         sendVideoRoomPluginMessage(
+            serverId,
             connectionId,
             videoInHandleId,
             VideoRoomUpdateSubscriptionsRequest.create()
@@ -773,6 +851,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
 
     joinAudioBridgeRoom(
+        videoServerMeeting.getServerId(),
         userId,
         videoServerSession.getConnectionId(),
         videoServerSession.getAudioHandleId(),
@@ -781,10 +860,16 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   private void joinAudioBridgeRoom(
-      String userId, String connectionId, String audioHandleId, String audioRoomId, String sdp) {
+      String serverId,
+      String userId,
+      String connectionId,
+      String audioHandleId,
+      String audioRoomId,
+      String sdp) {
 
     AudioBridgeResponse audioBridgeResponse =
         sendAudioBridgePluginMessage(
+            serverId,
             connectionId,
             audioHandleId,
             AudioBridgeJoinRequest.create()
@@ -817,13 +902,18 @@ public class VideoServerServiceImpl implements VideoServerService {
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
 
     iceRestartAudioWithSdp(
-        videoServerSession.getConnectionId(), videoServerSession.getAudioHandleId(), sdp);
+        videoServerMeeting.getServerId(),
+        videoServerSession.getConnectionId(),
+        videoServerSession.getAudioHandleId(),
+        sdp);
   }
 
-  private void iceRestartAudioWithSdp(String connectionId, String audioHandleId, String sdp) {
+  private void iceRestartAudioWithSdp(
+      String serverId, String connectionId, String audioHandleId, String sdp) {
 
     AudioBridgeResponse audioBridgeResponse =
         sendAudioBridgePluginMessage(
+            serverId,
             connectionId,
             audioHandleId,
             AudioBridgeConfigureRequest.create().request(AudioBridgeConfigureRequest.CONFIGURE),
@@ -841,20 +931,25 @@ public class VideoServerServiceImpl implements VideoServerService {
   public void iceRestartVideo(String userId, String meetingId, @Nullable String sdp) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
+    String serverId = videoServerMeeting.getServerId();
 
     if (sdp == null) {
-      iceRestartVideo(
-          videoServerSession.getConnectionId(), videoServerSession.getVideoInHandleId());
+      iceRestartVideoIn(
+          serverId, videoServerSession.getConnectionId(), videoServerSession.getVideoInHandleId());
     } else {
       iceRestartVideoWithSdp(
-          videoServerSession.getConnectionId(), videoServerSession.getVideoOutHandleId(), sdp);
+          serverId,
+          videoServerSession.getConnectionId(),
+          videoServerSession.getVideoOutHandleId(),
+          sdp);
     }
   }
 
-  private void iceRestartVideo(String connectionId, String videoInHandleId) {
+  private void iceRestartVideoIn(String serverId, String connectionId, String videoInHandleId) {
 
     VideoRoomResponse videoRoomResponse =
         sendVideoRoomPluginMessage(
+            serverId,
             connectionId,
             videoInHandleId,
             VideoRoomConfigureRequest.create()
@@ -870,10 +965,12 @@ public class VideoServerServiceImpl implements VideoServerService {
     }
   }
 
-  private void iceRestartVideoWithSdp(String connectionId, String videoOutHandleId, String sdp) {
+  private void iceRestartVideoWithSdp(
+      String serverId, String connectionId, String videoOutHandleId, String sdp) {
 
     VideoRoomResponse videoRoomResponse =
         sendVideoRoomPluginMessage(
+            serverId,
             connectionId,
             videoOutHandleId,
             VideoRoomConfigureRequest.create().request(VideoRoomConfigureRequest.CONFIGURE),
@@ -893,13 +990,18 @@ public class VideoServerServiceImpl implements VideoServerService {
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
 
     iceRestartScreenWithSdp(
-        videoServerSession.getConnectionId(), videoServerSession.getScreenHandleId(), sdp);
+        videoServerMeeting.getServerId(),
+        videoServerSession.getConnectionId(),
+        videoServerSession.getScreenHandleId(),
+        sdp);
   }
 
-  private void iceRestartScreenWithSdp(String connectionId, String screenHandleId, String sdp) {
+  private void iceRestartScreenWithSdp(
+      String serverId, String connectionId, String screenHandleId, String sdp) {
 
     VideoRoomResponse videoRoomResponse =
         sendVideoRoomPluginMessage(
+            serverId,
             connectionId,
             screenHandleId,
             VideoRoomConfigureRequest.create().request(VideoRoomConfigureRequest.CONFIGURE),
@@ -913,7 +1015,7 @@ public class VideoServerServiceImpl implements VideoServerService {
     }
   }
 
-  private VideoServerMeeting getVideoServerMeeting(String meetingId) {
+  protected VideoServerMeeting getVideoServerMeeting(String meetingId) {
     return videoServerMeetingRepository
         .getById(meetingId)
         .orElseThrow(
@@ -955,30 +1057,34 @@ public class VideoServerServiceImpl implements VideoServerService {
   /**
    * This method creates a 'connection' (session) on the VideoServer.
    *
+   * @param serverId the nullable server id for routing
    * @return VideoServerResponse
    */
-  private VideoServerResponse createConnection() {
+  private VideoServerResponse createConnection(String serverId) {
     VideoServerMessageRequest request =
         VideoServerMessageRequest.create()
             .messageRequest(JANUS_CREATE)
             .transactionId(UUID.randomUUID().toString())
             .apiSecret(videoServerConfig.getApiSecret());
+    request.serverId(serverId);
     return videoServerClient.sendVideoServerRequest(request);
   }
 
   /**
    * This method destroys a specified connection on the VideoServer.
    *
+   * @param serverId the nullable server id for routing
    * @param connectionId the 'connection' (session) id
    * @return VideoServerResponse
    */
-  private VideoServerResponse destroyConnection(String connectionId) {
-    return interactWithConnection(connectionId, JANUS_DESTROY, null, null);
+  private VideoServerResponse destroyConnection(String serverId, String connectionId) {
+    return interactWithConnection(serverId, connectionId, JANUS_DESTROY, null, null);
   }
 
   /**
    * This method allows interaction with a connection on the VideoServer.
    *
+   * @param serverId the nullable server id for routing
    * @param connectionId the 'connection' (session) id created on the VideoServer
    * @param action the action to perform on this 'connection' (session)
    * @param opaqueId the user id or meeting id associated to this handle-session on the VideoServer
@@ -986,7 +1092,11 @@ public class VideoServerServiceImpl implements VideoServerService {
    * @return VideoServerResponse
    */
   private VideoServerResponse interactWithConnection(
-      String connectionId, String action, @Nullable String pluginName, @Nullable String opaqueId) {
+      String serverId,
+      String connectionId,
+      String action,
+      @Nullable String pluginName,
+      @Nullable String opaqueId) {
 
     VideoServerMessageRequest request =
         VideoServerMessageRequest.create()
@@ -995,6 +1105,7 @@ public class VideoServerServiceImpl implements VideoServerService {
             .apiSecret(videoServerConfig.getApiSecret());
     Optional.ofNullable(pluginName).ifPresent(request::pluginName);
     Optional.ofNullable(opaqueId).ifPresent(request::opaqueId);
+    request.serverId(serverId);
 
     return videoServerClient.sendConnectionVideoServerRequest(connectionId, request);
   }
@@ -1002,28 +1113,33 @@ public class VideoServerServiceImpl implements VideoServerService {
   /**
    * This method destroys the previously attached plugin handle.
    *
+   * @param serverId the nullable server id for routing
    * @param connectionId the 'connection' (session) id
    * @param handleId the plugin handle id
    * @return VideoServerResponse
    */
-  private VideoServerResponse destroyPluginHandle(String connectionId, String handleId) {
-    return sendDetachPluginMessage(connectionId, handleId);
+  private VideoServerResponse destroyPluginHandle(
+      String serverId, String connectionId, String handleId) {
+    return sendDetachPluginMessage(serverId, connectionId, handleId);
   }
 
   /**
    * This method detaches the audio bridge plugin handle.
    *
+   * @param serverId the nullable server id for routing
    * @param connectionId the 'connection' (session) id
    * @param handleId the previously attached plugin handle id
    * @return VideoServerResponse
    */
-  private VideoServerResponse sendDetachPluginMessage(String connectionId, String handleId) {
+  private VideoServerResponse sendDetachPluginMessage(
+      String serverId, String connectionId, String handleId) {
 
     VideoServerMessageRequest request =
         VideoServerMessageRequest.create()
             .messageRequest(VideoServerServiceImpl.JANUS_DETACH)
             .transactionId(UUID.randomUUID().toString())
             .apiSecret(videoServerConfig.getApiSecret());
+    request.serverId(serverId);
 
     return videoServerClient.sendHandleVideoServerRequest(connectionId, handleId, request);
   }
@@ -1031,13 +1147,15 @@ public class VideoServerServiceImpl implements VideoServerService {
   /**
    * This method sends a message to an audio bridge plugin.
    *
+   * @param serverId the nullable server id for routing
    * @param connectionId the 'connection' (session) id
    * @param handleId the audio bridge plugin handle id
    * @param videoServerPluginRequest the plugin request body
    * @param rtcSessionDescription the WebRTC negotiation session description (optional)
    * @return AudioBridgeResponse
    */
-  private AudioBridgeResponse sendAudioBridgePluginMessage(
+  protected AudioBridgeResponse sendAudioBridgePluginMessage(
+      String serverId,
       String connectionId,
       String handleId,
       VideoServerPluginRequest videoServerPluginRequest,
@@ -1050,6 +1168,7 @@ public class VideoServerServiceImpl implements VideoServerService {
             .videoServerPluginRequest(videoServerPluginRequest)
             .apiSecret(videoServerConfig.getApiSecret());
     Optional.ofNullable(rtcSessionDescription).ifPresent(request::rtcSessionDescription);
+    request.serverId(serverId);
 
     return videoServerClient.sendAudioBridgeRequest(connectionId, handleId, request);
   }
@@ -1057,13 +1176,15 @@ public class VideoServerServiceImpl implements VideoServerService {
   /**
    * This method sends a message to a video room plugin.
    *
+   * @param serverId the nullable server id for routing
    * @param connectionId the 'connection' (session) id
    * @param handleId the video room plugin handle id
    * @param videoServerPluginRequest the plugin request body
    * @param rtcSessionDescription the WebRTC negotiation session description (optional)
    * @return VideoRoomResponse
    */
-  private VideoRoomResponse sendVideoRoomPluginMessage(
+  protected VideoRoomResponse sendVideoRoomPluginMessage(
+      String serverId,
       String connectionId,
       String handleId,
       VideoServerPluginRequest videoServerPluginRequest,
@@ -1076,6 +1197,7 @@ public class VideoServerServiceImpl implements VideoServerService {
             .videoServerPluginRequest(videoServerPluginRequest)
             .apiSecret(videoServerConfig.getApiSecret());
     Optional.ofNullable(rtcSessionDescription).ifPresent(request::rtcSessionDescription);
+    request.serverId(serverId);
 
     return videoServerClient.sendVideoRoomRequest(connectionId, handleId, request);
   }
