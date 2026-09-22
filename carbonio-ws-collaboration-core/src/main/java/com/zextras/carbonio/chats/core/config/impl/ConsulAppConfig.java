@@ -13,7 +13,6 @@ import com.orbitz.consul.model.kv.Value;
 import com.orbitz.consul.option.ImmutableQueryOptions;
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigContribution;
-import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import jakarta.annotation.Nullable;
 import java.net.URL;
@@ -30,7 +29,7 @@ public class ConsulAppConfig extends AppConfig {
   private final List<KVCache> kvCacheList;
   private final String consulToken;
   private final Map<String, String> cache;
-  private final Map<ConfigName, String> namesMapping;
+  private final Map<String, String> namesMapping;
 
   private boolean loaded = false;
 
@@ -46,16 +45,21 @@ public class ConsulAppConfig extends AppConfig {
     namesMapping.values().forEach(consulName -> cache.put(consulName, null));
   }
 
-  private static Map<ConfigName, String> mergeConsulKvMappings(
-      Collection<ConfigContribution> catalog) {
-    Map<ConfigName, String> merged = new EnumMap<>(ConfigName.class);
-    catalog.forEach(contribution -> merged.putAll(contribution.consulKvMappings()));
+  private static Map<String, String> mergeConsulKvMappings(Collection<ConfigContribution> catalog) {
+    Map<String, String> merged = new HashMap<>();
+    catalog.forEach(
+        contribution ->
+            contribution
+                .consulKvMappings()
+                .forEach(
+                    (name, consulName) -> {
+                      if (merged.containsKey(name)) {
+                        throw new IllegalStateException(
+                            "Duplicate Consul KV mapping for config key " + name);
+                      }
+                      merged.put(name, consulName);
+                    }));
     return merged;
-  }
-
-  public static AppConfig create(Consul consulClient, @Nullable String consulToken) {
-    // No-catalog overload: CE's own key set, preserving pre-registry behavior.
-    return create(consulClient, consulToken, List.of(new CoreConfigContribution()));
   }
 
   public static AppConfig create(
@@ -65,11 +69,6 @@ public class ConsulAppConfig extends AppConfig {
       return null;
     }
     return new ConsulAppConfig(consulClient, consulToken, catalog);
-  }
-
-  public static AppConfig create(
-      String consulHost, Integer consulPort, @Nullable String consulToken) {
-    return create(consulHost, consulPort, consulToken, List.of(new CoreConfigContribution()));
   }
 
   public static AppConfig create(
@@ -138,18 +137,18 @@ public class ConsulAppConfig extends AppConfig {
   }
 
   @Override
-  protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigName configName) {
-    String consulName = namesMapping.get(configName);
+  protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, String key) {
+    String consulName = namesMapping.get(key);
     if (consulName == null) {
       return Optional.empty();
     }
     try {
       cache.computeIfAbsent(
           consulName,
-          key ->
+          cacheKey ->
               consulClient
                   .keyValueClient()
-                  .getValue(key, ImmutableQueryOptions.builder().token(consulToken).build())
+                  .getValue(cacheKey, ImmutableQueryOptions.builder().token(consulToken).build())
                   .flatMap(Value::getValueAsString)
                   .orElse(null));
       return Optional.ofNullable(cache.get(consulName))
@@ -158,13 +157,13 @@ public class ConsulAppConfig extends AppConfig {
       ChatsLogger.debug(
           String.format(
               "Error while reading %s from consul config: %s: %s",
-              configName, ex.getClass().getSimpleName(), ex.getMessage()));
+              key, ex.getClass().getSimpleName(), ex.getMessage()));
       return Optional.empty();
     }
   }
 
   @Override
-  protected boolean setConfigByImplementation(ConfigName configName, String value) {
+  protected boolean setConfigByImplementation(String key, String value) {
     return false;
   }
 

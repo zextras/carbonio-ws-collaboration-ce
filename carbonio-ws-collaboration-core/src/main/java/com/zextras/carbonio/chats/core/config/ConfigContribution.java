@@ -16,15 +16,15 @@ import java.util.Set;
  */
 public interface ConfigContribution {
 
-  default Map<ConfigName, String> consulKvMappings() {
+  default Map<String, String> consulKvMappings() {
     return Collections.emptyMap();
   }
 
-  default Set<ConfigName> environmentKeys() {
+  default Set<String> environmentKeys() {
     return Collections.emptySet();
   }
 
-  default Map<ConfigName, String> infrastructureDefaults() {
+  default Map<String, String> infrastructureDefaults() {
     return Collections.emptyMap();
   }
 }

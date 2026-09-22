@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.it.config;
 
 import com.zextras.carbonio.chats.core.config.AppConfig;
-import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.impl.AppConfigType;
 import java.util.Optional;
 
@@ -28,14 +27,13 @@ public class TestAppConfig extends AppConfig {
   }
 
   @Override
-  protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigName configName) {
-    return InMemoryConfigStore.get(configName)
-        .map((stringValue) -> castToGeneric(clazz, stringValue));
+  protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, String key) {
+    return InMemoryConfigStore.get(key).map((stringValue) -> castToGeneric(clazz, stringValue));
   }
 
   @Override
-  protected boolean setConfigByImplementation(ConfigName configName, String value) {
-    InMemoryConfigStore.set(configName, value);
+  protected boolean setConfigByImplementation(String key, String value) {
+    InMemoryConfigStore.set(key, value);
     return true;
   }
 

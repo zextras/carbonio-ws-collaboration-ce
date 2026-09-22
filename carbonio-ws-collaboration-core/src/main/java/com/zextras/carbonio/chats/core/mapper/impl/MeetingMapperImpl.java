@@ -31,21 +31,30 @@ public class MeetingMapperImpl implements MeetingMapper {
     if (meeting == null) {
       return null;
     }
-    MeetingDto dto =
-        MeetingDto.create()
-            .id(UUID.fromString(meeting.getId()))
-            .roomId(UUID.fromString(meeting.getRoomId()))
-            .meetingType(MeetingTypeDto.fromString(meeting.getMeetingType().toString()))
-            .name(meeting.getName())
-            .createdAt(meeting.getCreatedAt())
-            .startedAt(meeting.getStartedAt())
-            .active(meeting.getActive())
-            .participants(participantMapper.ent2dto(meeting.getParticipants()));
+    MeetingDto dto = toDto(meeting);
     enrich(dto, meeting);
     return dto;
   }
 
+  private MeetingDto toDto(Meeting meeting) {
+    return MeetingDto.create()
+        .id(UUID.fromString(meeting.getId()))
+        .roomId(UUID.fromString(meeting.getRoomId()))
+        .meetingType(MeetingTypeDto.fromString(meeting.getMeetingType().toString()))
+        .name(meeting.getName())
+        .createdAt(meeting.getCreatedAt())
+        .startedAt(meeting.getStartedAt())
+        .active(meeting.getActive())
+        .participants(participantMapper.ent2dto(meeting.getParticipants()));
+  }
+
   protected void enrich(MeetingDto dto, Meeting meeting) {}
+
+  protected void enrich(List<MeetingDto> dtos, List<Meeting> meetings) {
+    for (int i = 0; i < meetings.size(); i++) {
+      enrich(dtos.get(i), meetings.get(i));
+    }
+  }
 
   @Override
   @Nullable
@@ -53,6 +62,8 @@ public class MeetingMapperImpl implements MeetingMapper {
     if (meetings == null) {
       return List.of();
     }
-    return meetings.stream().map(this::ent2dto).toList();
+    List<MeetingDto> dtos = meetings.stream().map(this::toDto).toList();
+    enrich(dtos, meetings);
+    return dtos;
   }
 }

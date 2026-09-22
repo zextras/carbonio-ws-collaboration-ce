@@ -136,7 +136,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     };
   }
 
-  // Handles joining for a permanent meeting
+  // Handles joining for a scheduled meeting
   protected JoinStatus handleScheduledMeetingParticipant(
       Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser, Room room) {
 

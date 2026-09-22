@@ -22,7 +22,7 @@ public class VideoServerMeeting {
   @Column(name = "MEETING_ID", length = 64, nullable = false)
   private String meetingId;
 
-  @Column(name = "SERVER_ID", length = 64, nullable = false)
+  @Column(name = "SERVER_ID", length = 64, nullable = true)
   private String serverId;
 
   @Column(name = "CONNECTION_ID", length = 64, nullable = false)

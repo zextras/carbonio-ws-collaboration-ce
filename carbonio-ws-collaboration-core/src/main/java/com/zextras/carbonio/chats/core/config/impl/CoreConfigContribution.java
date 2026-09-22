@@ -8,8 +8,10 @@ import com.zextras.carbonio.chats.core.config.ConfigContribution;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /** CE's own configuration keys, edition-free. Enterprise keys are contributed by Advanced. */
 public class CoreConfigContribution implements ConfigContribution {
@@ -17,7 +19,7 @@ public class CoreConfigContribution implements ConfigContribution {
   private static final String LOCAL_SERVICE_ADDRESS = "127.78.0.4";
 
   @Override
-  public Map<ConfigName, String> consulKvMappings() {
+  public Map<String, String> consulKvMappings() {
     Map<ConfigName, String> mappings = new EnumMap<>(ConfigName.class);
     mappings.put(ConfigName.DATABASE_USERNAME, "carbonio-ws-collaboration-db/db-username");
     mappings.put(ConfigName.DATABASE_PASSWORD, "carbonio-ws-collaboration-db/db-password");
@@ -102,40 +104,41 @@ public class CoreConfigContribution implements ConfigContribution {
     mappings.put(ConfigName.MIN_THREADS, "carbonio-ws-collaboration/server/min-threads");
     mappings.put(
         ConfigName.MAX_QUEUE_REQUESTS, "carbonio-ws-collaboration/server/max-queue-requests");
-    return mappings;
+    return toNames(mappings);
   }
 
   @Override
-  public Set<ConfigName> environmentKeys() {
-    return EnumSet.of(
-        ConfigName.DATABASE_JDBC_URL,
-        ConfigName.CONSUL_HOST,
-        ConfigName.CONSUL_PORT,
-        ConfigName.USER_MANAGEMENT_HOST,
-        ConfigName.USER_MANAGEMENT_PORT,
-        ConfigName.PREVIEWER_HOST,
-        ConfigName.PREVIEWER_PORT,
-        ConfigName.XMPP_SERVER_HOST,
-        ConfigName.XMPP_SERVER_HTTP_PORT,
-        ConfigName.XMPP_SERVER_USERNAME,
-        ConfigName.XMPP_SERVER_PASSWORD,
-        ConfigName.EVENT_DISPATCHER_HOST,
-        ConfigName.EVENT_DISPATCHER_PORT,
-        ConfigName.EVENT_DISPATCHER_USER_USERNAME,
-        ConfigName.EVENT_DISPATCHER_USER_PASSWORD,
-        ConfigName.VIDEO_SERVER_HOST,
-        ConfigName.VIDEO_SERVER_PORT,
-        ConfigName.STORAGES_HOST,
-        ConfigName.STORAGES_PORT,
-        ConfigName.VIDEO_SERVER_TOKEN,
-        ConfigName.VIDEO_ROOM_BITRATE,
-        ConfigName.VIDEO_ROOM_BITRATE_CAP,
-        ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST,
-        ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT);
+  public Set<String> environmentKeys() {
+    return toNames(
+        EnumSet.of(
+            ConfigName.DATABASE_JDBC_URL,
+            ConfigName.CONSUL_HOST,
+            ConfigName.CONSUL_PORT,
+            ConfigName.USER_MANAGEMENT_HOST,
+            ConfigName.USER_MANAGEMENT_PORT,
+            ConfigName.PREVIEWER_HOST,
+            ConfigName.PREVIEWER_PORT,
+            ConfigName.XMPP_SERVER_HOST,
+            ConfigName.XMPP_SERVER_HTTP_PORT,
+            ConfigName.XMPP_SERVER_USERNAME,
+            ConfigName.XMPP_SERVER_PASSWORD,
+            ConfigName.EVENT_DISPATCHER_HOST,
+            ConfigName.EVENT_DISPATCHER_PORT,
+            ConfigName.EVENT_DISPATCHER_USER_USERNAME,
+            ConfigName.EVENT_DISPATCHER_USER_PASSWORD,
+            ConfigName.VIDEO_SERVER_HOST,
+            ConfigName.VIDEO_SERVER_PORT,
+            ConfigName.STORAGES_HOST,
+            ConfigName.STORAGES_PORT,
+            ConfigName.VIDEO_SERVER_TOKEN,
+            ConfigName.VIDEO_ROOM_BITRATE,
+            ConfigName.VIDEO_ROOM_BITRATE_CAP,
+            ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST,
+            ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT));
   }
 
   @Override
-  public Map<ConfigName, String> infrastructureDefaults() {
+  public Map<String, String> infrastructureDefaults() {
     Map<ConfigName, String> defaults = new EnumMap<>(ConfigName.class);
     defaults.put(
         ConfigName.DATABASE_JDBC_URL,
@@ -156,6 +159,16 @@ public class CoreConfigContribution implements ConfigContribution {
     defaults.put(ConfigName.VIDEO_SERVER_PORT, "20006");
     defaults.put(ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST, LOCAL_SERVICE_ADDRESS);
     defaults.put(ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT, "20012");
-    return defaults;
+    return toNames(defaults);
+  }
+
+  private static Map<String, String> toNames(Map<ConfigName, String> map) {
+    Map<String, String> result = new HashMap<>();
+    map.forEach((key, value) -> result.put(key.name(), value));
+    return result;
+  }
+
+  private static Set<String> toNames(Set<ConfigName> keys) {
+    return keys.stream().map(ConfigName::name).collect(Collectors.toSet());
   }
 }

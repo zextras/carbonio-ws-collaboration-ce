@@ -24,17 +24,6 @@ public interface RoomUserSettingsRepository {
   Optional<RoomUserSettings> getByRoomIdAndUserId(String roomId, String userId);
 
   /**
-   * Returns a map of required rooms settings for the user
-   *
-   * @param roomsIds list of required rooms identifiers
-   * @param userId user identifier
-   * @return {@link Map} with the room id {@link String} as the key and that room settings {@link
-   *     RoomUserSettings} as the value
-   */
-  Map<String, RoomUserSettings> getMapByRoomsIdsAndUserIdGroupedByRoomsIds(
-      List<String> roomsIds, String userId);
-
-  /**
    * Returns a list of every room settings set by the user
    *
    * @param userId user identifier

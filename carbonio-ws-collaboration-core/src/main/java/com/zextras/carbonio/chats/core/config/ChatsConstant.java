@@ -7,18 +7,14 @@ package com.zextras.carbonio.chats.core.config;
 public class ChatsConstant {
 
   public static final String LOGGER_CONFIG_PATH = "/etc/carbonio/ws-collaboration/logback.xml";
-  public static final String VIDEO_RECORDINGS_PATH_DEFAULT = "/var/lib/videoserver/recordings/";
 
   public static final String IS_UNICODE_FORMAT_REGEX = "[\\\\[uU][a-fA-F0-9]{4}]*";
 
   public static final String API_VERSION_HEADER = "X-WSC-API-VERSION";
 
-  public static final String LICENSE_FEATURE_ID = "wsc_basic";
-
   public static class CONFIGURATIONS_DEFAULT_VALUES {
 
     public static final boolean CAN_VIDEO_CALL = true;
-    public static final boolean CAN_VIDEO_CALL_RECORD = true;
     public static final boolean CAN_USE_VIRTUAL_BACKGROUND = true;
     public static final boolean CAN_SEE_MESSAGE_READS = true;
     public static final boolean CAN_SEE_USERS_PRESENCE = true;

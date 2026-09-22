@@ -16,6 +16,7 @@ import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.response.videoroom.VideoRoomResponse;
 import com.zextras.carbonio.chats.core.web.utility.HttpClient;
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.apache.commons.io.IOUtils;
@@ -177,7 +178,12 @@ public class VideoServerHttpClient implements VideoServerClient {
 
   private String withServiceId(String url, VideoServerMessageRequest request) {
     String serverId = request.getServerId();
-    return serverId == null ? url : url + String.format(VIDEOSERVER_ROUTING_QUERY_PARAM, serverId);
+    return serverId == null
+        ? url
+        : url
+            + String.format(
+                VIDEOSERVER_ROUTING_QUERY_PARAM,
+                URLEncoder.encode(serverId, StandardCharsets.UTF_8));
   }
 
   private String buildVideoServerUrl() {

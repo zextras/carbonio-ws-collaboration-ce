@@ -6,30 +6,29 @@ package com.zextras.carbonio.chats.core.config.impl;
 
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigContribution;
-import com.zextras.carbonio.chats.core.config.ConfigName;
 import java.util.Collection;
-import java.util.EnumMap;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 public class EnvironmentAppConfig extends AppConfig {
   private static final AppConfigType CONFIG_TYPE = AppConfigType.DOCKER;
 
-  private final Map<ConfigName, String> configs;
+  private final Map<String, String> configs;
 
   private EnvironmentAppConfig(Collection<ConfigContribution> catalog) {
-    this.configs = new EnumMap<>(ConfigName.class);
+    this.configs = new HashMap<>();
     catalog.forEach(
         contribution ->
             contribution
                 .environmentKeys()
-                .forEach(key -> configs.put(key, System.getenv(key.name()))));
-  }
-
-  public static AppConfig create() {
-    // No-catalog overload: CE's own key set, preserving pre-registry behavior.
-    return create(List.of(new CoreConfigContribution()));
+                .forEach(
+                    key -> {
+                      if (configs.containsKey(key)) {
+                        throw new IllegalStateException("Duplicate environment key " + key);
+                      }
+                      configs.put(key, System.getenv(key));
+                    }));
   }
 
   public static AppConfig create(Collection<ConfigContribution> catalog) {
@@ -47,13 +46,13 @@ public class EnvironmentAppConfig extends AppConfig {
   }
 
   @Override
-  protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigName configName) {
-    return Optional.ofNullable(configs.get(configName))
+  protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, String key) {
+    return Optional.ofNullable(configs.get(key))
         .map((stringValue) -> castToGeneric(clazz, stringValue));
   }
 
   @Override
-  protected boolean setConfigByImplementation(ConfigName configName, String value) {
+  protected boolean setConfigByImplementation(String key, String value) {
     return false;
   }
 

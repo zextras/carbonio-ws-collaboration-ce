@@ -162,6 +162,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
         && Objects.equals(getPermanent(), that.getPermanent())
         && Objects.equals(getDescription(), that.getDescription())
         && Objects.equals(getIsPrivate(), that.getIsPrivate())
+        && Objects.equals(getVideoorientExt(), that.getVideoorientExt())
         && Objects.equals(getPublishers(), that.getPublishers())
         && Objects.equals(getBitrate(), that.getBitrate())
         && Objects.equals(getBitrateCap(), that.getBitrateCap())
@@ -178,6 +179,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
         getPermanent(),
         getDescription(),
         getIsPrivate(),
+        getVideoorientExt(),
         getPublishers(),
         getBitrate(),
         getBitrateCap(),

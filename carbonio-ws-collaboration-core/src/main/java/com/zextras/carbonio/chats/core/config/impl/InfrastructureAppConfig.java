@@ -6,10 +6,8 @@ package com.zextras.carbonio.chats.core.config.impl;
 
 import com.zextras.carbonio.chats.core.config.AppConfig;
 import com.zextras.carbonio.chats.core.config.ConfigContribution;
-import com.zextras.carbonio.chats.core.config.ConfigName;
 import java.util.Collection;
-import java.util.EnumMap;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -17,16 +15,22 @@ public class InfrastructureAppConfig extends AppConfig {
 
   private static final AppConfigType CONFIG_TYPE = AppConfigType.INFRASTRUCTURE;
 
-  private final Map<ConfigName, String> configs;
+  private final Map<String, String> configs;
 
   private InfrastructureAppConfig(Collection<ConfigContribution> catalog) {
-    this.configs = new EnumMap<>(ConfigName.class);
-    catalog.forEach(contribution -> configs.putAll(contribution.infrastructureDefaults()));
-  }
-
-  public static AppConfig create() {
-    // No-catalog overload: CE's own defaults, preserving pre-registry behavior.
-    return create(List.of(new CoreConfigContribution()));
+    this.configs = new HashMap<>();
+    catalog.forEach(
+        contribution ->
+            contribution
+                .infrastructureDefaults()
+                .forEach(
+                    (key, value) -> {
+                      if (configs.containsKey(key)) {
+                        throw new IllegalStateException(
+                            "Duplicate infrastructure default for config key " + key);
+                      }
+                      configs.put(key, value);
+                    }));
   }
 
   public static AppConfig create(Collection<ConfigContribution> catalog) {
@@ -44,13 +48,13 @@ public class InfrastructureAppConfig extends AppConfig {
   }
 
   @Override
-  protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigName configName) {
-    return Optional.ofNullable(configs.get(configName))
+  protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, String key) {
+    return Optional.ofNullable(configs.get(key))
         .map((stringValue) -> castToGeneric(clazz, stringValue));
   }
 
   @Override
-  protected boolean setConfigByImplementation(ConfigName configName, String value) {
+  protected boolean setConfigByImplementation(String key, String value) {
     return false;
   }
 

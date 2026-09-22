@@ -34,18 +34,6 @@ public class EbeanRoomUserSettingsRepository implements RoomUserSettingsReposito
   }
 
   @Override
-  public Map<String, RoomUserSettings> getMapByRoomsIdsAndUserIdGroupedByRoomsIds(
-      List<String> roomsIds, String userId) {
-    return db.find(RoomUserSettings.class)
-        .where()
-        .eq("userId", userId)
-        .and()
-        .in("id.roomId", roomsIds)
-        .setMapKey("id.roomId")
-        .findMap();
-  }
-
-  @Override
   public List<RoomUserSettings> getByUserId(String userId) {
     return db.find(RoomUserSettings.class).where().eq("userId", userId).findList();
   }
