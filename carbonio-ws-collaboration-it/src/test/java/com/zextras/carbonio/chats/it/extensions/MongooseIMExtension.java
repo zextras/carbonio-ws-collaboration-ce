@@ -25,7 +25,6 @@ public class MongooseIMExtension
 
   private static final Namespace EXTENSION_NAMESPACE = Namespace.create(MongooseIMExtension.class);
   private static final String CLIENT_STORE_ENTRY = "mongoose_client";
-  private static final int PORT = 8763;
   private static final String HOST = "localhost";
   private static final String USERNAME = "username";
   private static final String PASSWORD = "password";
@@ -39,9 +38,10 @@ public class MongooseIMExtension
             CLIENT_STORE_ENTRY,
             (key) -> {
               ChatsLogger.debug("Starting MongooseIM client mock...");
-              MongooseImMockServer client = new MongooseImMockServer(PORT);
+              MongooseImMockServer client = new MongooseImMockServer(0);
               InMemoryConfigStore.set(ConfigName.XMPP_SERVER_HOST, HOST);
-              InMemoryConfigStore.set(ConfigName.XMPP_SERVER_HTTP_PORT, Integer.toString(PORT));
+              InMemoryConfigStore.set(
+                  ConfigName.XMPP_SERVER_HTTP_PORT, Integer.toString(client.getLocalPort()));
               InMemoryConfigStore.set(ConfigName.XMPP_SERVER_USERNAME, USERNAME);
               InMemoryConfigStore.set(ConfigName.XMPP_SERVER_PASSWORD, PASSWORD);
               return client;

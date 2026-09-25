@@ -1,0 +1,129 @@
+# SPDX-FileCopyrightText: 2026 Zextras <https://www.zextras.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+[versions]
+userManagementRest = "1.3.0-1"
+storages = "0.0.16"
+previewRest = "2.0.2-1"
+vavr = "0.11.0"
+retrofit = "2.12.0"
+javaxAnnotation = "1.3.2"
+httpmime = "4.5.14"
+swaggerJakarta = "2.2.22"
+systemdNotify = "1.0.1"
+jetty = "12.0.19"
+guice = "7.0.0"
+resteasy = "7.0.2.Final"
+resteasyGuice = "1.0.0.Alpha1"
+ebean = "15.11.0"
+ebeanPlugin = "17.11.0"
+flyway = "10.22.0"
+hikari = "6.3.3"
+postgresql = "42.7.11"
+slf4j = "2.0.18"
+logback = "1.5.34"
+jackson = "2.22.0"
+jacksonAnnotations = "2.22"
+jacksonDatabindNullable = "0.2.10"
+commonsLang3 = "3.20.0"
+commonsText = "1.15.0"
+semver4j = "3.1.0"
+snakeyaml = "2.4"
+swagger = "1.6.16"
+hibernateValidator = "8.0.3.Final"
+jsr305 = "3.0.2"
+consul = "1.5.3"
+amqp = "5.32.0"
+jakartaWebsocket = "2.2.0"
+jakartaEl = "5.0.0-M1"
+caffeine = "3.2.4"
+junit = "5.11.2"
+junitPlatform = "1.11.2"
+mockito = "5.14.1"
+testcontainersCore = "2.0.5"
+testcontainersJunit = "1.21.4"
+testcontainersPg = "1.21.4"
+mockserver = "5.15.0"
+rabbitmqMock = "1.2.0"
+awaitility = "4.3.0"
+openapiGenerator = "7.23.0"
+shadow = "9.4.2"
+
+[libraries]
+userManagementRest = { module = "com.zextras.carbonio.user-management:carbonio-user-management-rest-sdk", version.ref = "userManagementRest" }
+storages = { module = "com.zextras:storages-ce-sdk", version.ref = "storages" }
+filestore-common = { module = "com.zextras:filestore-sdk-common", version.ref = "storages" }
+previewRest = { module = "com.zextras.carbonio.preview:carbonio-preview-ce-rest-sdk", version.ref = "previewRest" }
+vavr = { module = "io.vavr:vavr", version.ref = "vavr" }
+retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
+retrofit-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
+httpmime = { module = "org.apache.httpcomponents:httpmime", version.ref = "httpmime" }
+swagger-annotationsJakarta = { module = "io.swagger.core.v3:swagger-annotations-jakarta", version.ref = "swaggerJakarta" }
+javax-annotation = { module = "javax.annotation:javax.annotation-api", version.ref = "javaxAnnotation" }
+systemdNotify = { module = "com.zextras.carbonio:carbonio-systemd-notify", version.ref = "systemdNotify" }
+
+jetty-server = { module = "org.eclipse.jetty:jetty-server", version.ref = "jetty" }
+jetty-servlet = { module = "org.eclipse.jetty.ee10:jetty-ee10-servlet", version.ref = "jetty" }
+jetty-websocket = { module = "org.eclipse.jetty.ee10.websocket:jetty-ee10-websocket-jakarta-server", version.ref = "jetty" }
+
+jakarta-websocket-api = { module = "jakarta.websocket:jakarta.websocket-api", version.ref = "jakartaWebsocket" }
+jakarta-websocket-clientApi = { module = "jakarta.websocket:jakarta.websocket-client-api", version.ref = "jakartaWebsocket" }
+jakarta-el = { module = "org.glassfish:jakarta.el", version.ref = "jakartaEl" }
+
+guice = { module = "com.google.inject:guice", version.ref = "guice" }
+
+resteasy-guice = { module = "dev.resteasy.guice:resteasy-guice", version.ref = "resteasyGuice" }
+resteasy-servletInitializer = { module = "org.jboss.resteasy:resteasy-servlet-initializer", version.ref = "resteasy" }
+resteasy-jackson2Provider = { module = "org.jboss.resteasy:resteasy-jackson2-provider", version.ref = "resteasy" }
+resteasy-validatorProvider = { module = "org.jboss.resteasy:resteasy-validator-provider", version.ref = "resteasy" }
+resteasy-client = { module = "org.jboss.resteasy:resteasy-client", version.ref = "resteasy" }
+resteasy-multipartProvider = { module = "org.jboss.resteasy:resteasy-multipart-provider", version.ref = "resteasy" }
+
+hibernate-validator-cdi = { module = "org.hibernate.validator:hibernate-validator-cdi", version.ref = "hibernateValidator" }
+
+ebean-postgres = { module = "io.ebean:ebean-postgres", version.ref = "ebean" }
+ebean-test = { module = "io.ebean:ebean-test", version.ref = "ebean" }
+
+hikari = { module = "com.zaxxer:HikariCP", version.ref = "hikari" }
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+flyway-postgres = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
+
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+
+jackson-core = { module = "com.fasterxml.jackson.core:jackson-core", version.ref = "jackson" }
+jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations", version.ref = "jacksonAnnotations" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+jackson-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
+jackson-databindNullable = { module = "org.openapitools:jackson-databind-nullable", version.ref = "jacksonDatabindNullable" }
+
+commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commonsLang3" }
+commons-text = { module = "org.apache.commons:commons-text", version.ref = "commonsText" }
+
+semver4j = { module = "com.vdurmont:semver4j", version.ref = "semver4j" }
+snakeyaml = { module = "org.yaml:snakeyaml", version.ref = "snakeyaml" }
+jsr305 = { module = "com.google.code.findbugs:jsr305", version.ref = "jsr305" }
+consul-client = { module = "com.orbitz.consul:consul-client", version.ref = "consul" }
+amqp-client = { module = "com.rabbitmq:amqp-client", version.ref = "amqp" }
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
+
+swagger-annotations = { module = "io.swagger:swagger-annotations", version.ref = "swagger" }
+swagger-jaxrs = { module = "io.swagger:swagger-jaxrs", version.ref = "swagger" }
+
+junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+junit-jupiter-params = { module = "org.junit.jupiter:junit-jupiter-params", version.ref = "junit" }
+junit-jupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitPlatform" }
+mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
+testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainersCore" }
+testcontainers-junit = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainersJunit" }
+testcontainers-postgres = { module = "org.testcontainers:postgresql", version.ref = "testcontainersPg" }
+mockserver-netty = { module = "org.mock-server:mockserver-netty", version.ref = "mockserver" }
+rabbitmq-mock = { module = "com.github.fridujo:rabbitmq-mock", version.ref = "rabbitmqMock" }
+awaitility = { module = "org.awaitility:awaitility", version.ref = "awaitility" }
+
+[plugins]
+openapi-generator = { id = "org.openapi.generator", version.ref = "openapiGenerator" }
+ebean = { id = "io.ebean", version.ref = "ebeanPlugin" }
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }

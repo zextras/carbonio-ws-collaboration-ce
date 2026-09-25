@@ -69,3 +69,9 @@ __pycache__/
 # Superpowers skill working dirs (local-only)
 docs/superpowers/
 .superpowers/
+
+build/
+.gradle/
+
+# Track the Gradle wrapper despite *.jar.
+!gradle/wrapper/gradle-wrapper.jar

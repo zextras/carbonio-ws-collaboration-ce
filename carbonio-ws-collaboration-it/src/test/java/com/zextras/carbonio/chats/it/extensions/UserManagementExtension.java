@@ -19,7 +19,6 @@ import org.junit.jupiter.api.extension.ParameterResolver;
 public class UserManagementExtension implements BeforeAllCallback, ParameterResolver {
 
   private static final String SERVER_HOST = "127.0.0.1";
-  private static final int SERVER_PORT = 7899;
   private static final Namespace EXTENSION_NAMESPACE =
       Namespace.create(UserManagementExtension.class);
   private static final String CLIENT_STORE_ENTRY = "user_management_client";
@@ -33,10 +32,10 @@ public class UserManagementExtension implements BeforeAllCallback, ParameterReso
             CLIENT_STORE_ENTRY,
             (key) -> {
               ChatsLogger.debug("Starting User Management mock...");
-              UserManagementMockServer client = new UserManagementMockServer(SERVER_PORT);
+              UserManagementMockServer client = new UserManagementMockServer(0);
               InMemoryConfigStore.set(ConfigName.USER_MANAGEMENT_HOST, SERVER_HOST);
               InMemoryConfigStore.set(
-                  ConfigName.USER_MANAGEMENT_PORT, Integer.toString(SERVER_PORT));
+                  ConfigName.USER_MANAGEMENT_PORT, Integer.toString(client.getLocalPort()));
               return client;
             },
             UserManagementMockServer.class);

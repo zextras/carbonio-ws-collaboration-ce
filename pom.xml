@@ -60,7 +60,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <!-- Carbonio User Management REST SDK -->
         <carbonio-user-management-rest-sdk.version>1.3.0-1</carbonio-user-management-rest-sdk.version>
         <!-- Storages -->
-        <storages-sdk.version>0.0.15-SNAPSHOT</storages-sdk.version>
+        <storages-sdk.version>0.0.16</storages-sdk.version>
         <!-- Previewer -->
         <preview-sdk.version>2.0.2-1</preview-sdk.version>
         <!-- Vavr: was a transitive dependency of the old carbonio-preview-sdk (not depended on by
