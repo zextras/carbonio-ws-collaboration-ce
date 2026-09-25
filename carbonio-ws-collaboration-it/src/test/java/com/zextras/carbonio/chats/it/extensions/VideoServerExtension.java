@@ -24,7 +24,6 @@ public class VideoServerExtension
     implements AfterEachCallback, BeforeAllCallback, ParameterResolver {
 
   private static final String SERVER_HOST = "localhost";
-  private static final int SERVER_PORT = 7890;
   private static final Namespace EXTENSION_NAMESPACE = Namespace.create(VideoServerExtension.class);
   private static final String CLIENT_STORE_ENTRY = "video_server__client";
 
@@ -37,9 +36,10 @@ public class VideoServerExtension
             CLIENT_STORE_ENTRY,
             (key) -> {
               ChatsLogger.debug("Starting Video Server mock...");
-              VideoServerMockServer client = new VideoServerMockServer(SERVER_PORT);
+              VideoServerMockServer client = new VideoServerMockServer(0);
               InMemoryConfigStore.set(ConfigName.VIDEO_SERVER_HOST, SERVER_HOST);
-              InMemoryConfigStore.set(ConfigName.VIDEO_SERVER_PORT, Integer.toString(SERVER_PORT));
+              InMemoryConfigStore.set(
+                  ConfigName.VIDEO_SERVER_PORT, Integer.toString(client.getLocalPort()));
               InMemoryConfigStore.set(ConfigName.VIDEO_SERVER_TOKEN, "secret");
               InMemoryConfigStore.set(ConfigName.VIDEO_ROOM_BITRATE, "8000000");
               InMemoryConfigStore.set(ConfigName.VIDEO_ROOM_BITRATE_CAP, "true");

@@ -24,7 +24,6 @@ public class StoragesExtension implements AfterEachCallback, BeforeAllCallback, 
 
   private static final Namespace EXTENSION_NAMESPACE = Namespace.create(StoragesExtension.class);
   private static final String SERVER_HOST = "127.0.0.1";
-  private static final int SERVER_PORT = 8742;
   private static final String CLIENT_STORE_ENTRY = "storages_client";
 
   @Override
@@ -36,9 +35,10 @@ public class StoragesExtension implements AfterEachCallback, BeforeAllCallback, 
             CLIENT_STORE_ENTRY,
             (key) -> {
               ChatsLogger.debug("Starting Storages mock...");
-              StorageMockServer client = new StorageMockServer(SERVER_PORT);
+              StorageMockServer client = new StorageMockServer(0);
               InMemoryConfigStore.set(ConfigName.STORAGES_HOST, SERVER_HOST);
-              InMemoryConfigStore.set(ConfigName.STORAGES_PORT, Integer.toString(SERVER_PORT));
+              InMemoryConfigStore.set(
+                  ConfigName.STORAGES_PORT, Integer.toString(client.getLocalPort()));
               return client;
             },
             StorageMockServer.class);

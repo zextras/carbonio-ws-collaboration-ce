@@ -23,7 +23,6 @@ import org.mockserver.model.ClearType;
 public class PreviewerExtension implements AfterEachCallback, BeforeAllCallback, ParameterResolver {
 
   private static final String SERVER_HOST = "localhost";
-  private static final int SERVER_PORT = 7894;
   private static final Namespace EXTENSION_NAMESPACE = Namespace.create(PreviewerExtension.class);
   private static final String CLIENT_STORE_ENTRY = "preview_client";
 
@@ -36,9 +35,10 @@ public class PreviewerExtension implements AfterEachCallback, BeforeAllCallback,
             CLIENT_STORE_ENTRY,
             (key) -> {
               ChatsLogger.debug("Starting Previewer mock...");
-              PreviewerMockServer client = new PreviewerMockServer(SERVER_PORT);
+              PreviewerMockServer client = new PreviewerMockServer(0);
               InMemoryConfigStore.set(ConfigName.PREVIEWER_HOST, SERVER_HOST);
-              InMemoryConfigStore.set(ConfigName.PREVIEWER_PORT, Integer.toString(SERVER_PORT));
+              InMemoryConfigStore.set(
+                  ConfigName.PREVIEWER_PORT, Integer.toString(client.getLocalPort()));
               return client;
             },
             PreviewerMockServer.class);
