@@ -27,13 +27,22 @@ dt3_pipeline(
             cp -a carbonio-ws-collaboration-boot/target/carbonio-ws-collaboration-ce-*-fatjar.jar package/carbonio-ws-collaboration-ce.jar
         ''',
     ],
-    docker: [[
-        dockerfile: 'docker/wsc/Dockerfile',
-        imageName: 'carbonio-ws-collaboration-ce',
-        title: 'Carbonio WS Collaboration CE',
-        description: 'Carbonio WS Collaboration CE',
-        platforms: ['linux/amd64', 'linux/arm64'] as Set,
-    ]],
+    docker: [
+        [
+            dockerfile: 'docker/wsc/Dockerfile',
+            imageName: 'carbonio-ws-collaboration-ce',
+            title: 'Carbonio WS Collaboration CE',
+            description: 'Carbonio WS Collaboration CE',
+            platforms: ['linux/amd64', 'linux/arm64'] as Set,
+        ],
+        [
+            dockerfile: 'docker/wsc-sidecar/Dockerfile',
+            imageName: 'carbonio-ws-collaboration-ce-sidecar',
+            title: 'Carbonio WS Collaboration CE Sidecar',
+            description: 'Carbonio WS Collaboration CE Sidecar',
+            platforms: ['linux/amd64', 'linux/arm64'] as Set,
+        ],
+    ],
     reuse: [projectType: 'CE'],
     flywayGuard: [
         migrationPaths: ['carbonio-ws-collaboration-core/src/main/resources/migration'],
