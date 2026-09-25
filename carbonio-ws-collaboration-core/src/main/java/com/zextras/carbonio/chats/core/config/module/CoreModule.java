@@ -133,9 +133,7 @@ import com.zextras.carbonio.user_management.sdk.rest.ApiClient;
 import com.zextras.carbonio.user_management.sdk.rest.api.UserResourceApi;
 import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
-import io.ebean.DatabaseFactory;
 import io.ebean.annotation.Platform;
-import io.ebean.config.DatabaseConfig;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Duration;
@@ -305,11 +303,11 @@ public class CoreModule extends AbstractModule {
   @Singleton
   @Provides
   private Database getDatabase(HikariDataSource dataSource, Clock clock) {
-    DatabaseConfig databaseConfig = new DatabaseConfig();
-    databaseConfig.setDataSource(dataSource);
-    databaseConfig.setClock(clock);
-    databaseConfig.setDatabasePlatformName(Platform.POSTGRES.toString());
-    return DatabaseFactory.create(databaseConfig);
+    return Database.builder()
+        .dataSource(dataSource)
+        .clock(clock)
+        .databasePlatformName(Platform.POSTGRES.toString())
+        .build();
   }
 
   @Singleton
