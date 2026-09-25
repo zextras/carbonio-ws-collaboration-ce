@@ -70,7 +70,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 @ApiIntegrationTest
 class VersionedWebsocketIT {
 
-  public static final String EVENTS_URL = "ws://localhost:8081/events";
   public static final String LATEST = "1.6.2";
   public static final String OLDEST = "1.6.0";
   public static final String DEFAULT_USER_ID = "332a9527-3388-4207-be77-6d7e2978a723";
@@ -392,13 +391,13 @@ class VersionedWebsocketIT {
    * Utility Functions
    ****************************************/
 
-  private static Session createSession(ClientContext clientContext) {
+  private Session createSession(ClientContext clientContext) {
     try {
       Session session =
           clientContext
               .container()
               .connectToServer(
-                  clientContext.client(), clientContext.endpointConfig(), URI.create(EVENTS_URL));
+                  clientContext.client(), clientContext.endpointConfig(), URI.create(eventsUrl()));
       Assertions.assertNotNull(session);
       return session;
     } catch (DeploymentException | IOException e) {
@@ -467,8 +466,12 @@ class VersionedWebsocketIT {
     assertTrue(client.getMessages().stream().anyMatch(m -> m.contains(eventType)));
   }
 
+  private String eventsUrl() {
+    return "ws://localhost:" + jettyServer.getURI().getPort() + "/events";
+  }
+
   private void startWebSocketServer(List<String> serverSupportedVersions) throws Exception {
-    jettyServer = new Server(8081);
+    jettyServer = new Server(0);
     eventsWebSocketManager =
         new EventsWebSocketManager(
             rabbitPool,
