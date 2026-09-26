@@ -125,7 +125,7 @@ List of third-party dependencies grouped by their license type.
 
     BSD-2-Clause:
 
-        * PostgreSQL JDBC Driver (org.postgresql:postgresql:42.7.11 - https://jdbc.postgresql.org)
+        * PostgreSQL JDBC Driver (org.postgresql:postgresql:42.7.13 - https://jdbc.postgresql.org)
 
     BSD-3-Clause:
 
@@ -341,6 +341,7 @@ List of third-party dependencies grouped by their license type.
     The MIT License:
 
         * Checker Qual (org.checkerframework:checker-qual:3.12.0 - https://checkerframework.org)
+        * Checker Qual (org.checkerframework:checker-qual:3.55.1 - https://checkerframework.org/)
         * semver4j (com.vdurmont:semver4j:3.1.0 - https://github.com/vdurmont/semver4j)
 
     Unknown license:
