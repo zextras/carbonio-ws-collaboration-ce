@@ -75,7 +75,7 @@ SPDX-License-Identifier: AGPL-3.0-only
         <com.google.inject.version>7.0.0</com.google.inject.version>
         <!-- Rest easy -->
         <org.jboss.resteasy.version>7.0.2.Final</org.jboss.resteasy.version>
-        <resteasy.guice>1.0.0.Alpha1</resteasy.guice>
+        <resteasy.guice>1.0.0.Beta1</resteasy.guice>
         <jakarta.ws.rs.version>4.0.0</jakarta.ws.rs.version>
         <!-- Ebean -->
         <io.ebean.version>15.11.0</io.ebean.version>
