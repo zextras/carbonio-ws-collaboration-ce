@@ -21,8 +21,8 @@ List of third-party dependencies grouped by their license type.
 
         * CDI APIs (jakarta.enterprise:jakarta.enterprise.cdi-api:4.1.0 - http://cdi-spec.org)
         * CDI Language Model (jakarta.enterprise:jakarta.enterprise.lang-model:4.1.0 - https://projects.eclipse.org/projects/ee4j/jakarta.enterprise.cdi-parent/jakarta.enterprise.lang-model)
-        * Hibernate Validator Engine (org.hibernate.validator:hibernate-validator:8.0.3.Final - https://hibernate.org/validator)
-        * Hibernate Validator Portable Extension (org.hibernate.validator:hibernate-validator-cdi:8.0.3.Final - https://hibernate.org/validator)
+        * Hibernate Validator Engine (org.hibernate.validator:hibernate-validator:8.0.5.Final - https://hibernate.org/validator)
+        * Hibernate Validator Portable Extension (org.hibernate.validator:hibernate-validator-cdi:8.0.5.Final - https://hibernate.org/validator)
         * Jakarta Bean Validation API (jakarta.validation:jakarta.validation-api:3.0.2 - https://beanvalidation.org)
         * Jakarta Validation API (jakarta.validation:jakarta.validation-api:3.1.1 - https://beanvalidation.org)
         * Javassist (org.javassist:javassist:3.28.0-GA - http://www.javassist.org/)
