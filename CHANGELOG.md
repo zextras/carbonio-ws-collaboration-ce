@@ -1,3 +1,5 @@
+## [1.13.12](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.13.11...v1.13.12) (2026-10-02)
+
 ## [1.13.11](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.13.10...v1.13.11) (2026-09-25)
 
 ## [1.13.10](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.13.9...v1.13.10) (2026-09-25)
