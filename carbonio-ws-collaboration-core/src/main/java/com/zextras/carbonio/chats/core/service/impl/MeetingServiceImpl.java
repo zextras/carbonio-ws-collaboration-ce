@@ -119,6 +119,9 @@ public class MeetingServiceImpl implements MeetingService {
   @Override
   public MeetingDto startMeeting(UserPrincipal user, UUID meetingId) {
     Meeting meeting = validateMeeting(meetingId);
+    if (Boolean.TRUE.equals(meeting.getActive())) {
+      return meetingMapper.ent2dto(meeting);
+    }
 
     Meeting updatedMeeting = activateMeeting(meeting);
 

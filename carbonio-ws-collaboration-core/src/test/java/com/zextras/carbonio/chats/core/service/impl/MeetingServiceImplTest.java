@@ -271,6 +271,35 @@ class MeetingServiceImplTest {
     }
 
     @Test
+    @DisplayName("Starts a one-to-one meeting that is already active")
+    void startOneToOneMeeting_testOkAlreadyActive() {
+      UserPrincipal currentUser = UserPrincipal.create(user2Id).name("alice");
+      UUID meetingId = UUID.randomUUID();
+      UUID roomId = UUID.randomUUID();
+      Meeting meeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .startedAt(OffsetDateTime.parse("2022-01-01T12:00:00Z"))
+              .active(true);
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+
+      MeetingDto meetingDto = meetingService.startMeeting(currentUser, meetingId);
+
+      assertEquals(meetingId, meetingDto.getId());
+      verify(meetingRepository, times(1)).getById(meetingId.toString());
+      verifyNoMoreInteractions(meetingRepository);
+      verifyNoInteractions(
+          videoServerService,
+          participantService,
+          eventDispatcher,
+          messageDispatcher,
+          roomService);
+    }
+
+    @Test
     @DisplayName("Starts a meeting that does not exist")
     void startMeeting_testErrorMeetingNotExists() {
       when(meetingRepository.getById(meeting1Id.toString())).thenReturn(Optional.empty());
