@@ -4,6 +4,14 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
+import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
+import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
+import io.quarkus.arc.Arc;
+import io.quarkus.websockets.client.runtime.WebSocketPrincipal;
+import jakarta.websocket.Session;
+import java.util.UUID;
+import java.util.function.Supplier;
+
 import com.vdurmont.semver4j.Semver;
 import jakarta.websocket.HandshakeResponse;
 import jakarta.websocket.server.HandshakeRequest;
@@ -17,11 +25,47 @@ import java.util.Optional;
 public class EventsWebSocketEndpointConfigurator extends ServerEndpointConfig.Configurator {
 
   public static final String USER_ID = "userId";
+  public static final String QUEUE_ID = "queueId";
 
-  private final EventsWebSocketManager eventsWebSocketManager;
+  private final Supplier<EventsWebSocketManager> eventsWebSocketManager;
+
+  /** Resolves the manager bean lazily (the container builds the config outside CDI). */
+  public EventsWebSocketEndpointConfigurator() {
+    this(() -> Arc.container().instance(EventsWebSocketManager.class).get());
+  }
 
   public EventsWebSocketEndpointConfigurator(EventsWebSocketManager eventsWebSocketManager) {
-    this.eventsWebSocketManager = eventsWebSocketManager;
+    this(() -> eventsWebSocketManager);
+  }
+
+  private EventsWebSocketEndpointConfigurator(Supplier<EventsWebSocketManager> manager) {
+    this.eventsWebSocketManager = manager;
+  }
+
+  /**
+   * The queue id of a websocket session. Jetty session ids were UUIDs and CE uses them as queue
+   * ids; Undertow ids are not, so a UUID is assigned once per session (session user properties are
+   * per session).
+   */
+  public static String queueIdOf(Session session) {
+    return (String)
+        session.getUserProperties().computeIfAbsent(QUEUE_ID, k -> UUID.randomUUID().toString());
+  }
+
+  /**
+   * The user id of a websocket session, from the identity authenticated on the upgrade request
+   * (see {@link EventsWebSocketAuthenticationFilter}); the {@link #USER_ID} user property is a fallback.
+   */
+  public static String userIdOf(Session session) {
+    if (session.getUserPrincipal() instanceof WebSocketPrincipal principal) {
+      Optional<String> id =
+          AuthenticationFilter.toPrincipal(principal.getSecurityIdentity(), null)
+              .map(UserPrincipal::getId);
+      if (id.isPresent()) {
+        return id.get();
+      }
+    }
+    return (String) session.getUserProperties().get(USER_ID);
   }
 
   @Override
@@ -59,13 +103,14 @@ public class EventsWebSocketEndpointConfigurator extends ServerEndpointConfig.Co
   @Override
   @SuppressWarnings("unchecked")
   public <T> T getEndpointInstance(Class<T> clazz) {
-    return (T) eventsWebSocketManager;
+    return (T) eventsWebSocketManager.get();
   }
 
   @Override
   public void modifyHandshake(
       ServerEndpointConfig config, HandshakeRequest request, HandshakeResponse response) {
-    // TODO(P2): handshake-time authentication (ZM_AUTH_TOKEN -> user-management) replaces CE's
-    // servlet filter and stores the user id under USER_ID.
+    // Authentication happens before the upgrade (EventsWebSocketAuthenticationFilter refuses anonymous
+    // and denied users), and the user id is read from the session principal: nothing is stored in
+    // the endpoint-wide config user properties.
   }
 }

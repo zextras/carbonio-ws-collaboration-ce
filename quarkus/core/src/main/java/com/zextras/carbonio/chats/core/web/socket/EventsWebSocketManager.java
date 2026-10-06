@@ -18,12 +18,12 @@ import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectio
 import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
+import io.quarkus.arc.Unremovable;
 import jakarta.websocket.OnClose;
 import jakarta.websocket.OnError;
 import jakarta.websocket.OnMessage;
 import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
-import jakarta.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
@@ -31,7 +31,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @ApplicationScoped
-@ServerEndpoint(value = "/events")
+@Unremovable // looked up by EventsWebSocketEndpointConfigurator, never injected
 public class EventsWebSocketManager {
 
   private final EventWebSocketSessions sessions;
@@ -59,8 +59,12 @@ public class EventsWebSocketManager {
 
   @OnOpen
   public void onOpen(Session session) throws IOException {
+    // Container limits CE set on Jetty's container (Boot): 30s idle, 64k text/binary buffers.
+    session.setMaxIdleTimeout(30_000L);
+    session.setMaxTextMessageBufferSize(65536);
+    session.setMaxBinaryMessageBufferSize(65536);
     UUID userId = UUID.fromString(getUserIdFromSession(session));
-    UUID queueId = UUID.fromString(session.getId());
+    UUID queueId = UUID.fromString(EventsWebSocketEndpointConfigurator.queueIdOf(session));
     String userQueue = userId + "/" + queueId;
 
     DomainEvent wsConnected =
@@ -137,7 +141,7 @@ public class EventsWebSocketManager {
             participantService.updateParticipantQueueId(
                 UUID.fromString(getUserIdFromSession(session)),
                 UUID.fromString(meetingId),
-                UUID.fromString(session.getId()));
+                UUID.fromString(EventsWebSocketEndpointConfigurator.queueIdOf(session)));
           }
           default ->
               ChatsLogger.info(
@@ -146,7 +150,7 @@ public class EventsWebSocketManager {
       }
     } catch (Exception e) {
       UUID userId = UUID.fromString(getUserIdFromSession(session));
-      UUID queueId = UUID.fromString(session.getId());
+      UUID queueId = UUID.fromString(EventsWebSocketEndpointConfigurator.queueIdOf(session));
       String userQueue = userId + "/" + queueId;
       ChatsLogger.warn(String.format("Error sending pong to user/queue '%s'", userQueue));
       try {
@@ -170,7 +174,7 @@ public class EventsWebSocketManager {
       ChatsLogger.warn(
           String.format(
               "Error closing websocket session for user/queue '%s/%s'",
-              getUserIdFromSession(session), session.getId()));
+              getUserIdFromSession(session), EventsWebSocketEndpointConfigurator.queueIdOf(session)));
     }
   }
 
@@ -190,17 +194,17 @@ public class EventsWebSocketManager {
 
   private void closeSessionWithBroker(Session session) {
     UUID userId = UUID.fromString(getUserIdFromSession(session));
-    UUID queueId = UUID.fromString(session.getId());
+    UUID queueId = UUID.fromString(EventsWebSocketEndpointConfigurator.queueIdOf(session));
     cacheVideoServerSession.add(userId, queueId);
     onSessionDisconnected(queueId);
-    rabbitPool.teardownSession(session.getId());
+    rabbitPool.teardownSession(EventsWebSocketEndpointConfigurator.queueIdOf(session));
   }
 
   protected void onSessionDisconnected(UUID queueId) {}
 
   private String getUserIdFromSession(Session session) {
-    // Set at handshake time by the endpoint configurator (was an HttpSession attribute on Jetty).
-    return (String) session.getUserProperties().get(EventsWebSocketEndpointConfigurator.USER_ID);
+    // Taken from the handshake identity (was an HttpSession attribute on Jetty).
+    return EventsWebSocketEndpointConfigurator.userIdOf(session);
   }
 
   private String getVersion(Session session) {
