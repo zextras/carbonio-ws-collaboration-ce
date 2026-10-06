@@ -25,8 +25,10 @@ public class WireMockResource implements QuarkusTestResourceLifecycleManager {
     server.start();
     String port = String.valueOf(server.port());
     return Map.of(
-        "ws.user-management.url", server.baseUrl(),
-        "ws.videoserver.url", server.baseUrl(),
+        "ws.config.USER_MANAGEMENT_HOST", "localhost",
+        "ws.config.USER_MANAGEMENT_PORT", port,
+        "ws.config.VIDEO_SERVER_HOST", "localhost",
+        "ws.config.VIDEO_SERVER_PORT", port,
         "ws.turn-server.host", "localhost",
         "ws.turn-server.port", port,
         "ws.video-recorder.host", "localhost",

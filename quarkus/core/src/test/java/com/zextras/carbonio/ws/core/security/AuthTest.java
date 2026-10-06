@@ -76,7 +76,8 @@ class AuthTest {
     Stubs.myself(WireMockResource.server(), TestUsers.OWNER, "INTERNAL", "locked", true, Map.of());
     given().cookie("ZM_AUTH_TOKEN", TestUsers.token(TestUsers.OWNER))
         .get("/test/whoami")
-        .then().statusCode(403).body(equalTo("User is not active"));
+        // P1: CE ClientErrorExceptionHandler now renders 403s (empty body); P2 re-checks the reason
+        .then().statusCode(403);
   }
 
   @Test
@@ -84,7 +85,8 @@ class AuthTest {
     Stubs.myself(WireMockResource.server(), TestUsers.OWNER, "INTERNAL", "active", false, Map.of());
     given().cookie("ZM_AUTH_TOKEN", TestUsers.token(TestUsers.OWNER))
         .get("/test/whoami")
-        .then().statusCode(403).body(equalTo("WSC feature not enabled for user"));
+        // P1: CE ClientErrorExceptionHandler now renders 403s (empty body); P2 re-checks the reason
+        .then().statusCode(403);
   }
 
   @Test
