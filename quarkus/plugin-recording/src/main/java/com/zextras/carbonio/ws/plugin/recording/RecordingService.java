@@ -43,6 +43,7 @@ public class RecordingService {
   private final RecordingConfig config;
   private final Executor executor;
   private final Clock clock;
+  private final AfterCommit afterCommit;
 
   @Inject
   public RecordingService(
@@ -51,12 +52,13 @@ public class RecordingService {
       RecordingRepository recordings,
       VideoRecorderClient videoRecorder,
       EventPublisher events,
-      RecordingConfig config) {
+      RecordingConfig config,
+      AfterCommit afterCommit) {
     // A plain pool, not ManagedExecutor: ManagedExecutor propagates the JTA transaction to the async
     // task, which then completes the request's transaction from a second thread ("Commit invoked
     // while multiple threads active"). The post-processing call must not be transaction-bound.
     this(meetings, videoServer, recordings, videoRecorder, events, config,
-        Infrastructure.getDefaultWorkerPool(), Clock.systemUTC());
+        Infrastructure.getDefaultWorkerPool(), Clock.systemUTC(), afterCommit);
   }
 
   RecordingService(
@@ -67,7 +69,8 @@ public class RecordingService {
       EventPublisher events,
       RecordingConfig config,
       Executor executor,
-      Clock clock) {
+      Clock clock,
+      AfterCommit afterCommit) {
     this.meetings = meetings;
     this.videoServer = videoServer;
     this.recordings = recordings;
@@ -76,6 +79,7 @@ public class RecordingService {
     this.config = config;
     this.executor = executor;
     this.clock = clock;
+    this.afterCommit = afterCommit;
   }
 
   @Transactional
@@ -116,33 +120,46 @@ public class RecordingService {
 
   @Transactional
   public void stop(UUID meetingId, UserPrincipal user) {
-    stopActive(meetings.requireActiveMeetingModerator(meetingId, user), user.id());
+    stopActive(meetings.requireActiveMeetingModerator(meetingId, user), user.id(), false);
   }
 
   /** Replaces ADV's stopActiveRecording seam: runs inside core's transaction, rooms still alive. */
   @Transactional
   void onMeetingStopping(@Observes MeetingStopping event) {
-    meetings.find(event.meetingId()).ifPresent(meeting -> stopActive(meeting, event.userId()));
+    meetings.find(event.meetingId()).ifPresent(meeting -> stopActive(meeting, event.userId(), true));
   }
 
-  private void stopActive(MeetingView meeting, UUID userId) {
+  /**
+   * {@code lenient} (the MeetingStopping path) never lets a broken videoserver abort core's
+   * stop/leave/delete: the failure is logged and the recording is still closed.
+   */
+  private void stopActive(MeetingView meeting, UUID userId, boolean lenient) {
     recordings.findStarted(meeting.id().toString()).ifPresent(recording -> {
-      VideoServerRooms rooms = rooms(meeting.id());
-      require(videoServer.sendAudioBridgeMessage(meeting.id(),
-          Map.of("request", "enable_mjrs", "room", rooms.audioRoomId(), "mjrs", false)),
-          "stopping the audiobridge recording", meeting.id());
-      require(videoServer.sendVideoRoomMessage(meeting.id(),
-          Map.of("request", "enable_recording", "room", rooms.videoRoomId(), "record", false)),
-          "stopping the videoroom recording", meeting.id());
+      String serverId = null;
+      try {
+        VideoServerRooms rooms = rooms(meeting.id());
+        serverId = rooms.serverId();
+        require(videoServer.sendAudioBridgeMessage(meeting.id(),
+            Map.of("request", "enable_mjrs", "room", rooms.audioRoomId(), "mjrs", false)),
+            "stopping the audiobridge recording", meeting.id());
+        require(videoServer.sendVideoRoomMessage(meeting.id(),
+            Map.of("request", "enable_recording", "room", rooms.videoRoomId(), "record", false)),
+            "stopping the videoroom recording", meeting.id());
+      } catch (RuntimeException e) {
+        if (!lenient) {
+          throw e;
+        }
+        LOG.warnf(e, "Could not stop the videoserver recording for meeting %s, closing it anyway", meeting.id());
+      }
       recording.status = RecordingStatus.STOPPED;
 
       RecordingInfo info = new RecordingInfo(
-          rooms.serverId(), meeting.id().toString(), meeting.name(), recording.starterId, recording.folderId);
-      CompletableFuture.runAsync(() -> videoRecorder.process(info), executor)
+          serverId, meeting.id().toString(), meeting.name(), recording.starterId, recording.folderId);
+      afterCommit.run(() -> CompletableFuture.runAsync(() -> videoRecorder.process(info), executor)
           .exceptionally(e -> {
             LOG.errorf(e, "Recording post-processing failed for meeting %s", info.meetingId());
             return null;
-          });
+          }));
 
       events.sendToUsers(meeting.participantUserIds(),
           MeetingRecordingStopped.create()

@@ -51,9 +51,10 @@ class RecordingServiceTest {
   VideoRecorderClient videoRecorder = mock(VideoRecorderClient.class);
   EventPublisher events = mock(EventPublisher.class);
   RecordingConfig config = mock(RecordingConfig.class);
+  AfterCommit afterCommit = Runnable::run;
   Clock clock = Clock.fixed(Instant.parse("2026-10-06T10:15:30Z"), ZoneOffset.UTC);
   RecordingService service =
-      new RecordingService(meetings, videoServer, recordings, videoRecorder, events, config, Runnable::run, clock);
+      new RecordingService(meetings, videoServer, recordings, videoRecorder, events, config, Runnable::run, clock, afterCommit);
 
   UUID meetingId = UUID.randomUUID();
   UUID owner = UUID.randomUUID();
@@ -156,5 +157,49 @@ class RecordingServiceTest {
     service.stop(meetingId, user);
 
     assertThat(recording.status).isEqualTo(RecordingStatus.STOPPED);
+  }
+
+  @Test
+  void postProcessingIsNotSentWhenTheTransactionRollsBack() {
+    RecordingEntity recording = started();
+    when(recordings.findStarted(meetingId.toString())).thenReturn(Optional.of(recording));
+    AfterCommit rolledBack = task -> { };
+    RecordingService rollingBack = new RecordingService(
+        meetings, videoServer, recordings, videoRecorder, events, config, Runnable::run, clock, rolledBack);
+
+    rollingBack.stop(meetingId, user);
+
+    verifyNoInteractions(videoRecorder);
+  }
+
+  @Test
+  void meetingStoppingSurvivesAJanusRefusalAndStillClosesTheRecording() {
+    RecordingEntity recording = started();
+    when(recordings.findStarted(meetingId.toString())).thenReturn(Optional.of(recording));
+    when(videoServer.sendAudioBridgeMessage(eq(meetingId), any())).thenReturn(KO);
+
+    service.onMeetingStopping(new MeetingStopping(meetingId, other));
+
+    assertThat(recording.status).isEqualTo(RecordingStatus.STOPPED);
+    verify(videoRecorder).process(any());
+  }
+
+  @Test
+  void meetingStoppingSurvivesMissingRooms() {
+    RecordingEntity recording = started();
+    when(recordings.findStarted(meetingId.toString())).thenReturn(Optional.of(recording));
+    when(videoServer.roomsOf(meetingId)).thenReturn(Optional.empty());
+
+    service.onMeetingStopping(new MeetingStopping(meetingId, other));
+
+    assertThat(recording.status).isEqualTo(RecordingStatus.STOPPED);
+  }
+
+  @Test
+  void explicitStopStillPropagatesJanusFailures() {
+    when(recordings.findStarted(meetingId.toString())).thenReturn(Optional.of(started()));
+    when(videoServer.sendAudioBridgeMessage(eq(meetingId), any())).thenReturn(KO);
+
+    assertThatThrownBy(() -> service.stop(meetingId, user)).isInstanceOf(IllegalStateException.class);
   }
 }
