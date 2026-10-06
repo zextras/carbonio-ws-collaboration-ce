@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 Zextras <https://www.zextras.com>
+
+SPDX-License-Identifier: AGPL-3.0-only
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.zextras.carbonio.ws-collaboration.quarkus</groupId>
+    <artifactId>ws-collaboration-quarkus-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>distribution-it</artifactId>
+
+  <dependencies>
+    <!-- build-order only: the IT uses their packaged output from disk -->
+    <dependency><groupId>${project.groupId}</groupId><artifactId>app-ce</artifactId><version>${project.version}</version><scope>provided</scope></dependency>
+    <dependency><groupId>${project.groupId}</groupId><artifactId>plugin-recording</artifactId><version>${project.version}</version><scope>provided</scope></dependency>
+    <dependency><groupId>${project.groupId}</groupId><artifactId>plugin-incompatible</artifactId><version>${project.version}</version><scope>provided</scope></dependency>
+
+    <dependency><groupId>${project.groupId}</groupId><artifactId>test-support</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.testcontainers</groupId><artifactId>testcontainers-postgresql</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.testcontainers</groupId><artifactId>testcontainers-rabbitmq</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>io.rest-assured</groupId><artifactId>rest-assured</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.assertj</groupId><artifactId>assertj-core</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.awaitility</groupId><artifactId>awaitility</artifactId><scope>test</scope></dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <app.dir>${project.basedir}/../app-ce/target/quarkus-app</app.dir>
+            <recording.jar>${project.basedir}/../plugin-recording/target/plugin-recording-${project.version}-plugin.jar</recording.jar>
+            <incompatible.jar>${project.basedir}/../test-plugins/plugin-incompatible/target/plugin-incompatible-${project.version}.jar</incompatible.jar>
+            <work.dir>${project.build.directory}</work.dir>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -21,10 +21,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     <module>app-ce</module>
     <module>app-adv</module>
     <module>plugin-recording</module>
-    <!-- Re-enabled by later tasks:
     <module>test-plugins/plugin-incompatible</module>
     <module>distribution-it</module>
-    -->
   </modules>
 
   <properties>
