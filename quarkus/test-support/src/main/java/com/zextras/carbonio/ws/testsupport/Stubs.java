@@ -6,7 +6,9 @@ package com.zextras.carbonio.ws.testsupport;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -48,5 +50,35 @@ public final class Stubs {
 
   public static void activeGuest(WireMockServer wm, UUID userId) {
     myself(wm, userId, "GUEST", "active", true, Map.of());
+  }
+
+  public static void janus(WireMockServer wm) {
+    wm.stubFor(post(urlPathEqualTo("/janus"))
+        .withRequestBody(matchingJsonPath("$.janus", equalTo("create")))
+        .willReturn(okJson("{\"janus\":\"success\",\"data\":{\"id\":\"conn-1\"}}")));
+    wm.stubFor(post(urlPathEqualTo("/janus/conn-1"))
+        .withRequestBody(matchingJsonPath("$.plugin", equalTo("janus.plugin.audiobridge")))
+        .willReturn(okJson("{\"janus\":\"success\",\"data\":{\"id\":\"h-audio\"}}")));
+    wm.stubFor(post(urlPathEqualTo("/janus/conn-1"))
+        .withRequestBody(matchingJsonPath("$.plugin", equalTo("janus.plugin.videoroom")))
+        .willReturn(okJson("{\"janus\":\"success\",\"data\":{\"id\":\"h-video\"}}")));
+    wm.stubFor(post(urlPathEqualTo("/janus/conn-1"))
+        .withRequestBody(matchingJsonPath("$.janus", equalTo("destroy")))
+        .willReturn(okJson("{\"janus\":\"success\"}")));
+    pluginRoom(wm, "h-audio", "audiobridge", "audio-room");
+    pluginRoom(wm, "h-video", "videoroom", "video-room");
+  }
+
+  private static void pluginRoom(WireMockServer wm, String handle, String plugin, String room) {
+    String url = "/janus/conn-1/" + handle;
+    wm.stubFor(post(urlPathEqualTo(url)).atPriority(10)
+        .willReturn(okJson("{\"janus\":\"success\",\"plugindata\":{\"data\":{\"" + plugin + "\":\"success\"}}}")));
+    wm.stubFor(post(urlPathEqualTo(url)).atPriority(1)
+        .withRequestBody(matchingJsonPath("$.body.request", equalTo("create")))
+        .willReturn(okJson("{\"janus\":\"success\",\"plugindata\":{\"data\":{\"" + plugin
+            + "\":\"created\",\"room\":\"" + room + "\"}}}")));
+    wm.stubFor(post(urlPathEqualTo(url)).atPriority(1)
+        .withRequestBody(matchingJsonPath("$.body.request", equalTo("destroy")))
+        .willReturn(okJson("{\"janus\":\"success\",\"plugindata\":{\"data\":{\"" + plugin + "\":\"destroyed\"}}}")));
   }
 }
