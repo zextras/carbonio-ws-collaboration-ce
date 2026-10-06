@@ -7,6 +7,7 @@ package com.zextras.carbonio.ws.core.events;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.async.model.MeetingStarted;
 import com.zextras.carbonio.ws.testsupport.TestUsers;
@@ -50,16 +51,54 @@ class RabbitEventPublisherTest {
 
   @Test
   void teardownStopsDelivery() {
+    List<String> gone = new CopyOnWriteArrayList<>();
+    List<String> alive = new CopyOnWriteArrayList<>();
+    String goneQueue = UUID.randomUUID().toString();
+    sessions.setup(TestUsers.MEMBER.toString(), goneQueue, gone::add);
+    sessions.setup(TestUsers.MEMBER.toString(), UUID.randomUUID().toString(), alive::add);
+    sessions.teardown(goneQueue);
+
+    publisher.sendToUsers(List.of(TestUsers.MEMBER), event());
+
+    await().atMost(Duration.ofSeconds(5)).until(() -> alive.size() == 1);
+    assertThat(gone).isEmpty();
+  }
+
+  @Test
+  void throwingConsumerDoesNotBreakTheSession() {
     List<String> received = new CopyOnWriteArrayList<>();
+    sessions.setup(
+        TestUsers.MEMBER.toString(),
+        UUID.randomUUID().toString(),
+        m -> {
+          received.add(m);
+          throw new IllegalStateException("boom");
+        });
+
+    publisher.sendToUsers(List.of(TestUsers.MEMBER), event());
+    publisher.sendToUsers(List.of(TestUsers.MEMBER), event());
+
+    await().atMost(Duration.ofSeconds(5)).until(() -> received.size() == 2);
+  }
+
+  @Test
+  void setupWithSameQueueIdReplacesPreviousSession() {
+    List<String> first = new CopyOnWriteArrayList<>();
+    List<String> second = new CopyOnWriteArrayList<>();
     String queueId = UUID.randomUUID().toString();
-    sessions.setup(TestUsers.MEMBER.toString(), queueId, received::add);
-    sessions.teardown(queueId);
+    sessions.setup(TestUsers.MEMBER.toString(), queueId, first::add);
+    sessions.setup(TestUsers.MEMBER.toString(), queueId, second::add);
 
-    publisher.sendToUsers(
-        List.of(TestUsers.MEMBER),
-        MeetingStarted.create().meetingId(UUID.randomUUID()).type(EventType.MEETING_STARTED)
-            .sentDate(OffsetDateTime.now()));
+    publisher.sendToUsers(List.of(TestUsers.MEMBER), event());
 
-    await().during(Duration.ofMillis(500)).atMost(Duration.ofSeconds(1)).until(received::isEmpty);
+    await().atMost(Duration.ofSeconds(5)).until(() -> second.size() == 1);
+    assertThat(first).isEmpty();
+  }
+
+  private static DomainEvent event() {
+    return MeetingStarted.create()
+        .meetingId(UUID.randomUUID())
+        .type(EventType.MEETING_STARTED)
+        .sentDate(OffsetDateTime.now());
   }
 }
