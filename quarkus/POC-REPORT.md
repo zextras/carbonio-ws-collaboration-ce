@@ -6,7 +6,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 # Quarkus plugin PoC — report
 
-Branch `poc/quarkus-plugins` (from `feat/jar-dependency-poc`, merge base `e2a92e1c`, 18 commits). Everything lives in `quarkus/`;
+Branch `poc/quarkus-plugins` (from `feat/jar-dependency-poc`, merge base `e2a92e1c`, 19 including this report). Everything lives in `quarkus/`;
 the root Guice build is untouched (`git diff --stat feat/jar-dependency-poc -- . ':(exclude)quarkus' ':(exclude)REUSE.toml'`
 prints nothing). Last full run of `mvn -f quarkus/pom.xml clean verify`: BUILD SUCCESS in 1:05 min.
 
@@ -21,13 +21,13 @@ Maven tree `quarkus/` (Quarkus 3.38.3, Java 21), not part of the root modules. R
 | `core` | Ported CE slice: Panache persistence on the CE schema (12 migrations), `ZM_AUTH_TOKEN` auth via the user-management SDK, RabbitMQ events, Janus client + videoserver service, meeting lifecycle REST API, `/events` websocket, plugin registry (API version check, per-plugin Flyway), Consul KV config source. 67 tests. |
 | `test-support` | Shared test helpers (Seed, TestUsers, Stubs, WireMock resource, rabbitmq-mock producer). |
 | `plugin-turn` | TURN feature as a plugin (A): client, service, `GET /meetings/{id}/turnCredentials`. Depends on `core-api` only. 9 tests. |
-| `plugin-recording` | Recording feature as a plugin (B1): entity/repository, videorecorder client, Janus DTOs, start/stop endpoints, `MeetingStopping` observer, enricher, V1 migration. Shaded with the videorecorder SDK only. 18 tests. |
+| `plugin-recording` | Recording feature as a plugin (B1): entity/repository, videorecorder client, Janus DTOs, start/stop endpoints, `MeetingStopping` observer, enricher, V1 migration. Shaded with the videorecorder SDK only. 22 tests. |
 | `plugin-incompatible` (+ `test-plugins`) | Plugin declaring `requiredApiVersion` 2.0, used for the fail-fast test. |
 | `app-ce` | Application = `core`, `mutable-jar`, `quarkus.package.jar.user-providers-directory=plugins`. 2 tests (plugin absent). |
 | `app-adv` | Application = `core` + `plugin-turn`, standard fast-jar. 8 tests. |
 | `distribution-it` | Failsafe IT driving the B1 cycle with external processes on the real `app-ce` distribution. 4 tests. |
 
-Total: about 116 automated tests across the tree, all green.
+Total: 120 automated tests across the tree (core-api 8, core 67, plugin-turn 9, plugin-recording 22, app-ce 2, app-adv 8, distribution-it 4, from the surefire/failsafe reports), all green.
 
 ## Plugin contract
 
@@ -163,9 +163,10 @@ Use A (build-time assembly) as the default packaging for both CE and ADV, and ke
 primary model.
 
 - A is simple and robust: plugins are ordinary Maven dependencies, CDI/Hibernate/Flyway/openapi resolve at build time, no
-  version-skew risk at runtime, and `app-adv` is 44 MB against 85 MB for the mutable CE distribution. The cost is a separate
-  application artifact per plugin set, which is what CE/ADV packaging already is today.
-- B1 works and is cheap at runtime: re-augmentation took 1.8 s, startup 1.4 s with or without the plugin, a plugin jar is
+  version-skew risk at runtime, and `app-adv` is 44 MB against 85 MB for `app-ce`. That difference is the ~42 MB `lib/deployment` that
+  `mutable-jar` keeps; a non-mutable CE would be about the size of `app-adv`. The cost is a separate application artifact per
+  plugin set.
+- B1 works and is cheap at runtime: re-augmentation took 1.8 s, startup 1.425 s without and 1.406 s with the plugin (no measurable difference, single-run noise), a plugin jar is
   about 80 KB, and the wrong cases fail loudly (incompatible API) or safely (dropped but not rebuilt is ignored). Its costs are
   elsewhere: the CE package carries `lib/deployment` (about 41 MB, doubling the distribution size), the install flow needs an
   explicit rebuild step, the distribution directory must be named `quarkus-app`, plugins must be shaded, and core and plugins are
