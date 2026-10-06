@@ -15,7 +15,9 @@ import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -35,17 +37,39 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.TestWatcher;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.rabbitmq.RabbitMQContainer;
 
 @TestMethodOrder(OrderAnnotation.class)
+@ExtendWith(RecordingPluginB1IT.FailureFlag.class)
 class RecordingPluginB1IT {
+
+  static final String START_RECORDING = "/meetings/{meetingId}/startRecording";
+
+  /** Metrics are only trustworthy when every step passed. */
+  static volatile boolean anyTestFailed;
+
+  static class FailureFlag implements TestWatcher {
+    @Override
+    public void testFailed(ExtensionContext context, Throwable cause) {
+      anyTestFailed = true;
+    }
+
+    @Override
+    public void testAborted(ExtensionContext context, Throwable cause) {
+      anyTestFailed = true;
+    }
+  }
 
   static final Path APP = Path.of(System.getProperty("app.dir"));
   static final Path RECORDING_JAR = Path.of(System.getProperty("recording.jar"));
@@ -62,6 +86,7 @@ class RecordingPluginB1IT {
 
   @BeforeAll
   static void setUp() throws IOException {
+    Files.deleteIfExists(WORK.resolve("b1-metrics.properties"));
     postgres.start();
     rabbit.start();
     wm = new WireMockServer(options().dynamicPort());
@@ -81,17 +106,38 @@ class RecordingPluginB1IT {
     metrics.setProperty("deployment.size.mb", String.valueOf(sizeMb(APP.resolve("lib/deployment"))));
   }
 
+  /** A failed assertion must not leave the application running for the next test. */
+  @AfterEach
+  void stopApplication() throws InterruptedException {
+    if (dist != null) {
+      dist.stop();
+    }
+  }
+
   @AfterAll
   static void tearDown() throws Exception {
-    if (dist != null) {
-      dist.close();
+    try {
+      if (dist != null) {
+        dist.close();
+      }
+      if (!anyTestFailed) {
+        try (var out = Files.newOutputStream(WORK.resolve("b1-metrics.properties"))) {
+          metrics.store(out, "B1 measurements");
+        }
+      }
+    } finally {
+      try {
+        if (wm != null) {
+          wm.stop();
+        }
+      } finally {
+        try {
+          rabbit.stop();
+        } finally {
+          postgres.stop();
+        }
+      }
     }
-    try (var out = Files.newOutputStream(WORK.resolve("b1-metrics.properties"))) {
-      metrics.store(out, "B1 measurements");
-    }
-    wm.stop();
-    rabbit.stop();
-    postgres.stop();
   }
 
   static Map<String, String> props() {
@@ -152,6 +198,8 @@ class RecordingPluginB1IT {
     given().port(port).get("/plugins").then().statusCode(200).body("$", hasSize(0));
     String meetingId = activeMeetingWithOwner();
     as(TestUsers.OWNER).post("/meetings/" + meetingId + "/startRecording").then().statusCode(404);
+    given().port(port).queryParam("format", "json").get("/q/openapi").then().statusCode(200)
+        .body("paths", not(hasKey(START_RECORDING)));
     assertThat(tableExists("recording")).isFalse();
     dist.stop();
   }
@@ -184,7 +232,15 @@ class RecordingPluginB1IT {
     as(TestUsers.OWNER).body(Map.of("folderId", "f-b1"))
         .post("/meetings/" + meetingId + "/startRecording").then().statusCode(204);
     wm.verify(postRequestedFor(urlPathEqualTo("/janus/conn-1/h-video"))
+        .withRequestBody(matchingJsonPath("$.body.request", equalTo("edit"))));
+    wm.verify(postRequestedFor(urlPathEqualTo("/janus/conn-1/h-audio"))
+        .withRequestBody(matchingJsonPath("$.body.request", equalTo("enable_mjrs")))
+        .withRequestBody(matchingJsonPath("$.body.mjrs", equalTo("true"))));
+    wm.verify(postRequestedFor(urlPathEqualTo("/janus/conn-1/h-video"))
         .withRequestBody(matchingJsonPath("$.body.request", equalTo("enable_recording"))));
+    // The OpenAPI document is produced at augmentation, so the rebuild brings the plugin's paths in.
+    given().port(port).queryParam("format", "json").get("/q/openapi").then().statusCode(200)
+        .body("paths", hasKey(START_RECORDING));
     as(TestUsers.OWNER).get("/meetings/" + meetingId).then().statusCode(200).body("recStartedAt", notNullValue());
 
     as(TestUsers.OWNER).post("/meetings/" + meetingId + "/stop").then().statusCode(200);

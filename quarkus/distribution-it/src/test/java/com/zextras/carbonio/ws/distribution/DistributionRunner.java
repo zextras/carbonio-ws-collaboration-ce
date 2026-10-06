@@ -74,13 +74,22 @@ final class DistributionRunner implements AutoCloseable {
   Duration reaugment() throws Exception {
     long start = System.nanoTime();
     Process rebuild = java(List.of("-Dquarkus.launch.rebuild=true"), root.resolve("rebuild.log"));
-    if (!rebuild.waitFor(5, TimeUnit.MINUTES) || rebuild.exitValue() != 0) {
-      throw new IllegalStateException("Re-augmentation failed:\n" + Files.readString(root.resolve("rebuild.log")));
+    try {
+      if (!rebuild.waitFor(5, TimeUnit.MINUTES)) {
+        throw new IllegalStateException(
+            "Re-augmentation timed out:\n" + Files.readString(root.resolve("rebuild.log")));
+      }
+      if (rebuild.exitValue() != 0) {
+        throw new IllegalStateException("Re-augmentation failed:\n" + Files.readString(root.resolve("rebuild.log")));
+      }
+    } finally {
+      terminate(rebuild);
     }
     return Duration.ofNanos(System.nanoTime() - start);
   }
 
-  void start(Map<String, String> properties) throws IOException {
+  void start(Map<String, String> properties) throws IOException, InterruptedException {
+    stop();
     List<String> args = new ArrayList<>();
     properties.forEach((k, v) -> args.add("-D" + k + "=" + v));
     process = java(args, log);
@@ -113,10 +122,20 @@ final class DistributionRunner implements AutoCloseable {
     return process.exitValue();
   }
 
+  /** Graceful stop, then {@code destroyForcibly} if the process is still alive after 30 s. Idempotent. */
   void stop() throws InterruptedException {
-    if (process != null && process.isAlive()) {
-      process.destroy();
-      process.waitFor(30, TimeUnit.SECONDS);
+    terminate(process);
+    process = null;
+  }
+
+  private static void terminate(Process p) throws InterruptedException {
+    if (p == null || !p.isAlive()) {
+      return;
+    }
+    p.destroy();
+    if (!p.waitFor(30, TimeUnit.SECONDS)) {
+      p.destroyForcibly();
+      p.waitFor(10, TimeUnit.SECONDS);
     }
   }
 
