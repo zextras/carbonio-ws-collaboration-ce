@@ -16,8 +16,8 @@ SPDX-License-Identifier: AGPL-3.0-only
   <modules>
     <module>core-api</module>
     <module>test-support</module>
-    <!-- Re-enabled by later tasks:
     <module>core</module>
+    <!-- Re-enabled by later tasks:
     <module>plugin-turn</module>
     <module>plugin-recording</module>
     <module>test-plugins/plugin-incompatible</module>

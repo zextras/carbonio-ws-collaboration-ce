@@ -1,0 +1,8 @@
+-- SPDX-FileCopyrightText: 2025 Zextras <https://www.zextras.com>
+--
+-- SPDX-License-Identifier: AGPL-3.0-only
+
+ALTER TABLE CHATS.CHATS_USER
+DROP COLUMN IF EXISTS PICTURE_UPDATED_AT;
+
+DELETE FROM CHATS.FILE_METADATA WHERE TYPE = 'USER_AVATAR';
