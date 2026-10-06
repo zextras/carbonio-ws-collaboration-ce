@@ -135,8 +135,10 @@ public class MeetingService {
   public void delete(UserPrincipal user, UUID meetingId) {
     MeetingEntity meeting = require(meetingId);
     RoomEntity room = requireRoomMember(meeting.roomId, user);
-    meetingStopping.fire(new MeetingStopping(meetingId, user.id()));
-    videoServer.stopMeeting(meeting.id);
+    if (Boolean.TRUE.equals(meeting.active)) {
+      meetingStopping.fire(new MeetingStopping(meetingId, user.id()));
+      videoServer.stopMeeting(meeting.id);
+    }
     participants.deleteByMeeting(meeting.id);
     room.meetingId = null;
     meetings.delete(meeting);

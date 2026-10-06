@@ -192,6 +192,16 @@ class MeetingLifecycleTest {
   }
 
   @Test
+  void deletingAnInactiveMeetingSkipsMeetingStoppingAndTheVideoServer() {
+    String id = createMeeting("idle");
+    as(TestUsers.OWNER).delete("/meetings/" + id).then().statusCode(204);
+
+    as(TestUsers.OWNER).get("/meetings/" + id).then().statusCode(404);
+    assertThat(stoppingProbe.seen).isEmpty();
+    WireMockResource.server().verify(0, postRequestedFor(WireMock.urlPathMatching("/janus.*")));
+  }
+
+  @Test
   void outsiderCannotStartOrStop() {
     String id = createMeeting("guarded");
     as(TestUsers.OUTSIDER).post("/meetings/" + id + "/start").then().statusCode(403);
