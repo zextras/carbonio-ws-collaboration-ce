@@ -45,5 +45,5 @@ sql+="
 COMMIT;"
 
 "$KUBECTL" --context "$CONTEXT" -n "$NAMESPACE" exec -i "$POD" -c postgres -- \
-  psql -v ON_ERROR_STOP=1 -U admin -d "$DB" -q <<<"$sql"
+  env PGPASSWORD="${PGPASSWORD:-admin}" psql -h 127.0.0.1 -v ON_ERROR_STOP=1 -U admin -d "$DB" -q <<<"$sql"
 echo "$room_id"
