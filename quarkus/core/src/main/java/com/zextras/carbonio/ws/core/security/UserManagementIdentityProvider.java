@@ -4,8 +4,7 @@
 
 package com.zextras.carbonio.ws.core.security;
 
-import com.zextras.carbonio.user_management.sdk.rest.ApiException;
-import com.zextras.carbonio.user_management.sdk.rest.api.UserResourceApi;
+import com.zextras.carbonio.chats.core.infrastructure.authentication.AuthenticationService;
 import com.zextras.carbonio.user_management.sdk.rest.model.MyselfDto;
 import com.zextras.carbonio.user_management.sdk.rest.model.UserInfoDto;
 import com.zextras.carbonio.ws.plugin.api.UserPrincipal;
@@ -27,7 +26,7 @@ public class UserManagementIdentityProvider implements IdentityProvider<TokenAut
 
   static final String WSC_FEATURE = "carbonioFeatureWscEnabled";
 
-  @Inject UserResourceApi userResourceApi;
+  @Inject AuthenticationService authenticationService;
 
   @Override
   public Class<TokenAuthenticationRequest> getRequestType() {
@@ -41,16 +40,12 @@ public class UserManagementIdentityProvider implements IdentityProvider<TokenAut
   }
 
   SecurityIdentity toIdentity(String token) {
-    MyselfDto myself;
-    try {
-      myself = userResourceApi.internalUsersMyselfGet(null, token);
-    } catch (ApiException e) {
-      if (e.getCode() == 401) {
-        throw new AuthenticationFailedException("Invalid token");
-      }
-      // Anything but a real 401 means User Management misbehaved: a dependency failure, not a logout.
-      throw new IllegalStateException("User Management unavailable", e);
-    }
+    // The one User Management call per request. CE semantics: only a real 401 is "not
+    // authenticated"; any other failure surfaces as the CE AuthenticationException (dependency).
+    MyselfDto myself =
+        authenticationService
+            .getUserMyself(token)
+            .orElseThrow(() -> new AuthenticationFailedException("Invalid token"));
     UserInfoDto info = myself.getInfo();
     UserPrincipal principal =
         new UserPrincipal(
