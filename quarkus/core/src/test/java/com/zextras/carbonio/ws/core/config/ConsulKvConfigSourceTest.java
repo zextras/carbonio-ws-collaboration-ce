@@ -124,7 +124,7 @@ class ConsulKvConfigSourceTest {
 
   @Test
   void factoryIsDisabledByDefault() {
-    var sources = new ConsulKvConfigSourceFactory().getConfigSources(ctx(Map.of()), n -> null);
+    var sources = new ConsulKvConfigSourceFactory().getConfigSources(ctx(Map.of()), n -> null, () -> true);
     assertThat(sources).isEmpty();
   }
 
@@ -136,7 +136,7 @@ class ConsulKvConfigSourceTest {
     System.setProperty("ws.consul.url", wm.baseUrl());
     try {
       var sources = new ConsulKvConfigSourceFactory().getConfigSources(
-          ctx(Map.of("ws.consul.enabled", "false")), n -> null);
+          ctx(Map.of("ws.consul.enabled", "false")), n -> null, () -> true);
       assertThat(sources).hasSize(1);
       assertThat(sources.iterator().next().getValue("ws.videoserver.api-secret")).isEqualTo("fromSys");
     } finally {
@@ -151,8 +151,30 @@ class ConsulKvConfigSourceTest {
         .willReturn(aResponse().withStatus(200).withBody("x")));
     Map<String, String> env = Map.of(
         "WS_CONSUL_ENABLED", "true", "WS_CONSUL_URL", wm.baseUrl(), "CONSUL_HTTP_TOKEN", "envtok");
-    new ConsulKvConfigSourceFactory().getConfigSources(ctx(Map.of()), env::get);
+    new ConsulKvConfigSourceFactory().getConfigSources(ctx(Map.of()), env::get, () -> true);
     wm.verify(getRequestedFor(urlPathEqualTo("/v1/kv/carbonio-videoserver/api-secret"))
         .withHeader("X-Consul-Token", equalTo("envtok")));
+  }
+
+  @Test
+  void factoryIsANoOpOutsideApplicationRuntimeEvenWhenEnabled() {
+    wm.stubFor(get(urlPathEqualTo("/v1/kv/carbonio-videoserver/api-secret"))
+        .willReturn(aResponse().withStatus(200).withBody("must-not-be-baked")));
+    Map<String, String> env = Map.of("WS_CONSUL_ENABLED", "true", "WS_CONSUL_URL", wm.baseUrl());
+
+    var sources = new ConsulKvConfigSourceFactory().getConfigSources(ctx(Map.of()), env::get, () -> false);
+
+    assertThat(sources).isEmpty();
+    assertThat(wm.getAllServeEvents()).isEmpty();
+  }
+
+  @Test
+  void augmentationLikeContextIsNotApplicationRuntime() {
+    // A plain JVM (like the augmentation JVM) never ran ApplicationImpl, so the mode is UNSET.
+    assertThat(io.quarkus.runtime.ExecutionMode.current()).isEqualTo(io.quarkus.runtime.ExecutionMode.UNSET);
+    assertThat(ConsulKvConfigSourceFactory.isApplicationRuntime()).isFalse();
+    Map<String, String> env = Map.of("WS_CONSUL_ENABLED", "true", "WS_CONSUL_URL", wm.baseUrl());
+    assertThat(new ConsulKvConfigSourceFactory().getConfigSources(ctx(Map.of()), env::get)).isEmpty();
+    assertThat(wm.getAllServeEvents()).isEmpty();
   }
 }
