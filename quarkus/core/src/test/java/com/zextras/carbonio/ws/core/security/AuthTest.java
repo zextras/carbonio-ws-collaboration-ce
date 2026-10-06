@@ -41,6 +41,7 @@ class AuthTest {
     given().cookie("ZM_AUTH_TOKEN", TestUsers.token(TestUsers.OWNER))
         .get("/test/whoami")
         .then().statusCode(200)
+        .header("Content-Type", equalTo("application/json"))
         .body("id", equalTo(TestUsers.OWNER.toString()))
         .body("type", equalTo("INTERNAL"));
   }

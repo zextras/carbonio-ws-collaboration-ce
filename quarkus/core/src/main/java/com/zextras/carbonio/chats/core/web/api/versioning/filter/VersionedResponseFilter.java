@@ -50,6 +50,10 @@ public class VersionedResponseFilter implements ContainerResponseFilter {
     var apiVersion = new Semver(headerString != null ? headerString : getOldestVersion());
 
     responseContext.getHeaders().add(ChatsConstant.API_VERSION_HEADER, apiVersion.getValue());
+    if (responseContext.getMediaType() == null) {
+      // The CE UI compares the content type strictly: no charset parameter.
+      responseContext.getHeaders().putSingle("Content-Type", MediaType.APPLICATION_JSON);
+    }
 
     Object entity = responseContext.getEntity();
     if (entity == null) return;
@@ -109,7 +113,26 @@ public class VersionedResponseFilter implements ContainerResponseFilter {
   }
 
   private boolean isNotJsonType(ContainerResponseContext responseContext) {
-    MediaType contentType = responseContext.getMediaType();
+    MediaType contentType = mediaTypeOf(responseContext);
     return contentType == null || !contentType.isCompatible(MediaType.APPLICATION_JSON_TYPE);
+  }
+
+  /**
+   * The response media type. Quarkus REST negotiates the content type of a plain entity only when
+   * serialising it, after the response filters, so a response without an explicit type falls back
+   * to the {@code @Produces} of the resource method (the generated APIs declare it), which is what
+   * RESTEasy classic exposed here.
+   */
+  static MediaType mediaTypeOf(ContainerResponseContext responseContext) {
+    MediaType contentType = responseContext.getMediaType();
+    if (contentType != null || responseContext.getEntityAnnotations() == null) {
+      return contentType;
+    }
+    for (Annotation annotation : responseContext.getEntityAnnotations()) {
+      if (annotation instanceof Produces produces && produces.value().length > 0) {
+        return MediaType.valueOf(produces.value()[0].split(",")[0].trim());
+      }
+    }
+    return null;
   }
 }
