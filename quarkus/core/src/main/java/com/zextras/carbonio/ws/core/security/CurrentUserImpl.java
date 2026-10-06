@@ -10,6 +10,7 @@ import io.quarkus.security.identity.SecurityIdentity;
 import io.vertx.core.http.HttpServerRequest;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotAuthorizedException;
 import java.util.UUID;
 
@@ -24,6 +25,10 @@ public class CurrentUserImpl implements CurrentUser {
     UserPrincipal user = identity.isAnonymous() ? null : identity.getAttribute(SecurityAttributes.USER);
     if (user == null) {
       throw new NotAuthorizedException("Unauthorized");
+    }
+    String denied = identity.getAttribute(SecurityAttributes.DENIED_REASON);
+    if (denied != null) {
+      throw new ForbiddenException(denied);
     }
     String rawQueueId = request.getHeader("queue-id");
     if (rawQueueId == null) {
