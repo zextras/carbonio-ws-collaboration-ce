@@ -10,6 +10,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import java.util.Map;
@@ -40,8 +42,11 @@ public final class Stubs {
             .willReturn(okJson(json)));
   }
 
+  /** An active internal user; CE video calls are enabled unless the capabilities say otherwise. */
   public static void activeUser(WireMockServer wm, UUID userId, Map<String, String> capabilities) {
-    myself(wm, userId, "INTERNAL", "active", true, capabilities);
+    Map<String, String> caps = new java.util.HashMap<>(capabilities);
+    caps.putIfAbsent("carbonioWscVideoCallEnabled", "true");
+    myself(wm, userId, "INTERNAL", "active", true, caps);
   }
 
   public static void activeUser(WireMockServer wm, UUID userId) {
@@ -67,6 +72,10 @@ public final class Stubs {
         .willReturn(okJson("{\"janus\":\"success\"}")));
     pluginRoom(wm, "h-audio", "audiobridge", "audio-room");
     pluginRoom(wm, "h-video", "videoroom", "video-room");
+    // CE's per-user participant flow: Janus answers these asynchronous plugin requests with "ack".
+    wm.stubFor(post(urlPathMatching("/janus/conn-1/h-.*")).atPriority(1)
+        .withRequestBody(matchingJsonPath("$.body.request", matching("join|configure|start")))
+        .willReturn(okJson("{\"janus\":\"ack\"}")));
   }
 
   private static void pluginRoom(WireMockServer wm, String handle, String plugin, String room) {

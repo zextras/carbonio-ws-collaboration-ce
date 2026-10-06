@@ -16,6 +16,7 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -55,12 +56,14 @@ public class PluginMeetingMapper extends MeetingMapperImpl {
     if (enrichers.isUnsatisfied() || dtos.isEmpty()) {
       return dtos;
     }
+    // Contract: enrichers put their fields into extras.get(meetingId), one map per meeting.
     Map<UUID, Map<String, Object>> extras = new HashMap<>();
     var views = meetings.stream().map(MeetingViews::of).toList();
+    views.forEach(v -> extras.put(v.id(), new LinkedHashMap<>()));
     for (MeetingDtoEnricher enricher : enrichers) {
       enricher.enrich(views, extras);
     }
-    if (extras.isEmpty()) {
+    if (extras.values().stream().allMatch(Map::isEmpty)) {
       return dtos;
     }
     List<MeetingDto> result = new ArrayList<>(dtos.size());

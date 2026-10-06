@@ -47,7 +47,7 @@ class TurnCredentialsTest {
     Seed.clean(ds);
     UUID roomId = UUID.randomUUID();
     meetingId = UUID.randomUUID();
-    Seed.room(ds, roomId, "group", Map.of(TestUsers.OWNER, true));
+    Seed.room(ds, roomId, "GROUP", Map.of(TestUsers.OWNER, true));
     Seed.meeting(ds, meetingId, roomId, true);
   }
 

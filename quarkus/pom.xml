@@ -19,12 +19,9 @@ SPDX-License-Identifier: AGPL-3.0-only
     <module>core</module>
     <module>plugin-turn</module>
     <module>app-ce</module>
-    <!-- P1 (full CE core port): temporarily out of the reactor until P2 re-points the plugin seams
-         (VideoServerGateway, MeetingAccess, EventPublisher, MeetingDtoEnricher) onto CE classes.
     <module>app-adv</module>
     <module>plugin-recording</module>
     <module>distribution-it</module>
-    -->
     <module>test-plugins/plugin-incompatible</module>
   </modules>
 

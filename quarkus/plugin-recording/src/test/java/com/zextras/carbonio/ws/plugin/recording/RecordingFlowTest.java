@@ -26,6 +26,7 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
+import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import jakarta.inject.Inject;
 import java.time.Duration;
 import java.util.Map;
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.Test;
 class RecordingFlowTest {
 
   @Inject DataSource ds;
+  @Inject MessageBrokerVideoserverHealthMonitor videoServerHealth;
   WireMockServer wm;
   UUID roomId;
   String meetingId;
@@ -50,6 +52,8 @@ class RecordingFlowTest {
   @BeforeEach
   void setUp() {
     wm = WireMockResource.server();
+    // CE refuses to start meetings until a Janus heartbeat arrived on the event queue.
+    videoServerHealth.notifyVideoServerReady();
     wm.resetAll();
     Stubs.janus(wm);
     Stubs.activeUser(wm, TestUsers.OWNER, Map.of("carbonioWscRecordingEnabled", "true"));
@@ -58,12 +62,12 @@ class RecordingFlowTest {
     wm.stubFor(post(urlPathEqualTo("/internal/recordings/process")).willReturn(okJson("{}")));
     Seed.clean(ds);
     roomId = UUID.randomUUID();
-    Seed.room(ds, roomId, "group", Map.of(TestUsers.OWNER, true, TestUsers.MEMBER, false, TestUsers.GUEST, false));
+    Seed.room(ds, roomId, "GROUP", Map.of(TestUsers.OWNER, true, TestUsers.MEMBER, false, TestUsers.GUEST, false));
     meetingId = as(TestUsers.OWNER)
         .body(Map.of("name", "Weekly", "meetingType", "permanent", "roomId", roomId.toString()))
         .post("/meetings").then().statusCode(200).extract().path("id");
     as(TestUsers.OWNER).post("/meetings/" + meetingId + "/start").then().statusCode(200);
-    as(TestUsers.OWNER).post("/meetings/" + meetingId + "/join").then().statusCode(200);
+    as(TestUsers.OWNER).header("queue-id", UUID.randomUUID().toString()).body(Map.of("audioStreamEnabled", false, "videoStreamEnabled", false)).post("/meetings/" + meetingId + "/join").then().statusCode(200);
   }
 
   long startedRecordings() {
@@ -88,7 +92,7 @@ class RecordingFlowTest {
     as(TestUsers.OWNER).get("/meetings/" + meetingId).then().body("recStartedAt", nullValue());
     await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
         wm.verify(postRequestedFor(urlPathEqualTo("/internal/recordings/process"))
-            .withHeader("service-id", equalTo("vs-1"))
+            .withoutHeader("service-id") // CE selectServerId() is null: no videoserver routing
             .withRequestBody(matchingJsonPath("$.meetingId", equalTo(meetingId)))
             .withRequestBody(matchingJsonPath("$.folderId", equalTo("f1")))));
   }
@@ -157,7 +161,8 @@ class RecordingFlowTest {
     as(TestUsers.OWNER).post("/meetings/" + meetingId + "/startRecording").then().statusCode(204);
     janusFailsToStopRecording();
 
-    as(TestUsers.OWNER).post("/meetings/" + meetingId + "/stopRecording").then().statusCode(500);
+    // CE renders videoserver failures (VideoServerException, a dependency failure) as 424.
+    as(TestUsers.OWNER).post("/meetings/" + meetingId + "/stopRecording").then().statusCode(424);
     assertThat(startedRecordings()).isEqualTo(1);
   }
 
@@ -191,7 +196,7 @@ class RecordingFlowTest {
 
   @Test
   void nonOwnerParticipantIsForbidden() {
-    as(TestUsers.MEMBER).post("/meetings/" + meetingId + "/join").then().statusCode(200);
+    as(TestUsers.MEMBER).header("queue-id", UUID.randomUUID().toString()).body(Map.of("audioStreamEnabled", false, "videoStreamEnabled", false)).post("/meetings/" + meetingId + "/join").then().statusCode(200);
     as(TestUsers.MEMBER).post("/meetings/" + meetingId + "/startRecording").then().statusCode(403);
   }
 

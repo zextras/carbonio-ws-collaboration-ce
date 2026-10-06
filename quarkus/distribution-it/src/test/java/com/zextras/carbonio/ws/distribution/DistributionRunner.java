@@ -98,7 +98,9 @@ final class DistributionRunner implements AutoCloseable {
   Duration awaitReady(int port) throws Exception {
     long start = System.nanoTime();
     HttpClient http = HttpClient.newHttpClient();
-    URI ready = URI.create("http://127.0.0.1:" + port + "/health/ready");
+    // SmallRye readiness: the CE /health/ready probes every external dependency (XMPP, storages,
+    // previewer...), which are absent here and make each probe wait for connection timeouts.
+    URI ready = URI.create("http://127.0.0.1:" + port + "/q/health/ready");
     while (System.nanoTime() - start < Duration.ofSeconds(90).toNanos()) {
       if (!process.isAlive()) {
         throw new IllegalStateException("Application exited:\n" + log());

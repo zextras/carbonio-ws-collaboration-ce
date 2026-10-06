@@ -149,14 +149,20 @@ class RecordingPluginB1IT {
     p.put("quarkus.datasource.password", postgres.getPassword());
     p.put("ws.consul.enabled", "false");
     p.put("ws.discovery.available-services", "none");
-    p.put("ws.rabbitmq.host", rabbit.getHost());
-    p.put("ws.rabbitmq.port", String.valueOf(rabbit.getAmqpPort()));
-    p.put("ws.rabbitmq.username", rabbit.getAdminUsername());
-    p.put("ws.rabbitmq.password", rabbit.getAdminPassword());
-    p.put("ws.user-management.url", wm.baseUrl());
-    p.put("ws.videoserver.url", wm.baseUrl());
-    p.put("ws.videoserver.api-secret", "it-secret");
-    p.put("ws.videoserver.server-id", "vs-1");
+    // CE core configuration (AppConfig reads ws.config.<CONFIG_NAME> through MicroProfile Config).
+    p.put("ws.config.EVENT_DISPATCHER_HOST", rabbit.getHost());
+    p.put("ws.config.EVENT_DISPATCHER_PORT", String.valueOf(rabbit.getAmqpPort()));
+    p.put("ws.config.EVENT_DISPATCHER_USER_USERNAME", rabbit.getAdminUsername());
+    p.put("ws.config.EVENT_DISPATCHER_USER_PASSWORD", rabbit.getAdminPassword());
+    p.put("ws.config.USER_MANAGEMENT_HOST", "localhost");
+    p.put("ws.config.USER_MANAGEMENT_PORT", String.valueOf(wm.port()));
+    p.put("ws.config.VIDEO_SERVER_HOST", "localhost");
+    p.put("ws.config.VIDEO_SERVER_PORT", String.valueOf(wm.port()));
+    p.put("ws.config.VIDEO_SERVER_TOKEN", "it-secret");
+    p.put("ws.config.XMPP_SERVER_USERNAME", "it");
+    p.put("ws.config.XMPP_SERVER_PASSWORD", "it");
+    p.put("ws.config.MESSAGE_DISPATCHER_DATABASE_HOST", "localhost");
+    p.put("ws.config.MESSAGE_DISPATCHER_DATABASE_PORT", "5432");
     p.put("ws.video-recorder.host", "localhost");
     p.put("ws.video-recorder.port", String.valueOf(wm.port()));
     return p;
@@ -167,15 +173,30 @@ class RecordingPluginB1IT {
   }
 
   /** Seeds a room, creates/starts/joins a meeting through the API and returns its id. */
-  static String activeMeetingWithOwner() {
+  static String activeMeetingWithOwner() throws Exception {
+    videoServerHeartbeat();
     UUID roomId = UUID.randomUUID();
-    Seed.room(ds, roomId, "group", Map.of(TestUsers.OWNER, true));
+    Seed.room(ds, roomId, "GROUP", Map.of(TestUsers.OWNER, true));
     String id = as(TestUsers.OWNER)
         .body(Map.of("name", "B1", "meetingType", "permanent", "roomId", roomId.toString()))
         .post("/meetings").then().statusCode(200).extract().path("id");
-    as(TestUsers.OWNER).post("/meetings/" + id + "/start").then().statusCode(200);
-    as(TestUsers.OWNER).post("/meetings/" + id + "/join").then().statusCode(200);
+    // The heartbeat is consumed asynchronously; until then start answers 424 without side effects.
+    await().atMost(Duration.ofSeconds(10))
+        .until(() -> as(TestUsers.OWNER).post("/meetings/" + id + "/start").statusCode() == 200);
+    as(TestUsers.OWNER).header("queue-id", UUID.randomUUID().toString()).body(Map.of("audioStreamEnabled", false, "videoStreamEnabled", false)).post("/meetings/" + id + "/join").then().statusCode(200);
     return id;
+  }
+
+  /** CE refuses to start meetings until a Janus heartbeat arrived on its event queue. */
+  static void videoServerHeartbeat() throws Exception {
+    com.rabbitmq.client.ConnectionFactory factory = new com.rabbitmq.client.ConnectionFactory();
+    factory.setHost(rabbit.getHost());
+    factory.setPort(rabbit.getAmqpPort());
+    factory.setUsername(rabbit.getAdminUsername());
+    factory.setPassword(rabbit.getAdminPassword());
+    try (var connection = factory.newConnection(); var channel = connection.createChannel()) {
+      channel.basicPublish("", "janus-queue", null, "{\"type\":256}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
   }
 
   static boolean tableExists(String table) {
@@ -248,7 +269,7 @@ class RecordingPluginB1IT {
         .isEqualTo(1);
     await().atMost(Duration.ofSeconds(10)).untilAsserted(() ->
         wm.verify(postRequestedFor(urlPathEqualTo("/internal/recordings/process"))
-            .withHeader("service-id", equalTo("vs-1"))
+            .withoutHeader("service-id") // CE selectServerId() is null: no videoserver routing
             .withRequestBody(matchingJsonPath("$.meetingId", equalTo(meetingId)))));
     dist.stop();
   }

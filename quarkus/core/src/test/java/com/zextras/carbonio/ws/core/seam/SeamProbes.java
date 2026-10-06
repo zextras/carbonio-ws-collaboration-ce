@@ -49,7 +49,7 @@ final class SeamProbes {
     public void enrich(List<MeetingView> meetings, Map<UUID, Map<String, Object>> extras) {
       if (enabled) {
         meetings.forEach(
-            m -> extras.computeIfAbsent(m.id(), k -> new java.util.HashMap<>()).put("probe", m.name()));
+            m -> extras.get(m.id()).put("probe", m.name()));
       }
     }
   }
