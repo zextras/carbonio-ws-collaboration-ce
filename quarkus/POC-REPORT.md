@@ -10,6 +10,46 @@ Branch `poc/quarkus-plugins` (from `feat/jar-dependency-poc`, merge base `e2a92e
 the root Guice build is untouched (`git diff --stat feat/jar-dependency-poc -- . ':(exclude)quarkus' ':(exclude)REUSE.toml'`
 prints nothing). Last full run of `mvn -f quarkus/pom.xml clean verify` (after the final-review fixes): BUILD SUCCESS in 1:10 min.
 
+## Update: scope is now the full CE core on Quarkus
+
+The lean slice in `core` was replaced by a mechanical port of the complete CE core (rooms, members, attachments, previews,
+meetings with Janus media, websocket events, XMPP token, GraphQL/Consul/Storages clients), keeping CE packages. The plugin
+contract (`core-api`), TURN (A), recording (B1), both apps and the B1 IT were kept and re-pointed at the CE classes.
+
+What changed vs the lean slice:
+- Guice to CDI (producers for all clients), Jetty/servlet/Boot removed, Ebean to Hibernate/Panache (same CE schema,
+  `chats` Flyway, 14 migrations incl. plugin ones), generated CE OpenAPI stubs served by Quarkus REST.
+- One auth path: `ZM_AUTH_TOKEN` mechanism + identity provider (one user-management call) feeding the CE `UserPrincipal`;
+  CE filters/exception mappers kept; websocket `/events` on quarkus-websockets with handshake auth.
+- Wire format: exactly `application/json` plus `X-WSC-API-VERSION`, CE versioning rules.
+- Plugin seams implemented over CE classes (`PluginMeetingService`, `PluginMeetingMapper`, gateway, access, publisher).
+- Last run `mvn -f quarkus/pom.xml clean verify` (P2): green, 835 tests (core-api 8, core 776, plugin-turn 9, app-ce 3,
+  app-adv 9, plugin-recording 26, distribution-it 4). B1 numbers: dist 102 MB, deployment 43 MB, re-augmentation 2.18 s,
+  startup 1.91 s CE / 1.85 s with recording. Images: ce 312 MB, adv-a 272 MB, adv-b1 314 MB (compressed).
+
+Parity differences with CE (from P1/P2, to review):
+1. Videoserver failures are CE `VideoServerException` (424); lean returned 500.
+2. `selectServerId()` returns null (ADV behaviour not ported): no `service-id` header on videorecorder calls.
+3. `MeetingStopping` is not fired for inactive meetings (CE hook was a no-op).
+4. Websocket queue ids are generated UUIDs per session; container limits applied per session.
+5. `Content-Type` charset stripped on every JSON response, plugin endpoints included.
+6. Websocket handshake: UM failure answers 500 (status only, not byte-for-byte CE).
+
+Open issues: ADV server selection and videorecorder `service-id` routing; lean `ws.videoserver.*`/`ws.rabbitmq.*` keys still
+in `CoreConsulKeys`/test-support; P1 Hibernate follow-ups (EAGER/N+1, merge return values); `MeetingStarted` depends on
+`RoomDto.meetingId` being set in `afterMeetingStarted`; building an app module without `-am` yields a broken `quarkus-app`
+(build through the reactor). The CE `/health/ready` probes every dependency: ~165 s on macOS with absent dependencies, but
+on k3d (all present) the pod was 3/3 Ready 17 s after the restart.
+
+k3d smoke (carbonio-k3d, image `quarkus-ce`, real proxy, user@carbonio.localhost via SOAP AuthRequest cookie):
+`GET auth/token`, `users/capabilities`, `rooms?extraFields=members&extraFields=settings`, `meetings` all 200 with
+`Content-Type: application/json` exactly and `X-WSC-API-VERSION`. `POST rooms` (one_to_one with admin) 201, `POST meetings` 200,
+`GET meetings/{id}` 200, `start` 200, `join` 200 (`ACCEPTED`), `stop` 200. `wss://localhost/services/chats/events` with
+subprotocol 1.6.14: 101, subprotocol echoed, `WebsocketConnected` with queueId, ping ok; no cookie 401. A group room needs at
+least two other members (CE rule) and the cluster has two users, so the group case answers 400 as in CE. The existing `chats`
+schema (history of the lean slice) failed Flyway validation (`1.4.2` not applied) and was dropped (test data only). The ADV
+images were built but not deployed in k3d.
+
 ## What was built
 
 Maven tree `quarkus/` (Quarkus 3.38.3, Java 21), not part of the root modules. Run everything with `mvn -f quarkus/pom.xml verify`
