@@ -8,6 +8,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.serverError;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static io.restassured.RestAssured.given;
@@ -106,6 +107,58 @@ class RecordingFlowTest {
     assertThat(startedRecordings()).isZero();
     assertThat(Seed.count(ds, "SELECT count(*) FROM chats.recording WHERE meeting_id = ? AND status = 'STOPPED'", meetingId))
         .isEqualTo(1);
+  }
+
+  /** Janus answers HTTP 500 to the recording plugin's stop calls (enable_mjrs off). */
+  void janusFailsToStopRecording() {
+    wm.stubFor(post(urlPathEqualTo("/janus/conn-1/h-audio")).atPriority(1)
+        .withRequestBody(matchingJsonPath("$.body.request", equalTo("enable_mjrs")))
+        .withRequestBody(matchingJsonPath("$.body.mjrs", equalTo("false")))
+        .willReturn(serverError()));
+  }
+
+  long meetingCount(String sql) {
+    return Seed.count(ds, sql, meetingId);
+  }
+
+  @Test
+  void stoppingTheMeetingSucceedsWhenJanusFailsToStopTheRecording() {
+    as(TestUsers.OWNER).post("/meetings/" + meetingId + "/startRecording").then().statusCode(204);
+    janusFailsToStopRecording();
+
+    as(TestUsers.OWNER).post("/meetings/" + meetingId + "/stop").then().statusCode(200)
+        .body("active", org.hamcrest.Matchers.equalTo(false));
+
+    wm.verify(postRequestedFor(urlPathEqualTo("/janus/conn-1/h-audio"))
+        .withRequestBody(matchingJsonPath("$.body.request", equalTo("enable_mjrs")))
+        .withRequestBody(matchingJsonPath("$.body.mjrs", equalTo("false"))));
+    assertThat(startedRecordings()).isZero();
+    assertThat(meetingCount("SELECT count(*) FROM chats.recording WHERE meeting_id = ? AND status = 'STOPPED'"))
+        .isEqualTo(1);
+    assertThat(meetingCount("SELECT count(*) FROM chats.meeting WHERE id = ? AND active = false")).isEqualTo(1);
+    assertThat(meetingCount("SELECT count(*) FROM chats.videoserver_meeting WHERE meeting_id = ?")).isZero();
+    await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
+        wm.verify(postRequestedFor(urlPathEqualTo("/internal/recordings/process"))));
+  }
+
+  @Test
+  void deletingTheMeetingSucceedsWhenJanusFailsToStopTheRecording() {
+    as(TestUsers.OWNER).post("/meetings/" + meetingId + "/startRecording").then().statusCode(204);
+    janusFailsToStopRecording();
+
+    as(TestUsers.OWNER).delete("/meetings/" + meetingId).then().statusCode(204);
+
+    assertThat(meetingCount("SELECT count(*) FROM chats.meeting WHERE id = ?")).isZero();
+    assertThat(meetingCount("SELECT count(*) FROM chats.recording WHERE meeting_id = ?")).isZero();
+  }
+
+  @Test
+  void explicitStopRecordingStillPropagatesJanusFailures() {
+    as(TestUsers.OWNER).post("/meetings/" + meetingId + "/startRecording").then().statusCode(204);
+    janusFailsToStopRecording();
+
+    as(TestUsers.OWNER).post("/meetings/" + meetingId + "/stopRecording").then().statusCode(500);
+    assertThat(startedRecordings()).isEqualTo(1);
   }
 
   @Test
