@@ -204,4 +204,11 @@ class RecordingFlowTest {
   void startWithoutBodyIsAccepted() {
     as(TestUsers.OWNER).post("/meetings/" + meetingId + "/startRecording").then().statusCode(204);
   }
+
+  @Test
+  void openApiDocumentsTheRecordingEndpoints() {
+    given().queryParam("format", "json").get("/q/openapi").then().statusCode(200)
+        .body("paths", org.hamcrest.Matchers.hasKey("/meetings/{meetingId}/startRecording"))
+        .body("paths", org.hamcrest.Matchers.hasKey("/meetings/{meetingId}/stopRecording"));
+  }
 }

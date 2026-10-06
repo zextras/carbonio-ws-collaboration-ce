@@ -25,6 +25,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-database-postgresql</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-websockets-next</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-smallrye-health</artifactId></dependency>
+    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-smallrye-openapi</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-smallrye-context-propagation</artifactId></dependency>
     <dependency><groupId>com.zextras.carbonio.user-management</groupId><artifactId>carbonio-user-management-rest-sdk</artifactId></dependency>
     <dependency><groupId>com.rabbitmq</groupId><artifactId>amqp-client</artifactId></dependency>

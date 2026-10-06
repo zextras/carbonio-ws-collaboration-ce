@@ -5,7 +5,9 @@
 package com.zextras.carbonio.ws.app.ce;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 
 import com.zextras.carbonio.ws.testsupport.Stubs;
 import com.zextras.carbonio.ws.testsupport.TestUsers;
@@ -31,5 +33,13 @@ class PluginAbsentTest {
         .get("/meetings/" + UUID.randomUUID() + "/turnCredentials").then().statusCode(404);
     given().cookie("ZM_AUTH_TOKEN", TestUsers.token(TestUsers.OWNER))
         .post("/meetings/" + UUID.randomUUID() + "/startRecording").then().statusCode(404);
+  }
+
+  @Test
+  void openApiDocumentsOnlyCorePaths() {
+    given().queryParam("format", "json").get("/q/openapi").then().statusCode(200)
+        .body("paths", hasKey("/meetings/{meetingId}/start"))
+        .body("paths", not(hasKey("/meetings/{meetingId}/turnCredentials")))
+        .body("paths", not(hasKey("/meetings/{meetingId}/startRecording")));
   }
 }
