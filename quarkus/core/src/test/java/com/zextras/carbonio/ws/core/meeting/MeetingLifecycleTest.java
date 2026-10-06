@@ -14,6 +14,11 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.zextras.carbonio.ws.core.events.RabbitSessions;
 import com.zextras.carbonio.ws.testsupport.Seed;
 import com.zextras.carbonio.ws.testsupport.Stubs;
@@ -158,7 +163,7 @@ class MeetingLifecycleTest {
     as(TestUsers.OWNER).post("/meetings/" + id + "/leave").then().statusCode(204);
 
     as(TestUsers.OWNER).get("/meetings/" + id).then().statusCode(200).body("active", equalTo(false));
-    assertThat(stoppingProbe.seen).hasSize(1);
+    assertThat(stoppingProbe.seen).singleElement().satisfies(seen -> assertThat(seen.videoServerRowPresent()).isTrue());
   }
 
   @Test
@@ -181,9 +186,37 @@ class MeetingLifecycleTest {
     as(TestUsers.OWNER).delete("/meetings/" + id).then().statusCode(204);
 
     as(TestUsers.OWNER).get("/meetings/" + id).then().statusCode(404);
-    assertThat(stoppingProbe.seen).hasSize(1);
+    assertThat(stoppingProbe.seen).singleElement().satisfies(seen -> assertThat(seen.videoServerRowPresent()).isTrue());
     assertThat(Seed.count(ds, "SELECT count(*) FROM chats.room WHERE id = ? AND meeting_id IS NULL", roomId.toString()))
         .isEqualTo(1);
+  }
+
+  @Test
+  void outsiderCannotStartOrStop() {
+    String id = createMeeting("guarded");
+    as(TestUsers.OUTSIDER).post("/meetings/" + id + "/start").then().statusCode(403);
+    as(TestUsers.OWNER).post("/meetings/" + id + "/start").then().statusCode(200);
+    as(TestUsers.OUTSIDER).post("/meetings/" + id + "/stop").then().statusCode(403);
+    as(TestUsers.OWNER).get("/meetings/" + id).then().body("active", equalTo(true));
+  }
+
+  @Test
+  void startIsIdempotent() {
+    String id = createMeeting("again");
+    String first = as(TestUsers.OWNER).post("/meetings/" + id + "/start")
+        .then().statusCode(200).extract().path("startedAt");
+    as(TestUsers.OWNER).post("/meetings/" + id + "/start")
+        .then().statusCode(200).body("startedAt", equalTo(first)).body("active", equalTo(true));
+    WireMockResource.server().verify(1, postRequestedFor(urlPathEqualTo("/janus"))
+        .withRequestBody(matchingJsonPath("$.janus", WireMock.equalTo("create"))));
+  }
+
+  @Test
+  void stopOnInactiveMeetingIsANoOp() {
+    String id = createMeeting("never-started");
+    as(TestUsers.OWNER).post("/meetings/" + id + "/stop")
+        .then().statusCode(200).body("active", equalTo(false));
+    assertThat(stoppingProbe.seen).isEmpty();
   }
 
   @Test

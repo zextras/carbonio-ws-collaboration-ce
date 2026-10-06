@@ -101,6 +101,10 @@ public class MeetingService {
   @Transactional
   public MeetingDto start(UserPrincipal user, UUID meetingId) {
     MeetingEntity meeting = require(meetingId);
+    requireRoomMember(meeting.roomId, user);
+    if (Boolean.TRUE.equals(meeting.active)) {
+      return mapper.toDto(meeting);
+    }
     videoServer.startMeeting(meeting.id);
     meeting.active = true;
     meeting.startedAt = now();
@@ -119,6 +123,10 @@ public class MeetingService {
   @Transactional
   public MeetingDto stop(UserPrincipal user, UUID meetingId) {
     MeetingEntity meeting = require(meetingId);
+    requireRoomMember(meeting.roomId, user);
+    if (!Boolean.TRUE.equals(meeting.active)) {
+      return mapper.toDto(meeting);
+    }
     deactivate(user.id(), meeting);
     return mapper.toDto(meeting);
   }
