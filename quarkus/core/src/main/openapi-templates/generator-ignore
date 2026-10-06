@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Zextras <https://www.zextras.com>
+#
+# SPDX-License-Identifier: AGPL-3.0-only
+
+# CE's generator-ignore plus the servlet/JAX-RS-Application support files Quarkus does not need.
+**/pom.xml
+**/*.gradle
+**/README.md
+**/*.properties
+**/.openapi-generator-ignore
+.openapi-generator
+**/impl/*
+**/ApiResponseMessage.java
+**/JacksonConfig.java
+**/RestApplication.java
+**/ApiOriginFilter.java

@@ -15,31 +15,126 @@ SPDX-License-Identifier: AGPL-3.0-only
   </parent>
   <artifactId>core</artifactId>
 
+  <properties>
+    <openapi.dir>${project.basedir}/../../carbonio-ws-collaboration-openapi/src/main/resources</openapi.dir>
+    <openapi.templates>${project.build.directory}/openapi-templates</openapi.templates>
+  </properties>
+
   <dependencies>
     <dependency><groupId>${project.groupId}</groupId><artifactId>core-api</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-rest-jackson</artifactId></dependency>
+    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-hibernate-validator</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-security</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-hibernate-orm-panache</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-jdbc-postgresql</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-flyway</artifactId></dependency>
     <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-database-postgresql</artifactId></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-websockets-next</artifactId></dependency>
+    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-websockets</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-smallrye-health</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-smallrye-openapi</artifactId></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-smallrye-context-propagation</artifactId></dependency>
     <dependency><groupId>com.zextras.carbonio.user-management</groupId><artifactId>carbonio-user-management-rest-sdk</artifactId></dependency>
+    <dependency><groupId>com.zextras</groupId><artifactId>storages-ce-sdk</artifactId></dependency>
+    <dependency><groupId>com.zextras.carbonio.preview</groupId><artifactId>carbonio-preview-ce-rest-sdk</artifactId></dependency>
     <dependency><groupId>com.rabbitmq</groupId><artifactId>amqp-client</artifactId></dependency>
+    <dependency><groupId>io.vavr</groupId><artifactId>vavr</artifactId></dependency>
+    <dependency><groupId>org.apache.commons</groupId><artifactId>commons-lang3</artifactId></dependency>
+    <dependency><groupId>org.apache.commons</groupId><artifactId>commons-text</artifactId></dependency>
+    <dependency><groupId>commons-io</groupId><artifactId>commons-io</artifactId></dependency>
+    <dependency><groupId>com.orbitz.consul</groupId><artifactId>consul-client</artifactId></dependency>
+    <dependency><groupId>com.github.ben-manes.caffeine</groupId><artifactId>caffeine</artifactId></dependency>
+    <dependency><groupId>com.vdurmont</groupId><artifactId>semver4j</artifactId></dependency>
+    <dependency><groupId>org.yaml</groupId><artifactId>snakeyaml</artifactId></dependency>
+    <dependency><groupId>io.swagger</groupId><artifactId>swagger-annotations</artifactId></dependency>
 
     <dependency><groupId>${project.groupId}</groupId><artifactId>test-support</artifactId><scope>test</scope></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-junit</artifactId><scope>test</scope></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-junit-mockito</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter-params</artifactId><scope>test</scope></dependency>
     <dependency><groupId>io.rest-assured</groupId><artifactId>rest-assured</artifactId><scope>test</scope></dependency>
     <dependency><groupId>org.assertj</groupId><artifactId>assertj-core</artifactId><scope>test</scope></dependency>
     <dependency><groupId>org.awaitility</groupId><artifactId>awaitility</artifactId><scope>test</scope></dependency>
   </dependencies>
 
   <build>
+    <resources>
+      <resource><directory>src/main/resources</directory></resource>
+      <!-- VersionProvider reads /api.yaml from the classpath, as in CE -->
+      <resource>
+        <directory>${openapi.dir}</directory>
+        <includes><include>api.yaml</include></includes>
+      </resource>
+    </resources>
     <plugins>
+      <plugin>
+        <!-- CE templates + the Quarkus overrides of the upstream resteasy api/apiService templates -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>openapi-templates</id>
+            <phase>initialize</phase>
+            <goals><goal>copy-resources</goal></goals>
+            <configuration>
+              <outputDirectory>${openapi.templates}</outputDirectory>
+              <resources>
+                <resource><directory>${openapi.dir}/templates</directory></resource>
+                <resource>
+                  <directory>${project.basedir}/src/main/openapi-templates</directory>
+                  <includes><include>*.mustache</include></includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.openapitools</groupId>
+        <artifactId>openapi-generator-maven-plugin</artifactId>
+        <version>${openapi-generator.version}</version>
+        <executions>
+          <execution>
+            <id>ws-collaboration-api</id>
+            <goals><goal>generate</goal></goals>
+            <configuration>
+              <configOptions>
+                <useJakartaEe>true</useJakartaEe>
+              </configOptions>
+              <generatorName>jaxrs-resteasy</generatorName>
+              <engine>mustache</engine>
+              <inputSpec>${openapi.dir}/api.yaml</inputSpec>
+              <configurationFile>${openapi.dir}/generator-config.json</configurationFile>
+              <templateDirectory>${openapi.templates}</templateDirectory>
+              <ignoreFileOverride>${project.basedir}/src/main/openapi-templates/generator-ignore</ignoreFileOverride>
+              <output>${project.build.directory}/generated-sources/chats</output>
+              <modelNameSuffix>dto</modelNameSuffix>
+              <skipValidateSpec>true</skipValidateSpec>
+              <typeMappings>
+                <typeMapping>binary=InputStream</typeMapping>
+                <typeMapping>file=InputStream</typeMapping>
+              </typeMappings>
+              <importMappings>
+                <importMapping>InputStream=java.io.InputStream</importMapping>
+              </importMappings>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.6.1</version>
+        <executions>
+          <execution>
+            <id>add-api-sources</id>
+            <phase>generate-sources</phase>
+            <goals><goal>add-source</goal></goals>
+            <configuration>
+              <sources><source>${project.build.directory}/generated-sources/chats/src/main/java</source></sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin><groupId>io.smallrye</groupId><artifactId>jandex-maven-plugin</artifactId></plugin>
     </plugins>
   </build>

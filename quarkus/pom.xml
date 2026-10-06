@@ -19,10 +19,13 @@ SPDX-License-Identifier: AGPL-3.0-only
     <module>core</module>
     <module>plugin-turn</module>
     <module>app-ce</module>
+    <!-- P1 (full CE core port): temporarily out of the reactor until P2 re-points the plugin seams
+         (VideoServerGateway, MeetingAccess, EventPublisher, MeetingDtoEnricher) onto CE classes.
     <module>app-adv</module>
     <module>plugin-recording</module>
-    <module>test-plugins/plugin-incompatible</module>
     <module>distribution-it</module>
+    -->
+    <module>test-plugins/plugin-incompatible</module>
   </modules>
 
   <properties>
@@ -43,6 +46,13 @@ SPDX-License-Identifier: AGPL-3.0-only
     <shade-plugin.version>3.6.0</shade-plugin.version>
     <jackson-databind-nullable.version>0.2.10</jackson-databind-nullable.version>
     <assertj.version>3.27.3</assertj.version>
+    <storages-sdk.version>0.0.16</storages-sdk.version>
+    <preview-sdk.version>3.1.7-1</preview-sdk.version>
+    <vavr.version>0.11.0</vavr.version>
+    <commons-text.version>1.15.0</commons-text.version>
+    <consul-client.version>1.5.3</consul-client.version>
+    <caffeine.version>3.2.4</caffeine.version>
+    <semver4j.version>3.1.0</semver4j.version>
   </properties>
 
   <repositories>
@@ -126,6 +136,41 @@ SPDX-License-Identifier: AGPL-3.0-only
         <groupId>io.swagger</groupId>
         <artifactId>swagger-annotations</artifactId>
         <version>${swagger-annotations.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.zextras</groupId>
+        <artifactId>storages-ce-sdk</artifactId>
+        <version>${storages-sdk.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.zextras.carbonio.preview</groupId>
+        <artifactId>carbonio-preview-ce-rest-sdk</artifactId>
+        <version>${preview-sdk.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.vavr</groupId>
+        <artifactId>vavr</artifactId>
+        <version>${vavr.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-text</artifactId>
+        <version>${commons-text.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.orbitz.consul</groupId>
+        <artifactId>consul-client</artifactId>
+        <version>${consul-client.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.ben-manes.caffeine</groupId>
+        <artifactId>caffeine</artifactId>
+        <version>${caffeine.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.vdurmont</groupId>
+        <artifactId>semver4j</artifactId>
+        <version>${semver4j.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.code.findbugs</groupId>
