@@ -98,7 +98,7 @@ final class DistributionRunner implements AutoCloseable {
   Duration awaitReady(int port) throws Exception {
     long start = System.nanoTime();
     HttpClient http = HttpClient.newHttpClient();
-    URI ready = URI.create("http://127.0.0.1:" + port + "/q/health/ready");
+    URI ready = URI.create("http://127.0.0.1:" + port + "/health/ready");
     while (System.nanoTime() - start < Duration.ofSeconds(90).toNanos()) {
       if (!process.isAlive()) {
         throw new IllegalStateException("Application exited:\n" + log());
