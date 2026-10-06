@@ -271,9 +271,49 @@ class MeetingServiceImplTest {
     }
 
     @Test
-    @DisplayName("Starts a one-to-one meeting that is already active")
-    void startOneToOneMeeting_testOkAlreadyActive() {
+    @DisplayName("Starts a meeting that is already active")
+    void startMeeting_testOkAlreadyActive() {
       UserPrincipal currentUser = UserPrincipal.create(user2Id).name("alice");
+      UUID meetingId = UUID.randomUUID();
+      UUID roomId = UUID.randomUUID();
+      OffsetDateTime startedAt = OffsetDateTime.parse("2022-01-01T12:00:00Z");
+      Meeting meeting =
+          Meeting.create()
+              .roomId(roomId.toString())
+              .name("test")
+              .meetingType(MeetingType.PERMANENT)
+              .id(meetingId.toString())
+              .startedAt(startedAt)
+              .active(true);
+      when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(roomService.getRoomById(roomId, currentUser))
+          .thenReturn(
+              RoomDto.create()
+                  .id(roomId)
+                  .type(RoomTypeDto.ONE_TO_ONE)
+                  .meetingId(meetingId)
+                  .members(
+                      List.of(
+                          MemberDto.create().userId(user1Id), MemberDto.create().userId(user2Id))));
+
+      MeetingDto meetingDto = meetingService.startMeeting(currentUser, meetingId);
+
+      assertEquals(meetingId, meetingDto.getId());
+      assertEquals(startedAt, meetingDto.getStartedAt());
+      verify(meetingRepository, times(1)).getById(meetingId.toString());
+      verify(roomService, times(1)).getRoomById(roomId, currentUser);
+      verifyNoMoreInteractions(meetingRepository, roomService);
+      verifyNoInteractions(
+          videoServerService,
+          participantService,
+          eventDispatcher,
+          messageDispatcher);
+    }
+
+    @Test
+    @DisplayName("Starts a meeting of a room the user is not a member of")
+    void startMeeting_testErrorUserNotRoomMember() {
+      UserPrincipal currentUser = UserPrincipal.create(user3Id);
       UUID meetingId = UUID.randomUUID();
       UUID roomId = UUID.randomUUID();
       Meeting meeting =
@@ -282,21 +322,20 @@ class MeetingServiceImplTest {
               .name("test")
               .meetingType(MeetingType.PERMANENT)
               .id(meetingId.toString())
-              .startedAt(OffsetDateTime.parse("2022-01-01T12:00:00Z"))
-              .active(true);
+              .active(false);
       when(meetingRepository.getById(meetingId.toString())).thenReturn(Optional.of(meeting));
+      when(roomService.getRoomById(roomId, currentUser)).thenThrow(new ForbiddenException());
 
-      MeetingDto meetingDto = meetingService.startMeeting(currentUser, meetingId);
+      assertThrows(
+          ForbiddenException.class, () -> meetingService.startMeeting(currentUser, meetingId));
 
-      assertEquals(meetingId, meetingDto.getId());
       verify(meetingRepository, times(1)).getById(meetingId.toString());
       verifyNoMoreInteractions(meetingRepository);
       verifyNoInteractions(
           videoServerService,
           participantService,
           eventDispatcher,
-          messageDispatcher,
-          roomService);
+          messageDispatcher);
     }
 
     @Test

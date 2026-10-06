@@ -809,6 +809,7 @@ paths:
       tags:
         - Meetings
       summary: Starts the current meeting
+      description: If the meeting is already active it is returned unchanged and no notification is sent.
       operationId: startMeeting
       parameters:
         - $ref: "#/components/parameters/pathMeetingId"

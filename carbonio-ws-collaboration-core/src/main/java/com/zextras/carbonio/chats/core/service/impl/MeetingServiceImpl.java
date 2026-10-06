@@ -119,13 +119,14 @@ public class MeetingServiceImpl implements MeetingService {
   @Override
   public MeetingDto startMeeting(UserPrincipal user, UUID meetingId) {
     Meeting meeting = validateMeeting(meetingId);
+    RoomDto room = roomService.getRoomById(UUID.fromString(meeting.getRoomId()), user);
     if (Boolean.TRUE.equals(meeting.getActive())) {
       return meetingMapper.ent2dto(meeting);
     }
 
     Meeting updatedMeeting = activateMeeting(meeting);
 
-    notifyMeetingStarted(user, updatedMeeting);
+    notifyMeetingStarted(user, room, updatedMeeting);
 
     return meetingMapper.ent2dto(updatedMeeting);
   }
@@ -201,8 +202,7 @@ public class MeetingServiceImpl implements MeetingService {
     return meetingRepository.update(meeting);
   }
 
-  private void notifyMeetingStarted(UserPrincipal user, Meeting updatedMeeting) {
-    RoomDto room = roomService.getRoomById(UUID.fromString(updatedMeeting.getRoomId()), user);
+  private void notifyMeetingStarted(UserPrincipal user, RoomDto room, Meeting updatedMeeting) {
     List<String> allReceivers =
         room.getMembers().stream().map(m -> m.getUserId().toString()).toList();
 
