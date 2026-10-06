@@ -21,7 +21,8 @@ SPDX-License-Identifier: AGPL-3.0-only
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-rest-jackson</artifactId><scope>provided</scope></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-hibernate-orm-panache</artifactId><scope>provided</scope></dependency>
     <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-security</artifactId><scope>provided</scope></dependency>
-    <dependency><groupId>io.quarkus</groupId><artifactId>quarkus-smallrye-context-propagation</artifactId><scope>provided</scope></dependency>
+    <!-- Mutiny worker pool for post-processing; version from the Quarkus BOM, provided by core at runtime -->
+    <dependency><groupId>io.smallrye.reactive</groupId><artifactId>mutiny</artifactId><scope>provided</scope></dependency>
     <!-- compile: shaded into the plugin jar -->
     <dependency><groupId>com.zextras.carbonio.videorecorder</groupId><artifactId>carbonio-videorecorder-rest-sdk</artifactId></dependency>
 
