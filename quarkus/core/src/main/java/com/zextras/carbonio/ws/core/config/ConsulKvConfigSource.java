@@ -48,10 +48,27 @@ public final class ConsulKvConfigSource implements ConfigSource {
         Thread.currentThread().interrupt();
         break;
       } catch (Exception e) {
+        if (isConnectionFailure(e)) {
+          LOG.log(System.Logger.Level.WARNING,
+              "Consul unreachable at {0} ({1}); skipping remaining keys", consulUrl, e.toString());
+          break;
+        }
         LOG.log(System.Logger.Level.WARNING, "Consul KV {0} unreadable: {1}", mapping.getValue(), e.toString());
       }
     }
     return new ConsulKvConfigSource(values);
+  }
+
+  private static boolean isConnectionFailure(Throwable e) {
+    for (Throwable t = e; t != null; t = t.getCause()) {
+      if (t instanceof java.net.ConnectException || t instanceof java.net.http.HttpConnectTimeoutException) {
+        return true;
+      }
+      if (t.getCause() == t) {
+        break;
+      }
+    }
+    return false;
   }
 
   @Override

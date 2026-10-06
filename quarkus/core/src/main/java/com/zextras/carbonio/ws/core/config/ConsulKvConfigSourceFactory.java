@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.ServiceLoader;
+import java.util.function.Function;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
 /**
@@ -25,15 +26,19 @@ public class ConsulKvConfigSourceFactory implements ConfigSourceFactory {
 
   @Override
   public Iterable<ConfigSource> getConfigSources(ConfigSourceContext context) {
-    if (!Boolean.parseBoolean(value(context, "ws.consul.enabled", "false"))) {
+    return getConfigSources(context, System::getenv);
+  }
+
+  Iterable<ConfigSource> getConfigSources(ConfigSourceContext context, Function<String, String> env) {
+    if (!Boolean.parseBoolean(value(context, env, "ws.consul.enabled", "WS_CONSUL_ENABLED", "false"))) {
       return List.of();
     }
     Map<String, String> mappings =
         mergeMappings(ServiceLoader.load(ConsulKeyMapping.class, Thread.currentThread().getContextClassLoader()));
     HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofMillis(5000)).build();
     return List.of(ConsulKvConfigSource.load(
-        value(context, "ws.consul.url", "http://localhost:8500"),
-        value(context, "CONSUL_HTTP_TOKEN", null),
+        value(context, env, "ws.consul.url", "WS_CONSUL_URL", "http://localhost:8500"),
+        value(context, env, "CONSUL_HTTP_TOKEN", "CONSUL_HTTP_TOKEN", null),
         mappings,
         http));
   }
@@ -57,7 +62,21 @@ public class ConsulKvConfigSourceFactory implements ConfigSourceFactory {
     return merged;
   }
 
-  private static String value(ConfigSourceContext context, String name, String defaultValue) {
+  /**
+   * The context may only expose sources below this factory's priority, which would hide system
+   * properties and environment variables; so those are read directly: system property, then
+   * environment, then context, then default.
+   */
+  private static String value(
+      ConfigSourceContext context, Function<String, String> env, String name, String envName, String defaultValue) {
+    String fromSystem = System.getProperty(name);
+    if (fromSystem != null) {
+      return fromSystem;
+    }
+    String fromEnv = env.apply(envName);
+    if (fromEnv != null) {
+      return fromEnv;
+    }
     ConfigValue value = context.getValue(name);
     return value == null || value.getValue() == null ? defaultValue : value.getValue();
   }
