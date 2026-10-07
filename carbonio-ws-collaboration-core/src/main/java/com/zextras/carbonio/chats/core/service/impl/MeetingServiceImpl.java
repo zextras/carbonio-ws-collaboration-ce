@@ -235,7 +235,7 @@ public class MeetingServiceImpl implements MeetingService {
 
   private void notifyMeetingStoppedForOneToOneMeeting(
       Room room, String userId, OffsetDateTime startedAt) {
-    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType())) {
+    if (RoomTypeDto.ONE_TO_ONE.equals(room.getType()) && startedAt != null) {
       long duration = Duration.between(startedAt, OffsetDateTime.now(clock)).toSeconds();
       messageDispatcher.sendMeetingEnded(room.getId(), userId, startedAt, duration);
     }
