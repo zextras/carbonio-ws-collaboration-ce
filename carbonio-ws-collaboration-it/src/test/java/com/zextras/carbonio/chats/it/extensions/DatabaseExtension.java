@@ -67,7 +67,7 @@ public class DatabaseExtension implements BeforeAllCallback, BeforeEachCallback,
               ChatsLogger.debug("Migrating test DB...");
               return Flyway.configure()
                   .cleanDisabled(false)
-                  .locations("classpath:migration")
+                  .locations("classpath:migration/ce")
                   .schemas("chats")
                   .dataSource(new HikariDataSource(config))
                   .validateMigrationNaming(true)

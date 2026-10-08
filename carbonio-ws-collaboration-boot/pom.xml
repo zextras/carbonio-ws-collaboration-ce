@@ -21,6 +21,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 
   <artifactId>carbonio-ws-collaboration-ce-boot</artifactId>
 
+  <properties>
+    <maven.deploy.skip>true</maven.deploy.skip>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>com.zextras.carbonio</groupId>

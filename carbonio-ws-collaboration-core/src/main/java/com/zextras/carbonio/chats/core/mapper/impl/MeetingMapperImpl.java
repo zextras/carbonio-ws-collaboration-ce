@@ -31,6 +31,12 @@ public class MeetingMapperImpl implements MeetingMapper {
     if (meeting == null) {
       return null;
     }
+    MeetingDto dto = toDto(meeting);
+    enrich(dto, meeting);
+    return dto;
+  }
+
+  private MeetingDto toDto(Meeting meeting) {
     return MeetingDto.create()
         .id(UUID.fromString(meeting.getId()))
         .roomId(UUID.fromString(meeting.getRoomId()))
@@ -42,12 +48,22 @@ public class MeetingMapperImpl implements MeetingMapper {
         .participants(participantMapper.ent2dto(meeting.getParticipants()));
   }
 
+  protected void enrich(MeetingDto dto, Meeting meeting) {}
+
+  protected void enrich(List<MeetingDto> dtos, List<Meeting> meetings) {
+    for (int i = 0; i < meetings.size(); i++) {
+      enrich(dtos.get(i), meetings.get(i));
+    }
+  }
+
   @Override
   @Nullable
   public List<MeetingDto> ent2dto(@Nullable List<Meeting> meetings) {
     if (meetings == null) {
       return List.of();
     }
-    return meetings.stream().map(this::ent2dto).toList();
+    List<MeetingDto> dtos = meetings.stream().map(this::toDto).toList();
+    enrich(dtos, meetings);
+    return dtos;
   }
 }
