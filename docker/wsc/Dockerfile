@@ -61,4 +61,4 @@ ENV JDK_JAVA_OPTIONS="-Djava.net.preferIPv4Stack=true -agentlib:jdwp=transport=d
 ENV JDK_JAVA_OPTIONS="-Djava.net.preferIPv4Stack=true -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -Xms1024m -Xmx2048m -XX:+UseZGC"
 
 # Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "--enable-preview", "-jar", "app.jar"]
