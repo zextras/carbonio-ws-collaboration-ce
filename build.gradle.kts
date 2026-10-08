@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-val revision = "1.13.12"
+val revision = "1.13.13"
 val isProd = providers.gradleProperty("prod").isPresent
 
 allprojects {

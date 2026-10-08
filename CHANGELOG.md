@@ -1,3 +1,9 @@
+## [1.13.13](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.13.12...v1.13.13) (2026-10-08)
+
+### Bug Fixes
+
+* **docker:** start the JVM with --enable-preview ([#299](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/299)) ([61cf39a](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/61cf39a05c668bc5b6ccdbc7bc5763c0f8352106))
+
 ## [1.13.12](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.13.11...v1.13.12) (2026-10-02)
 
 ## [1.13.11](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.13.10...v1.13.11) (2026-09-25)
