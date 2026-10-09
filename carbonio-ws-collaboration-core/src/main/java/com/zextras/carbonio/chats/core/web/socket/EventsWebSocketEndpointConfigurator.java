@@ -8,6 +8,7 @@ import com.vdurmont.semver4j.Semver;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.HandshakeResponse;
 import jakarta.websocket.server.HandshakeRequest;
+import jakarta.websocket.server.ServerEndpoint;
 import jakarta.websocket.server.ServerEndpointConfig;
 import java.util.AbstractMap;
 import java.util.Comparator;
@@ -20,6 +21,11 @@ public class EventsWebSocketEndpointConfigurator extends ServerEndpointConfig.Co
   private final EventsWebSocketManager eventsWebSocketManager;
 
   public EventsWebSocketEndpointConfigurator(EventsWebSocketManager eventsWebSocketManager) {
+    if (!eventsWebSocketManager.getClass().isAnnotationPresent(ServerEndpoint.class)) {
+      throw new IllegalStateException(
+          eventsWebSocketManager.getClass().getName()
+              + " lacks @ServerEndpoint, so /events would not upgrade; is it AOP-intercepted?");
+    }
     this.eventsWebSocketManager = eventsWebSocketManager;
   }
 
