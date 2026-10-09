@@ -6,11 +6,15 @@ package com.zextras.carbonio.chats.core.config.module;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
+import com.google.inject.Inject;
+import com.google.inject.Provider;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.matcher.Matchers;
 import com.google.inject.multibindings.Multibinder;
+import com.google.inject.multibindings.OptionalBinder;
 import com.google.inject.name.Named;
+import com.google.inject.spi.InjectionPoint;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -138,6 +142,7 @@ import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.annotation.Platform;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.ZoneId;
@@ -166,6 +171,8 @@ public class CoreModule extends AbstractModule {
         .addBinding()
         .to(CoreConfigContribution.class);
 
+    bindExtensionPoints();
+
     // This is bound twice, once for RestEasy injection and one for everything else
     bind(JacksonConfig.class);
     bind(ObjectMapper.class).toProvider(JacksonConfig.class);
@@ -176,7 +183,6 @@ public class CoreModule extends AbstractModule {
     bind(VersionedRequestFilter.class);
     bind(EventDispatcher.class).to(EventDispatcherRabbitMq.class);
     bind(MessageDispatcher.class).to(MessageDispatcherMongooseImpl.class);
-    bind(EventsWebSocketManager.class);
     bind(EventWebSocketSessions.class);
     bind(SessionPingManager.class);
     bind(MessageBrokerVideoserverHealthMonitor.class);
@@ -184,7 +190,6 @@ public class CoreModule extends AbstractModule {
     bind(RoomsApi.class);
     bind(RoomsApiService.class).to(RoomsApiServiceImpl.class);
     bind(RoomRepository.class).to(EbeanRoomRepository.class);
-    bind(RoomMapper.class).to(RoomMapperImpl.class);
     bind(RoomService.class).to(RoomServiceImpl.class);
 
     bind(AttachmentsApi.class);
@@ -221,20 +226,14 @@ public class CoreModule extends AbstractModule {
     bind(CapabilityService.class).to(CapabilityServiceImpl.class);
 
     bind(MeetingsApi.class);
-    bind(MeetingsApiService.class).to(MeetingsApiServiceImpl.class);
-    bind(MeetingService.class).to(MeetingServiceImpl.class);
     bind(MeetingRepository.class).to(EbeanMeetingRepository.class);
-    bind(MeetingMapper.class).to(MeetingMapperImpl.class);
 
-    bind(ParticipantService.class).to(ParticipantServiceImpl.class);
     bind(ParticipantRepository.class).to(EbeanParticipantRepository.class);
     bind(ParticipantMapper.class).to(ParticipantMapperImpl.class);
 
-    bind(VideoServerService.class).to(VideoServerServiceImpl.class);
     bind(VideoServerMeetingRepository.class).to(EbeanVideoServerMeetingRepository.class);
     bind(VideoServerSessionRepository.class).to(EbeanVideoServerSessionRepository.class);
 
-    bind(StoragesService.class).to(StoragesServiceImpl.class);
     bind(ProfilingService.class).to(UserManagementProfilingService.class);
     bind(AuthenticationService.class).to(UserManagementAuthenticationService.class);
 
@@ -319,24 +318,85 @@ public class CoreModule extends AbstractModule {
         .build();
   }
 
-  @Singleton
-  @Provides
-  private Flyway getFlywayInstance(
-      HikariDataSource dataSource, JavaMigrationsProvider javaMigrationsProvider) {
-    return buildFlyway(dataSource, "classpath:migration/ce", javaMigrationsProvider.get());
+  // The only keys a downstream module may replace, via OptionalBinder.setBinding().
+  private void bindExtensionPoints() {
+    OptionalBinder.newOptionalBinder(binder(), HikariDataSource.class)
+        .setDefault()
+        .toProvider(HikariDataSourceProvider.class)
+        .in(Singleton.class);
+    OptionalBinder.newOptionalBinder(binder(), Flyway.class)
+        .setDefault()
+        .toProvider(FlywayProvider.class)
+        .in(Singleton.class);
+    OptionalBinder.newOptionalBinder(binder(), StoragesService.class)
+        .setDefault()
+        .to(StoragesServiceImpl.class);
+    OptionalBinder.newOptionalBinder(binder(), VideoServerService.class)
+        .setDefault()
+        .to(VideoServerServiceImpl.class);
+    OptionalBinder.newOptionalBinder(binder(), MeetingService.class)
+        .setDefault()
+        .to(MeetingServiceImpl.class);
+    OptionalBinder.newOptionalBinder(binder(), MeetingsApiService.class)
+        .setDefault()
+        .to(MeetingsApiServiceImpl.class);
+    OptionalBinder.newOptionalBinder(binder(), ParticipantService.class)
+        .setDefault()
+        .to(ParticipantServiceImpl.class);
+    OptionalBinder.newOptionalBinder(binder(), RoomMapper.class)
+        .setDefault()
+        .to(RoomMapperImpl.class);
+    OptionalBinder.newOptionalBinder(binder(), MeetingMapper.class)
+        .setDefault()
+        .to(MeetingMapperImpl.class);
+    OptionalBinder.newOptionalBinder(binder(), EventsWebSocketManager.class)
+        .setDefault()
+        .toConstructor(injectableConstructor(EventsWebSocketManager.class))
+        .in(Singleton.class);
   }
 
-  @Singleton
-  @Provides
-  private HikariDataSource getHikariDataSource(AppConfig appConfig) {
-    HikariConfig config = baseHikariConfig(appConfig);
+  @SuppressWarnings("unchecked")
+  private static <T> Constructor<T> injectableConstructor(Class<T> type) {
+    return (Constructor<T>) InjectionPoint.forConstructorOf(type).getMember();
+  }
 
-    Properties properties = new Properties();
-    properties.setProperty("sslmode", "disable");
-    properties.setProperty("ApplicationName", "ws-collaboration");
-    config.setDataSourceProperties(properties);
+  static class HikariDataSourceProvider implements Provider<HikariDataSource> {
 
-    return new HikariDataSource(config);
+    private final AppConfig appConfig;
+
+    @Inject
+    HikariDataSourceProvider(AppConfig appConfig) {
+      this.appConfig = appConfig;
+    }
+
+    @Override
+    public HikariDataSource get() {
+      HikariConfig config = baseHikariConfig(appConfig);
+
+      Properties properties = new Properties();
+      properties.setProperty("sslmode", "disable");
+      properties.setProperty("ApplicationName", "ws-collaboration");
+      config.setDataSourceProperties(properties);
+
+      return new HikariDataSource(config);
+    }
+  }
+
+  static class FlywayProvider implements Provider<Flyway> {
+
+    private final HikariDataSource dataSource;
+    private final JavaMigrationsProvider javaMigrationsProvider;
+
+    @Inject
+    FlywayProvider(HikariDataSource dataSource, JavaMigrationsProvider javaMigrationsProvider) {
+      this.dataSource = dataSource;
+      this.javaMigrationsProvider = javaMigrationsProvider;
+    }
+
+    @Override
+    public Flyway get() {
+      return buildFlyway(dataSource, "classpath:migration/ce", javaMigrationsProvider.get());
+    }
   }
 
   public static HikariConfig baseHikariConfig(AppConfig appConfig) {
