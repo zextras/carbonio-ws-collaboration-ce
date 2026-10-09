@@ -8,7 +8,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-// Config keys a module owns; all Multibinder contributions are merged into one catalog.
 public interface ConfigContribution {
 
   default Map<String, String> consulKvMappings() {

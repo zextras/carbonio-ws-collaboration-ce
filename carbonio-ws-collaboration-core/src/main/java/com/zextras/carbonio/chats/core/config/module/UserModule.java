@@ -72,8 +72,7 @@ public class UserModule extends AbstractModule {
     ApiClient apiClient =
         new ApiClient(
             httpClientBuilder, ApiClient.createDefaultObjectMapper(), userManagementBaseUrl);
-    // Must be set before constructing UserResourceApi: its constructor snapshots the ApiClient's
-    // timeouts into final fields, so setting them afterwards would be a silent no-op.
+    // Set before new UserResourceApi(): its constructor copies the timeouts.
     apiClient.setConnectTimeout(USER_MANAGEMENT_TIMEOUT);
     apiClient.setReadTimeout(USER_MANAGEMENT_TIMEOUT);
     return new UserResourceApi(apiClient);

@@ -20,7 +20,7 @@ public class WebSocketModule extends AbstractModule {
     bind(WebsocketVersionMigrator.class);
   }
 
-  // A hook, not a Class: Guice rejects bind(X).to(X) for the CE default.
+  // Not a Class hook: Guice rejects bind(X).to(X).
   protected void bindEventsWebSocketManager() {
     bind(EventsWebSocketManager.class);
   }
