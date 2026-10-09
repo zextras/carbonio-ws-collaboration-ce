@@ -12,7 +12,6 @@ import com.zextras.carbonio.chats.core.config.module.CoreModule;
 import com.zextras.carbonio.chats.core.config.module.DatabaseModule;
 import com.zextras.carbonio.chats.core.config.module.MeetingModule;
 import com.zextras.carbonio.chats.core.config.module.StorageModule;
-import com.zextras.carbonio.chats.core.config.module.WebSocketModule;
 import com.zextras.carbonio.chats.it.config.TestModule;
 import java.util.Optional;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -43,8 +42,7 @@ public class GuiceExtension implements ParameterResolver, BeforeAllCallback {
                             new CoreModule(),
                             new DatabaseModule(),
                             new StorageModule(),
-                            new MeetingModule(),
-                            new WebSocketModule())
+                            new MeetingModule())
                         .with(new TestModule())),
             Injector.class);
   }
