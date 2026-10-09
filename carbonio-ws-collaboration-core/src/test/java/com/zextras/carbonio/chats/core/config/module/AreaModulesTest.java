@@ -7,6 +7,7 @@ package com.zextras.carbonio.chats.core.config.module;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.inject.Binding;
 import com.google.inject.Guice;
@@ -16,6 +17,7 @@ import com.google.inject.Module;
 import com.google.inject.Stage;
 import com.google.inject.spi.Elements;
 import com.google.inject.spi.LinkedKeyBinding;
+import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.api.MeetingsApiService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
@@ -66,6 +68,11 @@ class AreaModulesTest {
         boundKeys(new DatabaseModule(), new StorageModule(), new MeetingModule())) {
       assertFalse(coreKeys.contains(areaKey), areaKey + " must only be bound by its area module");
     }
+  }
+
+  @Test
+  void dataSourceIsSharedInCoreModule() {
+    assertTrue(boundKeys(new CoreModule()).contains(Key.get(HikariDataSource.class)));
   }
 
   private static void assertLinkedTo(Class<?> type, Class<?> impl) {

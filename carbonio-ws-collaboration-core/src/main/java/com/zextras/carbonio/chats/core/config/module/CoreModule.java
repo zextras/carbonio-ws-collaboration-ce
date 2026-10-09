@@ -14,6 +14,7 @@ import com.google.inject.name.Named;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.api.AttachmentsApi;
 import com.zextras.carbonio.chats.api.AttachmentsApiService;
@@ -281,6 +282,26 @@ public class CoreModule extends AbstractModule {
     apiClient.setConnectTimeout(USER_MANAGEMENT_TIMEOUT);
     apiClient.setReadTimeout(USER_MANAGEMENT_TIMEOUT);
     return new UserResourceApi(apiClient);
+  }
+
+  @Singleton
+  @Provides
+  private HikariDataSource getHikariDataSource(AppConfig appConfig) {
+    HikariConfig config = new HikariConfig();
+    config.setJdbcUrl(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).orElseThrow());
+    config.setPoolName("ws-collaboration-db-pool");
+    config.setUsername(appConfig.get(String.class, ConfigName.DATABASE_USERNAME).orElse("admin"));
+    config.setPassword(appConfig.get(String.class, ConfigName.DATABASE_PASSWORD).orElse("admin"));
+    config.setIdleTimeout(
+        appConfig.get(Integer.class, ConfigName.HIKARI_IDLE_TIMEOUT).orElse(10000));
+    config.setMinimumIdle(appConfig.get(Integer.class, ConfigName.HIKARI_MIN_POOL_SIZE).orElse(10));
+    config.setMaximumPoolSize(
+        appConfig.get(Integer.class, ConfigName.HIKARI_MAX_POOL_SIZE).orElse(10));
+    config.setLeakDetectionThreshold(
+        appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(5000));
+    config.setMaxLifetime(
+        appConfig.get(Integer.class, ConfigName.HIKARI_MAX_LIFETIME).orElse(600000));
+    return new HikariDataSource(config);
   }
 
   @Singleton
