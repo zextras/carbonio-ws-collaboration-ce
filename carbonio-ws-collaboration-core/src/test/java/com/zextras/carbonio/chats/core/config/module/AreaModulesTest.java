@@ -48,7 +48,8 @@ class AreaModulesTest {
             new CoreModule(),
             new DatabaseModule(),
             new StorageModule(),
-            new MeetingModule());
+            new MeetingModule(),
+            new WebSocketModule());
   }
 
   @Test
@@ -65,7 +66,11 @@ class AreaModulesTest {
   void coreModuleBindsNoAreaModuleKey() {
     Set<Key<?>> coreKeys = boundKeys(new CoreModule());
     for (Key<?> areaKey :
-        boundKeys(new DatabaseModule(), new StorageModule(), new MeetingModule())) {
+        boundKeys(
+            new DatabaseModule(),
+            new StorageModule(),
+            new MeetingModule(),
+            new WebSocketModule())) {
       assertFalse(coreKeys.contains(areaKey), areaKey + " must only be bound by its area module");
     }
   }

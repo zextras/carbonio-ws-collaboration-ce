@@ -15,7 +15,6 @@ import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.impl.MeetingServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.ParticipantServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.MeetingsApiServiceImpl;
-import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 
 // Replaced as a whole downstream: holds only the bindings that get replaced.
 public class MeetingModule extends AbstractModule {
@@ -27,6 +26,5 @@ public class MeetingModule extends AbstractModule {
     bind(ParticipantService.class).to(ParticipantServiceImpl.class);
     bind(VideoServerService.class).to(VideoServerServiceImpl.class);
     bind(MeetingMapper.class).to(MeetingMapperImpl.class);
-    bind(EventsWebSocketManager.class);
   }
 }
