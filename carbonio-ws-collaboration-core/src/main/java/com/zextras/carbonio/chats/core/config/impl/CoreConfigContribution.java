@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/** Configuration keys owned by the core module. */
 public class CoreConfigContribution implements ConfigContribution {
 
   private static final String LOCAL_SERVICE_ADDRESS = "127.78.0.4";
@@ -134,7 +133,10 @@ public class CoreConfigContribution implements ConfigContribution {
             ConfigName.VIDEO_ROOM_BITRATE,
             ConfigName.VIDEO_ROOM_BITRATE_CAP,
             ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST,
-            ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT));
+            ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT,
+            ConfigName.MAX_THREADS,
+            ConfigName.MIN_THREADS,
+            ConfigName.MAX_QUEUE_REQUESTS));
   }
 
   @Override

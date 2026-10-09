@@ -10,11 +10,9 @@ import com.zextras.carbonio.chats.core.data.entity.Room;
 import com.zextras.carbonio.chats.core.data.entity.RoomUserSettings;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
-import com.zextras.carbonio.chats.model.MemberDto;
 import com.zextras.carbonio.chats.model.RoomDto;
 import com.zextras.carbonio.chats.model.RoomUserSettingsDto;
 import jakarta.annotation.Nullable;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -40,10 +38,7 @@ public class RoomMapperImpl implements RoomMapper {
         .meetingId(room.getMeetingId() == null ? null : UUID.fromString(room.getMeetingId()))
         .createdAt(room.getCreatedAt())
         .updatedAt(room.getUpdatedAt())
-        .members(
-            includeMembers
-                ? subscriptionMapper.ent2memberDto(room.getSubscriptions())
-                : excludedMembersValue());
+        .members(includeMembers ? subscriptionMapper.ent2memberDto(room.getSubscriptions()) : null);
   }
 
   @Override
@@ -89,10 +84,6 @@ public class RoomMapperImpl implements RoomMapper {
                                         : settingsMapByRoomId.get(room.getId()))
                                 : null))
             .collect(Collectors.toList());
-  }
-
-  protected List<MemberDto> excludedMembersValue() {
-    return Collections.emptyList();
   }
 
   private RoomUserSettingsDto getRoomUserSettingsDto(@Nullable RoomUserSettings userSettings) {
