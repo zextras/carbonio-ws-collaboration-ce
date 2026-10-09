@@ -5,8 +5,11 @@
 package com.zextras.carbonio.chats.boot.config;
 
 import com.zextras.carbonio.chats.core.config.module.CoreModule;
+import com.zextras.carbonio.chats.core.config.module.DatabaseModule;
 import com.zextras.carbonio.chats.core.config.module.DockerConfig;
+import com.zextras.carbonio.chats.core.config.module.MeetingModule;
 import com.zextras.carbonio.chats.core.config.module.ProductionConfig;
+import com.zextras.carbonio.chats.core.config.module.StorageModule;
 import dev.resteasy.guice.ext.RequestScopeModule;
 
 public class BootModule extends RequestScopeModule {
@@ -24,6 +27,9 @@ public class BootModule extends RequestScopeModule {
       install(new ProductionConfig());
     }
     install(new CoreModule());
+    install(new DatabaseModule());
+    install(new StorageModule());
+    install(new MeetingModule());
   }
 
   private static boolean isDockerEnvironment() {

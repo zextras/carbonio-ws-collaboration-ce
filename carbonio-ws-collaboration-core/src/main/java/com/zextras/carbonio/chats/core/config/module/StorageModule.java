@@ -1,0 +1,18 @@
+// SPDX-FileCopyrightText: 2026 Zextras <https://www.zextras.com>
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
+package com.zextras.carbonio.chats.core.config.module;
+
+import com.google.inject.AbstractModule;
+import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
+import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
+
+// Replaceable as a whole by a downstream product: only bindings it changes belong here.
+public class StorageModule extends AbstractModule {
+
+  @Override
+  protected void configure() {
+    bind(StoragesService.class).to(StoragesServiceImpl.class);
+  }
+}

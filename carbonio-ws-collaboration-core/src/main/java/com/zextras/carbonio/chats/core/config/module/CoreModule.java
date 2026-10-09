@@ -6,19 +6,14 @@ package com.zextras.carbonio.chats.core.config.module;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.inject.AbstractModule;
-import com.google.inject.Inject;
-import com.google.inject.Provider;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.matcher.Matchers;
 import com.google.inject.multibindings.Multibinder;
-import com.google.inject.multibindings.OptionalBinder;
 import com.google.inject.name.Named;
-import com.google.inject.spi.InjectionPoint;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import com.zextras.carbonio.chats.api.AttachmentsApi;
 import com.zextras.carbonio.chats.api.AttachmentsApiService;
@@ -27,7 +22,6 @@ import com.zextras.carbonio.chats.api.AuthApiService;
 import com.zextras.carbonio.chats.api.HealthApi;
 import com.zextras.carbonio.chats.api.HealthApiService;
 import com.zextras.carbonio.chats.api.MeetingsApi;
-import com.zextras.carbonio.chats.api.MeetingsApiService;
 import com.zextras.carbonio.chats.api.OffsetDateTimeProvider;
 import com.zextras.carbonio.chats.api.PreviewApi;
 import com.zextras.carbonio.chats.api.PreviewApiService;
@@ -58,27 +52,20 @@ import com.zextras.carbonio.chats.core.infrastructure.preview.PreviewService;
 import com.zextras.carbonio.chats.core.infrastructure.preview.impl.PreviewServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.ProfilingService;
 import com.zextras.carbonio.chats.core.infrastructure.profiling.impl.UserManagementProfilingService;
-import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
-import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerClient;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerConfig;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerConfigImpl;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerHttpClient;
-import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceImpl;
 import com.zextras.carbonio.chats.core.logging.annotation.TimedCall;
 import com.zextras.carbonio.chats.core.logging.aop.TimedCallInterceptor;
 import com.zextras.carbonio.chats.core.mapper.AttachmentMapper;
-import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
 import com.zextras.carbonio.chats.core.mapper.ParticipantMapper;
 import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.mapper.SubscriptionMapper;
 import com.zextras.carbonio.chats.core.mapper.impl.AttachmentMapperImpl;
-import com.zextras.carbonio.chats.core.mapper.impl.MeetingMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.impl.ParticipantMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.impl.RoomMapperImpl;
 import com.zextras.carbonio.chats.core.mapper.impl.SubscriptionMapperImpl;
-import com.zextras.carbonio.chats.core.migration.JavaMigrationsProvider;
 import com.zextras.carbonio.chats.core.repository.FileMetadataRepository;
 import com.zextras.carbonio.chats.core.repository.MeetingRepository;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
@@ -100,23 +87,18 @@ import com.zextras.carbonio.chats.core.repository.impl.EbeanVideoServerSessionRe
 import com.zextras.carbonio.chats.core.service.AttachmentService;
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.service.HealthcheckService;
-import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.MembersService;
-import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.RoomService;
 import com.zextras.carbonio.chats.core.service.UserService;
 import com.zextras.carbonio.chats.core.service.impl.AttachmentServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.CapabilityServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.HealthcheckServiceImpl;
-import com.zextras.carbonio.chats.core.service.impl.MeetingServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.MembersServiceImpl;
-import com.zextras.carbonio.chats.core.service.impl.ParticipantServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.RoomServiceImpl;
 import com.zextras.carbonio.chats.core.service.impl.UserServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AttachmentsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.AuthApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.HealthApiServiceImpl;
-import com.zextras.carbonio.chats.core.web.api.MeetingsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.PreviewApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.RoomsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.UsersApiServiceImpl;
@@ -129,7 +111,6 @@ import com.zextras.carbonio.chats.core.web.exceptions.JsonProcessingExceptionHan
 import com.zextras.carbonio.chats.core.web.exceptions.ValidationExceptionHandler;
 import com.zextras.carbonio.chats.core.web.security.AuthenticationFilter;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
-import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
 import com.zextras.carbonio.chats.core.web.socket.VideoServerEventListener;
@@ -142,16 +123,11 @@ import com.zextras.storages.api.StoragesClient;
 import io.ebean.Database;
 import io.ebean.annotation.Platform;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.util.Base64;
-import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.TimeoutException;
-import org.flywaydb.core.Flyway;
-import org.flywaydb.core.api.migration.JavaMigration;
 
 public class CoreModule extends AbstractModule {
 
@@ -170,8 +146,6 @@ public class CoreModule extends AbstractModule {
     Multibinder.newSetBinder(binder(), ConfigContribution.class)
         .addBinding()
         .to(CoreConfigContribution.class);
-
-    bindExtensionPoints();
 
     // This is bound twice, once for RestEasy injection and one for everything else
     bind(JacksonConfig.class);
@@ -317,113 +291,6 @@ public class CoreModule extends AbstractModule {
         .clock(clock)
         .databasePlatformName(Platform.POSTGRES.toString())
         .build();
-  }
-
-  // The only keys a downstream module may replace, via OptionalBinder.setBinding().
-  private void bindExtensionPoints() {
-    OptionalBinder.newOptionalBinder(binder(), HikariDataSource.class)
-        .setDefault()
-        .toProvider(HikariDataSourceProvider.class)
-        .in(Singleton.class);
-    OptionalBinder.newOptionalBinder(binder(), Flyway.class)
-        .setDefault()
-        .toProvider(FlywayProvider.class)
-        .in(Singleton.class);
-    OptionalBinder.newOptionalBinder(binder(), StoragesService.class)
-        .setDefault()
-        .to(StoragesServiceImpl.class);
-    OptionalBinder.newOptionalBinder(binder(), VideoServerService.class)
-        .setDefault()
-        .to(VideoServerServiceImpl.class);
-    OptionalBinder.newOptionalBinder(binder(), MeetingService.class)
-        .setDefault()
-        .to(MeetingServiceImpl.class);
-    OptionalBinder.newOptionalBinder(binder(), MeetingsApiService.class)
-        .setDefault()
-        .to(MeetingsApiServiceImpl.class);
-    OptionalBinder.newOptionalBinder(binder(), ParticipantService.class)
-        .setDefault()
-        .to(ParticipantServiceImpl.class);
-    OptionalBinder.newOptionalBinder(binder(), MeetingMapper.class)
-        .setDefault()
-        .to(MeetingMapperImpl.class);
-    OptionalBinder.newOptionalBinder(binder(), EventsWebSocketManager.class)
-        .setDefault()
-        .toConstructor(injectableConstructor(EventsWebSocketManager.class))
-        .in(Singleton.class);
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <T> Constructor<T> injectableConstructor(Class<T> type) {
-    return (Constructor<T>) InjectionPoint.forConstructorOf(type).getMember();
-  }
-
-  static class HikariDataSourceProvider implements Provider<HikariDataSource> {
-
-    private final AppConfig appConfig;
-
-    @Inject
-    HikariDataSourceProvider(AppConfig appConfig) {
-      this.appConfig = appConfig;
-    }
-
-    @Override
-    public HikariDataSource get() {
-      HikariConfig config = baseHikariConfig(appConfig);
-
-      Properties properties = new Properties();
-      properties.setProperty("sslmode", "disable");
-      properties.setProperty("ApplicationName", "ws-collaboration");
-      config.setDataSourceProperties(properties);
-
-      return new HikariDataSource(config);
-    }
-  }
-
-  static class FlywayProvider implements Provider<Flyway> {
-
-    private final HikariDataSource dataSource;
-    private final JavaMigrationsProvider javaMigrationsProvider;
-
-    @Inject
-    FlywayProvider(HikariDataSource dataSource, JavaMigrationsProvider javaMigrationsProvider) {
-      this.dataSource = dataSource;
-      this.javaMigrationsProvider = javaMigrationsProvider;
-    }
-
-    @Override
-    public Flyway get() {
-      return buildFlyway(dataSource, "classpath:migration/ce", javaMigrationsProvider.get());
-    }
-  }
-
-  public static HikariConfig baseHikariConfig(AppConfig appConfig) {
-    HikariConfig config = new HikariConfig();
-    config.setJdbcUrl(appConfig.get(String.class, ConfigName.DATABASE_JDBC_URL).orElseThrow());
-    config.setPoolName("ws-collaboration-db-pool");
-    config.setUsername(appConfig.get(String.class, ConfigName.DATABASE_USERNAME).orElse("admin"));
-    config.setPassword(appConfig.get(String.class, ConfigName.DATABASE_PASSWORD).orElse("admin"));
-    config.setIdleTimeout(
-        appConfig.get(Integer.class, ConfigName.HIKARI_IDLE_TIMEOUT).orElse(10000));
-    config.setMinimumIdle(appConfig.get(Integer.class, ConfigName.HIKARI_MIN_POOL_SIZE).orElse(10));
-    config.setMaximumPoolSize(
-        appConfig.get(Integer.class, ConfigName.HIKARI_MAX_POOL_SIZE).orElse(10));
-    config.setLeakDetectionThreshold(
-        appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(5000));
-    config.setMaxLifetime(
-        appConfig.get(Integer.class, ConfigName.HIKARI_MAX_LIFETIME).orElse(600000));
-    return config;
-  }
-
-  public static Flyway buildFlyway(
-      HikariDataSource dataSource, String location, List<JavaMigration> javaMigrations) {
-    return Flyway.configure()
-        .locations(location)
-        .schemas("chats")
-        .dataSource(dataSource)
-        .validateMigrationNaming(true)
-        .javaMigrations(javaMigrations.toArray(JavaMigration[]::new))
-        .load();
   }
 
   @Singleton
