@@ -134,7 +134,10 @@ public class CoreConfigContribution implements ConfigContribution {
             ConfigName.VIDEO_ROOM_BITRATE,
             ConfigName.VIDEO_ROOM_BITRATE_CAP,
             ConfigName.MESSAGE_DISPATCHER_DATABASE_HOST,
-            ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT));
+            ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT,
+            ConfigName.MAX_THREADS,
+            ConfigName.MIN_THREADS,
+            ConfigName.MAX_QUEUE_REQUESTS));
   }
 
   @Override
