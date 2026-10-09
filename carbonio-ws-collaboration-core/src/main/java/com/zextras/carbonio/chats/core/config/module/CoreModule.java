@@ -190,6 +190,7 @@ public class CoreModule extends AbstractModule {
     bind(RoomsApi.class);
     bind(RoomsApiService.class).to(RoomsApiServiceImpl.class);
     bind(RoomRepository.class).to(EbeanRoomRepository.class);
+    bind(RoomMapper.class).to(RoomMapperImpl.class);
     bind(RoomService.class).to(RoomServiceImpl.class);
 
     bind(AttachmentsApi.class);
@@ -343,9 +344,6 @@ public class CoreModule extends AbstractModule {
     OptionalBinder.newOptionalBinder(binder(), ParticipantService.class)
         .setDefault()
         .to(ParticipantServiceImpl.class);
-    OptionalBinder.newOptionalBinder(binder(), RoomMapper.class)
-        .setDefault()
-        .to(RoomMapperImpl.class);
     OptionalBinder.newOptionalBinder(binder(), MeetingMapper.class)
         .setDefault()
         .to(MeetingMapperImpl.class);

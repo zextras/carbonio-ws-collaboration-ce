@@ -31,9 +31,7 @@ import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServi
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.impl.VideoServerServiceImpl;
 import com.zextras.carbonio.chats.core.mapper.MeetingMapper;
-import com.zextras.carbonio.chats.core.mapper.RoomMapper;
 import com.zextras.carbonio.chats.core.mapper.impl.MeetingMapperImpl;
-import com.zextras.carbonio.chats.core.mapper.impl.RoomMapperImpl;
 import com.zextras.carbonio.chats.core.service.MeetingService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.service.impl.MeetingServiceImpl;
@@ -61,7 +59,6 @@ class CoreModuleTest {
     assertDefaultLinkedTo(MeetingService.class, MeetingServiceImpl.class);
     assertDefaultLinkedTo(MeetingsApiService.class, MeetingsApiServiceImpl.class);
     assertDefaultLinkedTo(ParticipantService.class, ParticipantServiceImpl.class);
-    assertDefaultLinkedTo(RoomMapper.class, RoomMapperImpl.class);
     assertDefaultLinkedTo(MeetingMapper.class, MeetingMapperImpl.class);
   }
 
