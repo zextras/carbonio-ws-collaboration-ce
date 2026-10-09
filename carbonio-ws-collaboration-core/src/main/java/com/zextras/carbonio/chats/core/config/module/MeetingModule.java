@@ -17,7 +17,7 @@ import com.zextras.carbonio.chats.core.service.impl.ParticipantServiceImpl;
 import com.zextras.carbonio.chats.core.web.api.MeetingsApiServiceImpl;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 
-// Replaceable as a whole by a downstream product: only bindings it changes belong here.
+// Replaced as a whole downstream: holds only the bindings that get replaced.
 public class MeetingModule extends AbstractModule {
 
   @Override

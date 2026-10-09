@@ -8,11 +8,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Extension seam for configuration keys. Every Guice module can contribute the config keys it owns
- * through a {@code Multibinder<ConfigContribution>}; the config implementations merge all bound
- * contributions into a single catalog.
- */
+// Config keys a module owns; all Multibinder contributions are merged into one catalog.
 public interface ConfigContribution {
 
   default Map<String, String> consulKvMappings() {

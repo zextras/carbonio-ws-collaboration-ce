@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/** Configuration keys owned by the core module. */
 public class CoreConfigContribution implements ConfigContribution {
 
   private static final String LOCAL_SERVICE_ADDRESS = "127.78.0.4";

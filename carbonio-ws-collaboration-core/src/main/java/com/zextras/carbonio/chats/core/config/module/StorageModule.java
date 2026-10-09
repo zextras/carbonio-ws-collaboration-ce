@@ -8,7 +8,7 @@ import com.google.inject.AbstractModule;
 import com.zextras.carbonio.chats.core.infrastructure.storage.StoragesService;
 import com.zextras.carbonio.chats.core.infrastructure.storage.impl.StoragesServiceImpl;
 
-// Replaceable as a whole by a downstream product: only bindings it changes belong here.
+// Replaced as a whole downstream: holds only the bindings that get replaced.
 public class StorageModule extends AbstractModule {
 
   @Override

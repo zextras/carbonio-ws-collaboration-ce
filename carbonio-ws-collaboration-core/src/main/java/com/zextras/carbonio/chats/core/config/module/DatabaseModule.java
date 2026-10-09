@@ -13,7 +13,7 @@ import java.util.List;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.migration.JavaMigration;
 
-// Replaceable as a whole by a downstream product: only bindings it changes belong here.
+// Replaced as a whole downstream: holds only the bindings that get replaced.
 public class DatabaseModule extends AbstractModule {
 
   @Singleton
