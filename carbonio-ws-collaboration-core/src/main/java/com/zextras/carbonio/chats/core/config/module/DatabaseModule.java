@@ -22,7 +22,7 @@ import java.util.List;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.migration.JavaMigration;
 
-public class PersistenceModule extends AbstractModule {
+public class DatabaseModule extends AbstractModule {
 
   @Override
   protected void configure() {

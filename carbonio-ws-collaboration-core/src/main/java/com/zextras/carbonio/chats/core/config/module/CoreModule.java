@@ -16,25 +16,5 @@ public class CoreModule extends AbstractModule {
     install(new MessagingModule());
     install(new UserModule());
     install(new RoomModule());
-    install(persistence());
-    install(attachment());
-    install(meeting());
-    install(webSocket());
-  }
-
-  protected PersistenceModule persistence() {
-    return new PersistenceModule();
-  }
-
-  protected AttachmentModule attachment() {
-    return new AttachmentModule();
-  }
-
-  protected MeetingModule meeting() {
-    return new MeetingModule();
-  }
-
-  protected WebSocketModule webSocket() {
-    return new WebSocketModule();
   }
 }
