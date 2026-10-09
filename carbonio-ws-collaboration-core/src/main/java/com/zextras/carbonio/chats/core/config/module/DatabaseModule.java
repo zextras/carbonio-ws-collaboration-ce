@@ -54,6 +54,7 @@ public class DatabaseModule extends AbstractModule {
         appConfig.get(Integer.class, ConfigName.HIKARI_LEAK_DETECTION_THRESHOLD).orElse(5000));
     config.setMaxLifetime(
         appConfig.get(Integer.class, ConfigName.HIKARI_MAX_LIFETIME).orElse(600000));
+    config.addDataSourceProperty("ApplicationName", "ws-collaboration");
     return new HikariDataSource(config);
   }
 
