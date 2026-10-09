@@ -34,7 +34,6 @@ import java.time.Duration;
 
 public class UserModule extends AbstractModule {
 
-  // Without it the generated ApiClient has no request timeout at all.
   private static final Duration USER_MANAGEMENT_TIMEOUT = Duration.ofMillis(5000);
 
   @Override
