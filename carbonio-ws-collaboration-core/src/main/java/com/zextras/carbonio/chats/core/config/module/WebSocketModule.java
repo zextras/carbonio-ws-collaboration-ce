@@ -8,20 +8,20 @@ import com.google.inject.AbstractModule;
 import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
+import com.zextras.carbonio.chats.core.web.socket.impl.EventsWebSocketManagerImpl;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 
 public class WebSocketModule extends AbstractModule {
 
   @Override
   protected void configure() {
-    bindEventsWebSocketManager();
+    bind(EventsWebSocketManager.class).to(eventsWebSocketManager());
     bind(EventWebSocketSessions.class);
     bind(SessionPingManager.class);
     bind(WebsocketVersionMigrator.class);
   }
 
-  // Not a Class hook: Guice rejects bind(X).to(X).
-  protected void bindEventsWebSocketManager() {
-    bind(EventsWebSocketManager.class);
+  protected Class<? extends EventsWebSocketManager> eventsWebSocketManager() {
+    return EventsWebSocketManagerImpl.class;
   }
 }

@@ -91,7 +91,7 @@ public class Boot {
 
           List<String> supportedVersions = VersionProvider.getSupportedVersions();
           wsContainer.addEndpoint(
-              ServerEndpointConfig.Builder.create(EventsWebSocketManager.class, "/events")
+              ServerEndpointConfig.Builder.create(eventsWebSocketManager.getClass(), "/events")
                   .configurator(new EventsWebSocketEndpointConfigurator(eventsWebSocketManager))
                   .subprotocols(supportedVersions)
                   .build());
