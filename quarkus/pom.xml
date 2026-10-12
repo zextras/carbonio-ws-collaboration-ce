@@ -21,6 +21,7 @@ SPDX-License-Identifier: AGPL-3.0-only
     <module>app-ce</module>
     <module>app-adv</module>
     <module>plugin-recording</module>
+    <module>app-all</module>
     <module>distribution-it</module>
     <module>test-plugins/plugin-incompatible</module>
   </modules>
@@ -87,6 +88,11 @@ SPDX-License-Identifier: AGPL-3.0-only
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>plugin-turn</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>plugin-recording</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

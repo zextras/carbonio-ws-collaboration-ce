@@ -7,6 +7,7 @@
 #
 #   --target app --build-arg APP=app-ce   CE (core only)
 #   --target app --build-arg APP=app-adv  ADV, model A (TURN assembled at build time)
+#   --target app --build-arg APP=app-all  CE + every plugin (TURN and recording, at build time)
 #   --target adv-b1                       ADV, model B1 (CE + recording in plugins/, re-augmented)
 #
 # Same base and launch contract as the Guice image: the k3d chart runs

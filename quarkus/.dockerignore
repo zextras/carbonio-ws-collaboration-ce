@@ -5,4 +5,5 @@
 **
 !app-ce/target/quarkus-app/**
 !app-adv/target/quarkus-app/**
+!app-all/target/quarkus-app/**
 !plugin-recording/target/plugin-recording-*-plugin.jar
