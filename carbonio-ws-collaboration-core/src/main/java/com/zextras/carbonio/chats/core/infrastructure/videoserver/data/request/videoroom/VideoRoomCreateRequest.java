@@ -24,6 +24,10 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
   public static final String DESCRIPTION_DEFAULT = "video_room_";
   public static final int MAX_PUBLISHERS_DEFAULT = 100;
 
+  // Non-zero forces periodic keyframes so a simulcast layer-up survives a dropped PLI; 0 (Janus
+  // default) never recovers.
+  public static final int FIR_FREQ_DEFAULT = 5;
+
   private String request;
   private String room;
   private Boolean permanent;
@@ -34,6 +38,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
   private Integer publishers;
   private Long bitrate;
   private Boolean bitrateCap;
+  private Integer firFreq;
 
   @JsonProperty("videocodec")
   private String videoCodec;
@@ -125,6 +130,15 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
     return this;
   }
 
+  public Integer getFirFreq() {
+    return firFreq;
+  }
+
+  public VideoRoomCreateRequest firFreq(int firFreq) {
+    this.firFreq = firFreq;
+    return this;
+  }
+
   public String getVideoCodec() {
     return videoCodec;
   }
@@ -156,6 +170,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
         && Objects.equals(getPublishers(), that.getPublishers())
         && Objects.equals(getBitrate(), that.getBitrate())
         && Objects.equals(getBitrateCap(), that.getBitrateCap())
+        && Objects.equals(getFirFreq(), that.getFirFreq())
         && Objects.equals(getVideoCodec(), that.getVideoCodec())
         && Objects.equals(getRecord(), that.getRecord());
   }
@@ -172,6 +187,7 @@ public class VideoRoomCreateRequest extends VideoRoomRequest {
         getPublishers(),
         getBitrate(),
         getBitrateCap(),
+        getFirFreq(),
         getVideoCodec(),
         getRecord());
   }

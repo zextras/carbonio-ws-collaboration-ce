@@ -58,6 +58,15 @@ public class EnvironmentAppConfig extends AppConfig {
     configs.put(
         ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT,
         System.getenv(ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT.name()));
+    configs.put(
+        ConfigName.VIDEO_SIMULCAST_HIGH_HEIGHT,
+        System.getenv(ConfigName.VIDEO_SIMULCAST_HIGH_HEIGHT.name()));
+    configs.put(
+        ConfigName.VIDEO_SIMULCAST_MEDIUM_HEIGHT,
+        System.getenv(ConfigName.VIDEO_SIMULCAST_MEDIUM_HEIGHT.name()));
+    configs.put(
+        ConfigName.VIDEO_SIMULCAST_LOW_HEIGHT,
+        System.getenv(ConfigName.VIDEO_SIMULCAST_LOW_HEIGHT.name()));
   }
 
   public static AppConfig create() {

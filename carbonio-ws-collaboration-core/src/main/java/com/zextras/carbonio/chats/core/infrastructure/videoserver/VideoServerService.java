@@ -34,6 +34,9 @@ public interface VideoServerService extends HealthIndicator {
 
   void answerRtcMediaStream(String userId, String meetingId, String sdp);
 
+  void configureSubscribedStream(
+      String userId, String meetingId, String mid, int substream, Integer temporal);
+
   void updateSubscriptionsMediaStream(
       String userId, String meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto);
 
