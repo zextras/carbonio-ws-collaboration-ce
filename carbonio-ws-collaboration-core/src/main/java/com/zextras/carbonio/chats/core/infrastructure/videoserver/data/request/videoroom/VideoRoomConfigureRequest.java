@@ -5,9 +5,11 @@
 package com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.videoroom;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.data.request.audiobridge.AudioBridgeRequest;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -16,6 +18,7 @@ import java.util.Objects;
  * @see <a href= "https://janus.conf.meetecho.com/docs/audiobridge.html">AudioBridgeJoinRequest</a>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class VideoRoomConfigureRequest extends AudioBridgeRequest {
 
@@ -23,6 +26,7 @@ public class VideoRoomConfigureRequest extends AudioBridgeRequest {
 
   private String request;
   private Boolean restart;
+  private List<ConfigureStream> streams;
 
   public static VideoRoomConfigureRequest create() {
     return new VideoRoomConfigureRequest();
@@ -46,15 +50,26 @@ public class VideoRoomConfigureRequest extends AudioBridgeRequest {
     return this;
   }
 
+  public List<ConfigureStream> getStreams() {
+    return streams;
+  }
+
+  public VideoRoomConfigureRequest streams(List<ConfigureStream> streams) {
+    this.streams = streams;
+    return this;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) return false;
     VideoRoomConfigureRequest that = (VideoRoomConfigureRequest) o;
-    return Objects.equals(request, that.request) && Objects.equals(restart, that.restart);
+    return Objects.equals(request, that.request)
+        && Objects.equals(restart, that.restart)
+        && Objects.equals(streams, that.streams);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(request, restart);
+    return Objects.hash(request, restart, streams);
   }
 }

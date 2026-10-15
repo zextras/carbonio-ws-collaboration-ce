@@ -332,6 +332,7 @@ class VideoServerServiceImplTest {
                       .publishers(100)
                       .bitrate(8000000)
                       .bitrateCap(true)
+                      .firFreq(5)
                       .videoCodec("vp8,h264,vp9,h265,av1")),
           createVideoRoomMessageRequest);
     }
@@ -509,6 +510,7 @@ class VideoServerServiceImplTest {
                       .publishers(100)
                       .bitrate(440)
                       .bitrateCap(false)
+                      .firFreq(5)
                       .videoCodec("vp8,h264,vp9,h265,av1")),
           createVideoRoomMessageRequest);
     }
@@ -3030,6 +3032,107 @@ class VideoServerServiceImplTest {
       assertFalse(videoServerService.isAlive());
 
       verify(videoServerClient, times(1)).sendGetInfoRequest();
+    }
+  }
+
+  @Nested
+  @DisplayName("Configure subscribed stream tests")
+  class ConfigureSubscribedStreamTests {
+
+    @Test
+    @DisplayName("Configure subscriber substream/temporal for a video feed")
+    void configureSubscribedStream_testOk() {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .videoInHandleId(user1VideoInHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+
+      VideoRoomResponse configureResponse =
+          VideoRoomResponse.create()
+              .status("ack")
+              .connectionId(user1SessionId.toString())
+              .transactionId("transaction-id");
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1VideoInHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(configureResponse);
+
+      videoServerService.configureSubscribedStream(
+          user1Id.toString(), meeting1Id.toString(), "0", 1, 2);
+
+      ArgumentCaptor<VideoServerMessageRequest> requestCaptor =
+          ArgumentCaptor.forClass(VideoServerMessageRequest.class);
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1VideoInHandleId.toString()),
+              requestCaptor.capture());
+
+      VideoServerMessageRequest captured = requestCaptor.getValue();
+      VideoRoomConfigureRequest pluginReq =
+          (VideoRoomConfigureRequest) captured.getVideoServerPluginRequest();
+      assertEquals("configure", pluginReq.getRequest());
+      assertEquals(1, pluginReq.getStreams().size());
+      assertEquals("0", pluginReq.getStreams().get(0).getMid());
+      assertEquals(1, pluginReq.getStreams().get(0).getSubstream());
+      assertEquals(2, pluginReq.getStreams().get(0).getTemporal());
+    }
+
+    @Test
+    @DisplayName("Throws VideoServerException when configure response is null")
+    void configureSubscribedStream_nullResponse_throwsException() {
+      stubConfigureSubscribedStreamSession(null);
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.configureSubscribedStream(
+                  user1Id.toString(), meeting1Id.toString(), "0", 1, null));
+      verifyConfigureSubscribedStreamInteractions();
+    }
+
+    @Test
+    @DisplayName("Throws VideoServerException when configure response status is not ACK")
+    void configureSubscribedStream_nonAckResponse_throwsException() {
+      stubConfigureSubscribedStreamSession(VideoRoomResponse.create().status("error"));
+      assertThrows(
+          VideoServerException.class,
+          () ->
+              videoServerService.configureSubscribedStream(
+                  user1Id.toString(), meeting1Id.toString(), "0", 1, null));
+      verifyConfigureSubscribedStreamInteractions();
+    }
+
+    private void stubConfigureSubscribedStreamSession(VideoRoomResponse response) {
+      VideoServerMeeting videoServerMeeting = createVideoServerMeeting(meeting1Id);
+      VideoServerSession videoServerSession =
+          VideoServerSession.create()
+              .userId(user1Id.toString())
+              .queueId(queue1Id.toString())
+              .videoServerMeeting(videoServerMeeting)
+              .connectionId(user1SessionId.toString())
+              .videoInHandleId(user1VideoInHandleId.toString());
+      videoServerMeeting.videoServerSessions(List.of(videoServerSession));
+      when(videoServerClient.sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1VideoInHandleId.toString()),
+              any(VideoServerMessageRequest.class)))
+          .thenReturn(response);
+    }
+
+    private void verifyConfigureSubscribedStreamInteractions() {
+      verify(videoServerMeetingRepository, times(1)).getById(meeting1Id.toString());
+      verify(videoServerClient, times(1))
+          .sendVideoRoomRequest(
+              eq(user1SessionId.toString()),
+              eq(user1VideoInHandleId.toString()),
+              any(VideoServerMessageRequest.class));
     }
   }
 }

@@ -4,16 +4,47 @@
 
 package com.zextras.carbonio.chats.core.service.impl;
 
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.data.type.CarbonioAttribute;
 import com.zextras.carbonio.chats.core.data.type.SizeUnit;
 import com.zextras.carbonio.chats.core.service.CapabilityService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.CapabilitiesDto;
+import com.zextras.carbonio.chats.model.SimulcastTierDto;
 import java.time.Duration;
+import java.util.List;
 
 @Singleton
 public class CapabilityServiceImpl implements CapabilityService {
+
+  private final List<SimulcastTierDto> simulcastTiers;
+
+  @Inject
+  public CapabilityServiceImpl(AppConfig appConfig) {
+    this.simulcastTiers =
+        List.of(
+            new SimulcastTierDto()
+                .name(SimulcastTierDto.NameEnum.HIGH)
+                .height(
+                    appConfig
+                        .get(Integer.class, ConfigName.VIDEO_SIMULCAST_HIGH_HEIGHT)
+                        .orElse(720)),
+            new SimulcastTierDto()
+                .name(SimulcastTierDto.NameEnum.MEDIUM)
+                .height(
+                    appConfig
+                        .get(Integer.class, ConfigName.VIDEO_SIMULCAST_MEDIUM_HEIGHT)
+                        .orElse(360)),
+            new SimulcastTierDto()
+                .name(SimulcastTierDto.NameEnum.LOW)
+                .height(
+                    appConfig
+                        .get(Integer.class, ConfigName.VIDEO_SIMULCAST_LOW_HEIGHT)
+                        .orElse(144)));
+  }
 
   @Override
   public CapabilitiesDto getCapabilities(UserPrincipal currentUser) {
@@ -42,6 +73,7 @@ public class CapabilityServiceImpl implements CapabilityService {
                 .getDurationLimit(CarbonioAttribute.WSC_MESSAGE_DELETE_TIME_LIMIT, Duration.ZERO)
                 .toMinutes())
         .showMessageReads(currentUser.hasEnabled(CarbonioAttribute.WSC_SHOW_MESSAGE_READS))
-        .showUsersPresence(currentUser.hasEnabled(CarbonioAttribute.WSC_SHOW_USERS_PRESENCE));
+        .showUsersPresence(currentUser.hasEnabled(CarbonioAttribute.WSC_SHOW_USERS_PRESENCE))
+        .videoSimulcastTiers(simulcastTiers);
   }
 }

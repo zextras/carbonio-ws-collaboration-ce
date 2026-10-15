@@ -12,8 +12,10 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.chats.model.HandStatusDto;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
+import com.zextras.carbonio.chats.model.MediaQualityRequestDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
+import jakarta.annotation.Nullable;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,6 +40,18 @@ public interface ParticipantService {
 
   void updateSubscriptionsMediaStream(
       UUID meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto, UserPrincipal currentUser);
+
+  void updateSubscribedMediaQuality(
+      UUID meetingId, MediaQualityRequestDto dto, UserPrincipal currentUser);
+
+  void relayUplinkStatus(
+      String meetingId,
+      @Nullable java.math.BigDecimal networkScore,
+      long changedAt,
+      String toUserId,
+      String senderUserId,
+      @Nullable Integer maxUplinkTier,
+      @Nullable Integer maxHardwareTier);
 
   void offerRtcAudioStream(UUID meetingId, String sdp, UserPrincipal currentUser);
 

@@ -518,9 +518,7 @@ class VideoServerEventListenerTest {
     verify(channel)
         .basicConsume(
             anyString(), anyBoolean(), deliverCallbackCaptor.capture(), any(CancelCallback.class));
-
-    DeliverCallback callback = deliverCallbackCaptor.getValue();
-    callback.handle(CONSUMER_TAG, createDelivery(jsonEvent));
+    deliverCallbackCaptor.getValue().handle(CONSUMER_TAG, createDelivery(jsonEvent));
   }
 
   private <T> T handleEventAndCapture(VideoServerEvent event, String recipient, Class<T> eventClass)
