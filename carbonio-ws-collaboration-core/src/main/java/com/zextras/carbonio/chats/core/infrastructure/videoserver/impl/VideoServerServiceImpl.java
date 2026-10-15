@@ -188,6 +188,7 @@ public class VideoServerServiceImpl implements VideoServerService {
             .publishers(VideoRoomCreateRequest.MAX_PUBLISHERS_DEFAULT)
             .bitrate(videoServerConfig.getBitrate())
             .bitrateCap(videoServerConfig.getBitrateCap())
+            .firFreq(VideoRoomCreateRequest.FIR_FREQ_DEFAULT)
             .videoCodec(
                 Arrays.stream(VideoCodec.values())
                     .map(videoCodec -> videoCodec.toString().toLowerCase())
@@ -643,10 +644,37 @@ public class VideoServerServiceImpl implements VideoServerService {
   }
 
   @Override
+  public void configureSubscribedStream(
+      String userId, String meetingId, String mid, int substream, Integer temporal) {
+    VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
+    VideoServerSession session = getVideoServerSession(userId, videoServerMeeting);
+    ConfigureStream stream = ConfigureStream.create().mid(mid).substream(substream);
+    if (temporal != null) stream.temporal(temporal);
+    VideoRoomResponse response =
+        sendVideoRoomPluginMessage(
+            session.getConnectionId(),
+            session.getVideoInHandleId(),
+            VideoRoomConfigureRequest.create()
+                .request(VideoRoomConfigureRequest.CONFIGURE)
+                .streams(List.of(stream)),
+            null);
+    if (response == null || !VideoRoomResponse.ACK.equals(response.getStatus())) {
+      throw new VideoServerException("Unable to configure subscribed stream for user " + userId);
+    }
+  }
+
+  @Override
   public void updateSubscriptionsMediaStream(
       String userId, String meetingId, SubscriptionUpdatesDto subscriptionUpdatesDto) {
     VideoServerMeeting videoServerMeeting = getVideoServerMeeting(meetingId);
     VideoServerSession videoServerSession = getVideoServerSession(userId, videoServerMeeting);
+    ChatsLogger.debug(
+        String.format(
+            "Subscriptions: user=%s meeting=%s subscribe=%d unsubscribe=%d",
+            userId,
+            meetingId,
+            subscriptionUpdatesDto.getSubscribe().size(),
+            subscriptionUpdatesDto.getUnsubscribe().size()));
 
     if (!videoServerSession.hasVideoInStreamOn()) {
       joinVideoRoomAsSubscriber(

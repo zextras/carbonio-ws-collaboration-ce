@@ -140,6 +140,57 @@ public class EventsWebSocketManager {
                 UUID.fromString(meetingId),
                 UUID.fromString(session.getId()));
           }
+          case "UplinkStatusUpdate" -> {
+            try {
+              Optional<JsonNode> optMeetingIdNode = getKey(node, "meetingId");
+              Optional<JsonNode> optChangedAtNode = getKey(node, "changedAt");
+              if (optMeetingIdNode.isEmpty() || optChangedAtNode.isEmpty()) return;
+
+              Optional<JsonNode> optToNode = getKey(node, "to");
+              String toUserId =
+                  optToNode.isPresent()
+                          && !optToNode.get().isNull()
+                          && !optToNode.get().asText().isEmpty()
+                      ? optToNode.get().asText()
+                      : null;
+
+              java.math.BigDecimal networkScore = null;
+              JsonNode networkScoreNode = node.get("networkScore");
+              if (networkScoreNode != null && networkScoreNode.isNumber()) {
+                networkScore = networkScoreNode.decimalValue();
+              }
+
+              Integer maxUplinkTier = null;
+              JsonNode maxUplinkTierNode = node.get("maxUplinkTier");
+              if (maxUplinkTierNode != null && maxUplinkTierNode.isInt()) {
+                int tierVal = maxUplinkTierNode.intValue();
+                if (tierVal >= 0 && tierVal <= 2) {
+                  maxUplinkTier = tierVal;
+                }
+              }
+
+              Integer maxHardwareTier = null;
+              JsonNode maxHardwareTierNode = node.get("maxHardwareTier");
+              if (maxHardwareTierNode != null && maxHardwareTierNode.isInt()) {
+                int tierVal = maxHardwareTierNode.intValue();
+                if (tierVal >= 0 && tierVal <= 2) {
+                  maxHardwareTier = tierVal;
+                }
+              }
+
+              participantService.relayUplinkStatus(
+                  optMeetingIdNode.get().asText(),
+                  networkScore,
+                  optChangedAtNode.get().asLong(),
+                  toUserId,
+                  getUserIdFromSession(session),
+                  maxUplinkTier,
+                  maxHardwareTier);
+            } catch (Exception e) {
+              ChatsLogger.debug(
+                  "Dropped malformed UplinkStatusUpdate message: " + e.getMessage(), e);
+            }
+          }
           default ->
               ChatsLogger.info(
                   String.format("Unknown event type '%s' when parsing websocket message", type));

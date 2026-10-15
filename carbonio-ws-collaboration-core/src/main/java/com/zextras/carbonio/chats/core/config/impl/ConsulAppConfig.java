@@ -121,6 +121,15 @@ public class ConsulAppConfig extends AppConfig {
     namesMapping.put(ConfigName.MIN_THREADS, "carbonio-ws-collaboration/server/min-threads");
     namesMapping.put(
         ConfigName.MAX_QUEUE_REQUESTS, "carbonio-ws-collaboration/server/max-queue-requests");
+    namesMapping.put(
+        ConfigName.VIDEO_SIMULCAST_HIGH_HEIGHT,
+        "carbonio-ws-collaboration/meeting/simulcast-high-height");
+    namesMapping.put(
+        ConfigName.VIDEO_SIMULCAST_MEDIUM_HEIGHT,
+        "carbonio-ws-collaboration/meeting/simulcast-medium-height");
+    namesMapping.put(
+        ConfigName.VIDEO_SIMULCAST_LOW_HEIGHT,
+        "carbonio-ws-collaboration/meeting/simulcast-low-height");
   }
 
   private boolean loaded = false;

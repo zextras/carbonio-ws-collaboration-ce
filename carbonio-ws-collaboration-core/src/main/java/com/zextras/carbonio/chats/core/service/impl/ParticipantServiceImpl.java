@@ -6,6 +6,7 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.EventType;
 import com.zextras.carbonio.async.model.MediaType;
 import com.zextras.carbonio.async.model.MeetingAudioStreamChanged;
@@ -15,6 +16,7 @@ import com.zextras.carbonio.async.model.MeetingParticipantHandRaised;
 import com.zextras.carbonio.async.model.MeetingParticipantHandRaisedList;
 import com.zextras.carbonio.async.model.MeetingParticipantJoined;
 import com.zextras.carbonio.async.model.MeetingParticipantLeft;
+import com.zextras.carbonio.async.model.MeetingParticipantUplinkStatusChanged;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
 import com.zextras.carbonio.chats.core.data.entity.Participant;
 import com.zextras.carbonio.chats.core.data.entity.Room;
@@ -26,14 +28,17 @@ import com.zextras.carbonio.chats.core.exception.ForbiddenException;
 import com.zextras.carbonio.chats.core.exception.NotFoundException;
 import com.zextras.carbonio.chats.core.infrastructure.event.EventDispatcher;
 import com.zextras.carbonio.chats.core.infrastructure.videoserver.VideoServerService;
+import com.zextras.carbonio.chats.core.logging.ChatsLogger;
 import com.zextras.carbonio.chats.core.repository.ParticipantRepository;
 import com.zextras.carbonio.chats.core.service.*;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.chats.model.HandStatusDto;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
+import com.zextras.carbonio.chats.model.MediaQualityRequestDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.chats.model.SubscriptionUpdatesDto;
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotNull;
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -420,6 +425,80 @@ public class ParticipantServiceImpl implements ParticipantService {
     validateMeetingParticipant(currentUser.getId(), meeting);
     videoServerService.updateSubscriptionsMediaStream(
         currentUser.getId(), meetingId.toString(), subscriptionUpdatesDto);
+  }
+
+  @Override
+  public void updateSubscribedMediaQuality(
+      UUID meetingId, MediaQualityRequestDto dto, UserPrincipal currentUser) {
+    Meeting meeting = validateMeeting(meetingId);
+    validateMeetingParticipant(currentUser.getId(), meeting);
+    ChatsLogger.debug(
+        String.format(
+            "MediaQuality: requester=%s meeting=%s feedOwner=%s type=%s mid=%s substream=%s"
+                + " temporal=%s",
+            currentUser.getId(),
+            meetingId,
+            dto.getUserId(),
+            dto.getType(),
+            dto.getMid(),
+            dto.getSubstream(),
+            dto.getTemporal()));
+    videoServerService.configureSubscribedStream(
+        currentUser.getId(),
+        meetingId.toString(),
+        dto.getMid(),
+        dto.getSubstream(),
+        dto.getTemporal());
+  }
+
+  @Override
+  public void relayUplinkStatus(
+      String meetingId,
+      @Nullable java.math.BigDecimal networkScore,
+      long changedAt,
+      String toUserId,
+      String senderUserId,
+      @Nullable Integer maxUplinkTier,
+      @Nullable Integer maxHardwareTier) {
+    Optional<Meeting> meetingOpt = meetingService.getMeetingEntity(UUID.fromString(meetingId));
+    if (meetingOpt.isEmpty()) return;
+    Meeting meeting = meetingOpt.get();
+
+    boolean isParticipant =
+        meeting.getParticipants().stream().anyMatch(p -> p.getUserId().equals(senderUserId));
+    if (!isParticipant) return;
+
+    DomainEvent event =
+        MeetingParticipantUplinkStatusChanged.create()
+            .meetingId(UUID.fromString(meetingId))
+            .userId(UUID.fromString(senderUserId))
+            .networkScore(networkScore)
+            .changedAt(changedAt)
+            .maxUplinkTier(maxUplinkTier)
+            .maxHardwareTier(maxHardwareTier)
+            .type(EventType.MEETING_PARTICIPANT_UPLINK_STATUS_CHANGED)
+            .sentDate(OffsetDateTime.now());
+
+    ChatsLogger.debug(
+        String.format(
+            "ConnStatus relay: meeting=%s user=%s networkScore=%s changedAt=%d -> %s",
+            meetingId,
+            senderUserId,
+            networkScore,
+            changedAt,
+            toUserId != null ? "resync to=" + toUserId : "broadcast"));
+
+    if (toUserId != null) {
+      boolean toIsParticipant =
+          meeting.getParticipants().stream().anyMatch(p -> p.getUserId().equals(toUserId));
+      if (toIsParticipant) {
+        eventDispatcher.sendToUserExchange(toUserId, event);
+      }
+    } else {
+      List<String> recipients =
+          meeting.getParticipants().stream().map(Participant::getUserId).distinct().toList();
+      eventDispatcher.sendToUserExchange(recipients, event);
+    }
   }
 
   @Override

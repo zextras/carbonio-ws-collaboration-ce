@@ -4,6 +4,28 @@ This document tracks internal changes related to API versioning, both for the RE
 
 ---
 
+## Version 1.6.15
+
+### Changes (1.6.15)
+
+- **API**: Added `videoSimulcastTiers` capability field to the capabilities response — returns a list
+  of `SimulcastTier { name, height }` objects describing the supported simulcast tiers for video.
+- **API**: Added PUT `/meetings/{meetingId}/media/quality` endpoint (`MediaQualityRequest` body:
+  `userId`, `type`, `mid`, `substream`, optional `temporal`) — lets a subscriber select the
+  simulcast spatial/framerate layer for a received video feed.
+- **WebSocket (inbound)**: Added `UplinkStatusUpdate` frame — clients send `{ meetingId, changedAt,
+  networkScore?, maxUplinkTier?, maxHardwareTier?, to? }` to report their own uplink status.
+  `changedAt` is the client wall-clock epoch-ms timestamp; `networkScore` is a 0-10 tier-weighted
+  score (omitted when the connection is lost); `maxUplinkTier` / `maxHardwareTier` are publisher
+  webcam tiers (`0=LOW`, `1=MEDIUM`, `2=HIGH`, out-of-range values are dropped). Without `to` the
+  status is broadcast to all meeting participants; with `to` it is sent only to that participant.
+  Frames missing `meetingId` or `changedAt`, or sent by a non-participant, are ignored.
+- **WebSocket (outbound)**: Added `MeetingParticipantUplinkStatusChanged` event — relays a
+  participant's `UplinkStatusUpdate`; carries `meetingId`, `userId`, `changedAt` and, when present,
+  `networkScore`, `maxUplinkTier`, `maxHardwareTier`.
+
+---
+
 ## Version 1.6.14
 
 ### Changes (1.6.14)
