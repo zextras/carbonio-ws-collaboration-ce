@@ -34,13 +34,13 @@ public class ConsulAppConfig extends AppConfig {
   private boolean loaded = false;
 
   private ConsulAppConfig(
-      Consul consulClient, String consulToken, Collection<ConfigContribution> catalog) {
+      Consul consulClient, String consulToken, Map<String, String> namesMapping) {
     super();
     this.consulClient = consulClient;
     this.kvCacheList = new ArrayList<>();
     this.consulToken = consulToken;
     this.cache = new HashMap<>();
-    this.namesMapping = mergeConsulKvMappings(catalog);
+    this.namesMapping = namesMapping;
 
     namesMapping.values().forEach(consulName -> cache.put(consulName, null));
   }
@@ -64,11 +64,16 @@ public class ConsulAppConfig extends AppConfig {
 
   public static AppConfig create(
       Consul consulClient, @Nullable String consulToken, Collection<ConfigContribution> catalog) {
+    return createWithMappings(consulClient, consulToken, mergeConsulKvMappings(catalog));
+  }
+
+  private static AppConfig createWithMappings(
+      Consul consulClient, @Nullable String consulToken, Map<String, String> namesMapping) {
     if (consulToken == null) {
       ChatsLogger.warn("Consul token not found");
       return null;
     }
-    return new ConsulAppConfig(consulClient, consulToken, catalog);
+    return new ConsulAppConfig(consulClient, consulToken, namesMapping);
   }
 
   public static AppConfig create(
@@ -76,8 +81,9 @@ public class ConsulAppConfig extends AppConfig {
       Integer consulPort,
       @Nullable String consulToken,
       Collection<ConfigContribution> catalog) {
+    Map<String, String> namesMapping = mergeConsulKvMappings(catalog);
     try {
-      return create(
+      return createWithMappings(
           Consul.builder()
               .withUrl(new URL("http", consulHost, consulPort, ""))
               .withReadTimeoutMillis(CONSUL_CLIENT_READ_TIMEOUT_SECONDS * 1000)
@@ -90,7 +96,7 @@ public class ConsulAppConfig extends AppConfig {
                           .build()))
               .build(),
           consulToken,
-          catalog);
+          namesMapping);
     } catch (Exception e) {
       ChatsLogger.warn("Unable to connect to Consul", e);
       return null;
