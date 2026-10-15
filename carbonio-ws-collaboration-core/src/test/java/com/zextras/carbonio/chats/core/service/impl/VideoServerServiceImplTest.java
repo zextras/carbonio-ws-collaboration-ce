@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -61,6 +62,8 @@ import org.mockito.ArgumentCaptor;
 class VideoServerServiceImplTest {
 
   private final VideoServerClient videoServerClient;
+  private final VideoServerClient injectedVideoServerClient;
+  private final Clock clock;
   private final VideoServerMeetingRepository videoServerMeetingRepository;
   private final VideoServerSessionRepository videoServerSessionRepository;
   private final VideoServerService videoServerService;
@@ -68,9 +71,10 @@ class VideoServerServiceImplTest {
 
   public VideoServerServiceImplTest() {
     this.videoServerClient = mock(VideoServerClient.class);
+    this.injectedVideoServerClient = mock(VideoServerClient.class, "injectedVideoServerClient");
     this.videoServerMeetingRepository = mock(VideoServerMeetingRepository.class);
     this.videoServerSessionRepository = mock(VideoServerSessionRepository.class);
-    Clock clock = mock(Clock.class);
+    this.clock = mock(Clock.class);
     when(clock.instant()).thenReturn(Instant.parse("2022-01-01T11:00:00Z"));
     when(clock.getZone()).thenReturn(ZoneId.of("UTC+01:00"));
     videoServerConfig = mock(VideoServerConfig.class);
@@ -81,10 +85,20 @@ class VideoServerServiceImplTest {
     this.videoServerService =
         new VideoServerServiceImpl(
             videoServerConfig,
-            videoServerClient,
+            injectedVideoServerClient,
             videoServerMeetingRepository,
             videoServerSessionRepository,
-            clock);
+            clock) {
+          @Override
+          protected VideoServerClient clientFor(VideoServerMeeting videoServerMeeting) {
+            return videoServerClient;
+          }
+
+          @Override
+          protected VideoServerClient clientForNewMeeting(String meetingId) {
+            return videoServerClient;
+          }
+        };
   }
 
   private UUID meeting1Id;
@@ -136,6 +150,7 @@ class VideoServerServiceImplTest {
 
   @AfterEach
   void cleanup() {
+    verifyNoInteractions(injectedVideoServerClient);
     verifyNoMoreInteractions(videoServerClient);
     verifyNoMoreInteractions(videoServerMeetingRepository);
     verifyNoMoreInteractions(videoServerSessionRepository);
@@ -3000,6 +3015,14 @@ class VideoServerServiceImplTest {
   @DisplayName("Health check tests")
   class HealthCheckTests {
 
+    private final VideoServerService plainVideoServerService =
+        new VideoServerServiceImpl(
+            videoServerConfig,
+            videoServerClient,
+            videoServerMeetingRepository,
+            videoServerSessionRepository,
+            clock);
+
     @Test
     @DisplayName("Send is alive request to video server")
     void isAlive_testOK() {
@@ -3007,7 +3030,7 @@ class VideoServerServiceImplTest {
           VideoServerResponse.create().status("server_info").transactionId("transaction-id");
       when(videoServerClient.sendGetInfoRequest()).thenReturn(sessionResponse);
 
-      assertTrue(videoServerService.isAlive());
+      assertTrue(plainVideoServerService.isAlive());
 
       verify(videoServerClient, times(1)).sendGetInfoRequest();
     }
@@ -3019,7 +3042,7 @@ class VideoServerServiceImplTest {
           VideoServerResponse.create().status("error").transactionId("transaction-id");
       when(videoServerClient.sendGetInfoRequest()).thenReturn(sessionResponse);
 
-      assertFalse(videoServerService.isAlive());
+      assertFalse(plainVideoServerService.isAlive());
 
       verify(videoServerClient, times(1)).sendGetInfoRequest();
     }
@@ -3029,7 +3052,7 @@ class VideoServerServiceImplTest {
     void isAlive_testExceptionError() {
       when(videoServerClient.sendGetInfoRequest()).thenThrow(RuntimeException.class);
 
-      assertFalse(videoServerService.isAlive());
+      assertFalse(plainVideoServerService.isAlive());
 
       verify(videoServerClient, times(1)).sendGetInfoRequest();
     }
