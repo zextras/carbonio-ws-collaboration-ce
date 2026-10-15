@@ -103,6 +103,15 @@ public class CoreConfigContribution implements ConfigContribution {
     mappings.put(ConfigName.MIN_THREADS, "carbonio-ws-collaboration/server/min-threads");
     mappings.put(
         ConfigName.MAX_QUEUE_REQUESTS, "carbonio-ws-collaboration/server/max-queue-requests");
+    mappings.put(
+        ConfigName.VIDEO_SIMULCAST_HIGH_HEIGHT,
+        "carbonio-ws-collaboration/meeting/simulcast-high-height");
+    mappings.put(
+        ConfigName.VIDEO_SIMULCAST_MEDIUM_HEIGHT,
+        "carbonio-ws-collaboration/meeting/simulcast-medium-height");
+    mappings.put(
+        ConfigName.VIDEO_SIMULCAST_LOW_HEIGHT,
+        "carbonio-ws-collaboration/meeting/simulcast-low-height");
     return toNames(mappings);
   }
 
@@ -136,7 +145,10 @@ public class CoreConfigContribution implements ConfigContribution {
             ConfigName.MESSAGE_DISPATCHER_DATABASE_PORT,
             ConfigName.MAX_THREADS,
             ConfigName.MIN_THREADS,
-            ConfigName.MAX_QUEUE_REQUESTS));
+            ConfigName.MAX_QUEUE_REQUESTS,
+            ConfigName.VIDEO_SIMULCAST_HIGH_HEIGHT,
+            ConfigName.VIDEO_SIMULCAST_MEDIUM_HEIGHT,
+            ConfigName.VIDEO_SIMULCAST_LOW_HEIGHT));
   }
 
   @Override

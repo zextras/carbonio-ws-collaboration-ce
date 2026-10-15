@@ -1,3 +1,9 @@
+## [1.14.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.13.13...v1.14.0) (2026-10-15)
+
+### Features
+
+* **meetings:** dynamic-quality streams signalling + connection-status relay (CO-3533) ([#302](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/302)) ([949ae3b](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/949ae3b5cd27425cf4b6482a08df32f3e3c42424)), closes [carbonio-ws-collaboration#296](https://github.com/zextras/carbonio-ws-collaboration/issues/296)
+
 ## [1.13.13](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.13.12...v1.13.13) (2026-10-08)
 
 ### Bug Fixes

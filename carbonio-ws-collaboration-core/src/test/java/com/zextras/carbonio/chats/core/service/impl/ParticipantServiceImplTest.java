@@ -6,15 +6,21 @@ package com.zextras.carbonio.chats.core.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.zextras.carbonio.async.model.DomainEvent;
 import com.zextras.carbonio.async.model.MediaType;
 import com.zextras.carbonio.async.model.MeetingAudioStreamChanged;
 import com.zextras.carbonio.async.model.MeetingMediaStreamChanged;
@@ -23,6 +29,7 @@ import com.zextras.carbonio.async.model.MeetingParticipantHandRaised;
 import com.zextras.carbonio.async.model.MeetingParticipantHandRaisedList;
 import com.zextras.carbonio.async.model.MeetingParticipantJoined;
 import com.zextras.carbonio.async.model.MeetingParticipantLeft;
+import com.zextras.carbonio.async.model.MeetingParticipantUplinkStatusChanged;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.data.entity.*;
 import com.zextras.carbonio.chats.core.data.type.JoinStatus;
@@ -40,6 +47,7 @@ import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.model.AudioStreamSettingsDto;
 import com.zextras.carbonio.chats.model.HandStatusDto;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
+import com.zextras.carbonio.chats.model.MediaQualityRequestDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto;
 import com.zextras.carbonio.chats.model.MediaStreamSettingsDto.TypeEnum;
 import com.zextras.carbonio.chats.model.RoomTypeDto;
@@ -55,6 +63,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 @UnitTest
 class ParticipantServiceImplTest {
@@ -2125,6 +2134,272 @@ class ParticipantServiceImplTest {
           .getById(permanentMeetingId.toString(), user3Id.toString());
       verifyNoMoreInteractions(participantRepository);
       verifyNoInteractions(meetingService, roomService, eventDispatcher, videoServerService);
+    }
+  }
+
+  @Nested
+  @DisplayName("Update subscribed media quality tests")
+  class UpdateSubscribedMediaQualityTests {
+
+    @Test
+    @DisplayName("Delegates to videoServerService for video type")
+    void updateSubscribedMediaQuality_testOkVideo() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      participantService.updateSubscribedMediaQuality(
+          permanentMeetingId,
+          MediaQualityRequestDto.create()
+              .userId(user2Id.toString())
+              .type(MediaQualityRequestDto.TypeEnum.VIDEO)
+              .mid("0")
+              .substream(1)
+              .temporal(2),
+          UserPrincipal.create(user1Id).queueId(user1Queue1));
+
+      verify(meetingService, times(1)).getMeetingEntity(permanentMeetingId);
+      verify(videoServerService, times(1))
+          .configureSubscribedStream(user1Id.toString(), permanentMeetingId.toString(), "0", 1, 2);
+      verifyNoMoreInteractions(meetingService, videoServerService);
+      verifyNoInteractions(roomService, participantRepository, eventDispatcher);
+    }
+  }
+
+  @Nested
+  @DisplayName("Relay uplink status tests")
+  class RelayUplinkStatusTests {
+
+    @Test
+    @DisplayName("Broadcast dispatches distinct participant recipients")
+    void relayUplinkStatus_broadcast_dedupRecipients() {
+      Meeting meeting =
+          Meeting.create()
+              .id(permanentMeetingId.toString())
+              .participants(
+                  List.of(
+                      Participant.create().userId(user1Id.toString()),
+                      Participant.create().userId(user1Id.toString()),
+                      Participant.create().userId(user2Id.toString())));
+      when(meetingService.getMeetingEntity(permanentMeetingId)).thenReturn(Optional.of(meeting));
+
+      participantService.relayUplinkStatus(
+          permanentMeetingId.toString(),
+          java.math.BigDecimal.valueOf(7.5),
+          1700000000000L,
+          null,
+          user1Id.toString(),
+          null,
+          null);
+
+      ArgumentCaptor<List<String>> recipientsCaptor = ArgumentCaptor.forClass(List.class);
+      verify(eventDispatcher, times(1)).sendToUserExchange(recipientsCaptor.capture(), any());
+      List<String> recipients = recipientsCaptor.getValue();
+      assertEquals(2, recipients.size());
+      assertTrue(recipients.containsAll(List.of(user1Id.toString(), user2Id.toString())));
+    }
+
+    @Test
+    @DisplayName("Unicast to a participant dispatches only to the target user")
+    void relayUplinkStatus_unicast_toParticipant() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      participantService.relayUplinkStatus(
+          permanentMeetingId.toString(),
+          null,
+          1700000000000L,
+          user2Id.toString(),
+          user1Id.toString(),
+          null,
+          null);
+
+      verify(eventDispatcher, times(1)).sendToUserExchange(eq(user2Id.toString()), any());
+      verify(eventDispatcher, never()).sendToUserExchange(anyList(), any());
+    }
+
+    @Test
+    @DisplayName("Unicast to a non-participant dispatches nothing")
+    void relayUplinkStatus_unicast_toNonParticipant_noDispatch() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      participantService.relayUplinkStatus(
+          permanentMeetingId.toString(),
+          null,
+          1700000000000L,
+          user5Id.toString(),
+          user1Id.toString(),
+          null,
+          null);
+
+      verifyNoInteractions(eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("Meeting not found dispatches nothing")
+    void relayUplinkStatus_meetingNotFound_noDispatch() {
+      when(meetingService.getMeetingEntity(permanentMeetingId)).thenReturn(Optional.empty());
+
+      participantService.relayUplinkStatus(
+          permanentMeetingId.toString(),
+          java.math.BigDecimal.valueOf(7.5),
+          1700000000000L,
+          null,
+          user1Id.toString(),
+          null,
+          null);
+
+      verifyNoInteractions(eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("Sender not a participant dispatches nothing")
+    void relayUplinkStatus_senderNotParticipant_noDispatch() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      participantService.relayUplinkStatus(
+          permanentMeetingId.toString(),
+          java.math.BigDecimal.valueOf(7.5),
+          1700000000000L,
+          null,
+          user5Id.toString(),
+          null,
+          null);
+
+      verifyNoInteractions(eventDispatcher);
+    }
+
+    @Test
+    @DisplayName("maxUplinkTier present is relayed on the outbound event")
+    void relayUplinkStatus_maxUplinkTier_relayed() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      participantService.relayUplinkStatus(
+          permanentMeetingId.toString(),
+          java.math.BigDecimal.valueOf(7.5),
+          1700000000000L,
+          null,
+          user1Id.toString(),
+          1,
+          null);
+
+      ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+      verify(eventDispatcher, times(1)).sendToUserExchange(anyList(), eventCaptor.capture());
+      MeetingParticipantUplinkStatusChanged relayed =
+          (MeetingParticipantUplinkStatusChanged) eventCaptor.getValue();
+      assertEquals(1, relayed.getMaxUplinkTier());
+    }
+
+    @Test
+    @DisplayName("null maxUplinkTier is relayed as null on the outbound event")
+    void relayUplinkStatus_nullMaxUplinkTier_relayed() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      participantService.relayUplinkStatus(
+          permanentMeetingId.toString(),
+          java.math.BigDecimal.valueOf(7.5),
+          1700000000000L,
+          null,
+          user1Id.toString(),
+          null,
+          null);
+
+      ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+      verify(eventDispatcher, times(1)).sendToUserExchange(anyList(), eventCaptor.capture());
+      MeetingParticipantUplinkStatusChanged relayed =
+          (MeetingParticipantUplinkStatusChanged) eventCaptor.getValue();
+      assertNull(relayed.getMaxUplinkTier());
+    }
+
+    @Test
+    @DisplayName("networkScore present is relayed on the outbound event")
+    void relayUplinkStatus_networkScore_relayed() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      participantService.relayUplinkStatus(
+          permanentMeetingId.toString(),
+          java.math.BigDecimal.valueOf(6.4),
+          1700000000000L,
+          null,
+          user1Id.toString(),
+          null,
+          null);
+
+      ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+      verify(eventDispatcher, times(1)).sendToUserExchange(anyList(), eventCaptor.capture());
+      MeetingParticipantUplinkStatusChanged relayed =
+          (MeetingParticipantUplinkStatusChanged) eventCaptor.getValue();
+      assertEquals(java.math.BigDecimal.valueOf(6.4), relayed.getNetworkScore());
+    }
+
+    @Test
+    @DisplayName("null networkScore (LOST) is relayed as null on the outbound event")
+    void relayUplinkStatus_nullNetworkScore_relayed() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      participantService.relayUplinkStatus(
+          permanentMeetingId.toString(),
+          null,
+          1700000000000L,
+          null,
+          user1Id.toString(),
+          null,
+          null);
+
+      ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+      verify(eventDispatcher, times(1)).sendToUserExchange(anyList(), eventCaptor.capture());
+      MeetingParticipantUplinkStatusChanged relayed =
+          (MeetingParticipantUplinkStatusChanged) eventCaptor.getValue();
+      assertNull(relayed.getNetworkScore());
+    }
+
+    @Test
+    @DisplayName("maxHardwareTier present is relayed on the outbound event")
+    void relayUplinkStatus_maxHardwareTier_relayed() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      participantService.relayUplinkStatus(
+          permanentMeetingId.toString(),
+          java.math.BigDecimal.valueOf(7.5),
+          1700000000000L,
+          null,
+          user1Id.toString(),
+          2,
+          2);
+
+      ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+      verify(eventDispatcher, times(1)).sendToUserExchange(anyList(), eventCaptor.capture());
+      MeetingParticipantUplinkStatusChanged relayed =
+          (MeetingParticipantUplinkStatusChanged) eventCaptor.getValue();
+      assertEquals(2, relayed.getMaxHardwareTier());
+    }
+
+    @Test
+    @DisplayName("null maxHardwareTier is relayed as null on the outbound event")
+    void relayUplinkStatus_nullMaxHardwareTier_relayed() {
+      when(meetingService.getMeetingEntity(permanentMeetingId))
+          .thenReturn(Optional.of(permanentMeeting));
+
+      participantService.relayUplinkStatus(
+          permanentMeetingId.toString(),
+          java.math.BigDecimal.valueOf(7.5),
+          1700000000000L,
+          null,
+          user1Id.toString(),
+          null,
+          null);
+
+      ArgumentCaptor<DomainEvent> eventCaptor = ArgumentCaptor.forClass(DomainEvent.class);
+      verify(eventDispatcher, times(1)).sendToUserExchange(anyList(), eventCaptor.capture());
+      MeetingParticipantUplinkStatusChanged relayed =
+          (MeetingParticipantUplinkStatusChanged) eventCaptor.getValue();
+      assertNull(relayed.getMaxHardwareTier());
     }
   }
 }

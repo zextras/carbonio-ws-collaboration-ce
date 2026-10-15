@@ -9,6 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.zextras.carbonio.chats.api.MeetingsApiService;
@@ -24,6 +26,7 @@ import com.zextras.carbonio.chats.core.service.ParticipantService;
 import com.zextras.carbonio.chats.core.web.security.UserPrincipal;
 import com.zextras.carbonio.chats.core.web.socket.MessageBrokerVideoserverHealthMonitor;
 import com.zextras.carbonio.chats.model.JoinSettingsDto;
+import com.zextras.carbonio.chats.model.MediaQualityRequestDto;
 import com.zextras.carbonio.chats.model.NewMeetingDataDto;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
@@ -233,5 +236,22 @@ class MeetingsApiServiceImplTest {
                 meetingId,
                 com.zextras.carbonio.chats.model.HandStatusDto.create().raised(false),
                 securityContext));
+  }
+
+  @Test
+  void updateSubscribedMediaQuality_returns204() throws Exception {
+    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    MediaQualityRequestDto dto =
+        MediaQualityRequestDto.create()
+            .userId(UUID.randomUUID().toString())
+            .type(MediaQualityRequestDto.TypeEnum.VIDEO)
+            .mid("0")
+            .substream(1);
+
+    Response response =
+        meetingsApiService.updateSubscribedMediaQuality(meetingId, dto, securityContext);
+
+    assertEquals(Status.NO_CONTENT.getStatusCode(), response.getStatus());
+    verify(participantService, times(1)).updateSubscribedMediaQuality(meetingId, dto, user1);
   }
 }

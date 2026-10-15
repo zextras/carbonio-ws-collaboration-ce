@@ -6,6 +6,8 @@ package com.zextras.carbonio.chats.core.config.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -28,6 +30,7 @@ import com.orbitz.consul.option.ImmutableQueryOptions;
 import com.orbitz.consul.option.QueryOptions;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigContribution;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -171,6 +174,60 @@ class ConsulAppConfigTest {
               eq("carbonio-ws-collaboration-db/db-password"), any(ImmutableQueryOptions.class));
       verify(consulClient, times(1)).keyValueClient();
       verifyNoMoreInteractions(keyValueClient, consulClient);
+    }
+  }
+
+  @Nested
+  @DisplayName("Creation tests")
+  class CreationTests {
+
+    private final ConfigContribution duplicate =
+        new ConfigContribution() {
+          @Override
+          public Map<String, String> consulKvMappings() {
+            return Map.of("DATABASE_USERNAME", "other/db-username");
+          }
+        };
+
+    private final List<ConfigContribution> duplicateCatalog =
+        List.of(new CoreConfigContribution(), duplicate);
+
+    @Test
+    @DisplayName("A duplicate Consul KV mapping is rejected when a client is provided")
+    void create_withClient_duplicateKeyThrows() {
+      IllegalStateException exception =
+          assertThrows(
+              IllegalStateException.class,
+              () -> ConsulAppConfig.create(consulClient, "TOKEN", duplicateCatalog));
+      assertTrue(exception.getMessage().contains("DATABASE_USERNAME"));
+    }
+
+    @Test
+    @DisplayName("A duplicate Consul KV mapping is rejected regardless of Consul reachability")
+    void create_withHost_duplicateKeyThrows() {
+      IllegalStateException exception =
+          assertThrows(
+              IllegalStateException.class,
+              () -> ConsulAppConfig.create("127.0.0.1", 1, "TOKEN", duplicateCatalog));
+      assertTrue(exception.getMessage().contains("DATABASE_USERNAME"));
+    }
+
+    @Test
+    @DisplayName("A duplicate Consul KV mapping is rejected even without a token")
+    void create_nullToken_duplicateKeyThrows() {
+      assertThrows(
+          IllegalStateException.class,
+          () -> ConsulAppConfig.create(consulClient, null, duplicateCatalog));
+      assertThrows(
+          IllegalStateException.class,
+          () -> ConsulAppConfig.create("127.0.0.1", 1, null, duplicateCatalog));
+    }
+
+    @Test
+    @DisplayName("An unreachable Consul is skipped with a null config")
+    void create_withHost_unreachableConsulReturnsNull() {
+      assertNull(
+          ConsulAppConfig.create("127.0.0.1", 1, "TOKEN", List.of(new CoreConfigContribution())));
     }
   }
 }

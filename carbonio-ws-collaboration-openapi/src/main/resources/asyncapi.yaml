@@ -5,12 +5,13 @@
 openapi: 3.0.3
 info:
   title: Events Data Models
-  version: 1.6.14
+  version: 1.6.15
   description: |
     Data models for room and meeting events.
     This specification contains only the schemas for code generation purposes.
   x-supported-versions:
     [
+      "1.6.15",
       "1.6.14",
       "1.6.13",
       "1.6.12",
@@ -73,6 +74,7 @@ components:
         - MeetingRecordingStopped
         - MeetingParticipantHandRaised
         - MeetingParticipantHandRaisedList
+        - MeetingParticipantUplinkStatusChanged
         # Websocket connection Events
         - WebsocketConnected
         - MessageBrokerDisconnected
@@ -125,6 +127,7 @@ components:
           meetingRecordingStopped: "#/components/schemas/MeetingRecordingStopped"
           meetingParticipantHandRaised: "#/components/schemas/MeetingParticipantHandRaised"
           meetingParticipantHandRaisedList: "#/components/schemas/MeetingParticipantHandRaisedList"
+          meetingParticipantUplinkStatusChanged: "#/components/schemas/MeetingParticipantUplinkStatusChanged"
           websocketConnected: "#/components/schemas/WebsocketConnected"
           messageBrokerDisconnected: "#/components/schemas/MessageBrokerDisconnected"
           messageBrokerRestored: "#/components/schemas/MessageBrokerRestored"
@@ -713,6 +716,46 @@ components:
           required:
             - meetingId
             - participants
+
+    MeetingParticipantUplinkStatusChanged:
+      allOf:
+        - $ref: "#/components/schemas/DomainEvent"
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            networkScore:
+              type: number
+              nullable: true
+              description: tier-weighted network score, 0-10, or null when LOST
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            changedAt:
+              type: integer
+              format: int64
+              description: client wall-clock (epoch ms) when this level was committed; latest wins per user
+            maxUplinkTier:
+              type: integer
+              minimum: 0
+              maximum: 2
+              nullable: true
+              description: publisher webcam GCC tier (0=LOW, 1=MEDIUM, 2=HIGH); absent when not applicable
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+            maxHardwareTier:
+              type: integer
+              minimum: 0
+              maximum: 2
+              nullable: true
+              description: top rung the camera can physically produce (0=LOW, 1=MEDIUM, 2=HIGH); absent when not applicable
+              x-extra-annotation: "@com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)"
+
+          required:
+            - meetingId
+            - userId
+            - changedAt
 
     # Websocket Events
     WebsocketConnected:
