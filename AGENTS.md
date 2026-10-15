@@ -14,15 +14,27 @@
 - `carbonio-ws-collaboration-it` — integration tests (TestContainers)
 - `carbonio-ws-collaboration-openapi` — OpenAPI spec + generated REST server stubs
 
+## Library publishing
+
+- `openapi` and `core` are published as Maven jars, `it` as a test-jar (`carbonio-ws-collaboration-ce-*`, version
+  `${revision}${changelist}`) and consumed by downstream projects that subclass CE classes, override protected
+  hooks and extend `ExtensionModule`. Keep public classes, protected hooks and extension modules backward compatible.
+- Meeting-scoped Janus calls in `VideoServerServiceImpl` must go through `clientFor` / `clientForNewMeeting`,
+  never the injected client field directly (only `isAlive()` may); `VideoServerServiceImplTest` enforces this.
+
 ## Framework
 
 - Guice + Jetty + RestEasy (NOT Quarkus). CDI annotations do NOT apply.
-- Dependency injection: Guice `@Provides` methods in `CoreModule.java`.
+- Dependency injection: Guice modules in `core/config/module/`. `CoreModule` installs the always-on
+  modules (`WebModule`, `MessagingModule`, `UserModule`, `RoomModule`); `ExtensionModule` installs the
+  modules a downstream build may replace or extend (`DatabaseModule`, `AttachmentModule`,
+  `MeetingModule`, `WebSocketModule`). `BootModule` installs both. `@Provides` methods live in the
+  module that owns the feature.
 - **New classes**: annotate with `@com.google.inject.Singleton` (when stateful/shared), constructor-inject
   dependencies with `@Inject`, never instantiate with `new` in production code, and add an explicit
-  `bind(NewClass.class);` in `CoreModule.java` (project convention, even though Guice can JIT-bind).
+  `bind(NewClass.class);` in the module that owns the feature (project convention, even though Guice can JIT-bind).
   Tests that build the class directly must be updated to pass the new dependency.
-- All new infrastructure clients must be registered in `CoreModule.java`.
+- All new infrastructure clients must be registered in the module of the feature that uses them.
 
 ## Package / Deploy
 
@@ -35,5 +47,8 @@
 
 - License: AGPL-3.0-only; new files need SPDX header
 - REUSE.toml covers license compliance; update if adding new directories
-- Config keys live in `ConfigName.java`; Consul KV mappings in `ConsulAppConfig.java`
+- Config keys live in `ConfigName.java`; Consul KV mappings, environment keys and infrastructure defaults
+  live in `CoreConfigContribution.java` (a `ConfigContribution`, multibound in `WebModule`). Duplicate keys are rejected when
+  the config sources are built (env keys in docker mode; infrastructure defaults and Consul mappings in production mode).
+- Flyway migrations live in `classpath:migration/ce` (`DatabaseModule.migrationsLocation()`)
 - gRPC clients (after videorecorder migration): use `ManagedChannelBuilder`, inject via Guice, no CDI
