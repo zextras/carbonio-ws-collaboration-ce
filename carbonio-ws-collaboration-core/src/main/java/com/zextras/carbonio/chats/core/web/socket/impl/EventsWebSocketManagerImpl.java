@@ -142,7 +142,11 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
       ChatsLogger.warn(String.format("Error sending pong to user/queue '%s'", userQueue));
       try {
         session.close();
-      } catch (Exception ignored) {
+      } catch (Exception closeException) {
+        ChatsLogger.warn(
+            String.format(
+                "Error closing websocket session after a message failure for user/queue '%s'",
+                userQueue));
       }
     }
   }
