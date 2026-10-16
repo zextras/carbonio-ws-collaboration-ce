@@ -28,7 +28,7 @@ public class TestAppConfig extends AppConfig {
 
   @Override
   protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, String key) {
-    return InMemoryConfigStore.get(key).map((stringValue) -> castToGeneric(clazz, stringValue));
+    return InMemoryConfigStore.get(key).map(stringValue -> castToGeneric(clazz, stringValue));
   }
 
   @Override
