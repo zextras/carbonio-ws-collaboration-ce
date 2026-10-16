@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.web.socket.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -28,6 +29,7 @@ import jakarta.websocket.OnOpen;
 import jakarta.websocket.Session;
 import jakarta.websocket.server.ServerEndpoint;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -123,82 +125,15 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
     try {
       ObjectNode node = objectMapper.readValue(message, ObjectNode.class);
       Optional<JsonNode> optTypeKey = getKey(node, "type");
-      if (optTypeKey.isEmpty()) return;
+      if (optTypeKey.isEmpty() || !session.isOpen()) return;
       String type = optTypeKey.get().asText();
-      if (session.isOpen()) {
-        switch (type) {
-          case "ping", "PING", "Ping" -> {
-            var pong = DomainEvent.create().type(EventType.PONG).sentDate(OffsetDateTime.now());
-            session
-                .getAsyncRemote()
-                .sendObject(migrator.downgradeIfNeeded(pong, getVersion(session)));
-          }
-          case "IceRestart" -> {
-            Optional<JsonNode> optMeetingIdKey = getKey(node, "meetingId");
-            if (optMeetingIdKey.isEmpty()) return;
-            String meetingId = optMeetingIdKey.get().asText();
-            cacheVideoServerSession.remove(
-                UUID.fromString(getUserIdFromSession(session)), meetingId);
-            participantService.updateParticipantQueueId(
-                UUID.fromString(getUserIdFromSession(session)),
-                UUID.fromString(meetingId),
-                UUID.fromString(session.getId()));
-          }
-          case "UplinkStatusUpdate" -> {
-            try {
-              Optional<JsonNode> optMeetingIdNode = getKey(node, "meetingId");
-              Optional<JsonNode> optChangedAtNode = getKey(node, "changedAt");
-              if (optMeetingIdNode.isEmpty() || optChangedAtNode.isEmpty()) return;
-
-              Optional<JsonNode> optToNode = getKey(node, "to");
-              String toUserId =
-                  optToNode.isPresent()
-                          && !optToNode.get().isNull()
-                          && !optToNode.get().asText().isEmpty()
-                      ? optToNode.get().asText()
-                      : null;
-
-              java.math.BigDecimal networkScore = null;
-              JsonNode networkScoreNode = node.get("networkScore");
-              if (networkScoreNode != null && networkScoreNode.isNumber()) {
-                networkScore = networkScoreNode.decimalValue();
-              }
-
-              Integer maxUplinkTier = null;
-              JsonNode maxUplinkTierNode = node.get("maxUplinkTier");
-              if (maxUplinkTierNode != null && maxUplinkTierNode.isInt()) {
-                int tierVal = maxUplinkTierNode.intValue();
-                if (tierVal >= 0 && tierVal <= 2) {
-                  maxUplinkTier = tierVal;
-                }
-              }
-
-              Integer maxHardwareTier = null;
-              JsonNode maxHardwareTierNode = node.get("maxHardwareTier");
-              if (maxHardwareTierNode != null && maxHardwareTierNode.isInt()) {
-                int tierVal = maxHardwareTierNode.intValue();
-                if (tierVal >= 0 && tierVal <= 2) {
-                  maxHardwareTier = tierVal;
-                }
-              }
-
-              participantService.relayUplinkStatus(
-                  optMeetingIdNode.get().asText(),
-                  networkScore,
-                  optChangedAtNode.get().asLong(),
-                  toUserId,
-                  getUserIdFromSession(session),
-                  maxUplinkTier,
-                  maxHardwareTier);
-            } catch (Exception e) {
-              ChatsLogger.debug(
-                  "Dropped malformed UplinkStatusUpdate message: " + e.getMessage(), e);
-            }
-          }
-          default ->
-              ChatsLogger.info(
-                  String.format("Unknown event type '%s' when parsing websocket message", type));
-        }
+      switch (type) {
+        case "ping", "PING", "Ping" -> sendPong(session);
+        case "IceRestart" -> onIceRestart(session, node);
+        case "UplinkStatusUpdate" -> onUplinkStatusUpdate(session, node);
+        default ->
+            ChatsLogger.info(
+                String.format("Unknown event type '%s' when parsing websocket message", type));
       }
     } catch (Exception e) {
       UUID userId = UUID.fromString(getUserIdFromSession(session));
@@ -210,6 +145,61 @@ public class EventsWebSocketManagerImpl implements EventsWebSocketManager {
       } catch (Exception ignored) {
       }
     }
+  }
+
+  private void sendPong(Session session) throws JsonProcessingException {
+    var pong = DomainEvent.create().type(EventType.PONG).sentDate(OffsetDateTime.now());
+    session.getAsyncRemote().sendObject(migrator.downgradeIfNeeded(pong, getVersion(session)));
+  }
+
+  private void onIceRestart(Session session, ObjectNode node) {
+    Optional<JsonNode> optMeetingIdKey = getKey(node, "meetingId");
+    if (optMeetingIdKey.isEmpty()) return;
+    String meetingId = optMeetingIdKey.get().asText();
+    UUID userId = UUID.fromString(getUserIdFromSession(session));
+    cacheVideoServerSession.remove(userId, meetingId);
+    participantService.updateParticipantQueueId(
+        userId, UUID.fromString(meetingId), UUID.fromString(session.getId()));
+  }
+
+  private void onUplinkStatusUpdate(Session session, ObjectNode node) {
+    try {
+      Optional<JsonNode> optMeetingIdNode = getKey(node, "meetingId");
+      Optional<JsonNode> optChangedAtNode = getKey(node, "changedAt");
+      if (optMeetingIdNode.isEmpty() || optChangedAtNode.isEmpty()) return;
+
+      participantService.relayUplinkStatus(
+          optMeetingIdNode.get().asText(),
+          parseNetworkScore(node),
+          optChangedAtNode.get().asLong(),
+          parseToUserId(node),
+          getUserIdFromSession(session),
+          parseTier(node, "maxUplinkTier"),
+          parseTier(node, "maxHardwareTier"));
+    } catch (Exception e) {
+      ChatsLogger.debug("Dropped malformed UplinkStatusUpdate message: " + e.getMessage(), e);
+    }
+  }
+
+  private String parseToUserId(ObjectNode node) {
+    return getKey(node, "to")
+        .filter(to -> !to.isNull() && !to.asText().isEmpty())
+        .map(JsonNode::asText)
+        .orElse(null);
+  }
+
+  private BigDecimal parseNetworkScore(ObjectNode node) {
+    JsonNode networkScoreNode = node.get("networkScore");
+    return networkScoreNode != null && networkScoreNode.isNumber()
+        ? networkScoreNode.decimalValue()
+        : null;
+  }
+
+  private Integer parseTier(ObjectNode node, String field) {
+    JsonNode tierNode = node.get(field);
+    if (tierNode == null || !tierNode.isInt()) return null;
+    int tier = tierNode.intValue();
+    return tier >= 0 && tier <= 2 ? tier : null;
   }
 
   @Override
