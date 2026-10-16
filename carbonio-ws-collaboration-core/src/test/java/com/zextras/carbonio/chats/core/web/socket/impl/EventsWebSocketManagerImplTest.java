@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package com.zextras.carbonio.chats.core.web.socket;
+package com.zextras.carbonio.chats.core.web.socket.impl;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -16,6 +16,7 @@ import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import com.zextras.carbonio.chats.core.cache.CacheVideoServerSession;
 import com.zextras.carbonio.chats.core.infrastructure.event.impl.RabbitConnectionPoolService;
 import com.zextras.carbonio.chats.core.service.ParticipantService;
+import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import jakarta.servlet.http.HttpSession;
 import jakarta.websocket.Session;
@@ -27,9 +28,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 @UnitTest
-class EventsWebSocketManagerTest {
+class EventsWebSocketManagerImplTest {
 
-  private EventsWebSocketManager manager;
+  private EventsWebSocketManagerImpl manager;
   private ParticipantService participantService;
   private Session session;
   private ObjectMapper objectMapper;
@@ -49,7 +50,7 @@ class EventsWebSocketManagerTest {
     EventWebSocketSessions sessions = mock(EventWebSocketSessions.class);
 
     manager =
-        new EventsWebSocketManager(
+        new EventsWebSocketManagerImpl(
             rabbitPool,
             objectMapper,
             migrator,

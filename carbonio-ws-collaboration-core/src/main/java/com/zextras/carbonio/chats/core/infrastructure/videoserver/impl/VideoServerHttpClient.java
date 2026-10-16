@@ -64,7 +64,7 @@ public class VideoServerHttpClient implements VideoServerClient {
   public VideoServerResponse sendVideoServerRequest(VideoServerMessageRequest request) {
     try (CloseableHttpResponse response =
         httpClient.sendPost(
-            buildVideoServerUrl(),
+            resolveUrl(buildVideoServerUrl()),
             Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(request))) {
 
@@ -87,7 +87,7 @@ public class VideoServerHttpClient implements VideoServerClient {
       String connectionId, VideoServerMessageRequest request) {
     try (CloseableHttpResponse response =
         httpClient.sendPost(
-            buildVideoServerUrl(connectionId),
+            resolveUrl(buildVideoServerUrl(connectionId)),
             Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(request))) {
 
@@ -110,7 +110,7 @@ public class VideoServerHttpClient implements VideoServerClient {
       String connectionId, String handleId, VideoServerMessageRequest request) {
     try (CloseableHttpResponse response =
         httpClient.sendPost(
-            buildVideoServerUrl(connectionId, handleId),
+            resolveUrl(buildVideoServerUrl(connectionId, handleId)),
             Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(request))) {
 
@@ -133,7 +133,7 @@ public class VideoServerHttpClient implements VideoServerClient {
       String connectionId, String handleId, VideoServerMessageRequest request) {
     try (CloseableHttpResponse response =
         httpClient.sendPost(
-            buildVideoServerUrl(connectionId, handleId),
+            resolveUrl(buildVideoServerUrl(connectionId, handleId)),
             Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(request))) {
 
@@ -156,7 +156,7 @@ public class VideoServerHttpClient implements VideoServerClient {
       String connectionId, String handleId, VideoServerMessageRequest request) {
     try (CloseableHttpResponse response =
         httpClient.sendPost(
-            buildVideoServerUrl(connectionId, handleId),
+            resolveUrl(buildVideoServerUrl(connectionId, handleId)),
             Map.of("Content-Type", "application/json"),
             objectMapper.writeValueAsString(request))) {
 
@@ -172,6 +172,10 @@ public class VideoServerHttpClient implements VideoServerClient {
     } catch (IOException e) {
       throw new VideoServerException("Something went wrong executing request", e);
     }
+  }
+
+  protected String resolveUrl(String url) {
+    return url;
   }
 
   private String buildVideoServerUrl() {
