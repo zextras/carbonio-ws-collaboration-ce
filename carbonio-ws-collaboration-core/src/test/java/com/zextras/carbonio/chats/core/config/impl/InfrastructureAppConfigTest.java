@@ -35,10 +35,11 @@ class InfrastructureAppConfigTest {
           }
         };
 
+    List<ConfigContribution> contributions = List.of(first, second);
+
     IllegalStateException exception =
         assertThrows(
-            IllegalStateException.class,
-            () -> InfrastructureAppConfig.create(List.of(first, second)));
+            IllegalStateException.class, () -> InfrastructureAppConfig.create(contributions));
     assertTrue(exception.getMessage().contains("SAME_KEY"));
   }
 }

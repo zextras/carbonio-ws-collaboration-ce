@@ -35,9 +35,10 @@ class EnvironmentAppConfigTest {
           }
         };
 
+    List<ConfigContribution> contributions = List.of(first, second);
+
     IllegalStateException exception =
-        assertThrows(
-            IllegalStateException.class, () -> EnvironmentAppConfig.create(List.of(first, second)));
+        assertThrows(IllegalStateException.class, () -> EnvironmentAppConfig.create(contributions));
     assertTrue(exception.getMessage().contains("SAME_KEY"));
   }
 }
