@@ -85,6 +85,7 @@ public abstract class DependencyException extends ChatsHttpException {
   }
 
   public boolean isToLog() {
-    return type.isRequired();
+    // Always log dependency failures, including optional ones.
+    return true;
   }
 }

@@ -9,6 +9,7 @@ import com.google.inject.Injector;
 import com.google.inject.TypeLiteral;
 import com.google.inject.util.Modules;
 import com.zextras.carbonio.chats.core.config.module.CoreModule;
+import com.zextras.carbonio.chats.core.config.module.ExtensionModule;
 import com.zextras.carbonio.chats.it.config.TestModule;
 import java.util.Optional;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -34,7 +35,9 @@ public class GuiceExtension implements ParameterResolver, BeforeAllCallback {
         .getOrComputeIfAbsent(
             GUICE_STORE_ENTRY,
             (key) ->
-                Guice.createInjector(Modules.override(new CoreModule()).with(new TestModule())),
+                Guice.createInjector(
+                    Modules.override(new CoreModule(), new ExtensionModule())
+                        .with(new TestModule())),
             Injector.class);
   }
 

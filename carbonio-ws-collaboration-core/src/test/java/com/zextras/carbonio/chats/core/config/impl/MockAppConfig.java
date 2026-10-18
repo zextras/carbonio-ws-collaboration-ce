@@ -5,7 +5,6 @@
 package com.zextras.carbonio.chats.core.config.impl;
 
 import com.zextras.carbonio.chats.core.config.AppConfig;
-import com.zextras.carbonio.chats.core.config.ConfigName;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -13,7 +12,7 @@ import java.util.Optional;
 public class MockAppConfig extends AppConfig {
 
   private final AppConfigType appConfigType;
-  private final Map<ConfigName, String> configMap;
+  private final Map<String, String> configMap;
 
   private boolean loaded = true;
 
@@ -50,8 +49,8 @@ public class MockAppConfig extends AppConfig {
   }
 
   @Override
-  protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, ConfigName configName) {
-    return Optional.ofNullable(configMap.get(configName))
+  protected <T> Optional<T> getConfigByImplementation(Class<T> clazz, String key) {
+    return Optional.ofNullable(configMap.get(key))
         .map((stringValue) -> castToGeneric(clazz, stringValue));
   }
 
@@ -61,7 +60,7 @@ public class MockAppConfig extends AppConfig {
   }
 
   @Override
-  public boolean setConfigByImplementation(ConfigName key, String value) {
+  public boolean setConfigByImplementation(String key, String value) {
     configMap.put(key, value);
     return true;
   }

@@ -54,7 +54,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   private final MembersService membersService;
   private final ParticipantRepository participantRepository;
   private final VideoServerService videoServerService;
-  private final EventDispatcher eventDispatcher;
+  protected final EventDispatcher eventDispatcher;
   private final Clock clock;
 
   @Inject
@@ -92,7 +92,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   // Validates and retrieves the meeting
-  private Meeting validateMeeting(UUID meetingId) {
+  protected Meeting validateMeeting(UUID meetingId) {
     return meetingService
         .getMeetingEntity(meetingId)
         .orElseThrow(
@@ -100,7 +100,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   // Validates and retrieves the associated room
-  private Room validateMeetingRoom(Meeting meeting) {
+  protected Room validateMeetingRoom(Meeting meeting) {
     return roomService
         .getRoom(UUID.fromString(meeting.getRoomId()))
         .orElseThrow(
@@ -108,7 +108,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   // Handles logic when the user is already a participant
-  private JoinStatus handleExistingParticipant(
+  protected JoinStatus handleExistingParticipant(
       Meeting meeting,
       UserPrincipal currentUser,
       Room room,
@@ -141,7 +141,7 @@ public class ParticipantServiceImpl implements ParticipantService {
     };
   }
 
-  // Handles joining for a permanent meeting
+  // Handles joining for a scheduled meeting
   private JoinStatus handleScheduledMeetingParticipant(
       Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser, Room room) {
 
@@ -156,7 +156,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   @NotNull
-  private JoinStatus joinMeetingParticipant(
+  protected JoinStatus joinMeetingParticipant(
       Meeting meeting, UserPrincipal currentUser, Room room, JoinSettingsDto joinSettingsDto) {
     if (participantRepository.getById(meeting.getId(), currentUser.getId()).isEmpty()) {
       addMeetingParticipant(meeting, joinSettingsDto, currentUser, room);
@@ -170,7 +170,7 @@ public class ParticipantServiceImpl implements ParticipantService {
   }
 
   // Handles joining for a permanent meeting
-  private JoinStatus handlePermanentMeetingParticipant(
+  protected JoinStatus handlePermanentMeetingParticipant(
       Meeting meeting, JoinSettingsDto joinSettingsDto, UserPrincipal currentUser, Room room) {
 
     boolean isRoomMember =

@@ -34,6 +34,7 @@ import com.zextras.carbonio.chats.core.web.socket.EventWebSocketSessions;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketEndpointConfigurator;
 import com.zextras.carbonio.chats.core.web.socket.EventsWebSocketManager;
 import com.zextras.carbonio.chats.core.web.socket.SessionPingManager;
+import com.zextras.carbonio.chats.core.web.socket.impl.EventsWebSocketManagerImpl;
 import com.zextras.carbonio.chats.core.web.socket.versioning.WebsocketVersionMigrator;
 import com.zextras.carbonio.chats.it.annotations.ApiIntegrationTest;
 import jakarta.servlet.DispatcherType;
@@ -473,7 +474,7 @@ class VersionedWebsocketIT {
   private void startWebSocketServer(List<String> serverSupportedVersions) throws Exception {
     jettyServer = new Server(0);
     eventsWebSocketManager =
-        new EventsWebSocketManager(
+        new EventsWebSocketManagerImpl(
             rabbitPool,
             objectMapper,
             websocketVersionMigrator,
@@ -489,7 +490,7 @@ class VersionedWebsocketIT {
         context,
         (servletContext, wsContainer) -> {
           wsContainer.addEndpoint(
-              ServerEndpointConfig.Builder.create(EventsWebSocketManager.class, "/events")
+              ServerEndpointConfig.Builder.create(EventsWebSocketManagerImpl.class, "/events")
                   .configurator(new EventsWebSocketEndpointConfigurator(eventsWebSocketManager))
                   .subprotocols(serverSupportedVersions)
                   .build());

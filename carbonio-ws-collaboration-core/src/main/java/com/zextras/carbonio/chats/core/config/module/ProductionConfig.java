@@ -8,23 +8,26 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.zextras.carbonio.chats.core.config.AppConfig;
+import com.zextras.carbonio.chats.core.config.ConfigContribution;
 import com.zextras.carbonio.chats.core.config.ConfigName;
 import com.zextras.carbonio.chats.core.config.ServerConfiguration;
 import com.zextras.carbonio.chats.core.config.impl.ConsulAppConfig;
 import com.zextras.carbonio.chats.core.config.impl.InfrastructureAppConfig;
 import java.util.Optional;
+import java.util.Set;
 
 public class ProductionConfig extends AbstractModule {
 
   @Singleton
   @Provides
-  private AppConfig getAppConfig() {
-    AppConfig appConfig = InfrastructureAppConfig.create().load();
+  private AppConfig getAppConfig(Set<ConfigContribution> contributions) {
+    AppConfig appConfig = InfrastructureAppConfig.create(contributions).load();
     Optional.ofNullable(
             ConsulAppConfig.create(
                 appConfig.get(String.class, ConfigName.CONSUL_HOST).orElseThrow(),
                 appConfig.get(Integer.class, ConfigName.CONSUL_PORT).orElseThrow(),
-                System.getenv("CONSUL_HTTP_TOKEN")))
+                System.getenv("CONSUL_HTTP_TOKEN"),
+                contributions))
         .ifPresent(consulConfig -> appConfig.add(consulConfig.load()));
     return appConfig;
   }
