@@ -1,3 +1,9 @@
+## [1.14.1](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.14.0...v1.14.1) (2026-10-18)
+
+### Bug Fixes
+
+* **ci:** replace mapfile in checksum-verify for macOS bash 3.2 ([#305](https://github.com/zextras/carbonio-ws-collaboration-ce/issues/305)) ([7c43490](https://github.com/zextras/carbonio-ws-collaboration-ce/commit/7c434906625a34c1397edb310c13075bb19a8b44)), closes [jenkins-lib-common#216](https://github.com/zextras/jenkins-lib-common/issues/216)
+
 ## [1.14.0](https://github.com/zextras/carbonio-ws-collaboration-ce/compare/v1.13.13...v1.14.0) (2026-10-15)
 
 ### Features
