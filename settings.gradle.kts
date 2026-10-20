@@ -16,7 +16,7 @@ dependencyResolutionManagement {
             forRepository {
                 maven {
                     name = "zextras-java-sdk-artifacts"
-                    url = uri("https://zextras.jfrog.io/artifactory/java-sdk")
+                    url = uri("https://repo.zextras.tools/repository/java-sdk/")
                     metadataSources { artifact() }
                 }
             }
@@ -28,8 +28,8 @@ dependencyResolutionManagement {
         }
 
         maven {
-            name = "zextras-java-sdk"
-            url = uri("https://zextras.jfrog.io/artifactory/java-sdk")
+            name = "zextras-nexus"
+            url = uri("https://repo.zextras.tools/repository/java-sdk/")
         }
         mavenCentral()
     }
