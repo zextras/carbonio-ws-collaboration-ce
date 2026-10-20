@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 library(
-    identifier: 'jenkins-lib-common@v4.13.0',
+    identifier: 'jenkins-lib-common@v5.0.8',
     retriever: modernSCM([
         $class: 'GitSCMSource',
         credentialsId: 'jenkins-integration-with-github-account',
@@ -21,7 +21,7 @@ library(
 dt3_pipeline(
     repoName: 'carbonio-ws-collaboration-ce',
     appModule: 'carbonio-ws-collaboration-boot',
-    mavenPublish: ['carbonio-ws-collaboration-openapi', 'carbonio-ws-collaboration-core', 'carbonio-ws-collaboration-it'],
+    mavenPublish: ['.', 'carbonio-ws-collaboration-openapi', 'carbonio-ws-collaboration-core', 'carbonio-ws-collaboration-it'],
     packaging: [
         buildFlags: '-ds',
         preBuildScript: '''
