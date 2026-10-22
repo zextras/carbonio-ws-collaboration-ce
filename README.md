@@ -1,109 +1,19 @@
 # Carbonio Workstream Collaboration CE
 
-This is the official repository for Carbonio Workstream Collaboration CE.
+[![Contributors][contributors-badge]][contributors]
+[![Activity][activity-badge]][activity]
+[![License][license-badge]](COPYING)
+[![Project][project-badge]][project]
 
-## 🔧 How to Build
+Backend of Carbonio Workstream Collaboration: chats and meetings. Community edition.
 
-Build using maven:
+- Installation: [Carbonio CE guide](https://docs.zextras.com/carbonio-ce/html/install/toc.html)
+- Messages and events reference: [`docs/`](docs/)
 
-```shell
-make compile
-```
-
----
-If you also want to generate all artifacts, run
-
-```shell
-mvn clean install -P artifacts
-```
-
----
-If you want to generate only the artifact for a specific distro
-
-```shell
-mvn clean install -P artifacts -D distro=<1>
-```
-
-Where
-
-1. distro value is the distro name (ubuntu or rocky-8)
-
----
-If you want to generate only the artifact for a specific distro and deploy it in
-a test server
-
-```shell
-mvn clean install -P artifacts -D distro=<1> -D deployOn=<2> -D debugMode=<3>
-```
-
-Where
-
-1. distro value is the distro name (ubuntu or rocky-8)
-2. deployOn value is the domain name or IP of the server to deploy the artifact
-3. debugMode is a boolean value to indicate whether the installed Chat
-   environment should have the debug port active
-
-There's also a `noDocker` option which will build artifacts using a local pacur
-instance instead of using the docker image, which is useful for CI pipeline.
-
----
-
-## 🚀 How to Run
-
-With the generated fat-jar:
-
-```shell
-java -jar ./boot/target/zextras-ws-collaboration-ce-*-fatjar.jar
-```
-
-## Docker
-
-To run the service using Docker, you can use the provided `docker-compose.yml`
-file.
-Make sure you have Docker and Docker Compose installed on your machine.
-Also make a copy of `.env.example` to `.env` and set the required
-environment variables.
-
-then run:
-
-```shell
-make docker-up
-```
-
-If you want to stop:
-
-```shell
-make docker-down
-```
-
-## License 📚
-
-Workstream Collaboration CE backend service for Zextras Carbonio.
-
-Released under the AGPL-3.0-only license as specified here: [COPYING](COPYING).
-
-Copyright (C) 2022 Zextras <https://www.zextras.com>
-
-> This program is free software: you can redistribute it and/or modify
-> it under the terms of the GNU Affero General Public License as published by
-> the Free Software Foundation, version 3 only of the License.
->
-> This program is distributed in the hope that it will be useful,
-> but WITHOUT ANY WARRANTY; without even the implied warranty of
-> MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> GNU Affero General Public License for more details.
->
-> You should have received a copy of the GNU Affero General Public License
-> along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-See [COPYING](COPYING) file for the project license details
-
-See [THIRDPARTIES](THIRDPARTIES) file for other licenses details
-
-## Copyright and Licensing notices
-
-All non-software material (such as, for example, names, images, logos,
-sounds) is owned by Zextras and is licensed under
-CC-BY-NC-SA <https://creativecommons.org/licenses/by-nc-sa/4.0/>.
-Where not specified, all source files owned by Zextras are licensed
-under AGPL-3.0-only.
+[contributors-badge]: https://img.shields.io/github/contributors/zextras/carbonio-ws-collaboration-ce "Contributors"
+[contributors]: https://github.com/zextras/carbonio-ws-collaboration-ce/graphs/contributors "Contributors"
+[activity-badge]: https://img.shields.io/github/commit-activity/m/zextras/carbonio-ws-collaboration-ce "Activity"
+[activity]: https://github.com/zextras/carbonio-ws-collaboration-ce/pulse "Activity"
+[license-badge]: https://img.shields.io/badge/license-AGPL--3.0--only-blue "License"
+[project-badge]: https://img.shields.io/badge/project-carbonio-informational "Project Carbonio"
+[project]: https://www.zextras.com/carbonio/ "Project Carbonio"
