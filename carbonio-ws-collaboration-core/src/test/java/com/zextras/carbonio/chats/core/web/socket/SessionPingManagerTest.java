@@ -4,6 +4,7 @@
 
 package com.zextras.carbonio.chats.core.web.socket;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -17,6 +18,7 @@ import static org.mockito.Mockito.when;
 import com.zextras.carbonio.chats.core.annotations.UnitTest;
 import jakarta.websocket.MessageHandler;
 import jakarta.websocket.PongMessage;
+import jakarta.websocket.Session;
 import java.time.Clock;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +47,7 @@ class SessionPingManagerTest {
     JakartaWebSocketSession session = mock(JakartaWebSocketSession.class);
     CoreSession coreSession = mock(CoreSession.class);
     when(session.getId()).thenReturn(id);
-    when(session.isOpen()).thenReturn(true);
+    when(coreSession.isOutputOpen()).thenReturn(true);
     when(session.getCoreSession()).thenReturn(coreSession);
     return session;
   }
@@ -125,10 +127,10 @@ class SessionPingManagerTest {
     at(0);
     JakartaWebSocketSession session = newOpenSession("s1");
     pingManager.start(session);
-    when(session.isOpen()).thenReturn(false);
+    when(session.getCoreSession().isOutputOpen()).thenReturn(false);
 
     pingManager.tick();
-    when(session.isOpen()).thenReturn(true);
+    when(session.getCoreSession().isOutputOpen()).thenReturn(true);
     pingManager.tick();
 
     verifyNotPinged(session);
@@ -162,6 +164,13 @@ class SessionPingManagerTest {
     pingManager.tick();
 
     verifyPinged(healthy);
+  }
+
+  @Test
+  void start_rejectsNonJettySession() {
+    Session session = mock(Session.class);
+
+    assertThrows(IllegalStateException.class, () -> pingManager.start(session));
   }
 
   @Test

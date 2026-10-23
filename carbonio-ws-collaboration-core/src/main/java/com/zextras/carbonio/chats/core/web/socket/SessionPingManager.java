@@ -29,7 +29,7 @@ public class SessionPingManager {
   static final Duration PONG_DEADLINE = Duration.ofSeconds(45);
   private static final ByteBuffer PING_PAYLOAD = ByteBuffer.wrap(new byte[] {0x01});
 
-  private record TrackedSession(Session session, AtomicLong lastPongMillis) {}
+  private record TrackedSession(CoreSession coreSession, AtomicLong lastPongMillis) {}
 
   private final ConcurrentHashMap<String, TrackedSession> sessions = new ConcurrentHashMap<>();
   private final Clock clock;
@@ -56,8 +56,14 @@ public class SessionPingManager {
 
   public void start(Session session) {
     if (scheduler.isShutdown()) return;
+    if (!(session instanceof JakartaWebSocketSession jettySession)) {
+      throw new IllegalStateException(
+          "Websocket session is not a Jetty session: " + session.getClass().getName());
+    }
     String sessionId = session.getId();
-    sessions.put(sessionId, new TrackedSession(session, new AtomicLong(clock.millis())));
+    sessions.put(
+        sessionId,
+        new TrackedSession(jettySession.getCoreSession(), new AtomicLong(clock.millis())));
     session.addMessageHandler(PongMessage.class, pong -> onPong(sessionId));
   }
 
@@ -80,7 +86,7 @@ public class SessionPingManager {
     sessions.forEach(
         (sessionId, tracked) -> {
           try {
-            if (!tracked.session().isOpen()) {
+            if (!tracked.coreSession().isOutputOpen()) {
               sessions.remove(sessionId);
             } else if (now - tracked.lastPongMillis().get() > PONG_DEADLINE.toMillis()) {
               sessions.remove(sessionId);
@@ -88,9 +94,10 @@ public class SessionPingManager {
                   String.format(
                       "Websocket session '%s' sent no pong for %ds, aborting it",
                       sessionId, PONG_DEADLINE.toSeconds()));
-              coreSession(tracked.session()).abort();
+              tracked.coreSession().abort();
             } else {
-              coreSession(tracked.session())
+              tracked
+                  .coreSession()
                   .sendFrame(
                       new Frame(OpCode.PING, PING_PAYLOAD.duplicate()), Callback.NOOP, false);
             }
@@ -98,9 +105,5 @@ public class SessionPingManager {
             ChatsLogger.warn("Error pinging websocket session " + sessionId);
           }
         });
-  }
-
-  private static CoreSession coreSession(Session session) {
-    return ((JakartaWebSocketSession) session).getCoreSession();
   }
 }
