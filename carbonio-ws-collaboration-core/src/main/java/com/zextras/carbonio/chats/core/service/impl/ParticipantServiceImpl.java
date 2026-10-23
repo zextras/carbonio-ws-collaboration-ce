@@ -15,6 +15,7 @@ import com.zextras.carbonio.async.model.MeetingParticipantClashed;
 import com.zextras.carbonio.async.model.MeetingParticipantHandRaised;
 import com.zextras.carbonio.async.model.MeetingParticipantHandRaisedList;
 import com.zextras.carbonio.async.model.MeetingParticipantJoined;
+import com.zextras.carbonio.async.model.MeetingParticipantKicked;
 import com.zextras.carbonio.async.model.MeetingParticipantLeft;
 import com.zextras.carbonio.async.model.MeetingParticipantUplinkStatusChanged;
 import com.zextras.carbonio.chats.core.data.entity.Meeting;
@@ -262,6 +263,45 @@ public class ParticipantServiceImpl implements ParticipantService {
                                 participant.getMeeting(),
                                 room,
                                 UUID.fromString(participant.getUserId()))));
+  }
+
+  /**
+   * Kicks a participant out of the meeting. Only a moderator (room owner) can kick: the kicked
+   * user receives {@link MeetingParticipantKicked} on its meeting queue, while every room member
+   * receives the usual {@link MeetingParticipantLeft}.
+   *
+   * @param meetingId the meeting ID
+   * @param userId the ID of the user to kick
+   * @param currentUser the moderator performing the kick
+   */
+  @Override
+  public void kickMeetingParticipant(UUID meetingId, UUID userId, UserPrincipal currentUser) {
+    Meeting meeting = validateMeeting(meetingId);
+    Room room =
+        roomService.getRoomAndValidateUser(UUID.fromString(meeting.getRoomId()), currentUser, true);
+    if (userId.equals(currentUser.getUUID())) {
+      throw new BadRequestException("User cannot kick itself from the meeting");
+    }
+    Participant participant =
+        meeting.getParticipants().stream()
+            .filter(p -> userId.toString().equals(p.getUserId()))
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new NotFoundException(
+                        String.format(
+                            "User '%s' is not a participant of meeting '%s'", userId, meetingId)));
+    removeMeetingParticipant(participant, meeting, room);
+    // Sent only once the removal succeeded, so the user is never told they were kicked while
+    // still being a participant.
+    eventDispatcher.sendToUserQueue(
+        participant.getUserId(),
+        participant.getQueueId(),
+        MeetingParticipantKicked.create()
+            .meetingId(meetingId)
+            .userId(userId)
+            .type(EventType.MEETING_PARTICIPANT_KICKED)
+            .sentDate(OffsetDateTime.now()));
   }
 
   private void removeMeetingParticipant(Participant participant, Meeting meeting, Room room) {

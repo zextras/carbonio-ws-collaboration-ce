@@ -178,6 +178,27 @@ public class MeetingsApiServiceImpl implements MeetingsApiService {
   }
 
   /**
+   * Kicks the specified user out of the meeting. Only a moderator can kick a
+   * participant.
+   *
+   * @param meetingId       meeting identifier {@link UUID}
+   * @param userId          identifier of the user to kick {@link UUID}
+   * @param securityContext security context created by the authentication filter
+   *                        {@link SecurityContext}
+   * @return a response {@link Response) with status 204
+   */
+  @Override
+  public Response kickMeetingParticipant(
+      UUID meetingId, UUID userId, SecurityContext securityContext) {
+    UserPrincipal currentUser = getCurrentUser(securityContext);
+    if (UserType.GUEST.equals(currentUser.getUserType())) {
+      throw new ForbiddenException();
+    }
+    participantService.kickMeetingParticipant(meetingId, userId, currentUser);
+    return Response.status(Status.NO_CONTENT).build();
+  }
+
+  /**
    * Starts the meeting on the videoserver
    *
    * @param meetingId       meeting identifier {@link UUID}

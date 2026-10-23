@@ -6,9 +6,10 @@ openapi: 3.0.3
 info:
   title: Zextras Carbonio Workstream Collaboration API
   description: Zextras Carbonio Workstream Collaboration HTTP APIs definition.
-  version: 1.6.15
+  version: 1.6.16
   x-supported-versions:
     [
+      "1.6.16",
       "1.6.15",
       "1.6.14",
       "1.6.13",
@@ -875,6 +876,30 @@ paths:
           $ref: '#/components/responses/403ForbiddenResponse'
         404:
           $ref: '#/components/responses/404NotFoundResponse'
+  /meetings/{meetingId}/participants/{userId}/kick:
+    post:
+      tags:
+        - Meetings
+      summary: Removes the specified user from the meeting
+      description: |
+        Kicks the specified participant out of the meeting. Only a moderator (room owner) can kick
+        a participant; any other caller gets 403. The kicked user receives a
+        MeetingParticipantKicked event, every room member receives MeetingParticipantLeft.
+      operationId: kickMeetingParticipant
+      parameters:
+        - $ref: '#/components/parameters/pathMeetingId'
+        - $ref: '#/components/parameters/pathUserId'
+      responses:
+        204:
+          $ref: '#/components/responses/204KickMeetingParticipantResponse'
+        400:
+          $ref: '#/components/responses/400BadRequestResponse'
+        401:
+          $ref: '#/components/responses/401UnauthorizedResponse'
+        403:
+          $ref: '#/components/responses/403ForbiddenResponse'
+        404:
+          $ref: '#/components/responses/404NotFoundResponse'
   /meetings/{meetingId}/decline:
     post:
       tags:
@@ -1688,6 +1713,8 @@ components:
       description: The meeting was deleted successfully
     204LeaveMeetingResponse:
       description: The user exited the meeting successfully
+    204KickMeetingParticipantResponse:
+      description: The user was kicked out of the meeting successfully
     204DeclineMeetingResponse:
       description: The user declined the meeting invitation successfully
     204AudioStreamResponse:
