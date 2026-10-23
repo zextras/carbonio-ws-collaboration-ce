@@ -5,12 +5,13 @@
 openapi: 3.0.3
 info:
   title: Events Data Models
-  version: 1.6.15
+  version: 1.6.16
   description: |
     Data models for room and meeting events.
     This specification contains only the schemas for code generation purposes.
   x-supported-versions:
     [
+      "1.6.16",
       "1.6.15",
       "1.6.14",
       "1.6.13",
@@ -55,6 +56,7 @@ components:
         - MeetingDeleted
         - MeetingParticipantJoined
         - MeetingParticipantLeft
+        - MeetingParticipantKicked
         - MeetingAudioStreamChanged
         - MeetingAudioAnswered
         - MeetingMediaStreamChanged
@@ -108,6 +110,7 @@ components:
           meetingDeleted: "#/components/schemas/MeetingDeleted"
           meetingParticipantJoined: "#/components/schemas/MeetingParticipantJoined"
           meetingParticipantLeft: "#/components/schemas/MeetingParticipantLeft"
+          meetingParticipantKicked: "#/components/schemas/MeetingParticipantKicked"
           meetingDeclined: "#/components/schemas/meetingDeclined"
           meetingAudioStreamChanged: "#/components/schemas/MeetingAudioStreamChanged"
           meetingAudioAnswered: "#/components/schemas/MeetingAudioAnswered"
@@ -358,6 +361,21 @@ components:
             - userId
 
     MeetingParticipantLeft:
+      allOf:
+        - $ref: "#/components/schemas/DomainEvent"
+        - type: object
+          properties:
+            meetingId:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+          required:
+            - meetingId
+            - userId
+
+    MeetingParticipantKicked:
       allOf:
         - $ref: "#/components/schemas/DomainEvent"
         - type: object
